@@ -24,7 +24,7 @@ export function Nav({ email }: { email?: string }) {
       <div className="flex h-14 items-center justify-between px-6">
         <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <LayoutDashboard className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-sm">Plan Financier</span>
+          <span className="font-semibold text-sm">Pekulo</span>
         </Link>
         <div className="flex items-center gap-3">
           {email && (

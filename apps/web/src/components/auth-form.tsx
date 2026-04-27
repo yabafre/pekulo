@@ -49,7 +49,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Plan Financier</CardTitle>
+          <CardTitle className="text-xl">Pekulo</CardTitle>
           <CardDescription>{mode === "login" ? "Connecte-toi à ton dashboard" : "Crée ton compte"}</CardDescription>
         </CardHeader>
         <CardContent>

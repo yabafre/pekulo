@@ -4,8 +4,8 @@ import "./globals.css"
 import { Providers } from "@/components/providers"
 
 export const metadata: Metadata = {
-  title: "Plan Financier — Dashboard",
-  description: "Suivi de plan financier — Cap 100 000 €",
+  title: "Pekulo — Dashboard",
+  description: "Pekulo — suivi de plan financier",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
