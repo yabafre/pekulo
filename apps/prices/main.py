@@ -14,6 +14,7 @@ Compatible with Python 3.9+ (uses typing.Optional/Union/List/Dict instead of PEP
 
 import asyncio
 import os
+import sys
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional, Union
 
@@ -25,6 +26,31 @@ from pydantic import BaseModel
 
 SERVICE_TOKEN = os.environ.get("PRICES_SERVICE_TOKEN", "").strip()
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*").strip() or "*"
+YF_IMPERSONATE = os.environ.get("YF_IMPERSONATE", "chrome").strip() or "chrome"
+
+
+# yfinance is NOT auto-aware of curl_cffi. Without an explicit Session, requests go out
+# with the stdlib User-Agent and TLS fingerprint, which Yahoo blocks aggressively from
+# data-center IPs (the symptom is "Expecting value: line 1 column 1" — empty body on the
+# crumb endpoint, then every history() call fails). Build a Chrome-impersonating session
+# once at startup and reuse it for every Ticker.
+try:
+    from curl_cffi import requests as cffi_requests
+
+    _yf_session = cffi_requests.Session(impersonate=YF_IMPERSONATE)
+    print(
+        "[prices-service] curl_cffi session ready (impersonate={})".format(YF_IMPERSONATE),
+        file=sys.stderr,
+        flush=True,
+    )
+except Exception as _e:  # noqa: BLE001
+    _yf_session = None
+    print(
+        "[prices-service] curl_cffi unavailable ({}); falling back to default session — "
+        "Yahoo will likely rate-limit from a VPS IP".format(_e),
+        file=sys.stderr,
+        flush=True,
+    )
 
 app = FastAPI(title="prices-service", version="1.0.0")
 
@@ -85,7 +111,7 @@ def _quote_one(symbol: str) -> Quote:
     if not sym:
         raise HTTPException(status_code=400, detail="Empty symbol.")
 
-    ticker = yf.Ticker(sym)
+    ticker = yf.Ticker(sym, session=_yf_session) if _yf_session else yf.Ticker(sym)
 
     price: Optional[float] = None
     currency: str = ""

@@ -1,7 +1,8 @@
 fastapi==0.115.6
 uvicorn[standard]==0.33.0
-yfinance==0.2.51
+# yfinance ships frequent fixes for Yahoo's crumb/cookie auth — keep on a recent minor.
+yfinance>=0.2.55,<0.3
 pydantic==2.10.4
-# curl_cffi gives yfinance a real-browser TLS fingerprint (auto-used if installed).
-# Bypasses many Yahoo IP/UA blocks, especially from EU residential networks.
-curl_cffi==0.7.4
+# curl_cffi gives yfinance a real-browser TLS fingerprint. It is NOT auto-detected:
+# main.py builds an explicit Session(impersonate="chrome") and passes it to yf.Ticker.
+curl_cffi>=0.7.4,<1.0
