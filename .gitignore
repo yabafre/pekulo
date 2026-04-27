@@ -39,3 +39,11 @@ venv/
 
 # TypeScript
 *.tsbuildinfo
+
+# AI agents / IDE workflows (local-only configs — not part of the product)
+.mcp.json
+.agents/
+.aped/
+.claude/
+.codex/
+.opencode/
