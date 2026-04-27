@@ -4,8 +4,27 @@ import "./globals.css"
 import { Providers } from "@/components/providers"
 
 export const metadata: Metadata = {
-  title: "Pekulo — Dashboard",
-  description: "Pekulo — suivi de plan financier",
+  title: {
+    default: "Pekulo",
+    template: "%s · Pekulo",
+  },
+  description: "Pekulo — pilote ton plan financier : épargne, projection de capital, portefeuille et hypothèses.",
+  applicationName: "Pekulo",
+  keywords: ["pekulo", "plan financier", "épargne", "projection", "portefeuille", "ETF", "PEA"],
+  authors: [{ name: "Pekulo" }],
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Pekulo",
+    title: "Pekulo",
+    description: "Pilote ton plan financier : épargne, projection de capital, portefeuille et hypothèses.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Pekulo",
+    description: "Pilote ton plan financier : épargne, projection de capital, portefeuille et hypothèses.",
+  },
+  robots: { index: false, follow: false },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
