@@ -1,0 +1,13 @@
+# APED Project Configuration
+project_name: test
+user_name: Alex
+communication_language: french
+document_output_language: english
+aped_path: .aped
+output_path: docs
+commands_path: .claude/commands
+aped_version: 3.7.6
+
+# Integrations
+ticket_system: linear
+git_provider: github
