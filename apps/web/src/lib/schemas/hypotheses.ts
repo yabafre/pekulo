@@ -28,6 +28,8 @@ export const hypothesesSchema = z.object({
   economieRemoteMois: positive,
   moisRemoteAn: z.number().min(0).max(12),
   revenuFreelanceMois: positive,
+  horizonYears: z.number().int().min(1).max(50),
+  objectif: positive,
 })
 
 export type HypothesesInput = z.infer<typeof hypothesesSchema>

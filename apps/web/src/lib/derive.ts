@@ -1,9 +1,46 @@
 import type {
+  AnnualSummary,
   BudgetItem,
   Hypotheses,
   KpiData,
+  MonthlyRecord,
   RevenueItem,
+  ScenarioItem,
 } from "./types"
+
+export interface ProjectionOpts {
+  startDate?: Date
+  endDate?: Date
+  horizonYears?: number
+}
+
+const MONTH_NAMES_FR = [
+  "janv.", "févr.", "mars", "avr.", "mai", "juin",
+  "juil.", "août", "sept.", "oct.", "nov.", "déc.",
+] as const
+
+function formatMonthFr(year: number, monthNum: number): string {
+  return `${MONTH_NAMES_FR[monthNum - 1]} ${year}`
+}
+
+function parseCreditStart(s: string): { month: number; year: number } | null {
+  const m = s.match(/^(\d{1,2})\/(\d{4})$/)
+  if (!m) return null
+  return { month: parseInt(m[1], 10), year: parseInt(m[2], 10) }
+}
+
+function resolveRange(h: Hypotheses, opts: ProjectionOpts) {
+  const horizon = opts.horizonYears ?? h.horizonYears
+  const today = new Date()
+  const start = opts.startDate ?? new Date(today.getFullYear(), today.getMonth(), 1)
+  const end = opts.endDate ?? new Date(start.getFullYear() + horizon, start.getMonth(), 1)
+  return {
+    startYear: start.getFullYear(),
+    startMonth: start.getMonth() + 1,
+    endYear: end.getFullYear(),
+    endMonth: end.getMonth() + 1,
+  }
+}
 
 export function deriveAvantages(h: Hypotheses): number {
   const ticketResto = h.ticketRestoJour * h.partEmployeurTr * h.joursTravailles
@@ -17,11 +54,123 @@ export function deriveDepensesTotales(h: Hypotheses): number {
   return round(chargesFixes + lifestyle + h.voyageMois)
 }
 
-export function deriveKpis(
-  h: Hypotheses,
-  capitalProjete = 145738,
-  objectif = 100000
-): KpiData {
+export function deriveMonthly(h: Hypotheses, opts: ProjectionOpts = {}): MonthlyRecord[] {
+  const range = resolveRange(h, opts)
+  const credit = parseCreditStart(h.dateDebutCredit)
+  const avantages = deriveAvantages(h)
+  const depensesBase = deriveDepensesTotales(h)
+  const monthlyRate = h.perfEtfAnnuelle / 12
+
+  const rows: MonthlyRecord[] = []
+  let capitalTotal = 0
+  let epargneCumul = 0
+  let y = range.startYear
+  let m = range.startMonth
+
+  while (y < range.endYear || (y === range.endYear && m < range.endMonth)) {
+    const yearsSinceStart = y - range.startYear
+    const net = h.salaireNet * Math.pow(1 + h.augmentationSalaire, yearsSinceStart)
+    const remote = m <= h.moisRemoteAn ? h.economieRemoteMois : 0
+    const freelance = h.revenuFreelanceMois
+    const creditPaid =
+      credit && (y > credit.year || (y === credit.year && m >= credit.month))
+        ? h.creditMensuel
+        : 0
+    const epargneMois = net - depensesBase + remote + freelance - creditPaid
+    const perfMarche = capitalTotal * monthlyRate
+    capitalTotal += epargneMois + perfMarche
+    epargneCumul += epargneMois
+
+    rows.push({
+      month: formatMonthFr(y, m),
+      year: y,
+      monthNum: m,
+      net: round(net),
+      avantages,
+      depenses: round(depensesBase),
+      credit: round(creditPaid),
+      remote: round(remote),
+      freelance: round(freelance),
+      epargneMois: round(epargneMois),
+      perfMarche: round(perfMarche, 1),
+      epargneCumul: round(epargneCumul),
+      capitalTotal: round(capitalTotal),
+    })
+
+    m++
+    if (m > 12) { m = 1; y++ }
+  }
+
+  return rows
+}
+
+export function deriveAnnualSummaries(h: Hypotheses, opts: ProjectionOpts = {}): AnnualSummary[] {
+  const monthly = deriveMonthly(h, opts)
+  const summaries: AnnualSummary[] = []
+  for (let i = 0; i < monthly.length; i += 12) {
+    const window = monthly.slice(i, i + 12)
+    if (window.length === 0) break
+    const first = window[0]
+    const last = window[window.length - 1]
+    const epargneAnnuelle = window.reduce((s, x) => s + x.epargneMois, 0)
+    const perfMarche = window.reduce((s, x) => s + x.perfMarche, 0)
+    summaries.push({
+      periode: `${first.month} → ${last.month}`,
+      epargneAnnuelle: round(epargneAnnuelle),
+      perfMarche: round(perfMarche),
+      capitalFin: round(last.capitalTotal),
+    })
+  }
+  return summaries
+}
+
+interface ScenarioVariant {
+  name: string
+  perfEtfAnnuelle: number
+  moisEpargne1: number
+  moisEpargne2: number
+}
+
+export function deriveScenarios(h: Hypotheses, opts: ProjectionOpts = {}): ScenarioItem[] {
+  const horizonYears = opts.horizonYears ?? h.horizonYears
+  const totalMonths = horizonYears * 12
+  const phase1Months = Math.min(12, totalMonths)
+  const phase2Months = Math.max(0, totalMonths - phase1Months)
+
+  const variants: ScenarioVariant[] = [
+    { name: "Conservateur", perfEtfAnnuelle: 0.05, moisEpargne1: 700, moisEpargne2: 600 },
+    { name: "Réaliste", perfEtfAnnuelle: h.perfEtfAnnuelle, moisEpargne1: 1000, moisEpargne2: 800 },
+    { name: "Agressif (Remote)", perfEtfAnnuelle: h.perfEtfAnnuelle, moisEpargne1: 1500, moisEpargne2: 1200 },
+  ]
+
+  return variants.map((v) => {
+    const monthlyRate = v.perfEtfAnnuelle / 12
+    let capital = 0
+    let epargneCum = 0
+    for (let i = 0; i < phase1Months; i++) {
+      capital += v.moisEpargne1 + capital * monthlyRate
+      epargneCum += v.moisEpargne1
+    }
+    for (let i = 0; i < phase2Months; i++) {
+      capital += v.moisEpargne2 + capital * monthlyRate
+      epargneCum += v.moisEpargne2
+    }
+    return {
+      name: v.name,
+      capitalFin: round(capital),
+      epargne: round(epargneCum),
+      perf: round(capital - epargneCum),
+      taux: round(v.perfEtfAnnuelle * 100, 1),
+      moisEpargne1: v.moisEpargne1,
+      moisEpargne2: v.moisEpargne2,
+    }
+  })
+}
+
+export function deriveKpis(h: Hypotheses, opts: ProjectionOpts = {}): KpiData {
+  const objectif = h.objectif
+  const monthly = deriveMonthly(h, opts)
+  const capitalProjete = monthly.length > 0 ? monthly[monthly.length - 1].capitalTotal : 0
   const avantages = deriveAvantages(h)
   const pouvoirAchat = h.salaireNet + avantages
   const depenses = deriveDepensesTotales(h)
@@ -30,7 +179,7 @@ export function deriveKpis(
     netReel: round(h.salaireNet),
     pouvoirAchat: round(pouvoirAchat),
     epargneMois: round(epargneMois),
-    capitalProjete,
+    capitalProjete: round(capitalProjete),
     objectif,
     progression: round((capitalProjete / objectif) * 100, 1),
   }

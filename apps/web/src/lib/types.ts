@@ -76,6 +76,8 @@ export interface Hypotheses {
   economieRemoteMois: number
   moisRemoteAn: number
   revenuFreelanceMois: number
+  horizonYears: number
+  objectif: number
 }
 
 export interface MonthlyEntry {
@@ -217,4 +219,6 @@ export const defaultHypotheses: Hypotheses = {
   economieRemoteMois: 1000,
   moisRemoteAn: 6,
   revenuFreelanceMois: 300,
+  horizonYears: 5,
+  objectif: 100000,
 }

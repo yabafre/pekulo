@@ -34,6 +34,8 @@ const dbToCamel = (row: Record<string, unknown>): Hypotheses => ({
   economieRemoteMois: Number(row.economie_remote_mois ?? defaultHypotheses.economieRemoteMois),
   moisRemoteAn: Number(row.mois_remote_an ?? defaultHypotheses.moisRemoteAn),
   revenuFreelanceMois: Number(row.revenu_freelance_mois ?? defaultHypotheses.revenuFreelanceMois),
+  horizonYears: Number(row.horizon_years ?? defaultHypotheses.horizonYears),
+  objectif: Number(row.objectif ?? defaultHypotheses.objectif),
 })
 
 const camelToDb = (h: Hypotheses, userId: string) => ({
@@ -62,6 +64,8 @@ const camelToDb = (h: Hypotheses, userId: string) => ({
   economie_remote_mois: h.economieRemoteMois,
   mois_remote_an: h.moisRemoteAn,
   revenu_freelance_mois: h.revenuFreelanceMois,
+  horizon_years: h.horizonYears,
+  objectif: h.objectif,
   updated_at: new Date().toISOString(),
 })
 

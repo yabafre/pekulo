@@ -55,6 +55,8 @@ export async function readHypotheses(): Promise<{
         economieRemoteMois: Number(data.economie_remote_mois),
         moisRemoteAn: Number(data.mois_remote_an),
         revenuFreelanceMois: Number(data.revenu_freelance_mois),
+        horizonYears: Number(data.horizon_years ?? defaultHypotheses.horizonYears),
+        objectif: Number(data.objectif ?? defaultHypotheses.objectif),
       },
       source: "db",
     }

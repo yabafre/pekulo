@@ -1,15 +1,10 @@
--- ============================================================
--- Plan Financier — Supabase Database Schema
--- Run this in your Supabase SQL Editor
--- ============================================================
-
--- Enable RLS
-ALTER TABLE IF EXISTS public.kpis ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.monthly_tracking ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.hypotheses ENABLE ROW LEVEL SECURITY;
+-- Initial schema baseline.
+-- Mirrors the production state before migrations were introduced.
+-- For an existing linked database, mark this as already applied:
+--   supabase migration repair --status applied 20260101000000
 
 -- ============================================================
--- KPIs table (user dashboard preferences)
+-- KPIs (legacy — currently not consumed by the app, kept for compat)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.kpis (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -24,17 +19,17 @@ CREATE TABLE IF NOT EXISTS public.kpis (
   UNIQUE(user_id)
 );
 
+ALTER TABLE public.kpis ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY "Users can view their own KPIs"
   ON public.kpis FOR SELECT USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert their own KPIs"
   ON public.kpis FOR INSERT WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update their own KPIs"
   ON public.kpis FOR UPDATE USING (auth.uid() = user_id);
 
 -- ============================================================
--- Monthly tracking table
+-- Monthly tracking
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.monthly_tracking (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -56,17 +51,17 @@ CREATE TABLE IF NOT EXISTS public.monthly_tracking (
   UNIQUE(user_id, month_num, year)
 );
 
+ALTER TABLE public.monthly_tracking ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY "Users can view their own tracking"
   ON public.monthly_tracking FOR SELECT USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert their own tracking"
   ON public.monthly_tracking FOR INSERT WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update their own tracking"
   ON public.monthly_tracking FOR UPDATE USING (auth.uid() = user_id);
 
 -- ============================================================
--- Hypotheses table (user-editable parameters)
+-- Hypotheses (user-editable parameters)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.hypotheses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -95,45 +90,26 @@ CREATE TABLE IF NOT EXISTS public.hypotheses (
   economie_remote_mois NUMERIC DEFAULT 1000,
   mois_remote_an NUMERIC DEFAULT 6,
   revenu_freelance_mois NUMERIC DEFAULT 300,
-  horizon_years SMALLINT NOT NULL DEFAULT 5,
-  objectif NUMERIC NOT NULL DEFAULT 100000,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_id)
 );
 
+ALTER TABLE public.hypotheses ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY "Users can view their own hypotheses"
   ON public.hypotheses FOR SELECT USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert their own hypotheses"
   ON public.hypotheses FOR INSERT WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update their own hypotheses"
   ON public.hypotheses FOR UPDATE USING (auth.uid() = user_id);
 
 -- ============================================================
--- Insert seed data for testing (run after creating user)
--- Replace 'USER_UUID_HERE' with actual user ID
--- ============================================================
-
--- KPIs
--- INSERT INTO public.kpis (user_id, net_reel, pouvoir_achat, epargne_mois, capital_projete, objectif)
--- VALUES ('USER_UUID_HERE', 3700, 3943, 1210, 145738, 100000);
-
--- Monthly tracking (seed the first few months)
--- INSERT INTO public.monthly_tracking (user_id, month_num, year, month_label, net, avantages, depenses, credit, remote, freelance, epargne_mois, perf_marche, epargne_cumul, capital_total)
--- VALUES
--- ('USER_UUID_HERE', 5, 2026, 'mai 2026', 3700, 243, 2490, 0, 1000, 300, 2510, 0, 2510, 2510),
--- ('USER_UUID_HERE', 6, 2026, 'juin 2026', 3700, 243, 2490, 0, 1000, 300, 2510, 14.2, 5020, 5034);
-
--- ============================================================
--- Transactions table (qs-03)
+-- Transactions
 -- ============================================================
 DO $$ BEGIN
   CREATE TYPE transaction_type AS ENUM ('inflow', 'outflow');
-EXCEPTION
-  WHEN duplicate_object THEN null;
-END $$;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 CREATE TABLE IF NOT EXISTS public.transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -157,21 +133,18 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view their own transactions" ON public.transactions;
 CREATE POLICY "Users can view their own transactions"
   ON public.transactions FOR SELECT USING (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users can insert their own transactions" ON public.transactions;
 CREATE POLICY "Users can insert their own transactions"
   ON public.transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users can update their own transactions" ON public.transactions;
 CREATE POLICY "Users can update their own transactions"
   ON public.transactions FOR UPDATE USING (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users can delete their own transactions" ON public.transactions;
 CREATE POLICY "Users can delete their own transactions"
   ON public.transactions FOR DELETE USING (auth.uid() = user_id);
 
 -- ============================================================
--- Accounts + Holdings (qs-04a — placements foundation)
+-- Accounts + Holdings
 -- ============================================================
 DO $$ BEGIN
   CREATE TYPE account_type AS ENUM ('livret', 'pea', 'cto', 'av', 'autre');
@@ -236,7 +209,7 @@ DROP POLICY IF EXISTS "Users can delete their own holdings" ON public.holdings;
 CREATE POLICY "Users can delete their own holdings" ON public.holdings FOR DELETE USING (auth.uid() = user_id);
 
 -- ============================================================
--- Holding lots (qs-04d — buy/sell history, derives qty + avg_cost)
+-- Holding lots
 -- ============================================================
 DO $$ BEGIN
   CREATE TYPE lot_type AS ENUM ('buy', 'sell');

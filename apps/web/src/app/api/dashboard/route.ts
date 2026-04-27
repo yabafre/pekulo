@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import {
-  kpiData,
-  monthlyData,
-  annualSummaries,
-  scenarios,
-  budgetData,
-  revenueData,
-} from "@/lib/data"
-import { deriveBudget, deriveKpis, deriveRevenue } from "@/lib/derive"
+  deriveAnnualSummaries,
+  deriveBudget,
+  deriveKpis,
+  deriveMonthly,
+  deriveRevenue,
+  deriveScenarios,
+} from "@/lib/derive"
 import { readHypotheses } from "@/lib/data/hypotheses"
 
 export async function GET() {
@@ -27,22 +26,18 @@ export async function GET() {
       .eq("user_id", user.id)
       .order("month_num")
 
+    const monthly = deriveMonthly(hypotheses)
+
     return NextResponse.json({
-      kpi: deriveKpis(hypotheses, kpiData.capitalProjete, kpiData.objectif),
-      monthly: dbMonthly?.length ? dbMonthly : monthlyData,
-      annual: annualSummaries,
-      scenarios,
+      kpi: deriveKpis(hypotheses),
+      monthly: dbMonthly?.length ? dbMonthly : monthly,
+      annual: deriveAnnualSummaries(hypotheses),
+      scenarios: deriveScenarios(hypotheses),
       budget: deriveBudget(hypotheses),
       revenue: deriveRevenue(hypotheses),
     })
-  } catch {
-    return NextResponse.json({
-      kpi: kpiData,
-      monthly: monthlyData,
-      annual: annualSummaries,
-      scenarios,
-      budget: budgetData,
-      revenue: revenueData,
-    })
+  } catch (e) {
+    console.error("[/api/dashboard]", e)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

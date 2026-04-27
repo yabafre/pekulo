@@ -8,14 +8,15 @@ import { AnnualSummaryChart } from "@/components/charts/annual-chart"
 import { Phases } from "@/components/phases"
 import { DetailCards } from "@/components/detail-cards"
 import { AnnualTable } from "@/components/annual-table"
+import { phases } from "@/lib/config"
 import {
-  kpiData as kpiDataFallback,
-  monthlyData,
-  annualSummaries,
-  scenarios,
-  phases,
-} from "@/lib/data"
-import { deriveBudget, deriveKpis, deriveRevenue } from "@/lib/derive"
+  deriveAnnualSummaries,
+  deriveBudget,
+  deriveKpis,
+  deriveMonthly,
+  deriveRevenue,
+  deriveScenarios,
+} from "@/lib/derive"
 import { readHypotheses } from "@/lib/data/hypotheses"
 import { readPortfolioSnapshot } from "@/lib/data/portfolio"
 
@@ -30,7 +31,10 @@ export default async function DashboardPage() {
     readHypotheses(),
     readPortfolioSnapshot(),
   ])
-  const kpiData = deriveKpis(hypotheses, kpiDataFallback.capitalProjete, kpiDataFallback.objectif)
+  const kpiData = deriveKpis(hypotheses)
+  const monthlyData = deriveMonthly(hypotheses)
+  const annualSummaries = deriveAnnualSummaries(hypotheses)
+  const scenarios = deriveScenarios(hypotheses)
   const budgetData = deriveBudget(hypotheses)
   const revenueData = deriveRevenue(hypotheses)
   const capitalActuel = portfolio.kpi.capitalTotal

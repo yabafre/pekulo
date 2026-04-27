@@ -74,14 +74,6 @@ export function HypothesesForm({ initialValues }: { initialValues: Hypotheses })
           </Grid>
         </Section>
 
-        <Section title="Crédit & matelas">
-          <Grid>
-            <NumField form={form} name="creditMensuel" label="Crédit mensuel (€)" step="10" />
-            <TextField form={form} name="dateDebutCredit" label="Début crédit (MM/YYYY)" placeholder="01/2027" />
-            <NumField form={form} name="matelasCible" label="Matelas cible (€)" step="500" />
-          </Grid>
-        </Section>
-
         <Section title="Investissement & remote">
           <Grid>
             <NumField form={form} name="perfEtfAnnuelle" label="Perf ETF annuelle (0-1)" step="0.01" />
@@ -93,6 +85,23 @@ export function HypothesesForm({ initialValues }: { initialValues: Hypotheses })
             <NumField form={form} name="revenuFreelanceMois" label="Revenu freelance / mois (€)" step="50" />
           </Grid>
         </Section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <Section title="Crédit & matelas">
+            <Grid>
+              <NumField form={form} name="creditMensuel" label="Crédit mensuel (€)" step="10" />
+              <TextField form={form} name="dateDebutCredit" label="Début crédit (MM/YYYY)" placeholder="01/2027" />
+              <NumField form={form} name="matelasCible" label="Matelas cible (€)" step="500" />
+            </Grid>
+          </Section>
+
+          <Section title="Projection">
+            <Grid>
+              <NumField form={form} name="horizonYears" label="Horizon (années)" step="1" />
+              <NumField form={form} name="objectif" label="Objectif (€)" step="1000" />
+            </Grid>
+          </Section>
+        </div>
 
         <div className="flex items-center justify-between gap-3 pt-2">
           <p className="text-xs text-muted-foreground">
@@ -141,7 +150,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Grid({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{children}</div>
+  return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{children}</div>
 }
 
 type NumericKey = {
