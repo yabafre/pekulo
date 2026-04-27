@@ -2,22 +2,22 @@
 
 Personal finance dashboard — capital tracking, multi-currency portfolio, holdings history.
 
-> *Pekulo* — du latin *peculium*, "le pécule", l'épargne mise de côté.
+> *Pekulo* — from Latin *peculium*, the personal stash one sets aside.
 
-Suivi mois par mois de l'épargne, des dépenses, des transactions, et d'un portefeuille (Livret A, PEA, CTO, AV) avec ETF et actions. Cours rafraîchis automatiquement, devise normalisée en EUR, historique des achats/ventes pour le calcul de prix moyen pondéré.
+Month-by-month tracking of savings, expenses, transactions, and a portfolio (Livret A, PEA, CTO, AV) with ETFs and individual stocks. Prices are auto-refreshed, currencies normalized to EUR, and a buy/sell history feeds a weighted-average cost basis on each holding.
 
 ---
 
 ## Stack
 
-- **Monorepo** — Bun + Turborepo, 2 apps (`apps/web`, `apps/prices`)
+- **Monorepo** — Bun + Turborepo, two apps (`apps/web`, `apps/prices`)
 - **Web** — Next.js 16 (Turbopack) + React 19 + Tailwind 4 + shadcn × base-ui
-- **Data** — Supabase (Postgres + Auth + RLS sur toutes les tables)
-- **Forms / mutations** — TanStack Form + zod + ZapAction (`defineAction` avec tags + revalidate)
-- **Charts** — Recharts via `ChartContainer` shadcn (donut allocation, capital, scénarios, annuel)
-- **Prix** — chaîne de fallback à 4 niveaux : `apps/prices` (Python yfinance sur VPS) → `yahoo-finance2` (npm) → scraping Boursorama → Twelve Data
-- **FX** — frankfurter.app (taux ECB, gratuit, base EUR)
-- **Prices service** — FastAPI + yfinance + curl_cffi (déployable via Dokploy/Docker)
+- **Data** — Supabase (Postgres + Auth + RLS on every table)
+- **Forms / mutations** — TanStack Form + zod + ZapAction (`defineAction` with tags + revalidate)
+- **Charts** — Recharts via shadcn `ChartContainer` (allocation donut, capital, scenarios, annual)
+- **Prices** — 4-tier fallback chain: `apps/prices` (Python yfinance on a VPS) → `yahoo-finance2` (npm) → Boursorama scraping → Twelve Data
+- **FX** — frankfurter.app (ECB rates, free, EUR base)
+- **Prices service** — FastAPI + yfinance + curl_cffi, deployable via Dokploy/Docker
 
 ## Layout
 
@@ -25,43 +25,43 @@ Suivi mois par mois de l'épargne, des dépenses, des transactions, et d'un port
 .
 ├── apps/
 │   ├── web/                 # Next.js 16 — dashboard + auth + tables
-│   └── prices/              # FastAPI + yfinance — service de prix temps réel
+│   └── prices/              # FastAPI + yfinance — real-time price service
 ├── docs/
-│   ├── quick-specs/         # 10 specs APED qui ont produit la version actuelle
+│   ├── quick-specs/         # 10 APED specs that produced the current version
 │   └── state.yaml
-├── package.json             # workspaces ["apps/web"], scripts dotenv-prefixed
-├── turbo.json               # pipelines dev/build/lint/check-types
-├── .env.example             # tous les vars (Supabase, prices service, Twelve Data)
+├── package.json             # workspaces ["apps/web"], dotenv-prefixed scripts
+├── turbo.json               # dev / build / lint / check-types pipelines
+├── .env.example             # all vars (Supabase, prices service, Twelve Data)
 └── bun.lock
 ```
 
 ## Quick start (local)
 
-Prérequis : Bun ≥ 1.3, Python ≥ 3.10 (optionnel pour le service prix), un projet Supabase.
+Requirements: Bun ≥ 1.3, Python ≥ 3.10 (optional, for the prices service), a Supabase project.
 
 ```bash
-# 1. Cloner + installer
+# 1. Clone + install
 git clone git@github.com:yabafre/pekulo.git
 cd pekulo
 bun install
 
-# 2. Configurer l'env (copier puis remplir)
+# 2. Configure env (copy then fill)
 cp .env.example .env.local
-# Renseigne au minimum :
+# Required at minimum:
 #   NEXT_PUBLIC_SUPABASE_URL
 #   NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# 3. Provisionner la base
-# Ouvre Supabase Studio → SQL Editor → exécute apps/web/supabase-schema.sql
+# 3. Provision the database
+# Open Supabase Studio → SQL Editor → run apps/web/supabase-schema.sql
 
-# 4. Lancer le dev (à la racine)
+# 4. Start the dev server (from the repo root)
 bun run dev
-# → Next.js sur http://localhost:3000
+# → Next.js on http://localhost:3000
 ```
 
-Première connexion : login Supabase, puis `/dashboard/parametres` pour saisir tes hypothèses (salaire, charges, taux ETF), puis `/dashboard/portefeuille` pour ajouter comptes + holdings.
+First sign-in: log into Supabase, then visit `/dashboard/parametres` to enter your assumptions (salary, expenses, ETF perf), then `/dashboard/portefeuille` to add accounts and holdings.
 
-### Service de prix Python (optionnel local)
+### Python prices service (optional, local)
 
 ```bash
 cd apps/prices
@@ -69,83 +69,83 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 
-# Test
+# Sanity-check
 curl http://localhost:8000/health
 curl "http://localhost:8000/quote?symbol=PE500.PA"
 ```
 
-Si ton IP est rate-limitée par Yahoo (souvent le cas en EU), le service fallback automatiquement sur Boursorama côté Next.js. En production sur ton VPS via Dokploy, l'IP différente bypass le rate-limit.
+If your home IP is rate-limited by Yahoo (frequent in EU), the Next.js app falls back to Boursorama automatically. Once deployed on a VPS via Dokploy, the different egress IP avoids the rate limit.
 
 ## Pages
 
-| Route | Rôle |
+| Route | Purpose |
 |---|---|
-| `/dashboard` | KPI strip + charts + capital actuel vs projeté |
-| `/dashboard/parametres` | Hypothèses éditables (salaire, charges, ETF perf, etc.) |
-| `/dashboard/mensuel` | 60 mois projetés/réels avec écart cumulé |
-| `/dashboard/transactions` | Entrées/sorties + imprévus, filtrables |
-| `/dashboard/portefeuille` | Comptes + holdings + AllocationChart + refresh prix |
-| Bouton historique sur chaque holding | Lots achat/vente, prix moyen pondéré dérivé |
+| `/dashboard` | KPI strip + charts + actual vs projected capital |
+| `/dashboard/parametres` | Editable assumptions (salary, expenses, ETF perf, etc.) |
+| `/dashboard/mensuel` | 60 projected/actual months with cumulative deviation |
+| `/dashboard/transactions` | Inflows/outflows + one-off events, filterable |
+| `/dashboard/portefeuille` | Accounts + holdings + AllocationChart + price refresh |
+| Each holding's history button | Buy/sell lots with a derived weighted-average cost |
 
-## Variables d'environnement
+## Environment variables
 
-| Variable | Requis | Description |
+| Variable | Required | Description |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✓ | URL projet Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✓ | Clé anon Supabase |
-| `PRICES_SERVICE_URL` | optionnel | URL du service Python (sinon fallback yahoo-finance2 + Boursorama) |
-| `PRICES_SERVICE_TOKEN` | optionnel | Bearer token, si le service est protégé |
-| `TWELVE_DATA_API_KEY` | optionnel | Free tier 800 req/jour, fallback US uniquement |
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Supabase anon key |
+| `PRICES_SERVICE_URL` | optional | URL of the Python service (otherwise falls back to yahoo-finance2 + Boursorama) |
+| `PRICES_SERVICE_TOKEN` | optional | Bearer token, if the service is protected |
+| `TWELVE_DATA_API_KEY` | optional | Free tier 800 req/day, US-only fallback |
 
-Voir `.env.example` pour les détails.
+See `.env.example` for the full list with comments.
 
-## Architecture du fallback de prix
+## Price fallback architecture
 
 ```
 fetchPriceQuote({ ticker, currency, kind })
        │
-       ├─① Python service (apps/prices, déployé sur VPS Dokploy)
+       ├─① Python service (apps/prices, deployed on VPS via Dokploy)
        │     PRICES_SERVICE_URL → yfinance + curl_cffi
        │
-       ├─② yahoo-finance2 (npm) — gère consent EU + crumb auto
+       ├─② yahoo-finance2 (npm) — handles EU consent + crumb automatically
        │
-       ├─③ Boursorama scraping — pour Euronext FR (PE500, CW8, etc.)
-       │     /recherche/?query=<TICKER> → redirect vers la page canonique
+       ├─③ Boursorama scraping — covers Euronext FR (PE500, CW8, etc.)
+       │     /recherche/?query=<TICKER> → redirects to canonical quote page
        │
-       └─④ Twelve Data — fallback US uniquement (free tier sans EU)
+       └─④ Twelve Data — US-only fallback (free tier doesn't cover EU)
 
-→ Premier provider qui répond gagne. Cache 60s par symbole.
-→ Si tous échouent : PriceError composite avec le détail par provider.
+→ First provider that responds wins. 60s cache per symbol.
+→ If all fail: composite PriceError with the per-provider reason.
 ```
 
-## Architecture des holdings & lots
+## Holdings & lots
 
-- `accounts` — Livret A, PEA, CTO, AV — devise + cash balance
-- `holdings` — ETF/actions liés à un compte — qty + avg_cost + last_price
-- `holding_lots` — historique buy/sell — qty/price/fees/date
+- `accounts` — Livret A, PEA, CTO, AV — currency + cash balance
+- `holdings` — ETFs/stocks attached to an account — qty + avg_cost + last_price
+- `holding_lots` — buy/sell history — qty / price / fees / date
 
-Quand un holding a des lots, `qty` et `avg_cost` deviennent **dérivés** (moyenne pondérée) à chaque mutation. Un holding sans lots reste en saisie manuelle.
+When a holding has lots, `qty` and `avg_cost` become **derived** (weighted average) on every mutation. A holding without lots stays in manual entry mode for back-compat.
 
 ## Specs
 
-Le projet a été construit en 10 quick-specs APED, tous documentés dans `docs/quick-specs/`. Suivre l'ordre chronologique pour comprendre l'évolution :
+The project was built through 10 APED quick-specs, all in `docs/quick-specs/`. Read them in order to follow the evolution:
 
-1. `hypotheses-editor` — paramètres éditables, foundation
-2. `monthly-actuals` — saisie mois par mois
-3. `transactions-imprevus` — CRUD transactions
-4. `placements-foundation` — comptes + holdings (qs-04a)
-5. `placements-yahoo` — auto-refresh prix v1 (qs-04b)
+1. `hypotheses-editor` — editable settings, foundation
+2. `monthly-actuals` — month-by-month entry
+3. `transactions-imprevus` — transactions CRUD
+4. `placements-foundation` — accounts + holdings (qs-04a)
+5. `placements-yahoo` — auto price refresh v1 (qs-04b)
 6. `placements-yahoo-fallbacks` — Yahoo crumb + Twelve Data (qs-04b-bis)
 7. `placements-prices-rewrite` — yahoo-finance2 + Python sidecar (qs-04b-final)
-8. `placements-fx` — multi-devises via frankfurter (qs-04c)
-9. `placements-lots` — historique buy/sell + dérivation auto (qs-04d)
-10. `monorepo-migration` — Bun + Turborepo + .env racine
+8. `placements-fx` — multi-currency via frankfurter (qs-04c)
+9. `placements-lots` — buy/sell history + derivation (qs-04d)
+10. `monorepo-migration` — Bun + Turborepo + root .env
 
-## Déploiement
+## Deployment
 
-- **`apps/web`** → Vercel (recommandé, Next.js natif). Pousser depuis `main`. Configurer les vars d'env Supabase + (optionnel) `PRICES_SERVICE_URL` + `TWELVE_DATA_API_KEY`.
-- **`apps/prices`** → Dokploy ou n'importe quel runtime Docker. Build context : `apps/prices/`. Voir `apps/prices/README.md` pour les détails.
+- **`apps/web`** → Vercel recommended (native Next.js). Push from `main`. Configure Supabase env vars + (optional) `PRICES_SERVICE_URL` + `TWELVE_DATA_API_KEY`.
+- **`apps/prices`** → Dokploy or any Docker runtime. Build context: `apps/prices/`. See `apps/prices/README.md` for details.
 
 ## License
 
-Privé. Tous droits réservés.
+Private. All rights reserved.
