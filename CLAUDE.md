@@ -3,6 +3,7 @@
 Goal-based personal finance app — Persona #1: Alex.
 
 <!-- APED:START -->
+
 ## APED Method — disciplined user-driven pipeline
 
 Pipeline: **Analyze → PRD → UX → Architecture → Epics → Story → Dev → Review**.

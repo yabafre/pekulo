@@ -2,8 +2,8 @@
   "name": "@pekulo/contracts",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "Pekulo oRPC contracts — placeholder; real contracts (compassContract, holdingsContract, llmContract, ...) land in story 0-5 per ADR-0011.",
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -13,8 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pekulo/validators": "workspace:*",
-    "@pekulo/types": "workspace:*"
+    "@pekulo/types": "workspace:*",
+    "@pekulo/validators": "workspace:*"
   },
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*",

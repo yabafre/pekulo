@@ -14,44 +14,44 @@ Every component below is implemented in the live prototype. Props are TypeScript
 
 Root component. Lifts theme + navigation + tab state. Wraps children in `<ThemeContext.Provider>`.
 
-| State | Type | Default |
-|---|---|---|
-| `activeNav` | `'cap' \| 'transactions' \| 'monthly' \| 'portfolio' \| 'realestate' \| 'settings'` | `'cap'` |
-| `topTab` | `'cap' \| 'patrimoine'` | `'cap'` |
-| `theme` | `'system' \| 'dark' \| 'light'` | `'system'` |
+| State       | Type                                                                                | Default    |
+| ----------- | ----------------------------------------------------------------------------------- | ---------- |
+| `activeNav` | `'cap' \| 'transactions' \| 'monthly' \| 'portfolio' \| 'realestate' \| 'settings'` | `'cap'`    |
+| `topTab`    | `'cap' \| 'patrimoine'`                                                             | `'cap'`    |
+| `theme`     | `'system' \| 'dark' \| 'light'`                                                     | `'system'` |
 
 ### `NavRail`
 
 Floating sidebar bubble (lg+ only). 64 px wide, fixed left-4 top-4 bottom-4, `bg-card rounded-xl`. Brand icon top, 5 nav items middle, settings bottom. Tooltip on hover.
 
-| Prop | Type | Required |
-|---|---|---|
-| `activeKey` | `NavKey` | yes |
-| `setActiveKey` | `(k: NavKey) => void` | yes |
+| Prop           | Type                  | Required |
+| -------------- | --------------------- | -------- |
+| `activeKey`    | `NavKey`              | yes      |
+| `setActiveKey` | `(k: NavKey) => void` | yes      |
 
 ### `UserDot`
 
 Avatar circle with user initial. 44 × 44 mobile / 40 × 40 desktop, `bg-muted text-fg`.
 
-| Prop | Type |
-|---|---|
+| Prop      | Type         |
+| --------- | ------------ |
 | `onClick` | `() => void` |
 
 ### `ContextualAddButton`
 
 Mobile-only primary "+" button. Renders only when `activeNav` ∈ {transactions, portfolio, realestate}. 44 × 44 white circle.
 
-| Prop | Type |
-|---|---|
+| Prop        | Type     |
+| ----------- | -------- |
 | `activeNav` | `NavKey` |
 
 ### `TopTabToggle`
 
 Cap / Patrimoine bold-vs-dim text toggle. Inactive = `text-fg-muted`, active = `text-fg`.
 
-| Prop | Type |
-|---|---|
-| `topTab` | `TopTab` |
+| Prop        | Type                  |
+| ----------- | --------------------- |
+| `topTab`    | `TopTab`              |
 | `setTopTab` | `(t: TopTab) => void` |
 
 ---
@@ -73,12 +73,12 @@ The single wrapping component used by every bento cell + mobile section. Guarant
 </Section>
 ```
 
-| Prop | Type | Default |
-|---|---|---|
-| `className` | `string` | — |
-| `ariaLabel` | `string` | — |
-| `title` | `string` | — |
-| `action` | `React.ReactNode` | — |
+| Prop        | Type              | Default |
+| ----------- | ----------------- | ------- |
+| `className` | `string`          | —       |
+| `ariaLabel` | `string`          | —       |
+| `title`     | `string`          | —       |
+| `action`    | `React.ReactNode` | —       |
 
 **Output:** `<section class="rounded-xl bg-card p-5 lg:p-6">` with optional header (`flex items-center justify-between mb-4`).
 
@@ -86,12 +86,12 @@ The single wrapping component used by every bento cell + mobile section. Guarant
 
 Visible inline pill button for section actions (`+ Ajouter`, `Filtrer`, `Voir tout`, `12 mois ▾`).
 
-| Prop | Type |
-|---|---|
-| `icon` | `LucideIcon` (left) |
+| Prop        | Type                 |
+| ----------- | -------------------- |
+| `icon`      | `LucideIcon` (left)  |
 | `iconRight` | `LucideIcon` (right) |
-| `label` | `string` |
-| `onClick` | `() => void` |
+| `label`     | `string`             |
+| `onClick`   | `() => void`         |
 
 **Style:** `h-8 px-3 rounded-full bg-muted text-fg text-caption font-medium hover:bg-elevated`.
 
@@ -103,8 +103,8 @@ Visible inline pill button for section actions (`+ Ajouter`, `Filtrer`, `Voir to
 
 Big patrimoine number + delta vs plan. Used both as mobile section and as content of `HeroCard`.
 
-| Prop | Type |
-|---|---|
+| Prop      | Type                 |
+| --------- | -------------------- |
 | `variant` | `'mobile' \| 'card'` |
 
 Variant `card` adds Cap target + Plan/an stats below.
@@ -113,30 +113,30 @@ Variant `card` adds Cap target + Plan/an stats below.
 
 Desktop bento cells, each wraps the relevant content in `<Section>`.
 
-| Prop | Type |
-|---|---|
+| Prop        | Type                                 |
+| ----------- | ------------------------------------ |
 | `className` | `string` (passed for grid placement) |
 
 ### `Donut`
 
 TR-style ring: white stroke on dim track, animated sweep on mount via Framer Motion.
 
-| Prop | Type |
-|---|---|
-| `pct` | `number` (0–1) |
-| `size` | `number` (px) |
-| `stroke` | `number` (px) |
+| Prop       | Type                                            |
+| ---------- | ----------------------------------------------- |
+| `pct`      | `number` (0–1)                                  |
+| `size`     | `number` (px)                                   |
+| `stroke`   | `number` (px)                                   |
 | `centered` | `boolean` (renders centered % via `CountUpPct`) |
 
 ### `CountUpEUR`
 
 Spring-animated currency count-up using `useMotionValue` + `useSpring`. Honours `useReducedMotion()`.
 
-| Prop | Type |
-|---|---|
-| `value` | `number` |
-| `precise` | `boolean` (2-decimal vs 0-decimal formatting) |
-| `className` | `string` |
+| Prop        | Type                                          |
+| ----------- | --------------------------------------------- |
+| `value`     | `number`                                      |
+| `precise`   | `boolean` (2-decimal vs 0-decimal formatting) |
+| `className` | `string`                                      |
 
 ### `CountUpPct`
 
@@ -146,10 +146,10 @@ Same shape as `CountUpEUR`, formats `(v * 100).toFixed(1) + '%'`.
 
 Inline SVG line chart (no recharts in proto for minimalism). 600 × 180/220 viewBox. Two paths: actual (white solid) + plan (dim dashed).
 
-| Prop | Type |
-|---|---|
+| Prop     | Type                                                                           |
+| -------- | ------------------------------------------------------------------------------ |
 | `inCard` | `boolean` (wraps in card surface — false on desktop where parent already does) |
-| `tall` | `boolean` (220 px height variant) |
+| `tall`   | `boolean` (220 px height variant)                                              |
 
 ### `ProjectionChart`
 
@@ -163,31 +163,31 @@ Verdict text + signed delta at the cap year. Accepts no props (reads HYPOTHESIS)
 
 Mobile mini-KPI card. Label top, optional mini-donut top-right, value bottom-left, sub-caption bottom.
 
-| Prop | Type |
-|---|---|
-| `label` | `string` |
-| `valueTop` | `string` |
-| `valueBottom` | `string` |
-| `progress` | `number?` |
+| Prop          | Type      |
+| ------------- | --------- |
+| `label`       | `string`  |
+| `valueTop`    | `string`  |
+| `valueBottom` | `string`  |
+| `progress`    | `number?` |
 
 ### `MilestoneRow`
 
 Palier row: mini-donut + label + target/year + signed delta + status verbose ("en avance" / "sur la trajectoire" / "en retard"). Status determines delta color: gain / loss / neutral.
 
-| Prop | Type |
-|---|---|
+| Prop        | Type                    |
+| ----------- | ----------------------- |
 | `milestone` | `Milestone` (from mock) |
 
 ### `CompositionRow`
 
 Wealth-class row: mini-donut + label + sub + amount + percent.
 
-| Prop | Type |
-|---|---|
-| `label` | `string` |
-| `amount` | `number` |
-| `pct` | `number` |
-| `sub` | `string?` |
+| Prop     | Type      |
+| -------- | --------- |
+| `label`  | `string`  |
+| `amount` | `number`  |
+| `pct`    | `number`  |
+| `sub`    | `string?` |
 
 ---
 
@@ -197,16 +197,16 @@ Wealth-class row: mini-donut + label + sub + amount + percent.
 
 LLM-pending transaction row. Top: arrow + label + account + date + amount. Bottom: suggestion chip with `Sparkles` icon, confidence (warning if < 75 %), route badge (hidden < 640 px), Confirmer pill, Modifier text button.
 
-| Prop | Type |
-|---|---|
+| Prop | Type          |
+| ---- | ------------- |
 | `tx` | `Transaction` |
 
 ### `ActivityRow`
 
 Confirmed transaction row. Flat-colored arrow icon (gain green for inflow, gray for outflow), label, sub (account + IA category), amount.
 
-| Prop | Type |
-|---|---|
+| Prop | Type          |
+| ---- | ------------- |
 | `tx` | `Transaction` |
 
 ---
@@ -221,8 +221,8 @@ ETF / Actions / Crypto repartition row. Mini-donut + label + amount + percent.
 
 Per-line row. Top: ticker (semibold) + kind badge (uppercase, 11 px). Sub: label + account. Right: market value + signed PnL with percent. Quantity × price line hidden < 1024 px.
 
-| Prop | Type |
-|---|---|
+| Prop      | Type      |
+| --------- | --------- |
 | `holding` | `Holding` |
 
 ---
@@ -233,18 +233,18 @@ Per-line row. Top: ticker (semibold) + kind badge (uppercase, 11 px). Sub: label
 
 Reusable label + value pair with optional tone (gain / loss / fg).
 
-| Prop | Type |
-|---|---|
-| `label` | `string` |
-| `value` | `string` |
-| `tone` | `'gain' \| 'loss'?` |
+| Prop    | Type                |
+| ------- | ------------------- |
+| `label` | `string`            |
+| `value` | `string`            |
+| `tone`  | `'gain' \| 'loss'?` |
 
 ### `MonthlyRow`
 
 Mois passés row. Capitalized month name, sub (income / spending), signed net, optional `Clôturé ✓` badge.
 
-| Prop | Type |
-|---|---|
+| Prop    | Type            |
+| ------- | --------------- |
 | `month` | `MonthlyRecord` |
 
 ---
@@ -255,8 +255,8 @@ Mois passés row. Capitalized month name, sub (income / spending), signed net, o
 
 Wraps a property in `<Section>`. Two-column grid (lg) with valuation/equity left, mortgage stats right. Hairline-divided footer with % remboursé donut.
 
-| Prop | Type |
-|---|---|
+| Prop       | Type       |
+| ---------- | ---------- |
 | `property` | `Property` |
 
 ---
@@ -271,8 +271,8 @@ Section listing 5 accounts + footer total liquide hairline.
 
 Per-account row: label + type/institution sub + balance.
 
-| Prop | Type |
-|---|---|
+| Prop      | Type      |
+| --------- | --------- |
 | `account` | `Account` |
 
 ---
@@ -283,34 +283,34 @@ Per-account row: label + type/institution sub + balance.
 
 Generic label + value/sub + action pattern.
 
-| Prop | Type |
-|---|---|
-| `label` | `string` |
-| `value` | `string?` |
-| `sub` | `string?` |
-| `action` | `React.ReactNode?` |
-| `destructive` | `boolean?` |
+| Prop          | Type               |
+| ------------- | ------------------ |
+| `label`       | `string`           |
+| `value`       | `string?`          |
+| `sub`         | `string?`          |
+| `action`      | `React.ReactNode?` |
+| `destructive` | `boolean?`         |
 
 ### `ToggleRow`
 
 Label + sub + iOS-style toggle (`role="switch"`, `aria-checked`).
 
-| Prop | Type |
-|---|---|
-| `label` | `string` |
-| `sub` | `string?` |
-| `checked` | `boolean` |
+| Prop       | Type                   |
+| ---------- | ---------------------- |
+| `label`    | `string`               |
+| `sub`      | `string?`              |
+| `checked`  | `boolean`              |
 | `onChange` | `(v: boolean) => void` |
 
 ### `SegmentedControl<T>`
 
 Generic typed segmented control. Each option has icon + label.
 
-| Prop | Type |
-|---|---|
-| `value` | `T` |
-| `onChange` | `(v: T) => void` |
-| `options` | `Array<{ value: T; label: string; icon: LucideIcon }>` |
+| Prop       | Type                                                   |
+| ---------- | ------------------------------------------------------ |
+| `value`    | `T`                                                    |
+| `onChange` | `(v: T) => void`                                       |
+| `options`  | `Array<{ value: T; label: string; icon: LucideIcon }>` |
 
 ---
 
@@ -320,31 +320,31 @@ Generic typed segmented control. Each option has icon + label.
 
 Wraps a list of `<li>` children, staggers their entry by 40 ms each. Honours reduced motion.
 
-| Prop | Type |
-|---|---|
-| `children` | `React.ReactNode` |
-| `className` | `string?` |
+| Prop        | Type              |
+| ----------- | ----------------- |
+| `children`  | `React.ReactNode` |
+| `className` | `string?`         |
 
 ### `Skeleton`
 
 Loading placeholder. N grey lines with `animate-pulse`, decreasing width.
 
-| Prop | Type |
-|---|---|
-| `lines` | `number` (default 1) |
-| `className` | `string?` |
+| Prop        | Type                 |
+| ----------- | -------------------- |
+| `lines`     | `number` (default 1) |
+| `className` | `string?`            |
 
 ### `EmptyState`
 
 First-run / no-results presentation. Icon in a muted circle, title, message, optional CTA pill.
 
-| Prop | Type |
-|---|---|
-| `icon` | `LucideIcon` |
-| `title` | `string` |
-| `message` | `string` |
-| `ctaLabel` | `string?` |
-| `onCta` | `() => void?` |
+| Prop       | Type          |
+| ---------- | ------------- |
+| `icon`     | `LucideIcon`  |
+| `title`    | `string`      |
+| `message`  | `string`      |
+| `ctaLabel` | `string?`     |
+| `onCta`    | `() => void?` |
 
 ---
 

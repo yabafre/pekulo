@@ -2,7 +2,7 @@
 
 Personal finance dashboard — capital tracking, multi-currency portfolio, holdings history.
 
-> *Pekulo* — from Latin *peculium*, the personal stash one sets aside.
+> _Pekulo_ — from Latin _peculium_, the personal stash one sets aside.
 
 Month-by-month tracking of savings, expenses, transactions, and a portfolio (Livret A, PEA, CTO, AV) with ETFs and individual stocks. Prices are auto-refreshed, currencies normalized to EUR, and a buy/sell history feeds a weighted-average cost basis on each holding.
 
@@ -78,24 +78,24 @@ If your home IP is rate-limited by Yahoo (frequent in EU), the Next.js app falls
 
 ## Pages
 
-| Route | Purpose |
-|---|---|
-| `/dashboard` | KPI strip + charts + actual vs projected capital |
-| `/dashboard/parametres` | Editable assumptions (salary, expenses, ETF perf, etc.) |
-| `/dashboard/mensuel` | 60 projected/actual months with cumulative deviation |
-| `/dashboard/transactions` | Inflows/outflows + one-off events, filterable |
-| `/dashboard/portefeuille` | Accounts + holdings + AllocationChart + price refresh |
-| Each holding's history button | Buy/sell lots with a derived weighted-average cost |
+| Route                         | Purpose                                                 |
+| ----------------------------- | ------------------------------------------------------- |
+| `/dashboard`                  | KPI strip + charts + actual vs projected capital        |
+| `/dashboard/parametres`       | Editable assumptions (salary, expenses, ETF perf, etc.) |
+| `/dashboard/mensuel`          | 60 projected/actual months with cumulative deviation    |
+| `/dashboard/transactions`     | Inflows/outflows + one-off events, filterable           |
+| `/dashboard/portefeuille`     | Accounts + holdings + AllocationChart + price refresh   |
+| Each holding's history button | Buy/sell lots with a derived weighted-average cost      |
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Supabase anon key |
-| `PRICES_SERVICE_URL` | optional | URL of the Python service (otherwise falls back to yahoo-finance2 + Boursorama) |
-| `PRICES_SERVICE_TOKEN` | optional | Bearer token, if the service is protected |
-| `TWELVE_DATA_API_KEY` | optional | Free tier 800 req/day, US-only fallback |
+| Variable                        | Required | Description                                                                     |
+| ------------------------------- | -------- | ------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Supabase project URL                                                            |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Supabase anon key                                                               |
+| `PRICES_SERVICE_URL`            | optional | URL of the Python service (otherwise falls back to yahoo-finance2 + Boursorama) |
+| `PRICES_SERVICE_TOKEN`          | optional | Bearer token, if the service is protected                                       |
+| `TWELVE_DATA_API_KEY`           | optional | Free tier 800 req/day, US-only fallback                                         |
 
 See `.env.example` for the full list with comments.
 

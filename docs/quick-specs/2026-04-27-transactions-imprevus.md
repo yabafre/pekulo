@@ -68,6 +68,7 @@ I'll append this to `supabase-schema.sql`. **You'll need to run it in Supabase S
 ## Files to Change
 
 **New (7)**
+
 - `src/lib/schemas/transactions.ts` — zod schema, category enum, type enum.
 - `src/lib/data/transactions.ts` — `readTransactions(filters?)` direct Supabase.
 - `src/lib/actions/transactions.ts` — `getTransactions`, `saveTransaction` (upsert by id), `deleteTransaction`.
@@ -77,6 +78,7 @@ I'll append this to `supabase-schema.sql`. **You'll need to run it in Supabase S
 - `supabase-schema.sql` — append the new table block (manual run required).
 
 **Edited (2)**
+
 - `src/lib/types.ts` — `Transaction` type, `TransactionFilters` type, `TransactionCategory` const enum.
 - `src/components/nav.tsx` — "Transactions" link with `Wallet` icon.
 
@@ -108,6 +110,7 @@ I'll append this to `supabase-schema.sql`. **You'll need to run it in Supabase S
 **Final file count: 9** (matches estimate). 7 new, 2 edited.
 
 **Tests run**
+
 - `npx tsc --noEmit` — clean
 - `npx eslint <new files>` — clean (after small fixes: unused `TRANSACTION_CATEGORIES` import, `useMemo` for `rows` dep stability, removal of `Trash2` import that wasn't used)
 - Manual smoke (SQL run by user in Supabase Studio): empty state, create, edit, delete, imprévu KPI sub-total, filters by year/month/type — all OK.
@@ -117,6 +120,7 @@ I'll append this to `supabase-schema.sql`. **You'll need to run it in Supabase S
 **Form submission validation pattern** discovered: passing the zod schema directly as `validators.onChange` couldn't satisfy TanStack Form's `FormValidateOrFn` typing when the form state shape diverges from the schema (id optional in form vs strict in schema, notes always-string in form vs nullable in schema). Solution: drop the `validators.onChange` schema, validate via `transactionInputSchema.parse(...)` inside `onSubmit`. Trade-off: no field-level live error display for the schema rules, but field-level errors weren't critical here. **Carry-over for qs-04**: prefer aligning form shape exactly with schema, otherwise validate at submit.
 
 **Carry-over rules confirmed**
+
 - Belt-and-suspenders invalidation in form `onSuccess` (queryClient.invalidateQueries + refetchQueries) — applied here for save + delete.
 - Reads from RSC via `lib/data/<feature>.ts` direct Supabase. Reads from client via ZapAction `useActionQuery`.
 - Mutations via ZapAction `defineAction` with `tags` + explicit `revalidatePath` calls.

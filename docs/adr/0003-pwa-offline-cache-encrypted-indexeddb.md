@@ -6,7 +6,7 @@
 
 ## Context
 
-FR-54 requires read-only views of `dashboard`, `portefeuille`, `immobilier` to render from the last cached snapshot when Supabase is unreachable. NFR-8 enforces server-side RLS as the *only* authorisation surface. Persisting any user data on-device must not weaken that posture.
+FR-54 requires read-only views of `dashboard`, `portefeuille`, `immobilier` to render from the last cached snapshot when Supabase is unreachable. NFR-8 enforces server-side RLS as the _only_ authorisation surface. Persisting any user data on-device must not weaken that posture.
 
 ## Decision
 

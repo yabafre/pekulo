@@ -2,8 +2,8 @@
   "name": "@pekulo/validators",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "Pekulo Zod schemas — placeholder; real schemas (createCompassSchema, recordValuationSchema, attestLlmCallSchema, ...) land in follow-up stories per ADR-0011.",
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -13,8 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pekulo/zod": "workspace:*",
-    "@pekulo/types": "workspace:*"
+    "@pekulo/types": "workspace:*",
+    "@pekulo/zod": "workspace:*"
   },
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*",

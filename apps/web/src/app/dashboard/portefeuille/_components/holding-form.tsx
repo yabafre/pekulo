@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { Loader2 } from "lucide-react"
-import { useActionMutation, useActionQuery } from "@zapaction/query"
-import { useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { useActionMutation, useActionQuery } from "@zapaction/query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,39 +11,29 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Field,
-  FieldControl,
-  FieldError,
-  FieldLabel,
-  Form,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/dialog";
+import { Field, FieldControl, FieldError, FieldLabel, Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { useAppForm } from "@/hooks/form-hook"
-import {
-  deleteHolding,
-  saveHolding,
-  updateHoldingPrice,
-} from "@/lib/actions/portfolio"
-import { getHoldingLots } from "@/lib/actions/holding-lots"
+} from "@/components/ui/select";
+import { useAppForm } from "@/hooks/form-hook";
+import { deleteHolding, saveHolding, updateHoldingPrice } from "@/lib/actions/portfolio";
+import { getHoldingLots } from "@/lib/actions/holding-lots";
 import {
   CURRENCIES,
   HOLDING_KINDS,
   HOLDING_KIND_LABELS,
   holdingSchema,
   updatePriceSchema,
-} from "@/lib/schemas/portfolio"
-import { lotsKeys, portfolioKeys, portfolioTags } from "@/lib/zapaction/keys"
-import type { Account, Currency, Holding, HoldingKind } from "@/lib/types"
+} from "@/lib/schemas/portfolio";
+import { lotsKeys, portfolioKeys, portfolioTags } from "@/lib/zapaction/keys";
+import type { Account, Currency, Holding, HoldingKind } from "@/lib/types";
 
 export function HoldingForm({
   open,
@@ -51,24 +41,20 @@ export function HoldingForm({
   editing,
   accounts,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  editing: Holding | null
-  accounts: Account[]
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editing: Holding | null;
+  accounts: Account[];
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         {open ? (
-          <Body
-            editing={editing}
-            accounts={accounts}
-            onDone={() => onOpenChange(false)}
-          />
+          <Body editing={editing} accounts={accounts} onDone={() => onOpenChange(false)} />
         ) : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function Body({
@@ -76,26 +62,26 @@ function Body({
   accounts,
   onDone,
 }: {
-  editing: Holding | null
-  accounts: Account[]
-  onDone: () => void
+  editing: Holding | null;
+  accounts: Account[];
+  onDone: () => void;
 }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const handleSuccess = async () => {
-    await queryClient.invalidateQueries({ queryKey: portfolioKeys.holdings() })
-    await queryClient.refetchQueries({ queryKey: portfolioKeys.holdings() })
-    onDone()
-  }
+    await queryClient.invalidateQueries({ queryKey: portfolioKeys.holdings() });
+    await queryClient.refetchQueries({ queryKey: portfolioKeys.holdings() });
+    onDone();
+  };
 
   const saveMutation = useActionMutation(saveHolding, {
     invalidateWithTags: [portfolioTags.holdings()],
     onSuccess: handleSuccess,
-  })
+  });
   const deleteMutation = useActionMutation(deleteHolding, {
     invalidateWithTags: [portfolioTags.holdings()],
     onSuccess: handleSuccess,
-  })
+  });
 
   // When editing an existing holding, fetch its lots to know if qty/avgCost are derived.
   // For "new" holdings (editing === null), we never have lots → fetch is skipped.
@@ -104,23 +90,23 @@ function Body({
     input: { holdingId: editing?.id ?? "00000000-0000-0000-0000-000000000000" },
     readPolicy: "read-only",
     enabled: !!editing,
-  })
-  const hasLots = (lotsQuery.data?.length ?? 0) > 0
+  });
+  const hasLots = (lotsQuery.data?.length ?? 0) > 0;
 
   type FormValues = {
-    id: string | undefined
-    accountId: string
-    kind: HoldingKind
-    ticker: string
-    isin: string
-    label: string
-    currency: Currency
-    quantity: number
-    avgCost: number
-    lastPrice: number
-    lastPriceAt: string
-    notes: string
-  }
+    id: string | undefined;
+    accountId: string;
+    kind: HoldingKind;
+    ticker: string;
+    isin: string;
+    label: string;
+    currency: Currency;
+    quantity: number;
+    avgCost: number;
+    lastPrice: number;
+    lastPriceAt: string;
+    notes: string;
+  };
 
   const initial: FormValues = editing
     ? {
@@ -150,7 +136,7 @@ function Body({
         lastPrice: 0,
         lastPriceAt: "",
         notes: "",
-      }
+      };
 
   const form = useAppForm({
     defaultValues: initial,
@@ -161,22 +147,20 @@ function Body({
         isin: value.isin.length > 0 ? value.isin : null,
         lastPriceAt: value.lastPriceAt.length > 0 ? value.lastPriceAt : null,
         notes: value.notes.length > 0 ? value.notes : null,
-      })
-      await saveMutation.mutateAsync(payload)
+      });
+      await saveMutation.mutateAsync(payload);
     },
-  })
+  });
 
   useEffect(() => {
-    form.reset(initial)
+    form.reset(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing?.id])
+  }, [editing?.id]);
 
   return (
     <form.AppForm>
       <DialogHeader>
-        <DialogTitle>
-          {editing ? "Modifier la position" : "Nouvelle position"}
-        </DialogTitle>
+        <DialogTitle>{editing ? "Modifier la position" : "Nouvelle position"}</DialogTitle>
         <DialogDescription>
           ETF, action ou autre. Le prix moyen et le cours sont saisis manuellement pour le moment.
         </DialogDescription>
@@ -184,9 +168,9 @@ function Body({
 
       <Form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="grid grid-cols-2 gap-4"
       >
@@ -217,17 +201,15 @@ function Body({
               <Select
                 value={field.state.value}
                 onValueChange={(v) => {
-                  field.handleChange(v)
+                  field.handleChange(v);
                   // Auto-fill currency from the chosen account.
-                  const acc = accounts.find((a) => a.id === v)
-                  if (acc) form.setFieldValue("currency", acc.currency)
+                  const acc = accounts.find((a) => a.id === v);
+                  if (acc) form.setFieldValue("currency", acc.currency);
                 }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Choisir un compte">
-                    {(value: string) =>
-                      accounts.find((a) => a.id === value)?.label ?? ""
-                    }
+                    {(value: string) => accounts.find((a) => a.id === value)?.label ?? ""}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -342,8 +324,8 @@ function Body({
                   step="0.0001"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                   disabled={hasLots}
@@ -371,8 +353,8 @@ function Body({
                   step="0.01"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                   disabled={hasLots}
@@ -400,8 +382,8 @@ function Body({
                   step="0.01"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                 />
@@ -470,7 +452,7 @@ function Body({
           </Button>
           <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
             {([canSubmit, isSubmitting]) => {
-              const pending = saveMutation.isPending || isSubmitting
+              const pending = saveMutation.isPending || isSubmitting;
               return (
                 <Button type="submit" disabled={!canSubmit || pending}>
                   {pending ? (
@@ -482,7 +464,7 @@ function Body({
                     "Enregistrer"
                   )}
                 </Button>
-              )
+              );
             }}
           </form.Subscribe>
         </DialogFooter>
@@ -491,12 +473,11 @@ function Body({
       {(saveMutation.isError || deleteMutation.isError) && (
         <p className="text-xs text-destructive">
           Erreur :{" "}
-          {(saveMutation.error as Error)?.message ??
-            (deleteMutation.error as Error)?.message}
+          {(saveMutation.error as Error)?.message ?? (deleteMutation.error as Error)?.message}
         </p>
       )}
     </form.AppForm>
-  )
+  );
 }
 
 // ---------- Inline price update dialog ----------
@@ -506,36 +487,34 @@ export function PriceForm({
   onOpenChange,
   target,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  target: Holding | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  target: Holding | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
-        {open && target ? (
-          <PriceBody target={target} onDone={() => onOpenChange(false)} />
-        ) : null}
+        {open && target ? <PriceBody target={target} onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function PriceBody({ target, onDone }: { target: Holding; onDone: () => void }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const handleSuccess = async () => {
-    await queryClient.invalidateQueries({ queryKey: portfolioKeys.holdings() })
-    await queryClient.refetchQueries({ queryKey: portfolioKeys.holdings() })
-    onDone()
-  }
+    await queryClient.invalidateQueries({ queryKey: portfolioKeys.holdings() });
+    await queryClient.refetchQueries({ queryKey: portfolioKeys.holdings() });
+    onDone();
+  };
 
   const mutation = useActionMutation(updateHoldingPrice, {
     invalidateWithTags: [portfolioTags.holdings()],
     onSuccess: handleSuccess,
-  })
+  });
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10);
 
   const form = useAppForm({
     defaultValues: {
@@ -547,18 +526,18 @@ function PriceBody({ target, onDone }: { target: Holding; onDone: () => void }) 
         id: target.id,
         lastPrice: value.lastPrice,
         lastPriceAt: value.lastPriceAt,
-      })
-      await mutation.mutateAsync(payload)
+      });
+      await mutation.mutateAsync(payload);
     },
-  })
+  });
 
   useEffect(() => {
     form.reset({
       lastPrice: target.lastPrice,
       lastPriceAt: target.lastPriceAt ?? today,
-    })
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target.id])
+  }, [target.id]);
 
   return (
     <form.AppForm>
@@ -569,9 +548,9 @@ function PriceBody({ target, onDone }: { target: Holding; onDone: () => void }) 
 
       <Form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="grid grid-cols-2 gap-3"
       >
@@ -586,8 +565,8 @@ function PriceBody({ target, onDone }: { target: Holding; onDone: () => void }) 
                   step="0.01"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                 />
@@ -621,7 +600,7 @@ function PriceBody({ target, onDone }: { target: Holding; onDone: () => void }) 
           </Button>
           <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
             {([canSubmit, isSubmitting]) => {
-              const pending = mutation.isPending || isSubmitting
+              const pending = mutation.isPending || isSubmitting;
               return (
                 <Button type="submit" disabled={!canSubmit || pending}>
                   {pending ? (
@@ -633,17 +612,15 @@ function PriceBody({ target, onDone }: { target: Holding; onDone: () => void }) 
                     "Enregistrer"
                   )}
                 </Button>
-              )
+              );
             }}
           </form.Subscribe>
         </DialogFooter>
       </Form>
 
       {mutation.isError && (
-        <p className="text-xs text-destructive">
-          Erreur : {(mutation.error as Error).message}
-        </p>
+        <p className="text-xs text-destructive">Erreur : {(mutation.error as Error).message}</p>
       )}
     </form.AppForm>
-  )
+  );
 }

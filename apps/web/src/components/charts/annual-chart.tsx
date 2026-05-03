@@ -1,13 +1,7 @@
-"use client"
+"use client";
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartLegend,
@@ -15,17 +9,17 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
-import type { AnnualSummary } from "@/lib/types"
+} from "@/components/ui/chart";
+import type { AnnualSummary } from "@/lib/types";
 
 interface AnnualSummaryChartProps {
-  data: AnnualSummary[]
+  data: AnnualSummary[];
 }
 
 const config = {
   epargneAnnuelle: { label: "Épargne versée", color: "var(--chart-1)" },
   perfMarche: { label: "Gains marché", color: "var(--chart-3)" },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
 export function AnnualSummaryChart({ data }: AnnualSummaryChartProps) {
   return (
@@ -85,5 +79,5 @@ export function AnnualSummaryChart({ data }: AnnualSummaryChartProps) {
         </ChartContainer>
       </CardContent>
     </Card>
-  )
+  );
 }

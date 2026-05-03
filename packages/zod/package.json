@@ -2,8 +2,8 @@
   "name": "@pekulo/zod",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "Pekulo Zod helpers — placeholder; real surface lands in a follow-up story (see ADR-0011).",
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {

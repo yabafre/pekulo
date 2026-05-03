@@ -1,13 +1,7 @@
-"use client"
+"use client";
 
-import { Cell, Label, Pie, PieChart } from "recharts"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Cell, Label, Pie, PieChart } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartLegend,
@@ -15,7 +9,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
+} from "@/components/ui/chart";
 
 const palette = [
   "var(--chart-1)",
@@ -23,21 +17,21 @@ const palette = [
   "var(--chart-3)",
   "var(--chart-4)",
   "var(--chart-5)",
-]
+];
 
 export interface AllocationDatum {
-  label: string
-  value: number
+  label: string;
+  value: number;
 }
 
 export function AllocationChart({ data }: { data: AllocationDatum[] }) {
-  const filtered = data.filter((d) => d.value > 0)
-  const total = filtered.reduce((acc, d) => acc + d.value, 0)
+  const filtered = data.filter((d) => d.value > 0);
+  const total = filtered.reduce((acc, d) => acc + d.value, 0);
 
   const config = filtered.reduce<ChartConfig>((acc, item, i) => {
-    acc[item.label] = { label: item.label, color: palette[i % palette.length] }
-    return acc
-  }, {})
+    acc[item.label] = { label: item.label, color: palette[i % palette.length] };
+    return acc;
+  }, {});
 
   return (
     <Card>
@@ -81,7 +75,7 @@ export function AllocationChart({ data }: { data: AllocationDatum[] }) {
                 ))}
                 <Label
                   content={({ viewBox }) => {
-                    if (!viewBox || !("cx" in viewBox)) return null
+                    if (!viewBox || !("cx" in viewBox)) return null;
                     return (
                       <text
                         x={viewBox.cx}
@@ -104,7 +98,7 @@ export function AllocationChart({ data }: { data: AllocationDatum[] }) {
                           Capital total
                         </tspan>
                       </text>
-                    )
+                    );
                   }}
                 />
               </Pie>
@@ -114,5 +108,5 @@ export function AllocationChart({ data }: { data: AllocationDatum[] }) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-import { z } from "zod"
+import { z } from "zod";
 
-const ratio = z.number().min(0).max(1)
-const positive = z.number().min(0)
+const ratio = z.number().min(0).max(1);
+const positive = z.number().min(0);
 
 export const hypothesesSchema = z.object({
   salaireNet: positive,
@@ -30,6 +30,6 @@ export const hypothesesSchema = z.object({
   revenuFreelanceMois: positive,
   horizonYears: z.number().int().min(1).max(50),
   objectif: positive,
-})
+});
 
-export type HypothesesInput = z.infer<typeof hypothesesSchema>
+export type HypothesesInput = z.infer<typeof hypothesesSchema>;

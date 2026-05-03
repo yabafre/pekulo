@@ -11,15 +11,15 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 ## Screen catalog
 
-| # | Screen | Route (target) | Mobile entry | Desktop entry | PRD FR coverage |
-|---|---|---|---|---|---|
-| 1 | **Cap — Cap view** | `/dashboard` (`?tab=cap`) | top tab `Cap` | sidebar `Cap` icon · top tab `Cap` | FR-1 → FR-8 (compass + milestones, including curve FR-7) · FR-41 → FR-44 (dashboard composition) · FR-57 → FR-59 (hypothesis projection) |
-| 2 | **Cap — Patrimoine view** | `/dashboard` (`?tab=patrimoine`) | top tab `Patrimoine` | top tab `Patrimoine` | FR-9 → FR-12 (accounts) · FR-43 (total wealth derivation) |
-| 3 | **Transactions** | `/dashboard/transactions` | bottom nav `Transactions` | sidebar `Transactions` | FR-28 → FR-36 (transactions + LLM categorisation) · FR-30 (rule-based transfer) · FR-34 (third-party LLM opt-in surfaced via route badge) |
-| 4 | **Mensuel** | `/dashboard/mensuel` | bottom nav `Mensuel` | sidebar `Mensuel` | FR-37 → FR-40 (monthly aggregates + sign-off) |
-| 5 | **Portefeuille** | `/dashboard/portefeuille` | bottom nav `Portefeuille` | sidebar `Portefeuille` | FR-13 → FR-20 (holdings + lots + provider chain output) · FR-18 (FX-adjusted EUR snapshot) |
-| 6 | **Immobilier** | `/dashboard/immobilier` | bottom nav `Immobilier` | sidebar `Immobilier` | FR-21 → FR-27 (real-estate tracker + mortgage + equity) |
-| 7 | **Paramètres** | `/dashboard/parametres` | tap avatar (mobile top bar) | sidebar `Settings` icon (bottom of bubble) | FR-34 (third-party LLM opt-in toggle) · FR-36 (LLM activity log link) · FR-46/FR-47 (account display + sign-out) · FR-49 (data export) · FR-50 (account deletion) · FR-51 (theme switcher) · FR-52 (language switcher) · FR-57 (hypothesis read-only) |
+| #   | Screen                    | Route (target)                   | Mobile entry                | Desktop entry                              | PRD FR coverage                                                                                                                                                                                                                                       |
+| --- | ------------------------- | -------------------------------- | --------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Cap — Cap view**        | `/dashboard` (`?tab=cap`)        | top tab `Cap`               | sidebar `Cap` icon · top tab `Cap`         | FR-1 → FR-8 (compass + milestones, including curve FR-7) · FR-41 → FR-44 (dashboard composition) · FR-57 → FR-59 (hypothesis projection)                                                                                                              |
+| 2   | **Cap — Patrimoine view** | `/dashboard` (`?tab=patrimoine`) | top tab `Patrimoine`        | top tab `Patrimoine`                       | FR-9 → FR-12 (accounts) · FR-43 (total wealth derivation)                                                                                                                                                                                             |
+| 3   | **Transactions**          | `/dashboard/transactions`        | bottom nav `Transactions`   | sidebar `Transactions`                     | FR-28 → FR-36 (transactions + LLM categorisation) · FR-30 (rule-based transfer) · FR-34 (third-party LLM opt-in surfaced via route badge)                                                                                                             |
+| 4   | **Mensuel**               | `/dashboard/mensuel`             | bottom nav `Mensuel`        | sidebar `Mensuel`                          | FR-37 → FR-40 (monthly aggregates + sign-off)                                                                                                                                                                                                         |
+| 5   | **Portefeuille**          | `/dashboard/portefeuille`        | bottom nav `Portefeuille`   | sidebar `Portefeuille`                     | FR-13 → FR-20 (holdings + lots + provider chain output) · FR-18 (FX-adjusted EUR snapshot)                                                                                                                                                            |
+| 6   | **Immobilier**            | `/dashboard/immobilier`          | bottom nav `Immobilier`     | sidebar `Immobilier`                       | FR-21 → FR-27 (real-estate tracker + mortgage + equity)                                                                                                                                                                                               |
+| 7   | **Paramètres**            | `/dashboard/parametres`          | tap avatar (mobile top bar) | sidebar `Settings` icon (bottom of bubble) | FR-34 (third-party LLM opt-in toggle) · FR-36 (LLM activity log link) · FR-46/FR-47 (account display + sign-out) · FR-49 (data export) · FR-50 (account deletion) · FR-51 (theme switcher) · FR-52 (language switcher) · FR-57 (hypothesis read-only) |
 
 ---
 
@@ -27,20 +27,20 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 ### 1. Cap — Cap view
 
-**Purpose:** answer the user's first question — *"am I on track for my compass?"* — within 5 s of opening Pekulo (PRD U1).
+**Purpose:** answer the user's first question — _"am I on track for my compass?"_ — within 5 s of opening Pekulo (PRD U1).
 
 **Composition (top → bottom on mobile, bento on desktop):**
 
-| Block | FR | Component(s) |
-|---|---|---|
-| Hero (Aujourd'hui · 180 400 € · +2 781 € vs plan 12m) | FR-41, FR-43, FR-5 | `HeroBlock` + `CountUpEUR` |
-| Mini KPIs (Cap %, Horizon, Plan / an) — mobile only | FR-5, FR-6 | `MiniKpis` + `KpiTile` |
-| Compass donut (208 px, white sweep on mount, % count-up) — desktop only | FR-5, FR-7 | `DonutCard` + `Donut` (large variant) |
-| Trajectoire 12 mois (line chart actual vs plan) | FR-7, FR-44 | `TrajectorySection` / `TrajectoryCard` + `TrajectoryChart` |
-| Paliers (3 milestones with mini-donut, status badge) | FR-3, FR-4, FR-6 | `MilestonesSection` / `MilestonesCard` + `MilestoneRow` (+ `StaggerList`) |
-| Hypothèse de projection (2026 → 2055 curve, verdict text) | FR-57, FR-58, FR-59 | `HypothesisSection` / `HypothesisCard` + `ProjectionChart` + `HypothesisVerdict` |
-| Composition (3 rows: Liquide, Placements, Immobilier) | FR-43 | `CompositionSection` / `CompositionCard` + `CompositionRow` |
-| Activité récente (5 rows) | FR-42 | `RecentActivitySection` / `RecentActivityCard` + `ActivityRow` |
+| Block                                                                   | FR                  | Component(s)                                                                     |
+| ----------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------- |
+| Hero (Aujourd'hui · 180 400 € · +2 781 € vs plan 12m)                   | FR-41, FR-43, FR-5  | `HeroBlock` + `CountUpEUR`                                                       |
+| Mini KPIs (Cap %, Horizon, Plan / an) — mobile only                     | FR-5, FR-6          | `MiniKpis` + `KpiTile`                                                           |
+| Compass donut (208 px, white sweep on mount, % count-up) — desktop only | FR-5, FR-7          | `DonutCard` + `Donut` (large variant)                                            |
+| Trajectoire 12 mois (line chart actual vs plan)                         | FR-7, FR-44         | `TrajectorySection` / `TrajectoryCard` + `TrajectoryChart`                       |
+| Paliers (3 milestones with mini-donut, status badge)                    | FR-3, FR-4, FR-6    | `MilestonesSection` / `MilestonesCard` + `MilestoneRow` (+ `StaggerList`)        |
+| Hypothèse de projection (2026 → 2055 curve, verdict text)               | FR-57, FR-58, FR-59 | `HypothesisSection` / `HypothesisCard` + `ProjectionChart` + `HypothesisVerdict` |
+| Composition (3 rows: Liquide, Placements, Immobilier)                   | FR-43               | `CompositionSection` / `CompositionCard` + `CompositionRow`                      |
+| Activité récente (5 rows)                                               | FR-42               | `RecentActivitySection` / `RecentActivityCard` + `ActivityRow`                   |
 
 **States:**
 
@@ -54,12 +54,12 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 **Composition:**
 
-| Block | FR | Component(s) |
-|---|---|---|
-| Hero (Total · 180 400 € · split sub-line) | FR-43 | inline section in `PatrimoineView` |
-| Comptes (5 rows + total liquide hairline) | FR-9, FR-10, FR-12 | `AccountsSection` + `AccountRow` |
-| Composition | FR-43 | `CompositionSection` |
-| Activité récente | FR-42 | `RecentActivitySection` |
+| Block                                     | FR                 | Component(s)                       |
+| ----------------------------------------- | ------------------ | ---------------------------------- |
+| Hero (Total · 180 400 € · split sub-line) | FR-43              | inline section in `PatrimoineView` |
+| Comptes (5 rows + total liquide hairline) | FR-9, FR-10, FR-12 | `AccountsSection` + `AccountRow`   |
+| Composition                               | FR-43              | `CompositionSection`               |
+| Activité récente                          | FR-42              | `RecentActivitySection`            |
 
 ### 3. Transactions
 
@@ -67,13 +67,14 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 **Composition:**
 
-| Block | FR | Component(s) |
-|---|---|---|
-| Stats row (mobile 2-col: Net + À confirmer ; desktop 4-col + Entrées / Sorties) | FR-28, FR-32 | inline `<Section>` × 4 |
-| Suggestions IA (rows pending confirmation) | FR-31, FR-32, FR-33 | `<Section title="Suggestions IA">` + `SuggestionRow` |
-| Récentes (already-confirmed transactions) | FR-28 | `<Section title="Récentes">` + `ActivityRow` |
+| Block                                                                           | FR                  | Component(s)                                         |
+| ------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------- |
+| Stats row (mobile 2-col: Net + À confirmer ; desktop 4-col + Entrées / Sorties) | FR-28, FR-32        | inline `<Section>` × 4                               |
+| Suggestions IA (rows pending confirmation)                                      | FR-31, FR-32, FR-33 | `<Section title="Suggestions IA">` + `SuggestionRow` |
+| Récentes (already-confirmed transactions)                                       | FR-28               | `<Section title="Récentes">` + `ActivityRow`         |
 
 **SuggestionRow anatomy:**
+
 - Icon (in/out arrow, flat colored)
 - Label + account + date (caption)
 - Amount right-aligned
@@ -82,7 +83,7 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 **States:**
 
 - Default with N pending — implemented
-- All categorised (`pending.length === 0`) → `<EmptyState>` with `Check` icon, message *"Tout est catégorisé"*
+- All categorised (`pending.length === 0`) → `<EmptyState>` with `Check` icon, message _"Tout est catégorisé"_
 
 ### 4. Mensuel
 
@@ -90,11 +91,11 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 **Composition:**
 
-| Block | FR | Component(s) |
-|---|---|---|
-| Mois en cours (Entrées · Sorties · Net) | FR-37, FR-38 | `<Section>` + `Stat` |
-| Action Clôturer mai (disabled when transactions pending) | FR-39 | inline pill button (disabled state) |
-| Historique (past months list with `Clôturé ✓` badge) | FR-39, FR-40 | `<Section title="Historique">` + `MonthlyRow` |
+| Block                                                    | FR           | Component(s)                                  |
+| -------------------------------------------------------- | ------------ | --------------------------------------------- |
+| Mois en cours (Entrées · Sorties · Net)                  | FR-37, FR-38 | `<Section>` + `Stat`                          |
+| Action Clôturer mai (disabled when transactions pending) | FR-39        | inline pill button (disabled state)           |
+| Historique (past months list with `Clôturé ✓` badge)     | FR-39, FR-40 | `<Section title="Historique">` + `MonthlyRow` |
 
 ### 5. Portefeuille
 
@@ -102,11 +103,11 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 **Composition:**
 
-| Block | FR | Component(s) |
-|---|---|---|
-| Hero (Valeur portefeuille · EUR · plus-value latente signed) | FR-18, FR-19 | inline section in `PortfolioScreen` |
+| Block                                                                 | FR                           | Component(s)                                 |
+| --------------------------------------------------------------------- | ---------------------------- | -------------------------------------------- |
+| Hero (Valeur portefeuille · EUR · plus-value latente signed)          | FR-18, FR-19                 | inline section in `PortfolioScreen`          |
 | Répartition (ETF, Actions, Crypto with mini-donut + amount + percent) | FR-43 (sub-class derivation) | `<Section title="Répartition">` + `ClassRow` |
-| Lignes (6 holdings — CW8, PE500, VWCE, AAPL, BTC, ETH) | FR-13, FR-15, FR-19, FR-20 | `<Section title="Lignes">` + `HoldingRow` |
+| Lignes (6 holdings — CW8, PE500, VWCE, AAPL, BTC, ETH)                | FR-13, FR-15, FR-19, FR-20   | `<Section title="Lignes">` + `HoldingRow`    |
 
 ### 6. Immobilier
 
@@ -114,11 +115,11 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 **Composition:**
 
-| Block | FR | Component(s) |
-|---|---|---|
-| Hero (Equity nette · valuation · debt remaining) | FR-25, FR-26 | inline section in `RealEstateScreen` |
-| Action Ajouter un bien | FR-21 | pill button |
-| PropertyCard (per property: valuation, mortgage breakdown, % remboursé donut) | FR-21, FR-22, FR-25, FR-27 | `PropertyCard` |
+| Block                                                                         | FR                         | Component(s)                         |
+| ----------------------------------------------------------------------------- | -------------------------- | ------------------------------------ |
+| Hero (Equity nette · valuation · debt remaining)                              | FR-25, FR-26               | inline section in `RealEstateScreen` |
+| Action Ajouter un bien                                                        | FR-21                      | pill button                          |
+| PropertyCard (per property: valuation, mortgage breakdown, % remboursé donut) | FR-21, FR-22, FR-25, FR-27 | `PropertyCard`                       |
 
 ### 7. Paramètres
 
@@ -126,28 +127,28 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 **Composition:**
 
-| Block | FR | Component(s) |
-|---|---|---|
-| Compte (email, nom affiché) | FR-46, FR-47 | `<Section title="Compte">` + `SettingRow` |
-| Apparence (thème segmented Système/Sombre/Clair, langue FR/EN) | FR-51, FR-52 | `<Section>` + `SegmentedControl` |
-| Intelligence artificielle (opt-in toggle modèles tiers, lien journal d'activité) | FR-34, FR-36 | `<Section>` + `ToggleRow` + link |
-| Vos données (export RGPD, suppression compte) | FR-49, FR-50 | `<Section>` + `SettingRow` (destructive variant) |
-| Session (déconnexion) | FR-47 | `<Section>` + plain button |
-| Hypothèse de projection (versement mensuel, taux supposé) | FR-57 | `<Section>` + `SettingRow` (read-only) |
+| Block                                                                            | FR           | Component(s)                                     |
+| -------------------------------------------------------------------------------- | ------------ | ------------------------------------------------ |
+| Compte (email, nom affiché)                                                      | FR-46, FR-47 | `<Section title="Compte">` + `SettingRow`        |
+| Apparence (thème segmented Système/Sombre/Clair, langue FR/EN)                   | FR-51, FR-52 | `<Section>` + `SegmentedControl`                 |
+| Intelligence artificielle (opt-in toggle modèles tiers, lien journal d'activité) | FR-34, FR-36 | `<Section>` + `ToggleRow` + link                 |
+| Vos données (export RGPD, suppression compte)                                    | FR-49, FR-50 | `<Section>` + `SettingRow` (destructive variant) |
+| Session (déconnexion)                                                            | FR-47        | `<Section>` + plain button                       |
+| Hypothèse de projection (versement mensuel, taux supposé)                        | FR-57        | `<Section>` + `SettingRow` (read-only)           |
 
 ---
 
 ## Cross-screen patterns
 
-| Pattern | Reused on | Component |
-|---|---|---|
-| List row with leading icon + label + caption + trailing value | Transactions, Portefeuille, Comptes, Mensuel, Activité, Paliers, Composition | flat `<div>` patterns + tabular-nums utility |
-| Donut indicator (white stroke on dim track, animated sweep) | Cap dashboard hero, paliers, composition, real-estate equity, KpiTile | `Donut` |
-| Section card (uniform `bg-card p-5/6 rounded-xl`) | Every bento cell + every mobile section | `Section` |
-| Header pill action | Sections needing `+ Ajouter` / `Filtrer` / `12 mois ▾` / `Voir tout` | `HeaderAction` |
-| Inline mobile primary "+" button | Transactions, Portefeuille, Immobilier (mobile only) | `ContextualAddButton` |
-| Empty state | Suggestions IA when none pending | `EmptyState` |
-| Page transition | All screen swaps | `<AnimatePresence>` + `motion.div` (fade + slide-up 8 → 0) |
+| Pattern                                                       | Reused on                                                                    | Component                                                  |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| List row with leading icon + label + caption + trailing value | Transactions, Portefeuille, Comptes, Mensuel, Activité, Paliers, Composition | flat `<div>` patterns + tabular-nums utility               |
+| Donut indicator (white stroke on dim track, animated sweep)   | Cap dashboard hero, paliers, composition, real-estate equity, KpiTile        | `Donut`                                                    |
+| Section card (uniform `bg-card p-5/6 rounded-xl`)             | Every bento cell + every mobile section                                      | `Section`                                                  |
+| Header pill action                                            | Sections needing `+ Ajouter` / `Filtrer` / `12 mois ▾` / `Voir tout`         | `HeaderAction`                                             |
+| Inline mobile primary "+" button                              | Transactions, Portefeuille, Immobilier (mobile only)                         | `ContextualAddButton`                                      |
+| Empty state                                                   | Suggestions IA when none pending                                             | `EmptyState`                                               |
+| Page transition                                               | All screen swaps                                                             | `<AnimatePresence>` + `motion.div` (fade + slide-up 8 → 0) |
 
 ---
 
@@ -155,12 +156,12 @@ Every screen below is implemented in the prototype at `docs/ux-preview/`. Routes
 
 The proto deliberately does not implement a dedicated UI for these PRD FRs (forward work for `aped-arch` + `aped-epics`):
 
-| FR | Group | Status | Reason |
-|---|---|---|---|
-| FR-2 | A | Mentioned (Settings · Apparence has theme audit-style entry) | Compass audit log surface deferred to V1.5 |
-| FR-9 → FR-11 (account CRUD) | B | Read-only displayed | Forms (create/edit/delete) drafted at story-level |
-| FR-14, FR-29 (record lots, CSV import) | C, E | Buttons present, no form | Forms drafted at story-level |
-| FR-46, FR-48 (login, password reset) | H | Out of scope for the dashboard proto | Auth screens are a separate flow (auth-only routes) |
-| FR-53 → FR-56 (PWA install + DS parity) | I | Implicit | Validated at runtime (manifest + install affordance + Tamagui mobile parity) — outside the dashboard UX surface |
+| FR                                      | Group | Status                                                       | Reason                                                                                                          |
+| --------------------------------------- | ----- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| FR-2                                    | A     | Mentioned (Settings · Apparence has theme audit-style entry) | Compass audit log surface deferred to V1.5                                                                      |
+| FR-9 → FR-11 (account CRUD)             | B     | Read-only displayed                                          | Forms (create/edit/delete) drafted at story-level                                                               |
+| FR-14, FR-29 (record lots, CSV import)  | C, E  | Buttons present, no form                                     | Forms drafted at story-level                                                                                    |
+| FR-46, FR-48 (login, password reset)    | H     | Out of scope for the dashboard proto                         | Auth screens are a separate flow (auth-only routes)                                                             |
+| FR-53 → FR-56 (PWA install + DS parity) | I     | Implicit                                                     | Validated at runtime (manifest + install affordance + Tamagui mobile parity) — outside the dashboard UX surface |
 
 These gaps are expected and explicitly documented for downstream skills.

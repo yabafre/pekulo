@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Plus, Pencil } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Plus, Pencil } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -10,13 +10,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { ACCOUNT_TYPE_LABELS } from "@/lib/schemas/portfolio"
-import type { Account, AccountType } from "@/lib/types"
-import { AccountForm } from "./account-form"
+} from "@/components/ui/table";
+import { ACCOUNT_TYPE_LABELS } from "@/lib/schemas/portfolio";
+import type { Account, AccountType } from "@/lib/types";
+import { AccountForm } from "./account-form";
 
 function formatEuro(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €"
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €";
 }
 
 export function AccountsSection({
@@ -24,12 +24,12 @@ export function AccountsSection({
   editing,
   setEditing,
 }: {
-  accounts: Account[]
-  editing: string | "new" | null
-  setEditing: (v: string | "new" | null) => void
+  accounts: Account[];
+  editing: string | "new" | null;
+  setEditing: (v: string | "new" | null) => void;
 }) {
   const editingAccount =
-    editing && editing !== "new" ? accounts.find((a) => a.id === editing) ?? null : null
+    editing && editing !== "new" ? (accounts.find((a) => a.id === editing) ?? null) : null;
 
   return (
     <Card>
@@ -60,9 +60,7 @@ export function AccountsSection({
                 <TableRow key={a.id}>
                   <TableCell className="font-medium">
                     {a.label}
-                    {a.notes && (
-                      <div className="text-xs text-muted-foreground">{a.notes}</div>
-                    )}
+                    {a.notes && <div className="text-xs text-muted-foreground">{a.notes}</div>}
                   </TableCell>
                   <TableCell>{ACCOUNT_TYPE_LABELS[a.type as AccountType]}</TableCell>
                   <TableCell>{a.currency}</TableCell>
@@ -87,10 +85,10 @@ export function AccountsSection({
       <AccountForm
         open={editing !== null}
         onOpenChange={(open) => {
-          if (!open) setEditing(null)
+          if (!open) setEditing(null);
         }}
         editing={editingAccount}
       />
     </Card>
-  )
+  );
 }

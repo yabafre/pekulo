@@ -16,6 +16,7 @@ Add a `holding_lots` table that records each individual buy/sell event for a hol
 ## Acceptance Criteria
 
 ### Schema (Supabase)
+
 - [ ] New enum `lot_type` ENUM('buy','sell') (idempotent).
 - [ ] New table `holding_lots` (`id`, `user_id`, `holding_id`, `type`, `occurred_on`, `quantity`, `price_unit`, `fees`, `notes`, timestamps).
 - [ ] Foreign key `holding_lots.holding_id REFERENCES holdings(id) ON DELETE CASCADE`.
@@ -24,22 +25,26 @@ Add a `holding_lots` table that records each individual buy/sell event for a hol
 - [ ] Idempotent SQL block appended to `apps/web/supabase-schema.sql`. User runs it manually in Supabase Studio.
 
 ### Derivation
+
 - [ ] New pure `apps/web/src/lib/derive-lots.ts` exposes `deriveFromLots(lots) → { quantity, avgCost }` using weighted-average cost. Sells reduce qty proportionally (cost basis = sellQty × currentAvg). Fees added to cost on buys, ignored on sells.
 - [ ] After every lot mutation (`addLot` or `deleteLot`), the action recomputes `quantity` and `avg_cost` for the parent holding and persists them on the `holdings` row.
 
 ### Actions (ZapAction)
+
 - [ ] `getHoldingLots(holdingId)` → list lots ordered by `occurred_on ASC`.
 - [ ] `addHoldingLot(input)` → insert lot, recompute holding qty/avgCost, update holdings row, tagged `portfolio:holdings`.
 - [ ] `deleteHoldingLot({ id })` → delete lot, recompute holding qty/avgCost, update holdings row.
 - [ ] No `updateLot` for v1 (user deletes + re-adds if needed).
 
 ### UI
+
 - [ ] New `apps/web/src/app/dashboard/portefeuille/_components/lots-dialog.tsx` — Dialog showing the lots table for one holding (date, type, qty, prix unitaire, frais, valeur, notes) + "Ajouter un lot" form inline.
 - [ ] In `holdings-section.tsx` row: add a 📊 button (lucide `History` icon) → opens the LotsDialog for that row. Disabled if holding has zero quantity (defensive).
 - [ ] In `holding-form.tsx`: when the holding has lots, `quantity` + `avgCost` inputs become `disabled` with hint text "calculé depuis l'historique".
 - [ ] Banner in LotsDialog: "Total qty: X · Avg cost: Y €" computed live.
 
 ### Carry-over
+
 - [ ] Existing holdings (no lots) keep their manual `quantity`/`avgCost` until the user adds lots.
 - [ ] First lot added on a manual holding: **no auto-import** of existing manual values for v1. The user is responsible for entering all historical buys if they want full lot tracking. We display a one-time inline notice in LotsDialog: "Pour conserver tes valeurs actuelles dans l'historique, ajoute un lot d'achat avec qty {{currentQty}} au prix {{currentAvg}}." — a "Import comme premier lot" button does it in one click.
 
@@ -70,6 +75,7 @@ ALTER TABLE public.holding_lots ENABLE ROW LEVEL SECURITY;
 ## Files to Change
 
 **New (5)**
+
 - `apps/web/src/lib/schemas/holding-lots.ts` — zod schemas (input, id, listFilter)
 - `apps/web/src/lib/derive-lots.ts` — pure `deriveFromLots` (weighted average + sell handling)
 - `apps/web/src/lib/data/holding-lots.ts` — server-only `readHoldingLots(holdingId)`
@@ -77,6 +83,7 @@ ALTER TABLE public.holding_lots ENABLE ROW LEVEL SECURITY;
 - `apps/web/src/app/dashboard/portefeuille/_components/lots-dialog.tsx` — Dialog UI
 
 **Edited (4)**
+
 - `apps/web/src/lib/types.ts` — `LotType`, `HoldingLot`
 - `apps/web/src/lib/zapaction/keys.ts` — `lotsKeys` + `lotsTags` + registry
 - `apps/web/src/app/dashboard/portefeuille/_components/holdings-section.tsx` — 📊 button per row

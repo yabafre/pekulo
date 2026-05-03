@@ -1,13 +1,7 @@
-"use client"
+"use client";
 
-import { Cell, Label, Pie, PieChart } from "recharts"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Cell, Label, Pie, PieChart } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartLegend,
@@ -15,36 +9,29 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
-import type { RevenueItem } from "@/lib/types"
+} from "@/components/ui/chart";
+import type { RevenueItem } from "@/lib/types";
 
 interface RevenuChartProps {
-  data: RevenueItem[]
-  total: number
+  data: RevenueItem[];
+  total: number;
 }
 
-const palette = [
-  "var(--chart-1)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-2)",
-]
+const palette = ["var(--chart-1)", "var(--chart-3)", "var(--chart-4)", "var(--chart-2)"];
 
 export function RevenuChart({ data, total }: RevenuChartProps) {
-  const pieData = data.map((d) => ({ name: d.label, value: d.montant }))
+  const pieData = data.map((d) => ({ name: d.label, value: d.montant }));
 
   const config = pieData.reduce<ChartConfig>((acc, item, i) => {
-    acc[item.name] = { label: item.name, color: palette[i % palette.length] }
-    return acc
-  }, {})
+    acc[item.name] = { label: item.name, color: palette[i % palette.length] };
+    return acc;
+  }, {});
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Composition du Revenu</CardTitle>
-        <CardDescription className="text-xs">
-          Salaire net + avantages en nature
-        </CardDescription>
+        <CardDescription className="text-xs">Salaire net + avantages en nature</CardDescription>
       </CardHeader>
       <CardContent className="pt-2">
         <ChartContainer config={config} className="mx-auto aspect-square h-[280px]">
@@ -75,7 +62,7 @@ export function RevenuChart({ data, total }: RevenuChartProps) {
               ))}
               <Label
                 content={({ viewBox }) => {
-                  if (!viewBox || !("cx" in viewBox)) return null
+                  if (!viewBox || !("cx" in viewBox)) return null;
                   return (
                     <text
                       x={viewBox.cx}
@@ -98,7 +85,7 @@ export function RevenuChart({ data, total }: RevenuChartProps) {
                         Pouvoir d&apos;achat
                       </tspan>
                     </text>
-                  )
+                  );
                 }}
               />
             </Pie>
@@ -107,5 +94,5 @@ export function RevenuChart({ data, total }: RevenuChartProps) {
         </ChartContainer>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -16,7 +16,7 @@ Pekulo currently has no structured observability — `console.error` on the web 
   - Errors → **GlitchTip** (Sentry-compatible, MIT, self-hosted on Dokploy) via OTLP. PII scrubbing enabled.
   - Logs → structured stdout collected by Vercel logs (`apps/web`) + journald (`apps/prices` + Ollama).
   - Metrics → Prometheus scrape on `apps/prices` ; Vercel native metrics on `apps/web`.
-- **LLM call audit (NFR-26)** is a separate domain artefact — table `llm_call_log` (routing target, latency, outcome, *no prompt content*) with 90-day retention, surfaced via FR-36.
+- **LLM call audit (NFR-26)** is a separate domain artefact — table `llm_call_log` (routing target, latency, outcome, _no prompt content_) with 90-day retention, surfaced via FR-36.
 
 ## Why
 

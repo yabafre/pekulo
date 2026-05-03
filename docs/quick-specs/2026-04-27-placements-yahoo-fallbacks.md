@@ -40,10 +40,12 @@ qs-04b shipped Yahoo-only refresh and immediately failed on a real ticker (`PE50
 ## Files to Change
 
 **New (2)**
+
 - `src/lib/services/twelve-data.ts` — Twelve Data fetcher with key gating.
 - `src/lib/services/prices.ts` — `fetchPriceQuote` orchestrator + `PriceError`.
 
 **Edited (3)**
+
 - `src/lib/services/yahoo-finance.ts` — split current `fetchYahooQuote` into `fetchYahooQuoteBasic` + new `fetchYahooQuoteWithCrumb`. Cache cookies/crumb. Keep `resolveYahooSymbol` exported (orchestrator and Twelve Data both use it).
 - `src/lib/actions/portfolio.ts` — call `fetchPriceQuote` instead of `fetchYahooQuote`.
 - `.env.example` — add `TWELVE_DATA_API_KEY=`.

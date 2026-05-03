@@ -10,6 +10,7 @@
 First brick of a 4-step portfolio rollout (qs-04a → b → c → d). Adds `/dashboard/portefeuille` with two sections — **Comptes** and **Positions**. Manual entry only: cash balance for accounts, qty + avg_cost + last_price for holdings. Includes a `currency` field on both tables so qs-04c (FX) can plug in without a migration. Donut chart breaks down by **individual account**. Dashboard gets a stretch-goal "Capital actuel" KPI block.
 
 **Out of scope (deferred to qs-04b/c/d):**
+
 - Auto price refresh via Yahoo Finance (qs-04b)
 - Currency conversion to EUR (qs-04c)
 - Auto-derivation of `avg_cost` from a `holding_lots` history table (qs-04d)
@@ -86,6 +87,7 @@ ALTER TABLE public.holdings ENABLE ROW LEVEL SECURITY;
 ## Files to Change
 
 **New (10)**
+
 - `src/lib/schemas/portfolio.ts` — zod (account, holding, updatePrice), enums (`accountType`, `holdingKind`), labels, currency list (`['EUR','USD','GBP','CHF']` minimum, ISO 4217 strings).
 - `src/lib/data/portfolio.ts` — `readAccounts()`, `readHoldings()`, plus `readPortfolioSnapshot()` returning `{ accounts, holdings, kpi }` with computed roll-ups.
 - `src/lib/actions/portfolio.ts` — `getAccounts`, `getHoldings`, `saveAccount`, `deleteAccount`, `saveHolding`, `deleteHolding`, `updateHoldingPrice`. All write actions tagged.
@@ -98,6 +100,7 @@ ALTER TABLE public.holdings ENABLE ROW LEVEL SECURITY;
 - `src/components/charts/allocation-chart.tsx` — recharts donut, accepts `data: { label, value }[]`.
 
 **Edited (4)**
+
 - `src/lib/types.ts` — `Currency`, `Account`, `AccountType`, `Holding`, `HoldingKind`, `PortfolioSnapshot`.
 - `src/lib/zapaction/keys.ts` — register `portfolioKeys` + `portfolioTags` (replaces the placeholder `holdings*` keys present from qs-01 boilerplate; rename for clarity).
 - `src/components/nav.tsx` — "Portefeuille" link with `PiggyBank` icon.

@@ -1,9 +1,9 @@
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card";
 
 interface KpiCardProps {
-  label: string
-  value: string
-  sub?: string
+  label: string;
+  value: string;
+  sub?: string;
 }
 
 export function KpiCard({ label, value, sub }: KpiCardProps) {
@@ -15,5 +15,5 @@ export function KpiCard({ label, value, sub }: KpiCardProps) {
         {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
       </CardContent>
     </Card>
-  )
+  );
 }

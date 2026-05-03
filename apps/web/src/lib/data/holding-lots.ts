@@ -1,26 +1,26 @@
-import "server-only"
-import { createClient } from "@/lib/supabase/server"
-import type { HoldingLot, LotType } from "@/lib/types"
+import "server-only";
+import { createClient } from "@/lib/supabase/server";
+import type { HoldingLot, LotType } from "@/lib/types";
 
 export async function readHoldingLots(holdingId: string): Promise<HoldingLot[]> {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return []
+    } = await supabase.auth.getUser();
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from("holding_lots")
       .select("*")
       .eq("user_id", user.id)
       .eq("holding_id", holdingId)
-      .order("occurred_on", { ascending: true })
+      .order("occurred_on", { ascending: true });
 
-    if (error || !data) return []
-    return data.map(rowToLot)
+    if (error || !data) return [];
+    return data.map(rowToLot);
   } catch {
-    return []
+    return [];
   }
 }
 
@@ -35,5 +35,5 @@ function rowToLot(row: Record<string, unknown>): HoldingLot {
     fees: Number(row.fees),
     notes: row.notes != null ? String(row.notes) : null,
     createdAt: String(row.created_at),
-  }
+  };
 }

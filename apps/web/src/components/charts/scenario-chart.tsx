@@ -1,15 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ChartContainer,
   ChartLegend,
@@ -17,36 +11,34 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
-import type { ScenarioItem } from "@/lib/types"
+} from "@/components/ui/chart";
+import type { ScenarioItem } from "@/lib/types";
 
 interface ScenarioChartProps {
-  data: ScenarioItem[]
+  data: ScenarioItem[];
 }
 
 const config = {
   epargne: { label: "Capital versé", color: "var(--chart-1)" },
   perf: { label: "Gains marché", color: "var(--chart-3)" },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
 export function ScenarioChart({ data }: ScenarioChartProps) {
-  const [view, setView] = useState("comparison")
+  const [view, setView] = useState("comparison");
 
   const comparisonData = data.map((s) => ({
     name: s.name,
     epargne: s.epargne,
     perf: s.perf,
-  }))
+  }));
 
-  const focused = data.find((d) => d.name === view) ?? null
+  const focused = data.find((d) => d.name === view) ?? null;
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Scénarios — Atteindre 100 000 €</CardTitle>
-        <CardDescription className="text-xs">
-          Capital versé + gains marché à 5 ans
-        </CardDescription>
+        <CardDescription className="text-xs">Capital versé + gains marché à 5 ans</CardDescription>
       </CardHeader>
       <CardContent className="pt-2">
         <Tabs value={view} onValueChange={setView} className="mb-4">
@@ -94,7 +86,12 @@ export function ScenarioChart({ data }: ScenarioChartProps) {
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="epargne" stackId="a" fill="var(--color-epargne)" radius={[0, 0, 4, 4]} />
+              <Bar
+                dataKey="epargne"
+                stackId="a"
+                fill="var(--color-epargne)"
+                radius={[0, 0, 4, 4]}
+              />
               <Bar dataKey="perf" stackId="a" fill="var(--color-perf)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ChartContainer>
@@ -130,5 +127,5 @@ export function ScenarioChart({ data }: ScenarioChartProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

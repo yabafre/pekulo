@@ -1,33 +1,33 @@
-import "server-only"
-import { createClient } from "@/lib/supabase/server"
-import { defaultHypotheses, type Hypotheses } from "@/lib/types"
+import "server-only";
+import { createClient } from "@/lib/supabase/server";
+import { defaultHypotheses, type Hypotheses } from "@/lib/types";
 
 export async function readHypotheses(): Promise<{
-  hypotheses: Hypotheses
-  source: "db" | "default" | "error"
-  error?: string
+  hypotheses: Hypotheses;
+  source: "db" | "default" | "error";
+  error?: string;
 }> {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return { hypotheses: defaultHypotheses, source: "default" }
+    } = await supabase.auth.getUser();
+    if (!user) return { hypotheses: defaultHypotheses, source: "default" };
 
     const { data, error } = await supabase
       .from("hypotheses")
       .select("*")
       .eq("user_id", user.id)
-      .maybeSingle()
+      .maybeSingle();
 
     if (error) {
       return {
         hypotheses: defaultHypotheses,
         source: "error",
         error: `${error.code ?? ""} ${error.message}`.trim(),
-      }
+      };
     }
-    if (!data) return { hypotheses: defaultHypotheses, source: "default" }
+    if (!data) return { hypotheses: defaultHypotheses, source: "default" };
 
     return {
       hypotheses: {
@@ -59,12 +59,12 @@ export async function readHypotheses(): Promise<{
         objectif: Number(data.objectif ?? defaultHypotheses.objectif),
       },
       source: "db",
-    }
+    };
   } catch (err) {
     return {
       hypotheses: defaultHypotheses,
       source: "error",
       error: err instanceof Error ? err.message : String(err),
-    }
+    };
   }
 }

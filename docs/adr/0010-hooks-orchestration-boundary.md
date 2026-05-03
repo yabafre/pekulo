@@ -12,11 +12,11 @@ Brownfield Pekulo had components free to import server actions directly. The Bon
 
 Three hook tiers, lint-enforced:
 
-| Tier | Convention | Pekulo example |
-|---|---|---|
-| Query (read) | `use<Feature><Resource>` | `useDashboardCompass`, `usePortfolioHoldings`, `useTransactionsPending` |
-| Mutation (write) | `use<Verb><Resource>` | `useUpdateCompass`, `useRecordValuation`, `useConfirmCategorisation` |
-| Form orchestrator | `use<Feature>Form` | `useEditCompassForm`, `useAddMilestoneForm`, `useImportTransactionsCsvForm` |
+| Tier              | Convention               | Pekulo example                                                              |
+| ----------------- | ------------------------ | --------------------------------------------------------------------------- |
+| Query (read)      | `use<Feature><Resource>` | `useDashboardCompass`, `usePortfolioHoldings`, `useTransactionsPending`     |
+| Mutation (write)  | `use<Verb><Resource>`    | `useUpdateCompass`, `useRecordValuation`, `useConfirmCategorisation`        |
+| Form orchestrator | `use<Feature>Form`       | `useEditCompassForm`, `useAddMilestoneForm`, `useImportTransactionsCsvForm` |
 
 Form orchestrators wrap **TanStack Form's `useForm` together with the corresponding mutation hook** (`use<Verb><Resource>`) and expose a unified API to the component: `{ form, send, isSubmitting, … }`. Components consume only the orchestrator — never `useForm` directly, never the mutation hook directly when both are needed in the same form.
 
@@ -31,11 +31,11 @@ Component (.tsx)
 
 Local (route-scoped) vs Global (cross-route) split:
 
-| Family | Local | Global |
-|---|---|---|
-| Hooks | `apps/web/src/app/<route>/_hooks/` | `apps/web/src/lib/hooks/` |
-| Components | `apps/web/src/app/<route>/_components/` | `apps/web/src/components/` (top-level, **NOT** inside `lib/`) |
-| Server Actions | `apps/web/src/app/<route>/_actions/<feature>-actions.ts` | `apps/web/src/lib/actions/<feature>-actions.ts` |
+| Family         | Local                                                    | Global                                                        |
+| -------------- | -------------------------------------------------------- | ------------------------------------------------------------- |
+| Hooks          | `apps/web/src/app/<route>/_hooks/`                       | `apps/web/src/lib/hooks/`                                     |
+| Components     | `apps/web/src/app/<route>/_components/`                  | `apps/web/src/components/` (top-level, **NOT** inside `lib/`) |
+| Server Actions | `apps/web/src/app/<route>/_actions/<feature>-actions.ts` | `apps/web/src/lib/actions/<feature>-actions.ts`               |
 
 A custom oxlint rule in `@pekulo/oxlint-config` (`no-server-action-in-component`) fails the build on any `<feature>-actions.ts` import inside a `.tsx` file under `_components/` or `components/`.
 

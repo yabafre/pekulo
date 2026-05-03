@@ -34,10 +34,12 @@ qs-04a stored a `currency` field on each `account` and `holding` but everything 
 ## Files to Change
 
 **New (2)**
+
 - `apps/web/src/lib/services/fx.ts` — `getRates`, `convert(amount, from, to, rates)`, `FxError`.
 - `apps/web/src/lib/derive-portfolio-fx.ts` — `computeSnapshotFx` building on existing `computeSnapshot`.
 
 **Edited (3)**
+
 - `apps/web/src/lib/data/portfolio.ts` — `readPortfolioSnapshot` calls `getRates` then `computeSnapshotFx`. Fallback to `computeSnapshot` (1:1) on FX error.
 - `apps/web/src/lib/derive-portfolio.ts` — extract account/holding currency normalization into a shared helper used by both `computeSnapshot` and `computeSnapshotFx`.
 - `apps/web/src/app/dashboard/portefeuille/_components/portfolio-view.tsx` — pass FX info, render `(EUR)` suffix + "Taux au YYYY-MM-DD" line + fallback warning if applicable.

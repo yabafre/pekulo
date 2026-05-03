@@ -34,6 +34,6 @@ The brownfield architecture put all server logic inside Next.js server actions i
 
 - **Two-tier deployment**: `apps/web` on Vercel ; `apps/api` on Dokploy VPS alongside `apps/prices` (same Caddy reverse proxy, mounted at `/rpc/*`, `/health`, `/ready`, `/internal/*`).
 - **Vercel ↔ Dokploy network hop** between web server actions and `apps/api`. Mitigation: keep Dokploy near Vercel's EU edge ; cache Prisma queries via React Query (web) + service-layer memoisation (Elysia) where appropriate.
-- **Breaking change to NFR-28** — the original wording "Supabase JS SDK v2 only" applied to the *web tier* only. Amended in `architecture.md` Phase 2 — Data Layer to: "web tier opens zero direct DB connections ; `apps/api` talks to Postgres via Prisma ; Supabase JS SDK retained on web for Auth flows only."
+- **Breaking change to NFR-28** — the original wording "Supabase JS SDK v2 only" applied to the _web tier_ only. Amended in `architecture.md` Phase 2 — Data Layer to: "web tier opens zero direct DB connections ; `apps/api` talks to Postgres via Prisma ; Supabase JS SDK retained on web for Auth flows only."
 - **Build/deploy complexity** — two CI pipelines (Vercel + Dokploy), versioned independently. `oRPC` contract version (`@pekulo/contracts` package) gates compatibility.
 - **`apps/web/src/lib/llm/`** moves to `apps/api/src/modules/llm/` ; `/api/llm/attest` becomes `/internal/llm/attest` Elysia-native (private listener, not behind oRPC).

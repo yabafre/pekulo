@@ -1,14 +1,14 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { KpiCard } from "@/components/kpi-card"
-import { CapitalChart } from "@/components/charts/capital-chart"
-import { BudgetChart } from "@/components/charts/budget-chart"
-import { ScenarioChart } from "@/components/charts/scenario-chart"
-import { RevenuChart } from "@/components/charts/revenu-chart"
-import { AnnualSummaryChart } from "@/components/charts/annual-chart"
-import { Phases } from "@/components/phases"
-import { DetailCards } from "@/components/detail-cards"
-import { AnnualTable } from "@/components/annual-table"
-import { phases } from "@/lib/config"
+import { Card, CardContent } from "@/components/ui/card";
+import { KpiCard } from "@/components/kpi-card";
+import { CapitalChart } from "@/components/charts/capital-chart";
+import { BudgetChart } from "@/components/charts/budget-chart";
+import { ScenarioChart } from "@/components/charts/scenario-chart";
+import { RevenuChart } from "@/components/charts/revenu-chart";
+import { AnnualSummaryChart } from "@/components/charts/annual-chart";
+import { Phases } from "@/components/phases";
+import { DetailCards } from "@/components/detail-cards";
+import { AnnualTable } from "@/components/annual-table";
+import { phases } from "@/lib/config";
 import {
   deriveAnnualSummaries,
   deriveBudget,
@@ -16,47 +16,68 @@ import {
   deriveMonthly,
   deriveRevenue,
   deriveScenarios,
-} from "@/lib/derive"
-import { readHypotheses } from "@/lib/data/hypotheses"
-import { readPortfolioSnapshot } from "@/lib/data/portfolio"
+} from "@/lib/derive";
+import { readHypotheses } from "@/lib/data/hypotheses";
+import { readPortfolioSnapshot } from "@/lib/data/portfolio";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 function formatEuro(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(n) + " €"
+  return new Intl.NumberFormat("fr-FR").format(n) + " €";
 }
 
 export default async function DashboardPage() {
   const [{ hypotheses }, portfolio] = await Promise.all([
     readHypotheses(),
     readPortfolioSnapshot(),
-  ])
-  const kpiData = deriveKpis(hypotheses)
-  const monthlyData = deriveMonthly(hypotheses)
-  const annualSummaries = deriveAnnualSummaries(hypotheses)
-  const scenarios = deriveScenarios(hypotheses)
-  const budgetData = deriveBudget(hypotheses)
-  const revenueData = deriveRevenue(hypotheses)
-  const capitalActuel = portfolio.kpi.capitalTotal
-  const progressionActuelle = kpiData.objectif > 0 ? Math.round((capitalActuel / kpiData.objectif) * 1000) / 10 : 0
+  ]);
+  const kpiData = deriveKpis(hypotheses);
+  const monthlyData = deriveMonthly(hypotheses);
+  const annualSummaries = deriveAnnualSummaries(hypotheses);
+  const scenarios = deriveScenarios(hypotheses);
+  const budgetData = deriveBudget(hypotheses);
+  const revenueData = deriveRevenue(hypotheses);
+  const capitalActuel = portfolio.kpi.capitalTotal;
+  const progressionActuelle =
+    kpiData.objectif > 0 ? Math.round((capitalActuel / kpiData.objectif) * 1000) / 10 : 0;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard label="Net réel / Mois" value={formatEuro(kpiData.netReel)} sub="Salaire net mensuel" />
-        <KpiCard label="Pouvoir d'achat réel" value={formatEuro(kpiData.pouvoirAchat)} sub="Net + avantages (+243 €)" />
-        <KpiCard label="Épargne / Mois" value={formatEuro(kpiData.epargneMois)} sub="32,7% du net (Phase 1)" />
-        <KpiCard label="Capital Projeté 5 ans" value={formatEuro(kpiData.capitalProjete)} sub={`Objectif ${formatEuro(kpiData.objectif)} — ${kpiData.progression}%`} />
-        <KpiCard label="Capital Actuel" value={formatEuro(capitalActuel)} sub={`Réel — ${progressionActuelle}% objectif`} />
+        <KpiCard
+          label="Net réel / Mois"
+          value={formatEuro(kpiData.netReel)}
+          sub="Salaire net mensuel"
+        />
+        <KpiCard
+          label="Pouvoir d'achat réel"
+          value={formatEuro(kpiData.pouvoirAchat)}
+          sub="Net + avantages (+243 €)"
+        />
+        <KpiCard
+          label="Épargne / Mois"
+          value={formatEuro(kpiData.epargneMois)}
+          sub="32,7% du net (Phase 1)"
+        />
+        <KpiCard
+          label="Capital Projeté 5 ans"
+          value={formatEuro(kpiData.capitalProjete)}
+          sub={`Objectif ${formatEuro(kpiData.objectif)} — ${kpiData.progression}%`}
+        />
+        <KpiCard
+          label="Capital Actuel"
+          value={formatEuro(capitalActuel)}
+          sub={`Réel — ${progressionActuelle}% objectif`}
+        />
       </div>
 
       {/* Progress bar — actual vs objective */}
       {(() => {
-        const actuelPct = Math.min(100, progressionActuelle)
-        const projetePct = Math.min(100, kpiData.progression)
-        const objectifAtteint = progressionActuelle >= 100
-        const projeteAuDessus = kpiData.progression > 100
+        const actuelPct = Math.min(100, progressionActuelle);
+        const projetePct = Math.min(100, kpiData.progression);
+        const objectifAtteint = progressionActuelle >= 100;
+        const projeteAuDessus = kpiData.progression > 100;
         return (
           <Card>
             <CardContent className="p-5">
@@ -91,16 +112,22 @@ export default async function DashboardPage() {
               <div className="grid grid-cols-3 gap-3 text-xs mt-3">
                 <div>
                   <p className="text-muted-foreground">Capital actuel</p>
-                  <p className={`font-semibold tabular-nums ${objectifAtteint ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                  <p
+                    className={`font-semibold tabular-nums ${objectifAtteint ? "text-emerald-600 dark:text-emerald-400" : ""}`}
+                  >
                     {formatEuro(capitalActuel)}{" "}
-                    <span className="text-muted-foreground font-normal">· {progressionActuelle}%</span>
+                    <span className="text-muted-foreground font-normal">
+                      · {progressionActuelle}%
+                    </span>
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Projeté 5 ans</p>
                   <p className="font-semibold tabular-nums">
                     {formatEuro(kpiData.capitalProjete)}{" "}
-                    <span className="text-muted-foreground font-normal">· {kpiData.progression}%</span>
+                    <span className="text-muted-foreground font-normal">
+                      · {kpiData.progression}%
+                    </span>
                   </p>
                 </div>
                 <div className="text-right">
@@ -110,7 +137,7 @@ export default async function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-        )
+        );
       })()}
 
       {/* Charts row 1 */}
@@ -137,5 +164,5 @@ export default async function DashboardPage() {
       <AnnualSummaryChart data={annualSummaries} />
       <AnnualTable data={annualSummaries} />
     </div>
-  )
+  );
 }

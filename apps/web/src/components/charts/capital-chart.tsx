@@ -1,13 +1,7 @@
-"use client"
+"use client";
 
-import { Area, AreaChart, CartesianGrid, Line, XAxis, YAxis } from "recharts"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Area, AreaChart, CartesianGrid, Line, XAxis, YAxis } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartLegend,
@@ -15,17 +9,17 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
-import type { MonthlyRecord } from "@/lib/types"
+} from "@/components/ui/chart";
+import type { MonthlyRecord } from "@/lib/types";
 
 interface CapitalChartProps {
-  data: MonthlyRecord[]
+  data: MonthlyRecord[];
 }
 
 const config = {
   capital: { label: "Capital total", color: "var(--chart-1)" },
   epargne: { label: "Épargne (sans perf)", color: "var(--chart-3)" },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
 export function CapitalChart({ data }: CapitalChartProps) {
   const chartData = data
@@ -34,7 +28,7 @@ export function CapitalChart({ data }: CapitalChartProps) {
       mois: m.month.replace(" 20", " "),
       capital: m.capitalTotal,
       epargne: m.epargneCumul,
-    }))
+    }));
 
   return (
     <Card>
@@ -103,5 +97,5 @@ export function CapitalChart({ data }: CapitalChartProps) {
         </ChartContainer>
       </CardContent>
     </Card>
-  )
+  );
 }

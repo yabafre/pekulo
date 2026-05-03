@@ -38,5 +38,5 @@ Adopt **A\*** — server is the audit authority ; iOS clients render FoundationM
 - **Async retry queue must be durable.** IndexedDB partition under the same per-user key as the offline cache (ADR-0003) ; flushed on reconnect ; surfaces in dev tools for debugging. If queue drop rate ever exceeds 1 %, pivot to pure A (synchronous attest) and accept the latency hit.
 - **Forensic mismatch alerts.** Server alerts on intent ↔ outcome route divergence beyond a tolerance band (e.g. > 5 % of attestation rows over a rolling window). Wired into the OTel observability stack (ADR-0005).
 - **No prompt content ever stored.** The audit log carries routing target, latency, outcome, and a short label hash for de-dup ; never the prompt body. NFR-26, DR-6.
-- **Transparency notice (DR-12)** triggers on the *first* user-visible LLM suggestion regardless of route ; routing badge transparency relies on the server-returned `route_actual` value, not the client guess.
+- **Transparency notice (DR-12)** triggers on the _first_ user-visible LLM suggestion regardless of route ; routing badge transparency relies on the server-returned `route_actual` value, not the client guess.
 - **Opt-in flag** stored per-user row in Supabase under RLS ; cached client-side with a hard-invalidation on every settings page render (Phase 3 process rule).

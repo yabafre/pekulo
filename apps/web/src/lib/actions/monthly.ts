@@ -1,17 +1,13 @@
-"use server"
+"use server";
 
-import { defineAction } from "@zapaction/core"
-import { revalidatePath } from "next/cache"
-import { z } from "zod"
-import {
-  monthlyEntrySchema,
-  monthlyKeySchema,
-  formatMonthLabel,
-} from "@/lib/schemas/monthly"
-import { monthlyTags } from "@/lib/zapaction/keys"
-import type { ActionContext } from "@/lib/zapaction/context"
-import "@/lib/zapaction/context"
-import type { MonthlyEntry } from "@/lib/types"
+import { defineAction } from "@zapaction/core";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { monthlyEntrySchema, monthlyKeySchema, formatMonthLabel } from "@/lib/schemas/monthly";
+import { monthlyTags } from "@/lib/zapaction/keys";
+import type { ActionContext } from "@/lib/zapaction/context";
+import "@/lib/zapaction/context";
+import type { MonthlyEntry } from "@/lib/types";
 
 const rowToEntry = (row: Record<string, unknown>): MonthlyEntry => ({
   year: Number(row.year),
@@ -24,7 +20,7 @@ const rowToEntry = (row: Record<string, unknown>): MonthlyEntry => ({
   remote: Number(row.remote),
   freelance: Number(row.freelance),
   epargneMois: Number(row.epargne_mois),
-})
+});
 
 export const getMonthlyEntries = defineAction<void, MonthlyEntry[], ActionContext>({
   name: "getMonthlyEntries",
@@ -35,11 +31,11 @@ export const getMonthlyEntries = defineAction<void, MonthlyEntry[], ActionContex
       .select("*")
       .eq("user_id", ctx.userId)
       .order("year", { ascending: true })
-      .order("month_num", { ascending: true })
-    if (error) throw error
-    return (data ?? []).map(rowToEntry)
+      .order("month_num", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToEntry);
   },
-})
+});
 
 export const saveMonthlyEntry = defineAction<
   z.infer<typeof monthlyEntrySchema>,
@@ -50,8 +46,7 @@ export const saveMonthlyEntry = defineAction<
   input: monthlyEntrySchema,
   tags: [monthlyTags.list()],
   handler: async ({ input, ctx }) => {
-    const epargneMois =
-      input.net + input.remote + input.freelance - input.depenses - input.credit
+    const epargneMois = input.net + input.remote + input.freelance - input.depenses - input.credit;
     const { data, error } = await ctx.supabase
       .from("monthly_tracking")
       .upsert(
@@ -71,16 +66,16 @@ export const saveMonthlyEntry = defineAction<
           epargne_cumul: 0,
           capital_total: 0,
         },
-        { onConflict: "user_id,month_num,year" }
+        { onConflict: "user_id,month_num,year" },
       )
       .select("*")
-      .single()
-    if (error) throw error
-    revalidatePath("/dashboard/mensuel")
-    revalidatePath("/dashboard")
-    return rowToEntry(data)
+      .single();
+    if (error) throw error;
+    revalidatePath("/dashboard/mensuel");
+    revalidatePath("/dashboard");
+    return rowToEntry(data);
   },
-})
+});
 
 export const deleteMonthlyEntry = defineAction<
   z.infer<typeof monthlyKeySchema>,
@@ -96,10 +91,10 @@ export const deleteMonthlyEntry = defineAction<
       .delete()
       .eq("user_id", ctx.userId)
       .eq("year", input.year)
-      .eq("month_num", input.monthNum)
-    if (error) throw error
-    revalidatePath("/dashboard/mensuel")
-    revalidatePath("/dashboard")
-    return { ok: true as const }
+      .eq("month_num", input.monthNum);
+    if (error) throw error;
+    revalidatePath("/dashboard/mensuel");
+    revalidatePath("/dashboard");
+    return { ok: true as const };
   },
-})
+});

@@ -30,12 +30,12 @@
 
 ### Allowed accents
 
-| Use | Color | Token |
-|---|---|---|
-| Positive monetary delta (gain, "ahead", "+€X") | Emerald | `--gain` `#00D26A` |
-| Negative delta (loss, "behind", "-€X", destructive action) | Red | `--loss` `#FF5C5C` |
-| Neutral / on-track | Mid-grey | `--neutral` `#B3B3B3` |
-| Single tiny data indicator (e.g. AI activity badge) | Blue (TR exception) | `--data-blue` `#2F73FF` |
+| Use                                                        | Color               | Token                   |
+| ---------------------------------------------------------- | ------------------- | ----------------------- |
+| Positive monetary delta (gain, "ahead", "+€X")             | Emerald             | `--gain` `#00D26A`      |
+| Negative delta (loss, "behind", "-€X", destructive action) | Red                 | `--loss` `#FF5C5C`      |
+| Neutral / on-track                                         | Mid-grey            | `--neutral` `#B3B3B3`   |
+| Single tiny data indicator (e.g. AI activity badge)        | Blue (TR exception) | `--data-blue` `#2F73FF` |
 
 ---
 
@@ -47,125 +47,128 @@ All tokens live in `docs/ux-preview/src/tokens/` (TypeScript) + mirrored as CSS 
 
 #### Dark mode (default)
 
-| Role | Hex | Token | Contrast vs `#000` |
-|---|---|---|---|
-| Page background | `#000000` | `--surface-bg` | — |
-| Card / section fill | `#0F0F0F` | `--surface-card` | — |
-| Elevated (modal, popover, hover) | `#161616` | `--surface-elevated` | — |
-| Muted (input bg, badge, secondary CTA) | `#1A1A1A` | `--surface-muted` | — |
-| Text primary (big numbers, headings) | `#EDEDED` | `--text-primary` | 17.4:1 |
-| Text secondary (body) | `#A1A1A1` | `--text-secondary` | 7.0:1 |
-| Text tertiary (labels, captions) | `#707070` | `--text-tertiary` | 4.6:1 |
-| Text muted (disabled, hints) | `#4D4D4D` | `--text-muted` | 3.0:1 (large only) |
-| Border default (rare, hairline) | `rgba(255,255,255,0.10)` | `--border-default` | — |
-| Border focus (white ring) | `#EDEDED` | `--border-focus` | — |
-| Donut track | `rgba(255,255,255,0.08)` | `--donut-track` | — |
-| Donut fill | `#FFFFFF` | `--donut-fill` | — |
+| Role                                   | Hex                      | Token                | Contrast vs `#000` |
+| -------------------------------------- | ------------------------ | -------------------- | ------------------ |
+| Page background                        | `#000000`                | `--surface-bg`       | —                  |
+| Card / section fill                    | `#0F0F0F`                | `--surface-card`     | —                  |
+| Elevated (modal, popover, hover)       | `#161616`                | `--surface-elevated` | —                  |
+| Muted (input bg, badge, secondary CTA) | `#1A1A1A`                | `--surface-muted`    | —                  |
+| Text primary (big numbers, headings)   | `#EDEDED`                | `--text-primary`     | 17.4:1             |
+| Text secondary (body)                  | `#A1A1A1`                | `--text-secondary`   | 7.0:1              |
+| Text tertiary (labels, captions)       | `#707070`                | `--text-tertiary`    | 4.6:1              |
+| Text muted (disabled, hints)           | `#4D4D4D`                | `--text-muted`       | 3.0:1 (large only) |
+| Border default (rare, hairline)        | `rgba(255,255,255,0.10)` | `--border-default`   | —                  |
+| Border focus (white ring)              | `#EDEDED`                | `--border-focus`     | —                  |
+| Donut track                            | `rgba(255,255,255,0.08)` | `--donut-track`      | —                  |
+| Donut fill                             | `#FFFFFF`                | `--donut-fill`       | —                  |
 
 All pairs meet **WCAG 2.2 AA** (4.5:1 body, 3:1 large) — primary reaches AAA (7:1).
 
 #### Light mode (Vercel-style inverse, derived from dark)
 
-| Role | Hex |
-|---|---|
-| Page bg | `#FFFFFF` |
-| Card | `#FAFAFA` |
-| Muted | `#F2F2F2` |
-| Text primary | `#0A0A0A` (19:1) |
+| Role           | Hex               |
+| -------------- | ----------------- |
+| Page bg        | `#FFFFFF`         |
+| Card           | `#FAFAFA`         |
+| Muted          | `#F2F2F2`         |
+| Text primary   | `#0A0A0A` (19:1)  |
 | Text secondary | `#404040` (9.7:1) |
-| Text tertiary | `#737373` (4.6:1) |
-| Border focus | `#0A0A0A` |
+| Text tertiary  | `#737373` (4.6:1) |
+| Border focus   | `#0A0A0A`         |
 
 #### Performance / state colors (both modes)
 
-| Token | Dark | Light |
-|---|---|---|
-| `--gain` | `#00D26A` | `#00A852` |
-| `--gain-soft` (bg) | `rgba(0,210,106,0.12)` | `rgba(0,168,82,0.10)` |
-| `--loss` | `#FF5C5C` | `#DC2626` |
-| `--loss-soft` | `rgba(255,92,92,0.12)` | `rgba(220,38,38,0.08)` |
-| `--neutral` | `#B3B3B3` | `#525252` |
-| `--data-blue` | `#2F73FF` | `#2F73FF` |
+| Token              | Dark                   | Light                  |
+| ------------------ | ---------------------- | ---------------------- |
+| `--gain`           | `#00D26A`              | `#00A852`              |
+| `--gain-soft` (bg) | `rgba(0,210,106,0.12)` | `rgba(0,168,82,0.10)`  |
+| `--loss`           | `#FF5C5C`              | `#DC2626`              |
+| `--loss-soft`      | `rgba(255,92,92,0.12)` | `rgba(220,38,38,0.08)` |
+| `--neutral`        | `#B3B3B3`              | `#525252`              |
+| `--data-blue`      | `#2F73FF`              | `#2F73FF`              |
 
 #### Chart series (strict grayscale)
 
-| Token | Dark | Light | Use |
-|---|---|---|---|
-| `--chart-actual` | `#FFFFFF` | `#0A0A0A` | User's actual wealth line (solid) |
-| `--chart-plan` | `rgba(255,255,255,0.32)` | `rgba(10,10,10,0.32)` | Cap-required plan (dashed) |
-| `--chart-projection` | `rgba(255,255,255,0.16)` | `rgba(10,10,10,0.16)` | Hypothesis projection range |
-| `--chart-grid` | `rgba(255,255,255,0.06)` | `rgba(10,10,10,0.06)` | Axis baseline |
+| Token                | Dark                     | Light                 | Use                               |
+| -------------------- | ------------------------ | --------------------- | --------------------------------- |
+| `--chart-actual`     | `#FFFFFF`                | `#0A0A0A`             | User's actual wealth line (solid) |
+| `--chart-plan`       | `rgba(255,255,255,0.32)` | `rgba(10,10,10,0.32)` | Cap-required plan (dashed)        |
+| `--chart-projection` | `rgba(255,255,255,0.16)` | `rgba(10,10,10,0.16)` | Hypothesis projection range       |
+| `--chart-grid`       | `rgba(255,255,255,0.06)` | `rgba(10,10,10,0.06)` | Axis baseline                     |
 
 ### 2.2 Typography
 
 **Font families:**
+
 - Sans: **Geist** (Vercel, weights 300/400/500/600/700) — loaded via Google Fonts CDN in `index.html`
 - Mono: **Geist Mono** (weights 400/500/600) — used implicitly via `tabular-nums` font-feature
 
 **Type scale** (mobile values shown ; desktop bumps via `lg:` prefix where applicable):
 
-| Token | Mobile | Desktop | Weight | Use |
-|---|---|---|---|---|
-| `text-hero` | (`text-h1`) 26px | 42px | 600 | Primary big number (Patrimoine total, Equity, Valeur portefeuille) |
-| `text-display` | 32px | 32px | 600 | Donut centered % |
-| `text-h1` | 26px | 26px | 600 | (used as desktop variant) |
-| `text-h2` | 20px | 20px | 600 | Section title (lg variant) |
-| `text-h3` | 16px | 16px | 600 | Section title (mobile), KPI label |
-| `text-body-lg` | 17px | 17px | 400 (override 600 for page titles) | Page title (`Transactions`, etc.) |
-| `text-body` | 16px | 16px | 400 | Default body |
-| `text-body-sm` | 14px | 14px | 400 (override 500/600 for row primary) | List row primary (CW8.PA, palier label, account label) |
-| `text-caption` | 13px | 13px | 500 | Labels, sub-rows, captions |
-| `text-[11px]` | 11px | 11px | 500 | Bottom nav labels, kind badge (ETF/CRYPTO) |
+| Token          | Mobile           | Desktop | Weight                                 | Use                                                                |
+| -------------- | ---------------- | ------- | -------------------------------------- | ------------------------------------------------------------------ |
+| `text-hero`    | (`text-h1`) 26px | 42px    | 600                                    | Primary big number (Patrimoine total, Equity, Valeur portefeuille) |
+| `text-display` | 32px             | 32px    | 600                                    | Donut centered %                                                   |
+| `text-h1`      | 26px             | 26px    | 600                                    | (used as desktop variant)                                          |
+| `text-h2`      | 20px             | 20px    | 600                                    | Section title (lg variant)                                         |
+| `text-h3`      | 16px             | 16px    | 600                                    | Section title (mobile), KPI label                                  |
+| `text-body-lg` | 17px             | 17px    | 400 (override 600 for page titles)     | Page title (`Transactions`, etc.)                                  |
+| `text-body`    | 16px             | 16px    | 400                                    | Default body                                                       |
+| `text-body-sm` | 14px             | 14px    | 400 (override 500/600 for row primary) | List row primary (CW8.PA, palier label, account label)             |
+| `text-caption` | 13px             | 13px    | 500                                    | Labels, sub-rows, captions                                         |
+| `text-[11px]`  | 11px             | 11px    | 500                                    | Bottom nav labels, kind badge (ETF/CRYPTO)                         |
 
 **Font features:**
+
 - All monetary values: `font-feature-settings: "tnum" 1, "lnum" 1` (tabular figures, lining nums) — applied via `.tabular-nums` utility class
 
 ### 2.3 Spacing — 4pt scale
 
-| Token | Px | Common use |
-|---|---|---|
-| `gap-1` | 4 | Inline icon + text |
-| `gap-2` / `p-2` | 8 | Tight clusters |
-| `gap-3` / `py-3` | 12 | List row vertical padding |
-| `gap-4` / `p-4` | 16 | Bento gap, KPI tile inner |
-| `gap-5` / `p-5` | 20 | Section padding mobile |
-| `gap-6` / `p-6` | 24 | Section padding desktop |
-| `gap-10` | 40 | Mobile section vertical rhythm |
+| Token            | Px  | Common use                     |
+| ---------------- | --- | ------------------------------ |
+| `gap-1`          | 4   | Inline icon + text             |
+| `gap-2` / `p-2`  | 8   | Tight clusters                 |
+| `gap-3` / `py-3` | 12  | List row vertical padding      |
+| `gap-4` / `p-4`  | 16  | Bento gap, KPI tile inner      |
+| `gap-5` / `p-5`  | 20  | Section padding mobile         |
+| `gap-6` / `p-6`  | 24  | Section padding desktop        |
+| `gap-10`         | 40  | Mobile section vertical rhythm |
 
 ### 2.4 Radius
 
-| Token | Px | Use |
-|---|---|---|
-| `rounded-sm` | 6 | Small chip, badge |
-| `rounded-md` | 8 | Buttons, inputs |
-| `rounded-lg` | 12 | Cards (default), KpiTile |
-| `rounded-xl` | 16 | Sections (Section component) |
-| `rounded-full` | ∞ | Pills (CTA buttons), avatars, donuts |
+| Token          | Px  | Use                                  |
+| -------------- | --- | ------------------------------------ |
+| `rounded-sm`   | 6   | Small chip, badge                    |
+| `rounded-md`   | 8   | Buttons, inputs                      |
+| `rounded-lg`   | 12  | Cards (default), KpiTile             |
+| `rounded-xl`   | 16  | Sections (Section component)         |
+| `rounded-full` | ∞   | Pills (CTA buttons), avatars, donuts |
 
 ### 2.5 Shadows
 
 Dark mode is **shadow-free** for cards (TR minimalism). Tokens preserved for tooltips / future use:
 
-| Token | Value (dark) |
-|---|---|
-| `--shadow-sm` | `0 1px 2px 0 rgba(0,0,0,0.6)` |
-| `--shadow-md` | `0 8px 16px -4px rgba(0,0,0,0.6)` |
+| Token            | Value (dark)                                                 |
+| ---------------- | ------------------------------------------------------------ |
+| `--shadow-sm`    | `0 1px 2px 0 rgba(0,0,0,0.6)`                                |
+| `--shadow-md`    | `0 8px 16px -4px rgba(0,0,0,0.6)`                            |
 | `--shadow-focus` | `0 0 0 2px var(--surface-bg), 0 0 0 4px var(--border-focus)` |
 
 ### 2.6 Motion
 
-| Token | Value | Use |
-|---|---|---|
-| `--motion-fast` | 150ms | Hover transitions, color changes |
-| `--motion-base` | 200ms | Page transitions (fade + slide-up) |
-| `--motion-slow` | 300ms | Donut sweep tail |
-| `--ease-out` | `cubic-bezier(0.16, 1, 0.3, 1)` | Default for entering elements |
-| `--ease-in` | `cubic-bezier(0.7, 0, 0.84, 0)` | Default for exiting elements |
-| `--ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Reserved (rare) |
+| Token           | Value                               | Use                                |
+| --------------- | ----------------------------------- | ---------------------------------- |
+| `--motion-fast` | 150ms                               | Hover transitions, color changes   |
+| `--motion-base` | 200ms                               | Page transitions (fade + slide-up) |
+| `--motion-slow` | 300ms                               | Donut sweep tail                   |
+| `--ease-out`    | `cubic-bezier(0.16, 1, 0.3, 1)`     | Default for entering elements      |
+| `--ease-in`     | `cubic-bezier(0.7, 0, 0.84, 0)`     | Default for exiting elements       |
+| `--ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Reserved (rare)                    |
 
 **Animation library:** **Framer Motion 12** for the V1 web app.
 
 **Mobile (V1.5) parity strategy:**
+
 - **Moti** on Reanimated 4 — declarative API near-identical to Framer (≈ 70 % shared vocabulary)
 - **React Native Skia** reserved for hot-path mobile graphics (compass donut at high refresh rates, complex paths) — only adopted if profiling at V1.5 shows jank
 - All animations honour `prefers-reduced-motion` via `useReducedMotion()` hooks
@@ -174,21 +177,21 @@ Dark mode is **shadow-free** for cards (TR minimalism). Tokens preserved for too
 
 ## 3. UI library + version
 
-| Layer | Package | Version | Notes |
-|---|---|---|---|
-| Framework | `react` | 19.2.x | Same as `apps/web` |
-| Bundler (proto) | `vite` | 8.x | Vite + `@vitejs/plugin-react` for the prototype only |
-| CSS framework | `tailwindcss` | 4.x | `@tailwindcss/vite` plugin, `@theme inline {}` directives |
-| Animation utilities | `tw-animate-css` | 1.4.x | Mirrors `apps/web` |
-| UI primitives (headless) | `@base-ui/react` | 1.4.x | Same as `apps/web` (shadcn-compatible) |
-| Component generator | `shadcn` | n/a (consumed via `apps/web`) | `style: base-nova`, `iconLibrary: lucide` |
-| Icon set | `lucide-react` | 1.11.x | Single icon family throughout |
-| Charts | `recharts` (web) | 3.8.x | For complex charts in `apps/web`; the proto uses inline SVG for trajectory + projection (lighter, TR-style) |
-| Forms | `@tanstack/react-form` + `zod` | latest | (V1 web only — proto uses controlled components) |
-| Class utilities | `clsx` + `tailwind-merge` (`cn` helper) | 2.x / 3.x | Standard cn pattern |
-| CVA | `class-variance-authority` | 0.7.x | Reserved for variant-heavy components |
-| Animation | `framer-motion` | 12.x | Page transitions, count-up, donut sweep, list stagger |
-| Dev inspection | `react-grab` | 0.1.x | Dev-only, gated by `import.meta.env.DEV` |
+| Layer                    | Package                                 | Version                       | Notes                                                                                                       |
+| ------------------------ | --------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Framework                | `react`                                 | 19.2.x                        | Same as `apps/web`                                                                                          |
+| Bundler (proto)          | `vite`                                  | 8.x                           | Vite + `@vitejs/plugin-react` for the prototype only                                                        |
+| CSS framework            | `tailwindcss`                           | 4.x                           | `@tailwindcss/vite` plugin, `@theme inline {}` directives                                                   |
+| Animation utilities      | `tw-animate-css`                        | 1.4.x                         | Mirrors `apps/web`                                                                                          |
+| UI primitives (headless) | `@base-ui/react`                        | 1.4.x                         | Same as `apps/web` (shadcn-compatible)                                                                      |
+| Component generator      | `shadcn`                                | n/a (consumed via `apps/web`) | `style: base-nova`, `iconLibrary: lucide`                                                                   |
+| Icon set                 | `lucide-react`                          | 1.11.x                        | Single icon family throughout                                                                               |
+| Charts                   | `recharts` (web)                        | 3.8.x                         | For complex charts in `apps/web`; the proto uses inline SVG for trajectory + projection (lighter, TR-style) |
+| Forms                    | `@tanstack/react-form` + `zod`          | latest                        | (V1 web only — proto uses controlled components)                                                            |
+| Class utilities          | `clsx` + `tailwind-merge` (`cn` helper) | 2.x / 3.x                     | Standard cn pattern                                                                                         |
+| CVA                      | `class-variance-authority`              | 0.7.x                         | Reserved for variant-heavy components                                                                       |
+| Animation                | `framer-motion`                         | 12.x                          | Page transitions, count-up, donut sweep, list stagger                                                       |
+| Dev inspection           | `react-grab`                            | 0.1.x                         | Dev-only, gated by `import.meta.env.DEV`                                                                    |
 
 **Migration to `apps/web`:** the proto deliberately mirrors the `apps/web` stack (Tailwind v4, shadcn `base-nova`, `@base-ui/react`, `lucide-react`, `recharts`) so screens transplant 1:1 from `docs/ux-preview/src/App.tsx` into route-private `apps/web/src/app/<route>/_components/`.
 
@@ -198,13 +201,13 @@ Dark mode is **shadow-free** for cards (TR minimalism). Tokens preserved for too
 
 ### 4.1 Breakpoints
 
-| Name | Min width | Layout |
-|---|---|---|
-| Mobile | 375px | Single column, top tab + page title, bottom nav (5 icons), no sidebar |
-| Mobile-lg | 640px | (rare differences — route label appears in suggestion meta) |
-| Tablet | 768px | Same as mobile (no separate tablet layout — collapses to mobile pattern below 1024) |
-| Desktop | 1024px (`lg:`) | Bento grid 12-col, floating sidebar bubble (left), top bar with date + tabs + CTA + avatar, no bottom nav |
-| Wide | 1440px | Same as desktop, max-width 1440 with auto margins on the main shell |
+| Name      | Min width      | Layout                                                                                                    |
+| --------- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| Mobile    | 375px          | Single column, top tab + page title, bottom nav (5 icons), no sidebar                                     |
+| Mobile-lg | 640px          | (rare differences — route label appears in suggestion meta)                                               |
+| Tablet    | 768px          | Same as mobile (no separate tablet layout — collapses to mobile pattern below 1024)                       |
+| Desktop   | 1024px (`lg:`) | Bento grid 12-col, floating sidebar bubble (left), top bar with date + tabs + CTA + avatar, no bottom nav |
+| Wide      | 1440px         | Same as desktop, max-width 1440 with auto margins on the main shell                                       |
 
 ### 4.2 Mobile shell
 
@@ -255,10 +258,7 @@ Dark mode is **shadow-free** for cards (TR minimalism). Tokens preserved for too
 All bento cells share `<Section>`:
 
 ```tsx
-<section
-  aria-label={ariaLabel}
-  className="rounded-xl bg-card p-5 lg:p-6"
->
+<section aria-label={ariaLabel} className="rounded-xl bg-card p-5 lg:p-6">
   {(title || action) && (
     <header className="flex items-center justify-between mb-4 gap-2">
       {title && <h2 className="text-h3 lg:text-h2 text-fg">{title}</h2>}

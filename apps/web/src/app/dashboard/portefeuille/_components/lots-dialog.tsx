@@ -1,32 +1,26 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useActionMutation, useActionQuery } from "@zapaction/query"
-import { useQueryClient } from "@tanstack/react-query"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react";
+import { useActionMutation, useActionQuery } from "@zapaction/query";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Field,
-  FieldControl,
-  FieldError,
-  FieldLabel,
-  Form,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/dialog";
+import { Field, FieldControl, FieldError, FieldLabel, Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -34,24 +28,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Card, CardContent } from "@/components/ui/card"
-import { useAppForm } from "@/hooks/form-hook"
-import {
-  addHoldingLot,
-  deleteHoldingLot,
-  getHoldingLots,
-} from "@/lib/actions/holding-lots"
-import { lotInputSchema } from "@/lib/schemas/holding-lots"
-import { lotsKeys, lotsTags, portfolioTags } from "@/lib/zapaction/keys"
-import { deriveFromLots } from "@/lib/derive-lots"
-import type { Holding, LotType } from "@/lib/types"
+} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAppForm } from "@/hooks/form-hook";
+import { addHoldingLot, deleteHoldingLot, getHoldingLots } from "@/lib/actions/holding-lots";
+import { lotInputSchema } from "@/lib/schemas/holding-lots";
+import { lotsKeys, lotsTags, portfolioTags } from "@/lib/zapaction/keys";
+import { deriveFromLots } from "@/lib/derive-lots";
+import type { Holding, LotType } from "@/lib/types";
 
 function formatNum(n: number, digits = 2) {
   return new Intl.NumberFormat("fr-FR", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  }).format(n)
+  }).format(n);
 }
 
 export function LotsDialog({
@@ -59,61 +49,58 @@ export function LotsDialog({
   onOpenChange,
   holding,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  holding: Holding | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  holding: Holding | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
-        {open && holding ? (
-          <Body holding={holding} onDone={() => onOpenChange(false)} />
-        ) : null}
+        {open && holding ? <Body holding={holding} onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
-  const queryClient = useQueryClient()
-  const [busy, setBusy] = useState(false)
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
 
-  const queryKey = lotsKeys.byHolding(holding.id)
+  const queryKey = lotsKeys.byHolding(holding.id);
   const lotsQuery = useActionQuery(getHoldingLots, {
     queryKey,
     input: { holdingId: holding.id },
     readPolicy: "read-only",
-  })
-  const lots = lotsQuery.data ?? []
-  const derived = deriveFromLots(lots)
-  const noLotsYet = lots.length === 0
-  const canImportInitial =
-    noLotsYet && holding.quantity > 0 && holding.avgCost > 0
+  });
+  const lots = lotsQuery.data ?? [];
+  const derived = deriveFromLots(lots);
+  const noLotsYet = lots.length === 0;
+  const canImportInitial = noLotsYet && holding.quantity > 0 && holding.avgCost > 0;
 
   const handleSuccess = async () => {
-    await queryClient.invalidateQueries({ queryKey })
-    await queryClient.refetchQueries({ queryKey })
-  }
+    await queryClient.invalidateQueries({ queryKey });
+    await queryClient.refetchQueries({ queryKey });
+  };
 
   const addMutation = useActionMutation(addHoldingLot, {
     invalidateWithTags: [lotsTags.all(), portfolioTags.holdings()],
     onSuccess: handleSuccess,
-  })
+  });
   const deleteMutation = useActionMutation(deleteHoldingLot, {
     invalidateWithTags: [lotsTags.all(), portfolioTags.holdings()],
     onSuccess: handleSuccess,
-  })
+  });
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10);
 
   type LotForm = {
-    type: LotType
-    occurredOn: string
-    quantity: number
-    priceUnit: number
-    fees: number
-    notes: string
-  }
+    type: LotType;
+    occurredOn: string;
+    quantity: number;
+    priceUnit: number;
+    fees: number;
+    notes: string;
+  };
 
   const form = useAppForm({
     defaultValues: {
@@ -129,8 +116,8 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
         holdingId: holding.id,
         ...value,
         notes: value.notes && value.notes.length > 0 ? value.notes : null,
-      })
-      await addMutation.mutateAsync(payload)
+      });
+      await addMutation.mutateAsync(payload);
       form.reset({
         type: "buy",
         occurredOn: today,
@@ -138,9 +125,9 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
         priceUnit: 0,
         fees: 0,
         notes: "",
-      })
+      });
     },
-  })
+  });
 
   // Reset form when holding changes
   useEffect(() => {
@@ -151,12 +138,12 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
       priceUnit: 0,
       fees: 0,
       notes: "",
-    })
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [holding.id])
+  }, [holding.id]);
 
   async function importInitial() {
-    setBusy(true)
+    setBusy(true);
     try {
       await addMutation.mutateAsync(
         lotInputSchema.parse({
@@ -167,10 +154,10 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
           priceUnit: holding.avgCost,
           fees: 0,
           notes: "Lot initial (import depuis valeurs manuelles)",
-        })
-      )
+        }),
+      );
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
@@ -179,8 +166,8 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
       <DialogHeader>
         <DialogTitle>Historique — {holding.label}</DialogTitle>
         <DialogDescription>
-          Saisis chaque achat / vente. Le prix moyen et la quantité du holding sont
-          recalculés automatiquement (moyenne pondérée).
+          Saisis chaque achat / vente. Le prix moyen et la quantité du holding sont recalculés
+          automatiquement (moyenne pondérée).
         </DialogDescription>
       </DialogHeader>
 
@@ -193,7 +180,9 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
           </span>
           <span>
             <span className="text-muted-foreground">Avg cost :</span>{" "}
-            <span className="font-semibold tabular-nums">{formatNum(derived.avgCost, 2)} {holding.currency}</span>
+            <span className="font-semibold tabular-nums">
+              {formatNum(derived.avgCost, 2)} {holding.currency}
+            </span>
           </span>
           <span className="text-xs text-muted-foreground ml-auto">
             {lots.length} lot{lots.length > 1 ? "s" : ""}
@@ -204,8 +193,8 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
       {canImportInitial ? (
         <div className="text-xs px-3 py-2 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center gap-2 flex-wrap">
           <span>
-            Aucun lot enregistré, mais ce holding a déjà qty={formatNum(holding.quantity, 4)} avg={formatNum(holding.avgCost, 2)}.
-            Tu peux les importer comme premier lot.
+            Aucun lot enregistré, mais ce holding a déjà qty={formatNum(holding.quantity, 4)} avg=
+            {formatNum(holding.avgCost, 2)}. Tu peux les importer comme premier lot.
           </span>
           <Button
             type="button"
@@ -237,16 +226,12 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
               </TableHeader>
               <TableBody>
                 {lots.map((l) => {
-                  const total = l.quantity * l.priceUnit + (l.type === "buy" ? l.fees : 0)
+                  const total = l.quantity * l.priceUnit + (l.type === "buy" ? l.fees : 0);
                   const isDeletingThis =
-                    deleteMutation.isPending &&
-                    deleteMutation.variables?.id === l.id
-                  const rowDisabled = deleteMutation.isPending
+                    deleteMutation.isPending && deleteMutation.variables?.id === l.id;
+                  const rowDisabled = deleteMutation.isPending;
                   return (
-                    <TableRow
-                      key={l.id}
-                      className={isDeletingThis ? "opacity-50" : undefined}
-                    >
+                    <TableRow key={l.id} className={isDeletingThis ? "opacity-50" : undefined}>
                       <TableCell className="whitespace-nowrap">{l.occurredOn}</TableCell>
                       <TableCell>
                         <span
@@ -260,10 +245,18 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
                           {l.type === "buy" ? "Achat" : "Vente"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(l.quantity, 4)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(l.priceUnit, 2)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">{formatNum(l.fees, 2)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(total, 2)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatNum(l.quantity, 4)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatNum(l.priceUnit, 2)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatNum(l.fees, 2)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatNum(total, 2)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
@@ -273,15 +266,11 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
                           disabled={rowDisabled}
                           title="Supprimer le lot"
                         >
-                          {isDeletingThis ? (
-                            <Loader2 className="animate-spin" />
-                          ) : (
-                            <Trash2 />
-                          )}
+                          {isDeletingThis ? <Loader2 className="animate-spin" /> : <Trash2 />}
                         </Button>
                       </TableCell>
                     </TableRow>
-                  )
+                  );
                 })}
               </TableBody>
             </Table>
@@ -292,9 +281,9 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
       {/* Add lot form */}
       <Form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2"
       >
@@ -349,8 +338,8 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
                   step="0.0001"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                 />
@@ -371,8 +360,8 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
                   step="0.01"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                 />
@@ -393,8 +382,8 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
                   step="0.01"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                 />
@@ -428,7 +417,7 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
           </Button>
           <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
             {([canSubmit, isSubmitting]) => {
-              const pending = addMutation.isPending || isSubmitting
+              const pending = addMutation.isPending || isSubmitting;
               return (
                 <Button type="submit" disabled={!canSubmit || pending}>
                   {pending ? (
@@ -443,7 +432,7 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
                     </>
                   )}
                 </Button>
-              )
+              );
             }}
           </form.Subscribe>
         </div>
@@ -452,10 +441,9 @@ function Body({ holding, onDone }: { holding: Holding; onDone: () => void }) {
       {(addMutation.isError || deleteMutation.isError) && (
         <p className="text-xs text-destructive">
           Erreur :{" "}
-          {(addMutation.error as Error)?.message ??
-            (deleteMutation.error as Error)?.message}
+          {(addMutation.error as Error)?.message ?? (deleteMutation.error as Error)?.message}
         </p>
       )}
     </form.AppForm>
-  )
+  );
 }
