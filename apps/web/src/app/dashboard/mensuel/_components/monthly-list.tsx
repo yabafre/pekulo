@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { useActionQuery } from "@zapaction/query"
-import { Card, CardContent } from "@/components/ui/card"
+import { useMemo, useState } from "react";
+import { useActionQuery } from "@zapaction/query";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -10,50 +10,48 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { getMonthlyEntries } from "@/lib/actions/monthly"
-import { projectMonth } from "@/lib/derive-monthly"
-import { monthRange } from "@/lib/schemas/monthly"
-import { monthlyKeys } from "@/lib/zapaction/keys"
-import type { Hypotheses, MonthlyEntry, MonthlyMerged } from "@/lib/types"
-import { MonthlyForm } from "./monthly-form"
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { getMonthlyEntries } from "@/lib/actions/monthly";
+import { projectMonth } from "@/lib/derive-monthly";
+import { monthRange } from "@/lib/schemas/monthly";
+import { monthlyKeys } from "@/lib/zapaction/keys";
+import type { Hypotheses, MonthlyEntry, MonthlyMerged } from "@/lib/types";
+import { MonthlyForm } from "./monthly-form";
 
 function formatEuro(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €"
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €";
 }
 
 function formatSigned(n: number) {
-  if (n === 0) return "—"
-  const sign = n > 0 ? "+" : "−"
-  return `${sign}${formatEuro(Math.abs(n))}`
+  if (n === 0) return "—";
+  const sign = n > 0 ? "+" : "−";
+  return `${sign}${formatEuro(Math.abs(n))}`;
 }
 
 export function MonthlyList({
   initialData,
   hypothesesSnapshot,
 }: {
-  initialData: MonthlyMerged[]
-  hypothesesSnapshot: Hypotheses
+  initialData: MonthlyMerged[];
+  hypothesesSnapshot: Hypotheses;
 }) {
-  const [editing, setEditing] = useState<MonthlyMerged | null>(null)
+  const [editing, setEditing] = useState<MonthlyMerged | null>(null);
 
   const query = useActionQuery(getMonthlyEntries, {
     queryKey: monthlyKeys.list(),
     input: undefined,
     readPolicy: "read-only",
-    initialData: initialData
-      .filter((m) => m.source === "actual")
-      .map(stripMerged),
-  })
+    initialData: initialData.filter((m) => m.source === "actual").map(stripMerged),
+  });
 
   const merged = useMemo(() => {
     const actualByKey = new Map(
-      (query.data ?? []).map((entry) => [`${entry.year}-${entry.monthNum}`, entry])
-    )
+      (query.data ?? []).map((entry) => [`${entry.year}-${entry.monthNum}`, entry]),
+    );
     return monthRange().map(({ year, monthNum, label }): MonthlyMerged => {
-      const projected = projectMonth(hypothesesSnapshot, year, monthNum)
-      const actual = actualByKey.get(`${year}-${monthNum}`)
+      const projected = projectMonth(hypothesesSnapshot, year, monthNum);
+      const actual = actualByKey.get(`${year}-${monthNum}`);
       if (actual) {
         return {
           ...actual,
@@ -61,17 +59,17 @@ export function MonthlyList({
           source: "actual",
           projected,
           ecart: actual.epargneMois - projected.epargneMois,
-        }
+        };
       }
-      return { ...projected, source: "projected", projected, ecart: 0 }
-    })
-  }, [query.data, hypothesesSnapshot])
+      return { ...projected, source: "projected", projected, ecart: 0 };
+    });
+  }, [query.data, hypothesesSnapshot]);
 
   const totals = useMemo(() => {
-    const actualMonths = merged.filter((m) => m.source === "actual")
-    const totalEcart = actualMonths.reduce((acc, m) => acc + m.ecart, 0)
-    return { count: actualMonths.length, totalEcart }
-  }, [merged])
+    const actualMonths = merged.filter((m) => m.source === "actual");
+    const totalEcart = actualMonths.reduce((acc, m) => acc + m.ecart, 0);
+    return { count: actualMonths.length, totalEcart };
+  }, [merged]);
 
   return (
     <>
@@ -109,14 +107,12 @@ export function MonthlyList({
             </TableHeader>
             <TableBody>
               {merged.map((row, i) => {
-                const showYearBoundary = i > 0 && row.year !== merged[i - 1]!.year
+                const showYearBoundary = i > 0 && row.year !== merged[i - 1]!.year;
                 return (
                   <TableRow
                     key={`${row.year}-${row.monthNum}`}
                     className={
-                      showYearBoundary
-                        ? "border-t-2 border-t-muted-foreground/30"
-                        : undefined
+                      showYearBoundary ? "border-t-2 border-t-muted-foreground/30" : undefined
                     }
                   >
                     <TableCell className="font-medium">{row.monthLabel}</TableCell>
@@ -153,7 +149,7 @@ export function MonthlyList({
                       </Button>
                     </TableCell>
                   </TableRow>
-                )
+                );
               })}
             </TableBody>
           </Table>
@@ -163,12 +159,12 @@ export function MonthlyList({
       <MonthlyForm
         open={editing !== null}
         onOpenChange={(open) => {
-          if (!open) setEditing(null)
+          if (!open) setEditing(null);
         }}
         row={editing}
       />
     </>
-  )
+  );
 }
 
 function stripMerged(m: MonthlyMerged): MonthlyEntry {
@@ -183,5 +179,5 @@ function stripMerged(m: MonthlyMerged): MonthlyEntry {
     remote: m.remote,
     freelance: m.freelance,
     epargneMois: m.epargneMois,
-  }
+  };
 }

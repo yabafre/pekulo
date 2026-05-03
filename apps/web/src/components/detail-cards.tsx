@@ -1,14 +1,14 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import type { Hypotheses } from "@/lib/types"
-import { deriveAvantages } from "@/lib/derive"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import type { Hypotheses } from "@/lib/types";
+import { deriveAvantages } from "@/lib/derive";
 
 function formatEuro(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €"
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €";
 }
 
 function formatGain(n: number) {
-  return "+" + formatEuro(n)
+  return "+" + formatEuro(n);
 }
 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
@@ -17,21 +17,22 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
       <span className={bold ? "font-semibold" : "text-muted-foreground"}>{label}</span>
       <span className={bold ? "font-semibold" : ""}>{value}</span>
     </div>
-  )
+  );
 }
 
 export function DetailCards({ hypotheses }: { hypotheses: Hypotheses }) {
-  const ticketResto = hypotheses.ticketRestoJour * hypotheses.partEmployeurTr * hypotheses.joursTravailles
-  const navigoEmployeur = hypotheses.navigoCout * hypotheses.partEmployeurNavigo
-  const transportNet = hypotheses.navigoCout - navigoEmployeur
-  const avantages = deriveAvantages(hypotheses)
-  const pouvoirAchat = hypotheses.salaireNet + avantages
+  const ticketResto =
+    hypotheses.ticketRestoJour * hypotheses.partEmployeurTr * hypotheses.joursTravailles;
+  const navigoEmployeur = hypotheses.navigoCout * hypotheses.partEmployeurNavigo;
+  const transportNet = hypotheses.navigoCout - navigoEmployeur;
+  const avantages = deriveAvantages(hypotheses);
+  const pouvoirAchat = hypotheses.salaireNet + avantages;
 
   const chargesFixes =
-    hypotheses.loyer + hypotheses.courses + transportNet + hypotheses.autresCharges
-  const lifestyle = hypotheses.sorties + hypotheses.divers
-  const reste1 = hypotheses.salaireNet - chargesFixes - lifestyle - hypotheses.voyageMois
-  const reste2 = reste1 - hypotheses.creditMensuel
+    hypotheses.loyer + hypotheses.courses + transportNet + hypotheses.autresCharges;
+  const lifestyle = hypotheses.sorties + hypotheses.divers;
+  const reste1 = hypotheses.salaireNet - chargesFixes - lifestyle - hypotheses.voyageMois;
+  const reste2 = reste1 - hypotheses.creditMensuel;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -73,5 +74,5 @@ export function DetailCards({ hypotheses }: { hypotheses: Hypotheses }) {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -34,7 +34,7 @@ phases_planned:
 - **Provider chain (FR-16, FR-17)** — 4 tiers (`prices-service` → `yahoo-finance2` → Boursorama → Twelve Data) with 60 s in-memory cache keyed by `ticker|kind|currency`; already implemented in `apps/web/src/lib/services/prices.ts`; extended to `crypto` (Yahoo + Twelve Data both cover BTC/ETH).
 - **LLM routing hybrid (FR-31 → FR-34)** — three transports (Apple FoundationModels iOS / Ollama Dokploy / 3rd-party API opt-in); rule-based transfer bypass (FR-30); manual override always wins (FR-33); per-user opt-in for 3rd-party path (FR-34).
 - **Audit + GDPR (FR-2, FR-27, FR-35, FR-49, FR-50)** — three distinct audit trails (compass, real-estate valuations, LLM calls); one-action JSON export and cascade deletion within 60 s.
-- **PWA + DS unification (FR-53 → FR-56)** — install affordance, offline read-only on dashboard/portefeuille/immobilier; from V1.5, *zero* Tailwind ↔ NativeWind divergence via `packages/ui`.
+- **PWA + DS unification (FR-53 → FR-56)** — install affordance, offline read-only on dashboard/portefeuille/immobilier; from V1.5, _zero_ Tailwind ↔ NativeWind divergence via `packages/ui`.
 
 ### Non-functional drivers
 
@@ -55,34 +55,34 @@ phases_planned:
 
 ### Integration points
 
-| System | Role | Phase | Required? |
-|---|---|---|---|
-| Supabase (Postgres + Auth) | Sole datastore + identity, RLS-only authz | V1 | yes |
-| `apps/prices` (Dokploy VPS) | Tier-1 quote provider, yfinance + curl_cffi Chrome session | V1 | optional (`PRICES_SERVICE_URL`) |
-| Yahoo Finance (`yahoo-finance2` npm) | Tier-2 quote provider | V1 | implicit fallback |
-| Boursorama (HTML scraping) | Tier-3 quote provider, Euronext FR coverage | V1 | implicit fallback |
-| Twelve Data | Tier-4 fallback, US-only, 800 req/day free | V1 | optional (`TWELVE_DATA_API_KEY`) |
-| frankfurter.app | ECB FX rates, EUR-base, fallback 1:1 | V1 | implicit |
-| Vercel | `apps/web` hosting | V1 | yes |
-| Dokploy VPS | `apps/prices` hosting + future Ollama endpoint | V1 | yes |
-| Apple FoundationModels | LLM on-device, iOS ≥ 15 Pro | V1.5 mobile | optional |
-| Ollama (Dokploy) | LLM self-hosted server-side, default for web + Android | V1 | yes (when LLM enabled) |
-| 3rd-party LLM API (Claude Haiku 4.5 or Mistral Small) | LLM ambiguous-case fallback, **opt-in mandatory** | V1 | optional |
+| System                                                | Role                                                       | Phase       | Required?                        |
+| ----------------------------------------------------- | ---------------------------------------------------------- | ----------- | -------------------------------- |
+| Supabase (Postgres + Auth)                            | Sole datastore + identity, RLS-only authz                  | V1          | yes                              |
+| `apps/prices` (Dokploy VPS)                           | Tier-1 quote provider, yfinance + curl_cffi Chrome session | V1          | optional (`PRICES_SERVICE_URL`)  |
+| Yahoo Finance (`yahoo-finance2` npm)                  | Tier-2 quote provider                                      | V1          | implicit fallback                |
+| Boursorama (HTML scraping)                            | Tier-3 quote provider, Euronext FR coverage                | V1          | implicit fallback                |
+| Twelve Data                                           | Tier-4 fallback, US-only, 800 req/day free                 | V1          | optional (`TWELVE_DATA_API_KEY`) |
+| frankfurter.app                                       | ECB FX rates, EUR-base, fallback 1:1                       | V1          | implicit                         |
+| Vercel                                                | `apps/web` hosting                                         | V1          | yes                              |
+| Dokploy VPS                                           | `apps/prices` hosting + future Ollama endpoint             | V1          | yes                              |
+| Apple FoundationModels                                | LLM on-device, iOS ≥ 15 Pro                                | V1.5 mobile | optional                         |
+| Ollama (Dokploy)                                      | LLM self-hosted server-side, default for web + Android     | V1          | yes (when LLM enabled)           |
+| 3rd-party LLM API (Claude Haiku 4.5 or Mistral Small) | LLM ambiguous-case fallback, **opt-in mandatory**          | V1          | optional                         |
 
 ### Compliance
 
-| Framework | Trigger phase | Architectural action |
-|---|---|---|
-| **GDPR** + CNIL | (b) public ramp | DPA with Supabase, processing register, lawful basis, subject rights, 72 h breach notification |
-| **EU AI Act 2024/1689** (transparency) | LLM enabled by default (after M3 ≥ 80 %) | AI transparency notice (DR-12), 3rd-party opt-out always available |
-| **WCAG 2.2 AA** (EAA from 2025-06-28) | DS phase / before (b) | Tokens already meet contrast; axe-core CI scans + 1 manual screen-reader pass |
-| **MiCA** | Out of CASP scope at V1 (tracking-only) | Re-evaluate if exchange API ever lands at V2+ (DR-10) |
-| **PSD2 / DSP2** | Only if Powens / Bridge ever lands (V2+) | Gated by ADR + user approval (DR-9) |
-| **PCI DSS / KYC-AML / MiFID II / DORA** | Never (by design) | Maintain "no funds custody / no order routing" invariants (DR-1, DR-2, DR-3) |
+| Framework                               | Trigger phase                            | Architectural action                                                                           |
+| --------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **GDPR** + CNIL                         | (b) public ramp                          | DPA with Supabase, processing register, lawful basis, subject rights, 72 h breach notification |
+| **EU AI Act 2024/1689** (transparency)  | LLM enabled by default (after M3 ≥ 80 %) | AI transparency notice (DR-12), 3rd-party opt-out always available                             |
+| **WCAG 2.2 AA** (EAA from 2025-06-28)   | DS phase / before (b)                    | Tokens already meet contrast; axe-core CI scans + 1 manual screen-reader pass                  |
+| **MiCA**                                | Out of CASP scope at V1 (tracking-only)  | Re-evaluate if exchange API ever lands at V2+ (DR-10)                                          |
+| **PSD2 / DSP2**                         | Only if Powens / Bridge ever lands (V2+) | Gated by ADR + user approval (DR-9)                                                            |
+| **PCI DSS / KYC-AML / MiFID II / DORA** | Never (by design)                        | Maintain "no funds custody / no order routing" invariants (DR-1, DR-2, DR-3)                   |
 
 ### Tensions to resolve (drive Phase 2 decisions)
 
-1. **DS Tailwind v4 (V1 web) ↔ Tamagui Core (V1.5 mobile)** — T2 demands "no per-app Tailwind/NativeWind divergence from V1.5". Either keep Tailwind v4 for V1 web and rebuild on Tamagui at V1.5 (= web rewrite when mobile lands, double-migration risk), or migrate `apps/web` to Tamagui *before* mobile work (= blocks V1 features for the DS phase). Hard call required in Phase 2 — Frontend.
+1. **DS Tailwind v4 (V1 web) ↔ Tamagui Core (V1.5 mobile)** — T2 demands "no per-app Tailwind/NativeWind divergence from V1.5". Either keep Tailwind v4 for V1 web and rebuild on Tamagui at V1.5 (= web rewrite when mobile lands, double-migration risk), or migrate `apps/web` to Tamagui _before_ mobile work (= blocks V1 features for the DS phase). Hard call required in Phase 2 — Frontend.
 2. **LLM routing topology heterogeneity (FR-31)** — three transports (FoundationModels client / Ollama server / 3rd-party API server). Where lives the routing policy? Client-side = uniform audit log harder (NFR-26). Server-side = loses on-device latency edge. Hard call required in Phase 2 — Council dispatch.
 3. **No test framework installed** — NFR-1/2/4/5/6/7/8/18/21/22 all require measurement. Architecture must prescribe the pyramid (unit / integration / contract / perf / a11y) with concrete framework picks in Phase 2.
 4. **Offline PWA (FR-54) ↔ RLS (NFR-8)** — read-only views served from last cached snapshot when Supabase is unreachable. Decision: Service Worker scoped per user ID, IndexedDB (encrypted via Web Crypto?) or Cache API, automatic purge on logout. To be settled in Phase 2 — Frontend / Phase 3 — Process Rules.
@@ -107,15 +107,15 @@ phases_planned:
   - `accounts.prisma`, `holdings.prisma`, `transactions.prisma`, `compass.prisma`, `realestate.prisma`, `llm.prisma`, `monthly.prisma`, `hypothesis.prisma`, `dashboard.prisma`
 - **Prefixed IDs Prisma extension** (Trafi pattern, ported as-is) at `apps/api/src/database/prefixed-ids.extension.ts`. `Prisma.defineExtension` intercepts `create` / `createMany` / `createManyAndReturn` / `upsert` to inject `{prefix}_{base62_21chars}` (~125 bits entropy) when `id` is undefined. Central config at `apps/api/src/database/id-prefixes.config.ts`. **See ADR-0012.**
 
-  | Model | Prefix | Model | Prefix |
-  |---|---|---|---|
-  | Account | `acc` | Hypothesis | `hyp` |
-  | Holding | `hld` | CompassHistory | `cph` |
-  | HoldingLot | `lot` | Milestone | `mst` |
-  | Transaction | `tx` | RealEstate | `res` |
-  | Kpi | `kpi` | RealEstateRental | `resr` |
-  | MonthlyTracking | `mtr` | RealEstateValuation | `resv` |
-  | LlmCallLog | `llm` | LlmOptIn | `llmo` |
+  | Model           | Prefix | Model               | Prefix |
+  | --------------- | ------ | ------------------- | ------ |
+  | Account         | `acc`  | Hypothesis          | `hyp`  |
+  | Holding         | `hld`  | CompassHistory      | `cph`  |
+  | HoldingLot      | `lot`  | Milestone           | `mst`  |
+  | Transaction     | `tx`   | RealEstate          | `res`  |
+  | Kpi             | `kpi`  | RealEstateRental    | `resr` |
+  | MonthlyTracking | `mtr`  | RealEstateValuation | `resv` |
+  | LlmCallLog      | `llm`  | LlmOptIn            | `llmo` |
 
   `User` carries no prefix (managed by Supabase Auth, native UUID).
 
@@ -131,7 +131,7 @@ phases_planned:
 
 ### Authentication & Security
 
-- **Auth: Supabase Auth — email + password** (brownfield, retained), session via SSR cookie (`@supabase/ssr` v0.10) on `apps/web`. The Supabase-issued JWT is forwarded as `Authorization: Bearer <jwt>` to `apps/api` on every oRPC call. Supabase TOTP MFA reserved for the (b) ramp. Satisfies FR-45 → FR-47, NFR-9 (401 < 100 ms via `apps/web/src/proxy.ts` middleware *and* Elysia's `bearer` plugin on `apps/api`), NFR-11 (12-char password + 10/IP/hour rate-limit, both Supabase-native).
+- **Auth: Supabase Auth — email + password** (brownfield, retained), session via SSR cookie (`@supabase/ssr` v0.10) on `apps/web`. The Supabase-issued JWT is forwarded as `Authorization: Bearer <jwt>` to `apps/api` on every oRPC call. Supabase TOTP MFA reserved for the (b) ramp. Satisfies FR-45 → FR-47, NFR-9 (401 < 100 ms via `apps/web/src/proxy.ts` middleware _and_ Elysia's `bearer` plugin on `apps/api`), NFR-11 (12-char password + 10/IP/hour rate-limit, both Supabase-native).
 - **Authorization (NFR-8 amended — defense in depth):**
   - **Primary enforcement** — `apps/api` services use a mandatory `requireUserContext(request)` helper that verifies the Supabase JWT (using `SUPABASE_JWT_SECRET`) and returns `{ userId, email, jwtClaims }` or throws `UnauthorizedError`. Every Prisma query touching a user-scoped table MUST include `where: { userId: ctx.userId, … }`. Lint-enforced by `no-prisma-query-without-user-id` rule in `@pekulo/oxlint-config`.
   - **`apps/api` connects with the Supabase service role** (bypasses RLS) — connection string only on Dokploy ; never in `apps/web` env or any public surface.
@@ -193,26 +193,26 @@ phases_planned:
   - **Boundary rule (Phase 3 process rule)**: a value lives in exactly one layer. Never mirror server state into Zustand ; never duplicate Zustand state into a parent component.
 - **Hooks tier system** (lint-enforced) — three families ; components consume only custom hooks, never server actions or `useForm` directly:
 
-  | Tier | Convention | Pekulo example |
-  |---|---|---|
-  | Query (read) | `use<Feature><Resource>` | `useDashboardCompass`, `usePortfolioHoldings`, `useTransactionsPending` |
-  | Mutation (write) | `use<Verb><Resource>` | `useUpdateCompass`, `useRecordValuation`, `useConfirmCategorisation` |
-  | Form orchestrator | `use<Feature>Form` | `useEditCompassForm`, `useAddMilestoneForm`, `useImportTransactionsCsvForm` |
+  | Tier              | Convention               | Pekulo example                                                              |
+  | ----------------- | ------------------------ | --------------------------------------------------------------------------- |
+  | Query (read)      | `use<Feature><Resource>` | `useDashboardCompass`, `usePortfolioHoldings`, `useTransactionsPending`     |
+  | Mutation (write)  | `use<Verb><Resource>`    | `useUpdateCompass`, `useRecordValuation`, `useConfirmCategorisation`        |
+  | Form orchestrator | `use<Feature>Form`       | `useEditCompassForm`, `useAddMilestoneForm`, `useImportTransactionsCsvForm` |
 
   Form orchestrators wrap TanStack Form's `useForm` together with the corresponding mutation hook ; expose `{ form, send, isSubmitting, … }`. Components consume only the orchestrator. **See ADR-0010.**
 
 - **Local vs Global tier split** (mirrors Bonjour pattern):
 
-  | Family | Local (route-scoped) | Global (cross-route) |
-  |---|---|---|
-  | Hooks | `apps/web/src/app/<route>/_hooks/` | `apps/web/src/lib/hooks/` |
-  | Components | `apps/web/src/app/<route>/_components/` | `apps/web/src/components/` (top-level, **not** in `lib/`) |
-  | Server Actions | `apps/web/src/app/<route>/_actions/<feature>-actions.ts` | `apps/web/src/lib/actions/<feature>-actions.ts` |
+  | Family         | Local (route-scoped)                                     | Global (cross-route)                                      |
+  | -------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+  | Hooks          | `apps/web/src/app/<route>/_hooks/`                       | `apps/web/src/lib/hooks/`                                 |
+  | Components     | `apps/web/src/app/<route>/_components/`                  | `apps/web/src/components/` (top-level, **not** in `lib/`) |
+  | Server Actions | `apps/web/src/app/<route>/_actions/<feature>-actions.ts` | `apps/web/src/lib/actions/<feature>-actions.ts`           |
 
 - **Form handling: TanStack Form + Zod v4 via `@pekulo/validators`** — schemas re-used in oRPC contracts (`@pekulo/contracts`) and form orchestrators.
 - **UI primitives & DS: Tamagui Core (MIT) on `@pekulo/ui`** — Pekulo Design System ships as the only component library consumed by `apps/web` (and `apps/mobile` at V1.5). `@base-ui/react`, `shadcn` `base-nova`, `tailwindcss`, `tw-animate-css`, `class-variance-authority`, `clsx`, `tailwind-merge` are removed from `apps/web` in the migration sequence. `lucide-react` v1.11 retained as the single icon family. `recharts` v3.8 retained for non-trivial charts; the compass curve and trajectory chart stay as inline SVG per UX spec. UX tokens at `docs/ux-preview/src/tokens/` ported into Tamagui's theme system as `pekulo-dark` + `pekulo-light` themes.
 - **Animation strategy (revised post-C1)**: Tamagui's `animations` prop on web AND mobile (single API). Framer Motion 12 removed from web. Moti on Reanimated 4 retained for mobile-specific gestures at V1.5 ; React Native Skia reserved for the compass donut hot-path if jank profiles at V1.5. All animations honour `prefers-reduced-motion`.
-- **C1 decision (DS migration to Tamagui *now*)** — see **ADR-0007**. Pre-flight spikes required before kickoff: Tamagui v2 ↔ Next 16 RSC integration; proto `App.tsx` port without losing palette discipline; WCAG 2.2 AA contrast preservation across both themes.
+- **C1 decision (DS migration to Tamagui _now_)** — see **ADR-0007**. Pre-flight spikes required before kickoff: Tamagui v2 ↔ Next 16 RSC integration; proto `App.tsx` port without losing palette discipline; WCAG 2.2 AA contrast preservation across both themes.
 - **PWA + offline (D7):**
   - Service Worker: Next 16 native `app/sw.ts` (no `next-pwa` dependency). Strategy = stale-while-revalidate on routes `/dashboard`, `/portefeuille`, `/immobilier`. Network-first on every mutation. Satisfies FR-53, FR-54.
   - Offline cache: **encrypted IndexedDB scoped per `user_id`**, encryption key derived from session via Web Crypto `SubtleCrypto.deriveKey`; cache cleared on `auth.onAuthStateChange('SIGNED_OUT')`. Cache TTL = 60 min (NFR-20).
@@ -246,11 +246,10 @@ phases_planned:
     - Errors → **GlitchTip** (Sentry-compatible, MIT, self-hosted on Dokploy) via OTLP. PII scrubbing enabled.
     - Logs → structured stdout collected by Vercel logs (web) + journald (api/prices/Ollama on Dokploy) ; ship to GlitchTip OTLP receiver if forensic needs arise.
     - Metrics → Prometheus scrape on `apps/api` + `apps/prices` ; Vercel native metrics on `apps/web`. Aggregated dashboards optional at (b), required at (c).
-  - **LLM call audit log (NFR-26)** is a separate domain table `llm_call_log` (route_requested, route_actual, latency_ms, outcome — *no prompt content*), retention ≤ 90 days, surfaced via Settings → IA → Journal d'activité (FR-36). Single ingestion writer = `apps/api/src/modules/llm/llm.service.ts#recordLlmCall(intent | outcome)`.
+  - **LLM call audit log (NFR-26)** is a separate domain table `llm_call_log` (route*requested, route_actual, latency_ms, outcome — \_no prompt content*), retention ≤ 90 days, surfaced via Settings → IA → Journal d'activité (FR-36). Single ingestion writer = `apps/api/src/modules/llm/llm.service.ts#recordLlmCall(intent | outcome)`.
   - **See ADR-0005.**
 - **Environments:** `dev` (local) + `prod` (Vercel + Dokploy). **No staging at V1 (a)** (single user). Staging branch + preview deploys promoted at (b).
 - **Restore drill (NFR-21):** scheduled before (b) flip — Supabase snapshot → fresh project → re-apply Prisma migrations → assert RLS coverage + auth round-trip + an oRPC happy-path call. Result documented in `docs/security.md`.
-
 
 ## Phase 2b — Council Dispatches
 
@@ -258,28 +257,29 @@ phases_planned:
 
 ### C1 — Design system strategy (Tailwind v4 ↔ Tamagui Core)
 
-**Framing.** PRD T2 demands "no per-app Tailwind/NativeWind divergence from V1.5". `apps/web` is currently Tailwind v4 + shadcn `base-nova` + `@base-ui/react`; the grill locked Tamagui Core (MIT) as the cross-platform substrate; UX spec is built on the existing web stack. Three options weighed: (A) status quo + V1.5 rebuild ; (B) migrate web to Tamagui *now* ; (C) Tamagui primitives + Tailwind adapter shim.
+**Framing.** PRD T2 demands "no per-app Tailwind/NativeWind divergence from V1.5". `apps/web` is currently Tailwind v4 + shadcn `base-nova` + `@base-ui/react`; the grill locked Tamagui Core (MIT) as the cross-platform substrate; UX spec is built on the existing web stack. Three options weighed: (A) status quo + V1.5 rebuild ; (B) migrate web to Tamagui _now_ ; (C) Tamagui primitives + Tailwind adapter shim.
 
 **Specialist verdicts:**
 
-| Specialist | Pick | One-line rationale |
-|---|---|---|
-| Winston (Systems) | A | Ship V1 on known tech ; retrofit cleanly at V1.5 once mobile reveals real constraints |
-| Lena (Pragmatic) | A | Shipping > purity ; Tamagui in 2026 is solid but not zero-risk on RSC + Next 16 |
-| Nina (Cost & Ops) | C | Adapter shields from Tamagui volatility at acceptable maintenance cost |
-| Maya (Edge cases) | A | C couples two incompatible animation runtimes ; B blocks compass |
+| Specialist        | Pick | One-line rationale                                                                    |
+| ----------------- | ---- | ------------------------------------------------------------------------------------- |
+| Winston (Systems) | A    | Ship V1 on known tech ; retrofit cleanly at V1.5 once mobile reveals real constraints |
+| Lena (Pragmatic)  | A    | Shipping > purity ; Tamagui in 2026 is solid but not zero-risk on RSC + Next 16       |
+| Nina (Cost & Ops) | C    | Adapter shields from Tamagui volatility at acceptable maintenance cost                |
+| Maya (Edge cases) | A    | C couples two incompatible animation runtimes ; B blocks compass                      |
 
 **Areas of consensus.** B is **not unanimously rejected**; only A-favouring specialists rated it as "blocking V1 features 2-4 weeks = unacceptable". C is rejected by 3 out of 4 as a "graveyard trap" (long-lived adapter that will be ripped out at V1.5 anyway).
 
 **Areas of genuine disagreement.** Nina alone defended C on the basis that the adapter shields V1 from Tamagui ecosystem volatility (RSC bugs, compiler changes). The 3 A-voters agreed the adapter ends up as dead weight at V1.5 when web also needs to migrate.
 
-**Final pick: B — Migrate `apps/web` to Tamagui Core *now*, before V1 feature work resumes.**
+**Final pick: B — Migrate `apps/web` to Tamagui Core _now_, before V1 feature work resumes.**
 
 **Rationale (user override against 3-1 Council).** Pekulo is in ramp stage (a) personal use — no business pressure on V1 ship date (B1 requires ≥ 60 days in production for Persona #1 before any (b) decision). Paying the design-system unification debt up-front eliminates the collision the Council unanimously flagged as the primary risk of option A: web rewrite + mobile launch landing in the same 2-week window at V1.5. The pattern aligns with prior project commitments — Tamagui Core was locked at the grill (rejecting Pro), DS discipline is recorded in the user's feedback memories (zero card borders, palette strict to monetary deltas). Accepted cost: 2–4 weeks of paused V1 feature work to land `packages/ui` on Tamagui Core before features resume.
 
 **Minority view kept as future-pivot signal.**
-- Winston (A) — *if* the Tamagui migration takes longer than 4 weeks (compiler regressions, RSC integration bugs), pivot back to A and ship V1 on the existing Tailwind stack.
-- Nina (C) — *if* the V1 feature freeze creates business pressure (e.g. external interest forces an early (b) ramp), the C adapter shim is the fastest unblock path even though it's long-term suboptimal.
+
+- Winston (A) — _if_ the Tamagui migration takes longer than 4 weeks (compiler regressions, RSC integration bugs), pivot back to A and ship V1 on the existing Tailwind stack.
+- Nina (C) — _if_ the V1 feature freeze creates business pressure (e.g. external interest forces an early (b) ramp), the C adapter shim is the fastest unblock path even though it's long-term suboptimal.
 - Universal pre-flight checks before starting B: confirm `apps/ux-preview/src/App.tsx` ports cleanly to Tamagui; confirm Next 16 RSC plays with Tamagui v2 compiler in a spike; confirm Pekulo's strict palette + animation discipline survives Tamagui's theme system.
 
 **See ADR-0007.**
@@ -290,16 +290,17 @@ phases_planned:
 
 **Specialist verdicts:**
 
-| Specialist | Pick | One-line rationale |
-|---|---|---|
-| Winston (Systems) | C | Single audit ingestion + on-device latency preserved |
-| Raj (Security) | A | Server seul signe l'audit ; iOS attestation untrusted (GDPR Art. 5(1)(f)) |
-| Nina (Cost & Ops) | A | Cascade gracieuse Ollama 502, audit garanti même sur crash client |
-| Maya (Edge cases) | C | Tolérance flakes réseau, server-side cloud-arbitration, on-device fallback clean |
+| Specialist        | Pick | One-line rationale                                                               |
+| ----------------- | ---- | -------------------------------------------------------------------------------- |
+| Winston (Systems) | C    | Single audit ingestion + on-device latency preserved                             |
+| Raj (Security)    | A    | Server seul signe l'audit ; iOS attestation untrusted (GDPR Art. 5(1)(f))        |
+| Nina (Cost & Ops) | A    | Cascade gracieuse Ollama 502, audit garanti même sur crash client                |
+| Maya (Edge cases) | C    | Tolérance flakes réseau, server-side cloud-arbitration, on-device fallback clean |
 
 **Areas of consensus.** B is unanimously rejected — three independent audit emitters guarantee schema drift, NFR-26 broken, opt-in unverifiable.
 
 **Areas of genuine disagreement.** A vs C split 2-2 on the binding constraint:
+
 - A wins on **audit integrity / compliance** (server is single source of truth; client cannot forge "FoundationModels" to hide a 3rd-party call).
 - C wins on **on-device latency** (NFR-5 budgets 600 ms p95 for FoundationModels; synchronous attest round-trip eats 50–100 ms = 10–15 % of budget).
 
@@ -307,15 +308,16 @@ phases_planned:
 
 **Final pick: A\* — Server-side audit authority with async client-side attestation.**
 
-- Server is the *authority* for `llm_call_log`. Every cloud-eligible request (Ollama or 3rd-party) is server-initiated and server-logged with a single `intent → outcome` row pair.
+- Server is the _authority_ for `llm_call_log`. Every cloud-eligible request (Ollama or 3rd-party) is server-initiated and server-logged with a single `intent → outcome` row pair.
 - Client iOS calls FoundationModels locally and **renders the suggestion immediately** in the UI ; the attestation POST to `/api/llm/attest` is async fire-and-forget with a durably-persisted retry queue (IndexedDB) flushed on reconnect.
-- Server records an *intent* row (`requested_at`, `route_requested`) before any call ; the *outcome* row (`completed_at`, `route_actual`, `latency_ms`, `outcome`) is appended after the call (server-initiated) or after attestation receipt (client-initiated FoundationModels). Mismatch between intent and outcome routes is flagged for forensic review (Raj's worry addressed).
-- **Opt-in for 3rd-party API is checked server-side before *every* cloud-eligible call** — never trusted from the client. DR-7 architecturally locked.
-- Server returns the *actual* route in the response payload ; the client's "iOS / Ollama / Cloud" badge mirrors the server's truth, not the client's intention (Maya's badge-truth concern addressed).
+- Server records an _intent_ row (`requested_at`, `route_requested`) before any call ; the _outcome_ row (`completed_at`, `route_actual`, `latency_ms`, `outcome`) is appended after the call (server-initiated) or after attestation receipt (client-initiated FoundationModels). Mismatch between intent and outcome routes is flagged for forensic review (Raj's worry addressed).
+- **Opt-in for 3rd-party API is checked server-side before _every_ cloud-eligible call** — never trusted from the client. DR-7 architecturally locked.
+- Server returns the _actual_ route in the response payload ; the client's "iOS / Ollama / Cloud" badge mirrors the server's truth, not the client's intention (Maya's badge-truth concern addressed).
 - For iOS-initiated FoundationModels calls (no server arbitration possible since the model lives on-device), the server still owns the audit log via the attestation endpoint ; the model's output is shown immediately so latency budget is preserved (Winston's concern addressed).
 
 **Minority view kept as future-pivot signal.**
-- Pure A (synchronous attest) — *if* the async retry queue ever loses entries beyond audit tolerance (≥ 1 % drop rate), pivot to synchronous attest and accept the latency hit.
+
+- Pure A (synchronous attest) — _if_ the async retry queue ever loses entries beyond audit tolerance (≥ 1 % drop rate), pivot to synchronous attest and accept the latency hit.
 - C (server-arbitrated cloud + client-decided on-device) — equivalent in substance to A* ; if architectural diagrams later need a clearer "where does the routing decision live?" answer, label this design as C-with-async-attest. Functional behaviour is identical to A*.
 
 **See ADR-0008.**
@@ -330,32 +332,32 @@ phases_planned:
 
 **File patterns:**
 
-| Type | Convention | Example |
-|---|---|---|
-| Next.js private folders | `_kebab-case` | `_components/`, `_hooks/`, `_actions/`, `_skeletons/` |
-| Server Action files | `<feature>-actions.ts` (plural, **single `'use server'` file per feature**, multiple verbs co-located) | `compose-actions.ts` (createDraft, sendDraft, deleteDraft), `auth-actions.ts` (logout, refreshSession), `compass-actions.ts` (updateCompass, archiveCompass) |
-| Zod schemas | `camelCase` + `Schema` suffix | `loginSchema`, `createCompassSchema`, `attestLlmCallSchema` |
-| Prisma model files | `<module>.prisma` in `apps/api/prisma/schema/` | `compass.prisma`, `holdings.prisma`, `enums.prisma`, `_base.prisma` |
-| Prisma migration directories | `<timestamp>_<verb_noun>/` (Prisma-generated) | `20260601120000_create_milestones/` |
-| Test files | `<source>.test.ts` (unit) ; `<source>.a11y.test.tsx` (axe) ; `<journey>.spec.ts` (E2E) | `derive-compass.test.ts`, `pekulo-donut.a11y.test.tsx`, `j2-daily-check.spec.ts` |
+| Type                         | Convention                                                                                             | Example                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Next.js private folders      | `_kebab-case`                                                                                          | `_components/`, `_hooks/`, `_actions/`, `_skeletons/`                                                                                                        |
+| Server Action files          | `<feature>-actions.ts` (plural, **single `'use server'` file per feature**, multiple verbs co-located) | `compose-actions.ts` (createDraft, sendDraft, deleteDraft), `auth-actions.ts` (logout, refreshSession), `compass-actions.ts` (updateCompass, archiveCompass) |
+| Zod schemas                  | `camelCase` + `Schema` suffix                                                                          | `loginSchema`, `createCompassSchema`, `attestLlmCallSchema`                                                                                                  |
+| Prisma model files           | `<module>.prisma` in `apps/api/prisma/schema/`                                                         | `compass.prisma`, `holdings.prisma`, `enums.prisma`, `_base.prisma`                                                                                          |
+| Prisma migration directories | `<timestamp>_<verb_noun>/` (Prisma-generated)                                                          | `20260601120000_create_milestones/`                                                                                                                          |
+| Test files                   | `<source>.test.ts` (unit) ; `<source>.a11y.test.tsx` (axe) ; `<journey>.spec.ts` (E2E)                 | `derive-compass.test.ts`, `pekulo-donut.a11y.test.tsx`, `j2-daily-check.spec.ts`                                                                             |
 
 **Hook conventions** (binding ; lint-enforced via `@pekulo/oxlint-config`):
 
-| Tier | Convention | Example |
-|---|---|---|
-| Query (read) | `use<Feature><Resource>` | `useDashboardCompass`, `usePortfolioHoldings`, `useTransactionsPending` |
-| Mutation (write) | `use<Verb><Resource>` | `useUpdateCompass`, `useRecordValuation`, `useConfirmCategorisation`, `useDeleteAccount` |
-| Form orchestrator | `use<Feature>Form` | `useEditCompassForm`, `useAddMilestoneForm`, `useImportTransactionsCsvForm` |
+| Tier              | Convention               | Example                                                                                  |
+| ----------------- | ------------------------ | ---------------------------------------------------------------------------------------- |
+| Query (read)      | `use<Feature><Resource>` | `useDashboardCompass`, `usePortfolioHoldings`, `useTransactionsPending`                  |
+| Mutation (write)  | `use<Verb><Resource>`    | `useUpdateCompass`, `useRecordValuation`, `useConfirmCategorisation`, `useDeleteAccount` |
+| Form orchestrator | `use<Feature>Form`       | `useEditCompassForm`, `useAddMilestoneForm`, `useImportTransactionsCsvForm`              |
 
 Form orchestrators wrap TanStack Form's `useForm` together with the corresponding mutation hook. They expose `{ form, send, isSubmitting, … }`. Components consume only the orchestrator — never `useForm` directly, never the mutation hook directly when both are needed in the same form.
 
 **Local vs Global tier** (applies to hooks, components, actions):
 
-| Family | Local (route-scoped) | Global (cross-route) |
-|---|---|---|
-| Hooks | `apps/web/src/app/<route>/_hooks/` | `apps/web/src/lib/hooks/` |
-| Components | `apps/web/src/app/<route>/_components/` | `apps/web/src/components/` (top-level, **NOT** inside `lib/`) |
-| Server Actions | `apps/web/src/app/<route>/_actions/<feature>-actions.ts` | `apps/web/src/lib/actions/<feature>-actions.ts` |
+| Family         | Local (route-scoped)                                     | Global (cross-route)                                          |
+| -------------- | -------------------------------------------------------- | ------------------------------------------------------------- |
+| Hooks          | `apps/web/src/app/<route>/_hooks/`                       | `apps/web/src/lib/hooks/`                                     |
+| Components     | `apps/web/src/app/<route>/_components/`                  | `apps/web/src/components/` (top-level, **NOT** inside `lib/`) |
+| Server Actions | `apps/web/src/app/<route>/_actions/<feature>-actions.ts` | `apps/web/src/lib/actions/<feature>-actions.ts`               |
 
 **Boundary rule — Components ↔ Actions** (hard, lint-enforced via `no-server-action-in-component`): a component never imports a Server Action directly. It calls a custom hook (local or global) that encapsulates the action plus its UX orchestration (optimistic state, success/error toast, query invalidation, navigation, retry policy). See ADR-0010.
 
@@ -374,6 +376,7 @@ Form orchestrators wrap TanStack Form's `useForm` together with the correspondin
 **oRPC routes**: kebab-case ; resource-oriented ; plural on resources ; verb in contract method, never in URL ; non-CRUD = explicit kebab verb at end (`/llm/attest`, `/transactions/import-csv`, `/sessions/revoke-all`). Versioning: `/rpc/v1/...` from day 1 ; sub-trees bumpable independently.
 
 **Mount layout for Elysia** (apps/api):
+
 ```
 /rpc/v1/auth        /rpc/v1/compass        /rpc/v1/milestones
 /rpc/v1/accounts    /rpc/v1/holdings       /rpc/v1/real-estate
@@ -511,23 +514,23 @@ modules/<name>/
 
 **Loading / Error / Skeleton matrix** (Pekulo routes, mirrors Bonjour pattern):
 
-| Route | `loading.tsx` | `error.tsx` | `not-found.tsx` |
-|---|---|---|---|
-| `/` (landing/redirect) | ❌ | ❌ | — |
-| `/(auth)/login` | ❌ | ❌ | — |
-| `/(auth)/signup` | ❌ | ❌ | — |
-| `/(auth)/callback` | ✅ | ✅ | — |
-| `/(auth)/recover` | ✅ | ✅ | — |
-| `/(cap)/dashboard` | ✅ | ✅ | — |
-| `/(cap)/transactions` | ✅ | ✅ | — |
-| `/(cap)/transactions/[id]` | ✅ | ✅ | ✅ |
-| `/(cap)/mensuel` | ✅ | ✅ | — |
-| `/(cap)/portefeuille` | ✅ | ✅ | — |
-| `/(cap)/portefeuille/[holdingId]` | ✅ | ✅ | ✅ |
-| `/(cap)/immobilier` | ✅ | ✅ | — |
-| `/(cap)/immobilier/[propertyId]` | ✅ | ✅ | ✅ |
-| `/(cap)/parametres` | ✅ | ✅ | — |
-| root | — | — | ✅ |
+| Route                             | `loading.tsx` | `error.tsx` | `not-found.tsx` |
+| --------------------------------- | ------------- | ----------- | --------------- |
+| `/` (landing/redirect)            | ❌            | ❌          | —               |
+| `/(auth)/login`                   | ❌            | ❌          | —               |
+| `/(auth)/signup`                  | ❌            | ❌          | —               |
+| `/(auth)/callback`                | ✅            | ✅          | —               |
+| `/(auth)/recover`                 | ✅            | ✅          | —               |
+| `/(cap)/dashboard`                | ✅            | ✅          | —               |
+| `/(cap)/transactions`             | ✅            | ✅          | —               |
+| `/(cap)/transactions/[id]`        | ✅            | ✅          | ✅              |
+| `/(cap)/mensuel`                  | ✅            | ✅          | —               |
+| `/(cap)/portefeuille`             | ✅            | ✅          | —               |
+| `/(cap)/portefeuille/[holdingId]` | ✅            | ✅          | ✅              |
+| `/(cap)/immobilier`               | ✅            | ✅          | —               |
+| `/(cap)/immobilier/[propertyId]`  | ✅            | ✅          | ✅              |
+| `/(cap)/parametres`               | ✅            | ✅          | —               |
+| root                              | —             | —           | ✅              |
 
 **Module / layer boundaries (binding):**
 
@@ -561,7 +564,10 @@ modules/<name>/
 
 - **`apps/api` services** throw typed domain errors extending a base class:
   ```ts
-  class PekuloError extends Error { code: string; cause?: unknown }
+  class PekuloError extends Error {
+    code: string;
+    cause?: unknown;
+  }
   ```
   Concrete subclasses per module (factories in `<name>.errors.ts`): `CompassError`, `MilestoneError`, `HoldingsError`, `RealEstateError`, `TransactionsError`, `LlmRoutingError`, `LlmOptInError`, `PriceProviderError`, `RlsViolationError`, `MigrationError`, `UnauthorizedError`.
 - **Elysia error mapper** (`platform/http/error-mapper.ts`) converts thrown errors to oRPC error responses with stable `{ code, message, requestId? }`. 4xx errors carry `code + message` ; 5xx errors carry `code + requestId` (the OTel `trace_id`, for forensic cross-reference).
@@ -645,7 +651,7 @@ modules/<name>/
 **State-management boundary rule (Zustand vs RQ vs local):**
 
 - A value lives in exactly one layer. Mirroring is a review fail.
-- New Zustand store PR includes a one-line justification for *why* the value is not in RQ (server) or `useState` (local).
+- New Zustand store PR includes a one-line justification for _why_ the value is not in RQ (server) or `useState` (local).
 
 **Hooks-orchestration boundary (ADR-0010, lint-enforced):**
 
@@ -677,7 +683,7 @@ modules/<name>/
 
 **LLM call discipline:**
 
-- Server-side opt-in check before *every* cloud-eligible call (DR-7) — `apps/api/src/modules/llm/llm.service.ts` calls `requireOptIn(ctx.userId)` before any 3rd-party API hit.
+- Server-side opt-in check before _every_ cloud-eligible call (DR-7) — `apps/api/src/modules/llm/llm.service.ts` calls `requireOptIn(ctx.userId)` before any 3rd-party API hit.
 - Prompt builder helper enforces the 2 kb cap + zero-PII allowlist (`{label, amount, currency, date, optional merchant}`) — NFR-12. Prompt construction outside the helper is forbidden (lint rule + code review).
 - Every `llm_call_log` insert goes through `recordLlmCall(intent | outcome)` ; direct Prisma `llmCallLog.create` calls forbidden outside the LLM service.
 
@@ -686,7 +692,6 @@ modules/<name>/
 - Every new Elysia handler emits a span named `module.<name>.<method>` (matches the oRPC route).
 - Every new server action emits a span named `action.<feature>.<verb>`.
 - Logging the `prompt_content`, raw `user_id`, `email`, `account_number`, JWT, or any secret is forbidden ; CI grep guards the rule (fails the build on match).
-
 
 ## Phase 4 — Structure & Mapping
 
@@ -890,134 +895,134 @@ pekulo/
 
 #### Group A — Compass & Milestones (V1 differentiator)
 
-| FR | Definition (PRD) | API module | Web surface |
-|---|---|---|---|
-| FR-1 | Declare compass (target capital + horizon year) | `apps/api/src/modules/compass/compass.{handler,service,repository}.ts` (uses `Hypothesis` brownfield row) | `apps/web/src/app/(cap)/parametres/_components/compass-edit-form.tsx` + `_hooks/use-edit-compass-form.ts` + `_actions/compass-actions.ts#updateCompass` |
-| FR-2 | Edit compass with audit trail | `compass.service.ts#updateCompass` writes to `Hypothesis` + `CompassHistory` in `prisma.$transaction` | same UX as FR-1 ; history panel in `parametres/_components/compass-history-panel.tsx` |
-| FR-3 | Add up to 20 milestones | `apps/api/src/modules/milestones/milestones.{handler,service,repository}.ts` | `apps/web/src/app/(cap)/dashboard/_components/milestones-section.tsx` + `add-milestone-form.tsx` |
-| FR-4 | Reorder/edit/delete milestones | `milestones.service.ts#{reorder,update,delete}` | same as FR-3 |
-| FR-5 | Compute compass progress (1 decimal %) | `apps/api/src/modules/compass/compass.service.ts#computeProgress` (pure helper from `apps/api/src/common/derive/compass-progress.ts`) | `dashboard/_hooks/use-dashboard-compass.ts` (RQ query) |
-| FR-6 | Per-milestone status {ahead, on-track, behind} | `milestones.service.ts#computeStatuses` (pure helper) | rendered in `PekuloMilestoneRow` |
-| FR-7 | Compass-progress curve | `dashboard.service.ts#getCompassCurve` aggregates (uses `KpiSnapshot` history) | `dashboard/_components/trajectory-section.tsx` + `PekuloTrajectoryChart` |
-| FR-8 | Compass-incomplete state | `compass.service.ts#getSetupState` returns `'incomplete'` if no milestone | `dashboard/_components/compass-setup-cta.tsx` rendered conditionally |
+| FR   | Definition (PRD)                                | API module                                                                                                                            | Web surface                                                                                                                                             |
+| ---- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-1 | Declare compass (target capital + horizon year) | `apps/api/src/modules/compass/compass.{handler,service,repository}.ts` (uses `Hypothesis` brownfield row)                             | `apps/web/src/app/(cap)/parametres/_components/compass-edit-form.tsx` + `_hooks/use-edit-compass-form.ts` + `_actions/compass-actions.ts#updateCompass` |
+| FR-2 | Edit compass with audit trail                   | `compass.service.ts#updateCompass` writes to `Hypothesis` + `CompassHistory` in `prisma.$transaction`                                 | same UX as FR-1 ; history panel in `parametres/_components/compass-history-panel.tsx`                                                                   |
+| FR-3 | Add up to 20 milestones                         | `apps/api/src/modules/milestones/milestones.{handler,service,repository}.ts`                                                          | `apps/web/src/app/(cap)/dashboard/_components/milestones-section.tsx` + `add-milestone-form.tsx`                                                        |
+| FR-4 | Reorder/edit/delete milestones                  | `milestones.service.ts#{reorder,update,delete}`                                                                                       | same as FR-3                                                                                                                                            |
+| FR-5 | Compute compass progress (1 decimal %)          | `apps/api/src/modules/compass/compass.service.ts#computeProgress` (pure helper from `apps/api/src/common/derive/compass-progress.ts`) | `dashboard/_hooks/use-dashboard-compass.ts` (RQ query)                                                                                                  |
+| FR-6 | Per-milestone status {ahead, on-track, behind}  | `milestones.service.ts#computeStatuses` (pure helper)                                                                                 | rendered in `PekuloMilestoneRow`                                                                                                                        |
+| FR-7 | Compass-progress curve                          | `dashboard.service.ts#getCompassCurve` aggregates (uses `KpiSnapshot` history)                                                        | `dashboard/_components/trajectory-section.tsx` + `PekuloTrajectoryChart`                                                                                |
+| FR-8 | Compass-incomplete state                        | `compass.service.ts#getSetupState` returns `'incomplete'` if no milestone                                                             | `dashboard/_components/compass-setup-cta.tsx` rendered conditionally                                                                                    |
 
 #### Group B — Accounts (brownfield extended)
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-9 | Create account | `apps/api/src/modules/accounts/accounts.service.ts#create` | `(cap)/parametres/_components/accounts-section.tsx` + `account-create-form.tsx` |
-| FR-10 | Edit / delete account (deletion blocked if holdings/tx referenced) | `accounts.service.ts#{update,delete}` enforces FK guard | `account-edit-form.tsx`, `account-delete-confirm.tsx` |
-| FR-11 | Manual cash-balance change with date | `accounts.service.ts#recordBalanceChange` | `account-balance-form.tsx` |
-| FR-12 | List user's accounts (RLS enforced) | `accounts.repository.ts#findByUser` (with `where: { userId }` guard) | `(cap)/dashboard?tab=patrimoine` `_components/accounts-list.tsx` |
+| FR    | Definition                                                         | API module                                                           | Web surface                                                                     |
+| ----- | ------------------------------------------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| FR-9  | Create account                                                     | `apps/api/src/modules/accounts/accounts.service.ts#create`           | `(cap)/parametres/_components/accounts-section.tsx` + `account-create-form.tsx` |
+| FR-10 | Edit / delete account (deletion blocked if holdings/tx referenced) | `accounts.service.ts#{update,delete}` enforces FK guard              | `account-edit-form.tsx`, `account-delete-confirm.tsx`                           |
+| FR-11 | Manual cash-balance change with date                               | `accounts.service.ts#recordBalanceChange`                            | `account-balance-form.tsx`                                                      |
+| FR-12 | List user's accounts (RLS enforced)                                | `accounts.repository.ts#findByUser` (with `where: { userId }` guard) | `(cap)/dashboard?tab=patrimoine` `_components/accounts-list.tsx`                |
 
 #### Group C — Holdings & Portfolio
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-13 | Create holding (ticker, kind, currency, account) | `apps/api/src/modules/holdings/holdings.service.ts#create` | `(cap)/portefeuille/_components/holding-create-form.tsx` |
-| FR-14 | Record buy/sell lots | `holdings.service.ts#recordLot` | `_components/lot-form.tsx` |
-| FR-15 | Derive quantity + WAC from lots | `apps/api/src/common/derive/holding-quantity.ts` (pure) | called via `holdings.service.ts#getDerivedHolding` |
-| FR-16 | 4-tier price chain | `apps/api/src/modules/holdings/holdings.service.ts#resolveQuote` calls `services/prices-client.ts` (HTTP to `apps/prices`) → fallback to `yahoo-finance2` (npm) → Boursorama scraper → Twelve Data | n/a (server side only) |
-| FR-17 | 60 s in-memory quote cache | `apps/api/src/modules/holdings/holdings.cache.ts` (Map keyed by `ticker|kind|currency`) | n/a |
-| FR-18 | FX-adjusted EUR snapshot, fallback 1:1 with `fxSource` field | `apps/api/src/common/derive/portfolio-fx.ts` (port of brownfield `derive-portfolio-fx.ts`) | `(cap)/portefeuille/_hooks/use-portfolio-snapshot.ts` |
-| FR-19 | Per-holding unrealised PnL (holding ccy + EUR) | `apps/api/src/common/derive/holding-pnl.ts` | `PekuloHoldingRow` |
-| FR-20 | Mark holding closed (preserve lots) | `holdings.service.ts#close` | `holding-close-confirm.tsx` |
+| FR    | Definition                                                   | API module                                                                                                                                                                                         | Web surface                                              |
+| ----- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------- | --- |
+| FR-13 | Create holding (ticker, kind, currency, account)             | `apps/api/src/modules/holdings/holdings.service.ts#create`                                                                                                                                         | `(cap)/portefeuille/_components/holding-create-form.tsx` |
+| FR-14 | Record buy/sell lots                                         | `holdings.service.ts#recordLot`                                                                                                                                                                    | `_components/lot-form.tsx`                               |
+| FR-15 | Derive quantity + WAC from lots                              | `apps/api/src/common/derive/holding-quantity.ts` (pure)                                                                                                                                            | called via `holdings.service.ts#getDerivedHolding`       |
+| FR-16 | 4-tier price chain                                           | `apps/api/src/modules/holdings/holdings.service.ts#resolveQuote` calls `services/prices-client.ts` (HTTP to `apps/prices`) → fallback to `yahoo-finance2` (npm) → Boursorama scraper → Twelve Data | n/a (server side only)                                   |
+| FR-17 | 60 s in-memory quote cache                                   | `apps/api/src/modules/holdings/holdings.cache.ts` (Map keyed by `ticker                                                                                                                            | kind                                                     | currency`) | n/a |
+| FR-18 | FX-adjusted EUR snapshot, fallback 1:1 with `fxSource` field | `apps/api/src/common/derive/portfolio-fx.ts` (port of brownfield `derive-portfolio-fx.ts`)                                                                                                         | `(cap)/portefeuille/_hooks/use-portfolio-snapshot.ts`    |
+| FR-19 | Per-holding unrealised PnL (holding ccy + EUR)               | `apps/api/src/common/derive/holding-pnl.ts`                                                                                                                                                        | `PekuloHoldingRow`                                       |
+| FR-20 | Mark holding closed (preserve lots)                          | `holdings.service.ts#close`                                                                                                                                                                        | `holding-close-confirm.tsx`                              |
 
 #### Group D — Real-estate (V1 new)
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-21 | Create property (label, type, valuation, last-valued date) | `apps/api/src/modules/realestate/realestate.service.ts#createProperty` | `(cap)/immobilier/_components/property-create-form.tsx` |
-| FR-22 | Attach mortgage | `realestate.service.ts#attachMortgage` | `mortgage-form.tsx` |
-| FR-23 | Attach rental block | `realestate.service.ts#attachRental` | `rental-form.tsx` |
-| FR-24 | Derive monthly cash-flow | `apps/api/src/common/derive/rental-cashflow.ts` | shown on `PekuloPropertyCard` |
-| FR-25 | Derive net equity | `apps/api/src/common/derive/property-equity.ts` | shown on `PekuloPropertyCard` |
-| FR-26 | Include net equity in compass total wealth | `dashboard.service.ts#computeTotalWealth` (consumes realestate equity) | n/a |
-| FR-27 | Update valuation with audit trail | `realestate.service.ts#recordValuation` writes `RealEstate` + `RealEstateValuation` in `$transaction` | `valuation-update-form.tsx` |
+| FR    | Definition                                                 | API module                                                                                            | Web surface                                             |
+| ----- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| FR-21 | Create property (label, type, valuation, last-valued date) | `apps/api/src/modules/realestate/realestate.service.ts#createProperty`                                | `(cap)/immobilier/_components/property-create-form.tsx` |
+| FR-22 | Attach mortgage                                            | `realestate.service.ts#attachMortgage`                                                                | `mortgage-form.tsx`                                     |
+| FR-23 | Attach rental block                                        | `realestate.service.ts#attachRental`                                                                  | `rental-form.tsx`                                       |
+| FR-24 | Derive monthly cash-flow                                   | `apps/api/src/common/derive/rental-cashflow.ts`                                                       | shown on `PekuloPropertyCard`                           |
+| FR-25 | Derive net equity                                          | `apps/api/src/common/derive/property-equity.ts`                                                       | shown on `PekuloPropertyCard`                           |
+| FR-26 | Include net equity in compass total wealth                 | `dashboard.service.ts#computeTotalWealth` (consumes realestate equity)                                | n/a                                                     |
+| FR-27 | Update valuation with audit trail                          | `realestate.service.ts#recordValuation` writes `RealEstate` + `RealEstateValuation` in `$transaction` | `valuation-update-form.tsx`                             |
 
 #### Group E — Transactions & LLM categorisation
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-28 | Record transaction (date, amount, type, category, account, label) | `apps/api/src/modules/transactions/transactions.service.ts#create` | `(cap)/transactions/_components/transaction-form.tsx` |
-| FR-29 | CSV bulk import (preview before persist) | `transactions.service.ts#importCsv` (handler `/transactions/import-csv`) | `_components/csv-import-form.tsx` + `csv-preview-table.tsx` + `_hooks/use-import-transactions-csv-form.ts` |
-| FR-30 | Rule-based transfer detection (bypass LLM) | `apps/api/src/common/derive/transfer-rule.ts` (pure) called by `transactions.service.ts#categorise` | n/a |
-| FR-31 | LLM routing policy | `apps/api/src/modules/llm/llm.service.ts#route` (returns `{route, providerCall}`) | `transactions/_components/suggestion-row.tsx` shows `route_actual` badge |
-| FR-32 | LLM suggestion + confidence | `llm.service.ts#categorise` returns `{category, confidence}` | `PekuloSuggestionRow` |
-| FR-33 | Accept/override suggestion | `transactions.service.ts#confirmCategorisation` (override wins) | `_hooks/use-confirm-categorisation.ts` |
-| FR-34 | Opt-in toggle for 3rd-party LLM | `apps/api/src/modules/settings/settings.service.ts#updateLlmOptIn` writes `LlmOptIn` row | `(cap)/parametres/_components/llm-opt-in-toggle.tsx` |
-| FR-35 | Per-call audit (no prompt content) | `llm.service.ts#recordLlmCall(intent | outcome)` is the sole writer | n/a |
-| FR-36 | View 90-day LLM activity log | `llm.repository.ts#findByUserSince` | `(cap)/parametres/_components/llm-activity-log.tsx` |
+| FR    | Definition                                                        | API module                                                                                          | Web surface                                                                                                |
+| ----- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --- |
+| FR-28 | Record transaction (date, amount, type, category, account, label) | `apps/api/src/modules/transactions/transactions.service.ts#create`                                  | `(cap)/transactions/_components/transaction-form.tsx`                                                      |
+| FR-29 | CSV bulk import (preview before persist)                          | `transactions.service.ts#importCsv` (handler `/transactions/import-csv`)                            | `_components/csv-import-form.tsx` + `csv-preview-table.tsx` + `_hooks/use-import-transactions-csv-form.ts` |
+| FR-30 | Rule-based transfer detection (bypass LLM)                        | `apps/api/src/common/derive/transfer-rule.ts` (pure) called by `transactions.service.ts#categorise` | n/a                                                                                                        |
+| FR-31 | LLM routing policy                                                | `apps/api/src/modules/llm/llm.service.ts#route` (returns `{route, providerCall}`)                   | `transactions/_components/suggestion-row.tsx` shows `route_actual` badge                                   |
+| FR-32 | LLM suggestion + confidence                                       | `llm.service.ts#categorise` returns `{category, confidence}`                                        | `PekuloSuggestionRow`                                                                                      |
+| FR-33 | Accept/override suggestion                                        | `transactions.service.ts#confirmCategorisation` (override wins)                                     | `_hooks/use-confirm-categorisation.ts`                                                                     |
+| FR-34 | Opt-in toggle for 3rd-party LLM                                   | `apps/api/src/modules/settings/settings.service.ts#updateLlmOptIn` writes `LlmOptIn` row            | `(cap)/parametres/_components/llm-opt-in-toggle.tsx`                                                       |
+| FR-35 | Per-call audit (no prompt content)                                | `llm.service.ts#recordLlmCall(intent                                                                | outcome)` is the sole writer                                                                               | n/a |
+| FR-36 | View 90-day LLM activity log                                      | `llm.repository.ts#findByUserSince`                                                                 | `(cap)/parametres/_components/llm-activity-log.tsx`                                                        |
 
 #### Group F — Monthly tracking (brownfield)
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-37 | Record monthly aggregates | `monthly.service.ts#record` | `(cap)/mensuel/_components/monthly-form.tsx` |
-| FR-38 | Derive aggregates from categorised tx (default override) | `apps/api/src/common/derive/monthly-aggregates.ts` (port of brownfield) | `mensuel/_hooks/use-monthly-aggregates.ts` |
-| FR-39 | Sign off month (immutable freeze) | `monthly.service.ts#signOff` (sets `signedOffAt`, blocks UPDATE in service) | `_components/sign-off-button.tsx` |
-| FR-40 | Re-open signed month with confirmation | `monthly.service.ts#reopen` | `_components/reopen-confirm.tsx` |
+| FR    | Definition                                               | API module                                                                  | Web surface                                  |
+| ----- | -------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------- |
+| FR-37 | Record monthly aggregates                                | `monthly.service.ts#record`                                                 | `(cap)/mensuel/_components/monthly-form.tsx` |
+| FR-38 | Derive aggregates from categorised tx (default override) | `apps/api/src/common/derive/monthly-aggregates.ts` (port of brownfield)     | `mensuel/_hooks/use-monthly-aggregates.ts`   |
+| FR-39 | Sign off month (immutable freeze)                        | `monthly.service.ts#signOff` (sets `signedOffAt`, blocks UPDATE in service) | `_components/sign-off-button.tsx`            |
+| FR-40 | Re-open signed month with confirmation                   | `monthly.service.ts#reopen`                                                 | `_components/reopen-confirm.tsx`             |
 
 #### Group G — Dashboard & KPIs
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-41 | Dashboard first viewport: total wealth + compass % + next milestone delta | `dashboard.service.ts#getOverview` (read-aggregator) | `(cap)/dashboard/_components/{hero-block,donut-card,milestones-card}.tsx` |
-| FR-42 | One-tap navigation to detail pages | `apps/web/src/app/(cap)/{transactions,mensuel,portefeuille,immobilier}/page.tsx` reachable from dashboard nav | `PekuloNavRail` (lg) + bottom nav (mobile) |
-| FR-43 | Total wealth = cash + FX-adjusted holdings + net real-estate equity | `dashboard.service.ts#computeTotalWealth` aggregates accounts + holdings + realestate | n/a |
-| FR-44 | Cache-invalidation registry refreshes dashboard after any wealth-affecting mutation | `apps/web/src/lib/zapaction/keys.ts` (tag registry) + RQ keys ; mutation hooks declare invalidation tags | every mutation hook documents tags |
+| FR    | Definition                                                                          | API module                                                                                                    | Web surface                                                               |
+| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| FR-41 | Dashboard first viewport: total wealth + compass % + next milestone delta           | `dashboard.service.ts#getOverview` (read-aggregator)                                                          | `(cap)/dashboard/_components/{hero-block,donut-card,milestones-card}.tsx` |
+| FR-42 | One-tap navigation to detail pages                                                  | `apps/web/src/app/(cap)/{transactions,mensuel,portefeuille,immobilier}/page.tsx` reachable from dashboard nav | `PekuloNavRail` (lg) + bottom nav (mobile)                                |
+| FR-43 | Total wealth = cash + FX-adjusted holdings + net real-estate equity                 | `dashboard.service.ts#computeTotalWealth` aggregates accounts + holdings + realestate                         | n/a                                                                       |
+| FR-44 | Cache-invalidation registry refreshes dashboard after any wealth-affecting mutation | `apps/web/src/lib/zapaction/keys.ts` (tag registry) + RQ keys ; mutation hooks declare invalidation tags      | every mutation hook documents tags                                        |
 
 #### Group H — Auth, settings, lifecycle
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-45 | Sign up email + 12-char password | Supabase Auth (web direct) ; `apps/api/src/modules/auth/auth.service.ts#postSignupHook` syncs profile row if needed | `(auth)/signup/page.tsx` + `_hooks/use-signup-form.ts` + `_actions/auth-actions.ts#signUp` |
-| FR-46 | Login email + password (SSR cookie session) | Supabase Auth (web direct) | `(auth)/login/page.tsx` + `_actions/auth-actions.ts#logIn` |
-| FR-47 | Logout from any page (invalidate session) | Supabase Auth ; `auth-actions.ts#logout` | `components/user-menu.tsx` (global) |
-| FR-48 | Password reset via email link | Supabase Auth | `(auth)/recover/page.tsx` |
-| FR-49 | One-action JSON export | `apps/api/src/modules/settings/settings.service.ts#exportData` (streams JSON conforming to `docs/exports/schema-v1.json`) | `parametres/_components/export-data-row.tsx` + `_hooks/use-export-data.ts` |
-| FR-50 | Cascade account deletion < 60 s | `settings.service.ts#deleteAccount` (Prisma cascade via FK + Supabase Auth user erase) | `_components/delete-account-confirm.tsx` |
-| FR-51 | Theme switch {dark, light, system} persisted | `settings.service.ts#updateTheme` writes to user prefs row ; mirrored client-side via `useThemeStore` (Zustand persist) | `parametres/_components/theme-segmented-control.tsx` |
-| FR-52 | Language switch {fr, en} persisted | `settings.service.ts#updateLang` ; `useLangStore` mirror | `parametres/_components/lang-segmented-control.tsx` |
+| FR    | Definition                                   | API module                                                                                                                | Web surface                                                                                |
+| ----- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| FR-45 | Sign up email + 12-char password             | Supabase Auth (web direct) ; `apps/api/src/modules/auth/auth.service.ts#postSignupHook` syncs profile row if needed       | `(auth)/signup/page.tsx` + `_hooks/use-signup-form.ts` + `_actions/auth-actions.ts#signUp` |
+| FR-46 | Login email + password (SSR cookie session)  | Supabase Auth (web direct)                                                                                                | `(auth)/login/page.tsx` + `_actions/auth-actions.ts#logIn`                                 |
+| FR-47 | Logout from any page (invalidate session)    | Supabase Auth ; `auth-actions.ts#logout`                                                                                  | `components/user-menu.tsx` (global)                                                        |
+| FR-48 | Password reset via email link                | Supabase Auth                                                                                                             | `(auth)/recover/page.tsx`                                                                  |
+| FR-49 | One-action JSON export                       | `apps/api/src/modules/settings/settings.service.ts#exportData` (streams JSON conforming to `docs/exports/schema-v1.json`) | `parametres/_components/export-data-row.tsx` + `_hooks/use-export-data.ts`                 |
+| FR-50 | Cascade account deletion < 60 s              | `settings.service.ts#deleteAccount` (Prisma cascade via FK + Supabase Auth user erase)                                    | `_components/delete-account-confirm.tsx`                                                   |
+| FR-51 | Theme switch {dark, light, system} persisted | `settings.service.ts#updateTheme` writes to user prefs row ; mirrored client-side via `useThemeStore` (Zustand persist)   | `parametres/_components/theme-segmented-control.tsx`                                       |
+| FR-52 | Language switch {fr, en} persisted           | `settings.service.ts#updateLang` ; `useLangStore` mirror                                                                  | `parametres/_components/lang-segmented-control.tsx`                                        |
 
 #### Group I — PWA, mobile, design system
 
-| FR | Definition | Surface |
-|---|---|---|
-| FR-53 | Install affordance (PWA on iOS/Android home screen) | `apps/web/src/app/manifest.ts` + `apps/web/public/icons/*` + `apps/web/src/components/install-prompt.tsx` |
-| FR-54 | Offline read-only on dashboard/portefeuille/immobilier | `apps/web/src/sw.ts` (encrypted IndexedDB scoped per userId, ADR-0003) |
-| FR-55 | Single styling primitive layer from V1.5 (`@pekulo/ui` Tamagui) | `@pekulo/ui` consumed by `apps/web` and `apps/mobile` — lint rule `no-tailwind-outside-ui` enforces |
-| FR-56 | Visual parity web ↔ mobile via per-component snapshot | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx` + Maestro mobile snapshot suite (V1.5) |
+| FR    | Definition                                                      | Surface                                                                                                   |
+| ----- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| FR-53 | Install affordance (PWA on iOS/Android home screen)             | `apps/web/src/app/manifest.ts` + `apps/web/public/icons/*` + `apps/web/src/components/install-prompt.tsx` |
+| FR-54 | Offline read-only on dashboard/portefeuille/immobilier          | `apps/web/src/sw.ts` (encrypted IndexedDB scoped per userId, ADR-0003)                                    |
+| FR-55 | Single styling primitive layer from V1.5 (`@pekulo/ui` Tamagui) | `@pekulo/ui` consumed by `apps/web` and `apps/mobile` — lint rule `no-tailwind-outside-ui` enforces       |
+| FR-56 | Visual parity web ↔ mobile via per-component snapshot           | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx` + Maestro mobile snapshot suite (V1.5)        |
 
 #### Group J — Hypotheses & projections (brownfield)
 
-| FR | Definition | API module | Web surface |
-|---|---|---|---|
-| FR-57 | Record hypothesis (compass + monthly contribution + assumed rate) | `apps/api/src/modules/hypothesis/hypothesis.service.ts#record` | `(cap)/parametres/_components/hypothesis-form.tsx` |
-| FR-58 | Project future wealth curve | `apps/api/src/common/derive/projection-curve.ts` (pure) | `dashboard/_components/hypothesis-card.tsx` + `PekuloProjectionChart` |
-| FR-59 | Compare projection vs cap-required | `dashboard.service.ts#getHypothesisGap` returns `{ gapEurPerMonth }` | `PekuloHypothesisVerdict` |
+| FR    | Definition                                                        | API module                                                           | Web surface                                                           |
+| ----- | ----------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| FR-57 | Record hypothesis (compass + monthly contribution + assumed rate) | `apps/api/src/modules/hypothesis/hypothesis.service.ts#record`       | `(cap)/parametres/_components/hypothesis-form.tsx`                    |
+| FR-58 | Project future wealth curve                                       | `apps/api/src/common/derive/projection-curve.ts` (pure)              | `dashboard/_components/hypothesis-card.tsx` + `PekuloProjectionChart` |
+| FR-59 | Compare projection vs cap-required                                | `dashboard.service.ts#getHypothesisGap` returns `{ gapEurPerMonth }` | `PekuloHypothesisVerdict`                                             |
 
 ### Integration Boundaries
 
 > Every external system has exactly one owning surface ; secrets and rate limits are bound to that owner.
 
-| External system | Owner | Boundary file(s) | Auth mechanism | Failure mode |
-|---|---|---|---|---|
-| **Supabase Auth** | `apps/web` (direct) | `apps/web/src/lib/supabase/{server,client}.ts` | anon key in `NEXT_PUBLIC_*` ; SSR cookie session | redirect to `/login` via `proxy.ts` middleware |
-| **Supabase Postgres** | `apps/api` (sole consumer) | `apps/api/src/database/prisma.service.ts` (PrismaPg adapter, port 5432, service-role) | `DATABASE_URL` in Dokploy env | `prisma-error-mapper.ts` → typed errors ; data readers fallback to safe defaults |
-| **Apple FoundationModels** | `apps/mobile` (V1.5, client-side) | `apps/mobile/src/llm/foundation-models-client.ts` | iOS framework, no key | fall back to oRPC `/llm/categorise` (server route Ollama) |
-| **Ollama** | `apps/api/src/modules/llm/providers/ollama-client.ts` | localhost-bound on Dokploy ; not exposed publicly | none (internal) | timeout → fall back to 3rd-party (only if opt-in true) ; else surface `LlmRoutingError` |
-| **3rd-party LLM API** (Claude Haiku 4.5 or Mistral Small) | `apps/api/src/modules/llm/providers/third-party-client.ts` | `THIRD_PARTY_LLM_API_KEY` in Dokploy env ; opt-in gated server-side | rate-limit → mark request as failed in `llm_call_log` ; UI surfaces "categorisation indisponible" |
-| **`apps/prices`** (FastAPI) | `apps/api/src/modules/holdings/services/prices-client.ts` | internal Docker network ; Bearer `PRICES_SERVICE_TOKEN` | Tier-1 fallback chain to `yahoo-finance2` |
-| **Yahoo Finance** (`yahoo-finance2`) | `apps/api/src/modules/holdings/services/yahoo-client.ts` | npm SDK, no key | Tier-2 fallback to Boursorama |
-| **Boursorama** (HTML scraping) | `apps/api/src/modules/holdings/services/boursorama-scraper.ts` | none | Tier-3 fallback to Twelve Data |
-| **Twelve Data** | `apps/api/src/modules/holdings/services/twelve-data-client.ts` | `TWELVE_DATA_API_KEY` in Dokploy env (free tier 800 req/day) | Tier-4 ; on full-chain failure throws `PriceProviderError.attempts` |
-| **frankfurter.app** (FX) | `apps/api/src/modules/holdings/services/frankfurter-client.ts` | none | fallback to 1:1 in `derive/portfolio-fx.ts` ; recorded in snapshot via `fxSource` |
-| **Vercel** | `apps/web` deploy target | `vercel.json` + Vercel project secrets | n/a | Vercel auto-rollback on failed deploy |
-| **Dokploy VPS** | `apps/api` + `apps/prices` + Ollama deploy target | `apps/api/Dockerfile` + `apps/prices/Dockerfile` + Caddy config | Dokploy webhook | Dokploy auto-restart on container crash ; Caddy 502 → `apps/web` retry queue |
-| **GlitchTip** ((b)+) | `apps/api/src/platform/observability/otel-sdk.ts` (OTLP exporter) | self-hosted on Dokploy | `GLITCHTIP_DSN` in Dokploy env | OTel SDK retries with backoff ; fail-open (logs to stdout) |
-| **GitHub Actions** | CI/CD owner | `.github/workflows/pr.yml` | `GITHUB_TOKEN` (auto) ; secrets via repo settings | failed check blocks merge |
-| **Supabase backups** | Operational owner | external Supabase dashboard | dashboard credentials | NFR-21 restore drill before (b) flip |
+| External system                                           | Owner                                                             | Boundary file(s)                                                                      | Auth mechanism                                                                                    | Failure mode                                                                            |
+| --------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Supabase Auth**                                         | `apps/web` (direct)                                               | `apps/web/src/lib/supabase/{server,client}.ts`                                        | anon key in `NEXT_PUBLIC_*` ; SSR cookie session                                                  | redirect to `/login` via `proxy.ts` middleware                                          |
+| **Supabase Postgres**                                     | `apps/api` (sole consumer)                                        | `apps/api/src/database/prisma.service.ts` (PrismaPg adapter, port 5432, service-role) | `DATABASE_URL` in Dokploy env                                                                     | `prisma-error-mapper.ts` → typed errors ; data readers fallback to safe defaults        |
+| **Apple FoundationModels**                                | `apps/mobile` (V1.5, client-side)                                 | `apps/mobile/src/llm/foundation-models-client.ts`                                     | iOS framework, no key                                                                             | fall back to oRPC `/llm/categorise` (server route Ollama)                               |
+| **Ollama**                                                | `apps/api/src/modules/llm/providers/ollama-client.ts`             | localhost-bound on Dokploy ; not exposed publicly                                     | none (internal)                                                                                   | timeout → fall back to 3rd-party (only if opt-in true) ; else surface `LlmRoutingError` |
+| **3rd-party LLM API** (Claude Haiku 4.5 or Mistral Small) | `apps/api/src/modules/llm/providers/third-party-client.ts`        | `THIRD_PARTY_LLM_API_KEY` in Dokploy env ; opt-in gated server-side                   | rate-limit → mark request as failed in `llm_call_log` ; UI surfaces "categorisation indisponible" |
+| **`apps/prices`** (FastAPI)                               | `apps/api/src/modules/holdings/services/prices-client.ts`         | internal Docker network ; Bearer `PRICES_SERVICE_TOKEN`                               | Tier-1 fallback chain to `yahoo-finance2`                                                         |
+| **Yahoo Finance** (`yahoo-finance2`)                      | `apps/api/src/modules/holdings/services/yahoo-client.ts`          | npm SDK, no key                                                                       | Tier-2 fallback to Boursorama                                                                     |
+| **Boursorama** (HTML scraping)                            | `apps/api/src/modules/holdings/services/boursorama-scraper.ts`    | none                                                                                  | Tier-3 fallback to Twelve Data                                                                    |
+| **Twelve Data**                                           | `apps/api/src/modules/holdings/services/twelve-data-client.ts`    | `TWELVE_DATA_API_KEY` in Dokploy env (free tier 800 req/day)                          | Tier-4 ; on full-chain failure throws `PriceProviderError.attempts`                               |
+| **frankfurter.app** (FX)                                  | `apps/api/src/modules/holdings/services/frankfurter-client.ts`    | none                                                                                  | fallback to 1:1 in `derive/portfolio-fx.ts` ; recorded in snapshot via `fxSource`                 |
+| **Vercel**                                                | `apps/web` deploy target                                          | `vercel.json` + Vercel project secrets                                                | n/a                                                                                               | Vercel auto-rollback on failed deploy                                                   |
+| **Dokploy VPS**                                           | `apps/api` + `apps/prices` + Ollama deploy target                 | `apps/api/Dockerfile` + `apps/prices/Dockerfile` + Caddy config                       | Dokploy webhook                                                                                   | Dokploy auto-restart on container crash ; Caddy 502 → `apps/web` retry queue            |
+| **GlitchTip** ((b)+)                                      | `apps/api/src/platform/observability/otel-sdk.ts` (OTLP exporter) | self-hosted on Dokploy                                                                | `GLITCHTIP_DSN` in Dokploy env                                                                    | OTel SDK retries with backoff ; fail-open (logs to stdout)                              |
+| **GitHub Actions**                                        | CI/CD owner                                                       | `.github/workflows/pr.yml`                                                            | `GITHUB_TOKEN` (auto) ; secrets via repo settings                                                 | failed check blocks merge                                                               |
+| **Supabase backups**                                      | Operational owner                                                 | external Supabase dashboard                                                           | dashboard credentials                                                                             | NFR-21 restore drill before (b) flip                                                    |
 
 ### Shared Code Inventory
 
@@ -1050,7 +1055,7 @@ pekulo/
 
 #### `@pekulo/ui` — Pekulo DS (Tamagui Core)
 
-- All Pekulo* components listed in Directory Tree above ; consumed by `apps/web` and `apps/mobile` (V1.5)
+- All Pekulo\* components listed in Directory Tree above ; consumed by `apps/web` and `apps/mobile` (V1.5)
 - Tokens, themes, primitives ported from `docs/ux-preview/`
 
 #### `apps/api/src/common/` — pure helpers (no I/O)
@@ -1102,7 +1107,6 @@ pekulo/
 - `install-prompt.tsx`
 - `contextual-add-button.tsx`
 
-
 ## Phase 5 — Validation
 
 > Final coherence + self-review pass. All gates passed 2026-05-03 ; user accepted via final A/C gate `[C]`.
@@ -1135,10 +1139,10 @@ pekulo/
 
 > Risks worth surveillance during V1 build and at the (b) ramp flip. Each carries a pivot condition lifting it to a higher-priority decision.
 
-- **W1 — `oxfmt` is alpha (pre-1.0)** — pin a known-good version ; audit on every bump ; revert to Prettier if a rule change breaks the codebase. *(ADR-0004)*
-- **W2 — Tamagui Core ↔ Next 16 RSC integration** — pre-flight spike MUST land before any feature story resumes ; if the compiler emits "use client" everywhere or RSC context serialisation breaks, pivot back to A (status quo + V1.5 rebuild). *(ADR-0007)*
-- **W3 — Async LLM attestation queue drop rate** — instrument `attest-queue.ts` for queue-flush success rate ; if drops exceed 1 % over a rolling 7-day window, pivot to synchronous attestation (pure A) and accept the latency hit. *(ADR-0008)*
-- **W4 — Ollama VPS RAM headroom** — Ollama with a 7B model needs 5–8 GB ; current Dokploy spec to be measured before opening signup ; vertical scaling budget (€20 → €35/mo) stays under B3 ceiling. *(C2 Council, Nina)*
+- **W1 — `oxfmt` is alpha (pre-1.0)** — pin a known-good version ; audit on every bump ; revert to Prettier if a rule change breaks the codebase. _(ADR-0004)_
+- **W2 — Tamagui Core ↔ Next 16 RSC integration** — pre-flight spike MUST land before any feature story resumes ; if the compiler emits "use client" everywhere or RSC context serialisation breaks, pivot back to A (status quo + V1.5 rebuild). _(ADR-0007)_
+- **W3 — Async LLM attestation queue drop rate** — instrument `attest-queue.ts` for queue-flush success rate ; if drops exceed 1 % over a rolling 7-day window, pivot to synchronous attestation (pure A) and accept the latency hit. _(ADR-0008)_
+- **W4 — Ollama VPS RAM headroom** — Ollama with a 7B model needs 5–8 GB ; current Dokploy spec to be measured before opening signup ; vertical scaling budget (€20 → €35/mo) stays under B3 ceiling. _(C2 Council, Nina)_
 - **W5 — Custom oxlint rules in `@pekulo/oxlint-config`** — `no-server-action-in-component`, `no-cross-feature-action-import`, `no-prisma-query-without-user-id`, `no-tailwind-outside-ui` ship as JS rules ; each rule must have its own test fixture set ; rule changes audited.
 - **W6 — Prisma `prismaSchemaFolder` is a preview feature** — monitor Prisma release notes ; if removed or breaking-changed before stable promotion, fall back to a single `schema.prisma` with stricter file ordering discipline.
 - **W7 — Tamagui Core ecosystem 2026** — track v3 RC announcements ; if compiler regressions or community drift appear, ADR-0007 pivot conditions activate (back to A).
@@ -1164,8 +1168,8 @@ pekulo/
 - **E0.7 — OTel SDK init in three runtimes** — `apps/web` (`@opentelemetry/sdk-node`), `apps/api` (Elysia + Prisma instrumentations), `apps/prices` (`opentelemetry-instrumentation-fastapi`) ; stdout exporter for V1 (a). (ADR-0005)
 - **E0.8 — GitHub Actions `pr.yml`** — full matrix (lint, format-check, typecheck, test:unit, test:e2e:smoke, rls-audit, prisma:check, lighthouse-ci, axe-a11y) + Turborepo remote cache + per-app deploy hooks (Vercel + Dokploy webhook).
 - **E0.9 — Tamagui pre-flight spike** — Next 16 RSC integration spike + proto `App.tsx` port spike + WCAG 2.2 AA contrast preservation spike ; gate to E0.10 kickoff. (ADR-0007 pre-flight checks)
-- **E0.10 — `@pekulo/ui` Tamagui DS migration** — port `docs/ux-preview/src/tokens/` into Tamagui themes ; build Pekulo* primitives + components matching UX spec catalog ; visual snapshot suite ; vitest-axe a11y suite. Sequenced as a sub-epic by `aped-story`. (ADR-0007)
+- **E0.10 — `@pekulo/ui` Tamagui DS migration** — port `docs/ux-preview/src/tokens/` into Tamagui themes ; build Pekulo\* primitives + components matching UX spec catalog ; visual snapshot suite ; vitest-axe a11y suite. Sequenced as a sub-epic by `aped-story`. (ADR-0007)
 - **E0.11 — Pre-commit + secret discipline** — lefthook config (`oxlint --fix --staged`, `oxfmt --staged`, `gitleaks detect --staged`, `prisma format` on `*.prisma`) ; documented onboarding steps in `apps/web/README.md` and `apps/api/README.md`.
 - **E0.12 — Custom oxlint rules in `@pekulo/oxlint-config`** — implement and ship `no-server-action-in-component`, `no-cross-feature-action-import`, `no-prisma-query-without-user-id`, `no-tailwind-outside-ui` ; rule fixtures + tests ; CI gate.
 
-After E0.* ships, `aped-epics` may schedule the V1 feature epics: `compass-and-milestones`, `real-estate`, `llm-categorisation`, `crypto-holdings`, `pwa-offline`, `gdpr-flows` (and the brownfield reaffirmations: `accounts`, `holdings-extended`, `transactions-extended`, `monthly-tracking-extended`, `hypothesis-extended`).
+After E0.\* ships, `aped-epics` may schedule the V1 feature epics: `compass-and-milestones`, `real-estate`, `llm-categorisation`, `crypto-holdings`, `pwa-offline`, `gdpr-flows` (and the brownfield reaffirmations: `accounts`, `holdings-extended`, `transactions-extended`, `monthly-tracking-extended`, `hypothesis-extended`).

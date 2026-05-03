@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Plus, Pencil, RefreshCw, Sparkles, History } from "lucide-react"
-import { useActionMutation } from "@zapaction/query"
-import { useQueryClient } from "@tanstack/react-query"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import { Plus, Pencil, RefreshCw, Sparkles, History } from "lucide-react";
+import { useActionMutation } from "@zapaction/query";
+import { useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -13,30 +13,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { HOLDING_KIND_LABELS } from "@/lib/schemas/portfolio"
-import {
-  refreshAllPrices,
-  refreshHoldingPrice,
-} from "@/lib/actions/portfolio"
-import { portfolioKeys, portfolioTags } from "@/lib/zapaction/keys"
-import type {
-  Account,
-  Holding,
-  HoldingKind,
-  RefreshSummary,
-} from "@/lib/types"
-import { HoldingForm } from "./holding-form"
-import { LotsDialog } from "./lots-dialog"
+} from "@/components/ui/table";
+import { HOLDING_KIND_LABELS } from "@/lib/schemas/portfolio";
+import { refreshAllPrices, refreshHoldingPrice } from "@/lib/actions/portfolio";
+import { portfolioKeys, portfolioTags } from "@/lib/zapaction/keys";
+import type { Account, Holding, HoldingKind, RefreshSummary } from "@/lib/types";
+import { HoldingForm } from "./holding-form";
+import { LotsDialog } from "./lots-dialog";
 
 function formatEuro(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €"
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €";
 }
 
 function formatSigned(n: number) {
-  if (n === 0) return "0 €"
-  const sign = n > 0 ? "+" : "−"
-  return `${sign}${formatEuro(Math.abs(n))}`
+  if (n === 0) return "0 €";
+  const sign = n > 0 ? "+" : "−";
+  return `${sign}${formatEuro(Math.abs(n))}`;
 }
 
 export function HoldingsSection({
@@ -45,77 +37,75 @@ export function HoldingsSection({
   editing,
   setEditing,
 }: {
-  accounts: Account[]
-  holdings: Holding[]
-  editing: string | "new" | null
-  setEditing: (v: string | "new" | null) => void
+  accounts: Account[];
+  holdings: Holding[];
+  editing: string | "new" | null;
+  setEditing: (v: string | "new" | null) => void;
 }) {
-  const queryClient = useQueryClient()
-  const [banner, setBanner] = useState<string | null>(null)
-  const [bannerKind, setBannerKind] = useState<"success" | "error" | "mixed">(
-    "success"
-  )
+  const queryClient = useQueryClient();
+  const [banner, setBanner] = useState<string | null>(null);
+  const [bannerKind, setBannerKind] = useState<"success" | "error" | "mixed">("success");
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: portfolioKeys.holdings() })
-    await queryClient.refetchQueries({ queryKey: portfolioKeys.holdings() })
-  }
+    await queryClient.invalidateQueries({ queryKey: portfolioKeys.holdings() });
+    await queryClient.refetchQueries({ queryKey: portfolioKeys.holdings() });
+  };
 
   const refreshOne = useActionMutation(refreshHoldingPrice, {
     invalidateWithTags: [portfolioTags.holdings()],
     onSuccess: async (_data, vars) => {
-      await invalidate()
-      const h = holdings.find((x) => x.id === vars.id)
-      setBannerKind("success")
-      setBanner(`${h?.label ?? "Position"} mis à jour`)
+      await invalidate();
+      const h = holdings.find((x) => x.id === vars.id);
+      setBannerKind("success");
+      setBanner(`${h?.label ?? "Position"} mis à jour`);
     },
     onError: (err) => {
-      setBannerKind("error")
-      setBanner(`Échec : ${(err as Error).message}`)
+      setBannerKind("error");
+      setBanner(`Échec : ${(err as Error).message}`);
     },
-  })
+  });
 
   const refreshAll = useActionMutation(refreshAllPrices, {
     invalidateWithTags: [portfolioTags.holdings()],
     onSuccess: async (data: RefreshSummary) => {
-      await invalidate()
+      await invalidate();
       if (data.failed.length === 0) {
-        setBannerKind("success")
-        setBanner(`${data.updated} position${data.updated > 1 ? "s" : ""} mise${data.updated > 1 ? "s" : ""} à jour`)
+        setBannerKind("success");
+        setBanner(
+          `${data.updated} position${data.updated > 1 ? "s" : ""} mise${data.updated > 1 ? "s" : ""} à jour`,
+        );
       } else if (data.updated === 0) {
-        setBannerKind("error")
+        setBannerKind("error");
         setBanner(
-          `Tout a échoué — ${data.failed.map((f) => `${f.label} (${f.reason})`).join(", ")}`
-        )
+          `Tout a échoué — ${data.failed.map((f) => `${f.label} (${f.reason})`).join(", ")}`,
+        );
       } else {
-        setBannerKind("mixed")
+        setBannerKind("mixed");
         setBanner(
-          `${data.updated} OK, ${data.failed.length} échec${data.failed.length > 1 ? "s" : ""} — ${data.failed.map((f) => `${f.label}: ${f.reason}`).join(" · ")}`
-        )
+          `${data.updated} OK, ${data.failed.length} échec${data.failed.length > 1 ? "s" : ""} — ${data.failed.map((f) => `${f.label}: ${f.reason}`).join(" · ")}`,
+        );
       }
     },
     onError: (err) => {
-      setBannerKind("error")
-      setBanner(`Échec : ${(err as Error).message}`)
+      setBannerKind("error");
+      setBanner(`Échec : ${(err as Error).message}`);
     },
-  })
+  });
 
   // Banner auto-clear after 4s
   useEffect(() => {
-    if (!banner) return
-    const t = setTimeout(() => setBanner(null), 4000)
-    return () => clearTimeout(t)
-  }, [banner])
+    if (!banner) return;
+    const t = setTimeout(() => setBanner(null), 4000);
+    return () => clearTimeout(t);
+  }, [banner]);
 
   const editingHolding =
-    editing && editing !== "new" ? holdings.find((h) => h.id === editing) ?? null : null
-  const accountById = new Map(accounts.map((a) => [a.id, a]))
-  const anyTicker = holdings.some((h) => h.ticker && h.ticker.length > 0)
-  const refreshAllPending = refreshAll.isPending
-  const [lotsHoldingId, setLotsHoldingId] = useState<string | null>(null)
-  const lotsHolding = lotsHoldingId
-    ? holdings.find((h) => h.id === lotsHoldingId) ?? null
-    : null
+    editing && editing !== "new" ? (holdings.find((h) => h.id === editing) ?? null) : null;
+  const accountById = new Map(accounts.map((a) => [a.id, a]));
+  const anyTicker = holdings.some((h) => h.ticker && h.ticker.length > 0);
+  const refreshAllPending = refreshAll.isPending;
+  const [lotsHoldingId, setLotsHoldingId] = useState<string | null>(null);
+  const lotsHolding = lotsHoldingId ? (holdings.find((h) => h.id === lotsHoldingId) ?? null) : null;
 
   return (
     <Card>
@@ -127,11 +117,7 @@ export function HoldingsSection({
             size="sm"
             onClick={() => refreshAll.mutate(undefined)}
             disabled={!anyTicker || refreshAllPending}
-            title={
-              !anyTicker
-                ? "Aucune position avec ticker"
-                : "Refresh prix Yahoo Finance"
-            }
+            title={!anyTicker ? "Aucune position avec ticker" : "Refresh prix Yahoo Finance"}
           >
             <Sparkles className={`h-4 w-4 mr-1 ${refreshAllPending ? "animate-pulse" : ""}`} />
             {refreshAllPending ? "Refresh…" : "Refresh tous"}
@@ -186,13 +172,12 @@ export function HoldingsSection({
             </TableHeader>
             <TableBody>
               {holdings.map((h) => {
-                const value = h.quantity * h.lastPrice
-                const invested = h.quantity * h.avgCost
-                const pl = value - invested
-                const account = accountById.get(h.accountId)
-                const hasTicker = !!(h.ticker && h.ticker.length > 0)
-                const isPendingRow =
-                  refreshOne.isPending && refreshOne.variables?.id === h.id
+                const value = h.quantity * h.lastPrice;
+                const invested = h.quantity * h.avgCost;
+                const pl = value - invested;
+                const account = accountById.get(h.accountId);
+                const hasTicker = !!(h.ticker && h.ticker.length > 0);
+                const isPendingRow = refreshOne.isPending && refreshOne.variables?.id === h.id;
                 return (
                   <TableRow key={h.id}>
                     <TableCell className="font-medium">
@@ -236,9 +221,7 @@ export function HoldingsSection({
                               : "Refresh prix Yahoo Finance"
                           }
                         >
-                          <RefreshCw
-                            className={isPendingRow ? "animate-spin" : undefined}
-                          />
+                          <RefreshCw className={isPendingRow ? "animate-spin" : undefined} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -261,7 +244,7 @@ export function HoldingsSection({
                       </div>
                     </TableCell>
                   </TableRow>
-                )
+                );
               })}
             </TableBody>
           </Table>
@@ -271,7 +254,7 @@ export function HoldingsSection({
       <HoldingForm
         open={editing !== null}
         onOpenChange={(open) => {
-          if (!open) setEditing(null)
+          if (!open) setEditing(null);
         }}
         editing={editingHolding}
         accounts={accounts}
@@ -280,10 +263,10 @@ export function HoldingsSection({
       <LotsDialog
         open={lotsHoldingId !== null}
         onOpenChange={(open) => {
-          if (!open) setLotsHoldingId(null)
+          if (!open) setLotsHoldingId(null);
         }}
         holding={lotsHolding}
       />
     </Card>
-  )
+  );
 }

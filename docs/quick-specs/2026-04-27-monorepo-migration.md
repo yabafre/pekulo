@@ -51,6 +51,7 @@ test/                                 test/
 ## Phases
 
 ### Phase 1 — Bun in place (no folder move yet)
+
 Goal: verify Bun handles the existing Next.js + Tailwind 4 + base-ui + ZapAction stack.
 
 - In `plan-financier/`: `rm -rf node_modules package-lock.json`
@@ -61,6 +62,7 @@ Goal: verify Bun handles the existing Next.js + Tailwind 4 + base-ui + ZapAction
 **Files touched**: `package-lock.json` (deleted), `bun.lock` (created), `node_modules/` (rebuilt). `package.json` unchanged.
 
 ### Phase 2 — Folder restructure
+
 Goal: move both apps into `apps/`. App-internal paths unchanged.
 
 - `mkdir apps`
@@ -72,6 +74,7 @@ Goal: move both apps into `apps/`. App-internal paths unchanged.
 **Files touched**: every file inside the two folders is moved (mass `mv`, no content changes). `.aped/config.yaml` may need a path update if it references `plan-financier/` or `prices-service/`.
 
 ### Phase 3 — Root workspace + Turborepo
+
 Goal: root `bun run dev` spawns both apps in parallel.
 
 - Create root `package.json`:
@@ -114,6 +117,7 @@ Goal: root `bun run dev` spawns both apps in parallel.
 **Note on `dev:prices`**: Python isn't a Bun workspace. We expose it as a top-level script that the user runs in a separate terminal when they want the Python service running locally. Turborepo can also run it via an `exec` task if we want — TBD if needed.
 
 ### Phase 4 — Env consolidation
+
 Goal: one `.env.local` at root for both apps.
 
 - Move `apps/web/.env.local` → `.env.local` at root
@@ -125,6 +129,7 @@ Goal: one `.env.local` at root for both apps.
 ## Files to Change
 
 **Created (root, ~5)**
+
 - `package.json` (workspaces + scripts)
 - `turbo.json` (pipelines)
 - `.env.example` (consolidated)
@@ -132,6 +137,7 @@ Goal: one `.env.local` at root for both apps.
 - `bun.lock` (auto-generated)
 
 **Edited / renamed**
+
 - `plan-financier/` → `apps/web/`
 - `prices-service/` → `apps/prices/`
 - `apps/web/package.json` (name renamed `web`, lockfile path delta)
@@ -139,6 +145,7 @@ Goal: one `.env.local` at root for both apps.
 - `.aped/config.yaml` (verify no path references break)
 
 **Deleted**
+
 - `plan-financier/package-lock.json`
 - per-app `.env.local` files (consolidated to root)
 
@@ -147,18 +154,20 @@ Goal: one `.env.local` at root for both apps.
 ## Test Plan
 
 After **each phase**:
+
 - `bun run dev` (or equivalent) boots without error.
 - `/dashboard/portefeuille` loads, click 🔄 on a holding → Boursorama returns a price.
 - `npx tsc --noEmit` clean (in `apps/web/` for Phase 1, from root via `bun run typecheck` for Phase 3+).
 
 After phase 4:
+
 - Login flow works (Supabase env loaded).
 - Refresh prices works (PRICES_SERVICE_URL passed through if set).
 - Dokploy build can still be triggered (build context = `apps/prices/`, user updates Dokploy panel manually).
 
 ## Risks & Mitigations
 
-- **Bun + native deps**: shadcn `@base-ui/react`, recharts, @zapaction/* — all pure JS/TS. Should work. **Mitigation**: if `bun install` fails, fall back to `bun install --backend=hardlink` or revert Phase 1.
+- **Bun + native deps**: shadcn `@base-ui/react`, recharts, @zapaction/\* — all pure JS/TS. Should work. **Mitigation**: if `bun install` fails, fall back to `bun install --backend=hardlink` or revert Phase 1.
 - **Next.js + monorepo**: Turbopack handles workspaces fine since v15. Next 16 is OK.
 - **`.env` discovery from monorepo root**: Next.js by default reads from app's cwd. We force-feed via `dotenv-cli` prefix in root scripts. **Mitigation**: if Next can't find vars, double-check `dotenv-cli` is loading the right path (`-e .env` resolves to root cwd).
 - **APED config**: `.aped/config.yaml` references default paths. Verify after Phase 2.
@@ -178,6 +187,7 @@ After phase 4:
 **Phases done:** 4/4. Total time: ~10 min wall clock.
 
 **Layout finale:**
+
 ```
 test/
 ├── apps/
@@ -193,16 +203,19 @@ test/
 ```
 
 **Scripts (root):**
+
 - `bun run dev` → `dotenv -c -e .env -e .env.local -- turbo dev` → spawns Next.js with full env
 - `bun run dev:prices` → starts the Python service in `apps/prices/` with same env
 - `bun run build` / `lint` / `typecheck` → all routed through Turborepo
 
 **Env strategy:**
+
 - `dotenv-cli -c -e .env -e .env.local --` layers root files (Next.js convention; .env.local wins).
 - No per-app `.env` files. Both Next.js and Python read root.
 - Verified: NEXT_PUBLIC_SUPABASE_URL (40 chars), TWELVE_DATA_API_KEY (32 chars) propagate correctly through the pipeline.
 
 **Verifications passed:**
+
 - `bun install` workspace install OK (1403 packages, hoisted).
 - `bun run typecheck` → `web:typecheck` cache hit second run (FULL TURBO).
 - Existing lint errors are pre-existing (theme-provider, auth-form, kpi-card) — not introduced by migration.

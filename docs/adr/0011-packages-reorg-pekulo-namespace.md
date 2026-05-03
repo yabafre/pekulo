@@ -12,15 +12,15 @@ Brownfield Pekulo had a single `packages/*` glob resolving to a `.gitkeep` place
 
 The monorepo workspaces under `packages/*` reorganise to:
 
-| Package | Role |
-|---|---|
-| `@pekulo/zod` | Re-exports Zod v4 + Pekulo-specific helpers (`tabularNum`, `IsoDate`, `Money`, `EuroAmount`, `Percent`) |
-| `@pekulo/types` | Shared TS types across apps (`UserId`, `CompassSnapshot`, `LlmRoute`, `PriceQuote`, `MonthlyRecord`) |
-| `@pekulo/validators` | Zod schemas (`camelCase + Schema` suffix) — `createCompassSchema`, `recordValuationSchema`, `attestLlmCallSchema`, etc. |
-| `@pekulo/contracts` | oRPC contracts, one sub-tree per Elysia module (`compassContract`, `holdingsContract`, `llmContract`, …) |
-| `@pekulo/tsconfig` | Shared `tsconfig.base.json` + presets (`apps`, `packages`, `next`) |
+| Package                 | Role                                                                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@pekulo/zod`           | Re-exports Zod v4 + Pekulo-specific helpers (`tabularNum`, `IsoDate`, `Money`, `EuroAmount`, `Percent`)                                                                    |
+| `@pekulo/types`         | Shared TS types across apps (`UserId`, `CompassSnapshot`, `LlmRoute`, `PriceQuote`, `MonthlyRecord`)                                                                       |
+| `@pekulo/validators`    | Zod schemas (`camelCase + Schema` suffix) — `createCompassSchema`, `recordValuationSchema`, `attestLlmCallSchema`, etc.                                                    |
+| `@pekulo/contracts`     | oRPC contracts, one sub-tree per Elysia module (`compassContract`, `holdingsContract`, `llmContract`, …)                                                                   |
+| `@pekulo/tsconfig`      | Shared `tsconfig.base.json` + presets (`apps`, `packages`, `next`)                                                                                                         |
 | `@pekulo/oxlint-config` | Shared oxlint rules + Pekulo custom rules (`no-tailwind-outside-ui`, `no-server-action-in-component`, `no-cross-feature-action-import`, `no-prisma-query-without-user-id`) |
-| `@pekulo/ui` | Pekulo Design System on Tamagui Core (renamed from earlier `packages/ui`) |
+| `@pekulo/ui`            | Pekulo Design System on Tamagui Core (renamed from earlier `packages/ui`)                                                                                                  |
 
 Import hierarchy is enforced (R1):
 
@@ -30,7 +30,7 @@ Import hierarchy is enforced (R1):
               @pekulo/types ← apps
 ```
 
-`@pekulo/types` is the only package consumed *bidirectionally* (apps import types ; lower packages re-export type-only definitions to types consumers). All other dependencies flow strictly downward.
+`@pekulo/types` is the only package consumed _bidirectionally_ (apps import types ; lower packages re-export type-only definitions to types consumers). All other dependencies flow strictly downward.
 
 ## Why
 

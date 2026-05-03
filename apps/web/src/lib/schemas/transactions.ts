@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const TRANSACTION_CATEGORIES = [
   "salaire",
@@ -13,28 +13,26 @@ export const TRANSACTION_CATEGORIES = [
   "sante",
   "imprevu",
   "autre",
-] as const
+] as const;
 
-export const TRANSACTION_CATEGORY_LABELS: Record<
-  (typeof TRANSACTION_CATEGORIES)[number],
-  string
-> = {
-  salaire: "Salaire",
-  freelance: "Freelance",
-  remote: "Remote",
-  bonus: "Bonus",
-  loyer: "Loyer",
-  courses: "Courses",
-  transport: "Transport",
-  sorties: "Sorties",
-  voyage: "Voyage",
-  sante: "Santé",
-  imprevu: "Imprévu",
-  autre: "Autre",
-}
+export const TRANSACTION_CATEGORY_LABELS: Record<(typeof TRANSACTION_CATEGORIES)[number], string> =
+  {
+    salaire: "Salaire",
+    freelance: "Freelance",
+    remote: "Remote",
+    bonus: "Bonus",
+    loyer: "Loyer",
+    courses: "Courses",
+    transport: "Transport",
+    sorties: "Sorties",
+    voyage: "Voyage",
+    sante: "Santé",
+    imprevu: "Imprévu",
+    autre: "Autre",
+  };
 
-export const transactionTypeSchema = z.enum(["inflow", "outflow"])
-export const transactionCategorySchema = z.enum(TRANSACTION_CATEGORIES)
+export const transactionTypeSchema = z.enum(["inflow", "outflow"]);
+export const transactionCategorySchema = z.enum(TRANSACTION_CATEGORIES);
 
 export const transactionInputSchema = z.object({
   id: z.string().uuid().optional(),
@@ -45,12 +43,12 @@ export const transactionInputSchema = z.object({
   category: transactionCategorySchema,
   isImprevu: z.boolean(),
   notes: z.string().max(500).optional().nullable(),
-})
+});
 
-export type TransactionInput = z.infer<typeof transactionInputSchema>
+export type TransactionInput = z.infer<typeof transactionInputSchema>;
 
-export const transactionIdSchema = z.object({ id: z.string().uuid() })
-export type TransactionId = z.infer<typeof transactionIdSchema>
+export const transactionIdSchema = z.object({ id: z.string().uuid() });
+export type TransactionId = z.infer<typeof transactionIdSchema>;
 
 export const transactionFiltersSchema = z.object({
   year: z.number().int().optional(),
@@ -58,6 +56,6 @@ export const transactionFiltersSchema = z.object({
   type: transactionTypeSchema.optional(),
   categories: z.array(transactionCategorySchema).optional(),
   limit: z.number().int().min(1).max(500).optional(),
-})
+});
 
-export type TransactionFilters = z.infer<typeof transactionFiltersSchema>
+export type TransactionFilters = z.infer<typeof transactionFiltersSchema>;

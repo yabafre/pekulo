@@ -8,6 +8,7 @@
 > **This document is the original parent spec.** It was decomposed into the qs-04a → qs-04d series, all of which are now shipped or close to. Kept for historical context — the active state of the portfolio feature lives in the sub-specs below.
 >
 > **Superseded by:**
+>
 > - `2026-04-27-placements-foundation.md` (qs-04a) — `accounts` + `holdings` tables, page `/dashboard/portefeuille`, KPIs, donut chart, dialogs, schema Supabase
 > - `2026-04-27-placements-yahoo.md` (qs-04b) — auto price refresh via Yahoo (replaces "manual price update only" from this spec)
 > - `2026-04-27-placements-yahoo-fallbacks.md` (qs-04b-bis) — Yahoo crumb + Twelve Data fallbacks
@@ -21,7 +22,7 @@ Add a `/dashboard/portefeuille` page to track real **investment accounts** (Livr
 
 ## Why
 
-`hypotheses` (qs-01) describes the savings *plan* (matelas → 80/20 ETF). `monthly_tracking` (qs-02) tracks the *flow* (épargne / mois). `transactions` (qs-03) tracks every individual euro in/out. None of them tracks **what's actually parked where and what it's worth right now**. This spec closes the loop — once it ships, the dashboard's "Capital Projeté" line can compare against a real "Capital Actuel".
+`hypotheses` (qs-01) describes the savings _plan_ (matelas → 80/20 ETF). `monthly_tracking` (qs-02) tracks the _flow_ (épargne / mois). `transactions` (qs-03) tracks every individual euro in/out. None of them tracks **what's actually parked where and what it's worth right now**. This spec closes the loop — once it ships, the dashboard's "Capital Projeté" line can compare against a real "Capital Actuel".
 
 ## Acceptance Criteria
 
@@ -89,6 +90,7 @@ Idempotent block (with `DO $$ ... duplicate_object`, `DROP POLICY IF EXISTS`) ap
 ## Files to Change
 
 **New (10)**
+
 - `src/lib/schemas/portfolio.ts` — zod schemas (account, holding, update-price), enums, labels.
 - `src/lib/data/portfolio.ts` — `readAccounts()`, `readHoldings()`, `readPortfolioSnapshot()` (combined with computed roll-ups).
 - `src/lib/actions/portfolio.ts` — `getAccounts`, `getHoldings`, `saveAccount`, `deleteAccount`, `saveHolding`, `deleteHolding`, `updateHoldingPrice`. Tags `portfolio:list` (registered in `lib/zapaction/keys.ts`).
@@ -101,6 +103,7 @@ Idempotent block (with `DO $$ ... duplicate_object`, `DROP POLICY IF EXISTS`) ap
 - `src/components/charts/allocation-chart.tsx` — small recharts donut.
 
 **Edited (3)**
+
 - `src/lib/types.ts` — `Account`, `AccountType`, `Holding`, `HoldingKind`, `PortfolioSnapshot`.
 - `src/lib/zapaction/keys.ts` — register new feature keys/tags for `portfolio` (replaces the `holdings` placeholder already there from qs-01 boilerplate; rename or extend).
 - `src/components/nav.tsx` — add "Portefeuille" link.

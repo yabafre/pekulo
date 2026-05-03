@@ -5,28 +5,25 @@
   "tasks": {
     "dev": {
       "inputs": [
-                "$TURBO_DEFAULT$",
-                ".env.development.local",
-                ".env.local",
-                ".env.development",
-                ".env"
-            ],
+        "$TURBO_DEFAULT$",
+        ".env.development.local",
+        ".env.local",
+        ".env.development",
+        ".env"
+      ],
       "cache": false,
       "persistent": true
     },
     "build": {
       "inputs": [
-                "$TURBO_DEFAULT$",
-                ".env.production.local",
-                ".env.local",
-                ".env.production",
-                ".env"
-            ],
+        "$TURBO_DEFAULT$",
+        ".env.production.local",
+        ".env.local",
+        ".env.production",
+        ".env"
+      ],
       "outputs": [".next/**", "!.next/cache/**"],
       "dependsOn": ["^build"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]

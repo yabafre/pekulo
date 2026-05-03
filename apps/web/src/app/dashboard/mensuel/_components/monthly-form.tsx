@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { Loader2 } from "lucide-react"
-import { useActionMutation } from "@zapaction/query"
-import { useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { useActionMutation } from "@zapaction/query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,33 +11,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Field,
-  FieldControl,
-  FieldError,
-  FieldLabel,
-  Form,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { useAppForm } from "@/hooks/form-hook"
-import {
-  deleteMonthlyEntry,
-  saveMonthlyEntry,
-} from "@/lib/actions/monthly"
-import { monthlyEntrySchema } from "@/lib/schemas/monthly"
-import { monthlyKeys, monthlyTags } from "@/lib/zapaction/keys"
-import type { MonthlyMerged } from "@/lib/types"
+} from "@/components/ui/dialog";
+import { Field, FieldControl, FieldError, FieldLabel, Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAppForm } from "@/hooks/form-hook";
+import { deleteMonthlyEntry, saveMonthlyEntry } from "@/lib/actions/monthly";
+import { monthlyEntrySchema } from "@/lib/schemas/monthly";
+import { monthlyKeys, monthlyTags } from "@/lib/zapaction/keys";
+import type { MonthlyMerged } from "@/lib/types";
 
 export function MonthlyForm({
   open,
   onOpenChange,
   row,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  row: MonthlyMerged | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  row: MonthlyMerged | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -45,29 +36,29 @@ export function MonthlyForm({
         {row ? <Body row={row} onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   // Belt-and-suspenders: invalidateWithTags drives the tag-registry path, AND we
   // also invalidate + refetch the query key directly. Either path alone has been
   // unreliable (tags lost across "use server" wrap, or refetch not firing).
   const handleSuccess = async () => {
-    await queryClient.invalidateQueries({ queryKey: monthlyKeys.list() })
-    await queryClient.refetchQueries({ queryKey: monthlyKeys.list() })
-    onDone()
-  }
+    await queryClient.invalidateQueries({ queryKey: monthlyKeys.list() });
+    await queryClient.refetchQueries({ queryKey: monthlyKeys.list() });
+    onDone();
+  };
 
   const saveMutation = useActionMutation(saveMonthlyEntry, {
     invalidateWithTags: [monthlyTags.list()],
     onSuccess: handleSuccess,
-  })
+  });
   const deleteMutation = useActionMutation(deleteMonthlyEntry, {
     invalidateWithTags: [monthlyTags.list()],
     onSuccess: handleSuccess,
-  })
+  });
 
   const form = useAppForm({
     defaultValues: {
@@ -82,9 +73,9 @@ function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
     },
     validators: { onChange: monthlyEntrySchema },
     onSubmit: async ({ value }) => {
-      await saveMutation.mutateAsync(value)
+      await saveMutation.mutateAsync(value);
     },
-  })
+  });
 
   // re-seed form when the row prop changes (different month opened)
   useEffect(() => {
@@ -97,9 +88,9 @@ function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
       credit: row.credit,
       remote: row.remote,
       freelance: row.freelance,
-    })
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [row.year, row.monthNum])
+  }, [row.year, row.monthNum]);
 
   return (
     <form.AppForm>
@@ -114,9 +105,9 @@ function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
 
       <Form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="grid grid-cols-2 gap-4"
       >
@@ -133,9 +124,7 @@ function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
               type="button"
               variant="destructive"
               disabled={deleteMutation.isPending}
-              onClick={() =>
-                deleteMutation.mutate({ year: row.year, monthNum: row.monthNum })
-              }
+              onClick={() => deleteMutation.mutate({ year: row.year, monthNum: row.monthNum })}
             >
               {deleteMutation.isPending ? (
                 <>
@@ -152,7 +141,7 @@ function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
           </Button>
           <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
             {([canSubmit, isSubmitting]) => {
-              const pending = saveMutation.isPending || isSubmitting
+              const pending = saveMutation.isPending || isSubmitting;
               return (
                 <Button type="submit" disabled={!canSubmit || pending}>
                   {pending ? (
@@ -164,7 +153,7 @@ function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
                     "Enregistrer"
                   )}
                 </Button>
-              )
+              );
             }}
           </form.Subscribe>
         </DialogFooter>
@@ -173,12 +162,11 @@ function Body({ row, onDone }: { row: MonthlyMerged; onDone: () => void }) {
       {(saveMutation.isError || deleteMutation.isError) && (
         <p className="text-xs text-destructive">
           Erreur :{" "}
-          {(saveMutation.error as Error)?.message ??
-            (deleteMutation.error as Error)?.message}
+          {(saveMutation.error as Error)?.message ?? (deleteMutation.error as Error)?.message}
         </p>
       )}
     </form.AppForm>
-  )
+  );
 }
 
 function NumField({
@@ -188,10 +176,10 @@ function NumField({
   step = "1",
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: any
-  name: "net" | "avantages" | "depenses" | "credit" | "remote" | "freelance"
-  label: string
-  step?: string
+  form: any;
+  name: "net" | "avantages" | "depenses" | "credit" | "remote" | "freelance";
+  label: string;
+  step?: string;
 }) {
   return (
     <form.AppField name={name}>
@@ -205,8 +193,8 @@ function NumField({
               step={step}
               value={field.state.value ?? 0}
               onChange={(e) => {
-                const v = e.target.valueAsNumber
-                field.handleChange(Number.isNaN(v) ? 0 : v)
+                const v = e.target.valueAsNumber;
+                field.handleChange(Number.isNaN(v) ? 0 : v);
               }}
               onBlur={field.handleBlur}
             />
@@ -215,5 +203,5 @@ function NumField({
         </Field>
       )}
     </form.AppField>
-  )
+  );
 }

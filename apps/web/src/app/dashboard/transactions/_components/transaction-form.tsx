@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { Loader2 } from "lucide-react"
-import { useActionMutation } from "@zapaction/query"
-import { useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { useActionMutation } from "@zapaction/query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,35 +11,26 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Field,
-  FieldControl,
-  FieldError,
-  FieldLabel,
-  Form,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/dialog";
+import { Field, FieldControl, FieldError, FieldLabel, Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { useAppForm } from "@/hooks/form-hook"
-import {
-  deleteTransaction,
-  saveTransaction,
-} from "@/lib/actions/transactions"
+} from "@/components/ui/select";
+import { useAppForm } from "@/hooks/form-hook";
+import { deleteTransaction, saveTransaction } from "@/lib/actions/transactions";
 import {
   TRANSACTION_CATEGORIES,
   TRANSACTION_CATEGORY_LABELS,
   transactionInputSchema,
-} from "@/lib/schemas/transactions"
-import { transactionsKeys, transactionsTags } from "@/lib/zapaction/keys"
-import type { Transaction } from "@/lib/types"
+} from "@/lib/schemas/transactions";
+import { transactionsKeys, transactionsTags } from "@/lib/zapaction/keys";
+import type { Transaction } from "@/lib/types";
 
 export function TransactionForm({
   open,
@@ -47,24 +38,20 @@ export function TransactionForm({
   editing,
   defaultDate,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  editing: Transaction | null
-  defaultDate: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editing: Transaction | null;
+  defaultDate: string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         {open ? (
-          <Body
-            editing={editing}
-            defaultDate={defaultDate}
-            onDone={() => onOpenChange(false)}
-          />
+          <Body editing={editing} defaultDate={defaultDate} onDone={() => onOpenChange(false)} />
         ) : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function Body({
@@ -72,37 +59,37 @@ function Body({
   defaultDate,
   onDone,
 }: {
-  editing: Transaction | null
-  defaultDate: string
-  onDone: () => void
+  editing: Transaction | null;
+  defaultDate: string;
+  onDone: () => void;
 }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const handleSuccess = async () => {
-    await queryClient.invalidateQueries({ queryKey: transactionsKeys.list() })
-    await queryClient.refetchQueries({ queryKey: transactionsKeys.list() })
-    onDone()
-  }
+    await queryClient.invalidateQueries({ queryKey: transactionsKeys.list() });
+    await queryClient.refetchQueries({ queryKey: transactionsKeys.list() });
+    onDone();
+  };
 
   const saveMutation = useActionMutation(saveTransaction, {
     invalidateWithTags: [transactionsTags.list()],
     onSuccess: handleSuccess,
-  })
+  });
   const deleteMutation = useActionMutation(deleteTransaction, {
     invalidateWithTags: [transactionsTags.list()],
     onSuccess: handleSuccess,
-  })
+  });
 
   type FormValues = {
-    id: string | undefined
-    occurredOn: string
-    label: string
-    amount: number
-    type: "inflow" | "outflow"
-    category: import("@/lib/types").TransactionCategory
-    isImprevu: boolean
-    notes: string
-  }
+    id: string | undefined;
+    occurredOn: string;
+    label: string;
+    amount: number;
+    type: "inflow" | "outflow";
+    category: import("@/lib/types").TransactionCategory;
+    isImprevu: boolean;
+    notes: string;
+  };
 
   const initial: FormValues = editing
     ? {
@@ -124,7 +111,7 @@ function Body({
         category: "courses",
         isImprevu: false,
         notes: "",
-      }
+      };
 
   const form = useAppForm({
     defaultValues: initial,
@@ -132,15 +119,15 @@ function Body({
       const payload = transactionInputSchema.parse({
         ...value,
         notes: value.notes && value.notes.length > 0 ? value.notes : null,
-      })
-      await saveMutation.mutateAsync(payload)
+      });
+      await saveMutation.mutateAsync(payload);
     },
-  })
+  });
 
   useEffect(() => {
-    form.reset(initial)
+    form.reset(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing?.id, defaultDate])
+  }, [editing?.id, defaultDate]);
 
   return (
     <form.AppForm>
@@ -153,9 +140,9 @@ function Body({
 
       <Form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="grid grid-cols-2 gap-4"
       >
@@ -188,8 +175,8 @@ function Body({
                   step="0.01"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                 />
@@ -245,10 +232,7 @@ function Body({
           {(field: any) => (
             <Field className="col-span-1">
               <FieldLabel>Catégorie</FieldLabel>
-              <Select
-                value={field.state.value}
-                onValueChange={(v) => field.handleChange(v)}
-              >
+              <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -324,7 +308,7 @@ function Body({
           </Button>
           <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
             {([canSubmit, isSubmitting]) => {
-              const pending = saveMutation.isPending || isSubmitting
+              const pending = saveMutation.isPending || isSubmitting;
               return (
                 <Button type="submit" disabled={!canSubmit || pending}>
                   {pending ? (
@@ -336,7 +320,7 @@ function Body({
                     "Enregistrer"
                   )}
                 </Button>
-              )
+              );
             }}
           </form.Subscribe>
         </DialogFooter>
@@ -345,10 +329,9 @@ function Body({
       {(saveMutation.isError || deleteMutation.isError) && (
         <p className="text-xs text-destructive">
           Erreur :{" "}
-          {(saveMutation.error as Error)?.message ??
-            (deleteMutation.error as Error)?.message}
+          {(saveMutation.error as Error)?.message ?? (deleteMutation.error as Error)?.message}
         </p>
       )}
     </form.AppForm>
-  )
+  );
 }

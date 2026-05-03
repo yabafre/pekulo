@@ -39,32 +39,39 @@ The `hypotheses` table already exists in Supabase but is never read or written. 
 ## Files to Change
 
 **New — providers & infra (3)**
+
 - `src/components/providers.tsx` — **edit** (already exists, currently theme only): wrap children in `QueryClientProvider` (browser-singleton via `useState(() => new QueryClient())`) and call `setTagRegistry` once.
 - `src/lib/zapaction/keys.ts` — **new**: `createFeatureKeys` + `createFeatureTags` for `hypotheses` (and stubs for `monthly`, `transactions`, `holdings` so qs-02/03/04 plug in trivially).
 - `src/lib/zapaction/context.ts` — **new**: `setActionContext` injecting `{ supabase, userId }` from the SSR Supabase client; throws → `unauthorized` if no session.
 
 **New — feature (3)**
+
 - `src/app/dashboard/parametres/page.tsx` — **new**: server component, fetches the row server-side via `await getHypotheses.run()` (or direct supabase call), passes to client form.
 - `src/app/dashboard/parametres/_components/hypotheses-form.tsx` — **new**: `"use client"`, uses `useForm` (TanStack Form) + zod validators + `useActionMutation(saveHypotheses)`. Four collapsible sections (shadcn `Card` + `Separator`).
 - `src/lib/actions/hypotheses.ts` — **new**: `defineAction` for `saveHypotheses` (upsert) and `getHypotheses` (read). Tagged `["hypotheses"]`. Calls `revalidateTag("hypotheses")` from inside the handler post-write.
 
 **New — derivation (1)**
+
 - `src/lib/derive.ts` — **new**: pure functions `deriveKpis`, `deriveBudget`, `deriveRevenue` from a `Hypotheses` row. Single source of truth.
 
 **Edited (4)**
+
 - `src/lib/types.ts` — **edit**: add `Hypotheses` interface + `defaultHypotheses` constant.
 - `src/app/api/dashboard/route.ts` — **edit**: load hypotheses → `derive.ts` → return derived `kpi/budget/revenue`.
 - `src/app/dashboard/page.tsx` — **edit** (added during impl, not in original list): server component now `async`, calls `getHypotheses()` server-side and derives KPIs/budget/revenue. Required so the dashboard reflects the saved row without going through the API route.
 - `src/components/nav.tsx` — **edit**: add "Paramètres" link (styled `<Link>`, no `asChild` since shadcn `Button` here doesn't expose it).
 
 **New — schema (1, added during impl)**
+
 - `src/lib/schemas/hypotheses.ts` — **new**: zod schema. Split out of `actions/hypotheses.ts` because a `"use server"` file may only export async functions; non-function exports like a zod schema throw at build time. Imported by both the action and the form.
 
 **New — shadcn × TanStack Form (2, added in revision)**
+
 - `src/hooks/form-hook.ts` — **new**: `useAppForm` via `createFormHook` + `createFormHookContexts` from `@tanstack/react-form`. Provides field/form context so shadcn primitives can read state.
 - `src/components/ui/form.tsx` — **new**: shadcn-style `Form` / `Field` / `FieldLabel` / `FieldControl` / `FieldDescription` / `FieldError` adapted to TanStack Form (felipestanzani pattern). Errors come from `useStore(field.store, …)` — uses TanStack store subscription so error UI re-renders on validation.
 
 **Config (1)**
+
 - `package.json` — **edit**: 5 new deps (`@zapaction/core@0.2.2`, `@zapaction/query@0.2.2`, `@tanstack/react-query@5.100.5`, `@tanstack/react-form@1.29.1`, `zod@4.3.6`).
 
 → **13 files** (8 new, 5 edited). Over the 5-file quick cap. User authorized. The two extras vs the original 11-file estimate are: `schemas/hypotheses.ts` (forced by `"use server"` export rules — non-obvious gotcha) and `dashboard/page.tsx` (forced because the dashboard reads hardcoded values directly, not via the API route).
@@ -102,6 +109,7 @@ The `hypotheses` table already exists in Supabase but is never read or written. 
 **Final file count: 14** (vs 11 estimated, vs 5 quick-cap). 9 new, 5 edited.
 
 **New files**
+
 - `src/lib/zapaction/keys.ts`, `src/lib/zapaction/context.ts` — feature keys/tags + auth-gated action context
 - `src/lib/schemas/hypotheses.ts` — zod schema (split from action file)
 - `src/lib/derive.ts` — pure derivation functions (`deriveAvantages`, `deriveKpis`, `deriveBudget`, `deriveRevenue`, `deriveDepensesTotales`)
@@ -113,6 +121,7 @@ The `hypotheses` table already exists in Supabase but is never read or written. 
 - `src/app/dashboard/parametres/_components/hypotheses-form.tsx` — client form
 
 **Edited files**
+
 - `src/lib/types.ts` — `Hypotheses` interface + `defaultHypotheses` const
 - `src/components/providers.tsx` — `QueryClientProvider` + tag-registry side-effect import
 - `src/components/nav.tsx` — `Paramètres` link styled via `buttonVariants`
@@ -122,6 +131,7 @@ The `hypotheses` table already exists in Supabase but is never read or written. 
 - `package.json` — 5 deps
 
 **Tests run**
+
 - `npx tsc --noEmit` — clean
 - `npx eslint <my files>` — clean (pre-existing project warnings untouched)
 - Manual smoke: edited `loyer 1125 → 750`, `voyageMois 600 → 700` in form → saved → BDD updated (verified via the form's pre-fill on next visit) → dashboard reflected new values across all blocks (KPI, charts, DetailCards).
@@ -130,6 +140,7 @@ The `hypotheses` table already exists in Supabase but is never read or written. 
 The "dashboard frozen" symptom was **not** a cache or revalidation issue — `readHypotheses` was returning fresh data from the start. The bug was in `components/detail-cards.tsx` which had every value as a JSX literal (`formatEuro(3700)`, `formatEuro(1125)`, etc.) and ignored every prop. Changing only that one component fixed the visible regression. The wider refactor (`force-dynamic`, hard nav via `window.location`) was over-correction during diagnosis and can be relaxed in qs-02 if needed — leaving them for now since they don't hurt.
 
 **Carry-over decisions for qs-02/03/04**
+
 - Reads from RSC: use a `lib/data/<feature>.ts` direct-Supabase helper, NOT a ZapAction `defineAction`. Actions are reserved for client-side mutations.
 - Forms: standardize on `useAppForm` from `hooks/form-hook.ts` + the shadcn-style primitives in `components/ui/form.tsx`.
 - Tags only on mutations.

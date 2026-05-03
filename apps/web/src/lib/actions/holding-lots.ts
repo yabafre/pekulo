@@ -1,18 +1,14 @@
-"use server"
+"use server";
 
-import { defineAction } from "@zapaction/core"
-import { revalidatePath } from "next/cache"
-import { z } from "zod"
-import {
-  lotIdSchema,
-  lotInputSchema,
-  lotListFilterSchema,
-} from "@/lib/schemas/holding-lots"
-import { lotsTags, portfolioTags } from "@/lib/zapaction/keys"
-import type { ActionContext } from "@/lib/zapaction/context"
-import "@/lib/zapaction/context"
-import type { HoldingLot, LotType } from "@/lib/types"
-import { deriveFromLots } from "@/lib/derive-lots"
+import { defineAction } from "@zapaction/core";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { lotIdSchema, lotInputSchema, lotListFilterSchema } from "@/lib/schemas/holding-lots";
+import { lotsTags, portfolioTags } from "@/lib/zapaction/keys";
+import type { ActionContext } from "@/lib/zapaction/context";
+import "@/lib/zapaction/context";
+import type { HoldingLot, LotType } from "@/lib/types";
+import { deriveFromLots } from "@/lib/derive-lots";
 
 const rowToLot = (row: Record<string, unknown>): HoldingLot => ({
   id: String(row.id),
@@ -24,30 +20,27 @@ const rowToLot = (row: Record<string, unknown>): HoldingLot => ({
   fees: Number(row.fees),
   notes: row.notes != null ? String(row.notes) : null,
   createdAt: String(row.created_at),
-})
+});
 
 function bumpPaths() {
-  revalidatePath("/dashboard/portefeuille")
-  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/portefeuille");
+  revalidatePath("/dashboard");
 }
 
 /**
  * Recompute holdings.{quantity, avg_cost} from all lots and persist.
  * Called after every lot mutation.
  */
-async function recomputeHolding(
-  ctx: ActionContext,
-  holdingId: string
-): Promise<void> {
+async function recomputeHolding(ctx: ActionContext, holdingId: string): Promise<void> {
   const { data: lots, error } = await ctx.supabase
     .from("holding_lots")
     .select("*")
     .eq("user_id", ctx.userId)
     .eq("holding_id", holdingId)
-    .order("occurred_on", { ascending: true })
-  if (error) throw error
+    .order("occurred_on", { ascending: true });
+  if (error) throw error;
 
-  const derived = deriveFromLots((lots ?? []).map(rowToLot))
+  const derived = deriveFromLots((lots ?? []).map(rowToLot));
 
   const { error: updErr } = await ctx.supabase
     .from("holdings")
@@ -57,8 +50,8 @@ async function recomputeHolding(
       updated_at: new Date().toISOString(),
     })
     .eq("id", holdingId)
-    .eq("user_id", ctx.userId)
-  if (updErr) throw updErr
+    .eq("user_id", ctx.userId);
+  if (updErr) throw updErr;
 }
 
 export const getHoldingLots = defineAction<
@@ -74,11 +67,11 @@ export const getHoldingLots = defineAction<
       .select("*")
       .eq("user_id", ctx.userId)
       .eq("holding_id", input.holdingId)
-      .order("occurred_on", { ascending: true })
-    if (error) throw error
-    return (data ?? []).map(rowToLot)
+      .order("occurred_on", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToLot);
   },
-})
+});
 
 export const addHoldingLot = defineAction<
   z.infer<typeof lotInputSchema>,
@@ -102,13 +95,13 @@ export const addHoldingLot = defineAction<
         notes: input.notes ?? null,
       })
       .select("*")
-      .single()
-    if (error) throw error
-    await recomputeHolding(ctx, input.holdingId)
-    bumpPaths()
-    return rowToLot(data)
+      .single();
+    if (error) throw error;
+    await recomputeHolding(ctx, input.holdingId);
+    bumpPaths();
+    return rowToLot(data);
   },
-})
+});
 
 export const deleteHoldingLot = defineAction<
   z.infer<typeof lotIdSchema>,
@@ -125,19 +118,19 @@ export const deleteHoldingLot = defineAction<
       .select("holding_id")
       .eq("id", input.id)
       .eq("user_id", ctx.userId)
-      .single()
-    if (readErr) throw readErr
-    const holdingId = String(lot.holding_id)
+      .single();
+    if (readErr) throw readErr;
+    const holdingId = String(lot.holding_id);
 
     const { error } = await ctx.supabase
       .from("holding_lots")
       .delete()
       .eq("id", input.id)
-      .eq("user_id", ctx.userId)
-    if (error) throw error
+      .eq("user_id", ctx.userId);
+    if (error) throw error;
 
-    await recomputeHolding(ctx, holdingId)
-    bumpPaths()
-    return { ok: true as const }
+    await recomputeHolding(ctx, holdingId);
+    bumpPaths();
+    return { ok: true as const };
   },
-})
+});

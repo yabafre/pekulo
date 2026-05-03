@@ -1,17 +1,12 @@
-"use server"
+"use server";
 
-import { defineAction } from "@zapaction/core"
-import { revalidatePath } from "next/cache"
-import { z } from "zod"
-import {
-  accountSchema,
-  holdingSchema,
-  idSchema,
-  updatePriceSchema,
-} from "@/lib/schemas/portfolio"
-import { portfolioTags } from "@/lib/zapaction/keys"
-import type { ActionContext } from "@/lib/zapaction/context"
-import "@/lib/zapaction/context"
+import { defineAction } from "@zapaction/core";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { accountSchema, holdingSchema, idSchema, updatePriceSchema } from "@/lib/schemas/portfolio";
+import { portfolioTags } from "@/lib/zapaction/keys";
+import type { ActionContext } from "@/lib/zapaction/context";
+import "@/lib/zapaction/context";
 import type {
   Account,
   AccountType,
@@ -19,12 +14,9 @@ import type {
   Holding,
   HoldingKind,
   RefreshSummary,
-} from "@/lib/types"
-import {
-  fetchPriceQuote,
-  PriceError,
-} from "@/lib/services/prices"
-import { YahooError } from "@/lib/services/yahoo-finance"
+} from "@/lib/types";
+import { fetchPriceQuote, PriceError } from "@/lib/services/prices";
+import { YahooError } from "@/lib/services/yahoo-finance";
 
 const accountRow = (row: Record<string, unknown>): Account => ({
   id: String(row.id),
@@ -34,7 +26,7 @@ const accountRow = (row: Record<string, unknown>): Account => ({
   cashBalance: Number(row.cash_balance),
   notes: row.notes != null ? String(row.notes) : null,
   createdAt: String(row.created_at),
-})
+});
 
 const holdingRow = (row: Record<string, unknown>): Holding => ({
   id: String(row.id),
@@ -50,11 +42,11 @@ const holdingRow = (row: Record<string, unknown>): Holding => ({
   lastPriceAt: row.last_price_at != null ? String(row.last_price_at) : null,
   notes: row.notes != null ? String(row.notes) : null,
   createdAt: String(row.created_at),
-})
+});
 
 function bumpPaths() {
-  revalidatePath("/dashboard/portefeuille")
-  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/portefeuille");
+  revalidatePath("/dashboard");
 }
 
 export const getAccounts = defineAction<void, Account[], ActionContext>({
@@ -65,11 +57,11 @@ export const getAccounts = defineAction<void, Account[], ActionContext>({
       .from("accounts")
       .select("*")
       .eq("user_id", ctx.userId)
-      .order("created_at", { ascending: true })
-    if (error) throw error
-    return (data ?? []).map(accountRow)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(accountRow);
   },
-})
+});
 
 export const getHoldings = defineAction<void, Holding[], ActionContext>({
   name: "getHoldings",
@@ -79,17 +71,13 @@ export const getHoldings = defineAction<void, Holding[], ActionContext>({
       .from("holdings")
       .select("*")
       .eq("user_id", ctx.userId)
-      .order("created_at", { ascending: true })
-    if (error) throw error
-    return (data ?? []).map(holdingRow)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(holdingRow);
   },
-})
+});
 
-export const saveAccount = defineAction<
-  z.infer<typeof accountSchema>,
-  Account,
-  ActionContext
->({
+export const saveAccount = defineAction<z.infer<typeof accountSchema>, Account, ActionContext>({
   name: "saveAccount",
   input: accountSchema,
   tags: [portfolioTags.accounts()],
@@ -102,7 +90,7 @@ export const saveAccount = defineAction<
       cash_balance: input.cashBalance,
       notes: input.notes ?? null,
       updated_at: new Date().toISOString(),
-    }
+    };
     const { data, error } = input.id
       ? await ctx.supabase
           .from("accounts")
@@ -111,22 +99,14 @@ export const saveAccount = defineAction<
           .eq("user_id", ctx.userId)
           .select("*")
           .single()
-      : await ctx.supabase
-          .from("accounts")
-          .insert(payload)
-          .select("*")
-          .single()
-    if (error) throw error
-    bumpPaths()
-    return accountRow(data)
+      : await ctx.supabase.from("accounts").insert(payload).select("*").single();
+    if (error) throw error;
+    bumpPaths();
+    return accountRow(data);
   },
-})
+});
 
-export const deleteAccount = defineAction<
-  z.infer<typeof idSchema>,
-  { ok: true },
-  ActionContext
->({
+export const deleteAccount = defineAction<z.infer<typeof idSchema>, { ok: true }, ActionContext>({
   name: "deleteAccount",
   input: idSchema,
   tags: [portfolioTags.accounts(), portfolioTags.holdings()],
@@ -135,18 +115,14 @@ export const deleteAccount = defineAction<
       .from("accounts")
       .delete()
       .eq("id", input.id)
-      .eq("user_id", ctx.userId)
-    if (error) throw error
-    bumpPaths()
-    return { ok: true as const }
+      .eq("user_id", ctx.userId);
+    if (error) throw error;
+    bumpPaths();
+    return { ok: true as const };
   },
-})
+});
 
-export const saveHolding = defineAction<
-  z.infer<typeof holdingSchema>,
-  Holding,
-  ActionContext
->({
+export const saveHolding = defineAction<z.infer<typeof holdingSchema>, Holding, ActionContext>({
   name: "saveHolding",
   input: holdingSchema,
   tags: [portfolioTags.holdings()],
@@ -165,7 +141,7 @@ export const saveHolding = defineAction<
       last_price_at: input.lastPriceAt ?? null,
       notes: input.notes ?? null,
       updated_at: new Date().toISOString(),
-    }
+    };
     const { data, error } = input.id
       ? await ctx.supabase
           .from("holdings")
@@ -174,22 +150,14 @@ export const saveHolding = defineAction<
           .eq("user_id", ctx.userId)
           .select("*")
           .single()
-      : await ctx.supabase
-          .from("holdings")
-          .insert(payload)
-          .select("*")
-          .single()
-    if (error) throw error
-    bumpPaths()
-    return holdingRow(data)
+      : await ctx.supabase.from("holdings").insert(payload).select("*").single();
+    if (error) throw error;
+    bumpPaths();
+    return holdingRow(data);
   },
-})
+});
 
-export const deleteHolding = defineAction<
-  z.infer<typeof idSchema>,
-  { ok: true },
-  ActionContext
->({
+export const deleteHolding = defineAction<z.infer<typeof idSchema>, { ok: true }, ActionContext>({
   name: "deleteHolding",
   input: idSchema,
   tags: [portfolioTags.holdings()],
@@ -198,12 +166,12 @@ export const deleteHolding = defineAction<
       .from("holdings")
       .delete()
       .eq("id", input.id)
-      .eq("user_id", ctx.userId)
-    if (error) throw error
-    bumpPaths()
-    return { ok: true as const }
+      .eq("user_id", ctx.userId);
+    if (error) throw error;
+    bumpPaths();
+    return { ok: true as const };
   },
-})
+});
 
 export const updateHoldingPrice = defineAction<
   z.infer<typeof updatePriceSchema>,
@@ -224,22 +192,19 @@ export const updateHoldingPrice = defineAction<
       .eq("id", input.id)
       .eq("user_id", ctx.userId)
       .select("*")
-      .single()
-    if (error) throw error
-    bumpPaths()
-    return holdingRow(data)
+      .single();
+    if (error) throw error;
+    bumpPaths();
+    return holdingRow(data);
   },
-})
+});
 
-async function refreshOne(
-  ctx: ActionContext,
-  holding: Holding
-): Promise<Holding> {
+async function refreshOne(ctx: ActionContext, holding: Holding): Promise<Holding> {
   const quote = await fetchPriceQuote({
     ticker: holding.ticker,
     currency: holding.currency,
     kind: holding.kind,
-  })
+  });
   const { data, error } = await ctx.supabase
     .from("holdings")
     .update({
@@ -250,16 +215,12 @@ async function refreshOne(
     .eq("id", holding.id)
     .eq("user_id", ctx.userId)
     .select("*")
-    .single()
-  if (error) throw error
-  return holdingRow(data)
+    .single();
+  if (error) throw error;
+  return holdingRow(data);
 }
 
-export const refreshHoldingPrice = defineAction<
-  z.infer<typeof idSchema>,
-  Holding,
-  ActionContext
->({
+export const refreshHoldingPrice = defineAction<z.infer<typeof idSchema>, Holding, ActionContext>({
   name: "refreshHoldingPrice",
   input: idSchema,
   tags: [portfolioTags.holdings()],
@@ -269,19 +230,15 @@ export const refreshHoldingPrice = defineAction<
       .select("*")
       .eq("id", input.id)
       .eq("user_id", ctx.userId)
-      .single()
-    if (readErr) throw readErr
-    const updated = await refreshOne(ctx, holdingRow(row))
-    bumpPaths()
-    return updated
+      .single();
+    if (readErr) throw readErr;
+    const updated = await refreshOne(ctx, holdingRow(row));
+    bumpPaths();
+    return updated;
   },
-})
+});
 
-export const refreshAllPrices = defineAction<
-  void,
-  RefreshSummary,
-  ActionContext
->({
+export const refreshAllPrices = defineAction<void, RefreshSummary, ActionContext>({
   name: "refreshAllPrices",
   input: z.void(),
   tags: [portfolioTags.holdings()],
@@ -289,17 +246,17 @@ export const refreshAllPrices = defineAction<
     const { data: rows, error } = await ctx.supabase
       .from("holdings")
       .select("*")
-      .eq("user_id", ctx.userId)
-    if (error) throw error
+      .eq("user_id", ctx.userId);
+    if (error) throw error;
 
-    const holdings = (rows ?? []).map(holdingRow)
-    let updated = 0
-    const failed: RefreshSummary["failed"] = []
+    const holdings = (rows ?? []).map(holdingRow);
+    let updated = 0;
+    const failed: RefreshSummary["failed"] = [];
 
     for (const h of holdings) {
       try {
-        await refreshOne(ctx, h)
-        updated += 1
+        await refreshOne(ctx, h);
+        updated += 1;
       } catch (err) {
         const reason =
           err instanceof YahooError
@@ -308,31 +265,31 @@ export const refreshAllPrices = defineAction<
               ? err.message
               : err instanceof Error
                 ? err.message
-                : "Erreur inconnue"
-        failed.push({ id: h.id, label: h.label, reason })
+                : "Erreur inconnue";
+        failed.push({ id: h.id, label: h.label, reason });
       }
       // 200 ms throttle between calls
-      await new Promise((r) => setTimeout(r, 200))
+      await new Promise((r) => setTimeout(r, 200));
     }
 
-    bumpPaths()
-    return { updated, failed }
+    bumpPaths();
+    return { updated, failed };
   },
-})
+});
 
 function mapReason(code: YahooError["code"]): string {
   switch (code) {
     case "missing-ticker":
-      return "Ticker manquant"
+      return "Ticker manquant";
     case "invalid-ticker":
-      return "Ticker invalide"
+      return "Ticker invalide";
     case "rate-limited":
-      return "Rate-limited"
+      return "Rate-limited";
     case "no-price":
-      return "Aucun prix disponible"
+      return "Aucun prix disponible";
     case "format":
-      return "Format inattendu"
+      return "Format inattendu";
     case "network":
-      return "Réseau"
+      return "Réseau";
   }
 }

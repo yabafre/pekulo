@@ -1,13 +1,13 @@
-"use server"
+"use server";
 
-import { defineAction } from "@zapaction/core"
-import { revalidatePath } from "next/cache"
-import { z } from "zod"
-import { defaultHypotheses, type Hypotheses } from "@/lib/types"
-import { hypothesesSchema } from "@/lib/schemas/hypotheses"
-import { hypothesesTags } from "@/lib/zapaction/keys"
-import type { ActionContext } from "@/lib/zapaction/context"
-import "@/lib/zapaction/context"
+import { defineAction } from "@zapaction/core";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { defaultHypotheses, type Hypotheses } from "@/lib/types";
+import { hypothesesSchema } from "@/lib/schemas/hypotheses";
+import { hypothesesTags } from "@/lib/zapaction/keys";
+import type { ActionContext } from "@/lib/zapaction/context";
+import "@/lib/zapaction/context";
 
 const dbToCamel = (row: Record<string, unknown>): Hypotheses => ({
   salaireNet: Number(row.salaire_net ?? defaultHypotheses.salaireNet),
@@ -36,7 +36,7 @@ const dbToCamel = (row: Record<string, unknown>): Hypotheses => ({
   revenuFreelanceMois: Number(row.revenu_freelance_mois ?? defaultHypotheses.revenuFreelanceMois),
   horizonYears: Number(row.horizon_years ?? defaultHypotheses.horizonYears),
   objectif: Number(row.objectif ?? defaultHypotheses.objectif),
-})
+});
 
 const camelToDb = (h: Hypotheses, userId: string) => ({
   user_id: userId,
@@ -67,7 +67,7 @@ const camelToDb = (h: Hypotheses, userId: string) => ({
   horizon_years: h.horizonYears,
   objectif: h.objectif,
   updated_at: new Date().toISOString(),
-})
+});
 
 export const getHypotheses = defineAction<void, Hypotheses, ActionContext>({
   name: "getHypotheses",
@@ -77,12 +77,12 @@ export const getHypotheses = defineAction<void, Hypotheses, ActionContext>({
       .from("hypotheses")
       .select("*")
       .eq("user_id", ctx.userId)
-      .maybeSingle()
-    if (error && error.code !== "PGRST116") throw error
-    if (!data) return defaultHypotheses
-    return dbToCamel(data)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    if (!data) return defaultHypotheses;
+    return dbToCamel(data);
   },
-})
+});
 
 export const saveHypotheses = defineAction<Hypotheses, Hypotheses, ActionContext>({
   name: "saveHypotheses",
@@ -94,10 +94,10 @@ export const saveHypotheses = defineAction<Hypotheses, Hypotheses, ActionContext
       .from("hypotheses")
       .upsert(camelToDb(input, ctx.userId), { onConflict: "user_id" })
       .select("*")
-      .single()
-    if (error) throw error
-    revalidatePath("/dashboard")
-    revalidatePath("/dashboard/parametres")
-    return dbToCamel(data)
+      .single();
+    if (error) throw error;
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/parametres");
+    return dbToCamel(data);
   },
-})
+});

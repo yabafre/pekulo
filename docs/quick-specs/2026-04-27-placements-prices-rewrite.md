@@ -54,14 +54,17 @@ We've burned cycles on Yahoo's hostile undocumented endpoints (429, missing cook
 ### Next.js
 
 **Edited (3)**
+
 - `package.json` — `+ yahoo-finance2`
 - `src/lib/services/yahoo-finance.ts` — full rewrite, ~50 lines
 - `src/lib/services/prices.ts` — chain order + add prices-service step
 
 **New (1)**
+
 - `src/lib/services/prices-service.ts` — Python sidecar client
 
 **Edited (1)**
+
 - `.env.example` — `PRICES_SERVICE_URL`, `PRICES_SERVICE_TOKEN`
 
 ### Python sidecar (all new — new top-level folder)

@@ -11,7 +11,7 @@ Add a `/dashboard/mensuel` page listing every month of the 5-year horizon (May 2
 
 ## Why
 
-`hypotheses` (qs-01) gives us the *plan*. Real life doesn't follow the plan — bonus, expense surprises, a remote-abroad month that fell through, etc. Without a way to record actuals, the dashboard's projection drifts further from reality every month. This is also the foundation for qs-03 (transactions/imprévus) which will roll up into monthly actuals.
+`hypotheses` (qs-01) gives us the _plan_. Real life doesn't follow the plan — bonus, expense surprises, a remote-abroad month that fell through, etc. Without a way to record actuals, the dashboard's projection drifts further from reality every month. This is also the foundation for qs-03 (transactions/imprévus) which will roll up into monthly actuals.
 
 ## Acceptance Criteria
 
@@ -28,6 +28,7 @@ Add a `/dashboard/mensuel` page listing every month of the 5-year horizon (May 2
 ## Stack reuse
 
 Per qs-01 carry-over decisions:
+
 - **Reads from RSC** → `src/lib/data/monthly.ts` direct Supabase helper.
 - **Mutations from client** → ZapAction `defineAction` in `src/lib/actions/monthly.ts`, with `tags: [monthlyTags.list()]` (registry already wired in `lib/zapaction/keys.ts`).
 - **Form** → `useAppForm` + `Field`/`FieldLabel`/`FieldControl`/`FieldError` primitives from qs-01.
@@ -37,6 +38,7 @@ Per qs-01 carry-over decisions:
 ## Files to Change
 
 **New (7)**
+
 - `src/lib/schemas/monthly.ts` — zod schema for a monthly entry (and a `monthRange` helper that yields the 60 (year, monthNum) pairs).
 - `src/lib/data/monthly.ts` — `readMonthlyEntries(userId)` returns rows from `monthly_tracking`.
 - `src/lib/derive-monthly.ts` — `projectMonth(h: Hypotheses, year: number, monthNum: number): MonthlyRecord` applying the embedded assumptions: remote on for May & June, credit from `dateDebutCredit`, freelance always on, salary grown by `augmentationSalaire^yearsSinceStart` once per Jan; ETF perf compounds at `perfEtfAnnuelle / 12`. Replaces the hardcoded 60-row table in `lib/data.ts` (though `lib/data.ts` stays as fallback seed for now).
@@ -46,6 +48,7 @@ Per qs-01 carry-over decisions:
 - `src/app/dashboard/mensuel/_components/monthly-form.tsx` — client form rendered inside `Dialog`, calls `saveMonthlyEntry` via `useActionMutation`. Includes a "Effacer" button calling `deleteMonthlyEntry`.
 
 **Edited (2)**
+
 - `src/lib/types.ts` — add `MonthlyEntry` (DB-mapped, camelCase) and `MonthlyMerged = MonthlyRecord & { source: "actual" | "projected" }`.
 - `src/components/nav.tsx` — add "Mensuel" link with `Calendar` icon.
 
@@ -81,18 +84,18 @@ Per qs-01 carry-over decisions:
 **Workaround (NOT enough on its own)**: pass `invalidateWithTags` explicitly to `useActionMutation`. But that alone did not actually trigger refetches in our setup (likely tag-registry path drops somewhere across the `"use server"` boundary). What works reliably is to ALSO use `useQueryClient` and explicitly invalidate + refetch:
 
 ```ts
-const queryClient = useQueryClient()
+const queryClient = useQueryClient();
 
 const handleSuccess = async () => {
-  await queryClient.invalidateQueries({ queryKey: monthlyKeys.list() })
-  await queryClient.refetchQueries({ queryKey: monthlyKeys.list() })
-  onDone()
-}
+  await queryClient.invalidateQueries({ queryKey: monthlyKeys.list() });
+  await queryClient.refetchQueries({ queryKey: monthlyKeys.list() });
+  onDone();
+};
 
 const saveMutation = useActionMutation(saveMonthlyEntry, {
   invalidateWithTags: [monthlyTags.list()],
   onSuccess: handleSuccess,
-})
+});
 ```
 
 **Rule for qs-03/04**: every `useActionMutation` that should refresh a `useActionQuery` MUST do BOTH `invalidateWithTags` AND a manual `queryClient.invalidateQueries + refetchQueries` for the relevant key. Belt-and-suspenders.
@@ -100,6 +103,7 @@ const saveMutation = useActionMutation(saveMonthlyEntry, {
 Retroactively applied to qs-01's `hypotheses-form.tsx` (it had been masked by `window.location.href`).
 
 **Tests run**
+
 - `npx tsc --noEmit` — clean
 - `npx eslint <my files>` — clean (one fix during impl: replaced render-time mutable `lastYear` variable with index-based comparison `merged[i-1]?.year`)
 - Manual smoke: edited mai 2026 → écart visible, KPI cumul update, list re-renders without page reload. Effacer → row reverts to projection.

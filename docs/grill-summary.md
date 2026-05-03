@@ -26,7 +26,7 @@ stop_reason: no-new-question
   - On-device via Apple `FoundationModels` framework when iOS hardware supports it (iPhone 15 Pro and later)
   - Self-hosted Ollama on existing Dokploy VPS for web PWA, Android, older iOS
   - Third-party API (Claude Haiku 4.5 or Mistral Small) reserved for ambiguous cases or complex suggestions, with explicit user opt-in
-- **LLM purpose narrowed and confirmed**: automatic categorisation/sorting of imported transactions — *not* trading speculation. Mature, low-risk use case.
+- **LLM purpose narrowed and confirmed**: automatic categorisation/sorting of imported transactions — _not_ trading speculation. Mature, low-risk use case.
 
 ## Deferred (still need a real-world answer)
 

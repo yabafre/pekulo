@@ -1,9 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { AnnualSummary } from "@/lib/types"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { AnnualSummary } from "@/lib/types";
 
 interface AnnualTableProps {
-  data: AnnualSummary[]
+  data: AnnualSummary[];
 }
 
 export function AnnualTable({ data }: AnnualTableProps) {
@@ -27,14 +34,20 @@ export function AnnualTable({ data }: AnnualTableProps) {
             {data.map((a) => (
               <TableRow key={a.periode}>
                 <TableCell className="text-sm">{a.periode}</TableCell>
-                <TableCell className="text-right">{new Intl.NumberFormat("fr-FR").format(a.epargneAnnuelle)} €</TableCell>
-                <TableCell className="text-right">+{new Intl.NumberFormat("fr-FR").format(Math.round(a.perfMarche))} €</TableCell>
-                <TableCell className="text-right font-semibold">{new Intl.NumberFormat("fr-FR").format(a.capitalFin)} €</TableCell>
+                <TableCell className="text-right">
+                  {new Intl.NumberFormat("fr-FR").format(a.epargneAnnuelle)} €
+                </TableCell>
+                <TableCell className="text-right">
+                  +{new Intl.NumberFormat("fr-FR").format(Math.round(a.perfMarche))} €
+                </TableCell>
+                <TableCell className="text-right font-semibold">
+                  {new Intl.NumberFormat("fr-FR").format(a.capitalFin)} €
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </CardContent>
     </Card>
-  )
+  );
 }

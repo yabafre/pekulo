@@ -1,0 +1,53 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "import", "jsx-a11y", "nextjs"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off",
+    "pedantic": "off"
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "settings": {
+    "next": {
+      "rootDir": "apps/web/"
+    },
+    "react": {
+      "version": "19.2.4"
+    }
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    ".turbo/",
+    "build/",
+    "dist/",
+    "out/",
+    "coverage/",
+    "apps/prices/",
+    "docs/ux-preview/",
+    ".aped/",
+    ".agents/",
+    "docs/sync-logs/"
+  ],
+  "overrides": [
+    {
+      "files": ["apps/web/src/components/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "jsx-a11y/label-has-associated-control": "off"
+      }
+    }
+  ]
+}

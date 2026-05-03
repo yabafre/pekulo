@@ -1,47 +1,43 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { useActionQuery } from "@zapaction/query"
-import { Card, CardContent } from "@/components/ui/card"
-import { AllocationChart } from "@/components/charts/allocation-chart"
-import { computeSnapshotFx } from "@/lib/derive-portfolio-fx"
-import type { PortfolioSnapshotFx } from "@/lib/derive-portfolio-fx"
-import { getAccounts, getHoldings } from "@/lib/actions/portfolio"
-import { portfolioKeys } from "@/lib/zapaction/keys"
-import { AccountsSection } from "./accounts-section"
-import { HoldingsSection } from "./holdings-section"
+import { useMemo, useState } from "react";
+import { useActionQuery } from "@zapaction/query";
+import { Card, CardContent } from "@/components/ui/card";
+import { AllocationChart } from "@/components/charts/allocation-chart";
+import { computeSnapshotFx } from "@/lib/derive-portfolio-fx";
+import type { PortfolioSnapshotFx } from "@/lib/derive-portfolio-fx";
+import { getAccounts, getHoldings } from "@/lib/actions/portfolio";
+import { portfolioKeys } from "@/lib/zapaction/keys";
+import { AccountsSection } from "./accounts-section";
+import { HoldingsSection } from "./holdings-section";
 
 function formatEuro(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €"
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €";
 }
 
 function formatSigned(n: number) {
-  if (n === 0) return "0 €"
-  const sign = n > 0 ? "+" : "−"
-  return `${sign}${formatEuro(Math.abs(n))}`
+  if (n === 0) return "0 €";
+  const sign = n > 0 ? "+" : "−";
+  return `${sign}${formatEuro(Math.abs(n))}`;
 }
 
-export function PortfolioView({
-  initialSnapshot,
-}: {
-  initialSnapshot: PortfolioSnapshotFx
-}) {
-  const [editingAccount, setEditingAccount] = useState<string | "new" | null>(null)
-  const [editingHolding, setEditingHolding] = useState<string | "new" | null>(null)
+export function PortfolioView({ initialSnapshot }: { initialSnapshot: PortfolioSnapshotFx }) {
+  const [editingAccount, setEditingAccount] = useState<string | "new" | null>(null);
+  const [editingHolding, setEditingHolding] = useState<string | "new" | null>(null);
 
   const accountsQuery = useActionQuery(getAccounts, {
     queryKey: portfolioKeys.accounts(),
     input: undefined,
     readPolicy: "read-only",
     initialData: initialSnapshot.accounts,
-  })
+  });
 
   const holdingsQuery = useActionQuery(getHoldings, {
     queryKey: portfolioKeys.holdings(),
     input: undefined,
     readPolicy: "read-only",
     initialData: initialSnapshot.holdings,
-  })
+  });
 
   // We don't refetch FX rates client-side — they only update once a day server-side.
   // Initial snapshot carries them; per-row table changes don't move them.
@@ -59,24 +55,32 @@ export function PortfolioView({
               rates: clientRatesFromInitial(initialSnapshot),
             }
           : null,
-        initialSnapshot.fxBase
+        initialSnapshot.fxBase,
       ),
-    [accountsQuery.data, holdingsQuery.data, initialSnapshot]
-  )
+    [accountsQuery.data, holdingsQuery.data, initialSnapshot],
+  );
 
   const allocationData = useMemo(
     () => snapshot.byAccount.map((a) => ({ label: a.label, value: a.total })),
-    [snapshot.byAccount]
-  )
+    [snapshot.byAccount],
+  );
 
   return (
     <>
       {/* KPI strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <Kpi label="Capital total" value={formatEuro(snapshot.kpi.capitalTotal)} sub={`En ${snapshot.fxBase}`} />
+        <Kpi
+          label="Capital total"
+          value={formatEuro(snapshot.kpi.capitalTotal)}
+          sub={`En ${snapshot.fxBase}`}
+        />
         <Kpi label="Cash" value={formatEuro(snapshot.kpi.cash)} sub="Livret + AV + cash" />
         <Kpi label="Investi" value={formatEuro(snapshot.kpi.invested)} sub="Σ qty × prix moyen" />
-        <Kpi label="Valeur titres" value={formatEuro(snapshot.kpi.marketValue)} sub="Σ qty × cours" />
+        <Kpi
+          label="Valeur titres"
+          value={formatEuro(snapshot.kpi.marketValue)}
+          sub="Σ qty × cours"
+        />
         <Kpi
           label="+/− latente"
           value={formatSigned(snapshot.kpi.pnl)}
@@ -111,7 +115,7 @@ export function PortfolioView({
         setEditing={setEditingHolding}
       />
     </>
-  )
+  );
 }
 
 /**
@@ -125,38 +129,39 @@ export function PortfolioView({
  * user has multi-currency accounts.
  */
 function clientRatesFromInitial(snap: PortfolioSnapshotFx) {
-  const rates: Partial<Record<string, number>> = { [snap.fxBase]: 1 }
+  const rates: Partial<Record<string, number>> = { [snap.fxBase]: 1 };
   // For each account, compute conv ratio from native cashBalance to the base contribution.
-  const baseContribByAccount = new Map(snap.byAccount.map((a) => [a.accountId, a.total]))
+  const baseContribByAccount = new Map(snap.byAccount.map((a) => [a.accountId, a.total]));
   for (const a of snap.accounts) {
-    if (a.currency === snap.fxBase || rates[a.currency]) continue
-    const baseTotal = baseContribByAccount.get(a.id) ?? 0
+    if (a.currency === snap.fxBase || rates[a.currency]) continue;
+    const baseTotal = baseContribByAccount.get(a.id) ?? 0;
     if (a.cashBalance > 0 && baseTotal > 0) {
       // baseTotal includes holding values; for a pure-cash account this gives a clean ratio.
       const holdingsValueNative = snap.holdings
         .filter((h) => h.accountId === a.id && h.currency === a.currency)
-        .reduce((s, h) => s + h.quantity * h.lastPrice, 0)
-      const cashContribBase = baseTotal - convertNative(holdingsValueNative, a.currency, rates, snap.fxBase)
+        .reduce((s, h) => s + h.quantity * h.lastPrice, 0);
+      const cashContribBase =
+        baseTotal - convertNative(holdingsValueNative, a.currency, rates, snap.fxBase);
       // ratio: 1 base = (cashBalance / cashContribBase) foreign
       if (cashContribBase > 0) {
-        rates[a.currency] = a.cashBalance / cashContribBase
+        rates[a.currency] = a.cashBalance / cashContribBase;
       }
     }
   }
   // For holdings on accounts already ratio-resolved above, no extra work.
-  return rates
+  return rates;
 }
 
 function convertNative(
   amount: number,
   from: string,
   rates: Partial<Record<string, number>>,
-  base: string
+  base: string,
 ): number {
-  if (from === base) return amount
-  const r = rates[from]
-  if (!r || r <= 0) return amount
-  return amount / r
+  if (from === base) return amount;
+  const r = rates[from];
+  if (!r || r <= 0) return amount;
+  return amount / r;
 }
 
 function Kpi({
@@ -165,17 +170,17 @@ function Kpi({
   sub,
   accent,
 }: {
-  label: string
-  value: string
-  sub?: string
-  accent?: "emerald" | "destructive" | "muted"
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: "emerald" | "destructive" | "muted";
 }) {
   const color =
     accent === "emerald"
       ? "text-emerald-600"
       : accent === "destructive"
         ? "text-destructive"
-        : "text-foreground"
+        : "text-foreground";
   return (
     <Card>
       <CardContent className="p-4">
@@ -184,5 +189,5 @@ function Kpi({
         {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </CardContent>
     </Card>
-  )
+  );
 }

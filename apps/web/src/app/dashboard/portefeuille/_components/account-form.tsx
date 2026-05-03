@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { Loader2 } from "lucide-react"
-import { useActionMutation } from "@zapaction/query"
-import { useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { useActionMutation } from "@zapaction/query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,80 +11,72 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Field,
-  FieldControl,
-  FieldError,
-  FieldLabel,
-  Form,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/dialog";
+import { Field, FieldControl, FieldError, FieldLabel, Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { useAppForm } from "@/hooks/form-hook"
-import { deleteAccount, saveAccount } from "@/lib/actions/portfolio"
+} from "@/components/ui/select";
+import { useAppForm } from "@/hooks/form-hook";
+import { deleteAccount, saveAccount } from "@/lib/actions/portfolio";
 import {
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
   CURRENCIES,
   accountSchema,
-} from "@/lib/schemas/portfolio"
-import { portfolioKeys, portfolioTags } from "@/lib/zapaction/keys"
-import type { Account, AccountType, Currency } from "@/lib/types"
+} from "@/lib/schemas/portfolio";
+import { portfolioKeys, portfolioTags } from "@/lib/zapaction/keys";
+import type { Account, AccountType, Currency } from "@/lib/types";
 
 export function AccountForm({
   open,
   onOpenChange,
   editing,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  editing: Account | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editing: Account | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {open ? (
-          <Body editing={editing} onDone={() => onOpenChange(false)} />
-        ) : null}
+        {open ? <Body editing={editing} onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function Body({ editing, onDone }: { editing: Account | null; onDone: () => void }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const handleSuccess = async () => {
-    await queryClient.invalidateQueries({ queryKey: portfolioKeys.accounts() })
-    await queryClient.refetchQueries({ queryKey: portfolioKeys.accounts() })
-    onDone()
-  }
+    await queryClient.invalidateQueries({ queryKey: portfolioKeys.accounts() });
+    await queryClient.refetchQueries({ queryKey: portfolioKeys.accounts() });
+    onDone();
+  };
 
   const saveMutation = useActionMutation(saveAccount, {
     invalidateWithTags: [portfolioTags.accounts()],
     onSuccess: handleSuccess,
-  })
+  });
   const deleteMutation = useActionMutation(deleteAccount, {
     invalidateWithTags: [portfolioTags.accounts(), portfolioTags.holdings()],
     onSuccess: handleSuccess,
-  })
+  });
 
   type FormValues = {
-    id: string | undefined
-    label: string
-    type: AccountType
-    currency: Currency
-    cashBalance: number
-    notes: string
-  }
+    id: string | undefined;
+    label: string;
+    type: AccountType;
+    currency: Currency;
+    cashBalance: number;
+    notes: string;
+  };
 
   const initial: FormValues = editing
     ? {
@@ -102,7 +94,7 @@ function Body({ editing, onDone }: { editing: Account | null; onDone: () => void
         currency: "EUR",
         cashBalance: 0,
         notes: "",
-      }
+      };
 
   const form = useAppForm({
     defaultValues: initial,
@@ -110,15 +102,15 @@ function Body({ editing, onDone }: { editing: Account | null; onDone: () => void
       const payload = accountSchema.parse({
         ...value,
         notes: value.notes && value.notes.length > 0 ? value.notes : null,
-      })
-      await saveMutation.mutateAsync(payload)
+      });
+      await saveMutation.mutateAsync(payload);
     },
-  })
+  });
 
   useEffect(() => {
-    form.reset(initial)
+    form.reset(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing?.id])
+  }, [editing?.id]);
 
   return (
     <form.AppForm>
@@ -131,9 +123,9 @@ function Body({ editing, onDone }: { editing: Account | null; onDone: () => void
 
       <Form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="grid grid-cols-2 gap-4"
       >
@@ -217,8 +209,8 @@ function Body({ editing, onDone }: { editing: Account | null; onDone: () => void
                   step="1"
                   value={field.state.value ?? 0}
                   onChange={(e) => {
-                    const v = e.target.valueAsNumber
-                    field.handleChange(Number.isNaN(v) ? 0 : v)
+                    const v = e.target.valueAsNumber;
+                    field.handleChange(Number.isNaN(v) ? 0 : v);
                   }}
                   onBlur={field.handleBlur}
                 />
@@ -269,7 +261,7 @@ function Body({ editing, onDone }: { editing: Account | null; onDone: () => void
           </Button>
           <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
             {([canSubmit, isSubmitting]) => {
-              const pending = saveMutation.isPending || isSubmitting
+              const pending = saveMutation.isPending || isSubmitting;
               return (
                 <Button type="submit" disabled={!canSubmit || pending}>
                   {pending ? (
@@ -281,7 +273,7 @@ function Body({ editing, onDone }: { editing: Account | null; onDone: () => void
                     "Enregistrer"
                   )}
                 </Button>
-              )
+              );
             }}
           </form.Subscribe>
         </DialogFooter>
@@ -290,10 +282,9 @@ function Body({ editing, onDone }: { editing: Account | null; onDone: () => void
       {(saveMutation.isError || deleteMutation.isError) && (
         <p className="text-xs text-destructive">
           Erreur :{" "}
-          {(saveMutation.error as Error)?.message ??
-            (deleteMutation.error as Error)?.message}
+          {(saveMutation.error as Error)?.message ?? (deleteMutation.error as Error)?.message}
         </p>
       )}
     </form.AppForm>
-  )
+  );
 }

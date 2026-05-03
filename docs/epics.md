@@ -42,86 +42,86 @@
 
 Every FR maps to exactly one owning story (the implementer). Surface stories that consume the FR are listed under the same epic but do not duplicate the ownership.
 
-| FR | Owning story | Epic |
-|---|---|---|
-| FR-1 | 1-1-compass-domain | 1 |
-| FR-2 | 1-1-compass-domain | 1 |
-| FR-3 | 1-2-milestones-domain | 1 |
-| FR-4 | 1-2-milestones-domain | 1 |
-| FR-5 | 1-1-compass-domain | 1 |
-| FR-6 | 1-2-milestones-domain | 1 |
-| FR-7 | 1-3-compass-curve | 1 |
-| FR-8 | 1-1-compass-domain | 1 |
-| FR-9 | 2-1-accounts-orpc-port | 2 |
-| FR-10 | 2-1-accounts-orpc-port | 2 |
-| FR-11 | 2-2-account-balance-history | 2 |
-| FR-12 | 2-1-accounts-orpc-port | 2 |
-| FR-13 | 3-1-holdings-orpc-port | 3 |
-| FR-14 | 3-1-holdings-orpc-port | 3 |
-| FR-15 | 3-1-holdings-orpc-port | 3 |
-| FR-16 | 3-2-prices-fallback-chain | 3 |
-| FR-17 | 3-2-prices-fallback-chain | 3 |
-| FR-18 | 3-3-portfolio-fx | 3 |
-| FR-19 | 3-3-portfolio-fx | 3 |
-| FR-20 | 3-1-holdings-orpc-port | 3 |
-| FR-21 | 4-1-realestate-domain | 4 |
-| FR-22 | 4-1-realestate-domain | 4 |
-| FR-23 | 4-1-realestate-domain | 4 |
-| FR-24 | 4-2-realestate-derives | 4 |
-| FR-25 | 4-2-realestate-derives | 4 |
-| FR-26 | 4-2-realestate-derives | 4 |
-| FR-27 | 4-1-realestate-domain | 4 |
-| FR-28 | 5-1-transactions-record | 5 |
-| FR-29 | 5-2-csv-import | 5 |
-| FR-30 | 5-3-transfer-rule | 5 |
-| FR-31 | 6-1-llm-routing-and-providers | 6 |
-| FR-32 | 6-2-llm-categorise | 6 |
-| FR-33 | 6-4-llm-suggestion-ui | 6 |
-| FR-34 | 6-3-llm-opt-in | 6 |
-| FR-35 | 6-1-llm-routing-and-providers | 6 |
-| FR-36 | 6-5-llm-activity-log | 6 |
-| FR-37 | 5-4-monthly-tracking | 5 |
-| FR-38 | 5-4-monthly-tracking | 5 |
-| FR-39 | 5-5-monthly-signoff | 5 |
-| FR-40 | 5-5-monthly-signoff | 5 |
-| FR-41 | 7-2-dashboard-cap-page | 7 |
-| FR-42 | 7-2-dashboard-cap-page | 7 |
-| FR-43 | 7-1-dashboard-orchestration | 7 |
-| FR-44 | 7-1-dashboard-orchestration | 7 |
-| FR-45 | 8-1-supabase-auth-flows | 8 |
-| FR-46 | 8-1-supabase-auth-flows | 8 |
-| FR-47 | 8-1-supabase-auth-flows | 8 |
-| FR-48 | 8-1-supabase-auth-flows | 8 |
-| FR-49 | 11-1-data-export | 11 |
-| FR-50 | 11-2-account-deletion | 11 |
-| FR-51 | 8-2-theme-language-prefs | 8 |
-| FR-52 | 8-2-theme-language-prefs | 8 |
-| FR-53 | 9-1-pwa-manifest-and-install | 9 |
-| FR-54 | 9-2-pwa-offline-cache | 9 |
-| FR-55 | 10-1-visual-snapshot-suite | 10 |
-| FR-56 | 10-1-visual-snapshot-suite | 10 |
-| FR-57 | 7-3-hypothesis-domain | 7 |
-| FR-58 | 7-3-hypothesis-domain | 7 |
-| FR-59 | 7-4-hypothesis-comparison-ui | 7 |
+| FR    | Owning story                  | Epic |
+| ----- | ----------------------------- | ---- |
+| FR-1  | 1-1-compass-domain            | 1    |
+| FR-2  | 1-1-compass-domain            | 1    |
+| FR-3  | 1-2-milestones-domain         | 1    |
+| FR-4  | 1-2-milestones-domain         | 1    |
+| FR-5  | 1-1-compass-domain            | 1    |
+| FR-6  | 1-2-milestones-domain         | 1    |
+| FR-7  | 1-3-compass-curve             | 1    |
+| FR-8  | 1-1-compass-domain            | 1    |
+| FR-9  | 2-1-accounts-orpc-port        | 2    |
+| FR-10 | 2-1-accounts-orpc-port        | 2    |
+| FR-11 | 2-2-account-balance-history   | 2    |
+| FR-12 | 2-1-accounts-orpc-port        | 2    |
+| FR-13 | 3-1-holdings-orpc-port        | 3    |
+| FR-14 | 3-1-holdings-orpc-port        | 3    |
+| FR-15 | 3-1-holdings-orpc-port        | 3    |
+| FR-16 | 3-2-prices-fallback-chain     | 3    |
+| FR-17 | 3-2-prices-fallback-chain     | 3    |
+| FR-18 | 3-3-portfolio-fx              | 3    |
+| FR-19 | 3-3-portfolio-fx              | 3    |
+| FR-20 | 3-1-holdings-orpc-port        | 3    |
+| FR-21 | 4-1-realestate-domain         | 4    |
+| FR-22 | 4-1-realestate-domain         | 4    |
+| FR-23 | 4-1-realestate-domain         | 4    |
+| FR-24 | 4-2-realestate-derives        | 4    |
+| FR-25 | 4-2-realestate-derives        | 4    |
+| FR-26 | 4-2-realestate-derives        | 4    |
+| FR-27 | 4-1-realestate-domain         | 4    |
+| FR-28 | 5-1-transactions-record       | 5    |
+| FR-29 | 5-2-csv-import                | 5    |
+| FR-30 | 5-3-transfer-rule             | 5    |
+| FR-31 | 6-1-llm-routing-and-providers | 6    |
+| FR-32 | 6-2-llm-categorise            | 6    |
+| FR-33 | 6-4-llm-suggestion-ui         | 6    |
+| FR-34 | 6-3-llm-opt-in                | 6    |
+| FR-35 | 6-1-llm-routing-and-providers | 6    |
+| FR-36 | 6-5-llm-activity-log          | 6    |
+| FR-37 | 5-4-monthly-tracking          | 5    |
+| FR-38 | 5-4-monthly-tracking          | 5    |
+| FR-39 | 5-5-monthly-signoff           | 5    |
+| FR-40 | 5-5-monthly-signoff           | 5    |
+| FR-41 | 7-2-dashboard-cap-page        | 7    |
+| FR-42 | 7-2-dashboard-cap-page        | 7    |
+| FR-43 | 7-1-dashboard-orchestration   | 7    |
+| FR-44 | 7-1-dashboard-orchestration   | 7    |
+| FR-45 | 8-1-supabase-auth-flows       | 8    |
+| FR-46 | 8-1-supabase-auth-flows       | 8    |
+| FR-47 | 8-1-supabase-auth-flows       | 8    |
+| FR-48 | 8-1-supabase-auth-flows       | 8    |
+| FR-49 | 11-1-data-export              | 11   |
+| FR-50 | 11-2-account-deletion         | 11   |
+| FR-51 | 8-2-theme-language-prefs      | 8    |
+| FR-52 | 8-2-theme-language-prefs      | 8    |
+| FR-53 | 9-1-pwa-manifest-and-install  | 9    |
+| FR-54 | 9-2-pwa-offline-cache         | 9    |
+| FR-55 | 10-1-visual-snapshot-suite    | 10   |
+| FR-56 | 10-1-visual-snapshot-suite    | 10   |
+| FR-57 | 7-3-hypothesis-domain         | 7    |
+| FR-58 | 7-3-hypothesis-domain         | 7    |
+| FR-59 | 7-4-hypothesis-comparison-ui  | 7    |
 
 **Coverage:** 59/59 FRs owned by exactly one story. No orphans, no multi-cover.
 
 ## File Structure Design (epic-level)
 
-| Epic | Path prefix(es) | Single responsibility | Inputs → Outputs |
-|---|---|---|---|
-| 0 | `packages/{zod,types,validators,contracts,tsconfig,oxlint-config,ui}/`, `apps/api/src/{bootstrap,platform,database,common}/`, `.github/workflows/`, lefthook | Workspace primitives + Elysia runtime + Prisma layer + CI/CD + DS migration | brownfield types/schemas → importable `@pekulo/*` + HTTP server + PR check matrix |
-| 1 | `apps/api/src/modules/{compass,milestones}/`, `apps/web/src/app/(cap)/{dashboard,parametres}/_components/compass-*`, `apps/api/src/common/derive/compass-progress.ts` | Target-capital + horizon + intermediate steps + status compute | Prisma `Hypothesis` + `CompassHistory` + `Milestone` → oRPC `/compass`, `/milestones` + Cap view fragments |
-| 2 | `apps/api/src/modules/accounts/`, `apps/web/src/app/(cap)/parametres/_components/accounts-*` | Account CRUD + balance log + Patrimoine tab | Prisma `Account`, `AccountBalanceLog` → oRPC `/accounts/*` + settings/dashboard?tab=patrimoine fragments |
-| 3 | `apps/api/src/modules/holdings/` (+ `services/{prices,yahoo,boursorama,twelve-data,frankfurter}-client.ts` + `holdings.cache.ts`), `apps/api/src/common/derive/{portfolio-fx,holding-quantity,holding-pnl}.ts`, `apps/web/src/app/(cap)/portefeuille/_components/` | Holdings + lots + 4-tier price chain + FX + crypto enum | Prisma `Holding`, `HoldingLot` + external providers → oRPC `/holdings/*` + portefeuille screen |
-| 4 | `apps/api/src/modules/realestate/`, `apps/api/src/common/derive/{rental-cashflow,property-equity}.ts`, `apps/web/src/app/(cap)/immobilier/_components/` | Properties + mortgage + rental + valuation history | Prisma `RealEstate`, `RealEstateMortgage`, `RealEstateRental`, `RealEstateValuation` → oRPC `/realestate/*` + immobilier screen |
-| 5 | `apps/api/src/modules/{transactions,monthly}/`, `apps/api/src/common/derive/{transfer-rule,monthly-aggregates}.ts`, `apps/web/src/app/(cap)/{transactions,mensuel}/_components/` | Transaction CRUD + CSV import + transfer detection + monthly aggregates + sign-off | Prisma `Transaction`, `MonthlyRecord` → oRPC `/transactions/*`, `/monthly/*` + transactions + mensuel screens |
-| 6 | `apps/api/src/modules/llm/` (+ `providers/{ollama,third-party,foundation-models}-client.ts` + `llm-prompt-builder.ts`), `apps/web/src/lib/llm/attest-queue.ts`, `apps/web/src/app/(cap)/{parametres,transactions}/_components/{llm,suggestion}-*` | LLM routing + categorisation + per-call audit + opt-in guard + AI transparency | Prisma `LlmCallLog`, `LlmOptIn` + provider endpoints → oRPC `/llm/*` + suggestion UI + activity log + opt-in toggle |
-| 7 | `apps/api/src/modules/{dashboard,hypothesis}/` (+ `derive/projection-curve.ts`), `apps/web/src/app/(cap)/dashboard/_components/` | Cross-domain aggregator + total wealth + projection comparison | compass + accounts + holdings + realestate + hypothesis → oRPC `/dashboard/*`, `/hypothesis/*` + Cap layout + Hypothèse card |
-| 8 | `apps/web/src/app/(auth)/{login,signup,recover}/`, `apps/api/src/modules/{auth,settings}/`, `apps/web/src/lib/stores/{theme,lang}-store.ts`, `apps/web/src/app/(cap)/parametres/_components/{theme,lang}-*` | Auth flows + theme/lang preferences | Supabase Auth + Prisma `UserPref` → session + persisted preferences |
-| 9 | `apps/web/src/app/manifest.ts`, `apps/web/src/sw.ts`, `apps/web/public/icons/`, `apps/web/src/components/install-prompt.tsx` | PWA install affordance + offline read-only cache | app metadata + last-snapshot per route → install prompt + Lighthouse PWA ≥90 + offline fallback |
-| 10 | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx`, `apps/mobile/`, `.maestro/` | Visual parity web ↔ mobile (V1.5) | `@pekulo/ui` components + oRPC client → snapshot artefacts + V1.5 mobile build |
-| 11 | `apps/api/src/modules/settings/{exportData,deleteAccount}.ts`, `docs/exports/schema-v1.json`, `docs/security.md`, axe + RLS-audit gates in `.github/workflows/pr.yml`, GlitchTip OTLP | Pre-(b) public-ramp readiness — GDPR + a11y + ops hardening | per-user data + Supabase tier + codebase → JSON export + cascade deletion + failing CI on regressions + structured error capture |
+| Epic | Path prefix(es)                                                                                                                                                                                                                                                    | Single responsibility                                                              | Inputs → Outputs                                                                                                                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | `packages/{zod,types,validators,contracts,tsconfig,oxlint-config,ui}/`, `apps/api/src/{bootstrap,platform,database,common}/`, `.github/workflows/`, lefthook                                                                                                       | Workspace primitives + Elysia runtime + Prisma layer + CI/CD + DS migration        | brownfield types/schemas → importable `@pekulo/*` + HTTP server + PR check matrix                                                |
+| 1    | `apps/api/src/modules/{compass,milestones}/`, `apps/web/src/app/(cap)/{dashboard,parametres}/_components/compass-*`, `apps/api/src/common/derive/compass-progress.ts`                                                                                              | Target-capital + horizon + intermediate steps + status compute                     | Prisma `Hypothesis` + `CompassHistory` + `Milestone` → oRPC `/compass`, `/milestones` + Cap view fragments                       |
+| 2    | `apps/api/src/modules/accounts/`, `apps/web/src/app/(cap)/parametres/_components/accounts-*`                                                                                                                                                                       | Account CRUD + balance log + Patrimoine tab                                        | Prisma `Account`, `AccountBalanceLog` → oRPC `/accounts/*` + settings/dashboard?tab=patrimoine fragments                         |
+| 3    | `apps/api/src/modules/holdings/` (+ `services/{prices,yahoo,boursorama,twelve-data,frankfurter}-client.ts` + `holdings.cache.ts`), `apps/api/src/common/derive/{portfolio-fx,holding-quantity,holding-pnl}.ts`, `apps/web/src/app/(cap)/portefeuille/_components/` | Holdings + lots + 4-tier price chain + FX + crypto enum                            | Prisma `Holding`, `HoldingLot` + external providers → oRPC `/holdings/*` + portefeuille screen                                   |
+| 4    | `apps/api/src/modules/realestate/`, `apps/api/src/common/derive/{rental-cashflow,property-equity}.ts`, `apps/web/src/app/(cap)/immobilier/_components/`                                                                                                            | Properties + mortgage + rental + valuation history                                 | Prisma `RealEstate`, `RealEstateMortgage`, `RealEstateRental`, `RealEstateValuation` → oRPC `/realestate/*` + immobilier screen  |
+| 5    | `apps/api/src/modules/{transactions,monthly}/`, `apps/api/src/common/derive/{transfer-rule,monthly-aggregates}.ts`, `apps/web/src/app/(cap)/{transactions,mensuel}/_components/`                                                                                   | Transaction CRUD + CSV import + transfer detection + monthly aggregates + sign-off | Prisma `Transaction`, `MonthlyRecord` → oRPC `/transactions/*`, `/monthly/*` + transactions + mensuel screens                    |
+| 6    | `apps/api/src/modules/llm/` (+ `providers/{ollama,third-party,foundation-models}-client.ts` + `llm-prompt-builder.ts`), `apps/web/src/lib/llm/attest-queue.ts`, `apps/web/src/app/(cap)/{parametres,transactions}/_components/{llm,suggestion}-*`                  | LLM routing + categorisation + per-call audit + opt-in guard + AI transparency     | Prisma `LlmCallLog`, `LlmOptIn` + provider endpoints → oRPC `/llm/*` + suggestion UI + activity log + opt-in toggle              |
+| 7    | `apps/api/src/modules/{dashboard,hypothesis}/` (+ `derive/projection-curve.ts`), `apps/web/src/app/(cap)/dashboard/_components/`                                                                                                                                   | Cross-domain aggregator + total wealth + projection comparison                     | compass + accounts + holdings + realestate + hypothesis → oRPC `/dashboard/*`, `/hypothesis/*` + Cap layout + Hypothèse card     |
+| 8    | `apps/web/src/app/(auth)/{login,signup,recover}/`, `apps/api/src/modules/{auth,settings}/`, `apps/web/src/lib/stores/{theme,lang}-store.ts`, `apps/web/src/app/(cap)/parametres/_components/{theme,lang}-*`                                                        | Auth flows + theme/lang preferences                                                | Supabase Auth + Prisma `UserPref` → session + persisted preferences                                                              |
+| 9    | `apps/web/src/app/manifest.ts`, `apps/web/src/sw.ts`, `apps/web/public/icons/`, `apps/web/src/components/install-prompt.tsx`                                                                                                                                       | PWA install affordance + offline read-only cache                                   | app metadata + last-snapshot per route → install prompt + Lighthouse PWA ≥90 + offline fallback                                  |
+| 10   | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx`, `apps/mobile/`, `.maestro/`                                                                                                                                                                           | Visual parity web ↔ mobile (V1.5)                                                  | `@pekulo/ui` components + oRPC client → snapshot artefacts + V1.5 mobile build                                                   |
+| 11   | `apps/api/src/modules/settings/{exportData,deleteAccount}.ts`, `docs/exports/schema-v1.json`, `docs/security.md`, axe + RLS-audit gates in `.github/workflows/pr.yml`, GlitchTip OTLP                                                                              | Pre-(b) public-ramp readiness — GDPR + a11y + ops hardening                        | per-user data + Supabase tier + codebase → JSON export + cascade deletion + failing CI on regressions + structured error capture |
 
 ## Backlog
 
@@ -145,6 +145,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR)
 
 **Acceptance Criteria:**
+
 - **Given** a fresh checkout, **When** I run `bun install`, **Then** Bun resolves all seven `@pekulo/*` workspaces with no errors.
 - **Given** `@pekulo/tsconfig` exists, **When** another package extends it, **Then** strict TS settings apply uniformly.
 
@@ -164,6 +165,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR)
 
 **Acceptance Criteria:**
+
 - **Given** the new toolchain, **When** `bun run lint` runs, **Then** oxlint exits 0 on a clean tree.
 - **Given** the new toolchain, **When** `bun run format` runs, **Then** oxfmt rewrites files idempotently.
 
@@ -183,6 +185,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR)
 
 **Acceptance Criteria:**
+
 - **Given** the scaffold, **When** I run `bun --cwd apps/api dev`, **Then** Elysia binds and `/health` returns 200.
 - **Given** the Dockerfile, **When** Dokploy builds and deploys, **Then** Caddy routes `/api/*` to the container.
 
@@ -202,6 +205,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR)
 
 **Acceptance Criteria:**
+
 - **Given** the Prisma setup, **When** I run `prisma migrate deploy` against a Supabase branch, **Then** the baseline applies cleanly.
 - **Given** a model decorated with the prefix extension, **When** I create a row, **Then** the ID has the configured prefix.
 
@@ -221,6 +225,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR)
 
 **Acceptance Criteria:**
+
 - **Given** the contracts package, **When** the web tier imports `accountsContract`, **Then** TypeScript infers the full request/response types.
 - **Given** a contract bump, **When** I increment the sub-tree version, **Then** older clients still resolve the previous tree.
 
@@ -240,6 +245,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR)
 
 **Acceptance Criteria:**
+
 - **Given** the refactor, **When** a server action runs, **Then** it delegates to the oRPC client and the request is observable in OTel traces.
 - **Given** a brownfield call site, **When** I switch its action import, **Then** the existing UI renders unchanged.
 
@@ -259,6 +265,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR; supports NFR-25/26/27)
 
 **Acceptance Criteria:**
+
 - **Given** an authenticated request, **When** it traverses web → api → Prisma, **Then** a single trace ID spans all three with correctly nested spans on stdout.
 - **Given** the toggle, **When** `OTEL_EXPORTER_OTLP_ENDPOINT` is set, **Then** spans flow to the configured destination.
 
@@ -278,6 +285,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR; gates NFR-3/22)
 
 **Acceptance Criteria:**
+
 - **Given** a PR with a failing axe scan, **When** CI runs, **Then** the merge button is blocked.
 - **Given** a passing PR, **When** it merges, **Then** Vercel deploys `apps/web` and Dokploy redeploys `apps/api` + `apps/prices`.
 
@@ -297,6 +305,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR; resolves W2)
 
 **Acceptance Criteria:**
+
 - **Given** the spike, **When** I render the prototype on a Next 16 RSC page, **Then** Tamagui does not force `'use client'` on every leaf.
 - **Given** the contrast spike, **When** I measure dark + light tokens, **Then** every text/background pair meets WCAG 2.2 AA (≥4.5:1 body, ≥3:1 large).
 
@@ -309,16 +318,17 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Depends on:** 0-9-tamagui-spike
 
-**As a** Pekulo developer, **I want** the `@pekulo/ui` package built on Tamagui Core, with `docs/ux-preview/src/tokens/` ported into Tamagui themes and Pekulo* primitives + components matching the UX spec catalog, plus a visual snapshot suite and vitest-axe a11y suite, **so that** every UI story in epics 1–9 + 11 has a stable component vocabulary.
+**As a** Pekulo developer, **I want** the `@pekulo/ui` package built on Tamagui Core, with `docs/ux-preview/src/tokens/` ported into Tamagui themes and Pekulo\* primitives + components matching the UX spec catalog, plus a visual snapshot suite and vitest-axe a11y suite, **so that** every UI story in epics 1–9 + 11 has a stable component vocabulary.
 
-**Summary:** Multi-step port — tokens, primitives, Pekulo* components, snapshot suite, a11y suite. Will likely sub-divide at `aped-story` time per the architecture's annotation. Reference: ADR-0007.
+**Summary:** Multi-step port — tokens, primitives, Pekulo\* components, snapshot suite, a11y suite. Will likely sub-divide at `aped-story` time per the architecture's annotation. Reference: ADR-0007.
 
 **Covered FRs:** (foundation — no direct FR; enables FR-55 enforcement)
 
 **Acceptance Criteria:**
+
 - **Given** the migration, **When** `apps/web` renders the dashboard, **Then** every component is sourced from `@pekulo/ui`.
-- **Given** the snapshot suite, **When** I run `bun test:visual`, **Then** every Pekulo* component has an approved snapshot.
-- **Given** the a11y suite, **When** vitest-axe runs, **Then** zero serious violations are reported on Pekulo* components.
+- **Given** the snapshot suite, **When** I run `bun test:visual`, **Then** every Pekulo\* component has an approved snapshot.
+- **Given** the a11y suite, **When** vitest-axe runs, **Then** zero serious violations are reported on Pekulo\* components.
 
 **Complexity:** L
 
@@ -336,6 +346,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR)
 
 **Acceptance Criteria:**
+
 - **Given** a staged file containing a secret-like pattern, **When** I commit, **Then** gitleaks blocks the commit with a clear reason.
 - **Given** an unformatted Prisma schema, **When** I commit, **Then** `prisma format` rewrites it before commit.
 
@@ -355,6 +366,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (foundation — no direct FR; enforces NFR-8 + FR-55)
 
 **Acceptance Criteria:**
+
 - **Given** a Prisma query missing `where: { userId }`, **When** oxlint runs, **Then** the rule fires with the exact missing-clause message.
 - **Given** a Tailwind class outside `@pekulo/ui`, **When** oxlint runs, **Then** the rule fires.
 
@@ -362,7 +374,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 ## Epic 1: Compass & milestones — V1 differentiator
 
-**Goal:** Deliver Pekulo's central verb *"set a compass, everything aligns"* — a target capital + horizon, intermediate milestones, and progress computation that anchors every other screen. This is the V1 differentiator vs Trade Republic + Finary (PRD U1, U4).
+**Goal:** Deliver Pekulo's central verb _"set a compass, everything aligns"_ — a target capital + horizon, intermediate milestones, and progress computation that anchors every other screen. This is the V1 differentiator vs Trade Republic + Finary (PRD U1, U4).
 
 **Sequencing:** V1 — runs after Epic 0 lands.
 
@@ -380,6 +392,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-1, FR-2, FR-5, FR-8
 
 **Acceptance Criteria:**
+
 - **Given** no compass set, **When** I declare `{capital, horizon}`, **Then** the row is persisted and audit history records the creation.
 - **Given** an existing compass, **When** I edit it, **Then** the prior values are archived in `CompassHistory`.
 - **Given** a wealth snapshot of 60 000 € and a compass of 800 000 €, **When** progress is computed, **Then** it returns 7.5 %.
@@ -401,6 +414,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-3, FR-4, FR-6
 
 **Acceptance Criteria:**
+
 - **Given** an existing compass, **When** I add a 21st milestone, **Then** the API rejects with a domain error.
 - **Given** three milestones, **When** I delete the middle one, **Then** the remaining two re-sort by year ascending.
 - **Given** the linear plan and current wealth, **When** statuses compute, **Then** each milestone returns one of `{ahead, on-track, behind}` deterministically.
@@ -421,6 +435,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-7
 
 **Acceptance Criteria:**
+
 - **Given** ≥3 KPI snapshots since the compass start, **When** the curve query runs, **Then** the response contains aligned `actual[]` + `plan[]` series ordered by date.
 - **Given** zero snapshots, **When** the curve query runs, **Then** the response returns the plan series only and an empty actual series.
 
@@ -440,6 +455,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8 (UI surfaces)
 
 **Acceptance Criteria:**
+
 - **Given** a compass with 3 milestones, **When** I land on the Cap view, **Then** the donut shows the percentage and each milestone row shows its status badge.
 - **Given** I open the edit form, **When** I change the horizon year and submit, **Then** the previous compass appears in the history panel.
 - **Given** no milestones, **When** I land on the dashboard, **Then** the setup CTA shows instead of a misleading progress number.
@@ -466,6 +482,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-9, FR-10, FR-12
 
 **Acceptance Criteria:**
+
 - **Given** an account with a referenced holding, **When** I attempt deletion, **Then** the API rejects with a `ReferencedFKError`.
 - **Given** two users, **When** user A queries accounts, **Then** only their accounts are returned (verified via RLS test).
 
@@ -485,6 +502,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-11
 
 **Acceptance Criteria:**
+
 - **Given** an account, **When** I record a balance change, **Then** an `AccountBalanceLog` row is created and the account's `cash_balance` reflects the new value.
 
 **Complexity:** S
@@ -503,6 +521,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-9, FR-10, FR-11, FR-12 (UI surfaces)
 
 **Acceptance Criteria:**
+
 - **Given** I open the accounts section, **When** I create an account, **Then** the new row appears in the list and the Patrimoine tab updates.
 - **Given** I attempt to delete a referenced account, **When** the API rejects, **Then** the UI surfaces the FK error in the confirmation dialog.
 
@@ -528,6 +547,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-13, FR-14, FR-15, FR-20
 
 **Acceptance Criteria:**
+
 - **Given** a holding with three buy lots, **When** I query the derived quantity + WAC, **Then** the result matches the weighted-average computation.
 - **Given** a closed holding, **When** the active portfolio renders, **Then** the closed holding is hidden but its lots remain queryable for historical computation.
 - **Given** a `crypto` kind, **When** I create a holding for `BTC-USD`, **Then** the row is persisted with the crypto enum value.
@@ -548,6 +568,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-16, FR-17
 
 **Acceptance Criteria:**
+
 - **Given** a tier-1 timeout, **When** I request a quote, **Then** the orchestrator falls back to tier-2 within 500 ms (NFR-18) and the response indicates the winning provider.
 - **Given** repeated requests for the same `ticker|kind|currency`, **When** within 60 s of the first, **Then** the second hit returns from cache with no provider call.
 - **Given** all four providers fail, **When** I request a quote, **Then** `PriceProviderError` is thrown with `.attempts` listing every failure reason.
@@ -569,6 +590,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-18, FR-19
 
 **Acceptance Criteria:**
+
 - **Given** a USD-denominated holding and a missing FX rate, **When** the snapshot computes, **Then** the result uses 1:1 and the snapshot records `fxSource: 'fallback'`.
 - **Given** lots and current price, **When** PnL computes, **Then** both the holding-currency and EUR PnL are returned.
 
@@ -588,6 +610,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-13, FR-14, FR-15, FR-16, FR-17, FR-18, FR-19, FR-20 (UI surfaces)
 
 **Acceptance Criteria:**
+
 - **Given** six holdings (CW8, PE500, VWCE, AAPL, BTC, ETH), **When** I land on portefeuille, **Then** the hero shows total EUR value with signed PnL and the répartition shows ETF/Actions/Crypto with mini-donuts.
 - **Given** I open the lot form, **When** I record a sell lot, **Then** the holding's WAC re-derives and the row updates.
 
@@ -613,6 +636,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-21, FR-22, FR-23, FR-27
 
 **Acceptance Criteria:**
+
 - **Given** a property, **When** I attach a mortgage and a rental block, **Then** both rows persist with the property's foreign key.
 - **Given** a property valuation update, **When** the transaction commits, **Then** the prior amount is queryable from `RealEstateValuation`.
 
@@ -632,6 +656,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-24, FR-25, FR-26
 
 **Acceptance Criteria:**
+
 - **Given** a rental block (1 200 € rent, 200 € charges) and a 600 € monthly mortgage, **When** cash-flow computes, **Then** the result is +400 €.
 - **Given** a property at 250 000 € valuation with 180 000 € outstanding principal, **When** equity computes, **Then** the result is 70 000 €.
 - **Given** the total-wealth aggregator, **When** it runs, **Then** the property's equity contributes to the sum.
@@ -652,6 +677,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-21, FR-22, FR-23, FR-24, FR-25, FR-26, FR-27 (UI surfaces)
 
 **Acceptance Criteria:**
+
 - **Given** a property with mortgage and rental, **When** I land on immobilier, **Then** the hero shows equity, valuation, and debt remaining and the PropertyCard shows the % remboursé donut.
 - **Given** a valuation update, **When** I submit the form, **Then** the audit trail is queryable from the card detail.
 
@@ -677,6 +703,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-28
 
 **Acceptance Criteria:**
+
 - **Given** I open the transaction form, **When** I submit a valid transaction, **Then** it persists and appears in the Récentes section.
 - **Given** an invalid input (amount, category), **When** I submit, **Then** the form surfaces the validation error from the Zod schema.
 
@@ -696,6 +723,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-29
 
 **Acceptance Criteria:**
+
 - **Given** a 50-row CSV, **When** I paste it, **Then** the preview table renders with each row tagged valid/invalid.
 - **Given** I confirm a clean preview, **When** I submit, **Then** all valid rows persist atomically.
 
@@ -715,6 +743,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-30
 
 **Acceptance Criteria:**
+
 - **Given** an outflow on account A and an inflow on account B (same user, same date, same amount), **When** the rule runs, **Then** both are tagged `transfer` and the LLM is not called.
 - **Given** a non-paired outflow, **When** the rule runs, **Then** the transaction is forwarded to LLM categorisation (epic 6).
 
@@ -734,6 +763,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-37, FR-38
 
 **Acceptance Criteria:**
+
 - **Given** 30 categorised transactions for May 2026, **When** the aggregator runs, **Then** the four aggregates are computed correctly.
 - **Given** the default aggregates, **When** I edit one before sign-off, **Then** the override is persisted on the `MonthlyRecord`.
 
@@ -753,6 +783,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-39, FR-40
 
 **Acceptance Criteria:**
+
 - **Given** a month with no pending transactions, **When** I sign it off, **Then** the `MonthlyRecord` is marked `signedOffAt: <now>` and edits are rejected by the service.
 - **Given** a signed month, **When** I trigger re-open and confirm, **Then** `signedOffAt` is cleared and edits resume.
 
@@ -778,6 +809,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-31, FR-35
 
 **Acceptance Criteria:**
+
 - **Given** an iOS-capable client, **When** the router decides, **Then** the response selects `foundation_models` and the call log records the route.
 - **Given** a non-iOS client and `optIn: false`, **When** the router decides, **Then** the response selects `ollama` (third-party is excluded).
 - **Given** the prompt builder, **When** I attempt to include a user identifier, **Then** the builder strips it and the resulting envelope is ≤2 kb.
@@ -798,6 +830,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-32
 
 **Acceptance Criteria:**
+
 - **Given** a non-transfer transaction routed to Ollama, **When** categorisation runs, **Then** the response returns `{category, confidence}` with confidence in `[0, 1]`.
 - **Given** a Foundation Models call, **When** it completes, **Then** the p95 latency is under 600 ms (NFR-5 enforcement).
 
@@ -817,6 +850,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-34
 
 **Acceptance Criteria:**
+
 - **Given** opt-in `false`, **When** the router selects a route, **Then** `third_party` is never returned and a guard test fails the build if it ever is.
 - **Given** I toggle opt-in to true, **When** the next ambiguous case arises, **Then** the router may select `third_party`.
 
@@ -836,6 +870,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-33
 
 **Acceptance Criteria:**
+
 - **Given** a pending suggestion, **When** I accept it, **Then** the transaction's category persists as the suggested value.
 - **Given** I override the suggestion, **When** I save, **Then** the override is persisted and the LLM call log records `outcome: overridden`.
 - **Given** my first LLM-visible suggestion, **When** the row renders, **Then** the AI transparency notice appears once.
@@ -856,6 +891,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-36
 
 **Acceptance Criteria:**
+
 - **Given** 200 LLM calls in the last 90 days, **When** I open the activity log, **Then** rows render paginated with route + latency + outcome.
 - **Given** a row in the log, **When** I inspect it, **Then** no prompt content is exposed.
 
@@ -875,6 +911,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (no own FR — addresses W3, supports FR-31 routing semantics)
 
 **Acceptance Criteria:**
+
 - **Given** a categorisation call where attestation fails, **When** the queue retries, **Then** the next online window flushes successfully and the metric records the recovery.
 - **Given** a 7-day rolling drop rate above 1 %, **When** the metric crosses the threshold, **Then** an alert is emitted (and W3 pivot is on the table).
 
@@ -900,6 +937,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-43, FR-44
 
 **Acceptance Criteria:**
+
 - **Given** 5 accounts, 6 holdings, 1 property, **When** total-wealth computes, **Then** the result equals the explicit sum and matches a hand-computed reference.
 - **Given** I record a transaction that changes a cash balance, **When** the mutation completes, **Then** the dashboard query refetches via the invalidation tag.
 
@@ -919,6 +957,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-41, FR-42
 
 **Acceptance Criteria:**
+
 - **Given** the Cap view loads, **When** I look at the first viewport, **Then** total wealth + compass % + next milestone delta appear in that order.
 - **Given** the navigation, **When** I tap any of {transactions, monthly, portefeuille, immobilier, parametres}, **Then** the target screen mounts in one tap.
 - **Given** the Lighthouse scan on `/dashboard`, **When** CI runs, **Then** the score is ≥90 (NFR-3).
@@ -939,6 +978,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-57, FR-58
 
 **Acceptance Criteria:**
+
 - **Given** current wealth 60 000 €, monthly contribution 1 000 €, rate 5 % over 30 years, **When** the curve computes, **Then** the year-by-year series matches the closed-form annuity formula.
 
 **Complexity:** M
@@ -957,6 +997,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-59
 
 **Acceptance Criteria:**
+
 - **Given** a hypothesis projection ending at 700 000 € and a compass at 800 000 €, **When** the gap computes, **Then** the result returns the EUR-per-month delta required to close the gap.
 - **Given** the dashboard, **When** I look at the Hypothèse card, **Then** both curves render and the verdict text reflects the gap sign.
 
@@ -982,6 +1023,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-45, FR-46, FR-47, FR-48
 
 **Acceptance Criteria:**
+
 - **Given** a signup with a 10-char password, **When** I submit, **Then** Supabase rejects with the policy message.
 - **Given** 11 failed login attempts in an hour, **When** the 11th attempts, **Then** the rate limiter blocks (NFR-11).
 - **Given** I click the reset link in my inbox, **When** I land on `/auth/recover`, **Then** I can set a new password and immediately log in.
@@ -1002,6 +1044,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-51, FR-52
 
 **Acceptance Criteria:**
+
 - **Given** I switch the theme to dark, **When** I reload the page, **Then** the theme is dark.
 - **Given** I open Pekulo on another device, **When** I authenticate, **Then** my last preferences are applied.
 
@@ -1027,7 +1070,8 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-53
 
 **Acceptance Criteria:**
-- **Given** I open Pekulo in mobile Safari, **When** I tap *Add to Home Screen*, **Then** the icon installs and the launch screen reflects the manifest.
+
+- **Given** I open Pekulo in mobile Safari, **When** I tap _Add to Home Screen_, **Then** the icon installs and the launch screen reflects the manifest.
 - **Given** the Lighthouse PWA audit on `/dashboard`, **When** CI runs, **Then** the score is ≥90.
 
 **Complexity:** S
@@ -1046,6 +1090,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-54
 
 **Acceptance Criteria:**
+
 - **Given** I have visited the dashboard once online, **When** I go offline and open the dashboard, **Then** the read-only snapshot renders within 1 s.
 - **Given** the IndexedDB cache, **When** I inspect it, **Then** the payload is encrypted with a key derived from the userId (no plaintext PII at rest in the browser).
 
@@ -1064,13 +1109,14 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Depends on:** 0-10-pekulo-ui-migration, 0-12-custom-oxlint-rules
 
-**As a** Pekulo developer, **I want** every Pekulo* component covered by a per-component visual snapshot test, **so that** unintentional UI regressions are caught in CI before they ship.
+**As a** Pekulo developer, **I want** every Pekulo\* component covered by a per-component visual snapshot test, **so that** unintentional UI regressions are caught in CI before they ship.
 
-**Summary:** Add `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx` for every Pekulo* component. Enforced together with the `no-tailwind-outside-ui` rule from 0-12 (FR-55 enforcement).
+**Summary:** Add `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx` for every Pekulo\* component. Enforced together with the `no-tailwind-outside-ui` rule from 0-12 (FR-55 enforcement).
 
 **Covered FRs:** FR-55, FR-56 (web side)
 
 **Acceptance Criteria:**
+
 - **Given** every component, **When** the snapshot suite runs, **Then** each has at least one snapshot covering the default state.
 - **Given** an accidental Tailwind class drift outside `@pekulo/ui`, **When** oxlint runs, **Then** the rule fires and CI fails.
 
@@ -1083,14 +1129,15 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Depends on:** 10-1-visual-snapshot-suite, 0-10-pekulo-ui-migration
 
-**As a** Pekulo user, **I want** the Pekulo native app to render the same Pekulo* components as the web PWA with visual parity validated by Maestro, **so that** my experience is consistent across devices.
+**As a** Pekulo user, **I want** the Pekulo native app to render the same Pekulo\* components as the web PWA with visual parity validated by Maestro, **so that** my experience is consistent across devices.
 
-**Summary:** **Deferred to V1.5.** Bootstrap `apps/mobile` (Expo + expo-router), wire the Tamagui native consumer, port the Pekulo* components to native, write the Maestro E2E suite. The architecture explicitly defers detailed structure to a V1.5 `aped-arch` re-run (G1).
+**Summary:** **Deferred to V1.5.** Bootstrap `apps/mobile` (Expo + expo-router), wire the Tamagui native consumer, port the Pekulo\* components to native, write the Maestro E2E suite. The architecture explicitly defers detailed structure to a V1.5 `aped-arch` re-run (G1).
 
 **Covered FRs:** FR-56 (mobile parity)
 
 **Acceptance Criteria:**
-- **Given** the V1.5 mobile bootstrap, **When** I render any Pekulo* component on iOS, **Then** the visual diff against the web snapshot is below the agreed pixel threshold.
+
+- **Given** the V1.5 mobile bootstrap, **When** I render any Pekulo\* component on iOS, **Then** the visual diff against the web snapshot is below the agreed pixel threshold.
 - **Given** the Maestro suite, **When** CI runs, **Then** the E2E happy-path passes on iOS + Android emulators.
 
 **Complexity:** L
@@ -1115,6 +1162,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-49
 
 **Acceptance Criteria:**
+
 - **Given** Persona #1's data volume, **When** I trigger export, **Then** the JSON download starts within 60 s and validates against `schema-v1.json`.
 - **Given** the schema, **When** the payload renders, **Then** every top-level node has a `schema_version` field.
 
@@ -1134,6 +1182,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-50
 
 **Acceptance Criteria:**
+
 - **Given** an account with data across all user-scoped tables, **When** I confirm deletion, **Then** all rows cascade-delete and the Supabase Auth user is erased within 60 s.
 - **Given** the deletion, **When** I attempt to log in afterwards, **Then** Supabase rejects.
 
@@ -1153,6 +1202,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (no own FR — gates DR-4/11 + NFR-8/14)
 
 **Acceptance Criteria:**
+
 - **Given** a new table without RLS policies, **When** CI runs, **Then** the audit fails with the table name surfaced.
 - **Given** `docs/security.md`, **When** I read the encryption section, **Then** the Supabase tier's at-rest encryption mechanism is documented with verification steps.
 
@@ -1172,6 +1222,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (no own FR — gates DR-8 + NFR-22/23/24)
 
 **Acceptance Criteria:**
+
 - **Given** any seven-route page with a contrast violation, **When** CI runs axe, **Then** the build fails with the offending element surfaced.
 - **Given** the manual pass, **When** I navigate the app via VoiceOver, **Then** every interactive element is reachable and labelled.
 
@@ -1186,11 +1237,12 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **As a** Pekulo user, **I want** an AI transparency notice the first time the LLM produces a user-visible suggestion (and re-shown on opt-out → opt-in transitions), **so that** I am informed of AI involvement per EU AI Act transparency obligations.
 
-**Summary:** Owns the cross-route AI transparency notice **component** + opt-in → opt-out → opt-in re-trigger plumbing. Story `6-4-llm-suggestion-ui` *mounts* the component on the suggestion row (per-row trigger); this story owns the component lifecycle, the re-trigger logic, and the parametres-side surface. Reference: DR-12.
+**Summary:** Owns the cross-route AI transparency notice **component** + opt-in → opt-out → opt-in re-trigger plumbing. Story `6-4-llm-suggestion-ui` _mounts_ the component on the suggestion row (per-row trigger); this story owns the component lifecycle, the re-trigger logic, and the parametres-side surface. Reference: DR-12.
 
 **Covered FRs:** (no own FR — gates DR-12)
 
 **Acceptance Criteria:**
+
 - **Given** my first ever LLM-visible suggestion, **When** the row renders, **Then** the notice appears once and is dismissible.
 - **Given** I opt out then opt back in, **When** the next suggestion appears, **Then** the notice is re-shown.
 
@@ -1210,6 +1262,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** (no own FR — gates NFR-21/25/27)
 
 **Acceptance Criteria:**
+
 - **Given** the drill, **When** I restore the latest snapshot to a staging Supabase project, **Then** the result is documented in `docs/security.md` and the procedure is runnable from the doc.
 - **Given** an unhandled error in `apps/api`, **When** it fires, **Then** the trace lands in GlitchTip with PII scrubbed.
 

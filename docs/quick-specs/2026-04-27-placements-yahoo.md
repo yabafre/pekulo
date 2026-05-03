@@ -44,10 +44,12 @@ Yahoo uses a single `symbol` field. We resolve in this order:
 ## Files to Change
 
 **New (2)**
+
 - `src/lib/services/yahoo-finance.ts` — `fetchYahooQuote`, in-memory 60 s cache, `YahooError` class, symbol resolver helper `resolveYahooSymbol(ticker, currency)`.
-- *(no new UI files — buttons added inline to existing components)*
+- _(no new UI files — buttons added inline to existing components)_
 
 **Edited (3)**
+
 - `src/lib/actions/portfolio.ts` — add `refreshHoldingPrice` and `refreshAllPrices` actions.
 - `src/app/dashboard/portefeuille/_components/holdings-section.tsx` — per-row Auto-refresh button + global "Refresh tous" + status feedback area.
 - `src/lib/types.ts` — add `RefreshSummary = { updated: number; failed: Array<{ id: string; label: string; reason: string }> }`.

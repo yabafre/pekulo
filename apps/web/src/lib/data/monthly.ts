@@ -1,27 +1,27 @@
-import "server-only"
-import { createClient } from "@/lib/supabase/server"
-import type { MonthlyEntry } from "@/lib/types"
+import "server-only";
+import { createClient } from "@/lib/supabase/server";
+import type { MonthlyEntry } from "@/lib/types";
 
 export async function readMonthlyEntries(): Promise<MonthlyEntry[]> {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return []
+    } = await supabase.auth.getUser();
+    if (!user) return [];
 
     const { data, error } = await supabase
       .from("monthly_tracking")
       .select("*")
       .eq("user_id", user.id)
       .order("year", { ascending: true })
-      .order("month_num", { ascending: true })
+      .order("month_num", { ascending: true });
 
-    if (error || !data) return []
+    if (error || !data) return [];
 
-    return data.map(rowToEntry)
+    return data.map(rowToEntry);
   } catch {
-    return []
+    return [];
   }
 }
 
@@ -37,5 +37,5 @@ function rowToEntry(row: Record<string, unknown>): MonthlyEntry {
     remote: Number(row.remote),
     freelance: Number(row.freelance),
     epargneMois: Number(row.epargne_mois),
-  }
+  };
 }

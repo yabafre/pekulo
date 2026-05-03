@@ -1,13 +1,7 @@
-"use client"
+"use client";
 
-import { Cell, Label, Pie, PieChart } from "recharts"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Cell, Label, Pie, PieChart } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartLegend,
@@ -15,11 +9,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
-import type { BudgetItem } from "@/lib/types"
+} from "@/components/ui/chart";
+import type { BudgetItem } from "@/lib/types";
 
 interface BudgetChartProps {
-  data: BudgetItem[]
+  data: BudgetItem[];
 }
 
 const palette = [
@@ -28,22 +22,22 @@ const palette = [
   "var(--chart-3)",
   "var(--chart-4)",
   "var(--chart-5)",
-]
+];
 
 export function BudgetChart({ data }: BudgetChartProps) {
   const pieData = data.flatMap((item) => {
     if (item.sousItems?.length) {
-      return item.sousItems.map((s) => ({ name: s.label, value: s.montant }))
+      return item.sousItems.map((s) => ({ name: s.label, value: s.montant }));
     }
-    return [{ name: item.categorie, value: item.montant }]
-  })
+    return [{ name: item.categorie, value: item.montant }];
+  });
 
-  const total = pieData.reduce((acc, p) => acc + p.value, 0)
+  const total = pieData.reduce((acc, p) => acc + p.value, 0);
 
   const config = pieData.reduce<ChartConfig>((acc, item, i) => {
-    acc[item.name] = { label: item.name, color: palette[i % palette.length] }
-    return acc
-  }, {})
+    acc[item.name] = { label: item.name, color: palette[i % palette.length] };
+    return acc;
+  }, {});
 
   return (
     <Card>
@@ -82,7 +76,7 @@ export function BudgetChart({ data }: BudgetChartProps) {
               ))}
               <Label
                 content={({ viewBox }) => {
-                  if (!viewBox || !("cx" in viewBox)) return null
+                  if (!viewBox || !("cx" in viewBox)) return null;
                   return (
                     <text
                       x={viewBox.cx}
@@ -105,7 +99,7 @@ export function BudgetChart({ data }: BudgetChartProps) {
                         Total mensuel
                       </tspan>
                     </text>
-                  )
+                  );
                 }}
               />
             </Pie>
@@ -114,5 +108,5 @@ export function BudgetChart({ data }: BudgetChartProps) {
         </ChartContainer>
       </CardContent>
     </Card>
-  )
+  );
 }

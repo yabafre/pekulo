@@ -2,8 +2,8 @@
   "name": "@pekulo/types",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "Pekulo shared TypeScript types — placeholder; UserId, CompassSnapshot, LlmRoute, PriceQuote, MonthlyRecord land in follow-up stories per ADR-0011.",
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {

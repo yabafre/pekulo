@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { useActionQuery } from "@zapaction/query"
-import { Plus, Pencil } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useMemo, useState } from "react";
+import { useActionQuery } from "@zapaction/query";
+import { Plus, Pencil } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -11,27 +11,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { getTransactions } from "@/lib/actions/transactions"
-import { TRANSACTION_CATEGORY_LABELS } from "@/lib/schemas/transactions"
-import { transactionsKeys } from "@/lib/zapaction/keys"
-import type {
-  Transaction,
-  TransactionCategory,
-  TransactionType,
-} from "@/lib/types"
-import { TransactionForm } from "./transaction-form"
+} from "@/components/ui/select";
+import { getTransactions } from "@/lib/actions/transactions";
+import { TRANSACTION_CATEGORY_LABELS } from "@/lib/schemas/transactions";
+import { transactionsKeys } from "@/lib/zapaction/keys";
+import type { Transaction, TransactionCategory, TransactionType } from "@/lib/types";
+import { TransactionForm } from "./transaction-form";
 
 function formatEuro(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €"
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " €";
 }
 
 function formatDate(iso: string) {
@@ -39,27 +35,37 @@ function formatDate(iso: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(new Date(iso))
+  }).format(new Date(iso));
 }
 
 const MONTHS = [
-  "janv.", "févr.", "mars", "avr.", "mai", "juin",
-  "juil.", "août", "sept.", "oct.", "nov.", "déc.",
-]
+  "janv.",
+  "févr.",
+  "mars",
+  "avr.",
+  "mai",
+  "juin",
+  "juil.",
+  "août",
+  "sept.",
+  "oct.",
+  "nov.",
+  "déc.",
+];
 
 export function TransactionsList({
   initialData,
   defaultYear,
   defaultMonth,
 }: {
-  initialData: Transaction[]
-  defaultYear: number
-  defaultMonth: number
+  initialData: Transaction[];
+  defaultYear: number;
+  defaultMonth: number;
 }) {
-  const [year, setYear] = useState(defaultYear)
-  const [monthNum, setMonthNum] = useState<number | "all">(defaultMonth)
-  const [type, setType] = useState<TransactionType | "all">("all")
-  const [editing, setEditing] = useState<Transaction | "new" | null>(null)
+  const [year, setYear] = useState(defaultYear);
+  const [monthNum, setMonthNum] = useState<number | "all">(defaultMonth);
+  const [type, setType] = useState<TransactionType | "all">("all");
+  const [editing, setEditing] = useState<Transaction | "new" | null>(null);
 
   const filterInput = useMemo(
     () => ({
@@ -68,40 +74,36 @@ export function TransactionsList({
       type: type === "all" ? undefined : type,
       limit: 100,
     }),
-    [year, monthNum, type]
-  )
+    [year, monthNum, type],
+  );
 
   const queryKey = useMemo(
-    () => [
-      ...transactionsKeys.list(),
-      year,
-      monthNum,
-      type,
-    ],
-    [year, monthNum, type]
-  )
+    () => [...transactionsKeys.list(), year, monthNum, type],
+    [year, monthNum, type],
+  );
 
   const query = useActionQuery(getTransactions, {
     queryKey,
     input: filterInput,
     readPolicy: "read-only",
-    initialData: monthNum === defaultMonth && year === defaultYear && type === "all" ? initialData : undefined,
-  })
+    initialData:
+      monthNum === defaultMonth && year === defaultYear && type === "all" ? initialData : undefined,
+  });
 
-  const rows = useMemo(() => query.data ?? [], [query.data])
+  const rows = useMemo(() => query.data ?? [], [query.data]);
 
   const totals = useMemo(() => {
-    let inflow = 0
-    let outflow = 0
-    let imprevuInflow = 0
-    let imprevuOutflow = 0
+    let inflow = 0;
+    let outflow = 0;
+    let imprevuInflow = 0;
+    let imprevuOutflow = 0;
     for (const t of rows) {
       if (t.type === "inflow") {
-        inflow += t.amount
-        if (t.isImprevu) imprevuInflow += t.amount
+        inflow += t.amount;
+        if (t.isImprevu) imprevuInflow += t.amount;
       } else {
-        outflow += t.amount
-        if (t.isImprevu) imprevuOutflow += t.amount
+        outflow += t.amount;
+        if (t.isImprevu) imprevuOutflow += t.amount;
       }
     }
     return {
@@ -110,14 +112,14 @@ export function TransactionsList({
       net: inflow - outflow,
       imprevuInflow,
       imprevuOutflow,
-    }
-  }, [rows])
+    };
+  }, [rows]);
 
   const years = useMemo(() => {
-    const out: number[] = []
-    for (let y = 2026; y <= 2031; y++) out.push(y)
-    return out
-  }, [])
+    const out: number[] = [];
+    for (let y = 2026; y <= 2031; y++) out.push(y);
+    return out;
+  }, []);
 
   return (
     <>
@@ -135,9 +137,7 @@ export function TransactionsList({
           value={formatEuro(totals.imprevuOutflow)}
           accent="muted"
           sub={
-            totals.imprevuInflow > 0
-              ? `+ ${formatEuro(totals.imprevuInflow)} entrées`
-              : undefined
+            totals.imprevuInflow > 0 ? `+ ${formatEuro(totals.imprevuInflow)} entrées` : undefined
           }
         />
       </div>
@@ -174,10 +174,7 @@ export function TransactionsList({
           </SelectContent>
         </Select>
 
-        <Select
-          value={type}
-          onValueChange={(v) => setType(v as TransactionType | "all")}
-        >
+        <Select value={type} onValueChange={(v) => setType(v as TransactionType | "all")}>
           <SelectTrigger size="sm" className="w-32">
             <SelectValue />
           </SelectTrigger>
@@ -216,7 +213,9 @@ export function TransactionsList({
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="whitespace-nowrap">{formatDate(row.occurredOn)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDate(row.occurredOn)}
+                    </TableCell>
                     <TableCell>
                       <div className="font-medium">{row.label}</div>
                       {row.notes && (
@@ -265,13 +264,13 @@ export function TransactionsList({
       <TransactionForm
         open={editing !== null}
         onOpenChange={(open) => {
-          if (!open) setEditing(null)
+          if (!open) setEditing(null);
         }}
         editing={editing === "new" ? null : editing}
         defaultDate={`${year}-${String(monthNum === "all" ? defaultMonth : monthNum).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`}
       />
     </>
-  )
+  );
 }
 
 function Kpi({
@@ -280,17 +279,17 @@ function Kpi({
   sub,
   accent,
 }: {
-  label: string
-  value: string
-  sub?: string
-  accent: "emerald" | "destructive" | "muted"
+  label: string;
+  value: string;
+  sub?: string;
+  accent: "emerald" | "destructive" | "muted";
 }) {
   const color =
     accent === "emerald"
       ? "text-emerald-600"
       : accent === "destructive"
         ? "text-destructive"
-        : "text-foreground"
+        : "text-foreground";
   return (
     <Card>
       <CardContent className="p-4">
@@ -299,6 +298,5 @@ function Kpi({
         {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </CardContent>
     </Card>
-  )
+  );
 }
-

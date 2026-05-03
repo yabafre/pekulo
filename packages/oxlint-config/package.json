@@ -2,8 +2,8 @@
   "name": "@pekulo/oxlint-config",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "Pekulo shared oxlint rules — placeholder; custom rules (no-server-action-in-component, no-cross-feature-action-import, no-prisma-query-without-user-id, no-tailwind-outside-ui) land in story 0-12.",
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
