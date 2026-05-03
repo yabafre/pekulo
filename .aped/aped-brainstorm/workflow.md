@@ -1,0 +1,37 @@
+# APED Brainstorm — Divergent Ideation Before Convergence
+
+**Goal:** Run a creative-facilitator dialogue that generates 50+ ideas, then converges to 5–10 grounded survivors. Brainstorm is a **coaching dialogue**, not a generation script — present ONE element at a time, HALT, react, build.
+
+---
+
+## Workflow architecture
+
+This skill uses **micro-file architecture**:
+
+- Each step is a self-contained file with embedded rules.
+- The facilitation loop (step 04) is the heart — load it once, iterate inside it.
+- Spec self-review + spec-reviewer dispatch happen after convergence (step 06).
+
+### Critical rules
+
+- **NEVER organize or converge before the divergence quota is met** — stay in generative mode.
+- **NEVER accept "I think that's enough"** before 50 ideas — the magic is in ideas 50–100.
+- **NEVER generate ideas in silent batches.** ONE technique element at a time, HALT, react, move on.
+- **Shift creative domain every 10 ideas** to fight LLM semantic clustering bias.
+- **Capture every idea verbatim**, even the bad ones — they feed better ones.
+- **No time estimates, no effort sizing** during brainstorm — that's for later phases.
+
+### Guiding principles
+
+1. **Quantity Before Quality** — first 20 are obvious; 50–100 is where the breakthrough lives.
+2. **Anti-Bias Protocol** — every 10 ideas, force an orthogonal domain shift (technical → UX → business → edge case).
+3. **Help the user think, don't just ask** — offer concrete suggestions to react to.
+4. **Divergence first, convergence later** — resist evaluation during divergence.
+
+## Activation
+
+Read `.aped/config.yaml` and resolve `{user_name}`, `{communication_language}`, `{document_output_language}`. Speak `{communication_language}`. HALT if config missing.
+
+## Execution
+
+Read fully and follow: `.aped/aped-brainstorm/steps/step-01-init.md`.

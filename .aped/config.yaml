@@ -1,0 +1,93 @@
+# APED Project Configuration
+project_name: test
+user_name: Alex
+communication_language: french
+document_output_language: english
+aped_path: .aped
+output_path: docs
+aped_version: 6.0.0
+
+# Integrations
+ticket_system: github-issues
+git_provider: github
+
+# aped-from-ticket — external ticket intake
+# All keys are optional; defaults shown below kick in when absent.
+from_ticket:
+  story_placement:
+    # mode: bucket | auto_match | ask
+    #   bucket     — always place under bucket_epic
+    #   auto_match — score against existing epics, fallback to bucket
+    #   ask        — present candidates + bucket, let user pick
+    mode: ask
+    # Epic key used when placement falls back to (or chooses) the bucket.
+    bucket_epic: external-tickets
+  ticket_comment:
+    # When true, post a comment on the source ticket after the story is drafted.
+    # Off by default to avoid noisy notifications during initial use.
+    enabled: false
+    # Template for the comment body. {story_path} is substituted at runtime.
+    template: "Picked up — story drafted at {story_path}"
+  sprint_integration:
+    # When true, the new story is appended to the active sprint's ordering.
+    # Off by default — the user explicitly promotes the story when ready.
+    auto_add: false
+  handoff:
+    # after_story: ask | stop | continue_to_dev
+    #   ask              — present [D]ev / [P]romote / [S]top options
+    #   stop             — report path and exit
+    #   continue_to_dev  — invoke aped-dev directly (no confirmation)
+    after_story: ask
+
+# Artefact placeholder lint — runs from the Self-review block of every
+# artefact-producing skill (PRD, architecture, story, epics, UX, retro,
+# brainstorm, prfaq, project-context, from-ticket).
+# Set enabled: false to opt out across all skills (e.g. for projects that
+# legitimately use TODO/TBD as in-document trackers).
+placeholder_lint:
+  enabled: true
+
+# Skill-invocation discipline (Tier 4). Governs whether the
+# "## Skill Invocation Discipline" block is rendered into CLAUDE.md by the
+# scaffold/update flow. Defaults on — it carries the 1%-rule and the
+# rationalization table that keep `aped-*` skill triggers honest.
+skill_invocation_discipline:
+  enabled: true   # If false, the CLAUDE.md "Skill Invocation Discipline" block is omitted.
+
+# Visual companion server for aped-brainstorm (opt-in, Tier 4).
+# Installation is gated on `aped-method visual-companion` so the default
+# scaffold ships nothing on disk; this block only configures the server
+# once the user opts in.
+visual_companion:
+  enabled: false  # Opt-in. Install via 'aped-method visual-companion'.
+  port: 3737      # HTTP port for the brainstorm visual companion server.
+
+# Sync-log audit trail (Tier 6, 3.12.0). Ticket-system operations in
+# aped-epics, aped-from-ticket, aped-ship and aped-course emit a
+# structured JSON log per sync via aped/scripts/sync-log.sh. Set
+# enabled: false to make the helper a silent no-op (every subcommand
+# exits 0 with empty stdout — useful when you don't want forensic logs
+# committed alongside the project, e.g. on personal scratch repos).
+# `dir` is project-relative and auto-created on first `start`.
+#
+# Retention (4.1.0+, opt-in). When `mode: keep_last_n`, every successful
+# `sync-log.sh end` prunes the oldest provider-scoped logs beyond `keep_last_n`
+# (newest by mtime are kept). Default `mode: none` preserves the previous
+# behaviour (logs accumulate forever). Use `aped-method sync-logs prune` for
+# a one-shot cleanup; default is dry-run, `--apply` actually deletes.
+sync_logs:
+  enabled: true
+  dir: "docs/sync-logs/"
+  # retention:
+  #   mode: keep_last_n      # none | keep_last_n
+  #   keep_last_n: 50        # used when mode = keep_last_n
+
+# State files (4.1.0+, schema v2). The corrections log was split out of
+# state.yaml to bound its growth. `corrections_path` is project-relative
+# and overrides the default below; state.yaml itself carries a
+# `corrections_pointer` that wins at runtime, so a config edit cannot
+# desync from already-written corrections. To move the file safely,
+# edit BOTH this key and the pointer inside state.yaml in lock-step.
+# Default tracks `output_path` so the sister file lives next to state.yaml.
+state:
+  corrections_path: "docs/state-corrections.yaml"

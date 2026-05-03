@@ -1,0 +1,84 @@
+# Example .workmux.yaml — copy to your repo root if you use workmux
+# (https://github.com/raine/workmux) alongside APED. aped-sprint detects
+# workmux automatically and will use it to spawn tmux windows with Claude
+# Code pre-launched per story.
+#
+# Docs: https://workmux.raine.dev/
+
+# Pane layout inside each worktree window.
+#
+# We hardcode `claude --permission-mode bypassPermissions` instead of the
+# generic `<agent>` placeholder for two reasons:
+#   1. Parallel sprints launch N worktrees at once; stopping to approve
+#      every tool call would defeat the whole point of parallelism.
+#   2. The project's `.claude/settings.local.json` (copied via files.copy
+#      below) already captures the allow/deny rules — bypassPermissions
+#      trusts that inventory. Keep that settings file honest.
+#
+# If you prefer interactive permissions per worktree, swap the command to
+# `claude` (or `<agent>` with `agent: claude` in global config).
+#
+# Alternative — named agent in global config (~/.config/workmux/config.yaml):
+#     agents:
+#       claude-yolo: "claude --permission-mode bypassPermissions"
+# Then here: `command: <claude-yolo>` (placeholder syntax). The agents map
+# is global-only (no project override), so hardcoding here keeps the project
+# self-contained — no user setup required beyond `workmux setup` for
+# status hooks + companion skills.
+#
+# Workmux auto-detects built-in agents (claude/gemini/codex/opencode/…) in
+# the pane command even with flags, so prompt injection via `workmux add -p`
+# still works.
+panes:
+  - command: claude --permission-mode bypassPermissions
+    focus: true
+  # Uncomment a dev-server pane if you want one automatically:
+  # - command: pnpm dev
+  #   split: horizontal
+  #   size: 30
+
+# Copy these paths into every new worktree.
+#
+# We copy `.claude/` and `.aped/` in full on purpose: many APED users
+# gitignore them as user-local tooling (the CloudVault setup, for instance,
+# ignores both), so a fresh worktree on a feature branch has NEITHER the
+# APED skill/hook machinery NOR the Claude settings. Without the copy, the
+# worktree's Claude Code session would fail on the very first prompt — the
+# UserPromptSubmit hook tries to invoke `.aped/hooks/guardrail.sh` and
+# misses.
+#
+# If your project tracks these paths (rare), the copy is a harmless duplicate
+# — git's tracked content is already there, workmux copies the same bytes on
+# top. No conflict, no divergence concern.
+#
+# Paths:
+#   .env*                       project secrets and per-env configs
+#   .mcp.json                   project-scoped Claude Code MCP servers
+#                               (Linear, Stripe, etc. — critical for
+#                               aped-story ticket fetches and aped-dev)
+#   .claude/                    commands, skills, settings (including
+#                               settings.local.json for permission sharing)
+#   .aped/                      full APED pipeline: skills, hooks, scripts,
+#                               templates, config.yaml. Includes hooks/
+#                               so guardrail.sh / upstream-lock.sh resolve
+#                               in the worktree
+#
+# Globs are supported. Add more entries if your project has extra files
+# (e.g., .vscode/settings.json, credentials, local overrides).
+files:
+  copy:
+    - .env*
+    - .mcp.json
+    - .claude/
+    - .aped/
+  # Symlink heavy dirs instead of copying — saves disk and install time.
+  symlink:
+    - node_modules
+
+# Commands run once per worktree right after creation.
+post_create:
+  - pnpm install --frozen-lockfile || npm install
+
+# Optional: automatic branch naming via LLM when you run `workmux add -A`.
+# auto_name:
+#   cli: claude

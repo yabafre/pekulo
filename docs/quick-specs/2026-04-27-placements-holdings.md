@@ -3,7 +3,17 @@
 **Date:** 2026-04-27
 **Author:** Alex
 **Type:** feature
-**Status:** draft
+**Status:** superseded (2026-05-03)
+
+> **This document is the original parent spec.** It was decomposed into the qs-04a → qs-04d series, all of which are now shipped or close to. Kept for historical context — the active state of the portfolio feature lives in the sub-specs below.
+>
+> **Superseded by:**
+> - `2026-04-27-placements-foundation.md` (qs-04a) — `accounts` + `holdings` tables, page `/dashboard/portefeuille`, KPIs, donut chart, dialogs, schema Supabase
+> - `2026-04-27-placements-yahoo.md` (qs-04b) — auto price refresh via Yahoo (replaces "manual price update only" from this spec)
+> - `2026-04-27-placements-yahoo-fallbacks.md` (qs-04b-bis) — Yahoo crumb + Twelve Data fallbacks
+> - `2026-04-27-placements-prices-rewrite.md` (qs-04b-final) — yahoo-finance2 npm + Python sidecar on Dokploy VPS
+> - `2026-04-27-placements-fx.md` (qs-04c) — multi-currency normalization to EUR (resolves Open Q3 "EUR only, no FX")
+> - `2026-04-27-placements-lots.md` (qs-04d) — `holding_lots` history table (resolves Open Q2 + Q4: `avg_cost` derivation + lot history)
 
 ## What
 
