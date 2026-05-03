@@ -18,6 +18,11 @@
     "docs/ux-preview/dist/",
     "bun.lock",
     "*.lock",
-    "apps/web/supabase-schema.sql"
+    "apps/web/supabase-schema.sql",
+    ".aped/",
+    ".agents/",
+    "docs/state.yaml",
+    "docs/state-corrections.yaml",
+    "docs/sync-logs/"
   ]
 }
