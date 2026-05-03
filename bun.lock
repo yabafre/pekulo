@@ -58,6 +58,14 @@
         "typescript": "^5.6.0",
       },
     },
+    "packages/oxlint-config": {
+      "name": "@pekulo/oxlint-config",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@pekulo/tsconfig": "workspace:*",
+        "typescript": "^5.6.0",
+      },
+    },
     "packages/tsconfig": {
       "name": "@pekulo/tsconfig",
       "version": "0.0.0",
@@ -330,6 +338,8 @@
     "@open-draft/until": ["@open-draft/until@2.1.0", "", {}, "sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg=="],
 
     "@pekulo/contracts": ["@pekulo/contracts@workspace:packages/contracts"],
+
+    "@pekulo/oxlint-config": ["@pekulo/oxlint-config@workspace:packages/oxlint-config"],
 
     "@pekulo/tsconfig": ["@pekulo/tsconfig@workspace:packages/tsconfig"],
 
