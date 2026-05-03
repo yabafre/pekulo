@@ -1,0 +1,12 @@
+{
+  "name": "@pekulo/tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared TypeScript presets for Pekulo workspaces (base, apps, packages, next).",
+  "files": [
+    "base.json",
+    "apps.json",
+    "packages.json",
+    "next.json"
+  ]
+}
