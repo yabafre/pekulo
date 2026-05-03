@@ -824,4 +824,107 @@ AC-3d PASS (lint=oxlint format=oxfmt)
 
 ## Review Record
 
-_(aped-review fills after dev hands back. Mirrors 0-1's Review Record shape: specialists dispatched, findings, ticket sync, PR link.)_
+**Date:** 2026-05-04
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Kai, Lucas)
+**Verdict:** done — all findings either fixed in-branch (`fix(#2):` commits `3ab5ee9` + `6c6cc8f`) or recorded as forward-pointers to downstream stories (0-8, 0-11, 0-12) with corresponding lessons.md entries.
+
+### Specialists dispatched
+
+- **Eva** (ac-validator) — initial: CHANGES_REQUESTED, HIGH confidence (caught AC-2 idempotence broken at branch HEAD + AC-3c stale `find` in Task 7); post-fix re-run: APPROVED, all ACs PASS.
+- **Marcus** (code-quality / 5-anti-pattern audit) — APPROVED, HIGH confidence with 5 forward-pointer minors. All 5 testing anti-patterns N/A (config story). Exact pins verified, lockfile clean, format-pass diff confirmed mechanical-only on 5-file sample.
+- **Rex** (git-auditor) — APPROVED, HIGH confidence. Out-of-scope: zero. 11/11 commits carry `feat(#2):` / `chore(#2):` / `fix(#2):` prefixes; linear history; no untracked-file pollution beyond `.aped/.last-test-exit` (expected runtime artefact). Detected git-audit script parser limitations on bold-header File List entries (forward-pointer for APED engine).
+- **Kai** (devops-specialist) — APPROVED, HIGH confidence with 1 MAJOR forward-pointer (Story 0-11 `--staged` flag does NOT exist in `oxlint@1.62.0` / `oxfmt@0.47.0`; lefthook must use `{staged_files}` variable expansion). All end-to-end smokes PASS: `bun install --frozen-lockfile` exit 0, `bun run lint` / `lint:fix` / `format` / `format:check` exit 0.
+- **Lucas** (frontend-specialist) — initial: CHANGES_REQUESTED, HIGH confidence (3 MAJOR + 2 MINOR); post-fix re-run: APPROVED. Caught silent regression on `react/rules-of-hooks` (oxlint classes Pedantic, our category posture set pedantic:off → eslint-config-next gated as error → real correctness gap), 1386 obsolete `react/react-in-jsx-scope` warnings drowning signal, 21 false-positive `import/no-unassigned-import` hits on Next.js patterns.
+
+Stage 1.5 (parallel adversarial reviewers) was OFF for this review (`config.yaml` does not set `review.parallel_reviewers: true`).
+
+### Findings (consolidated, 14 total)
+
+#### Resolved (fixed in-branch)
+
+- **CR-1 [CRITICAL] AC-2 idempotence broken at branch HEAD `605b1d0`** — `bun run format` rewrote `docs/stories/0-2-oxc-toolchain.md` on every run (oxfmt markdown emphasis normalization: `*root*` → `_root_`, `packages/*` → `packages/\*` inside quoted strings). Task 7 verification was taken before the story file was committed in its final form, masking the breakage.
+  - **Source:** Eva.
+  - **Resolution:** commit `3ab5ee9` `fix(#2): expand .oxfmtrc.json ignorePatterns + correct Task 7 AC-3c find` — added `docs/stories/` to `.oxfmtrc.json` ignorePatterns (matches existing `.aped/`, `docs/state.yaml` immutability posture). Re-verified `git status --porcelain` empty post-format.
+
+- **CR-2 [CRITICAL → MINOR] Task 7 AC-3c `find` invocation stale** — story's literal `-path ./node_modules -prune -o` prunes only root `node_modules`; fails to hide vendored upstream Prettier configs in `apps/web/node_modules/{recast,zod-to-json-schema,tough-cookie-file-store}/`. Dev Agent Record corrected the invocation (line 728) but didn't patch Task 7.
+  - **Source:** Eva.
+  - **Resolution:** commit `3ab5ee9` — Task 7 AC-3c block now uses `\( -name node_modules -o -name .next -o -name dist -o -name build \) -prune -o`.
+
+- **M-1 [MAJOR] `react/rules-of-hooks` silently dropped** — oxlint classes the rule under `Pedantic`, `.oxlintrc.json` set `pedantic: off`. eslint-config-next/core-web-vitals (the retired ruleset) gated rules-of-hooks as error via eslint-plugin-react-hooks. ADR-0004 promised "drop-in for the rules currently active" — exception not documented. Real correctness regression on a load-bearing React 19 invariant (hooks must not be called conditionally).
+  - **Source:** Lucas.
+  - **Resolution:** commit `6c6cc8f` `fix(#2): tune .oxlintrc.json rules + ignorePatterns per aped-review findings` — promoted `react/rules-of-hooks` to `error` in `.oxlintrc.json` rules block. Post-fix re-run: 0 violations on current codebase (clean baseline; future changes now gated).
+
+- **M-2 [MAJOR] 1386 `react/react-in-jsx-scope` warnings drown signal** — rule obsolete since React 17 automatic JSX runtime; React 19 (`19.2.4`) makes it dead code. Multi-specialist convergence (Lucas + Marcus + Kai). 97% of total warning count.
+  - **Source:** Lucas, Marcus, Kai.
+  - **Resolution:** commit `6c6cc8f` — `react/react-in-jsx-scope: "off"` globally. Warning count dropped 1421 → 11 (99.2% noise reduction).
+
+- **M-3 [MAJOR] 21 `import/no-unassigned-import` hits = false positives on Next.js patterns** — 12 hits are `import "server-only"` (canonical Next.js server-boundary directive); remainder are CSS side-effect imports + `next-env.d.ts` reference. All intentional.
+  - **Source:** Lucas.
+  - **Resolution:** commit `6c6cc8f` — `import/no-unassigned-import: "off"` globally.
+
+- **m-5 [MINOR] `_reason` annotation missing on `jsx-a11y/label-has-associated-control` override** — story Task 4 option 2 (line 503) mandates `_reason` on rule disables.
+  - **Source:** Lucas.
+  - **Resolution:** **NOT applied as designed in commit `6c6cc8f` — discovered during fix-cycle that oxlint REJECTS the array form `["off", { _reason: "..." }]` for rules without an options-schema** (error: `Rule does not accept configuration options`). Recorded as a lessons.md entry; story 0-12 (`@pekulo/oxlint-config`) should provide a centralized rule-rationale mechanism (sidecar doc keyed by rule name) instead of inlining. The story's Task 4 option 2 wording is incorrect; future story-template tweak should reflect this.
+
+- **m-6 [MINOR] `.oxlintrc.json` `ignorePatterns` asymmetric vs. `.oxfmtrc.json`** — `.oxfmtrc.json` excludes `.aped/`, `.agents/`, `docs/sync-logs/` (CLAUDE.md immutability posture), but `.oxlintrc.json` did not. Latent footgun.
+  - **Source:** Marcus, Kai.
+  - **Resolution:** commit `6c6cc8f` — mirrored the immutability set into `.oxlintrc.json` ignorePatterns. Also added `docs/ux-preview/` (Marcus M-MINOR-1 — preview app has its own ESLint pipeline, off-scope for root oxlint).
+
+- **m-8 [MINOR] Story Completion Notes warning tally undercounts by 5** — claim 1416, oxlint reported 1421. Missing categories: `eslint(no-shadow)` ×3, `eslint(no-await-in-loop)` ×2.
+  - **Source:** Lucas.
+  - **Resolution:** commit `6c6cc8f` — Completion Notes rewritten to reflect post-tuning final tally (11 warnings, all signal) AND the pre-tuning measurement (1421) for traceability.
+
+#### Dismissed (recorded as forward-pointers)
+
+- **m-4 [MINOR] `--staged` CLI flag does not exist on `oxlint@1.62.0` / `oxfmt@0.47.0`** — story 0-11 (lefthook) and the architecture reference (line ~617-622) both quote literal `--staged` invocations that will fail with unknown-flag.
+  - **Source:** Kai.
+  - **Resolution:** lessons.md entry (Scope: aped-arch, aped-story, aped-dev — story 0-11) + story line 227 patched to reflect lefthook variable expansion (`{staged_files}`). Architecture.md edit deferred to whoever lands first between 0-8 / 0-11.
+
+- **m-7 [MINOR] `settings.react.version` hard-coded `"19.2.4"` — drift footgun on React bump** — Lucas suggested `"detect"`. Verified during fix-cycle: oxlint's schema enforces SemVer regex (`^[1-9]\d*(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?$`); `"detect"` rejected at config-parse time.
+  - **Source:** Marcus, Lucas.
+  - **Rationale:** kept hard-coded value; lessons.md entry added so future React bumps update both `apps/web/package.json` and `.oxlintrc.json` in lockstep. Forward-pointer: story 0-12 should centralize via `@pekulo/oxlint-config`.
+
+- **m-9 [MINOR] `docs/ux-preview/` linted by root oxlint despite carrying its own ESLint pipeline** — preview app standalone with own `eslint.config.js`. Not in workspaces glob, so root install doesn't pull its devDeps; oxlint walked source anyway.
+  - **Source:** Marcus.
+  - **Resolution:** commit `6c6cc8f` — added `docs/ux-preview/` to `.oxlintrc.json` ignorePatterns (folded into m-6 fix).
+
+- **m-10 [MINOR] Stale `apps/web/node_modules/.bin/eslint` symlink** — Bun did not GC the dangling symlink after `eslint` was removed from devDeps in commit `2c504ac`.
+  - **Source:** Marcus.
+  - **Rationale:** cosmetic; resolves on next `rm -rf node_modules && bun install`. CI starts from a clean `bun install` so the issue does not bite there. Forward-pointer (optional) for story 0-8 to nuke stray symlinks via the CI workflow.
+
+- **m-11 [MINOR] No bumper-rail against future Prettier-config reintroduction** — AC-3c only validates state at story-completion time. ADR-0004's "audit on every bump" mandate is informal.
+  - **Source:** Marcus.
+  - **Rationale:** explicit forward-pointer to story 0-11 (lefthook) and/or 0-8 (CI matrix) to fold the AC-3c find into a permanent guard.
+
+- **m-12 [MINOR] git-audit.sh script parser limitations** — false positives on File List bold headers; over-reports on the 149-file format-pass commit because story uses an aggregate marker rather than enumerating all 149 paths.
+  - **Source:** Rex.
+  - **Rationale:** APED-tooling concern, not Pekulo code. Forward-pointer: a focused `chore(aped):` ticket on the APED-method repo (parser improvement: extract only backtick-wrapped names, OR add `<!-- file-list:start -->...<!-- file-list:end -->` block convention).
+
+- **R-INFO [pre-existing hygiene] `apps/web/supabase/.temp/linked-project.json` checked into git** — contains Supabase project ref + organization slug. Pre-existed in initial commit; only reformatted by `aba85c7`.
+  - **Source:** Rex.
+  - **Rationale:** out of 0-2 scope (not introduced by this branch). Follow-up ticket: `gitignore **/supabase/.temp/` + `git rm --cached`.
+
+### Verification (final, post fix(#2) `6c6cc8f`)
+
+- **Test commands:** `bun run lint` (AC-1), `bun run format` + `git status --porcelain` (AC-2), 4× shell asserts (AC-3a/b/c/d).
+- **Test output (final pass):**
+  ```
+  AC-1: Found 11 warnings and 0 errors. Finished in 72ms on 101 files with 156 rules. exit 0.
+  AC-2: $ oxfmt — Finished in 401ms on 188 files using 10 threads. AC-2 PASS (idempotent).
+  AC-3a PASS · AC-3b PASS · AC-3c PASS · AC-3d PASS (lint=oxlint format=oxfmt).
+  ```
+- **Visual verification:** N/A — config story, no UI render delta.
+- **Branch state:** working tree clean except `.aped/.last-test-exit` (expected runtime artefact); 11 commits since divergence; linear history; all `feat(#2):` / `chore(#2):` / `fix(#2):` prefixed.
+
+### Lessons captured (`docs/lessons.md`)
+
+3 entries added (Scope: aped-arch, aped-story, aped-dev — stories 0-11 + 0-12):
+
+1. `oxlint`/`oxfmt` have no `--staged` CLI flag (Story 0-11 must use lefthook `{staged_files}`).
+2. oxlint rejects `_reason` annotation on rules without options-schema (Story 0-2 Task 4 option 2 wording is incorrect).
+3. oxlint `settings.react.version` requires SemVer string, no `"detect"` (eslint plugin behaviour does not carry over to oxlint's native Rust port).
+
+### Ticket sync
+
+- Ticket comment: posted on [#2](https://github.com/yabafre/pekulo/issues/2).
+- PR opened: pending push (story PR will target `main` — sprint umbrella not configured in `state.yaml`; matches 0-1's pattern).
