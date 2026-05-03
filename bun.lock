@@ -58,6 +58,18 @@
         "typescript": "^5.6.0",
       },
     },
+    "packages/validators": {
+      "name": "@pekulo/validators",
+      "version": "0.0.0",
+      "dependencies": {
+        "@pekulo/types": "workspace:*",
+        "@pekulo/zod": "workspace:*",
+      },
+      "devDependencies": {
+        "@pekulo/tsconfig": "workspace:*",
+        "typescript": "^5.6.0",
+      },
+    },
     "packages/zod": {
       "name": "@pekulo/zod",
       "version": "0.0.0",
@@ -308,6 +320,8 @@
     "@pekulo/tsconfig": ["@pekulo/tsconfig@workspace:packages/tsconfig"],
 
     "@pekulo/types": ["@pekulo/types@workspace:packages/types"],
+
+    "@pekulo/validators": ["@pekulo/validators@workspace:packages/validators"],
 
     "@pekulo/zod": ["@pekulo/zod@workspace:packages/zod"],
 
