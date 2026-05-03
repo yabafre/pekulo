@@ -23,6 +23,7 @@
     ".agents/",
     "docs/state.yaml",
     "docs/state-corrections.yaml",
-    "docs/sync-logs/"
+    "docs/sync-logs/",
+    "docs/stories/"
   ]
 }

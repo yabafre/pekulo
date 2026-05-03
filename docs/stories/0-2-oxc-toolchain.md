@@ -670,7 +670,9 @@ Expected output: `AC-3b PASS`.
 
 ```bash
 echo "===== AC-3c: no Prettier config in repo ====="
-PFILES=$(find . -path ./node_modules -prune -o \
+# NOTE: prune nested workspace node_modules (apps/web/node_modules/...) AND build dirs;
+# the original `-path ./node_modules -prune` only pruned the root node_modules.
+PFILES=$(find . \( -name node_modules -o -name .next -o -name dist -o -name build \) -prune -o \
   \( -name '.prettierrc' -o -name '.prettierrc.json' -o -name '.prettierrc.js' -o -name '.prettierrc.cjs' -o -name '.prettierrc.mjs' -o -name '.prettierrc.yaml' -o -name '.prettierrc.yml' -o -name 'prettier.config.js' -o -name 'prettier.config.cjs' -o -name 'prettier.config.mjs' -o -name 'prettier.config.ts' \) -print 2>/dev/null)
 if [ -z "$PFILES" ]; then
   echo "AC-3c PASS"
