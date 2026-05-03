@@ -46,6 +46,18 @@
         "typescript": "^5",
       },
     },
+    "packages/contracts": {
+      "name": "@pekulo/contracts",
+      "version": "0.0.0",
+      "dependencies": {
+        "@pekulo/types": "workspace:*",
+        "@pekulo/validators": "workspace:*",
+      },
+      "devDependencies": {
+        "@pekulo/tsconfig": "workspace:*",
+        "typescript": "^5.6.0",
+      },
+    },
     "packages/tsconfig": {
       "name": "@pekulo/tsconfig",
       "version": "0.0.0",
@@ -316,6 +328,8 @@
     "@open-draft/logger": ["@open-draft/logger@0.3.0", "", { "dependencies": { "is-node-process": "^1.2.0", "outvariant": "^1.4.0" } }, "sha512-X2g45fzhxH238HKO4xbSr7+wBS8Fvw6ixhTDuvLd5mqh6bJJCFAPwU9mPDxbcrRtfxv4u5IHCEH77BmxvXmmxQ=="],
 
     "@open-draft/until": ["@open-draft/until@2.1.0", "", {}, "sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg=="],
+
+    "@pekulo/contracts": ["@pekulo/contracts@workspace:packages/contracts"],
 
     "@pekulo/tsconfig": ["@pekulo/tsconfig@workspace:packages/tsconfig"],
 
