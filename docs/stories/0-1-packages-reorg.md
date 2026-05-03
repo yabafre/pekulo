@@ -21,7 +21,7 @@
 
 - **AC-1** **Given** a fresh checkout of the repository, **When** I run `bun install` from the repo root, **Then** Bun resolves all seven `@pekulo/*` workspaces with no errors and `bun pm ls` lists each one (`@pekulo/zod`, `@pekulo/types`, `@pekulo/validators`, `@pekulo/contracts`, `@pekulo/tsconfig`, `@pekulo/oxlint-config`, `@pekulo/ui`).
 
-- **AC-2** **Given** `@pekulo/tsconfig` exists with the four presets (`base.json`, `apps.json`, `packages.json`, `next.json`), **When** I run `bun --cwd packages/<pkg> run typecheck` for each of the six other packages (`zod`, `types`, `validators`, `contracts`, `oxlint-config`, `ui`), **Then** each package's `tsconfig.json` resolves the `extends "@pekulo/tsconfig/packages.json"` reference and `tsc --noEmit` exits 0 — confirming `strict: true` applies uniformly.
+- **AC-2** **Given** `@pekulo/tsconfig` exists with the four presets (`base.json`, `apps.json`, `packages.json`, `next.json`), **When** I run `(cd packages/<pkg> && bun run typecheck)` for each of the six other packages (`zod`, `types`, `validators`, `contracts`, `oxlint-config`, `ui`), **Then** each package's `tsconfig.json` resolves the `extends "@pekulo/tsconfig/packages.json"` reference and `tsc --noEmit` exits 0 — confirming `strict: true` applies uniformly.
 
 - **AC-3** **Given** the import hierarchy declared in ADR-0011 (`@pekulo/zod → @pekulo/validators → @pekulo/contracts → apps`, with `@pekulo/types` consumed bidirectionally), **When** I inspect each package's `dependencies` field in its `package.json`, **Then** `@pekulo/validators` lists `@pekulo/zod` and `@pekulo/types` as `workspace:*` dependencies, `@pekulo/contracts` lists `@pekulo/validators` and `@pekulo/types` as `workspace:*` dependencies, and the upstream packages (`@pekulo/zod`, `@pekulo/types`, `@pekulo/tsconfig`, `@pekulo/oxlint-config`, `@pekulo/ui`) declare zero `@pekulo/*` runtime dependencies.
 
@@ -351,8 +351,8 @@ export {};
 }
 ```
 
-Run: `bun install && bun --cwd packages/zod run typecheck`
-Expected output: `bun install` exits 0; `bun --cwd packages/zod run typecheck` produces no output and exits 0.
+Run: `bun install && (cd packages/zod && bun run typecheck)`
+Expected output: `bun install` exits 0; `(cd packages/zod && bun run typecheck)` invokes `tsc --noEmit` and exits 0.
 
 Commit:
 ```bash
@@ -409,8 +409,8 @@ export {};
 }
 ```
 
-Run: `bun install && bun --cwd packages/types run typecheck`
-Expected output: `bun install` exits 0; `bun --cwd packages/types run typecheck` exits 0 with no output.
+Run: `bun install && (cd packages/types && bun run typecheck)`
+Expected output: `bun install` exits 0; `(cd packages/types && bun run typecheck)` invokes `tsc --noEmit` and exits 0.
 
 Commit:
 ```bash
@@ -471,8 +471,8 @@ export {};
 }
 ```
 
-Run: `bun install && bun --cwd packages/validators run typecheck`
-Expected output: `bun install` resolves `@pekulo/zod` + `@pekulo/types` from the workspace (no network fetch for those names) and exits 0; `bun --cwd packages/validators run typecheck` exits 0.
+Run: `bun install && (cd packages/validators && bun run typecheck)`
+Expected output: `bun install` resolves `@pekulo/zod` + `@pekulo/types` from the workspace (no network fetch for those names) and exits 0; `(cd packages/validators && bun run typecheck)` invokes `tsc --noEmit` and exits 0.
 
 Commit:
 ```bash
@@ -533,8 +533,8 @@ export {};
 }
 ```
 
-Run: `bun install && bun --cwd packages/contracts run typecheck`
-Expected output: `bun install` exits 0; `bun --cwd packages/contracts run typecheck` exits 0.
+Run: `bun install && (cd packages/contracts && bun run typecheck)`
+Expected output: `bun install` exits 0; `(cd packages/contracts && bun run typecheck)` invokes `tsc --noEmit` and exits 0.
 
 Commit:
 ```bash
@@ -590,8 +590,8 @@ export {};
 }
 ```
 
-Run: `bun install && bun --cwd packages/oxlint-config run typecheck`
-Expected output: `bun install` exits 0; `bun --cwd packages/oxlint-config run typecheck` exits 0.
+Run: `bun install && (cd packages/oxlint-config && bun run typecheck)`
+Expected output: `bun install` exits 0; `(cd packages/oxlint-config && bun run typecheck)` invokes `tsc --noEmit` and exits 0.
 
 Commit:
 ```bash
@@ -648,8 +648,8 @@ export {};
 }
 ```
 
-Run: `bun install && bun --cwd packages/ui run typecheck`
-Expected output: `bun install` exits 0; `bun --cwd packages/ui run typecheck` exits 0.
+Run: `bun install && (cd packages/ui && bun run typecheck)`
+Expected output: `bun install` exits 0; `(cd packages/ui && bun run typecheck)` invokes `tsc --noEmit` and exits 0.
 
 Commit:
 ```bash
@@ -701,7 +701,7 @@ Expected output (lines may include path suffixes; the seven names must all appea
 ```bash
 for pkg in zod types validators contracts oxlint-config ui; do
   echo "--- typecheck: @pekulo/$pkg ---"
-  bun --cwd "packages/$pkg" run typecheck || { echo "FAIL: @pekulo/$pkg"; exit 1; }
+  (cd "packages/$pkg" && bun run typecheck) || { echo "FAIL: @pekulo/$pkg"; exit 1; }
 done
 echo "ALL TYPECHECKS PASSED"
 ```
@@ -762,14 +762,14 @@ ui: {}
 ### Debug Log
 
 - **state.yaml YAML lint fix.** MCP `aped_state.advance` initially failed with `yq parse error at line 242` because `6-1-llm-routing-and-providers:{ status: pending,` was missing the space between the key colon and the flow-style mapping `{`. Fixed in-place (1-char insertion) — pre-existing bug from `aped-epics`, not introduced by this story; flagged for follow-up.
-- **Bun output noise on first invocation.** `bun --cwd packages/zod run typecheck` dumped Bun's full `bun run` help to stderr before running the script. Re-running via `(cd packages/zod && bun run typecheck)` was clean. The script ran and exited 0 in both forms; using the `cd` form for the rest of the tasks.
+- **Bun `--cwd` after `run` is broken; the `cd` form is canonical.** Initial invocations used `bun --cwd packages/<pkg> run typecheck`; under Bun 1.3.13 this dumps the `bun run --help` text and **does not actually invoke `tsc`** — it exits 0 without running the script (Eva probed in aped-review by injecting `const x: string = 42` and confirmed the `--cwd`-after-`run` form silently passes while the `(cd packages/<pkg> && bun run typecheck)` form correctly raises `error TS2322`). The Dev Agent Record originally claimed both forms ran the script — that was wrong. All Run lines have been corrected to the `cd` form, and the verification block below was re-captured by the aped-review Lead using the `cd` form. Lesson: `bun --cwd` only works as a global flag *before* the subcommand (e.g. `bun --cwd packages/zod install`); after `run`, Bun reinterprets `--cwd` as an unknown flag.
 
 ### Completion Notes
 
 - All 9 tasks shipped one-commit-per-task on `feat/0-1-packages-reorg` (8 commits — Task 9 is verification-only, no commit per spec).
 - Story-level RED witnessed before any scaffold (no `@pekulo/*` workspace registered, no per-package `package.json` present). Per-task RED witnessed before each scaffold (`packages/<pkg>` did not exist).
 - AC-1, AC-2, AC-3 verified verbatim — output captured in PR body and matches the story's "Expected output" blocks.
-- **Out-of-scope finding (not blocking, not fixed):** root `bun run typecheck` (= `turbo run typecheck`) fails with `Could not find task typecheck` because `turbo.json` declares the task as `check-types`, not `typecheck`. The Dev Notes flagged this divergence and stated turbo should pass-through unknown tasks — that's no longer true in Turbo 2.x. Verified the failure pre-existed before any commit on this branch (via `git stash` on the work-in-progress + re-run). AC-2 explicitly tests per-package invocation (`bun --cwd packages/<pkg> run typecheck`) which all pass; this is properly out-of-scope and should be picked up by story 0-8 (CI workflows) or a focused follow-up.
+- **Out-of-scope finding (not blocking, not fixed):** root `bun run typecheck` (= `turbo run typecheck`) fails with `Could not find task typecheck` because `turbo.json` declares the task as `check-types`, not `typecheck`. The Dev Notes flagged this divergence and stated turbo should pass-through unknown tasks — that's no longer true in Turbo 2.x. Verified the failure pre-existed before any commit on this branch (via `git stash` on the work-in-progress + re-run). AC-2 explicitly tests per-package invocation (`(cd packages/<pkg> && bun run typecheck)`) which all pass; this is properly out-of-scope and should be picked up by story 0-8 (CI workflows) or a focused follow-up.
 - No regressions: `apps/web` typecheck (`tsc --noEmit`) still exits 0; no source files in `apps/web` or `apps/prices` were touched.
 
 ### File List
@@ -793,10 +793,10 @@ ui: {}
 - `bun.lock` (workspace registration only — no new external deps)
 - `docs/state.yaml` (line 242 YAML lint fix + dev phase + story status flips)
 
-### Verification output (captured fresh in step-07)
+### Verification output (re-captured by aped-review Lead, `cd` form — supersedes the dev's original capture which used the broken `bun --cwd` form)
 
 ```
-===== AC-1: bun pm ls | grep @pekulo/ =====
+===== AC-1: bun pm ls | grep '@pekulo/' | sort =====
 ├── @pekulo/contracts@workspace:packages/contracts
 ├── @pekulo/oxlint-config@workspace:packages/oxlint-config
 ├── @pekulo/tsconfig@workspace:packages/tsconfig
@@ -804,21 +804,27 @@ ui: {}
 ├── @pekulo/ui@workspace:packages/ui
 ├── @pekulo/validators@workspace:packages/validators
 ├── @pekulo/zod@workspace:packages/zod
+(7/7 expected workspaces present)
 
-===== AC-2: typecheck six packages =====
---- @pekulo/zod ---        $ tsc --noEmit  (exit 0)
---- @pekulo/types ---      $ tsc --noEmit  (exit 0)
---- @pekulo/validators ---  $ tsc --noEmit  (exit 0)
---- @pekulo/contracts ---   $ tsc --noEmit  (exit 0)
---- @pekulo/oxlint-config ---  $ tsc --noEmit  (exit 0)
---- @pekulo/ui ---         $ tsc --noEmit  (exit 0)
+===== AC-2: per-package typecheck — `(cd packages/<pkg> && bun run typecheck)` =====
+--- @pekulo/zod ---           $ tsc --noEmit  (exit 0)
+--- @pekulo/types ---         $ tsc --noEmit  (exit 0)
+--- @pekulo/validators ---    $ tsc --noEmit  (exit 0)
+--- @pekulo/contracts ---     $ tsc --noEmit  (exit 0)
+--- @pekulo/oxlint-config --- $ tsc --noEmit  (exit 0)
+--- @pekulo/ui ---            $ tsc --noEmit  (exit 0)
 ALL TYPECHECKS PASSED
 
+===== AC-2 strict-mode probe (proves strict TS is actually applied) =====
+echo 'const x: string = 42;' > packages/zod/src/_probe.ts
+(cd packages/zod && bun run typecheck)
+→ src/_probe.ts(1,7): error TS2322: Type 'number' is not assignable to type 'string'.   exit 2 ✓
+
 ===== AC-3: dependency hierarchy =====
-validators: { "@pekulo/zod": "workspace:*", "@pekulo/types": "workspace:*" }
-contracts:  { "@pekulo/validators": "workspace:*", "@pekulo/types": "workspace:*" }
 zod: {}
 types: {}
+validators: {"@pekulo/zod":"workspace:*","@pekulo/types":"workspace:*"}
+contracts:  {"@pekulo/validators":"workspace:*","@pekulo/types":"workspace:*"}
 tsconfig: {}
 oxlint-config: {}
 ui: {}
