@@ -1,0 +1,281 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Pekulo Design Tokens — TRADE REPUBLIC FIDELITY (strict)
+   - Background = pure #000 in dark mode, #FFF in light mode.
+   - Cards = solid grayscale fill, NO borders.
+   - Chrome (icons, nav, focus) = white/grayscale only.
+   - Color (emerald/red) = reserved for performance deltas ONLY.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+
+  /* Surface scale — TR-strict minimalism: cards barely darker than bg */
+  --surface-bg: #000000;
+  --surface-card: #0A0A0A;           /* barely visible against #000 — section frame only when needed */
+  --surface-elevated: #121212;        /* modal, popover, hover */
+  --surface-muted: #161616;           /* input bg, badge fill, secondary CTA */
+  --surface-overlay: rgba(0, 0, 0, 0.82);
+
+  /* Text scale — pure white at the top, grayscale ramp (Geist on neutral-100..500) */
+  --text-primary: #EDEDED;            /* big numbers, active tab — Vercel's text-100 — 17.4:1 */
+  --text-secondary: #A1A1A1;          /* body — Vercel's text-300 — 7.0:1 */
+  --text-tertiary: #707070;           /* labels — Vercel's text-500 — 4.6:1 */
+  --text-muted: #4D4D4D;              /* dim — Vercel's text-700 — 3.0:1 */
+
+  /* Hairline borders — Vercel signature (rgba whites, 1px) */
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-focus: #EDEDED;
+
+  /* Performance deltas — the ONLY chromatic accents in the UI */
+  --gain: #00D26A;                    /* TR-style emerald for + deltas */
+  --gain-soft: rgba(0, 210, 106, 0.12);
+  --loss: #FF5C5C;                    /* TR-style red for - deltas */
+  --loss-soft: rgba(255, 92, 92, 0.12);
+  --neutral: #B3B3B3;                 /* on-track / no-delta */
+
+  /* Single tiny data-indicator blue (TR's analytics donut exception) */
+  --data-blue: #2F73FF;
+
+  /* Compass donut — white on dim track (no gradient) */
+  --donut-track: rgba(255, 255, 255, 0.08);
+  --donut-fill: #FFFFFF;
+
+  /* Chart series — strict grayscale + 1 gain accent for actual line */
+  --chart-actual: #FFFFFF;            /* user's actual wealth = white line */
+  --chart-plan: rgba(255, 255, 255, 0.32); /* plan = dim white dashed */
+  --chart-projection: rgba(255, 255, 255, 0.16);
+  --chart-grid: rgba(255, 255, 255, 0.06);
+
+  /* Radius — Vercel's tighter scale (8/12/16) keeps cards crisp */
+  --radius-none: 0;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;                  /* default card */
+  --radius-xl: 16px;                  /* hero / compass widget */
+  --radius-full: 9999px;
+
+  /* Shadow — minimal, dark mode relies on fill contrast not drop shadow */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 8px 16px -4px rgba(0, 0, 0, 0.6);
+  --shadow-focus: 0 0 0 2px var(--surface-bg), 0 0 0 4px var(--border-focus);
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-slow: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Tabular figures for monetary values */
+  --font-feature-tabular: "tnum" 1, "lnum" 1;
+
+  /* Type families */
+  --font-sans: "Geist", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Light mode — Vercel's text-100..900 inverse */
+.light {
+  color-scheme: light;
+
+  --surface-bg: #FFFFFF;
+  --surface-card: #FAFAFA;
+  --surface-elevated: #FFFFFF;
+  --surface-muted: #F2F2F2;
+  --surface-overlay: rgba(255, 255, 255, 0.78);
+
+  --text-primary: #0A0A0A;
+  --text-secondary: #404040;
+  --text-tertiary: #737373;
+  --text-muted: #A3A3A3;
+
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --border-focus: #0A0A0A;
+
+  --gain: #00A852;
+  --gain-soft: rgba(0, 168, 82, 0.10);
+  --loss: #DC2626;
+  --loss-soft: rgba(220, 38, 38, 0.08);
+  --neutral: #525252;
+
+  --donut-track: rgba(0, 0, 0, 0.08);
+  --donut-fill: #0A0A0A;
+
+  --chart-actual: #0A0A0A;
+  --chart-plan: rgba(10, 10, 10, 0.32);
+  --chart-projection: rgba(10, 10, 10, 0.16);
+  --chart-grid: rgba(10, 10, 10, 0.06);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Tailwind v4 @theme — exposes tokens as utilities
+   ───────────────────────────────────────────────────────────────────────── */
+
+@theme inline {
+  --color-bg: var(--surface-bg);
+  --color-card: var(--surface-card);
+  --color-elevated: var(--surface-elevated);
+  --color-muted: var(--surface-muted);
+  --color-overlay: var(--surface-overlay);
+
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-tertiary: var(--text-tertiary);
+  --color-fg-muted: var(--text-muted);
+
+  --color-border: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  --color-gain: var(--gain);
+  --color-gain-soft: var(--gain-soft);
+  --color-loss: var(--loss);
+  --color-loss-soft: var(--loss-soft);
+  --color-neutral: var(--neutral);
+  --color-data-blue: var(--data-blue);
+
+  --color-donut-track: var(--donut-track);
+  --color-donut-fill: var(--donut-fill);
+
+  --color-chart-actual: var(--chart-actual);
+  --color-chart-plan: var(--chart-plan);
+  --color-chart-projection: var(--chart-projection);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-none: var(--radius-none);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-focus: var(--shadow-focus);
+
+  /* Pekulo type scale — TR-grade large principal numbers */
+  --text-hero: 2.625rem;             /* 42px — main wealth amount, e.g. "180 400 €" */
+  --text-hero--line-height: 1.05;
+  --text-hero--letter-spacing: -0.025em;
+  --text-hero--font-weight: 600;
+
+  --text-display: 2rem;               /* 32px — secondary big number */
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+
+  --text-h1: 1.625rem;                /* 26px — page title */
+  --text-h1--line-height: 1.15;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h1--font-weight: 600;
+
+  --text-h2: 1.25rem;                 /* 20px — section heading */
+  --text-h2--line-height: 1.25;
+  --text-h2--font-weight: 600;
+
+  --text-h3: 1rem;                    /* 16px — list item title */
+  --text-h3--line-height: 1.4;
+  --text-h3--font-weight: 600;
+
+  --text-body-lg: 1.0625rem;          /* 17px */
+  --text-body-lg--line-height: 1.55;
+
+  --text-body: 1rem;                  /* 16px */
+  --text-body--line-height: 1.55;
+
+  --text-body-sm: 0.875rem;           /* 14px */
+  --text-body-sm--line-height: 1.5;
+
+  --text-caption: 0.8125rem;          /* 13px — micro labels (Total, Cap, ...) */
+  --text-caption--line-height: 1.4;
+  --text-caption--font-weight: 500;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Base layer — global behaviours
+   ───────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--surface-bg);
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.55;
+    margin: 0;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4 {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* Tabular figures for all monetary values */
+  .tabular-nums,
+  [data-tabular="true"] {
+    font-feature-settings: var(--font-feature-tabular);
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* Focus ring — white, TR-style */
+  :where(button, a, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+    border-radius: inherit;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Screen-reader only — for skip link */
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto; height: auto;
+    padding: inherit; margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
