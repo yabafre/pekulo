@@ -1,7 +1,7 @@
 # Story: 0-1-packages-reorg — Bootstrap workspaces under `@pekulo/*`
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** review-queued
+**Status:** done
 **Ticket:** [#1](https://github.com/yabafre/pekulo/issues/1)
 **Branch:** `feat/0-1-packages-reorg`
 **Commit prefix:** `feat(#1): ...`
@@ -829,3 +829,77 @@ tsconfig: {}
 oxlint-config: {}
 ui: {}
 ```
+
+---
+
+## Review Record
+
+**Date:** 2026-05-03
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Diego)
+**Verdict:** done — all findings either fixed in-branch or recorded as forward-pointers to downstream stories.
+
+### Specialists dispatched
+
+- **Eva** (ac-validator) — APPROVED, HIGH confidence. 3/3 ACs IMPLEMENTED. Strict-mode probe confirmed `tsc --strict` is actually applied (not just configured).
+- **Marcus** (code-quality / 5-anti-pattern audit) — APPROVED, HIGH confidence. All 5 testing anti-patterns PASS. No external deps added; all packages `private: true`; zero install-time scripts; `bun.lock` diff is workspace-only.
+- **Rex** (git-auditor) — APPROVED, HIGH confidence. 10/10 commits on branch carry `feat(#1):` / `chore(#1):` / `fix(#1):` prefix; linear history; no force-pushes; `.gitkeep` confirmed real deletion (commit `f4d4e9e`); File List ↔ diff cross-walk clean (after manual brace-shorthand expansion to compensate for `git-audit.sh` script limitation — see L2).
+- **Diego** (package-shape / ADR-0011) — APPROVED, HIGH confidence. ADR-0011 hierarchy COMPLIANT verbatim (`zod → validators → contracts`, `types` bidirectional, three siblings isolated). Architecture.md L852–877 directory tree alignment confirmed.
+
+Stage 1.5 (parallel adversarial reviewers) was OFF for this review (`config.yaml` does not set `review.parallel_reviewers: true`).
+
+### Findings (consolidated, 8 total)
+
+#### Resolved
+
+- **M1 [MEDIUM] `bun --cwd packages/<pkg> run typecheck` does not actually invoke `tsc` under Bun 1.3.13** — the form silently dumps the `bun run --help` text and exits 0 without running the script. Eva probed by injecting `const x: string = 42` into `packages/zod/src/_probe.ts` and confirmed the broken form silently passed (exit 0) while `(cd packages/zod && bun run typecheck)` correctly raised `error TS2322` (exit 2). The Dev Agent Record originally claimed "the script ran and exited 0 in both forms" — that was wrong; the broken form never actually ran `tsc`.
+  - **Source:** Eva, Marcus.
+  - **Resolution:** commit `3f81a7a` `fix(#1): correct typecheck invocation form in story 0-1 (bun --cwd → cd)` — patches all seven Run lines (Tasks 2–7), the AC-2 statement, the Task 9 verification block, the Debug Log entry, and re-captures the Verification output using the canonical `cd` form (with strict-mode probe evidence baked in). No code change; story-doc only. Implementation was always correct.
+
+- **M4 [MEDIUM] `docs/state.yaml` diff misclassified as "1-char insertion" by the Debug Log; actual diff is a ~50-line flow→block reformat** in the `sprint.stories` block (whitespace inside braces removed by the YAML lint pass). Semantically identical to the pre-branch state — every story still carries `status`, `depends_on`, `ticket`, `worktree`. Reviewers reading line-by-line would chase phantom changes.
+  - **Source:** Marcus.
+  - **Resolution:** PR #54 body appended with an `## aped-review notes (post-implementation)` section explicitly flagging the reformat as cosmetic so reviewers can skip line-by-line scrutiny. No code change. (The Dev Agent Record line about "1-char insertion" remains as the dev's original observation; M4's correction is captured here in the Review Record.)
+
+#### Dismissed (recorded as forward-pointers)
+
+- **M2 [MEDIUM] `target` asymmetry — `@pekulo/tsconfig/base.json` sets `ES2022`; `apps/web/tsconfig.json` sets `ES2017`.** No impact today (placeholders only); latent risk when `apps/web` starts consuming `@pekulo/*` runtime code with ES2022 syntax.
+  - **Source:** Marcus.
+  - **Rationale:** explicitly out-of-scope per Dev Notes (story:111: *"Migrating apps/web/tsconfig.json to extend the preset is out of scope for this story"*). Forward-pointer: **Story 0-2** (`0-2-oxc-toolchain`) or **Story 0-8** (`0-8-github-actions-pr`) should bump `apps/web` to `ES2022` or migrate it onto `@pekulo/tsconfig/next.json`.
+
+- **M3 [MEDIUM] `@pekulo/ui` extends `@pekulo/tsconfig/packages.json` (`lib: ["esnext"]` only) — insufficient for Tamagui Core which needs DOM + `jsx: "react-jsx"`.**
+  - **Source:** Marcus, Diego.
+  - **Rationale:** `@pekulo/ui` is a placeholder per Dev Notes (story:633); real DS lands in **Story 0-10** (`0-10-pekulo-ui-migration`). Forward-pointer: when 0-10 is drafted, its Dev Notes must call out the tsconfig override decision — either (a) local `lib` + `jsx` override in `packages/ui/tsconfig.json`, or (b) a fifth preset `@pekulo/tsconfig/ui.json` extending `packages.json`. Option (b) is cleaner if any other workspace needs DS-style settings. Story 0-10 is also where `peerDependencies` on `react` / `react-native` will be declared.
+
+- **L1 [LOW] 9th commit `chore(#1): complete story 0-1-packages-reorg, advance to review-queued` exists despite Task 9 spec wording "no file commit needed".** The 9th commit is housekeeping doc-only (Dev Agent Record + state.yaml flips). Now superseded by a 10th commit (the M1 fix), so the branch carries 10 commits total at review close.
+  - **Source:** Eva, Rex.
+  - **Rationale:** the housekeeping commit is structurally required by APED's workflow (state advancement + record). The story's Task 9 wording is the inaccuracy, not the commit. Forward-pointer: future story templates should declare *"Task 9 — verification + completion bookkeeping commit (state.yaml + Dev Agent Record)"* rather than *"no commit"*.
+
+- **L2 [LOW] `.aped/aped-review/scripts/git-audit.sh` produces large false-positive lists** for two reasons: (a) range default `HEAD~10..HEAD` over-reaches by one commit on this branch (flags `docs/sync-logs/...json` which lives on `main`); (b) the script's literal-line matcher does not expand brace-shorthand `packages/<pkg>/{package.json, src/index.ts, tsconfig.json}` and treats markdown section headers (`*Deleted:**`, `*Modified:**`) as filenames.
+  - **Source:** Rex.
+  - **Rationale:** APED-tooling concern, not Pekulo code. Forward-pointer: a focused `chore(aped):` ticket on the APED-method repo to (1) default the range to `$(git merge-base main HEAD)..HEAD`, (2) expand brace-shorthand before line-matching, (3) allow-list `docs/stories/*.md` (the story-self file should never be flagged out-of-scope). The Lead's manual cross-walk against `git diff main..HEAD --name-status` was clean, so this story is unaffected.
+
+- **L3 [LOW] `@pekulo/tsconfig/package.json` has neither `"type": "module"` nor an explicit `exports` field.** Manifest is files-only; consumers reach the presets via `extends "@pekulo/tsconfig/<preset>.json"` which TypeScript resolves through Node-style filesystem lookup, not through `exports`.
+  - **Source:** Marcus, Diego.
+  - **Rationale:** works perfectly today on Bun + `tsc`. Future-proofing concern only — *if* a future toolchain switches to `exports`-only resolution, the presets would become unreachable. Forward-pointer: defer until needed; if/when adopted, add `"exports": { "./*.json": "./*.json" }` to the manifest.
+
+- **L4 [LOW] `@pekulo/contracts/src/index.ts` and `@pekulo/ui/src/index.ts` barrels are `export {}` placeholders that downstream stories will need to rewrite.**
+  - **Source:** Diego.
+  - **Rationale:** intentional per Dev Notes — real surfaces ship in **Story 0-5** (`@pekulo/contracts` per-module re-exports `export * from './compass-contract'` etc., per architecture.md L860) and **Story 0-10** (`@pekulo/ui` Tamagui exports). Placeholder shape is correct for 0-1; barrel rewrites are owned by their respective stories.
+
+### Verification
+
+- **Test command:** AC-1/2/3 verifications run as fresh evidence by the aped-review Lead in step-08 (the project has no test runner — placeholders ship zero behavior — so the ACs themselves are the integration tests).
+- **Test output (final pass, post M1 fix):**
+  ```
+  AC-1: bun pm ls | grep '@pekulo/' | sort  →  7/7 expected workspaces
+  AC-2: (cd packages/<pkg> && bun run typecheck) for {zod, types, validators, contracts, oxlint-config, ui}  →  all 6 invoke `tsc --noEmit` and exit 0
+  AC-2 strict-mode probe: planted `const x: string = 42` → tsc raised TS2322 (exit 2). Strict mode is actually applied, not merely configured.
+  AC-3: validators ⊃ {zod, types}; contracts ⊃ {validators, types}; {zod, types, tsconfig, oxlint-config, ui} carry zero `@pekulo/*` runtime deps  →  ADR-0011 hierarchy COMPLIANT.
+  ```
+- **5-anti-pattern testing audit (Marcus):** all 5 PASS — no tests exist (scaffold story; placeholders carry zero behavior). AC-1/2/3 are themselves the integration tests; deferred behavioral tests are not a `#5 integration-test-as-afterthought` violation since there is no behavior to test.
+- **Visual verification:** N/A — no UI surface in this story.
+
+### Ticket sync
+
+- **Ticket comment:** posted to [#1](https://github.com/yabafre/pekulo/issues/1) summarising the verdict + forward-pointers (see step-11 ticket comment).
+- **PR opened/updated:** [#54](https://github.com/yabafre/pekulo/pull/54) — body updated with `## aped-review notes (post-implementation)` section (M4 resolution + AC-2 form correction + forward-pointers index).
+- **Branch state at review close:** 10 commits (8 task scaffolds + 1 `.gitkeep` removal + 1 housekeeping + 1 `fix(#1)` from aped-review). Linear history. No force-pushes.
