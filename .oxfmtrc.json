@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "endOfLine": "lf",
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    ".turbo/",
+    "build/",
+    "dist/",
+    "out/",
+    "coverage/",
+    "apps/prices/",
+    "docs/ux-preview/dist/",
+    "bun.lock",
+    "*.lock",
+    "apps/web/supabase-schema.sql"
+  ]
+}
