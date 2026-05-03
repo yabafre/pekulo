@@ -10,6 +10,11 @@
     "nursery": "off",
     "pedantic": "off"
   },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off"
+  },
   "env": {
     "browser": true,
     "node": true,
@@ -32,7 +37,10 @@
     "out/",
     "coverage/",
     "apps/prices/",
-    "docs/ux-preview/dist/"
+    "docs/ux-preview/",
+    ".aped/",
+    ".agents/",
+    "docs/sync-logs/"
   ],
   "overrides": [
     {
