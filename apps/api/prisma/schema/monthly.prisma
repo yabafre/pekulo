@@ -1,0 +1,37 @@
+// monthly.prisma — Kpi (singleton-per-user) + MonthlyTracking (per user-month-year).
+
+model Kpi {
+  id             String    @id
+  userId         String    @unique @map("user_id") @db.Uuid
+  netReel        Decimal?  @default(3700) @map("net_reel")
+  pouvoirAchat   Decimal?  @default(3943) @map("pouvoir_achat")
+  epargneMois    Decimal?  @default(1210) @map("epargne_mois")
+  capitalProjete Decimal?  @default(145738) @map("capital_projete")
+  objectif       Decimal?  @default(100000)
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("kpis")
+}
+
+model MonthlyTracking {
+  id           String    @id
+  userId       String    @map("user_id") @db.Uuid
+  monthNum     Int       @map("month_num")
+  year         Int
+  monthLabel   String    @map("month_label")
+  net          Decimal
+  avantages    Decimal   @default(243)
+  depenses     Decimal   @default(2490)
+  credit       Decimal   @default(0)
+  remote       Decimal   @default(0)
+  freelance    Decimal   @default(0)
+  epargneMois  Decimal   @map("epargne_mois")
+  perfMarche   Decimal   @default(0) @map("perf_marche")
+  epargneCumul Decimal   @map("epargne_cumul")
+  capitalTotal Decimal   @map("capital_total")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([userId, monthNum, year], map: "monthly_tracking_user_id_month_num_year_key")
+  @@map("monthly_tracking")
+}
