@@ -15,6 +15,29 @@ export interface HypothesisService {
   save(userId: string, input: Hypotheses): Promise<Hypotheses>;
 }
 
+/**
+ * Coerce a Prisma-returned numeric column value to a finite JS number.
+ * Postgres `Decimal` columns surface as `Prisma.Decimal` (decimal.js)
+ * instances at runtime — we prefer `.toNumber()` over `Number(decimal)`
+ * because it's explicit, lintable, and throws on `Infinity` (a precision
+ * regression we want to surface, not silently truncate). Plain numbers
+ * pass through unchanged. See `docs/lessons.md` L6 for the V1 tolerance
+ * budget — bounded by Persona Alex's range; revisit before story 1-2's
+ * projection curve lands.
+ */
+function decimalToNumber(value: unknown, fallback: number): number {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "number") return value;
+  if (
+    typeof value === "object" &&
+    "toNumber" in value &&
+    typeof (value as { toNumber: unknown }).toNumber === "function"
+  ) {
+    return (value as { toNumber(): number }).toNumber();
+  }
+  return Number(value);
+}
+
 type HypothesisRow = {
   salaireNet: unknown;
   ticketRestoJour: unknown;
@@ -46,32 +69,44 @@ type HypothesisRow = {
 
 function rowToHypotheses(row: HypothesisRow): Hypotheses {
   return {
-    salaireNet: Number(row.salaireNet ?? defaultHypotheses.salaireNet),
-    ticketRestoJour: Number(row.ticketRestoJour ?? defaultHypotheses.ticketRestoJour),
-    partEmployeurTr: Number(row.partEmployeurTr ?? defaultHypotheses.partEmployeurTr),
-    joursTravailles: Number(row.joursTravailles ?? defaultHypotheses.joursTravailles),
-    navigoCout: Number(row.navigoCout ?? defaultHypotheses.navigoCout),
-    partEmployeurNavigo: Number(row.partEmployeurNavigo ?? defaultHypotheses.partEmployeurNavigo),
-    mutuelleEconomie: Number(row.mutuelleEconomie ?? defaultHypotheses.mutuelleEconomie),
-    loyer: Number(row.loyer ?? defaultHypotheses.loyer),
-    courses: Number(row.courses ?? defaultHypotheses.courses),
-    transport: Number(row.transport ?? defaultHypotheses.transport),
-    autresCharges: Number(row.autresCharges ?? defaultHypotheses.autresCharges),
-    sorties: Number(row.sorties ?? defaultHypotheses.sorties),
-    divers: Number(row.divers ?? defaultHypotheses.divers),
-    voyageMois: Number(row.voyageMois ?? defaultHypotheses.voyageMois),
-    creditMensuel: Number(row.creditMensuel ?? defaultHypotheses.creditMensuel),
+    salaireNet: decimalToNumber(row.salaireNet, defaultHypotheses.salaireNet),
+    ticketRestoJour: decimalToNumber(row.ticketRestoJour, defaultHypotheses.ticketRestoJour),
+    partEmployeurTr: decimalToNumber(row.partEmployeurTr, defaultHypotheses.partEmployeurTr),
+    joursTravailles: decimalToNumber(row.joursTravailles, defaultHypotheses.joursTravailles),
+    navigoCout: decimalToNumber(row.navigoCout, defaultHypotheses.navigoCout),
+    partEmployeurNavigo: decimalToNumber(
+      row.partEmployeurNavigo,
+      defaultHypotheses.partEmployeurNavigo,
+    ),
+    mutuelleEconomie: decimalToNumber(row.mutuelleEconomie, defaultHypotheses.mutuelleEconomie),
+    loyer: decimalToNumber(row.loyer, defaultHypotheses.loyer),
+    courses: decimalToNumber(row.courses, defaultHypotheses.courses),
+    transport: decimalToNumber(row.transport, defaultHypotheses.transport),
+    autresCharges: decimalToNumber(row.autresCharges, defaultHypotheses.autresCharges),
+    sorties: decimalToNumber(row.sorties, defaultHypotheses.sorties),
+    divers: decimalToNumber(row.divers, defaultHypotheses.divers),
+    voyageMois: decimalToNumber(row.voyageMois, defaultHypotheses.voyageMois),
+    creditMensuel: decimalToNumber(row.creditMensuel, defaultHypotheses.creditMensuel),
     dateDebutCredit: String(row.dateDebutCredit ?? defaultHypotheses.dateDebutCredit),
-    matelasCible: Number(row.matelasCible ?? defaultHypotheses.matelasCible),
-    perfEtfAnnuelle: Number(row.perfEtfAnnuelle ?? defaultHypotheses.perfEtfAnnuelle),
-    augmentationSalaire: Number(row.augmentationSalaire ?? defaultHypotheses.augmentationSalaire),
-    partEtfMonde: Number(row.partEtfMonde ?? defaultHypotheses.partEtfMonde),
-    partOpportunites: Number(row.partOpportunites ?? defaultHypotheses.partOpportunites),
-    economieRemoteMois: Number(row.economieRemoteMois ?? defaultHypotheses.economieRemoteMois),
-    moisRemoteAn: Number(row.moisRemoteAn ?? defaultHypotheses.moisRemoteAn),
-    revenuFreelanceMois: Number(row.revenuFreelanceMois ?? defaultHypotheses.revenuFreelanceMois),
-    horizonYears: Number(row.horizonYears ?? defaultHypotheses.horizonYears),
-    objectif: Number(row.objectif ?? defaultHypotheses.objectif),
+    matelasCible: decimalToNumber(row.matelasCible, defaultHypotheses.matelasCible),
+    perfEtfAnnuelle: decimalToNumber(row.perfEtfAnnuelle, defaultHypotheses.perfEtfAnnuelle),
+    augmentationSalaire: decimalToNumber(
+      row.augmentationSalaire,
+      defaultHypotheses.augmentationSalaire,
+    ),
+    partEtfMonde: decimalToNumber(row.partEtfMonde, defaultHypotheses.partEtfMonde),
+    partOpportunites: decimalToNumber(row.partOpportunites, defaultHypotheses.partOpportunites),
+    economieRemoteMois: decimalToNumber(
+      row.economieRemoteMois,
+      defaultHypotheses.economieRemoteMois,
+    ),
+    moisRemoteAn: decimalToNumber(row.moisRemoteAn, defaultHypotheses.moisRemoteAn),
+    revenuFreelanceMois: decimalToNumber(
+      row.revenuFreelanceMois,
+      defaultHypotheses.revenuFreelanceMois,
+    ),
+    horizonYears: decimalToNumber(row.horizonYears, defaultHypotheses.horizonYears),
+    objectif: decimalToNumber(row.objectif, defaultHypotheses.objectif),
   };
 }
 
