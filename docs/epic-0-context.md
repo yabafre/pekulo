@@ -49,7 +49,7 @@
 
 ### ADR-0009 — Domain API on Bun + Elysia + oRPC
 
-- **Decision**: `apps/api` exposes domain operations via **oRPC** under `/rpc/v1/<module>/<method>`. Web tier (`apps/web`) keeps `'use server'` thin wrappers calling oRPC client, retained zapaction for React Query bridge. Hard layering: `Component → Custom Hook → Server Action → oRPC client → Elysia handler → service → Prisma`. Mount layout: `/rpc/v1/auth`, `/rpc/v1/compass`, `/rpc/v1/milestones`, `/rpc/v1/accounts`, `/rpc/v1/holdings`, `/rpc/v1/real-estate`, `/rpc/v1/transactions`, `/rpc/v1/monthly`, `/rpc/v1/dashboard`, `/rpc/v1/settings`, `/rpc/v1/hypothesis`, `/rpc/v1/llm`, plus `/health`, `/ready` (public), `/internal/llm/attest` (private JWT-verified)
+- **Decision**: `apps/api` exposes domain operations via **oRPC** under `/rpc/v1/<module>/<method>`. Web tier (`apps/web`) keeps `'use server'` thin wrappers calling oRPC client, retained zapaction for React Query bridge. Hard layering: `Component → Custom Hook → Server Action → oRPC client → Elysia handler → service → Prisma`. Mount layout: `/rpc/v1/auth`, `/rpc/v1/compass`, `/rpc/v1/milestones`, `/rpc/v1/accounts`, `/rpc/v1/holdings`, `/rpc/v1/realestate`, `/rpc/v1/transactions`, `/rpc/v1/monthly`, `/rpc/v1/dashboard`, `/rpc/v1/settings`, `/rpc/v1/hypothesis`, `/rpc/v1/llm`, plus `/health`, `/ready` (public), `/internal/llm/attest` (private JWT-verified). All-lowercase no-separator convention — DB tables stay `real_estate*` (snake_case for SQL), contract/URL surface stays `realestate`.
 - **Why**: logic centralisation, contract-first type safety, brownfield zapaction ergonomics preserved, modular shape matches Elysia module factories
 
 ### ADR-0011 — Packages reorg under `@pekulo/*` namespace
