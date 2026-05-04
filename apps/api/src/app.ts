@@ -32,7 +32,11 @@ export async function startServer(): Promise<ServerHandle> {
     })
     .use(healthModule.router);
 
-  await registerLifecycle(app, { shutdownTimeoutMs: env.SHUTDOWN_TIMEOUT_MS });
+  await registerLifecycle(
+    app,
+    { shutdownTimeoutMs: env.SHUTDOWN_TIMEOUT_MS },
+    { prismaService: deps.prismaService },
+  );
 
   app.listen({ port: env.PORT, hostname: env.HOST }, (server) => {
     console.log(`[api] listening on http://${server.hostname}:${server.port}`);

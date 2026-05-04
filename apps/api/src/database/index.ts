@@ -1,10 +1,11 @@
-// Placeholder for apps/api/src/database/. Prisma 7.8 + extensions land here in
-// story 0-4-prisma-setup:
-//
-//   - prisma.service.ts             Prisma client + extension chain
-//   - prefixed-ids.extension.ts     Trafi pattern (ADR-0012)
-//   - id-prefixes.config.ts         Record<ModelName, prefix>
-//   - prisma-error-mapper.ts        P2025 → RlsViolationError, etc.
-//
+// database/ — Prisma client + extensions + ID conventions.
 // See ADR-0012 (prefixed IDs) + ADR-0014 (Prisma migrate, supersedes ADR-0006).
-export {};
+//
+// Story 0-5 will add prisma-error-mapper.ts re-exports here (P2025 → RlsViolationError).
+// Do NOT pre-bake those exports.
+
+export { createPrismaService, type PrismaService } from "./prisma.service";
+export { ID_PREFIXES, getPrefix, MissingPrefixError, type ModelName, type Prefix } from "./id-prefixes.config";
+export { generateBase62Id } from "./base62";
+export { injectPrefixedId } from "./prefixed-ids.injector";
+export { prefixedIdsExtension } from "./prefixed-ids.extension";
