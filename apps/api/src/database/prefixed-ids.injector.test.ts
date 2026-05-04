@@ -12,7 +12,8 @@ import { MissingPrefixError, injectPrefixedId } from "./prefixed-ids.injector";
 
 describe("injectPrefixedId", () => {
   it("injects a prefixed id when data.id is undefined (Account → acc_…)", () => {
-    const out = injectPrefixedId("Account", { userId: "u" });
+    const input: Record<string, unknown> = { userId: "u" };
+    const out = injectPrefixedId("Account", input);
     expect(out).toMatchObject({ userId: "u" });
     expect((out as { id: string }).id).toMatch(/^acc_[0-9A-Za-z]{21}$/);
   });
@@ -35,7 +36,8 @@ describe("injectPrefixedId", () => {
   });
 
   it("treats null id like undefined (Prisma may pass either)", () => {
-    const out = injectPrefixedId("Transaction", { id: null });
-    expect((out as { id: string }).id).toMatch(/^tx_[0-9A-Za-z]{21}$/);
+    const input: { id: unknown } = { id: null };
+    const out = injectPrefixedId("Transaction", input);
+    expect((out as unknown as { id: string }).id).toMatch(/^tx_[0-9A-Za-z]{21}$/);
   });
 });
