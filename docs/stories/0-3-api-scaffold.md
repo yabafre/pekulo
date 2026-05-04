@@ -423,11 +423,13 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
 
 **3c. `apps/api/src/bootstrap/lifecycle.ts`** (new):
 
+> **Elysia 1.4 typing note:** the parameter is typed `AnyElysia` (Elysia's exported `Elysia<any, any, …, any>` alias), not `Elysia`. Elysia 1.4's generic parameters are invariant in `.use()` boundaries — annotating with the bare `Elysia` (defaults) would reject any `Elysia<Routes={…}, …>` from chained `.get()` plugins. Use `AnyElysia` everywhere a function accepts a generic Elysia handle. See Debug Log entry 2026-05-04.
+
 ```ts
-import type { Elysia } from "elysia";
+import type { AnyElysia } from "elysia";
 import type { RuntimeDeps } from "./runtime-dependencies";
 
-export async function registerLifecycle(app: Elysia, _deps: RuntimeDeps): Promise<void> {
+export async function registerLifecycle(app: AnyElysia, _deps: RuntimeDeps): Promise<void> {
   const onShutdown = async (signal: NodeJS.Signals) => {
     console.log(`[api] received ${signal}, shutting down`);
     try {
@@ -461,8 +463,9 @@ Create the health module factory + Elysia plugin in one task.
 
 **4a. `apps/api/src/modules/health/health.module.ts`** (new):
 
+> **Elysia 1.4 typing note:** the factory's return type is INFERRED, not annotated as `{ routes: Elysia }`. Elysia 1.4's `Elysia` type is invariant on its `Routes` generic, so a `routes: Elysia` annotation rejects the chained `Elysia<Routes={health: …}, …>` returned by `healthRoutes()`. Letting TS infer preserves the rich plugin type for `.use()` callers. See Debug Log entry 2026-05-04.
+
 ```ts
-import type { Elysia } from "elysia";
 import type { Readiness } from "../../bootstrap/readiness";
 import { healthRoutes } from "./health.routes";
 
@@ -470,11 +473,7 @@ export interface HealthModuleDeps {
   readiness: Readiness;
 }
 
-export interface HealthModule {
-  routes: Elysia;
-}
-
-export function createHealthModule(deps: HealthModuleDeps): HealthModule {
+export function createHealthModule(deps: HealthModuleDeps) {
   return {
     routes: healthRoutes(deps),
   };
@@ -483,11 +482,13 @@ export function createHealthModule(deps: HealthModuleDeps): HealthModule {
 
 **4b. `apps/api/src/modules/health/health.routes.ts`** (new):
 
+> **Elysia 1.4 typing note:** no explicit return type — let TS infer the chained `Elysia<Routes={health: …}, …>`. Annotating `: Elysia` widens to defaults and breaks `.use()` at the call site (invariance). See Debug Log entry 2026-05-04.
+
 ```ts
 import { Elysia } from "elysia";
 import type { HealthModuleDeps } from "./health.module";
 
-export function healthRoutes(deps: HealthModuleDeps): Elysia {
+export function healthRoutes(deps: HealthModuleDeps) {
   return new Elysia({ name: "health" })
     .get("/health", () => ({ status: "ok" }))
     .get("/ready", async ({ set }) => {
@@ -1125,6 +1126,8 @@ OK: /internal/
 ### Debug Log
 
 - **2026-05-04 (T1/T2)**: Story spec listed `"types": ["bun-types"]` in `apps/api/tsconfig.json` (Task 1b) but the matching `package.json` declared only `@types/bun@1.3.0`. `tsc --noEmit` reported `TS2688: Cannot find type definition file for 'bun-types'`. Fixed in-flight to `"types": ["bun"]` (DefinitelyTyped resolution under `@types/bun`). Story snippet patched in lock-step. Single-character typo, no architectural impact.
+
+- **2026-05-04 (T4/T5)**: Elysia 1.4.4 has invariant generic parameters in its `.use(plugin)` boundary. Story snippets annotated `routes: Elysia` (`HealthModule` interface in T4a), `function healthRoutes(...): Elysia` (T4b), and `app: Elysia` (T3c — `registerLifecycle`). Each annotation widens the chained `Elysia<Routes={health: …}, …>` back to the defaults `Elysia<{}, …>`, then TS rejects the assignment at `.use(healthModule.routes)` and at `registerLifecycle(app, deps)` with **TS2345 — Argument of type 'Elysia<…, { health: … }, …>' is not assignable to parameter of type 'Elysia<…, {}, …>'**. Fix: (1) drop `: Elysia` return annotations and let TS infer the chain ; (2) at boundaries that accept any Elysia handle (`registerLifecycle`), import `type { AnyElysia }` from elysia (which is `Elysia<any, …, any>`) and use that. Runtime is unaffected (verified via `(cd apps/api && bun run dev) + curl /health /ready` → 200 OK on both). Lesson recorded in `docs/lessons.md` (scope `aped-arch, aped-story, aped-dev`) so stories 0-5, 1-1, 2-1, 3-1, 6-1, 7-1, 7-3 (every domain module factory) apply the same pattern.
 
 ### Completion Notes
 

@@ -13,7 +13,15 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
-### 2026-05-04 — `oxlint`/`oxfmt` have no `--staged` CLI flag (Scope: aped-arch, aped-story, aped-dev — story 0-11)
+### 2026-05-04 — Elysia 1.4 `Elysia` type is invariant ; use inference + `AnyElysia` at boundaries (Scope: aped-arch, aped-story, aped-dev — stories 0-3, 0-5, 0-6, 1-1, 2-1, 3-1, 4-1, 5-1, 6-1, 7-1, 7-3, 8-1)
+
+- **Date:** 2026-05-04
+- **Mistake:** Story 0-3 (`apps/api` scaffold) annotated module factories' return types as `routes: Elysia` (HealthModule interface) and `healthRoutes(...): Elysia`, plus typed bootstrap utilities as `app: Elysia` (e.g. `registerLifecycle`). Verified during T5 typecheck: Elysia 1.4.4's `Elysia` type has invariant generic parameters (Singleton, Definitions, Metadata, Routes, Ephemeral, Volatile). When a function returns/accepts the bare `Elysia` (defaults), TS narrows to `Elysia<…, {}, …>` (empty Routes generic). The chained `Elysia<…, { health: { get: … } }, …>` produced by `new Elysia().get(…).get(…)` is then rejected with `TS2345 — Argument of type 'Elysia<…, { health: … }, …>' is not assignable to parameter of type 'Elysia<…, {}, …>'`. Runtime is unaffected — purely a TypeScript constraint.
+- **Correction:** Two patterns to apply consistently across every domain module factory in epics 0–8:
+  1. **Module factories return inferred chains** — drop `: Elysia` return annotations on `healthRoutes`, accountsRoutes, etc. ; let TS infer the rich plugin type. The factory's surrounding object (`HealthModule` interface) should also drop `routes: Elysia` and let inference flow upward (use `function createHealthModule(deps) { … }` with no return type annotation).
+  2. **Boundaries that accept any Elysia handle use `AnyElysia`** — `import type { AnyElysia } from "elysia"` and type the parameter as `app: AnyElysia`. Elysia exports `AnyElysia = Elysia<any, any, …, any>` precisely for this case (lifecycle utilities, telemetry instrumentation, request-id middleware, etc.).
+- **Rule:** When wrapping Elysia in domain factories or cross-cutting utilities, NEVER type the variable as the bare `Elysia`. Either let TS infer (returns) or use `AnyElysia` (parameters at boundaries that should accept any chain). Apply to every story that adds an Elysia surface — explicit checklist on the dev's pre-implementation pass: `grep -rn ': Elysia\b' apps/api/src` should return only `(deps): Elysia<…>` shapes already constrained, never bare `Elysia`. ADR-0009's module-factory pattern stays intact at the architectural level — the fix lives in the type signatures only.
+
 
 - **Date:** 2026-05-04
 - **Mistake:** Story 0-2 (and the architecture reference at `docs/architecture.md` lines ~617–622) declared that lefthook's pre-commit hook for story 0-11 would invoke `oxlint --fix --staged` and `oxfmt --staged`. Verified during aped-review Kai pass: neither `oxlint@1.62.0` nor `oxfmt@0.47.0` exposes a `--staged` flag. Both accept positional `PATH` arguments only.

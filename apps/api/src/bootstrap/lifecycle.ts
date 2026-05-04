@@ -1,7 +1,7 @@
-import type { Elysia } from "elysia";
+import type { AnyElysia } from "elysia";
 import type { RuntimeDeps } from "./runtime-dependencies";
 
-export async function registerLifecycle(app: Elysia, _deps: RuntimeDeps): Promise<void> {
+export async function registerLifecycle(app: AnyElysia, _deps: RuntimeDeps): Promise<void> {
   const onShutdown = async (signal: NodeJS.Signals) => {
     console.log(`[api] received ${signal}, shutting down`);
     try {
