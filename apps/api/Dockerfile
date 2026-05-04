@@ -32,6 +32,11 @@ EXPOSE 3001
 
 WORKDIR /app/apps/api
 
+# Drop privileges. `oven/bun:slim` ships a non-root `bun` user (uid=1000).
+# chown is run as root before the USER switch so the runtime can read installed deps.
+RUN chown -R bun:bun /app
+USER bun
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -fsS http://127.0.0.1:3001/health || exit 1
 
