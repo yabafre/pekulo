@@ -734,10 +734,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy lockfile + manifests first for cache-friendly install.
+# Copy lockfile + ALL workspace manifests for cache-friendly frozen install.
+# `bun install --frozen-lockfile` requires every workspace member declared in the
+# root `workspaces` glob to have its package.json present, otherwise Bun reports
+# "lockfile had changes" and aborts. apps/prices has no package.json (Python
+# workspace, ignored by Bun's glob).
 COPY package.json bun.lock turbo.json ./
-COPY packages/tsconfig packages/tsconfig
 COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages packages
 
 # Install ALL workspace deps (Bun resolves @pekulo/* via workspace:* protocol).
 RUN bun install --frozen-lockfile
@@ -783,7 +788,10 @@ node_modules
 **/dist
 **/coverage
 
+# Exclude apps/web sources but keep package.json for `bun install --frozen-lockfile`
+# (Bun requires every workspace member's manifest at install time).
 apps/web
+!apps/web/package.json
 apps/prices
 
 docs
@@ -1126,6 +1134,8 @@ OK: /internal/
 ### Debug Log
 
 - **2026-05-04 (T1/T2)**: Story spec listed `"types": ["bun-types"]` in `apps/api/tsconfig.json` (Task 1b) but the matching `package.json` declared only `@types/bun@1.3.0`. `tsc --noEmit` reported `TS2688: Cannot find type definition file for 'bun-types'`. Fixed in-flight to `"types": ["bun"]` (DefinitelyTyped resolution under `@types/bun`). Story snippet patched in lock-step. Single-character typo, no architectural impact.
+
+- **2026-05-04 (T8/T10)**: Story T8 Dockerfile copied only `packages/tsconfig` + `apps/api/package.json` before `bun install --frozen-lockfile`. The build failed with `error: lockfile had changes, but lockfile is frozen` because Bun's frozen install requires *every* workspace manifest (declared via the root `workspaces` glob `["apps/*", "packages/*"]`) to be present. The story `.dockerignore` also excluded `apps/web` wholesale, so even if Dockerfile asked for `apps/web/package.json` Docker would not have shipped it. Fix: (1) Dockerfile now copies `apps/api/package.json` + `apps/web/package.json` + entire `packages/` (~92 KB, all workspace members), and (2) `.dockerignore` adds the `!apps/web/package.json` exception so the manifest is in the build context. apps/prices has no package.json (Python workspace) so Bun's glob silently skips it. Verified locally with `docker build -t pekulo-api:dev .` + `docker run` — container is `healthy` at t+6 s. Lesson recorded in `docs/lessons.md` (scope `aped-arch, aped-story, aped-dev`) so every future apps/* Dockerfile follows the same pattern.
 
 - **2026-05-04 (T4/T5)**: Elysia 1.4.4 has invariant generic parameters in its `.use(plugin)` boundary. Story snippets annotated `routes: Elysia` (`HealthModule` interface in T4a), `function healthRoutes(...): Elysia` (T4b), and `app: Elysia` (T3c — `registerLifecycle`). Each annotation widens the chained `Elysia<Routes={health: …}, …>` back to the defaults `Elysia<{}, …>`, then TS rejects the assignment at `.use(healthModule.routes)` and at `registerLifecycle(app, deps)` with **TS2345 — Argument of type 'Elysia<…, { health: … }, …>' is not assignable to parameter of type 'Elysia<…, {}, …>'**. Fix: (1) drop `: Elysia` return annotations and let TS infer the chain ; (2) at boundaries that accept any Elysia handle (`registerLifecycle`), import `type { AnyElysia }` from elysia (which is `Elysia<any, …, any>`) and use that. Runtime is unaffected (verified via `(cd apps/api && bun run dev) + curl /health /ready` → 200 OK on both). Lesson recorded in `docs/lessons.md` (scope `aped-arch, aped-story, aped-dev`) so stories 0-5, 1-1, 2-1, 3-1, 6-1, 7-1, 7-3 (every domain module factory) apply the same pattern.
 

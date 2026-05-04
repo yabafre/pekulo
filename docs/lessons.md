@@ -13,6 +13,15 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-04 — Bun `--frozen-lockfile` in Docker requires every workspace member's package.json (Scope: aped-arch, aped-story, aped-dev — stories 0-3, 0-8, every apps/* Dockerfile)
+
+- **Date:** 2026-05-04
+- **Mistake:** Story 0-3 T8 Dockerfile (`apps/api/Dockerfile`) copied only `packages/tsconfig` + `apps/api/package.json` before `RUN bun install --frozen-lockfile`. Verified during T10 (Docker build smoke): the build failed at the install step with `error: lockfile had changes, but lockfile is frozen` even though `bun install --frozen-lockfile` succeeded locally with no changes. Root cause: Bun's frozen install reads the root `package.json` `workspaces` glob (`["apps/*", "packages/*"]`) and requires every workspace member's manifest to be present in the install root — otherwise the lockfile (which records all workspaces) is considered out-of-sync with what's reachable. Locally every workspace exists, so it works ; in the Docker context only `apps/api/` was copied. Compounded by `.dockerignore` excluding `apps/web` wholesale, so even adding `COPY apps/web/package.json` to the Dockerfile would have failed silently (file not in context).
+- **Correction:** Two changes locked in for every apps/* Dockerfile in this monorepo:
+  1. **Copy every workspace manifest** before `bun install --frozen-lockfile`. For apps/api this means: `COPY apps/api/package.json apps/api/` + `COPY apps/web/package.json apps/web/` + `COPY packages packages` (the entire packages/ tree is ~92 KB, all 7 members copied at once is fine). apps/prices is Python (no package.json) — Bun's glob silently skips it.
+  2. **`.dockerignore` exception for foreign workspace manifests** — `apps/web` exclusion stays (we don't want 2 GB of Next.js sources in the apps/api build context), but add `!apps/web/package.json` immediately after to re-include just the manifest. Same pattern for any future apps/* that aren't the build target.
+- **Rule:** When writing a per-app Dockerfile in a Bun workspace monorepo, the install step must be reachable from a workspace-complete view. Default checklist: (a) every member of the workspaces glob has its package.json copied (or stubbed), (b) `.dockerignore` re-includes those manifests via `!path` exceptions when broader excludes are in place, (c) `RUN bun install --frozen-lockfile` is the gate — if it fails with "lockfile had changes", check workspace coverage *before* assuming the lockfile is wrong. Apply to story 0-8 (CI/CD) when the GitHub Actions job builds the apps/api image, and to every future apps/* (mobile build, etc.) that ships a Dockerfile.
+
 ### 2026-05-04 — Elysia 1.4 `Elysia` type is invariant ; use inference + `AnyElysia` at boundaries (Scope: aped-arch, aped-story, aped-dev — stories 0-3, 0-5, 0-6, 1-1, 2-1, 3-1, 4-1, 5-1, 6-1, 7-1, 7-3, 8-1)
 
 - **Date:** 2026-05-04

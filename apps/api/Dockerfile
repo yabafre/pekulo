@@ -8,10 +8,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy lockfile + manifests first for cache-friendly install.
+# Copy lockfile + ALL workspace manifests for cache-friendly frozen install.
+# `bun install --frozen-lockfile` requires every workspace member declared in the
+# root `workspaces` glob to have its package.json present, otherwise Bun reports
+# "lockfile had changes" and aborts. apps/prices has no package.json (Python
+# workspace, ignored by Bun's glob).
 COPY package.json bun.lock turbo.json ./
-COPY packages/tsconfig packages/tsconfig
 COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages packages
 
 # Install ALL workspace deps (Bun resolves @pekulo/* via workspace:* protocol).
 RUN bun install --frozen-lockfile
