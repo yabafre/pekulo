@@ -284,7 +284,7 @@ Create the four manifest / config files plus a one-line `main.ts` stub so `bun i
   "extends": "@pekulo/tsconfig/apps.json",
   "compilerOptions": {
     "rootDir": "src",
-    "types": ["bun-types"]
+    "types": ["bun"]
   },
   "include": ["src/**/*.ts"]
 }
@@ -700,15 +700,17 @@ Expected output (key lines, in order):
 ```
 === /health response ===
 HTTP/1.1 200 OK
-...
+Content-Type: application/json
 {"status":"ok"}
 === /ready response ===
 HTTP/1.1 200 OK
-...
+Content-Type: application/json
 {"ready":true,"probes":{}}
 === server log (head) ===
 [api] listening on http://127.0.0.1:3001
 ```
+
+> Bun + Elysia inject additional headers (`Content-Length`, `Date`, `Connection`, etc.) between the status line and the body — these are noise; the assertion is `200 OK` + JSON-body equality.
 
 > **Note for the dev:** if the curl loop times out, inspect `$LOG` BEFORE the `trap` cleans it up — copy the path printed by `mktemp` and `cat` it manually. The most likely cause is port 3001 already bound (Next dev server is on 3000 normally; check `lsof -i :3001`).
 
@@ -1002,15 +1004,17 @@ Expected output (key lines):
 ```
 === /health response ===
 HTTP/1.1 200 OK
-...
+Content-Type: application/json
 {"status":"ok"}
 === container HEALTHCHECK status (poll up to 60 s) ===
 t+1s: starting
-...
+t+5s: starting
 t+30s: healthy
 === final HEALTHCHECK status ===
 healthy
 ```
+
+> The HEALTHCHECK declares `--interval=30s --start-period=10s`, so the first probe runs around t+10s and reports `starting` until the probe succeeds; the transition to `healthy` typically lands between t+30 and t+45s. Any intermediate `t+Xs: starting` line is acceptable — the assertion is on the final state.
 
 > **If Docker is not installed locally:** mark this task as deferred in the Dev Agent Record, capture `docker version` exit ≠ 0, and rely on Dokploy's CI build as the contractual ground truth. Story 0-8 will wire a CI lane that runs this verification on every PR.
 
@@ -1119,6 +1123,8 @@ OK: /internal/
 - **Completed:** {{timestamp}}
 
 ### Debug Log
+
+- **2026-05-04 (T1/T2)**: Story spec listed `"types": ["bun-types"]` in `apps/api/tsconfig.json` (Task 1b) but the matching `package.json` declared only `@types/bun@1.3.0`. `tsc --noEmit` reported `TS2688: Cannot find type definition file for 'bun-types'`. Fixed in-flight to `"types": ["bun"]` (DefinitelyTyped resolution under `@types/bun`). Story snippet patched in lock-step. Single-character typo, no architectural impact.
 
 ### Completion Notes
 

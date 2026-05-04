@@ -3,7 +3,7 @@
   "extends": "@pekulo/tsconfig/apps.json",
   "compilerOptions": {
     "rootDir": "src",
-    "types": ["bun-types"]
+    "types": ["bun"]
   },
   "include": ["src/**/*.ts"]
 }
