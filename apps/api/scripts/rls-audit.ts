@@ -26,8 +26,10 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
 async function main(): Promise<number> {
   const env = loadEnv();
   const client = new Client({ connectionString: env.DATABASE_URL });
-  await client.connect();
+  // F11: connect inside the try so a failing connect (wrong DATABASE_URL,
+  // network down) still hits the cleanup path and `client.end()` doesn't leak.
   try {
+    await client.connect();
     const tableNames = Object.keys(EXPECTED_POLICY_COUNTS);
     const tables = await client.query<{ tablename: string; rowsecurity: boolean }>(
       `SELECT tablename, rowsecurity FROM pg_tables
@@ -71,7 +73,9 @@ async function main(): Promise<number> {
     console.log(`[rls-audit] OK — ${tableNames.length} tables checked: ${summary.join(", ")}`);
     return 0;
   } finally {
-    await client.end();
+    // Swallow end() errors — at this point we've either reported drift or
+    // success ; a failing teardown should not flip the exit code.
+    await client.end().catch(() => {});
   }
 }
 
