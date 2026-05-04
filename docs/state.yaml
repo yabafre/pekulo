@@ -205,7 +205,7 @@ sprint:
     0-3-api-scaffold: {status: done, depends_on: [0-1-packages-reorg], ticket: "#3", worktree: null, started_at: "2026-05-04T00:00:00Z", reviewed_at: "2026-05-04T09:25:00Z"}
     0-4-prisma-setup: {status: done, depends_on: [0-3-api-scaffold], ticket: "#4", worktree: null, started_at: "2026-05-04T10:00:00Z", reviewed_at: "2026-05-04T15:00:00Z"}
     0-5-orpc-contracts-scaffold: {status: done, depends_on: [0-3-api-scaffold], ticket: "#5", worktree: null, started_at: "2026-05-04T16:00:00Z", reviewed_at: "2026-05-04T20:00:00Z"}
-    0-6-zapaction-orpc-bridge: {status: pending, depends_on: [0-5-orpc-contracts-scaffold], ticket: "#6", worktree: null}
+    0-6-zapaction-orpc-bridge: {status: review-queued, depends_on: [0-5-orpc-contracts-scaffold], ticket: "#6", worktree: null, started_at: "2026-05-04T22:00:00Z", dev_completed_at: "2026-05-04T22:30:00Z"}
     0-7-otel-three-runtimes: {status: pending, depends_on: [0-3-api-scaffold], ticket: "#7", worktree: null}
     0-8-github-actions-pr: {status: pending, depends_on: [0-2-oxc-toolchain], ticket: "#8", worktree: null}
     0-9-tamagui-spike: {status: pending, depends_on: [0-3-api-scaffold], ticket: "#9", worktree: null}
