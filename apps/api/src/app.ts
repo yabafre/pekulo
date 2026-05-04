@@ -6,6 +6,7 @@ import { createHealthModule } from "./modules/health/health.module";
 import { mapErrorToOrpcResponse } from "./platform/http/error-mapper";
 import { mountOrpc } from "./platform/http/orpc-mount";
 import { extractRequestId } from "./common/errors";
+import { elysiaOtelPlugin, shutdownOtel } from "./platform/observability";
 
 export interface ServerHandle {
   stop: () => Promise<void>;
@@ -33,6 +34,10 @@ export async function startServer(): Promise<ServerHandle> {
       set.status = mapped.status;
       return mapped.body;
     })
+    // OTel plugin AFTER .onError so even error responses produce a span;
+    // BEFORE module mounts so module-handler spans nest under the OTel
+    // server span (AC-1).
+    .use(elysiaOtelPlugin())
     .use(healthModule.router);
 
   mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
@@ -40,7 +45,7 @@ export async function startServer(): Promise<ServerHandle> {
   await registerLifecycle(
     app,
     { shutdownTimeoutMs: env.SHUTDOWN_TIMEOUT_MS },
-    { prismaService: deps.prismaService },
+    { prismaService: deps.prismaService, shutdownOtel },
   );
 
   app.listen({ port: env.PORT, hostname: env.HOST }, (server) => {
