@@ -1,0 +1,37 @@
+# Per-app .dockerignore. The build context is the repo root (`docker build -f apps/api/Dockerfile .`),
+# so this list excludes everything irrelevant to the apps/api image.
+
+.git
+.github
+.husky
+.turbo
+.aped
+.agents
+.claude
+.codex
+.idea
+.vscode
+
+node_modules
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+
+# Exclude apps/web sources but keep package.json for `bun install --frozen-lockfile`
+# (Bun requires every workspace member's manifest at install time).
+apps/web
+!apps/web/package.json
+apps/prices
+
+docs
+docs/**
+**/*.md
+
+.env
+.env.*
+!.env.example
+
+bun.build.log
+*.log
