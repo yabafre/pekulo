@@ -203,7 +203,7 @@ sprint:
     0-1-packages-reorg: {status: done, depends_on: [], ticket: "#1", worktree: null, started_at: "2026-05-03T00:00:00Z", reviewed_at: "2026-05-03T20:50:00Z"}
     0-2-oxc-toolchain: {status: done, depends_on: [0-1-packages-reorg], ticket: "#2", worktree: null, started_at: "2026-05-03T21:00:00Z", reviewed_at: "2026-05-04T00:30:00Z"}
     0-3-api-scaffold: {status: done, depends_on: [0-1-packages-reorg], ticket: "#3", worktree: null, started_at: "2026-05-04T00:00:00Z", reviewed_at: "2026-05-04T09:25:00Z"}
-    0-4-prisma-setup: {status: pending, depends_on: [0-3-api-scaffold], ticket: "#4", worktree: null}
+    0-4-prisma-setup: {status: review-queued, depends_on: [0-3-api-scaffold], ticket: "#4", worktree: null, started_at: "2026-05-04T10:00:00Z"}
     0-5-orpc-contracts-scaffold: {status: pending, depends_on: [0-3-api-scaffold], ticket: "#5", worktree: null}
     0-6-zapaction-orpc-bridge: {status: pending, depends_on: [0-5-orpc-contracts-scaffold], ticket: "#6", worktree: null}
     0-7-otel-three-runtimes: {status: pending, depends_on: [0-3-api-scaffold], ticket: "#7", worktree: null}
