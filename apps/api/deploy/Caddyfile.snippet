@@ -1,0 +1,37 @@
+# Caddyfile snippet — operator reference for Dokploy / Caddy reverse proxy.
+#
+# Architecture mount layout (docs/architecture.md L229):
+#   "Caddy mounts /rpc/v1/*, /health, /ready, /internal/* to apps/api."
+#
+# Replace `pekulo.example.com` with the production domain and `pekulo-api`
+# with the upstream container name resolved by the Dokploy network.
+# `apps/prices` is reachable only via internal Docker network (no public port)
+# and is NOT mounted on Caddy.
+
+pekulo.example.com {
+  encode zstd gzip
+
+  # Public health probes (no auth).
+  handle /health {
+    reverse_proxy pekulo-api:3001
+  }
+  handle /ready {
+    reverse_proxy pekulo-api:3001
+  }
+
+  # Domain API surface.
+  handle_path /api/* {
+    reverse_proxy pekulo-api:3001
+  }
+  handle /rpc/v1/* {
+    reverse_proxy pekulo-api:3001
+  }
+
+  # Private listener for iOS FoundationModels attestation (JWT-verified by apps/api).
+  handle /internal/* {
+    reverse_proxy pekulo-api:3001
+  }
+
+  # Everything else falls through to the Vercel-hosted apps/web upstream
+  # (configured separately in the Dokploy Caddy parent block).
+}
