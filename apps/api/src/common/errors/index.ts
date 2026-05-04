@@ -3,3 +3,4 @@
 
 export { PekuloError, isPekuloError } from "./pekulo-error";
 export type { PekuloErrorCode } from "./pekulo-error";
+export { attachRequestId, extractRequestId } from "./request-id-tag";

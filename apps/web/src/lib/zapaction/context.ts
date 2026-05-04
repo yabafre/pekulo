@@ -2,7 +2,7 @@ import "server-only";
 import { setActionContext } from "@zapaction/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { ensureRequestContext } from "@/lib/orpc/request-context";
+import { seedRequestContext } from "@/lib/orpc/request-context";
 
 // ActionContext keeps `supabase` for backward compat — brownfield actions
 // that haven't been ported yet (portfolio, transactions, monthly,
@@ -24,9 +24,13 @@ setActionContext<ActionContext>(async () => {
     throw new Error("UNAUTHORIZED");
   }
   // Seed the AsyncLocalStorage so the oRPC client (called from inside
-  // ported actions like apps/web/src/lib/actions/hypotheses.ts) can read
-  // the access token from getRequestContext().
-  await ensureRequestContext();
+  // ported actions) can read the access token from getRequestContext().
+  // Pass the already-resolved session to skip a duplicate auth.getSession().
+  seedRequestContext({
+    accessToken: session.access_token,
+    userId: session.user.id,
+    email: session.user.email ?? null,
+  });
   return {
     supabase: supabase as unknown as SupabaseClient,
     userId: session.user.id,

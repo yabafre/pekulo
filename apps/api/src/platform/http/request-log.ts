@@ -10,7 +10,14 @@ export interface RpcLogEntry {
   userId: string;
   durationMs: number;
   status: number;
+  // Top-level `errorCode` (flat) — appended only when status >= 400. Flat
+  // shape is intentional: log aggregators index single-level fields without
+  // dotted-path queries.
   errorCode?: string;
+  // Underlying cause class name (low cardinality) for ops debugging — e.g.
+  // "JWTExpired", "JWSSignatureVerificationFailed". Only set on failures
+  // when the thrown error has a `.cause`. Never set on success paths.
+  reasonClass?: string;
 }
 
 export function logRpcRequest(entry: RpcLogEntry): void {
@@ -24,6 +31,9 @@ export function logRpcRequest(entry: RpcLogEntry): void {
   };
   if (entry.status >= 400 && entry.errorCode) {
     payload.errorCode = entry.errorCode;
+  }
+  if (entry.status >= 400 && entry.reasonClass) {
+    payload.reasonClass = entry.reasonClass;
   }
   console.log(JSON.stringify(payload));
 }

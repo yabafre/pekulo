@@ -8,7 +8,8 @@
 // remainder of the current synchronous execution and persists through any
 // following async calls within the same V8 ResourceContext. Next.js wraps
 // each request in its own ResourceContext, so concurrent requests have
-// isolated stores (no cross-contamination).
+// isolated stores (no cross-contamination). See lessons.md L7 for the
+// Next.js-version watch item.
 
 import "server-only";
 
@@ -51,6 +52,16 @@ export async function ensureRequestContext(): Promise<RequestContext> {
 }
 
 /**
+ * Seed the AsyncLocalStorage with a pre-resolved context. Used by
+ * `setActionContext` (zapaction) so the resolver doesn't double-call
+ * Supabase's `auth.getSession()`. Idempotent on the same async chain —
+ * `enterWith` is a no-op if the store already holds an equal entry.
+ */
+export function seedRequestContext(ctx: RequestContext): void {
+  requestContextStore.enterWith(ctx);
+}
+
+/**
  * Synchronous getter — used by the RPCLink.headers thunk. Throws if called
  * outside an ensured request context (e.g. from a route handler that
  * forgot to call ensureRequestContext first).
@@ -63,12 +74,4 @@ export function getRequestContext(): RequestContext {
     );
   }
   return store;
-}
-
-/**
- * Test-only — drains the AsyncLocalStorage for unit tests that need to
- * simulate "no context yet". Production code should never call this.
- */
-export function _resetRequestContextForTests(): void {
-  requestContextStore.disable();
 }

@@ -10,7 +10,7 @@
 import type { AnyElysia } from "elysia";
 import { RPCHandler } from "@orpc/server/fetch";
 
-import { PekuloError, isPekuloError } from "../../common/errors";
+import { PekuloError, attachRequestId } from "../../common/errors";
 import { mapErrorToOrpcResponse } from "./error-mapper";
 import { logRpcRequest } from "./request-log";
 import { requireUserContext, type JwtVerifier, type UserContext } from "../security";
@@ -57,8 +57,9 @@ export function mountOrpc(app: AnyElysia, deps: MountOrpcDeps) {
     const route =
       routeSegments.length >= 2 ? `${routeSegments[0]}.${routeSegments[1]}` : url.pathname;
 
+    let userContext: UserContext | undefined;
     try {
-      const userContext = await requireUserContext(request.headers, deps.jwtVerifier);
+      userContext = await requireUserContext(request.headers, deps.jwtVerifier);
       const { matched, response } = await handler.handle(request, {
         prefix: "/rpc/v1",
         context: userContext,
@@ -78,20 +79,36 @@ export function mountOrpc(app: AnyElysia, deps: MountOrpcDeps) {
     } catch (err) {
       const durationMs = Math.max(0, Math.round(performance.now() - startedAt));
       const mapped = mapErrorToOrpcResponse(err, requestId);
+      // For UNAUTHORIZED the user is unknown (auth failed), so log
+      // "anonymous". Otherwise prefer the resolved userId; fall back to
+      // "anonymous" if the error fired before requireUserContext returned.
+      const errorCode = mapped.body.error.code;
+      const userId =
+        errorCode === "UNAUTHORIZED" ? "anonymous" : userContext?.userId ?? "anonymous";
+      // Surface the underlying cause class for ops debugging (e.g.
+      // "JWTExpired" vs "JWSSignatureVerificationFailed") without leaking it
+      // to the wire body. Low cardinality, only set for failures.
+      const cause =
+        err && typeof err === "object" && "cause" in err
+          ? (err as { cause?: unknown }).cause
+          : undefined;
+      const reasonClass =
+        cause && typeof cause === "object" && cause.constructor?.name
+          ? cause.constructor.name
+          : undefined;
       logRpcRequest({
         requestId,
         route,
-        userId: isPekuloError(err) && err.code !== "UNAUTHORIZED" ? "unknown" : "anonymous",
+        userId,
         durationMs,
         status: mapped.status,
-        errorCode: mapped.body.error.code,
+        errorCode,
+        reasonClass,
       });
-      // Re-throw so the global Elysia .onError(...) shapes the wire body
-      // uniformly — keeps the mount layer free of duplicated error-mapping
-      // logic. The .onError handler will generate ITS OWN requestId; that
-      // duplication is acceptable for now (the structured log already
-      // captured the mount-side requestId). Story 0-7 will unify by passing
-      // the requestId through Elysia store.
+      // Attach the mount-generated requestId to the error so the global
+      // .onError can surface the same id on the wire body — single
+      // correlation handle across log line + wire response.
+      attachRequestId(err, requestId);
       throw err;
     }
   });

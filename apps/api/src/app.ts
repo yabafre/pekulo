@@ -5,6 +5,7 @@ import { registerLifecycle } from "./bootstrap/lifecycle";
 import { createHealthModule } from "./modules/health/health.module";
 import { mapErrorToOrpcResponse } from "./platform/http/error-mapper";
 import { mountOrpc } from "./platform/http/orpc-mount";
+import { extractRequestId } from "./common/errors";
 
 export interface ServerHandle {
   stop: () => Promise<void>;
@@ -18,11 +19,11 @@ export async function startServer(): Promise<ServerHandle> {
   // L2 — let Elysia infer the chained type; never annotate the variable with the bare Elysia type.
   const app = new Elysia()
     .onError(({ error, set }) => {
-      // Generate the requestId BEFORE the log so the log line and the wire
-      // body share the same correlation handle (review F3). Emit one
-      // structured log carrying { requestId, code, name } — never the raw
-      // Error object, which would dump message + stack + cause to stdout.
-      const requestId = crypto.randomUUID();
+      // Prefer the requestId attached by mountOrpc (single correlation
+      // handle across the mount-side log line + wire body). Fall back to a
+      // fresh UUID for errors thrown outside the oRPC mount path (e.g.
+      // health/route handlers).
+      const requestId = extractRequestId(error) ?? crypto.randomUUID();
       const mapped = mapErrorToOrpcResponse(error, requestId);
       console.error("[api] error", {
         requestId,
