@@ -1,7 +1,7 @@
 # Story: 0-3-api-scaffold — Scaffold `apps/api` on Bun + Elysia
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** review-queued
+**Status:** done
 **Ticket:** [#3](https://github.com/yabafre/pekulo/issues/3)
 **Branch:** `feat/0-3-api-scaffold`
 **Commit prefix:** `feat(#3): ...` (or `chore(#3):` / `fix(#3):` per task type)
@@ -1195,3 +1195,88 @@ docs/lessons.md                          (2 new lessons added: Elysia 1.4 invari
 docs/state.yaml                          (single status flip pending → review-queued + started_at)
 docs/stories/0-3-api-scaffold.md         (this file — Debug Log + Dev Agent Record + 3 lock-step snippet patches)
 ```
+
+---
+
+## Review Record
+
+**Date:** 2026-05-04
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Diego, Kai)
+**Verdict:** `done` — all findings resolved, 0 dismissed, no regressions
+
+### Specialists dispatched
+
+- **Eva** (ac-validator) — Stage 1 sync gate. First pass: APPROVED · 5/5 ACs IMPLEMENTED · 2/2 lessons PASS · HIGH confidence. Re-verify: APPROVED, no regressions.
+- **Marcus** (code-quality, 5-anti-pattern audit) — Stage 2. First pass: CHANGES_REQUESTED · 7 substantive findings (3 HIGH, 3 MEDIUM, 2 LOW) · HIGH confidence. Re-verify: APPROVED.
+- **Rex** (git-auditor) — Stage 2. First pass: APPROVED · 1 LOW finding (File List vs diff) · 1 INFO (audit-script tooling bug) · HIGH confidence. Re-verify on fix commits: clean (10 files in scope, 0 out-of-scope leaks, all `#3`-prefixed).
+- **Diego** (backend / ADR-0009) — Stage 2. First pass: CHANGES_REQUESTED · 4 findings (3 MEDIUM, 1 LOW, several INFO PASS) · HIGH confidence. Re-verify: APPROVED, ADR-0009 contract aligned.
+- **Kai** (devops) — Stage 2. First pass: CHANGES_REQUESTED · 1 HIGH (root user) + 1 MEDIUM (Caddyfile asymmetry) + 1 LOW (image size, deferred) · HIGH confidence. Re-verify: APPROVED, container runs as `uid=1000(bun)`.
+
+Stage 1.5 (Hannah / Eli / Aaron adversarial pass) skipped per `review.parallel_reviewers` default.
+
+### Findings (consolidated)
+
+#### Resolved
+
+- [HIGH] **#1** Container ran as root — no `USER` directive [`apps/api/Dockerfile`]
+  - Source: Marcus (overlap), Kai (owner)
+  - Resolution: commit `f911267` — `RUN chown -R bun:bun /app` + `USER bun` before HEALTHCHECK + CMD. Verified: `docker exec id` → `uid=1000(bun) gid=1000(bun)`.
+
+- [HIGH] **#2** `/ready` leaked raw `probe.reason` on public endpoint + crashed 500 on probe rejection [`apps/api/src/bootstrap/readiness.ts`, `apps/api/src/modules/health/health.routes.ts`]
+  - Source: Marcus, Diego (overlap)
+  - Resolution: commit `21a9d82` — `runProbe` wraps each probe in try/catch + `Promise.race` with 2s timeout, rejections become in-band `{ ok: false, reason }`. `health.routes.ts` introduces `publicProbeView` to strip `reason` on the public endpoint (only `{ ok }` exposed).
+
+- [HIGH] **#3** `.onError` echoed `error.message` verbatim on 5xx — leak risk [`apps/api/src/app.ts`]
+  - Source: Marcus
+  - Resolution: commit `21a9d82` — branch on status: 5xx returns `{ code: "INTERNAL", message: "internal server error" }`; 4xx still surfaces `error.message` for client UX.
+
+- [HIGH] **#4** Shutdown contract: error swallowed → exit 0 + no in-flight drain + no timeout [`apps/api/src/bootstrap/lifecycle.ts`, `apps/api/src/config/env.ts`, `apps/api/src/app.ts`]
+  - Source: Marcus
+  - Resolution: commit `21a9d82` — `LifecycleOptions { shutdownTimeoutMs }` injected from `app.ts`; `Promise.race([app.stop(), timeout])` bounded; `SHUTDOWN_TIMEOUT_MS` added to Zod schema (default 10s, max 60s); exit code 1 on timeout/error, 0 on clean stop; `clearTimeout` in finally.
+
+- [MEDIUM] **#5** ADR-0009 contract drift: factory returned `{ routes }` instead of `{ router, service }` [`apps/api/src/modules/health/health.module.ts`, `apps/api/src/app.ts`]
+  - Source: Diego
+  - Resolution: commit `21a9d82` — `createHealthModule` returns `{ router }`; comment documents the degenerate no-service shape so 0-5 / 1-1 / 2-1 / 3-1 / 6-3 / 7-x mirror the canonical naming. `app.ts` updated to `.use(healthModule.router)`.
+
+- [MEDIUM] **#6** `/ready` probes executed sequentially, no per-probe timeout [`apps/api/src/bootstrap/readiness.ts`]
+  - Source: Marcus, Diego (overlap)
+  - Resolution: commit `21a9d82` — `Promise.all(Array.from(probes.entries(), runProbe))` runs probes in parallel; each probe wrapped in `Promise.race([probe(), timeout])` with `PROBE_TIMEOUT_MS = 2_000`; `clearTimeout` in finally prevents timer leak.
+
+- [MEDIUM] **#7** Caddyfile.snippet `handle_path /api/*` strip-prefix asymmetry undocumented [`apps/api/deploy/Caddyfile.snippet`]
+  - Source: Kai
+  - Resolution: commit `c2fc8e3` — header now spells out `handle` (preserve prefix) for `/health`, `/ready`, `/rpc/v1/*`, `/internal/*` vs `handle_path` (strip prefix) for `/api/*`; downstream-story authors are warned that REST routes in epics 1-8 must NOT include the `/api` prefix because it's stripped at the Caddy boundary.
+
+- [MEDIUM] **#8** `loadEnv` called `process.exit(1)` from inside a function — testability hazard [`apps/api/src/config/env.ts`, `apps/api/src/main.ts`]
+  - Source: Marcus
+  - Resolution: commit `21a9d82` — `loadEnv` throws typed `ConfigError` carrying `fieldErrors`; `main.ts` catches `ConfigError` separately, logs structured field errors, exits 1. Tests can now `expect(() => loadEnv({})).toThrow(ConfigError)`. `process.exit` boundary is now `main.ts` + `lifecycle.ts` only.
+
+- [LOW] **#9** `app.ts` inline `.onError` will collide with `platform/http/error-mapper.ts` at story 0-5 [`apps/api/src/app.ts`]
+  - Source: Diego
+  - Resolution: commit `21a9d82` — `// TODO(story 0-5): replace with platform/http/error-mapper.ts (PekuloError → oRPC).` pinned directly above the inline handler.
+
+- [LOW] **#10** Unused `_deps` parameter in `registerLifecycle` [`apps/api/src/bootstrap/lifecycle.ts`]
+  - Source: Marcus
+  - Resolution: commit `21a9d82` — parameter dropped; replaced with `LifecycleOptions { shutdownTimeoutMs }` (which is actually consumed). No future-contributor footgun.
+
+- [LOW] **#11** Story File List + Dev Agent Record minor discrepancies [`docs/stories/0-3-api-scaffold.md`]
+  - Source: Rex
+  - Resolution: commit `b9a596f` — File List now enumerates `docs/state.yaml`; Dev Agent Record clarifies that 2 (not 3) net-new lessons were added (the `bun --cwd` quirk pre-existed from story 0-1 and is referenced, not added); tsconfig `bun-types` → `bun` typo deviation noted as too trivial for a lesson.
+
+#### Dismissed
+
+None — all 11 findings accepted by Alex via "fix tout".
+
+### Verification
+
+- **Test command (post-fix re-run by Lead):** `cd apps/api && bun run typecheck` → `tsc --noEmit` exit 0, no output.
+- **Dev server smoke (Eva re-verify):** `bun run dev` → `/health` 200 `{"status":"ok"}` · `/ready` 200 `{"ready":true,"probes":{}}` · log `[api] listening on http://127.0.0.1:3001`.
+- **Docker smoke (Kai re-verify, live):** `docker build` OK · `docker exec id` → `uid=1000(bun) gid=1000(bun)` · `/health` 200 from container · HEALTHCHECK `starting` → `healthy` at t+2s (well under 60s ceiling).
+- **Caddyfile AC-5 still passes:** all 5 paths grep OK; `reverse_proxy` count = 5.
+- **Regression spot checks:** `grep ': Elysia\b' apps/api/src` → 0 matches (Elysia 1.4 invariance preserved); `grep 'process.exit' apps/api/src` → only `main.ts` + `lifecycle.ts` (env.ts cleaned); `grep 'AnyElysia' apps/api/src` → still imported and used in `lifecycle.ts`.
+- **Visual verification:** N/A — backend-only story, no UI surface.
+
+### Ticket sync
+
+- **Ticket comment posted:** [yabafre/pekulo#3 (issue comment)](https://github.com/yabafre/pekulo/issues/3#issuecomment-4369768366)
+- **PR review submitted (COMMENT, not APPROVE — merge owned by aped-lead):** [PR #56](https://github.com/yabafre/pekulo/pull/56)
+- **Branch:** `feat/0-3-api-scaffold` — 4 fix commits added on top of dev (`21a9d82`, `f911267`, `c2fc8e3`, `b9a596f`).
