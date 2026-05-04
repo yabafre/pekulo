@@ -32,9 +32,11 @@ docs
 docs/**
 **/*.md
 
-.env
-.env.*
-!.env.example
+# F3: secret hygiene — patterns must use **/ to catch nested .env files.
+# Bare `.env`, `.env.*` only match at context root and miss apps/api/.env.local.
+**/.env
+**/.env.*
+!**/.env.example
 
 bun.build.log
 *.log
