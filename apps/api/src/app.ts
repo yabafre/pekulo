@@ -34,7 +34,7 @@ export async function startServer(): Promise<ServerHandle> {
     })
     .use(healthModule.router);
 
-  mountOrpc(app);
+  mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
 
   await registerLifecycle(
     app,
