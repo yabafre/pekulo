@@ -6,6 +6,9 @@ const envSchema = z.object({
   HOST: z.string().min(1).default("127.0.0.1"),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().max(60_000).default(10_000),
   DATABASE_URL: z.string().url(),
+  SUPABASE_JWT_SECRET: z
+    .string()
+    .min(32, "SUPABASE_JWT_SECRET must be ≥ 32 chars (read it from `bunx supabase status`)"),
 });
 
 export type Env = z.infer<typeof envSchema>;
