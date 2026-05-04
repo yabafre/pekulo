@@ -1,0 +1,34 @@
+# Per-app .dockerignore. The build context is the repo root (`docker build -f apps/api/Dockerfile .`),
+# so this list excludes everything irrelevant to the apps/api image.
+
+.git
+.github
+.husky
+.turbo
+.aped
+.agents
+.claude
+.codex
+.idea
+.vscode
+
+node_modules
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+
+apps/web
+apps/prices
+
+docs
+docs/**
+**/*.md
+
+.env
+.env.*
+!.env.example
+
+bun.build.log
+*.log
