@@ -3,6 +3,8 @@ import { loadEnv } from "./config/env";
 import { createRuntimeDependencies } from "./bootstrap/runtime-dependencies";
 import { registerLifecycle } from "./bootstrap/lifecycle";
 import { createHealthModule } from "./modules/health/health.module";
+import { mapErrorToOrpcResponse } from "./platform/http/error-mapper";
+import { mountOrpc } from "./platform/http/orpc-mount";
 
 export interface ServerHandle {
   stop: () => Promise<void>;
@@ -13,24 +15,17 @@ export async function startServer(): Promise<ServerHandle> {
   const deps = await createRuntimeDependencies({ env });
   const healthModule = createHealthModule({ readiness: deps.readiness });
 
-  // TODO(story 0-5): replace with platform/http/error-mapper.ts (PekuloError → oRPC).
+  // L2 — let Elysia infer the chained type; never annotate the variable with the bare Elysia type.
   const app = new Elysia()
-    .onError(({ code, error, set }) => {
-      console.error(`[api] error code=${String(code)}`, error);
-      const status =
-        set.status === undefined || set.status === 200 ? 500 : Number(set.status);
-      set.status = status;
-      if (status >= 500) {
-        return { error: { code: "INTERNAL", message: "internal server error" } };
-      }
-      return {
-        error: {
-          code: String(code),
-          message: error instanceof Error ? error.message : String(error),
-        },
-      };
+    .onError(({ error, set }) => {
+      console.error("[api] error", error);
+      const mapped = mapErrorToOrpcResponse(error);
+      set.status = mapped.status;
+      return mapped.body;
     })
     .use(healthModule.router);
+
+  mountOrpc(app);
 
   await registerLifecycle(
     app,
