@@ -2140,3 +2140,19 @@ N/A — backend story (no frontend surface; `apps/web` not modified).
 
 - **APED engine** — `git-audit.sh` parser doesn't recognize fenced-block File List format used in this story (and likely future ones). Upstream issue for `npx aped-method` maintainers. Reference: this Review Record + commit `c2e7bcd` for repro.
 - **Re-evaluate `_base.prisma` filename** — at the next major refactor of `apps/api/prisma/schema/`, consider renaming to `schema.prisma` per Prisma convention.
+
+### Post-merge addendum — root-env convention restored (2026-05-04, post-review)
+
+The dev (and the review's verification cycle) propagated `apps/api/.env.local` as the place to put the local `DATABASE_URL`. This violates Pekulo's monorepo convention documented in `docs/project-context.md`: env files live at the **repo root only**, never under `apps/*`. The user surfaced the violation immediately after the PR opened.
+
+Corrected in commit-on-branch (post-Review Record):
+- `apps/api/prisma.config.ts` resolves the repo root from `import.meta.url` (`apps/api → ../..`) and loads `.env.local` then `.env` from there. Works regardless of cwd (bun script, prisma CLI, Docker WORKDIR).
+- `apps/api/scripts/rls-audit.ts` uses the same root-resolved dotenv loader (the script imports `loadEnv` from `src/config/env.ts` which only reads `process.env` — without an explicit dotenv load it would have failed once the local env file moved to root).
+- `apps/api/README.md` § "2. Configure …" now points to `<repo-root>/.env.local`.
+- `.env.example` comment block updated to instruct copying into the root `.env.local`.
+- `apps/api/Dockerfile.dockerignore` comment now reflects the convention rationale (defense-in-depth — the patterns still catch any rogue nested `.env*`).
+- `apps/api/.env.local` (created by the dev + reused during the review fix cycle) is **deleted** locally; the gitignored file at `<repo-root>/.env.local` is the only valid path.
+
+This is a convention finding that the original review missed — the file was at the dev-spec'd location AC-wise (story line 1403 said "Create `apps/api/.env.local`") so Eva accepted it, but the spec itself had drifted from the brownfield monorepo convention. Correcting the spec retroactively is outside this story's scope; future stories that land env-bound code should reference `project-context.md` § Env when drafting tasks.
+
+Story 0-4 stays `done` — the correction is a docs/code-shape adjustment, not an AC regression.

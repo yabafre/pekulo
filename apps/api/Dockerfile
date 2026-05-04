@@ -38,7 +38,9 @@ COPY --chown=bun:bun apps/api/prisma apps/api/prisma
 # Generate the Prisma client into apps/api/generated/prisma (gitignored locally,
 # baked into the image here so the runtime never calls `prisma generate` itself).
 # DATABASE_URL is required at config-load time by prisma.config.ts even for
-# `prisma generate`, so a placeholder keeps the build hermetic.
+# `prisma generate`, so a placeholder keeps the build hermetic. The build
+# context excludes every .env* via Dockerfile.dockerignore, so the only env
+# Prisma sees here is this single inline ARG.
 RUN cd apps/api && DATABASE_URL=postgresql://placeholder:placeholder@build/db bunx prisma generate
 
 # Copy app sources.

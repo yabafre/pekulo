@@ -62,13 +62,15 @@ The local dev DB is a Docker-backed Supabase Postgres on `127.0.0.1:54322`. It s
 >    GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;'
 > ```
 
-### 2. Configure `apps/api/.env.local`
+### 2. Configure the root `.env.local`
 
-Create the file with this single line (gitignored):
+Pekulo's monorepo convention (per `docs/project-context.md`) keeps env files at the **repo root only**, not under apps/api. Add or update this line in `<repo-root>/.env.local` (gitignored):
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 ```
+
+`apps/api/prisma.config.ts` resolves the repo root from its own location and loads `.env.local` then `.env`, so every Prisma command works regardless of cwd (`bun run prisma:* …` from `apps/api`, `prisma migrate deploy` from root, Docker WORKDIR `/app/apps/api`).
 
 ### 3. Generate the Prisma client + apply migrations
 

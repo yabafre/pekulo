@@ -11,7 +11,22 @@
 // here to prove AC-3 of story 0-4.
 
 import { Client } from "pg";
+import { config as dotenvConfig } from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadEnv } from "../src/config/env";
+
+// Pekulo monorepo convention: env files live at the REPO ROOT only. Resolve
+// the root from this file's location (apps/api/scripts/rls-audit.ts → ../../..)
+// so the script works regardless of cwd. Same pattern as prisma.config.ts.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(HERE, "..", "..", "..");
+for (const filename of [".env.local", ".env"]) {
+  const result = dotenvConfig({ path: resolve(REPO_ROOT, filename) });
+  if (result.error && (result.error as NodeJS.ErrnoException).code !== "ENOENT") {
+    console.warn(`[rls-audit] dotenv failed to load ${filename}: ${result.error.message}`);
+  }
+}
 
 const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   kpis: 3,
