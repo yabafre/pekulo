@@ -22,16 +22,25 @@ export async function registerLifecycle(
       const timeout = new Promise<"timeout">((resolve) => {
         timer = setTimeout(() => resolve("timeout"), options.shutdownTimeoutMs);
       });
-      const outcome = await Promise.race([app.stop().then(() => "stopped" as const), timeout]);
-      if (outcome === "timeout") {
-        console.error(`[api] shutdown timed out after ${options.shutdownTimeoutMs}ms`);
+      try {
+        const outcome = await Promise.race([app.stop().then(() => "stopped" as const), timeout]);
+        if (outcome === "timeout") {
+          console.error(`[api] elysia.stop timed out after ${options.shutdownTimeoutMs}ms`);
+          exitCode = 1;
+        }
+      } catch (err) {
+        console.error("[api] elysia.stop failed:", err);
         exitCode = 1;
       }
-      // Drain Prisma connection pool AFTER Elysia stops accepting new requests.
-      await deps.prismaService.disconnect();
-    } catch (err) {
-      console.error("[api] error during shutdown:", err);
-      exitCode = 1;
+      // Drain Prisma connection pool ALWAYS — even if elysia.stop threw or timed
+      // out. Otherwise the Postgres backend keeps the half-closed connections
+      // until it notices the TCP teardown, wasting pool slots on Dokploy.
+      try {
+        await deps.prismaService.disconnect();
+      } catch (err) {
+        console.error("[api] prisma.disconnect failed:", err);
+        exitCode = 1;
+      }
     } finally {
       if (timer !== undefined) clearTimeout(timer);
       process.exit(exitCode);
