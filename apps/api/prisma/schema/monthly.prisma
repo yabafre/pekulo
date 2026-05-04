@@ -1,0 +1,37 @@
+// monthly.prisma — Kpi (singleton-per-user) + MonthlyTracking (per user-month-year).
+
+model Kpi {
+  id             String    @id
+  userId         String    @unique @map("user_id") @db.Uuid
+  netReel        Decimal?  @default(3700) @map("net_reel") @db.Decimal
+  pouvoirAchat   Decimal?  @default(3943) @map("pouvoir_achat") @db.Decimal
+  epargneMois    Decimal?  @default(1210) @map("epargne_mois") @db.Decimal
+  capitalProjete Decimal?  @default(145738) @map("capital_projete") @db.Decimal
+  objectif       Decimal?  @default(100000) @db.Decimal
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("kpis")
+}
+
+model MonthlyTracking {
+  id           String    @id
+  userId       String    @map("user_id") @db.Uuid
+  monthNum     Int       @map("month_num")
+  year         Int
+  monthLabel   String    @map("month_label")
+  net          Decimal   @db.Decimal
+  avantages    Decimal   @default(243) @db.Decimal
+  depenses     Decimal   @default(2490) @db.Decimal
+  credit       Decimal   @default(0) @db.Decimal
+  remote       Decimal   @default(0) @db.Decimal
+  freelance    Decimal   @default(0) @db.Decimal
+  epargneMois  Decimal   @map("epargne_mois") @db.Decimal
+  perfMarche   Decimal   @default(0) @map("perf_marche") @db.Decimal
+  epargneCumul Decimal   @map("epargne_cumul") @db.Decimal
+  capitalTotal Decimal   @map("capital_total") @db.Decimal
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([userId, monthNum, year], map: "monthly_tracking_user_id_month_num_year_key")
+  @@map("monthly_tracking")
+}

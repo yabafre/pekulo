@@ -1,0 +1,37 @@
+// hypothesis.prisma — brownfield Hypothesis model. The horizon_years and objectif
+// columns are reused as-is by the V1 compass per ADR-0012 + grill-summary.
+
+model Hypothesis {
+  id                  String    @id
+  userId              String    @unique @map("user_id") @db.Uuid
+  salaireNet          Decimal?  @default(3700) @map("salaire_net") @db.Decimal
+  ticketRestoJour     Decimal?  @default(14) @map("ticket_resto_jour") @db.Decimal
+  partEmployeurTr     Decimal?  @default(0.6) @map("part_employeur_tr") @db.Decimal
+  joursTravailles     Decimal?  @default(20) @map("jours_travailles") @db.Decimal
+  navigoCout          Decimal?  @default(90) @map("navigo_cout") @db.Decimal
+  partEmployeurNavigo Decimal?  @default(0.5) @map("part_employeur_navigo") @db.Decimal
+  mutuelleEconomie    Decimal?  @default(30) @map("mutuelle_economie") @db.Decimal
+  loyer               Decimal?  @default(1125) @db.Decimal
+  courses             Decimal?  @default(200) @db.Decimal
+  transport           Decimal?  @default(45) @db.Decimal
+  autresCharges       Decimal?  @default(150) @map("autres_charges") @db.Decimal
+  sorties             Decimal?  @default(250) @db.Decimal
+  divers              Decimal?  @default(120) @db.Decimal
+  voyageMois          Decimal?  @default(600) @map("voyage_mois") @db.Decimal
+  creditMensuel       Decimal?  @default(250) @map("credit_mensuel") @db.Decimal
+  dateDebutCredit     String?   @default("01/2027") @map("date_debut_credit")
+  matelasCible        Decimal?  @default(10000) @map("matelas_cible") @db.Decimal
+  perfEtfAnnuelle     Decimal?  @default(0.07) @map("perf_etf_annuelle") @db.Decimal
+  augmentationSalaire Decimal?  @default(0.03) @map("augmentation_salaire") @db.Decimal
+  partEtfMonde        Decimal?  @default(0.8) @map("part_etf_monde") @db.Decimal
+  partOpportunites    Decimal?  @default(0.2) @map("part_opportunites") @db.Decimal
+  economieRemoteMois  Decimal?  @default(1000) @map("economie_remote_mois") @db.Decimal
+  moisRemoteAn        Decimal?  @default(6) @map("mois_remote_an") @db.Decimal
+  revenuFreelanceMois Decimal?  @default(300) @map("revenu_freelance_mois") @db.Decimal
+  horizonYears        Int       @default(5) @map("horizon_years") @db.SmallInt
+  objectif            Decimal   @default(100000) @db.Decimal
+  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("hypotheses")
+}

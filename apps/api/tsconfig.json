@@ -3,7 +3,10 @@
   "extends": "@pekulo/tsconfig/apps.json",
   "compilerOptions": {
     "rootDir": "src",
-    "types": ["bun"]
+    "types": ["bun"],
+    "paths": {
+      "@generated/prisma/*": ["./generated/prisma/*"]
+    }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "generated/prisma/**/*.ts"]
 }

@@ -1,0 +1,18 @@
+// transactions.prisma — brownfield Transaction model.
+
+model Transaction {
+  id         String          @id
+  userId     String          @map("user_id") @db.Uuid
+  occurredOn DateTime        @map("occurred_on") @db.Date
+  label      String
+  amount     Decimal         @db.Decimal
+  type       TransactionType
+  category   String
+  isImprevu  Boolean         @default(false) @map("is_imprevu")
+  notes      String?
+  createdAt  DateTime?       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime?       @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@index([userId, occurredOn(sort: Desc)], map: "transactions_user_date_idx")
+  @@map("transactions")
+}

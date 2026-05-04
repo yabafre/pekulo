@@ -1,0 +1,61 @@
+// accounts.prisma — Account aggregate (Account → Holding → HoldingLot).
+// Maps the three brownfield tables `accounts`, `holdings`, `holding_lots`.
+
+model Account {
+  id          String      @id
+  userId      String      @map("user_id") @db.Uuid
+  label       String
+  type        AccountType
+  currency    String      @default("EUR")
+  cashBalance Decimal     @default(0) @map("cash_balance") @db.Decimal
+  notes       String?
+  createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
+
+  holdings Holding[]
+
+  @@map("accounts")
+}
+
+model Holding {
+  id          String      @id
+  userId      String      @map("user_id") @db.Uuid
+  accountId   String      @map("account_id")
+  kind        HoldingKind
+  ticker      String?
+  isin        String?
+  label       String
+  currency    String      @default("EUR")
+  quantity    Decimal     @db.Decimal
+  avgCost     Decimal     @map("avg_cost") @db.Decimal
+  lastPrice   Decimal     @default(0) @map("last_price") @db.Decimal
+  lastPriceAt DateTime?   @map("last_price_at") @db.Date
+  notes       String?
+  createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
+
+  account Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  lots    HoldingLot[]
+
+  @@index([userId, accountId], map: "holdings_user_account_idx")
+  @@map("holdings")
+}
+
+model HoldingLot {
+  id         String    @id
+  userId     String    @map("user_id") @db.Uuid
+  holdingId  String    @map("holding_id")
+  type       LotType
+  occurredOn DateTime  @map("occurred_on") @db.Date
+  quantity   Decimal   @db.Decimal
+  priceUnit  Decimal   @map("price_unit") @db.Decimal
+  fees       Decimal   @default(0) @db.Decimal
+  notes      String?
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  holding Holding @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+
+  @@index([userId, holdingId, occurredOn], map: "holding_lots_user_holding_idx")
+  @@map("holding_lots")
+}

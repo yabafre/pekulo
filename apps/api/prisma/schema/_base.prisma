@@ -1,0 +1,15 @@
+// _base.prisma — datasource + generator. No models live here.
+//
+// Prisma 7+ moves the connection URL from this file to apps/api/prisma.config.ts
+// (datasource.url). The bare `datasource db { provider = ... }` block here only
+// declares the provider so models can use Postgres-specific @db.* attributes.
+// `prismaSchemaFolder` + `driverAdapters` are no longer preview features (stable).
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/prisma"
+}

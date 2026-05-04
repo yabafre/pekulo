@@ -1,10 +1,19 @@
 import type { AnyElysia } from "elysia";
+import type { PrismaService } from "../database";
 
 export interface LifecycleOptions {
   shutdownTimeoutMs: number;
 }
 
-export async function registerLifecycle(app: AnyElysia, options: LifecycleOptions): Promise<void> {
+export interface LifecycleDeps {
+  prismaService: PrismaService;
+}
+
+export async function registerLifecycle(
+  app: AnyElysia,
+  options: LifecycleOptions,
+  deps: LifecycleDeps,
+): Promise<void> {
   const onShutdown = async (signal: NodeJS.Signals) => {
     console.log(`[api] received ${signal}, shutting down`);
     let exitCode = 0;
@@ -13,14 +22,25 @@ export async function registerLifecycle(app: AnyElysia, options: LifecycleOption
       const timeout = new Promise<"timeout">((resolve) => {
         timer = setTimeout(() => resolve("timeout"), options.shutdownTimeoutMs);
       });
-      const outcome = await Promise.race([app.stop().then(() => "stopped" as const), timeout]);
-      if (outcome === "timeout") {
-        console.error(`[api] shutdown timed out after ${options.shutdownTimeoutMs}ms`);
+      try {
+        const outcome = await Promise.race([app.stop().then(() => "stopped" as const), timeout]);
+        if (outcome === "timeout") {
+          console.error(`[api] elysia.stop timed out after ${options.shutdownTimeoutMs}ms`);
+          exitCode = 1;
+        }
+      } catch (err) {
+        console.error("[api] elysia.stop failed:", err);
         exitCode = 1;
       }
-    } catch (err) {
-      console.error("[api] error during shutdown:", err);
-      exitCode = 1;
+      // Drain Prisma connection pool ALWAYS — even if elysia.stop threw or timed
+      // out. Otherwise the Postgres backend keeps the half-closed connections
+      // until it notices the TCP teardown, wasting pool slots on Dokploy.
+      try {
+        await deps.prismaService.disconnect();
+      } catch (err) {
+        console.error("[api] prisma.disconnect failed:", err);
+        exitCode = 1;
+      }
     } finally {
       if (timer !== undefined) clearTimeout(timer);
       process.exit(exitCode);

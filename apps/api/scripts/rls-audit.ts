@@ -1,0 +1,102 @@
+// rls-audit.ts — CLI probe that asserts brownfield RLS coverage.
+//
+// Connects to DATABASE_URL via `pg`, queries pg_tables + pg_policies for the
+// 7 brownfield tables, and reports either OK (all RLS-enabled with the expected
+// policy counts) or a diff. Exit 0 on success, 1 on drift.
+//
+// Usage: `bun run scripts/rls-audit.ts`
+//        (registered as `db:rls-audit` script in package.json)
+//
+// Story 0-8 will lift this into a CI job; the V1 (a) personal-use version lives
+// here to prove AC-3 of story 0-4.
+
+import { Client } from "pg";
+import { config as dotenvConfig } from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { loadEnv } from "../src/config/env";
+
+// Pekulo monorepo convention: env files live at the REPO ROOT only. Resolve
+// the root from this file's location (apps/api/scripts/rls-audit.ts → ../../..)
+// so the script works regardless of cwd. Same pattern as prisma.config.ts.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(HERE, "..", "..", "..");
+for (const filename of [".env.local", ".env"]) {
+  const result = dotenvConfig({ path: resolve(REPO_ROOT, filename) });
+  if (result.error && (result.error as NodeJS.ErrnoException).code !== "ENOENT") {
+    console.warn(`[rls-audit] dotenv failed to load ${filename}: ${result.error.message}`);
+  }
+}
+
+const EXPECTED_POLICY_COUNTS: Record<string, number> = {
+  kpis: 3,
+  monthly_tracking: 3,
+  hypotheses: 3,
+  transactions: 4,
+  accounts: 4,
+  holdings: 4,
+  holding_lots: 4,
+};
+
+async function main(): Promise<number> {
+  const env = loadEnv();
+  const client = new Client({ connectionString: env.DATABASE_URL });
+  // F11: connect inside the try so a failing connect (wrong DATABASE_URL,
+  // network down) still hits the cleanup path and `client.end()` doesn't leak.
+  try {
+    await client.connect();
+    const tableNames = Object.keys(EXPECTED_POLICY_COUNTS);
+    const tables = await client.query<{ tablename: string; rowsecurity: boolean }>(
+      `SELECT tablename, rowsecurity FROM pg_tables
+       WHERE schemaname = 'public' AND tablename = ANY($1::text[])
+       ORDER BY tablename`,
+      [tableNames],
+    );
+    const policies = await client.query<{ tablename: string; count: string }>(
+      `SELECT tablename, COUNT(*)::text AS count FROM pg_policies
+       WHERE schemaname = 'public' AND tablename = ANY($1::text[])
+       GROUP BY tablename
+       ORDER BY tablename`,
+      [tableNames],
+    );
+
+    const tablesByName = new Map(tables.rows.map((r) => [r.tablename, r.rowsecurity]));
+    const policiesByName = new Map(policies.rows.map((r) => [r.tablename, Number(r.count)]));
+
+    const drift: string[] = [];
+    const summary: string[] = [];
+    for (const table of tableNames) {
+      const rls = tablesByName.get(table);
+      const count = policiesByName.get(table) ?? 0;
+      const expected = EXPECTED_POLICY_COUNTS[table]!;
+      if (rls === undefined) {
+        drift.push(`  ${table}: MISSING (table not found in public schema)`);
+      } else if (rls !== true) {
+        drift.push(`  ${table}: RLS DISABLED (rowsecurity=false)`);
+      } else if (count !== expected) {
+        drift.push(`  ${table}: ${count} policies (expected ${expected})`);
+      } else {
+        summary.push(`${table} (${count} policies)`);
+      }
+    }
+
+    if (drift.length > 0) {
+      console.error("[rls-audit] DRIFT:");
+      for (const line of drift) console.error(line);
+      return 1;
+    }
+    console.log(`[rls-audit] OK — ${tableNames.length} tables checked: ${summary.join(", ")}`);
+    return 0;
+  } finally {
+    // Swallow end() errors — at this point we've either reported drift or
+    // success ; a failing teardown should not flip the exit code.
+    await client.end().catch(() => {});
+  }
+}
+
+main()
+  .then((code) => process.exit(code))
+  .catch((err) => {
+    console.error("[rls-audit] error:", err);
+    process.exit(1);
+  });
