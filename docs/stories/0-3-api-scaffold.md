@@ -1,7 +1,7 @@
 # Story: 0-3-api-scaffold — Scaffold `apps/api` on Bun + Elysia
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** ready-for-dev
+**Status:** review-queued
 **Ticket:** [#3](https://github.com/yabafre/pekulo/issues/3)
 **Branch:** `feat/0-3-api-scaffold`
 **Commit prefix:** `feat(#3): ...` (or `chore(#3):` / `fix(#3):` per task type)
@@ -1127,9 +1127,9 @@ OK: /internal/
 
 ## Dev Agent Record
 
-- **Model:** {{model used}}
-- **Started:** {{timestamp}}
-- **Completed:** {{timestamp}}
+- **Model:** claude-opus-4-7[1m]
+- **Started:** 2026-05-04T00:00:00Z
+- **Completed:** 2026-05-04T08:46:00Z
 
 ### Debug Log
 
@@ -1141,4 +1141,56 @@ OK: /internal/
 
 ### Completion Notes
 
+All 11 tasks executed in order with one commit per task (8 task commits + 2 in-flight `fix(#3)` commits for typing/Docker discoveries that surfaced during T2 / T5 / T10).
+
+**ACs satisfied (fresh evidence captured in the dev session message log):**
+
+- **AC-1** (`bun run dev` + `/health` 200) — `( cd apps/api && bun run dev )` binds 127.0.0.1:3001 within ~1.5 s ; `curl -fsS http://127.0.0.1:3001/health` → `HTTP/1.1 200 OK` + `{"status":"ok"}` ; `/ready` → `HTTP/1.1 200 OK` + `{"ready":true,"probes":{}}`.
+- **AC-2** (typecheck via `@pekulo/tsconfig`) — `( cd apps/api && bun run typecheck )` → `tsc --noEmit` exit 0, no output.
+- **AC-3** (skeleton dirs per ADR-0009) — `ls -1 apps/api/src/` lists `app.ts / bootstrap / common / config / database / main.ts / modules / platform`. Each placeholder (`platform/index.ts`, `database/index.ts`, `common/index.ts`) carries `export {}` plus a comment naming the owning downstream story (0-4 / 0-5 / 0-6 / 0-7).
+- **AC-4** (Dockerfile + container `/health` 200 + HEALTHCHECK healthy) — `docker build -f apps/api/Dockerfile -t pekulo-api:dev .` → image built ; `docker run` → `curl http://127.0.0.1:3001/health` returns `200 OK {"status":"ok"}` ; `docker inspect --format='{{.State.Health.Status}}' pekulo-api-test` transitions `starting` → `healthy` at t+6 s (well within the 60 s ceiling). Tested on OrbStack (Docker 29.4.0, linux/arm64) — Dokploy CI build is the contractual ground truth at deploy time.
+- **AC-5** (Caddy mount documented) — `apps/api/deploy/Caddyfile.snippet` exposes the five paths from `docs/architecture.md` L229: `grep -qE` succeeds for `/api/`, `/rpc/v1/`, `/health`, `/ready`, `/internal/`. Copy-pastable into the Dokploy Caddy parent block.
+
+**Deviations from the original story spec (each documented inline + Debug Log entry above + lesson recorded for downstream stories):**
+
+1. `apps/api/tsconfig.json` — `"types": ["bun-types"]` → `"types": ["bun"]` (the matching devDep is `@types/bun`, not the legacy `bun-types` package).
+2. `apps/api/src/modules/health/{health.module,health.routes}.ts` + `apps/api/src/bootstrap/lifecycle.ts` — Elysia 1.4.4's invariant generics force two patterns: factories drop `: Elysia` return annotations (let TS infer the chained `Elysia<Routes={…}, …>`), and parameters that accept any handle use `import type { AnyElysia }`. ADR-0009's module-factory pattern is intact at the architectural level — the change is purely in type signatures.
+3. `apps/api/Dockerfile` + `apps/api/.dockerignore` — `bun install --frozen-lockfile` requires every workspace member's package.json in the install root, so the Dockerfile copies `apps/api` + `apps/web` manifests + the entire `packages/` tree (~92 KB), and `.dockerignore` adds the `!apps/web/package.json` exception so the manifest reaches the build context without shipping the 2 GB Next.js tree.
+
+The three deviations are recorded in `docs/lessons.md` (scope `aped-arch, aped-story, aped-dev`) so stories 0-4 → 0-12 (Prisma, oRPC, zapaction, OTel, CI matrix), every domain module factory in epics 1–8, and every future apps/* Dockerfile apply the same pattern up-front.
+
+**Out of scope (NOT done — owned by downstream stories per the original story spec):**
+
+- No Prisma / `@prisma/*` (story 0-4).
+- No `@orpc/*` or oRPC handlers (story 0-5).
+- No `@opentelemetry/*` SDK init (story 0-7).
+- No CORS / bearer / rate-limit middleware (stories 0-5 / 0-6).
+- No `requireUserContext`, `jwt-verifier`, or auth helper (stories 0-5 / 0-6).
+- No root `package.json` `dev:api` script or Turbo `dev --filter=api` invocation (story 0-8).
+- No `apps/web` / `apps/prices` modifications.
+
 ### File List
+
+```
+apps/api/.dockerignore
+apps/api/.gitignore
+apps/api/Dockerfile
+apps/api/README.md
+apps/api/deploy/Caddyfile.snippet
+apps/api/package.json
+apps/api/src/app.ts
+apps/api/src/bootstrap/lifecycle.ts
+apps/api/src/bootstrap/readiness.ts
+apps/api/src/bootstrap/runtime-dependencies.ts
+apps/api/src/common/index.ts
+apps/api/src/config/env.ts
+apps/api/src/database/index.ts
+apps/api/src/main.ts
+apps/api/src/modules/health/health.module.ts
+apps/api/src/modules/health/health.routes.ts
+apps/api/src/platform/index.ts
+apps/api/tsconfig.json
+bun.lock                                 (touched by `bun install` registering the new workspace)
+docs/lessons.md                          (3 new lessons added: bun-cwd quirk, Elysia 1.4 invariance, Bun frozen-lockfile workspace coverage)
+docs/stories/0-3-api-scaffold.md         (this file — Debug Log + Dev Agent Record + 3 lock-step snippet patches)
+```
