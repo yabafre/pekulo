@@ -1,0 +1,36 @@
+// enums.prisma — the four brownfield Postgres enums.
+// Pekulo enum NAMES are PascalCase in TS (Prisma generated client) and bound to
+// the lower-case Postgres enum names via @@map.
+
+enum AccountType {
+  livret
+  pea
+  cto
+  av
+  autre
+
+  @@map("account_type")
+}
+
+enum HoldingKind {
+  // V1 brownfield only — the 'crypto' extension is owned by story 3-1.
+  etf
+  action
+  autre
+
+  @@map("holding_kind")
+}
+
+enum TransactionType {
+  inflow
+  outflow
+
+  @@map("transaction_type")
+}
+
+enum LotType {
+  buy
+  sell
+
+  @@map("lot_type")
+}
