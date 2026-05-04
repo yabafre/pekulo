@@ -6,3 +6,8 @@ pydantic==2.10.4
 # curl_cffi gives yfinance a real-browser TLS fingerprint. It is NOT auto-detected:
 # main.py builds an explicit Session(impersonate="chrome") and passes it to yf.Ticker.
 curl_cffi>=0.7.4,<1.0
+# OTel SDK (story 0-7 — ADR-0005). Pinned to the matrix matching apps/web + apps/api.
+opentelemetry-api==1.27.0
+opentelemetry-sdk==1.27.0
+opentelemetry-instrumentation-fastapi==0.48b0
+opentelemetry-exporter-otlp-proto-http==1.27.0
