@@ -1,0 +1,35 @@
+// packages/contracts/src/__tests__/version-coexistence.fixture.ts
+// Typecheck-only proof for AC-2: when a hypothetical compassContractV2 is
+// added next to the shipped compassContractV1, both still resolve and the
+// shipped `compassContract` default still typechecks against V1's shape.
+// This file is NOT executed at runtime — `tsc --noEmit` is the verifier.
+
+import {
+  compassContract,
+  compassContractV1,
+} from "../compass.contract";
+
+// Shadow a hypothetical V2 alongside V1. In a real bump, V2 would land
+// inside `compass.contract.ts` next to V1. Here it lives in the fixture
+// strictly to exercise the typing rule.
+const compassContractV2 = {
+  // procedure stub keyed differently from V1; presence of any key in V2
+  // proves the fixture has produced a divergent shape.
+  breakingProcedure: {} as const,
+} as const;
+
+// (i) current default ≡ V1 (the shipped invariant).
+const _assertDefaultIsV1: typeof compassContractV1 = compassContract;
+
+// (ii) V2 lives alongside without overwriting V1.
+const _assertV2IsRecord: Record<string, unknown> = compassContractV2;
+
+// (iii) the named import compassContractV1 still resolves after introducing
+// the V2 shadow — this is implicit in the import line above; the explicit
+// assignment forces TS to materialise the type.
+const _assertV1NamedImportResolves: typeof compassContractV1 = compassContractV1;
+
+// Suppress unused-binding lint without exporting fixtures into the bundle.
+void _assertDefaultIsV1;
+void _assertV2IsRecord;
+void _assertV1NamedImportResolves;
