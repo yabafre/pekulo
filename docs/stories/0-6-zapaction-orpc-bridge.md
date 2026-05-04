@@ -2310,3 +2310,113 @@ Candidate lessons surfaced during dev (review will validate):
 - **L6 candidate** — `@orpc/server@1.14.x` exposes `implement(contract)` not `os.contract(...)`. Story specs should quote the exact symbol from the pinned package's `.d.ts`, not paraphrase from the docs site.
 - **L7 candidate** — Prisma 7's static type for `upsert.create` requires `id: string` even when an extension auto-injects via `Prisma.defineExtension({ query: $allModels.upsert })`. Domain services need a `unknown as Parameters<…>[0]["create"]` cast OR an `id?: string` Omit type at the boundary.
 - **L8 candidate** — `AsyncLocalStorage.enable()` is not a public Node API; only `disable()` exists (and is itself deprecated in favor of `run`/`enterWith` lifecycle).
+
+**Lessons promoted by review (now in `docs/lessons.md`):**
+- **L6** — `Number(decimal)` silently truncates above MAX_SAFE_INTEGER; coerce Prisma `Decimal` columns via `.toNumber()` at every Prisma → DTO boundary. V1 tolerance budget bounded by Persona Alex's range; revisit before story 1-2's projection curve.
+- **L7** — `AsyncLocalStorage.enterWith` correctness in apps/web rests on Next.js per-request `ResourceContext` isolation; re-verify on every Next minor bump using the parallel-request integration smoke (`hypothesis.integration.test.ts` "isolated stores" case is the canary).
+
+The original L6/L7/L8 dev candidates above are deferred to Epic 0 retro — review elected to formalize Decimal-coercion + ALS-watch first because they're cross-cutting (every brownfield port story), whereas the dev candidates are local-to-0-6.
+
+---
+
+## Review Record
+
+**Date:** 2026-05-04
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Diego, Lucas, Sam)
+**Verdict:** done
+**Tests verification (final):** `bun --cwd apps/api test` → **49 pass / 0 fail / 128 expect() / 9 files**. `bun --cwd apps/api run typecheck` → exit 0. `bun --cwd apps/web run typecheck` → exit 0. L2 grep gate (`grep -rnE ': Elysia\b' apps/api/src`) → 0 matches.
+
+### Specialists dispatched
+
+- **Eva** (ac-validator, Stage 1) — verdict: APPROVED, confidence HIGH. AC-1/AC-3/AC-4 IMPLEMENTED with file:line citations; AC-2 PARTIAL on visual sentinel only (code wiring correct). L2 grep gate PASS. All 16 tasks have on-disk proof.
+- **Marcus** (code-quality + 5-anti-pattern audit) — initial: CHANGES_REQUESTED HIGH; re-verify: APPROVED HIGH. Raised H1 (JWT iss/aud), H2 (dead `_resetRequestContextForTests`), H3 (Decimal mock fidelity), H4 (AC-1/AC-4 success-path attestation gap), M1 (mount-error userId regression), M2 (two requestIds), M4 (Decimal coercion), L1 (Bearer case), L2 (redundant exp), L3 (dev-token prod guard), L5 (cause-class log).
+- **Rex** (git-auditor) — initial: APPROVED HIGH (3 INFO false positives from script's markdown parser); re-verify: APPROVED HIGH (5 fix commits in scope, no out-of-scope changes, no secret leaks, no lockfile churn, working tree clean).
+- **Diego** (backend-specialist) — initial: CHANGES_REQUESTED HIGH (DUP H1, M1, M2, M4 + own L1, L2, L5); re-verify: APPROVED HIGH (service-role bypass intact, prefixedIds extension still intercepts upsert, L2 grep clean).
+- **Lucas** (frontend-specialist) — initial: APPROVED HIGH (LOWs only); re-verify: APPROVED HIGH (server-only enforcement preserved, sibling actions backward-compat intact, lessons L7 entry confirmed).
+- **Sam** (fullstack-specialist) — initial: APPROVED HIGH with H5 + 2 INFO; re-verify: APPROVED HIGH (type safety end-to-end, auth header chain, RSC read path Flow B all clean).
+
+### Findings (consolidated)
+
+#### Resolved
+
+- [HIGH] H1 — JWT verifier didn't validate `iss`/`aud` claims [`apps/api/src/platform/security/jwt-verifier.ts:33-37`]
+  - Source: Marcus + Diego.
+  - Resolution: commit `0562c22` — `jwtVerify({ algorithms: ["HS256"], issuer, audience })`, `SUPABASE_URL` added to env, `runtime-dependencies` derives `${SUPABASE_URL}/auth/v1` issuer + `"authenticated"` audience, dev-token mirrors via `.setIssuer/.setAudience`, +2 test cases (wrong-issuer, wrong-audience).
+
+- [HIGH] H2 — `_resetRequestContextForTests` dead production code [`apps/web/src/lib/orpc/request-context.ts`]
+  - Source: Marcus (confirmed by Lucas).
+  - Resolution: commit `3f1181c` — function removed; replaced with `seedRequestContext(ctx)` for the zapaction resolver to skip duplicate `auth.getSession()`. Repo-wide grep for the old name returns 0 hits.
+
+- [HIGH] H3 — Test mocks didn't model Prisma `Decimal` (incomplete-mock anti-pattern) [`apps/api/src/modules/hypothesis/hypothesis.service.test.ts`]
+  - Source: Marcus + Diego.
+  - Resolution: commits `e380b36` + `afaf7db` — introduced `decimalToNumber(value, fallback)` helper, fixtures now use real `Prisma.Decimal` instances, added `Number.MAX_SAFE_INTEGER` boundary case, pinned `expect(call?.create.id).toBeUndefined()` for the prefixedIds extension contract. Lessons.md L6 added.
+
+- [HIGH] H4 — AC-1 + AC-4 success path never verified end-to-end [`apps/api/src/modules/hypothesis/hypothesis.integration.test.ts`]
+  - Source: Marcus + dev's own admission (Dev Agent Record line 2247).
+  - Resolution: commit `e7fc9ec` — added 6-case integration test booting real Elysia + mountOrpc + RPCHandler + jwt-verifier (HS256 jose) against an in-memory hypothesis-service stub. Covers JWT verify success, structured-log shape on success (200) AND failure (401) paths, requestId correlation between mount log and wire body, round-trip persistence, and parallel-users isolation canary.
+
+- [HIGH] H5 — Spec/code drift: AC-1 said `error.code` (nested), code emits flat `errorCode` [story line 24 + `apps/api/src/platform/http/request-log.ts:33`]
+  - Source: Sam.
+  - Resolution: commit `cd259f6` — AC-1 wording updated to match the flat shape (`errorCode` top-level + optional `reasonClass`).
+
+- [MEDIUM] M1 — Mount-error log records `userId: "unknown"`/`"anonymous"` even when user is known [`apps/api/src/platform/http/orpc-mount.ts:60`]
+  - Source: Marcus + Diego.
+  - Resolution: commit `3f1181c` — hoisted `let userContext: UserContext | undefined` above try; catch now logs `errorCode === "UNAUTHORIZED" ? "anonymous" : userContext?.userId ?? "anonymous"`, restoring per-user log correlation for post-auth errors.
+
+- [MEDIUM] M2 — Two distinct requestIds per failed request (mount log vs wire body) [`apps/api/src/platform/http/orpc-mount.ts` + `apps/api/src/app.ts`]
+  - Source: Marcus + Sam.
+  - Resolution: commit `3f1181c` — added `apps/api/src/common/errors/request-id-tag.ts` with `attachRequestId` (non-enumerable property) + `extractRequestId`. Mount-side catch tags the thrown error before re-throw; global `.onError` reads `extractRequestId(error) ?? crypto.randomUUID()`. Integration test asserts `log.requestId === body.error.requestId`.
+
+- [MEDIUM] M3 — `AsyncLocalStorage.enterWith` Next.js fragility [`apps/web/src/lib/orpc/request-context.ts`]
+  - Source: Marcus + Lucas.
+  - Resolution: commit `cd259f6` — added `docs/lessons.md` L7 watch item with re-verification protocol; integration test "isolated stores" case is the parallel-request canary.
+
+- [MEDIUM] M4 — `Number(decimal)` precision concern at Prisma boundary [`apps/api/src/modules/hypothesis/hypothesis.service.ts`]
+  - Source: Marcus + Diego.
+  - Resolution: rolled into H3 (commits `e380b36` + `afaf7db`) + lessons.md L6.
+
+- [LOW] L1 — `Bearer ` matched case-sensitively (RFC 7235 says case-insensitive) [`apps/api/src/platform/security/require-user-context.ts:23-29`]
+  - Source: Marcus + Diego.
+  - Resolution: commit `0562c22` — split on first whitespace + `.toLowerCase()` on scheme.
+
+- [LOW] L2 — Redundant `payload.exp` check (jose validates exp natively) [`apps/api/src/platform/security/jwt-verifier.ts`]
+  - Source: Diego.
+  - Resolution: commit `0562c22` — guard removed; `expired token rejects` test still passes via jose's native enforcement.
+
+- [LOW] L3 — `dev-token.ts` had no production guard [`apps/api/scripts/dev-token.ts:16-19`]
+  - Source: Marcus.
+  - Resolution: commit `0562c22` — `if (process.env.NODE_ENV === "production") process.exit(1)` at the top.
+
+- [LOW] L4 — Duplicate Supabase session resolution per server-action call [`apps/web/src/lib/zapaction/context.ts`]
+  - Source: Lucas.
+  - Resolution: commit `3f1181c` — resolver now calls `seedRequestContext` with the already-resolved session; no second `auth.getSession()`.
+
+- [LOW] L5 — Generic UNAUTHORIZED log hides cause class for ops [`apps/api/src/platform/security/require-user-context.ts:33-35`]
+  - Source: Diego.
+  - Resolution: commit `3f1181c` — `request-log.ts` accepts optional `reasonClass`; `mountOrpc` derives it from `err.cause?.constructor?.name` (e.g. `JWTExpired`, `JWSSignatureVerificationFailed`). Emitted only on failures.
+
+#### Dismissed
+
+None — Alex elected to fix all 14 findings.
+
+#### Informational (no fix, recorded for posterity)
+
+- Dead `if (!context.userId)` branch in `hypothesis.routes.ts:23,29` — defensive but unreachable; left as belt+suspenders, no commit.
+- `bun.lock`, `docs/state.yaml`, story file changed but not in story File List — expected APED-pipeline meta-artifacts; tooling false positive.
+- ADR-0010 boundary: `hypotheses-form.tsx:13` imports the action directly without a custom hook tier — pre-existing brownfield state, lint enforcement ships in story 0-12.
+- Git-audit script generates false positives from markdown bullet parsing — tooling issue, out of scope for 0-6.
+- `jose` resolves to two versions in `bun.lock` (5.9.6 direct + 6.2.2 transitive via MCP SDK) — namespaced, not a regression.
+
+### Verification
+
+- Test command (final): `bun --cwd apps/api test`
+- Test output (final pass): `49 pass / 0 fail / 128 expect() calls / 9 files`
+- Typecheck: `bun --cwd apps/api run typecheck` exit 0; `bun --cwd apps/web run typecheck` exit 0
+- L2 enforcement gate: `grep -rnE ': Elysia\b' apps/api/src` returns 0 matches
+- Dead-helper grep: `grep -rn "_resetRequestContextForTests" apps/ packages/` returns 0 matches
+- Visual verification: deferred — story is wiring/refactor, no UI render changes intended; AC-2 visual sentinel (logged-in browser → form fields populate → submit → reload re-displays) requires manual smoke that Alex can run via `bun --cwd apps/web dev`.
+
+### Ticket sync
+
+- Ticket comment posted: deferred — branch not yet pushed; awaiting Alex's authorization to push + comment on `#6`.
+- PR opened/updated: deferred — no `sprint.umbrella_branch` in `state.yaml` (matches 0-2 / 0-4 pattern); Alex to choose target (`main` direct or new umbrella) at `aped-ship` time.
