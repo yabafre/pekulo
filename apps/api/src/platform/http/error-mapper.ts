@@ -4,7 +4,7 @@
 // fall-through path. Pure: no I/O, no logger — logging happens at the
 // call site so test fakes can capture it.
 
-import { isPekuloError, type PekuloError, type PekuloErrorCode } from "../../common/errors";
+import { isPekuloError, type PekuloErrorCode } from "../../common/errors";
 
 export interface OrpcErrorBody {
   error: {
@@ -42,24 +42,27 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
  * requestId" design because the orpc-mount fall-through (AC-4) needs the
  * id to correlate a 404 back to the failing request.
  *
- * - `PekuloError`: status from the lookup, body carries the error's `code`
- *   + `message` + a fresh requestId.
- * - native `Error` / non-Error: status 500, message sanitised, body carries
- *   `code: "INTERNAL"` + a fresh requestId.
+ * The caller (apps/api/src/app.ts) generates the requestId BEFORE logging
+ * so the log line and the wire body share the same id; `mapErrorToOrpcResponse`
+ * accepts it as a parameter rather than allocating internally (review F3).
  *
- * Once `apps/api/src/common/ids/request-id.ts` ships in a future story, swap
- * `crypto.randomUUID()` for the project helper.
+ * - `PekuloError`: status from the lookup, body carries the error's `code`
+ *   + `message` + the requestId.
+ * - native `Error` / non-Error: status 500, message sanitised, body carries
+ *   `code: "INTERNAL"` + the requestId.
+ *
+ * Once `apps/api/src/common/ids/request-id.ts` ships in a future story,
+ * the caller swaps `crypto.randomUUID()` for the project helper — this
+ * function stays unchanged.
  */
-export function mapErrorToOrpcResponse(err: unknown): MappedErrorResponse {
-  const requestId = crypto.randomUUID();
+export function mapErrorToOrpcResponse(err: unknown, requestId: string): MappedErrorResponse {
   if (isPekuloError(err)) {
-    const pekulo = err as PekuloError;
     return {
-      status: ORPC_HTTP_STATUS_BY_CODE[pekulo.code],
+      status: ORPC_HTTP_STATUS_BY_CODE[err.code] ?? 500,
       body: {
         error: {
-          code: pekulo.code,
-          message: pekulo.message,
+          code: err.code,
+          message: err.message,
           requestId,
         },
       },

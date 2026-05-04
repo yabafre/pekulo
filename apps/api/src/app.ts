@@ -18,8 +18,17 @@ export async function startServer(): Promise<ServerHandle> {
   // L2 — let Elysia infer the chained type; never annotate the variable with the bare Elysia type.
   const app = new Elysia()
     .onError(({ error, set }) => {
-      console.error("[api] error", error);
-      const mapped = mapErrorToOrpcResponse(error);
+      // Generate the requestId BEFORE the log so the log line and the wire
+      // body share the same correlation handle (review F3). Emit one
+      // structured log carrying { requestId, code, name } — never the raw
+      // Error object, which would dump message + stack + cause to stdout.
+      const requestId = crypto.randomUUID();
+      const mapped = mapErrorToOrpcResponse(error, requestId);
+      console.error("[api] error", {
+        requestId,
+        code: mapped.body.error.code,
+        name: error instanceof Error ? error.name : typeof error,
+      });
       set.status = mapped.status;
       return mapped.body;
     })
