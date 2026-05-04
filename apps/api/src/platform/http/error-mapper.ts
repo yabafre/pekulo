@@ -36,11 +36,22 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
 
 /**
  * Map any thrown value to an oRPC-shaped response.
- * - `PekuloError`: status from the lookup, body carries the error's `code` + `message`.
- * - native `Error`: status 500, message sanitised, body carries `code: "INTERNAL"` + a fresh requestId.
- * - non-Error: status 500, message stringified safely, body carries `code: "INTERNAL"` + a fresh requestId.
+ *
+ * Every response carries a `requestId` so logs and the wire body share a
+ * stable correlation handle — chosen over the original "PekuloError → no
+ * requestId" design because the orpc-mount fall-through (AC-4) needs the
+ * id to correlate a 404 back to the failing request.
+ *
+ * - `PekuloError`: status from the lookup, body carries the error's `code`
+ *   + `message` + a fresh requestId.
+ * - native `Error` / non-Error: status 500, message sanitised, body carries
+ *   `code: "INTERNAL"` + a fresh requestId.
+ *
+ * Once `apps/api/src/common/ids/request-id.ts` ships in a future story, swap
+ * `crypto.randomUUID()` for the project helper.
  */
 export function mapErrorToOrpcResponse(err: unknown): MappedErrorResponse {
+  const requestId = crypto.randomUUID();
   if (isPekuloError(err)) {
     const pekulo = err as PekuloError;
     return {
@@ -49,14 +60,11 @@ export function mapErrorToOrpcResponse(err: unknown): MappedErrorResponse {
         error: {
           code: pekulo.code,
           message: pekulo.message,
+          requestId,
         },
       },
     };
   }
-  // Fallback path — sanitise the message, attach a requestId for forensic
-  // cross-reference. Once apps/api/src/common/ids/request-id.ts ships in a
-  // future story, swap `crypto.randomUUID()` for the project helper.
-  const requestId = crypto.randomUUID();
   return {
     status: 500,
     body: {
