@@ -2,7 +2,7 @@
   "name": "@pekulo/contracts",
   "version": "0.0.0",
   "private": true,
-  "description": "Pekulo oRPC contracts — placeholder; real contracts (compassContract, holdingsContract, llmContract, ...) land in story 0-5 per ADR-0011.",
+  "description": "Pekulo oRPC contracts — one sub-tree per Elysia module under @pekulo/contracts. See ADR-0009, ADR-0011.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -13,11 +13,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@orpc/contract": "1.14.1",
     "@pekulo/types": "workspace:*",
     "@pekulo/validators": "workspace:*"
   },
   "devDependencies": {
-    "@pekulo/tsconfig": "workspace:*",
-    "typescript": "^5.6.0"
+    "@pekulo/tsconfig": "workspace:*"
   }
 }

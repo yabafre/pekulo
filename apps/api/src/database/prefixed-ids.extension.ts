@@ -25,7 +25,9 @@ interface QueryCtx<TArgs> {
 function ensureObject(model: string, op: string, value: unknown, index?: number): AnyData {
   if (typeof value !== "object" || value === null) {
     const where = index !== undefined ? `${op} row ${index}` : op;
-    throw new TypeError(`[prefixed-ids] ${where} for model "${model}" is not an object (got ${value === null ? "null" : typeof value})`);
+    throw new TypeError(
+      `[prefixed-ids] ${where} for model "${model}" is not an object (got ${value === null ? "null" : typeof value})`,
+    );
   }
   return value as AnyData;
 }
@@ -39,7 +41,9 @@ export const prefixedIdsHandlers = {
   async createMany({ model, args, query }: QueryCtx<{ data: unknown }>): Promise<unknown> {
     const data = args.data;
     if (Array.isArray(data)) {
-      args.data = data.map((row, i) => injectPrefixedId(model, ensureObject(model, "createMany", row, i)));
+      args.data = data.map((row, i) =>
+        injectPrefixedId(model, ensureObject(model, "createMany", row, i)),
+      );
     } else {
       args.data = injectPrefixedId(model, ensureObject(model, "createMany", data));
     }
@@ -48,20 +52,28 @@ export const prefixedIdsHandlers = {
   async createManyAndReturn({ model, args, query }: QueryCtx<{ data: unknown }>): Promise<unknown> {
     const data = args.data;
     if (Array.isArray(data)) {
-      args.data = data.map((row, i) => injectPrefixedId(model, ensureObject(model, "createManyAndReturn", row, i)));
+      args.data = data.map((row, i) =>
+        injectPrefixedId(model, ensureObject(model, "createManyAndReturn", row, i)),
+      );
     } else {
       args.data = injectPrefixedId(model, ensureObject(model, "createManyAndReturn", data));
     }
     return query(args);
   },
-  async upsert({ model, args, query }: QueryCtx<{ create: unknown; update: unknown }>): Promise<unknown> {
+  async upsert({
+    model,
+    args,
+    query,
+  }: QueryCtx<{ create: unknown; update: unknown }>): Promise<unknown> {
     const create = ensureObject(model, "upsert.create", args.create);
     // Reject any caller that tries to overwrite the PK via upsert.update —
     // PKs are immutable and must never be touched by the extension or by
     // domain code.
     const update = args.update;
     if (update !== null && typeof update === "object" && "id" in update) {
-      throw new Error(`[prefixed-ids] upsert.update for model "${model}" must not contain id (PKs are immutable)`);
+      throw new Error(
+        `[prefixed-ids] upsert.update for model "${model}" must not contain id (PKs are immutable)`,
+      );
     }
     args.create = injectPrefixedId(model, create);
     return query(args);

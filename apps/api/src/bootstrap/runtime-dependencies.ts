@@ -33,7 +33,10 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
         // failure flips us to ok:false and yanks traffic.
         return { ok: true, reason: `prisma transient (${reason})` };
       }
-      return { ok: false, reason: `prisma down (${consecutivePrismaFailures} consecutive): ${reason}` };
+      return {
+        ok: false,
+        reason: `prisma down (${consecutivePrismaFailures} consecutive): ${reason}`,
+      };
     }
   });
 

@@ -157,7 +157,7 @@ phases_planned:
 - **Style: contract-first oRPC + Elysia, tri-stack by surface**
   - **Domain API (`apps/api`)** — Bun + ElysiaJS exposing every domain operation via **oRPC** under `/rpc/v1/<module>/<method>`. Contracts live in `@pekulo/contracts` (one sub-tree per module). Mount layout:
     - `/rpc/v1/auth` `/rpc/v1/compass` `/rpc/v1/milestones`
-    - `/rpc/v1/accounts` `/rpc/v1/holdings` `/rpc/v1/real-estate`
+    - `/rpc/v1/accounts` `/rpc/v1/holdings` `/rpc/v1/realestate`
     - `/rpc/v1/transactions` `/rpc/v1/monthly` `/rpc/v1/dashboard`
     - `/rpc/v1/settings` `/rpc/v1/hypothesis` `/rpc/v1/llm`
     - `/health`, `/ready` (Elysia-native, public)
@@ -379,7 +379,7 @@ Form orchestrators wrap TanStack Form's `useForm` together with the correspondin
 
 ```
 /rpc/v1/auth        /rpc/v1/compass        /rpc/v1/milestones
-/rpc/v1/accounts    /rpc/v1/holdings       /rpc/v1/real-estate
+/rpc/v1/accounts    /rpc/v1/holdings       /rpc/v1/realestate
 /rpc/v1/transactions  /rpc/v1/monthly      /rpc/v1/dashboard
 /rpc/v1/settings    /rpc/v1/hypothesis     /rpc/v1/llm
 /health   /ready                           (Elysia-native, public)
@@ -601,7 +601,7 @@ modules/<name>/
 
 **Branch naming:** `<type>/<short-slug>` per Naming Conventions.
 
-**Commit messages:** Conventional Commits — `<type>(<scope>): <subject>`. `scope` = feature folder name (`compass`, `real-estate`, `llm`, `ds`, `api`, `web`). 72-char hard limit on subject. Co-author footer when Claude-assisted.
+**Commit messages:** Conventional Commits — `<type>(<scope>): <subject>`. `scope` = feature folder name (`compass`, `realestate`, `llm`, `ds`, `api`, `web`). 72-char hard limit on subject. Co-author footer when Claude-assisted.
 
 **PR requirements (every PR, every author including Persona #1):**
 
@@ -862,7 +862,7 @@ pekulo/
 │   ├── validators/                                  @pekulo/validators
 │   │   └── src/{auth,compass,milestones,accounts,holdings,realestate,transactions,llm,monthly,hypothesis,settings}.ts
 │   ├── contracts/                                   @pekulo/contracts
-│   │   └── src/{auth,compass,milestones,accounts,holdings,realestate,transactions,llm,monthly,dashboard,settings,hypothesis}-contract.ts
+│   │   └── src/{auth,compass,milestones,accounts,holdings,realestate,transactions,llm,monthly,dashboard,settings,hypothesis}.contract.ts
 │   ├── tsconfig/                                    @pekulo/tsconfig
 │   │   └── {base,apps,packages,next}.json
 │   ├── oxlint-config/                               @pekulo/oxlint-config
@@ -1050,7 +1050,7 @@ pekulo/
 
 #### `@pekulo/contracts` — oRPC contracts
 
-- One contract per Elysia module: `authContract`, `compassContract`, `milestonesContract`, `accountsContract`, `holdingsContract`, `realEstateContract`, `transactionsContract`, `llmContract`, `monthlyContract`, `dashboardContract`, `settingsContract`, `hypothesisContract`
+- One contract per Elysia module: `authContract`, `compassContract`, `milestonesContract`, `accountsContract`, `holdingsContract`, `realestateContract`, `transactionsContract`, `llmContract`, `monthlyContract`, `dashboardContract`, `settingsContract`, `hypothesisContract`. Mount paths follow the same all-lowercase no-separator convention: `/rpc/v1/realestate` (not `/rpc/v1/real-estate`) — the database tables remain `real_estate*` (snake_case for SQL) but the contract surface is uniform across the 12 modules.
 - Each contract bumpable independently (sub-tree versioning per Phase 2 — API Design)
 
 #### `@pekulo/ui` — Pekulo DS (Tamagui Core)

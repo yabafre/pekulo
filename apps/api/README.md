@@ -6,14 +6,14 @@ Bun + Elysia HTTP service. See [ADR-0009](../../docs/adr/0009-elysia-orpc-with-z
 
 This package is the **scaffold from story `0-3-api-scaffold`**, extended in `0-4-prisma-setup` with the Prisma 7.8 data layer. Only the `health` module ships routes (`/health`, `/ready`). Domain modules land in subsequent stories:
 
-| Module    | Story  | Status      |
-| --------- | ------ | ----------- |
-| Prisma    | `0-4`  | wired       |
-| oRPC      | `0-5`  | scaffolded  |
-| OTel      | `0-7`  | scaffolded  |
-| Compass   | `1-1`  | scaffolded  |
-| Accounts  | `2-1`  | scaffolded  |
-| Holdings  | `3-1`  | scaffolded  |
+| Module   | Story | Status     |
+| -------- | ----- | ---------- |
+| Prisma   | `0-4` | wired      |
+| oRPC     | `0-5` | scaffolded |
+| OTel     | `0-7` | scaffolded |
+| Compass  | `1-1` | scaffolded |
+| Accounts | `2-1` | scaffolded |
+| Holdings | `3-1` | scaffolded |
 
 (See `docs/epics.md` for the full sprint list.)
 
@@ -33,12 +33,12 @@ curl -fsS http://127.0.0.1:3001/health     # → 200 {"status":"ok"}
 
 Validated via Zod at boot in `src/config/env.ts`:
 
-| Name       | Required | Default       | Notes                         |
-| ---------- | -------- | ------------- | ----------------------------- |
-| `NODE_ENV` | no       | `development` | one of `development` / `production` / `test` |
-| `PORT`     | no       | `3001`        | 1–65535                       |
-| `HOST`     | no       | `127.0.0.1`   | bind interface                |
-| `DATABASE_URL` | yes  | —             | Postgres connection string (Prisma + readiness probe) |
+| Name           | Required | Default       | Notes                                                 |
+| -------------- | -------- | ------------- | ----------------------------------------------------- |
+| `NODE_ENV`     | no       | `development` | one of `development` / `production` / `test`          |
+| `PORT`         | no       | `3001`        | 1–65535                                               |
+| `HOST`         | no       | `127.0.0.1`   | bind interface                                        |
+| `DATABASE_URL` | yes      | —             | Postgres connection string (Prisma + readiness probe) |
 
 Future stories will extend the schema (Supabase JWT secret in 0-5 ; OTel endpoint in 0-7).
 
@@ -89,14 +89,14 @@ Expected: `[rls-audit] OK — 7 tables checked: kpis (3 policies), monthly_track
 
 ### Day-to-day Prisma commands
 
-| Command | What it does |
-|---------|--------------|
-| `bun run prisma:generate`       | Regenerate the Prisma client into `apps/api/generated/prisma/`. |
-| `bun run prisma:migrate:dev`    | Author a new migration locally — runs `prisma migrate dev`. |
-| `bun run prisma:migrate:deploy` | Apply pending migrations to `DATABASE_URL` (production-safe). |
-| `bun run prisma:migrate:status` | Show which migrations are applied vs pending. |
-| `bun run prisma:format`         | Format every `*.prisma` file. |
-| `bun run prisma:validate`       | Validate the schema folder. |
+| Command                         | What it does                                                           |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| `bun run prisma:generate`       | Regenerate the Prisma client into `apps/api/generated/prisma/`.        |
+| `bun run prisma:migrate:dev`    | Author a new migration locally — runs `prisma migrate dev`.            |
+| `bun run prisma:migrate:deploy` | Apply pending migrations to `DATABASE_URL` (production-safe).          |
+| `bun run prisma:migrate:status` | Show which migrations are applied vs pending.                          |
+| `bun run prisma:format`         | Format every `*.prisma` file.                                          |
+| `bun run prisma:validate`       | Validate the schema folder.                                            |
 | `bun run db:rls-audit`          | Probe the deployed schema for RLS coverage on the 7 brownfield tables. |
 
 ### Schema migration discipline (ADR-0014)

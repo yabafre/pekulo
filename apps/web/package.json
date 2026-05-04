@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@orpc/client": "1.14.1",
+    "@orpc/contract": "1.14.1",
+    "@pekulo/contracts": "workspace:*",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.1",
     "@tanstack/react-form": "^1.29.1",
@@ -31,13 +34,13 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@pekulo/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "supabase": "^2.95.4",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwindcss": "^4"
   },
   "trustedDependencies": [
     "unrs-resolver"

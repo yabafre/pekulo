@@ -21,7 +21,11 @@ describe("prefixedIdsHandlers", () => {
       receivedArgs = args;
       return { fake: "row" };
     };
-    const out = await prefixedIdsHandlers.create({ model: "Account", args: { data: { userId: "u" } }, query });
+    const out = await prefixedIdsHandlers.create({
+      model: "Account",
+      args: { data: { userId: "u" } },
+      query,
+    });
     expect(out).toEqual({ fake: "row" });
     expect(receivedArgs).toBeDefined();
     expect((receivedArgs!.data as { id: string }).id).toMatch(/^acc_[0-9A-Za-z]{21}$/);
@@ -34,7 +38,11 @@ describe("prefixedIdsHandlers", () => {
       receivedArgs = args;
       return null;
     };
-    await prefixedIdsHandlers.create({ model: "Account", args: { data: { id: "acc_explicit", userId: "u" } }, query });
+    await prefixedIdsHandlers.create({
+      model: "Account",
+      args: { data: { id: "acc_explicit", userId: "u" } },
+      query,
+    });
     expect((receivedArgs!.data as { id: string }).id).toBe("acc_explicit");
   });
 
@@ -51,7 +59,11 @@ describe("prefixedIdsHandlers", () => {
       receivedArgs = args;
       return { count: 0 };
     };
-    await prefixedIdsHandlers.createMany({ model: "Holding", args: { data: [{ userId: "u" }, { userId: "u2" }] }, query });
+    await prefixedIdsHandlers.createMany({
+      model: "Holding",
+      args: { data: [{ userId: "u" }, { userId: "u2" }] },
+      query,
+    });
     const rows = receivedArgs!.data as Array<{ id: string; userId: string }>;
     expect(rows).toHaveLength(2);
     expect(rows[0]!.id).toMatch(/^hld_[0-9A-Za-z]{21}$/);
@@ -66,14 +78,22 @@ describe("prefixedIdsHandlers", () => {
       receivedArgs = args;
       return { count: 1 };
     };
-    await prefixedIdsHandlers.createMany({ model: "Transaction", args: { data: { userId: "u", amount: 10 } }, query });
+    await prefixedIdsHandlers.createMany({
+      model: "Transaction",
+      args: { data: { userId: "u", amount: 10 } },
+      query,
+    });
     expect((receivedArgs!.data as { id: string }).id).toMatch(/^tx_[0-9A-Za-z]{21}$/);
   });
 
   it("createMany — throws TypeError on non-object row with model + index in message (review F8)", async () => {
     const query = async () => null;
     await expect(
-      prefixedIdsHandlers.createMany({ model: "Holding", args: { data: [{ userId: "u" }, null] as unknown[] }, query }),
+      prefixedIdsHandlers.createMany({
+        model: "Holding",
+        args: { data: [{ userId: "u" }, null] as unknown[] },
+        query,
+      }),
     ).rejects.toThrow(/createMany row 1 for model "Holding"/);
   });
 
@@ -83,7 +103,11 @@ describe("prefixedIdsHandlers", () => {
       receivedArgs = args;
       return [];
     };
-    await prefixedIdsHandlers.createManyAndReturn({ model: "Account", args: { data: [{ userId: "u" }] }, query });
+    await prefixedIdsHandlers.createManyAndReturn({
+      model: "Account",
+      args: { data: [{ userId: "u" }] },
+      query,
+    });
     const rows = receivedArgs!.data as Array<{ id: string }>;
     expect(rows[0]!.id).toMatch(/^acc_[0-9A-Za-z]{21}$/);
   });
