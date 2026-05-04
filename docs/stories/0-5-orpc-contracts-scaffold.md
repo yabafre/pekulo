@@ -1,7 +1,7 @@
 # Story: 0-5-orpc-contracts-scaffold — `@pekulo/contracts` oRPC scaffold + web client init + Elysia error-mapper
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** review
+**Status:** done
 **Ticket:** [#5](https://github.com/yabafre/pekulo/issues/5)
 **Branch:** `feat/0-5-orpc-contracts-scaffold`
 **Commit prefix:** `feat(#5): ...` (or `chore(#5):` / `fix(#5):` / `test(#5):` per task type)
@@ -1283,3 +1283,96 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 - `bun.lock` (transitive, written by `bun install` in Tasks 1, 6, 12)
 - `docs/state.yaml` (handoff — flip 0-5 to in-progress)
 - `apps/api/README.md`, `apps/api/src/bootstrap/runtime-dependencies.ts`, `apps/api/src/database/index.ts`, `apps/api/src/database/prefixed-ids.extension.ts`, `apps/api/src/database/prefixed-ids.extension.test.ts`, `docs/epic-0-context.md`, `docs/lessons.md` (Task 15 — oxfmt cleanup, brownfield drift, no semantic changes)
+
+---
+
+## Review Record
+
+**Date:** 2026-05-04
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Diego, Lucas, Sam)
+**Verdict:** done
+
+### Specialists dispatched
+
+- **Eva** (ac-validator) — APPROVED, HIGH confidence. 4 ACs IMPLEMENTED, L2 grep guard 0 matches, deferred-work marker closed.
+- **Marcus** (code-quality) — CHANGES_REQUESTED, HIGH confidence. 8 findings (2 HIGH, 2 MEDIUM, 4 LOW). 5-anti-pattern testing audit: all 5 PASS.
+- **Rex** (git-auditor) — APPROVED, HIGH confidence. 16/16 commits PASS conventional format. `bd0f274` oxfmt sweep audited hunk-by-hunk: pure formatting, zero semantic changes. No undocumented out-of-scope file changes.
+- **Diego** (backend-specialist) — CHANGES_REQUESTED, HIGH confidence. 1 HIGH (realestate doc/code drift), 4 LOW.
+- **Lucas** (frontend lib reviewer) — APPROVED, HIGH confidence. server-only enforcement OK, no client-component leak, EXACT pinning OK.
+- **Sam** (fullstack-specialist) — APPROVED, HIGH confidence. Seam audit 5/6 PASS, 1 FAIL (Seam 3 — realestate doc drift), 1 INFO (error-shape parity for 0-6).
+
+### Findings (consolidated)
+
+#### Resolved (11)
+
+- **F1 [HIGH]** — `realestate` (impl) vs `real-estate` (architecture.md, epic-0-context.md) naming drift
+  - Source: Diego, Sam
+  - Resolution: `f269b86` — patched `architecture.md` lines 160, 382, 604, 865, 1053 + `epic-0-context.md:52` to match the implementation's uniform all-lowercase no-separator convention. SQL tables stay `real_estate*` (snake_case for SQL).
+
+- **F2 [HIGH]** — `apps/web/src/lib/orpc/client.ts` captured `process.env.API_BASE_URL` at module-load while comment promised lazy semantics
+  - Source: Marcus, Lucas
+  - Resolution: `2541581` — moved `process.env.API_BASE_URL` read INSIDE `requireApiBaseUrl()` so the read is per-request. Late env pushes (e.g. `bun --hot` re-reading `.env.local`) pick up without process restart.
+
+- **F3 [HIGH]** — `console.error("[api] error", error)` in `app.ts` dumped raw Error (incl. `cause` / stack) to stdout AND log was uncorrelated to wire `requestId` (generated later in mapper)
+  - Source: Marcus
+  - Resolution: `dba11f9` — `app.ts` `.onError` now generates `requestId` via `crypto.randomUUID()` BEFORE logging, passes it into `mapErrorToOrpcResponse(err, requestId)`, and emits one structured log `{ requestId, code, name }`. AC-4 smoke confirmed identical id in log line and wire body across 4 module 404s.
+
+- **F4 [MEDIUM]** — `isPekuloError` cross-realm guard accepted malformed payloads (`{name:"PekuloError", code:"BOGUS"}` → `set.status = undefined`; `{name:"PekuloError", code:"INTERNAL"}` without `message` → wire body missing `message` field)
+  - Source: Marcus, Diego
+  - Resolution: `dba11f9` — guard now requires `message: string` and `code` to be in the canonical `PekuloErrorCode` set (backed by a `ReadonlySet`). Mapper status lookup defaults to 500 (`?? 500`) as belt-and-suspenders.
+
+- **F5 [MEDIUM]** — `RPCHandler({})` accepts contract objects without compile-time guard → DX trap for feature stories
+  - Source: Marcus
+  - Resolution: `0a9ee87` — `RPCHandler` instantiation goes through `createPekuloRpcHandler()` whose JSDoc carries the explicit "pass `os.contract(<contract>).router({...handlers})`, NOT a raw contract" warning. Type aliased to `ConstructorParameters<typeof RPCHandler<object>>[0]` so it tracks the underlying lib.
+
+- **F6 [LOW]** — AC-3 promised `requestId: <uuid-v7>` but `crypto.randomUUID()` returns RFC 4122 v4
+  - Source: Marcus
+  - Resolution: `2ba5276` — AC-3 / AC-4 wording in story patched to `<uuid-string>` (v4 today, v7 once the project helper lands in a follow-up). Test now uses a stable literal `00000000-0000-4000-8000-000000000001` so assertions don't depend on regex permissiveness.
+
+- **F7 [LOW]** — version-coexistence fixture used `: typeof X = Y` instead of `satisfies` per AC-2 wording
+  - Source: Eva, Diego
+  - Resolution: `f941af1` — fixture rewritten to use `void (X satisfies Y)` matching AC-2 verbatim. tsc result identical, reviewer journey shorter.
+
+- **F8 [LOW]** — `architecture.md:865` listed contract files as `*-contract.ts` (hyphen) instead of `*.contract.ts` (dot)
+  - Source: Sam
+  - Resolution: `f269b86` (bundled with F1 doc patch).
+
+- **F9 [LOW]** — `PekuloErrorCode` union of 7 codes likely needs LLM/SERVICE_UNAVAILABLE/TIMEOUT/VALIDATION before V1
+  - Source: Diego
+  - Resolution: `dba11f9` — discipline note added in `pekulo-error.ts` JSDoc: every new code MUST update both `PekuloErrorCode` AND `ORPC_HTTP_STATUS_BY_CODE` in the same commit, with the HTTP status reviewed against RFC-7231/RFC-6585. Compile-time guard already enforced via `Record<PekuloErrorCode, number>` on the lookup.
+
+- **F10 [LOW]** — `requireApiBaseUrl()` error message said "(local dev default: http://127.0.0.1:3001)" but the code throws, never defaults
+  - Source: Lucas
+  - Resolution: `2541581` (bundled with F2) — reworded to "(set to http://127.0.0.1:3001 for local dev)".
+
+- **F11 [LOW]** — Cleanup nits: unreachable `response === undefined` branch in `mountOrpc`, redundant `as PekuloError` cast in mapper, unconditional `crypto.randomUUID()` allocation before error-class branch
+  - Source: Diego, Marcus
+  - Resolution: `0a9ee87` (unreachable branch — discriminated `FetchHandleResult` proves `response: Response` whenever `matched: true`), `dba11f9` (cast removed after type-guard narrowing; requestId now passed by caller, no internal allocation).
+
+#### Dismissed
+None — Alex chose "fix tout".
+
+### Verification
+
+- **Test command:**
+  - `bun --cwd packages/contracts run typecheck` → exit 0
+  - `bun --cwd apps/api run typecheck` → exit 0
+  - `bun --cwd apps/web run typecheck` → exit 0
+  - `bun --cwd apps/api test src/platform/http/error-mapper.test.ts` → **4 pass / 0 fail / 16 expect()**
+  - `bun run lint` → 11 warnings (pre-existing, no new), 0 errors
+  - `bun run format:check` → all 237 files clean
+  - L2 guard `grep -RnE ': Elysia\b' apps/api/src --include='*.ts' | grep -v 'AnyElysia'` → **0 matches**
+- **AC-4 smoke (rerun post-fix):** `compass`, `auth`, `llm`, `holdings` all returned HTTP 404 with `{ "error": { "code": "NOT_FOUND", "message": <string>, "requestId": <uuid-v4> } }`. Server log emitted `[api] error { requestId: "<id>", code: "NOT_FOUND", name: "PekuloError" }` per request — id matches the wire body 1:1 (F3 fix end-to-end confirmed).
+- **Visual verification:** N/A — story scope is server + lib code only, no UI rendering.
+
+### Ticket sync
+
+- **Ticket comment posted:** https://github.com/yabafre/pekulo/issues/5#issuecomment-4371800583
+- **PR comment posted:** https://github.com/yabafre/pekulo/pull/58#issuecomment-4371801682
+- **PR:** https://github.com/yabafre/pekulo/pull/58 (OPEN, branch `feat/0-5-orpc-contracts-scaffold` → `main`).
+
+### Tooling notes (non-findings, recorded for follow-up)
+
+- **`git-audit.sh` parser bug** (Rex) — markdown headers `**Created**` / `**Modified**` and parenthetical annotations `(Task NN — …)` leak into the "missing in git" arm. Manual cross-check confirmed zero out-of-scope changes for this review. Worth patching the script before the next aped-review pass; out of scope for this story.
+- **Brownfield oxfmt commit `bd0f274`** — Marcus + Rex audited hunk-by-hunk all 11 files: pure line-wrap + key reorder + markdown padding. Zero logic, zero type changes. Acknowledged.
+- **Seam 6 — error-shape parity** (Sam, INFO) — `OrpcErrorBody` lives in `apps/api` with no `apps/web`-side mirror today. Forward-pointer for story 0-6 (zapaction-orpc-bridge): export the shared type via `@pekulo/contracts` (or a dedicated `@pekulo/errors`) so both apps consume the same shape.
