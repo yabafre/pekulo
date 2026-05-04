@@ -16,14 +16,14 @@ export interface HypothesisService {
 }
 
 /**
- * Coerce a Prisma-returned numeric column value to a finite JS number.
+ * Coerce a Prisma-returned numeric column value to a JS number.
  * Postgres `Decimal` columns surface as `Prisma.Decimal` (decimal.js)
  * instances at runtime — we prefer `.toNumber()` over `Number(decimal)`
- * because it's explicit, lintable, and throws on `Infinity` (a precision
- * regression we want to surface, not silently truncate). Plain numbers
- * pass through unchanged. See `docs/lessons.md` L6 for the V1 tolerance
- * budget — bounded by Persona Alex's range; revisit before story 1-2's
- * projection curve lands.
+ * because it's explicit and lintable. Plain numbers pass through.
+ * Unexpected types fall through to `Number(value)` as a last resort.
+ * See `docs/lessons.md` L6 for the V1 tolerance budget — bounded by
+ * Persona Alex's range; revisit before story 1-2's projection curve
+ * lands (when values may exceed Number.MAX_SAFE_INTEGER).
  */
 function decimalToNumber(value: unknown, fallback: number): number {
   if (value === null || value === undefined) return fallback;
