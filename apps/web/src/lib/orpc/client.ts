@@ -7,18 +7,19 @@ import "server-only";
 import { RPCLink } from "@orpc/client/fetch";
 
 /**
- * Resolve the apps/api base URL at module-load time. We allow `API_BASE_URL`
- * to be undefined in dev (bun --hot reloads will respect a later env push)
- * but throw at first request if missing. Future story 0-8 (CI/CD) wires
- * VERCEL_ENV-aware defaults; story 0-7 (OTel) adds tracing headers here.
+ * Resolve the apps/api base URL on every request. Reading `process.env`
+ * inside the link's `url` thunk (instead of capturing at module-load) means
+ * a late env push (e.g. bun --hot reload that re-reads `.env.local` after
+ * the module was first evaluated) is picked up without a process restart.
+ * Future story 0-8 (CI/CD) wires VERCEL_ENV-aware defaults; story 0-7 (OTel)
+ * adds tracing headers here.
  */
-const apiBaseUrl = process.env.API_BASE_URL;
-
 function requireApiBaseUrl(): string {
+  const apiBaseUrl = process.env.API_BASE_URL;
   if (!apiBaseUrl || apiBaseUrl.trim().length === 0) {
     throw new Error(
       "API_BASE_URL is not set. Configure it in .env / .env.local " +
-        "(local dev default: http://127.0.0.1:3001).",
+        "(set to http://127.0.0.1:3001 for local dev).",
     );
   }
   return apiBaseUrl;
