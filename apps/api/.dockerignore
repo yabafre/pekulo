@@ -19,6 +19,9 @@ node_modules
 **/dist
 **/coverage
 
+# Exclude locally-generated Prisma client; the Dockerfile regenerates it inside the image.
+apps/api/generated/
+
 # Exclude apps/web sources but keep package.json for `bun install --frozen-lockfile`
 # (Bun requires every workspace member's manifest at install time).
 apps/web
