@@ -9,6 +9,11 @@ const envSchema = z.object({
   SUPABASE_JWT_SECRET: z
     .string()
     .min(32, "SUPABASE_JWT_SECRET must be ≥ 32 chars (read it from `bunx supabase status`)"),
+  // Supabase project URL — used to derive the JWT issuer
+  // (`<SUPABASE_URL>/auth/v1`) for `iss` claim verification (ADR-0013
+  // belt+suspenders). The value is the same as `NEXT_PUBLIC_SUPABASE_URL` on
+  // the web tier; it lives here too so apps/api can run independently.
+  SUPABASE_URL: z.string().url(),
 });
 
 export type Env = z.infer<typeof envSchema>;

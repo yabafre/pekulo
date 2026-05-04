@@ -20,10 +20,13 @@ export async function requireUserContext(
   if (!auth) {
     throw new PekuloError("UNAUTHORIZED", "missing Authorization header");
   }
-  if (!auth.startsWith("Bearer ")) {
+  // RFC 7235 §2.1: auth-scheme is case-insensitive.
+  const sep = auth.indexOf(" ");
+  const scheme = sep > 0 ? auth.slice(0, sep) : auth;
+  if (scheme.toLowerCase() !== "bearer") {
     throw new PekuloError("UNAUTHORIZED", "Authorization header must use Bearer scheme");
   }
-  const token = auth.slice("Bearer ".length).trim();
+  const token = auth.slice(sep + 1).trim();
   if (token.length === 0) {
     throw new PekuloError("UNAUTHORIZED", "Bearer token is empty");
   }

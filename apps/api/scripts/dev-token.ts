@@ -13,6 +13,11 @@ import { SignJWT } from "jose";
 import { config } from "dotenv";
 import { resolve } from "node:path";
 
+if (process.env.NODE_ENV === "production") {
+  console.error("dev-token must not run in production");
+  process.exit(1);
+}
+
 // Load .env / .env.local from repo root (same as Pekulo's monorepo convention).
 config({ path: resolve(import.meta.dir, "..", "..", "..", ".env") });
 config({ path: resolve(import.meta.dir, "..", "..", "..", ".env.local"), override: true });
@@ -30,9 +35,18 @@ if (!secret || secret.length < 32) {
   process.exit(1);
 }
 
+const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+if (!supabaseUrl) {
+  console.error("SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) is not set");
+  process.exit(1);
+}
+const issuer = `${supabaseUrl.replace(/\/$/, "")}/auth/v1`;
+
 const token = await new SignJWT({ email })
   .setProtectedHeader({ alg: "HS256" })
   .setSubject(userId)
+  .setIssuer(issuer)
+  .setAudience("authenticated")
   .setIssuedAt()
   .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
   .sign(new TextEncoder().encode(secret));

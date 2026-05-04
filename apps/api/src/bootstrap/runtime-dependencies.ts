@@ -41,7 +41,11 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     }
   });
 
-  const jwtVerifier = createJwtVerifier({ secret: input.env.SUPABASE_JWT_SECRET });
+  const jwtVerifier = createJwtVerifier({
+    secret: input.env.SUPABASE_JWT_SECRET,
+    issuer: `${input.env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1`,
+    audience: "authenticated",
+  });
   const hypothesisModule = createHypothesisModule({ prismaService });
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
