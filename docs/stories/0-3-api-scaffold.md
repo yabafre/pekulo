@@ -1157,7 +1157,7 @@ All 11 tasks executed in order with one commit per task (8 task commits + 2 in-f
 2. `apps/api/src/modules/health/{health.module,health.routes}.ts` + `apps/api/src/bootstrap/lifecycle.ts` — Elysia 1.4.4's invariant generics force two patterns: factories drop `: Elysia` return annotations (let TS infer the chained `Elysia<Routes={…}, …>`), and parameters that accept any handle use `import type { AnyElysia }`. ADR-0009's module-factory pattern is intact at the architectural level — the change is purely in type signatures.
 3. `apps/api/Dockerfile` + `apps/api/.dockerignore` — `bun install --frozen-lockfile` requires every workspace member's package.json in the install root, so the Dockerfile copies `apps/api` + `apps/web` manifests + the entire `packages/` tree (~92 KB), and `.dockerignore` adds the `!apps/web/package.json` exception so the manifest reaches the build context without shipping the 2 GB Next.js tree.
 
-The three deviations are recorded in `docs/lessons.md` (scope `aped-arch, aped-story, aped-dev`) so stories 0-4 → 0-12 (Prisma, oRPC, zapaction, OTel, CI matrix), every domain module factory in epics 1–8, and every future apps/* Dockerfile apply the same pattern up-front.
+The two non-trivial deviations (Elysia 1.4 invariance, Bun frozen-lockfile workspace coverage) are recorded in `docs/lessons.md` (scope `aped-arch, aped-story, aped-dev`) so stories 0-4 → 0-12 (Prisma, oRPC, zapaction, OTel, CI matrix), every domain module factory in epics 1–8, and every future apps/* Dockerfile apply the same pattern up-front. The tsconfig `bun-types`→`bun` typo was a single-character fix without architectural import — no lesson recorded. The `bun --cwd` quirk referenced in AC-1 + Tasks pre-existed from story 0-1 and is referenced here, not added.
 
 **Out of scope (NOT done — owned by downstream stories per the original story spec):**
 
@@ -1191,6 +1191,7 @@ apps/api/src/modules/health/health.routes.ts
 apps/api/src/platform/index.ts
 apps/api/tsconfig.json
 bun.lock                                 (touched by `bun install` registering the new workspace)
-docs/lessons.md                          (3 new lessons added: bun-cwd quirk, Elysia 1.4 invariance, Bun frozen-lockfile workspace coverage)
+docs/lessons.md                          (2 new lessons added: Elysia 1.4 invariance, Bun frozen-lockfile workspace coverage. The `bun --cwd` quirk pre-existed from story 0-1.)
+docs/state.yaml                          (single status flip pending → review-queued + started_at)
 docs/stories/0-3-api-scaffold.md         (this file — Debug Log + Dev Agent Record + 3 lock-step snippet patches)
 ```
