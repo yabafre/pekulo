@@ -13,11 +13,15 @@ export async function startServer(): Promise<ServerHandle> {
   const deps = await createRuntimeDependencies({ env });
   const healthModule = createHealthModule({ readiness: deps.readiness });
 
+  // TODO(story 0-5): replace with platform/http/error-mapper.ts (PekuloError → oRPC).
   const app = new Elysia()
     .onError(({ code, error, set }) => {
       console.error(`[api] error code=${String(code)}`, error);
-      if (set.status === undefined || set.status === 200) {
-        set.status = 500;
+      const status =
+        set.status === undefined || set.status === 200 ? 500 : Number(set.status);
+      set.status = status;
+      if (status >= 500) {
+        return { error: { code: "INTERNAL", message: "internal server error" } };
       }
       return {
         error: {
@@ -26,9 +30,9 @@ export async function startServer(): Promise<ServerHandle> {
         },
       };
     })
-    .use(healthModule.routes);
+    .use(healthModule.router);
 
-  await registerLifecycle(app, deps);
+  await registerLifecycle(app, { shutdownTimeoutMs: env.SHUTDOWN_TIMEOUT_MS });
 
   app.listen({ port: env.PORT, hostname: env.HOST }, (server) => {
     console.log(`[api] listening on http://${server.hostname}:${server.port}`);

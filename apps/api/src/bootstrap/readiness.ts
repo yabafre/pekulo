@@ -15,6 +15,23 @@ export interface Readiness {
   check(): Promise<ReadinessReport>;
 }
 
+const PROBE_TIMEOUT_MS = 2_000;
+
+async function runProbe(name: string, probe: ReadinessProbe): Promise<[string, ProbeResult]> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<ProbeResult>((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false, reason: "probe timeout" }), PROBE_TIMEOUT_MS);
+  });
+  try {
+    const result = await Promise.race([probe(), timeout]);
+    return [name, result];
+  } catch (err) {
+    return [name, { ok: false, reason: err instanceof Error ? err.message : String(err) }];
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 export function createReadiness(): Readiness {
   const probes = new Map<string, ReadinessProbe>();
   return {
@@ -22,16 +39,12 @@ export function createReadiness(): Readiness {
       probes.set(name, probe);
     },
     async check() {
-      const results: Record<string, ProbeResult> = {};
-      let allOk = true;
-      for (const [name, probe] of probes.entries()) {
-        const result = await probe();
-        results[name] = result;
-        if (!result.ok) {
-          allOk = false;
-        }
-      }
-      return { ready: allOk, probes: results };
+      const entries = await Promise.all(
+        Array.from(probes.entries(), ([name, probe]) => runProbe(name, probe)),
+      );
+      const results: Record<string, ProbeResult> = Object.fromEntries(entries);
+      const ready = entries.every(([, r]) => r.ok);
+      return { ready, probes: results };
     },
   };
 }

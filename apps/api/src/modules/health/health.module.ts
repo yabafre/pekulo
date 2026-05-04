@@ -5,8 +5,11 @@ export interface HealthModuleDeps {
   readiness: Readiness;
 }
 
+// ADR-0009 module factory contract: returns `{ router, service? }`.
+// The health module is degenerate (no service layer — pure stateless probes),
+// so `service` is omitted; `router` mirrors every domain factory in epics 1-8.
 export function createHealthModule(deps: HealthModuleDeps) {
   return {
-    routes: healthRoutes(deps),
+    router: healthRoutes(deps),
   };
 }
