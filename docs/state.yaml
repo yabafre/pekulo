@@ -147,7 +147,7 @@ pipeline:
         v1_5_deferred: ["epic-10"] # 10-1 ships V1, 10-2 deferred per G1
         public_ramp_backlog: ["epic-11"] # 11-3 priorité tôt; reste gated sur (b) decision
     dev:
-      status: in-progress
+      status: complete
 # GitHub Issues sync (top-level, written by aped-epics step 8.7)
 ticket_sync:
   provider: "github"
