@@ -17,7 +17,6 @@
     "@pekulo/zod": "workspace:*"
   },
   "devDependencies": {
-    "@pekulo/tsconfig": "workspace:*",
-    "typescript": "^5.6.0"
+    "@pekulo/tsconfig": "workspace:*"
   }
 }
