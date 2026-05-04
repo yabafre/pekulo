@@ -3,6 +3,8 @@
 // added next to the shipped compassContractV1, both still resolve and the
 // shipped `compassContract` default still typechecks against V1's shape.
 // This file is NOT executed at runtime — `tsc --noEmit` is the verifier.
+//
+// Wording matches AC-2 verbatim — three `satisfies` assertions (review F7).
 
 import { compassContract, compassContractV1 } from "../compass.contract";
 
@@ -16,17 +18,12 @@ const compassContractV2 = {
 } as const;
 
 // (i) current default ≡ V1 (the shipped invariant).
-const _assertDefaultIsV1: typeof compassContractV1 = compassContract;
+void (compassContract satisfies typeof compassContractV1);
 
 // (ii) V2 lives alongside without overwriting V1.
-const _assertV2IsRecord: Record<string, unknown> = compassContractV2;
+void (compassContractV2 satisfies Record<string, unknown>);
 
 // (iii) the named import compassContractV1 still resolves after introducing
-// the V2 shadow — this is implicit in the import line above; the explicit
-// assignment forces TS to materialise the type.
-const _assertV1NamedImportResolves: typeof compassContractV1 = compassContractV1;
-
-// Suppress unused-binding lint without exporting fixtures into the bundle.
-void _assertDefaultIsV1;
-void _assertV2IsRecord;
-void _assertV1NamedImportResolves;
+// the V2 shadow — the explicit `satisfies` materialises the type so the
+// import isn't tree-shaken before tsc evaluates it.
+void (compassContractV1 satisfies typeof compassContractV1);
