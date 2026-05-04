@@ -17,6 +17,7 @@
       "dependencies": {
         "@orpc/server": "1.14.1",
         "@pekulo/contracts": "workspace:*",
+        "@pekulo/validators": "workspace:*",
         "@prisma/adapter-pg": "7.8.0",
         "@prisma/client": "7.8.0",
         "@prisma/client-runtime-utils": "7.8.0",
@@ -41,6 +42,7 @@
         "@orpc/client": "1.14.1",
         "@orpc/contract": "1.14.1",
         "@pekulo/contracts": "workspace:*",
+        "@pekulo/validators": "workspace:*",
         "@supabase/ssr": "^0.10.2",
         "@supabase/supabase-js": "^2.104.1",
         "@tanstack/react-form": "^1.29.1",
@@ -117,6 +119,7 @@
       "dependencies": {
         "@pekulo/types": "workspace:*",
         "@pekulo/zod": "workspace:*",
+        "zod": "4.3.6",
       },
       "devDependencies": {
         "@pekulo/tsconfig": "workspace:*",
