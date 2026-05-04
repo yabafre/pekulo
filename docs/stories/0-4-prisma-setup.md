@@ -1,7 +1,7 @@
 # Story: 0-4-prisma-setup — Prisma 7.8 schema folder + prefixed IDs + baseline migration
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** review-queued
+**Status:** done
 **Ticket:** [#4](https://github.com/yabafre/pekulo/issues/4)
 **Branch:** `feat/0-4-prisma-setup`
 **Commit prefix:** `feat(#4): ...` (or `chore(#4):` / `fix(#4):` per task type)
@@ -1970,3 +1970,173 @@ $ curl -fsS http://127.0.0.1:3001/health
 - Watch item W6 still applies: `prismaSchemaFolder` is now stable in Prisma 7, but Prisma version remains pinned exactly to `7.8.0` per ADR-0012 + W1 discipline.
 
 ### File List
+
+---
+
+## Review Record
+
+**Date:** 2026-05-04
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Diego, Kai)
+**Verdict:** done
+
+### Specialists dispatched
+
+- **Eva** (ac-validator, Stage 1 gate) — verdict: **APPROVED** (6/6 ACs IMPLEMENTED, HIGH confidence)
+- **Marcus** (code-quality + 5-anti-pattern audit, Stage 2) — initial: CHANGES_REQUESTED → re-verification after fixes: **all 9 findings RESOLVED, HIGH**
+- **Rex** (git-auditor, Stage 2) — initial: CHANGES_REQUESTED (1 MEDIUM File List drift, 1 LOW APED engine bug) → addressed
+- **Diego** (backend specialist, Stage 2) — initial: CHANGES_REQUESTED (1 CRITICAL CHECK absent, 1 HIGH NUMERIC drift) → re-verification: **F1 + F2 FIXED, HIGH confidence** (insertion test confirmed Postgres rejects `cash_balance=-100`)
+- **Kai** (devops specialist, Stage 2) — initial: CHANGES_REQUESTED (1 HIGH `.env` leak, 2 LOW layer hygiene + healthcheck) → re-verification: **F16 + F17 FIXED**, F3 needed second-pass fix (BuildKit per-Dockerfile naming) → applied + re-verified clean
+- Stage 1.5 adversarial reviewers (Hannah / Eli / Aaron): **skipped** (`review.parallel_reviewers` not enabled in config.yaml)
+
+### Findings (consolidated)
+
+#### Resolved
+
+- **[CRITICAL] F1 — 8 brownfield CHECK constraints absent in baseline migration** [`apps/api/prisma/migrations/0_baseline_brownfield/migration.sql`]
+  - Source: Diego
+  - Resolution: commit `076cb4d` — appended manual CHECK block (mirror of RLS pattern). 8 named constraints reproduced verbatim from `apps/web/supabase-schema.sql`. Diego re-verification ran `INSERT ... cash_balance=-100` → Postgres rejected with `accounts_cash_balance_check` violation.
+
+- **[HIGH] F2 — NUMERIC → DECIMAL(65,30) drift on every Decimal column** [`apps/api/prisma/schema/{accounts,transactions,monthly,hypothesis}.prisma` + migration]
+  - Source: Diego
+  - Resolution: commit `076cb4d` — added `@db.Decimal` (no precision args) on every Decimal field across 4 schema files; Prisma 7 generates bare `DECIMAL` (= Postgres synonym for unmodified `NUMERIC`). All 47 Decimal columns now report `data_type=numeric, numeric_precision=NULL, numeric_scale=NULL`.
+
+- **[HIGH] F3 — `.env.local` leaked into Docker build context** [`apps/api/.dockerignore` → `apps/api/Dockerfile.dockerignore`]
+  - Source: Kai
+  - Resolution: two commits. `1d58665` rewrote patterns with `**/` prefix to catch nested `.env` files. Kai re-verification then revealed BuildKit doesn't auto-load `apps/api/.dockerignore` for `docker build -f apps/api/Dockerfile .` — so commit `aea7ea4` renamed to `apps/api/Dockerfile.dockerignore` (BuildKit per-Dockerfile naming convention). Canary `.env.local` probe confirms exclusion: only `/ctx/.env.example` reaches the build context.
+
+- **[HIGH] F4 — `injectPrefixedId` empty-string id treated as set** [`apps/api/src/database/prefixed-ids.injector.ts:19`]
+  - Source: Marcus
+  - Resolution: commit `d287c2c` — guard tightened to `typeof data.id === "string" && data.id.length > 0`. New unit test in `prefixed-ids.injector.test.ts` proves `id: ""` regenerates.
+
+- **[HIGH] F5 — `prisma.service.ts` mutates extended client + `as unknown as` cast** [`apps/api/src/database/prisma.service.ts`]
+  - Source: Marcus, Diego (corroborated)
+  - Resolution: commit `d287c2c` — refactored to wrapper object `{ client, connect, disconnect }` (no proxy mutation, no lossy cast). `runtime-dependencies.ts` updated to call `prismaService.client.$queryRaw`. Added `ExtendedPrismaClient` type export.
+
+- **[HIGH] F6 — Lifecycle skips Prisma disconnect if `app.stop()` throws** [`apps/api/src/bootstrap/lifecycle.ts:25-37`]
+  - Source: Marcus, Diego (corroborated)
+  - Resolution: commit `d2f22f5` — wrapped `app.stop()` and `prismaService.disconnect()` in independent try/catches. Disconnect always runs (whether stop resolves, throws, or times out). Distinct `console.error` labels: `"elysia.stop failed"` vs `"prisma.disconnect failed"` for operator triage on Dokploy.
+
+- **[MEDIUM] F7 — Anti-pattern #5: prefixed-ids extension wiring untested** [`apps/api/src/database/prefixed-ids.extension.ts`]
+  - Source: Marcus
+  - Resolution: commit `d287c2c` — extracted `prefixedIdsHandlers` as a named export (the same object `Prisma.defineExtension` consumes). New `prefixed-ids.extension.test.ts` (10 tests) exercises every handler op (`create` / `createMany` array+object / `createManyAndReturn` / `upsert`) via stub `query` callback, plus the F8 + F9 guard rails. Bun test count: 15 → 25.
+
+- **[MEDIUM] F8 — `createMany` no row-shape guard** [`apps/api/src/database/prefixed-ids.extension.ts:28-32`]
+  - Source: Marcus
+  - Resolution: commit `d287c2c` — added `ensureObject(model, op, value, index?)` helper. Non-object rows now throw `TypeError` naming the model and (for arrays) the index, replacing cryptic "Cannot read properties of null".
+
+- **[MEDIUM] F9 — `upsert.update.id` clobber unguarded** [`apps/api/src/database/prefixed-ids.extension.ts:44-48`]
+  - Source: Marcus
+  - Resolution: commit `d287c2c` — extension now rejects `args.update` containing `id` with a clear error message naming the model. Test in `extension.test.ts`.
+
+- **[MEDIUM] F10 — Readiness probe Prisma flap risk** [`apps/api/src/bootstrap/runtime-dependencies.ts:15-22`]
+  - Source: Marcus
+  - Resolution: commit `d2f22f5` — closure-tracked `consecutivePrismaFailures`. First failure returns `{ ok: true, reason: "prisma transient (...)" }` (operator-visible, no traffic yank); second consecutive failure flips to `{ ok: false }`. Counter resets on any successful probe. Threshold = 2.
+
+- **[MEDIUM] F11 — `rls-audit.ts` `client.end()` unreachable on connect failure** [`apps/api/scripts/rls-audit.ts:29`]
+  - Source: Marcus
+  - Resolution: commit `1bd36f0` — moved `client.connect()` inside the try block; `client.end().catch(() => {})` in finally so cleanup never crashes the script.
+
+- **[MEDIUM] F12 — `docs/epic-0-context.md` (228 lines) committed under #4 but missing from File List** [commit `c2e7bcd`]
+  - Source: Rex
+  - Resolution: commit `b2b2f13` — appended `A docs/epic-0-context.md` to the story File List with note that it's the aped-dev step 04 context cache reused by stories 0-5..0-12.
+
+- **[LOW] F13 — `prisma.config.ts` silent on malformed `.env.local`** [`apps/api/prisma.config.ts:10-11`]
+  - Source: Marcus
+  - Resolution: commit `b2b2f13` — new `loadDotenv` helper logs non-ENOENT errors via `console.warn` with file path and message.
+
+- **[LOW] F15 — Untracked artefacts polluting `git status`**
+  - Source: Rex
+  - Resolution: commit `b2b2f13` — root `.gitignore` extended with `.aped/.last-test-exit` (APED engine per-machine state) and `apps/web/supabase/.branches/` (Supabase CLI per-machine branch metadata).
+
+- **[LOW] F16 — Dockerfile `chown -R bun:bun /app` after install creates fat metadata layer** [`apps/api/Dockerfile`]
+  - Source: Kai
+  - Resolution: commit `1d58665` — `USER bun` switch happens BEFORE the heavy COPY+install layers; `--chown=bun:bun` on every COPY; final recursive chown removed. Single 0B `chown bun:bun /app` layer. Kai re-verification confirms layer count clean.
+
+- **[LOW] F17 — Healthcheck `start-period=10s` tight on cold-cache CI** [`apps/api/Dockerfile:54`]
+  - Source: Kai
+  - Resolution: commit `1d58665` — bumped to 20s. 30s interval × 3 retries still gives 100s wall-clock buffer.
+
+#### Dismissed
+
+- **[LOW] F14 — APED `git-audit.sh` parser cassé sur format File List fenced** [`.aped/aped-review/scripts/git-audit.sh:28`]
+  - Source: Rex
+  - Rationale: CLAUDE.md declares `.aped/` immutable in this project ("Engine: `.aped/` (immutable) · Artifacts: `docs/` (evolves)"). Fix routes upstream to the APED method maintainers (`npx aped-method`), not committed in this branch. Surface as a follow-up issue.
+
+- **[LOW] F18 — `_base.prisma` filename non-standard vs Prisma's `schema.prisma` convention** [`apps/api/prisma/schema/_base.prisma`]
+  - Source: Diego
+  - Rationale: Diego's own assessment was *"Cosmetic; not blocking"*. The dev faithfully implemented the story spec which explicitly named the file `_base.prisma` (story line 259). The underscore prefix preserves lex-order so the datasource block parses before the models. Renaming post-hoc would deviate from the spec without functional gain. Can be revisited in a future refactor if convention preference shifts.
+
+### Verification (final pass — captured FRESH this session, post-fixes)
+
+```text
+$ cd apps/api && bun test
+bun test v1.3.13 (bf2e2cec)
+ 25 pass
+ 0 fail
+ 55 expect() calls
+Ran 25 tests across 4 files. [91.00ms]
+
+$ cd apps/api && bun run typecheck
+$ tsc --noEmit
+(exit 0, no output)
+
+$ cd apps/api && bun run prisma:validate
+The schemas at prisma/schema are valid 🚀
+
+$ cd apps/api && bun run prisma:migrate:status
+1 migration found in prisma/migrations
+Database schema is up to date!
+
+$ cd apps/api && bun run db:rls-audit
+[rls-audit] OK — 7 tables checked: kpis (3 policies), monthly_tracking (3 policies),
+hypotheses (3 policies), transactions (4 policies), accounts (4 policies),
+holdings (4 policies), holding_lots (4 policies)
+
+$ DOCKER_BUILDKIT=1 docker build -f apps/api/Dockerfile -t pekulo-api:dev .
+... built (image: 1.86GB, layer count clean — F16)
+$ docker run --rm -d -p 3001:3001 -e DATABASE_URL=... pekulo-api:dev
+$ curl -fsS http://127.0.0.1:3001/health
+{"status":"ok"}
+```
+
+**5-anti-pattern audit (Marcus, post-fix):** all 5 PASS (was 4/5 — F7 cleared by `prefixed-ids.extension.test.ts`).
+
+**Brownfield-parity insertion test (Diego, post-fix):**
+```sql
+INSERT INTO accounts (..., cash_balance) VALUES (..., -100, ...);
+ERROR: new row for relation "accounts" violates check constraint "accounts_cash_balance_check"
+```
+
+**`.env` leak canary probe (Kai, post-fix):**
+```bash
+echo "DATABASE_URL=...CANARY..." > apps/api/.env.local
+DOCKER_BUILDKIT=1 docker build -f apps/api/Dockerfile.probe ...   # sibling Dockerfile.dockerignore loaded
+docker run probe sh -c 'find /ctx -name ".env*"'
+/ctx/.env.example   # canary excluded ✓
+```
+
+### Visual verification
+
+N/A — backend story (no frontend surface; `apps/web` not modified).
+
+### Ticket sync
+
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/4#issuecomment-4371021989
+- PR opened: **deferred** — no `sprint.umbrella_branch` declared in `state.yaml`; user to decide whether to open one to `main` directly or to a sprint umbrella before `aped-ship` time.
+
+### Post-review delta
+
+| Metric | Before review | After review |
+|---|---|---|
+| Test count | 15 pass / 37 expect() | 25 pass / 55 expect() |
+| Brownfield CHECK constraints | 0 / 8 | 8 / 8 ✓ |
+| Decimal column type | DECIMAL(65,30) | NUMERIC (brownfield parity) |
+| `.env*` leak surface | nested files leaked | zero leaks (canary-verified) |
+| Prisma extension wiring tested | no | yes (10 new tests) |
+| Lifecycle Prisma disconnect path | conditional | always-runs ✓ |
+| Branch commits | 12 | 20 (8 fix/docs commits added) |
+
+### Follow-ups (not blockers — surface to backlog)
+
+- **APED engine** — `git-audit.sh` parser doesn't recognize fenced-block File List format used in this story (and likely future ones). Upstream issue for `npx aped-method` maintainers. Reference: this Review Record + commit `c2e7bcd` for repro.
+- **Re-evaluate `_base.prisma` filename** — at the next major refactor of `apps/api/prisma/schema/`, consider renaming to `schema.prisma` per Prisma convention.
