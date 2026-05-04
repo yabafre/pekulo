@@ -7,6 +7,7 @@ export interface LifecycleOptions {
 
 export interface LifecycleDeps {
   prismaService: PrismaService;
+  shutdownOtel: () => Promise<void>;
 }
 
 export async function registerLifecycle(
@@ -30,6 +31,14 @@ export async function registerLifecycle(
         }
       } catch (err) {
         console.error("[api] elysia.stop failed:", err);
+        exitCode = 1;
+      }
+      // Flush OTel BEFORE Prisma disconnects — span ordering rationale lives
+      // in the story 0-7 file under § Lifecycle ordering.
+      try {
+        await deps.shutdownOtel();
+      } catch (err) {
+        console.error("[api] otel.shutdown failed:", err);
         exitCode = 1;
       }
       // Drain Prisma connection pool ALWAYS — even if elysia.stop threw or timed
