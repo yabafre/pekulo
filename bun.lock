@@ -38,6 +38,9 @@
       "version": "0.1.0",
       "dependencies": {
         "@base-ui/react": "^1.4.1",
+        "@orpc/client": "1.14.1",
+        "@orpc/contract": "1.14.1",
+        "@pekulo/contracts": "workspace:*",
         "@supabase/ssr": "^0.10.2",
         "@supabase/supabase-js": "^2.104.1",
         "@tanstack/react-form": "^1.29.1",
