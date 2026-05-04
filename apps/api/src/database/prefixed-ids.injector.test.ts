@@ -40,4 +40,10 @@ describe("injectPrefixedId", () => {
     const out = injectPrefixedId("Transaction", input);
     expect((out as unknown as { id: string }).id).toMatch(/^tx_[0-9A-Za-z]{21}$/);
   });
+
+  it("treats empty-string id as missing — form clients coerce omitted fields to '' (review F4)", () => {
+    const input: { id: unknown; userId: string } = { id: "", userId: "u" };
+    const out = injectPrefixedId("Account", input);
+    expect((out as unknown as { id: string }).id).toMatch(/^acc_[0-9A-Za-z]{21}$/);
+  });
 });

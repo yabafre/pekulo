@@ -2,7 +2,7 @@
 //
 // Given a Prisma model name and the `data` argument of a create/createMany/upsert
 // op, this helper:
-//   - returns `data` unchanged if `data.id` is already set (idempotence);
+//   - returns `data` unchanged if `data.id` is already a non-empty string;
 //   - throws MissingPrefixError if the model has no entry in ID_PREFIXES;
 //   - otherwise returns a new object with id = `${prefix}_${base62(21)}`.
 //
@@ -16,7 +16,10 @@ import { generateBase62Id } from "./base62";
 export { MissingPrefixError };
 
 export function injectPrefixedId<T extends { id?: unknown }>(model: string, data: T): T {
-  if (data.id !== undefined && data.id !== null) {
+  // Treat `undefined`, `null`, and `""` as "missing". Form clients and oRPC
+  // transports often coerce omitted fields to "" — leaving an empty-string PK
+  // in the row would be a data-integrity bug.
+  if (typeof data.id === "string" && data.id.length > 0) {
     return data;
   }
   if (!(model in ID_PREFIXES)) {

@@ -5,8 +5,11 @@
 //   - PrismaPg adapter from @prisma/adapter-pg
 //   - prefixed-ids extension as the only extension at V1 (a)
 //
-// The exported PrismaService type is the *extended* client returned by `$extends`.
-// Domain repositories in epics 1–8 import this type and depend on the extended shape.
+// The exported PrismaService is a wrapper around the extended Prisma client.
+// Domain repositories in epics 1–8 import { PrismaService } and access the
+// extended client via `service.client.<model>.<op>(...)`. The wrapper avoids
+// mutating the Prisma `$extends` proxy with extra properties (fragile if Prisma
+// ever freezes the proxy) and keeps `connect`/`disconnect` as explicit methods.
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@generated/prisma/client";
@@ -18,17 +21,19 @@ function createExtendedClient(databaseUrl: string) {
   return base.$extends(prefixedIdsExtension);
 }
 
-export type PrismaService = ReturnType<typeof createExtendedClient> & {
+export type ExtendedPrismaClient = ReturnType<typeof createExtendedClient>;
+
+export interface PrismaService {
+  readonly client: ExtendedPrismaClient;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-};
+}
 
 export function createPrismaService(input: { databaseUrl: string }): PrismaService {
-  const extended = createExtendedClient(input.databaseUrl);
-  // The extended client exposes $connect / $disconnect on its inner symbol.
-  // Wrap in connect/disconnect for ergonomic bootstrap usage.
-  const service = extended as unknown as PrismaService;
-  service.connect = () => (extended as unknown as { $connect: () => Promise<void> }).$connect();
-  service.disconnect = () => (extended as unknown as { $disconnect: () => Promise<void> }).$disconnect();
-  return service;
+  const client = createExtendedClient(input.databaseUrl);
+  return {
+    client,
+    connect: () => client.$connect(),
+    disconnect: () => client.$disconnect(),
+  };
 }

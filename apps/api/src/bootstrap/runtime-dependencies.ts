@@ -14,7 +14,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
 
   readiness.register("prisma", async () => {
     try {
-      await prismaService.$queryRaw`SELECT 1`;
+      await prismaService.client.$queryRaw`SELECT 1`;
       return { ok: true };
     } catch (err) {
       return { ok: false, reason: err instanceof Error ? err.message : String(err) };
