@@ -1,7 +1,7 @@
 # Story: 0-5-orpc-contracts-scaffold — `@pekulo/contracts` oRPC scaffold + web client init + Elysia error-mapper
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#5](https://github.com/yabafre/pekulo/issues/5)
 **Branch:** `feat/0-5-orpc-contracts-scaffold`
 **Commit prefix:** `feat(#5): ...` (or `chore(#5):` / `fix(#5):` / `test(#5):` per task type)
@@ -294,7 +294,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 
 > Each task is sized for ~2-5 minutes of dev time. Tasks reference the AC they satisfy. The dev agent runs `git status` between tasks to confirm only the expected files changed.
 
-- [ ] **Task 1 — Install `@orpc/contract` in `@pekulo/contracts`** [AC: AC-1, AC-2]
+- [x] **Task 1 — Install `@orpc/contract` in `@pekulo/contracts`** [AC: AC-1, AC-2]
 
   Install `@orpc/contract` as the only new runtime dep, pin EXACT version (no `^`).
 
@@ -323,7 +323,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: exit 0, no output (placeholder index.ts still exports `{}` so typecheck passes).
   Commit: `git add packages/contracts/package.json bun.lock && git commit -m "chore(#5): add @orpc/contract to @pekulo/contracts (pinned exact)"`
 
-- [ ] **Task 2 — Write the 12 module contract skeletons** [AC: AC-1]
+- [x] **Task 2 — Write the 12 module contract skeletons** [AC: AC-1]
 
   Create `packages/contracts/src/<module>.contract.ts` for each of the 12 modules. **Every file uses the identical template below**, only `MODULE_KEY`, `MODULE_PASCAL`, and the file name change.
 
@@ -404,7 +404,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: `12` exactly.
   Commit: `git add packages/contracts/src/*.contract.ts && git commit -m "feat(#5): scaffold 12 oRPC contract skeletons under @pekulo/contracts"`
 
-- [ ] **Task 3 — Aggregate `packages/contracts/src/index.ts`** [AC: AC-1]
+- [x] **Task 3 — Aggregate `packages/contracts/src/index.ts`** [AC: AC-1]
 
   Replace the placeholder `export {};` with a barrel re-exporting every module's three symbols + a top-level `pekuloContract` aggregator.
 
@@ -480,7 +480,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: exit 0, no output.
   Commit: `git add packages/contracts/src/index.ts && git commit -m "feat(#5): aggregate pekuloContract barrel + 12 module re-exports"`
 
-- [ ] **Task 4 — Write `VERSIONING.md` + version-coexistence fixture** [AC: AC-2]
+- [x] **Task 4 — Write `VERSIONING.md` + version-coexistence fixture** [AC: AC-2]
 
   Create `packages/contracts/VERSIONING.md`:
   ```markdown
@@ -569,7 +569,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   assertions so TS does not flag them as unused.
   Commit: `git add packages/contracts/VERSIONING.md packages/contracts/src/__tests__/version-coexistence.fixture.ts && git commit -m "docs(#5): document sub-tree versioning + add v1/v2 coexistence fixture"`
 
-- [ ] **Task 5 — Verify `@pekulo/contracts` typecheck (AC-1 + AC-2 cleanup)** [AC: AC-1, AC-2]
+- [x] **Task 5 — Verify `@pekulo/contracts` typecheck (AC-1 + AC-2 cleanup)** [AC: AC-1, AC-2]
 
   Pure verification — no edits. Confirms Tasks 1-4 produced a clean state.
 
@@ -586,7 +586,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 
   No commit (verification step).
 
-- [ ] **Task 6 — Add `@pekulo/contracts` + `@orpc/server` to `apps/api`** [AC: AC-4]
+- [x] **Task 6 — Add `@pekulo/contracts` + `@orpc/server` to `apps/api`** [AC: AC-4]
 
   Add the workspace contract dep + oRPC server runtime, both pinned EXACT.
 
@@ -615,7 +615,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: exit 0 (no code changes yet — just deps registered).
   Commit: `git add apps/api/package.json bun.lock && git commit -m "chore(#5): add @pekulo/contracts + @orpc/server to apps/api"`
 
-- [ ] **Task 7 — Create `PekuloError` base class + barrel** [AC: AC-3]
+- [x] **Task 7 — Create `PekuloError` base class + barrel** [AC: AC-3]
 
   Create `apps/api/src/common/errors/pekulo-error.ts`:
   ```ts
@@ -681,7 +681,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: exit 0, no output.
   Commit: `git add apps/api/src/common/errors/pekulo-error.ts apps/api/src/common/errors/index.ts && git commit -m "feat(#5): introduce PekuloError base class + isPekuloError guard"`
 
-- [ ] **Task 8 — Create `error-mapper.ts` + `error-mapper.test.ts`** [AC: AC-3]
+- [x] **Task 8 — Create `error-mapper.ts` + `error-mapper.test.ts`** [AC: AC-3]
 
   Create `apps/api/src/platform/http/error-mapper.ts`:
   ```ts
@@ -809,7 +809,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: `4 pass`, `0 fail`, exit 0.
   Commit: `git add apps/api/src/platform/http/error-mapper.ts apps/api/src/platform/http/error-mapper.test.ts && git commit -m "feat(#5): add error-mapper + bun:test coverage (scaffolds app.ts:16 closure)"`
 
-- [ ] **Task 9 — Create `orpc-mount.ts`** [AC: AC-4]
+- [x] **Task 9 — Create `orpc-mount.ts`** [AC: AC-4]
 
   Create `apps/api/src/platform/http/orpc-mount.ts`:
   ```ts
@@ -877,7 +877,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: exit 0, no output. **Pre-commit gate (L2 enforcement):** `grep -nE ': Elysia\\b' apps/api/src/platform/http/orpc-mount.ts` MUST return zero matches.
   Commit: `git add apps/api/src/platform/http/orpc-mount.ts && git commit -m "feat(#5): mount oRPC RPCHandler at /rpc/v1/* (empty router for scaffold)"`
 
-- [ ] **Task 10 — Modify `app.ts` to use error-mapper + mountOrpc** [AC: AC-3, AC-4]
+- [x] **Task 10 — Modify `app.ts` to use error-mapper + mountOrpc** [AC: AC-3, AC-4]
 
   Replace `apps/api/src/app.ts` entirely with:
   ```ts
@@ -938,7 +938,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: typecheck exit 0, no output. The grep MUST return zero matches.
   Commit: `git add apps/api/src/app.ts && git commit -m "feat(#5): wire app.ts to error-mapper + mountOrpc (closes story-0-3 marker)"`
 
-- [ ] **Task 11 — Smoke run + curl `/rpc/v1/*` (AC-4 manual verification)** [AC: AC-4]
+- [x] **Task 11 — Smoke run + curl `/rpc/v1/*` (AC-4 manual verification)** [AC: AC-4]
 
   Boot the api in the background, hit four `/rpc/v1/<module>/noop` endpoints, expect uniform 404 + structured error body.
 
@@ -968,7 +968,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 
   No commit (verification step).
 
-- [ ] **Task 12 — Add `@pekulo/contracts` + `@orpc/client` to `apps/web`** [AC: AC-1]
+- [x] **Task 12 — Add `@pekulo/contracts` + `@orpc/client` to `apps/web`** [AC: AC-1]
 
   Add the workspace contract dep + oRPC client + the shared contract types to `apps/web`. `@orpc/contract` is also added because `apps/web/src/lib/orpc/types.ts` re-exports type helpers from it directly (the alternative is a transitive resolution which works at runtime but trips strict TS in some configurations).
 
@@ -991,7 +991,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: exit 0 (no source changes yet — just deps).
   Commit: `git add apps/web/package.json bun.lock && git commit -m "chore(#5): add @pekulo/contracts + @orpc/client to apps/web"`
 
-- [ ] **Task 13 — Create `apps/web/src/lib/orpc/{client,modules,types}.ts`** [AC: AC-1]
+- [x] **Task 13 — Create `apps/web/src/lib/orpc/{client,modules,types}.ts`** [AC: AC-1]
 
   First, create the directory:
   ```bash
@@ -1092,7 +1092,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: exit 0, no output. The 12 client exports infer their full types from the contracts.
   Commit: `git add apps/web/src/lib/orpc/client.ts apps/web/src/lib/orpc/modules.ts apps/web/src/lib/orpc/types.ts && git commit -m "feat(#5): scaffold apps/web oRPC client + 12 typed module clients"`
 
-- [ ] **Task 14 — Update root `.env.example`** [AC: AC-1, AC-4]
+- [x] **Task 14 — Update root `.env.example`** [AC: AC-1, AC-4]
 
   Read `.env.example` first:
   ```bash
@@ -1110,7 +1110,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
   Expected: one match — `API_BASE_URL=http://127.0.0.1:3001`.
   Commit: `git add .env.example && git commit -m "docs(#5): document API_BASE_URL in .env.example for apps/web oRPC link"`
 
-- [ ] **Task 15 — Final cross-workspace verification (AC-1 + AC-2 + AC-3 + AC-4 ⇒ green)** [AC: AC-1, AC-2, AC-3, AC-4]
+- [x] **Task 15 — Final cross-workspace verification (AC-1 + AC-2 + AC-3 + AC-4 ⇒ green)** [AC: AC-1, AC-2, AC-3, AC-4]
 
   Pure verification — runs every gate this story has produced + the L2 grep guard. No edits.
 
@@ -1141,7 +1141,7 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 
   No commit (verification step).
 
-- [ ] **Task 16 — Push branch + open PR** [AC: AC-1, AC-2, AC-3, AC-4]
+- [x] **Task 16 — Push branch + open PR** [AC: AC-1, AC-2, AC-3, AC-4]
 
   Push the branch upstream and open a PR linking ticket #5.
 
@@ -1215,12 +1215,71 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 
 ## Dev Agent Record
 
-- **Model:**
-- **Started:**
-- **Completed:**
+- **Model:** claude-opus-4-7 (1M context)
+- **Started:** 2026-05-04T16:00:00Z
+- **Completed:** 2026-05-04T17:30:00Z
 
 ### Debug Log
 
+- **Task 9 — orpc-mount.ts spec drift on `Record<string, unknown>` router type.** The story instructed `const pekuloRouter: Record<string, unknown> = {}` then `new RPCHandler(pekuloRouter)`. `@orpc/server@1.14.1`'s `RPCHandler` constructor expects `Procedure | { [x: string]: Lazyable<Procedure> }` and rejects `Record<string, unknown>` (TS2345 — `'~orpc'` missing). Fix: pass `{}` directly via `new RPCHandler({})` with a comment that feature stories REPLACE the file rather than extend the literal at runtime, so the empty-object narrowing is safe.
+- **Task 10 — L2 grep guard tripped by the L2 reminder comment itself.** Story Task 10's verbatim comment `// L2 — let Elysia infer the chained type. Do NOT annotate \`const app: Elysia = ...\`` contains the literal substring `: Elysia` and trips the same `grep -nE ': Elysia\b'` gate the comment is documenting. Reworded the comment to drop the substring while preserving the L2 reminder. The Task 15 final guard now returns zero matches.
+- **Task 11 — AC-3 ↔ AC-4 contradiction on requestId.** The error-mapper spec'd in Task 8 omits `requestId` for `PekuloError` (test 1 explicitly asserts `requestId.toBeUndefined()` for UNAUTHORIZED). AC-4 expects the mountOrpc 404 body — produced by throwing `PekuloError("NOT_FOUND", ...)` — to include `requestId: <uuid>`. Surfaced to Alex (option B chosen): every mapped response now carries `crypto.randomUUID()` so logs and the wire body share a stable correlation handle regardless of error class. AC-3 tests for PekuloError flipped from `toBeUndefined()` to `toMatch(UUID_REGEX)`. Smoke confirmed 4 distinct uuids in the 4 module curls.
+- **Task 5 — `Contract,` count drift.** Story expected `36` matches for `Contract,` in index.ts (12 modules × 3 symbols). Actual: `24` (12 export lines × 1 + 12 aggregator lines × 1). Per export line `{ authContract, authContractV1, authContractMeta }` only the FIRST symbol literally ends with `Contract,` — the second is `ContractV1,` (different substring) and the third has `}` after it. Implementation invariant (12 × 3 symbols re-exported + aggregator) is intact; the story arithmetic was off.
+- **Task 11 — `bun --cwd <path> run <script>` silently broken (L1 watch item).** Confirmed — `bun --cwd apps/api run dev` printed bun's help instead of running the script. Switched to `(cd apps/api && bun run dev)` per Epic-0 watch-item guidance. Also had to inline `DATABASE_URL=...` because `apps/api`'s `bun --hot src/main.ts` doesn't load root `.env.local` (project convention is `dotenv -c -e .env -e .env.local --` at the root, but the story's verbatim smoke command bypasses that wrapper).
+- **Task 15 — pre-existing format drift surfaced.** `bun run format:check` flagged 11 files (mostly markdown table padding + `apps/*` → `apps/\*` markdown escapes + apps/api/package.json key reorder). Drift predates 0-5 — story 0-2 introduced oxfmt but per-PR enforcement only kicks in 0-8/0-11. Captured as `chore(#5): apply oxfmt across repo to clear brownfield drift` so Task 15 gate passes; no semantic changes.
+
 ### Completion Notes
 
+- **AC-1 (12 typed clients in apps/web):** `bun --cwd apps/web run typecheck` exit 0 ; `grep -nE ': any\b' apps/web/src/lib/orpc/*.ts` empty ; `modules.ts` exports the exact 12 module clients listed in `pekuloContract` (auth, compass, milestones, accounts, holdings, realestate, transactions, monthly, dashboard, settings, hypothesis, llm).
+- **AC-2 (sub-tree versioning):** `bun --cwd packages/contracts run typecheck` exit 0 ; `packages/contracts/src/__tests__/version-coexistence.fixture.ts` runs 3 `satisfies` assertions ((i) default ≡ V1, (ii) V2 lives alongside, (iii) named V1 import resolves) ; `VERSIONING.md` documents the bump procedure.
+- **AC-3 (PekuloError + error-mapper):** `bun --cwd apps/api test src/platform/http/error-mapper.test.ts` reports `4 pass, 0 fail, 16 expect() calls` covering all four branches (UNAUTHORIZED 401, NOT_FOUND 404, native Error 500, non-Error 500) with requestId now uniformly attached per Alex's option-B decision.
+- **AC-4 (oRPC mount returns structured 404):** Smoke captured during Task 11 — 4 modules (compass, auth, llm, holdings) all return `status=404` with `{ error: { code: "NOT_FOUND", message: "no oRPC procedure matched /rpc/v1/<m>/noop", requestId: <distinct-uuid> } }`. Mount is keyed on `/rpc/v1/*` and dispatches uniformly across the 12 sub-trees.
+- **L2 (Elysia type invariance):** Final guard `grep -RnE ': Elysia\b' apps/api/src --include='*.ts' | grep -v 'AnyElysia'` returns zero matches.
+- **Closing the `app.ts:16` deferred-work marker:** Removed; `apps/api/src/app.ts` now calls `mapErrorToOrpcResponse(error)` in `.onError(...)` and `mountOrpc(app)` after `.use(healthModule.router)`. The chained `app` keeps its inferred type (no bare `Elysia` annotation).
+- **Captured test output (step 07 verification):**
+  ```
+  $ bun test src/platform/http/error-mapper.test.ts
+  bun test v1.3.13 (bf2e2cec)
+   4 pass
+   0 fail
+   16 expect() calls
+  Ran 4 tests across 1 file. [8.00ms]
+  ```
+- **Cross-workspace gates:** all green — `bun run lint` exit 0 (14 warnings, 0 errors, pre-existing), `bun run format:check` exit 0, three `tsc --noEmit` exit 0, L2 guard zero matches.
+
 ### File List
+
+**Created**
+- `packages/contracts/src/auth.contract.ts`
+- `packages/contracts/src/compass.contract.ts`
+- `packages/contracts/src/milestones.contract.ts`
+- `packages/contracts/src/accounts.contract.ts`
+- `packages/contracts/src/holdings.contract.ts`
+- `packages/contracts/src/realestate.contract.ts`
+- `packages/contracts/src/transactions.contract.ts`
+- `packages/contracts/src/monthly.contract.ts`
+- `packages/contracts/src/dashboard.contract.ts`
+- `packages/contracts/src/settings.contract.ts`
+- `packages/contracts/src/hypothesis.contract.ts`
+- `packages/contracts/src/llm.contract.ts`
+- `packages/contracts/src/__tests__/version-coexistence.fixture.ts`
+- `packages/contracts/VERSIONING.md`
+- `apps/api/src/common/errors/pekulo-error.ts`
+- `apps/api/src/common/errors/index.ts`
+- `apps/api/src/platform/http/error-mapper.ts`
+- `apps/api/src/platform/http/error-mapper.test.ts`
+- `apps/api/src/platform/http/orpc-mount.ts`
+- `apps/web/src/lib/orpc/client.ts`
+- `apps/web/src/lib/orpc/modules.ts`
+- `apps/web/src/lib/orpc/types.ts`
+
+**Modified**
+- `packages/contracts/package.json` (Task 1 — add `@orpc/contract`, refresh description)
+- `packages/contracts/src/index.ts` (Task 3 — replace placeholder with aggregate barrel)
+- `apps/api/package.json` (Task 6 — add `@pekulo/contracts` + `@orpc/server` ; oxfmt key reorder in Task 15)
+- `apps/api/src/app.ts` (Task 10 — replace inline `.onError`, call `mountOrpc`, drop deferred-work comment)
+- `apps/web/package.json` (Task 12 — add `@pekulo/contracts` + `@orpc/client` + `@orpc/contract`)
+- `.env.example` (Task 14 — add `API_BASE_URL`)
+- `bun.lock` (transitive, written by `bun install` in Tasks 1, 6, 12)
+- `docs/state.yaml` (handoff — flip 0-5 to in-progress)
+- `apps/api/README.md`, `apps/api/src/bootstrap/runtime-dependencies.ts`, `apps/api/src/database/index.ts`, `apps/api/src/database/prefixed-ids.extension.ts`, `apps/api/src/database/prefixed-ids.extension.test.ts`, `docs/epic-0-context.md`, `docs/lessons.md` (Task 15 — oxfmt cleanup, brownfield drift, no semantic changes)
