@@ -7,8 +7,19 @@ import { defineConfig, env } from "prisma/config";
 
 // Load .env.local first (developer-local override), then .env (committed defaults).
 // Both are gitignored unless the file is .env.example.
-dotenvConfig({ path: ".env.local" });
-dotenvConfig({ path: ".env" });
+//
+// F13: surface dotenv parse errors so a malformed .env.local doesn't silently
+// fall through to a confusing "DATABASE_URL not set" downstream. ENOENT is
+// expected (the file is optional in CI / docker builds with placeholder env)
+// — only log the actual parse failures.
+function loadDotenv(path: string): void {
+  const result = dotenvConfig({ path });
+  if (result.error && (result.error as NodeJS.ErrnoException).code !== "ENOENT") {
+    console.warn(`[prisma.config] dotenv failed to load ${path}: ${result.error.message}`);
+  }
+}
+loadDotenv(".env.local");
+loadDotenv(".env");
 
 type Env = {
   DATABASE_URL: string;

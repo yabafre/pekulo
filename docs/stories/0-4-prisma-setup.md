@@ -1906,6 +1906,7 @@ M  apps/api/Dockerfile                                   (+prisma config + gener
 M  apps/api/README.md                                    (+Database setup section)
 M  .env.example                                          (+DATABASE_URL block)
 M  bun.lock
+A  docs/epic-0-context.md                                (Epic 0 context cache compiled by aped-dev step 04, reused by stories 0-5..0-12)
 ```
 
 ### Deviations from the original plan

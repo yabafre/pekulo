@@ -45,3 +45,9 @@ venv/
 .codex/
 .opencode/
 .windsurf/
+
+# APED engine local runtime artefacts (per-machine, not committed)
+.aped/.last-test-exit
+
+# Supabase CLI local-state directory (per-machine branch metadata, not committed)
+apps/web/supabase/.branches/
