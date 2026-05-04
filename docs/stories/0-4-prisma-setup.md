@@ -1,7 +1,7 @@
 # Story: 0-4-prisma-setup — Prisma 7.8 schema folder + prefixed IDs + baseline migration
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** ready-for-dev
+**Status:** review-queued
 **Ticket:** [#4](https://github.com/yabafre/pekulo/issues/4)
 **Branch:** `feat/0-4-prisma-setup`
 **Commit prefix:** `feat(#4): ...` (or `chore(#4):` / `fix(#4):` per task type)
