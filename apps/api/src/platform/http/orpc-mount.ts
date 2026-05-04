@@ -13,9 +13,10 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { PekuloError, isPekuloError } from "../../common/errors";
 import { mapErrorToOrpcResponse } from "./error-mapper";
 import { logRpcRequest } from "./request-log";
-import { requireUserContext, type JwtVerifier } from "../security";
+import { requireUserContext, type JwtVerifier, type UserContext } from "../security";
 
-export type PekuloRpcRouter = ConstructorParameters<typeof RPCHandler<object>>[0];
+export type PekuloRpcContext = UserContext;
+export type PekuloRpcRouter = ConstructorParameters<typeof RPCHandler<PekuloRpcContext>>[0];
 
 export interface MountOrpcDeps {
   jwtVerifier: JwtVerifier;
@@ -32,7 +33,7 @@ export interface MountOrpcDeps {
  * Router<any, T>, but a contract object dispatches on no handler at runtime
  * and 404s every well-formed call.
  */
-function createPekuloRpcHandler(router: PekuloRpcRouter): RPCHandler<object> {
+function createPekuloRpcHandler(router: PekuloRpcRouter): RPCHandler<PekuloRpcContext> {
   return new RPCHandler(router);
 }
 
