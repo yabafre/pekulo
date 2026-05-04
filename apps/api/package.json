@@ -21,10 +21,12 @@
   "dependencies": {
     "@orpc/server": "1.14.1",
     "@pekulo/contracts": "workspace:*",
+    "@pekulo/validators": "workspace:*",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
     "@prisma/client-runtime-utils": "7.8.0",
     "elysia": "1.4.4",
+    "jose": "5.9.6",
     "pg": "^8.13.1",
     "zod": "4.3.6"
   },

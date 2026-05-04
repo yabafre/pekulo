@@ -51,34 +51,9 @@ export interface RevenueItem {
   montant: number;
 }
 
-export interface Hypotheses {
-  salaireNet: number;
-  ticketRestoJour: number;
-  partEmployeurTr: number;
-  joursTravailles: number;
-  navigoCout: number;
-  partEmployeurNavigo: number;
-  mutuelleEconomie: number;
-  loyer: number;
-  courses: number;
-  transport: number;
-  autresCharges: number;
-  sorties: number;
-  divers: number;
-  voyageMois: number;
-  creditMensuel: number;
-  dateDebutCredit: string;
-  matelasCible: number;
-  perfEtfAnnuelle: number;
-  augmentationSalaire: number;
-  partEtfMonde: number;
-  partOpportunites: number;
-  economieRemoteMois: number;
-  moisRemoteAn: number;
-  revenuFreelanceMois: number;
-  horizonYears: number;
-  objectif: number;
-}
+// Hypotheses + defaultHypotheses moved to @pekulo/validators in story 0-6.
+// Re-exported here so brownfield import paths keep working.
+export { defaultHypotheses, type Hypotheses } from "@pekulo/validators";
 
 export interface MonthlyEntry {
   monthNum: number;
@@ -194,31 +169,3 @@ export interface HoldingLot {
   createdAt: string;
 }
 
-export const defaultHypotheses: Hypotheses = {
-  salaireNet: 3700,
-  ticketRestoJour: 14,
-  partEmployeurTr: 0.6,
-  joursTravailles: 20,
-  navigoCout: 90,
-  partEmployeurNavigo: 0.5,
-  mutuelleEconomie: 30,
-  loyer: 1125,
-  courses: 200,
-  transport: 45,
-  autresCharges: 150,
-  sorties: 250,
-  divers: 120,
-  voyageMois: 600,
-  creditMensuel: 250,
-  dateDebutCredit: "01/2027",
-  matelasCible: 10000,
-  perfEtfAnnuelle: 0.07,
-  augmentationSalaire: 0.03,
-  partEtfMonde: 0.8,
-  partOpportunites: 0.2,
-  economieRemoteMois: 1000,
-  moisRemoteAn: 6,
-  revenuFreelanceMois: 300,
-  horizonYears: 5,
-  objectif: 100000,
-};

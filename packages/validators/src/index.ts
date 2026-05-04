@@ -1,3 +1,4 @@
-// Placeholder for @pekulo/validators. Real Zod schemas land in follow-up stories
-// per ADR-0011 (validators consume @pekulo/zod helpers and @pekulo/types brands).
-export {};
+// Pekulo shared Zod validators. Schemas are the single source of truth for
+// both apps/web (form resolvers) and apps/api (handler validation + DB
+// mapping). New schemas land alongside their feature stories.
+export * from "./hypothesis";

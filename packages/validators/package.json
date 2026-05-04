@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@pekulo/types": "workspace:*",
-    "@pekulo/zod": "workspace:*"
+    "@pekulo/zod": "workspace:*",
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*"
