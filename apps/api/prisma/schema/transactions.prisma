@@ -5,7 +5,7 @@ model Transaction {
   userId     String          @map("user_id") @db.Uuid
   occurredOn DateTime        @map("occurred_on") @db.Date
   label      String
-  amount     Decimal
+  amount     Decimal         @db.Decimal
   type       TransactionType
   category   String
   isImprevu  Boolean         @default(false) @map("is_imprevu")

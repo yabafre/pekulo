@@ -20,7 +20,7 @@ CREATE TABLE "accounts" (
     "label" TEXT NOT NULL,
     "type" "account_type" NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'EUR',
-    "cash_balance" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "cash_balance" DECIMAL NOT NULL DEFAULT 0,
     "notes" TEXT,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -38,9 +38,9 @@ CREATE TABLE "holdings" (
     "isin" TEXT,
     "label" TEXT NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'EUR',
-    "quantity" DECIMAL(65,30) NOT NULL,
-    "avg_cost" DECIMAL(65,30) NOT NULL,
-    "last_price" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "quantity" DECIMAL NOT NULL,
+    "avg_cost" DECIMAL NOT NULL,
+    "last_price" DECIMAL NOT NULL DEFAULT 0,
     "last_price_at" DATE,
     "notes" TEXT,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -56,9 +56,9 @@ CREATE TABLE "holding_lots" (
     "holding_id" TEXT NOT NULL,
     "type" "lot_type" NOT NULL,
     "occurred_on" DATE NOT NULL,
-    "quantity" DECIMAL(65,30) NOT NULL,
-    "price_unit" DECIMAL(65,30) NOT NULL,
-    "fees" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "quantity" DECIMAL NOT NULL,
+    "price_unit" DECIMAL NOT NULL,
+    "fees" DECIMAL NOT NULL DEFAULT 0,
     "notes" TEXT,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -70,32 +70,32 @@ CREATE TABLE "holding_lots" (
 CREATE TABLE "hypotheses" (
     "id" TEXT NOT NULL,
     "user_id" UUID NOT NULL,
-    "salaire_net" DECIMAL(65,30) DEFAULT 3700,
-    "ticket_resto_jour" DECIMAL(65,30) DEFAULT 14,
-    "part_employeur_tr" DECIMAL(65,30) DEFAULT 0.6,
-    "jours_travailles" DECIMAL(65,30) DEFAULT 20,
-    "navigo_cout" DECIMAL(65,30) DEFAULT 90,
-    "part_employeur_navigo" DECIMAL(65,30) DEFAULT 0.5,
-    "mutuelle_economie" DECIMAL(65,30) DEFAULT 30,
-    "loyer" DECIMAL(65,30) DEFAULT 1125,
-    "courses" DECIMAL(65,30) DEFAULT 200,
-    "transport" DECIMAL(65,30) DEFAULT 45,
-    "autres_charges" DECIMAL(65,30) DEFAULT 150,
-    "sorties" DECIMAL(65,30) DEFAULT 250,
-    "divers" DECIMAL(65,30) DEFAULT 120,
-    "voyage_mois" DECIMAL(65,30) DEFAULT 600,
-    "credit_mensuel" DECIMAL(65,30) DEFAULT 250,
+    "salaire_net" DECIMAL DEFAULT 3700,
+    "ticket_resto_jour" DECIMAL DEFAULT 14,
+    "part_employeur_tr" DECIMAL DEFAULT 0.6,
+    "jours_travailles" DECIMAL DEFAULT 20,
+    "navigo_cout" DECIMAL DEFAULT 90,
+    "part_employeur_navigo" DECIMAL DEFAULT 0.5,
+    "mutuelle_economie" DECIMAL DEFAULT 30,
+    "loyer" DECIMAL DEFAULT 1125,
+    "courses" DECIMAL DEFAULT 200,
+    "transport" DECIMAL DEFAULT 45,
+    "autres_charges" DECIMAL DEFAULT 150,
+    "sorties" DECIMAL DEFAULT 250,
+    "divers" DECIMAL DEFAULT 120,
+    "voyage_mois" DECIMAL DEFAULT 600,
+    "credit_mensuel" DECIMAL DEFAULT 250,
     "date_debut_credit" TEXT DEFAULT '01/2027',
-    "matelas_cible" DECIMAL(65,30) DEFAULT 10000,
-    "perf_etf_annuelle" DECIMAL(65,30) DEFAULT 0.07,
-    "augmentation_salaire" DECIMAL(65,30) DEFAULT 0.03,
-    "part_etf_monde" DECIMAL(65,30) DEFAULT 0.8,
-    "part_opportunites" DECIMAL(65,30) DEFAULT 0.2,
-    "economie_remote_mois" DECIMAL(65,30) DEFAULT 1000,
-    "mois_remote_an" DECIMAL(65,30) DEFAULT 6,
-    "revenu_freelance_mois" DECIMAL(65,30) DEFAULT 300,
+    "matelas_cible" DECIMAL DEFAULT 10000,
+    "perf_etf_annuelle" DECIMAL DEFAULT 0.07,
+    "augmentation_salaire" DECIMAL DEFAULT 0.03,
+    "part_etf_monde" DECIMAL DEFAULT 0.8,
+    "part_opportunites" DECIMAL DEFAULT 0.2,
+    "economie_remote_mois" DECIMAL DEFAULT 1000,
+    "mois_remote_an" DECIMAL DEFAULT 6,
+    "revenu_freelance_mois" DECIMAL DEFAULT 300,
     "horizon_years" SMALLINT NOT NULL DEFAULT 5,
-    "objectif" DECIMAL(65,30) NOT NULL DEFAULT 100000,
+    "objectif" DECIMAL NOT NULL DEFAULT 100000,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
@@ -106,11 +106,11 @@ CREATE TABLE "hypotheses" (
 CREATE TABLE "kpis" (
     "id" TEXT NOT NULL,
     "user_id" UUID NOT NULL,
-    "net_reel" DECIMAL(65,30) DEFAULT 3700,
-    "pouvoir_achat" DECIMAL(65,30) DEFAULT 3943,
-    "epargne_mois" DECIMAL(65,30) DEFAULT 1210,
-    "capital_projete" DECIMAL(65,30) DEFAULT 145738,
-    "objectif" DECIMAL(65,30) DEFAULT 100000,
+    "net_reel" DECIMAL DEFAULT 3700,
+    "pouvoir_achat" DECIMAL DEFAULT 3943,
+    "epargne_mois" DECIMAL DEFAULT 1210,
+    "capital_projete" DECIMAL DEFAULT 145738,
+    "objectif" DECIMAL DEFAULT 100000,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
@@ -124,16 +124,16 @@ CREATE TABLE "monthly_tracking" (
     "month_num" INTEGER NOT NULL,
     "year" INTEGER NOT NULL,
     "month_label" TEXT NOT NULL,
-    "net" DECIMAL(65,30) NOT NULL,
-    "avantages" DECIMAL(65,30) NOT NULL DEFAULT 243,
-    "depenses" DECIMAL(65,30) NOT NULL DEFAULT 2490,
-    "credit" DECIMAL(65,30) NOT NULL DEFAULT 0,
-    "remote" DECIMAL(65,30) NOT NULL DEFAULT 0,
-    "freelance" DECIMAL(65,30) NOT NULL DEFAULT 0,
-    "epargne_mois" DECIMAL(65,30) NOT NULL,
-    "perf_marche" DECIMAL(65,30) NOT NULL DEFAULT 0,
-    "epargne_cumul" DECIMAL(65,30) NOT NULL,
-    "capital_total" DECIMAL(65,30) NOT NULL,
+    "net" DECIMAL NOT NULL,
+    "avantages" DECIMAL NOT NULL DEFAULT 243,
+    "depenses" DECIMAL NOT NULL DEFAULT 2490,
+    "credit" DECIMAL NOT NULL DEFAULT 0,
+    "remote" DECIMAL NOT NULL DEFAULT 0,
+    "freelance" DECIMAL NOT NULL DEFAULT 0,
+    "epargne_mois" DECIMAL NOT NULL,
+    "perf_marche" DECIMAL NOT NULL DEFAULT 0,
+    "epargne_cumul" DECIMAL NOT NULL,
+    "capital_total" DECIMAL NOT NULL,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "monthly_tracking_pkey" PRIMARY KEY ("id")
@@ -145,7 +145,7 @@ CREATE TABLE "transactions" (
     "user_id" UUID NOT NULL,
     "occurred_on" DATE NOT NULL,
     "label" TEXT NOT NULL,
-    "amount" DECIMAL(65,30) NOT NULL,
+    "amount" DECIMAL NOT NULL,
     "type" "transaction_type" NOT NULL,
     "category" TEXT NOT NULL,
     "is_imprevu" BOOLEAN NOT NULL DEFAULT false,
@@ -181,6 +181,23 @@ ALTER TABLE "holdings" ADD CONSTRAINT "holdings_account_id_fkey" FOREIGN KEY ("a
 ALTER TABLE "holding_lots" ADD CONSTRAINT "holding_lots_holding_id_fkey" FOREIGN KEY ("holding_id") REFERENCES "holdings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 
+
+-- ============================================================
+-- CHECK constraints (manually appended — Prisma DSL does not model CHECK natively)
+-- Reproduces brownfield apps/web/supabase-schema.sql invariants verbatim.
+-- A buggy oRPC handler in epics 1-8 cannot land negative monetary values; Postgres
+-- rejects them at the row level as defense-in-depth alongside the Zod input
+-- validators in @pekulo/validators.
+-- ============================================================
+
+ALTER TABLE "transactions"   ADD CONSTRAINT "transactions_amount_check"     CHECK ("amount" >= 0);
+ALTER TABLE "accounts"       ADD CONSTRAINT "accounts_cash_balance_check"   CHECK ("cash_balance" >= 0);
+ALTER TABLE "holdings"       ADD CONSTRAINT "holdings_quantity_check"       CHECK ("quantity" >= 0);
+ALTER TABLE "holdings"       ADD CONSTRAINT "holdings_avg_cost_check"       CHECK ("avg_cost" >= 0);
+ALTER TABLE "holdings"       ADD CONSTRAINT "holdings_last_price_check"     CHECK ("last_price" >= 0);
+ALTER TABLE "holding_lots"   ADD CONSTRAINT "holding_lots_quantity_check"   CHECK ("quantity" > 0);
+ALTER TABLE "holding_lots"   ADD CONSTRAINT "holding_lots_price_unit_check" CHECK ("price_unit" >= 0);
+ALTER TABLE "holding_lots"   ADD CONSTRAINT "holding_lots_fees_check"       CHECK ("fees" >= 0);
 
 -- ============================================================
 -- RLS policies (manually appended — Prisma does not introspect Postgres policies)

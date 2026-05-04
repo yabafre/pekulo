@@ -7,7 +7,7 @@ model Account {
   label       String
   type        AccountType
   currency    String      @default("EUR")
-  cashBalance Decimal     @default(0) @map("cash_balance")
+  cashBalance Decimal     @default(0) @map("cash_balance") @db.Decimal
   notes       String?
   createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
@@ -26,9 +26,9 @@ model Holding {
   isin        String?
   label       String
   currency    String      @default("EUR")
-  quantity    Decimal
-  avgCost     Decimal     @map("avg_cost")
-  lastPrice   Decimal     @default(0) @map("last_price")
+  quantity    Decimal     @db.Decimal
+  avgCost     Decimal     @map("avg_cost") @db.Decimal
+  lastPrice   Decimal     @default(0) @map("last_price") @db.Decimal
   lastPriceAt DateTime?   @map("last_price_at") @db.Date
   notes       String?
   createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
@@ -47,9 +47,9 @@ model HoldingLot {
   holdingId  String    @map("holding_id")
   type       LotType
   occurredOn DateTime  @map("occurred_on") @db.Date
-  quantity   Decimal
-  priceUnit  Decimal   @map("price_unit")
-  fees       Decimal   @default(0)
+  quantity   Decimal   @db.Decimal
+  priceUnit  Decimal   @map("price_unit") @db.Decimal
+  fees       Decimal   @default(0) @db.Decimal
   notes      String?
   createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
   updatedAt  DateTime? @default(now()) @map("updated_at") @db.Timestamptz
