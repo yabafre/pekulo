@@ -15,7 +15,10 @@ describe("mapErrorToOrpcResponse", () => {
   const REQUEST_ID = "00000000-0000-4000-8000-000000000001";
 
   test("PekuloError UNAUTHORIZED → 401 with code+message preserved + caller requestId", () => {
-    const result = mapErrorToOrpcResponse(new PekuloError("UNAUTHORIZED", "no session"), REQUEST_ID);
+    const result = mapErrorToOrpcResponse(
+      new PekuloError("UNAUTHORIZED", "no session"),
+      REQUEST_ID,
+    );
     expect(result.status).toBe(401);
     expect(result.body.error.code).toBe("UNAUTHORIZED");
     expect(result.body.error.message).toBe("no session");
