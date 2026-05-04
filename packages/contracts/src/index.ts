@@ -7,15 +7,35 @@
 
 export { authContract, authContractV1, authContractMeta } from "./auth.contract";
 export { compassContract, compassContractV1, compassContractMeta } from "./compass.contract";
-export { milestonesContract, milestonesContractV1, milestonesContractMeta } from "./milestones.contract";
+export {
+  milestonesContract,
+  milestonesContractV1,
+  milestonesContractMeta,
+} from "./milestones.contract";
 export { accountsContract, accountsContractV1, accountsContractMeta } from "./accounts.contract";
 export { holdingsContract, holdingsContractV1, holdingsContractMeta } from "./holdings.contract";
-export { realestateContract, realestateContractV1, realestateContractMeta } from "./realestate.contract";
-export { transactionsContract, transactionsContractV1, transactionsContractMeta } from "./transactions.contract";
+export {
+  realestateContract,
+  realestateContractV1,
+  realestateContractMeta,
+} from "./realestate.contract";
+export {
+  transactionsContract,
+  transactionsContractV1,
+  transactionsContractMeta,
+} from "./transactions.contract";
 export { monthlyContract, monthlyContractV1, monthlyContractMeta } from "./monthly.contract";
-export { dashboardContract, dashboardContractV1, dashboardContractMeta } from "./dashboard.contract";
+export {
+  dashboardContract,
+  dashboardContractV1,
+  dashboardContractMeta,
+} from "./dashboard.contract";
 export { settingsContract, settingsContractV1, settingsContractMeta } from "./settings.contract";
-export { hypothesisContract, hypothesisContractV1, hypothesisContractMeta } from "./hypothesis.contract";
+export {
+  hypothesisContract,
+  hypothesisContractV1,
+  hypothesisContractMeta,
+} from "./hypothesis.contract";
 export { llmContract, llmContractV1, llmContractMeta } from "./llm.contract";
 
 import { authContract } from "./auth.contract";

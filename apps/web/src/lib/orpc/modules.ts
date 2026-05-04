@@ -26,14 +26,24 @@ import {
 import { orpcLink } from "./client";
 
 export const authClient: ContractRouterClient<typeof authContract> = createORPCClient(orpcLink);
-export const compassClient: ContractRouterClient<typeof compassContract> = createORPCClient(orpcLink);
-export const milestonesClient: ContractRouterClient<typeof milestonesContract> = createORPCClient(orpcLink);
-export const accountsClient: ContractRouterClient<typeof accountsContract> = createORPCClient(orpcLink);
-export const holdingsClient: ContractRouterClient<typeof holdingsContract> = createORPCClient(orpcLink);
-export const realestateClient: ContractRouterClient<typeof realestateContract> = createORPCClient(orpcLink);
-export const transactionsClient: ContractRouterClient<typeof transactionsContract> = createORPCClient(orpcLink);
-export const monthlyClient: ContractRouterClient<typeof monthlyContract> = createORPCClient(orpcLink);
-export const dashboardClient: ContractRouterClient<typeof dashboardContract> = createORPCClient(orpcLink);
-export const settingsClient: ContractRouterClient<typeof settingsContract> = createORPCClient(orpcLink);
-export const hypothesisClient: ContractRouterClient<typeof hypothesisContract> = createORPCClient(orpcLink);
+export const compassClient: ContractRouterClient<typeof compassContract> =
+  createORPCClient(orpcLink);
+export const milestonesClient: ContractRouterClient<typeof milestonesContract> =
+  createORPCClient(orpcLink);
+export const accountsClient: ContractRouterClient<typeof accountsContract> =
+  createORPCClient(orpcLink);
+export const holdingsClient: ContractRouterClient<typeof holdingsContract> =
+  createORPCClient(orpcLink);
+export const realestateClient: ContractRouterClient<typeof realestateContract> =
+  createORPCClient(orpcLink);
+export const transactionsClient: ContractRouterClient<typeof transactionsContract> =
+  createORPCClient(orpcLink);
+export const monthlyClient: ContractRouterClient<typeof monthlyContract> =
+  createORPCClient(orpcLink);
+export const dashboardClient: ContractRouterClient<typeof dashboardContract> =
+  createORPCClient(orpcLink);
+export const settingsClient: ContractRouterClient<typeof settingsContract> =
+  createORPCClient(orpcLink);
+export const hypothesisClient: ContractRouterClient<typeof hypothesisContract> =
+  createORPCClient(orpcLink);
 export const llmClient: ContractRouterClient<typeof llmContract> = createORPCClient(orpcLink);
