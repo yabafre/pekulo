@@ -44,6 +44,18 @@ describe("mapErrorToOrpcResponse", () => {
     expect(result.body.error.requestId).toBe(REQUEST_ID);
   });
 
+  test("Elysia NotFoundError shape → 404 NOT_FOUND with caller requestId (L11)", () => {
+    // Reproduces Elysia 1.4.x's thrown shape on unmatched routes — `name`
+    // is the generic "Error" so isPekuloError rejects it; the `code:
+    // "NOT_FOUND"` duck-type is the canonical signal.
+    const elysiaErr = Object.assign(new Error("NOT_FOUND"), { code: "NOT_FOUND", status: 404 });
+    const result = mapErrorToOrpcResponse(elysiaErr, REQUEST_ID);
+    expect(result.status).toBe(404);
+    expect(result.body.error.code).toBe("NOT_FOUND");
+    expect(result.body.error.message).toBe("route not found");
+    expect(result.body.error.requestId).toBe(REQUEST_ID);
+  });
+
   test("non-Error throw (string) → 500 with sanitised message + caller requestId", () => {
     const result = mapErrorToOrpcResponse("oops", REQUEST_ID);
     expect(result.status).toBe(500);

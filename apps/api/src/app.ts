@@ -60,11 +60,21 @@ export async function startServer(): Promise<ServerHandle> {
         trace.getActiveSpan()?.spanContext().traceId ??
         crypto.randomUUID();
       const mapped = mapErrorToOrpcResponse(error, requestId);
-      console.error("[api] error", {
-        requestId,
-        code: mapped.body.error.code,
-        name: error instanceof Error ? error.name : typeof error,
-      });
+      // Log only 5xx (server-side faults that need attention). 4xx are
+      // client-driven (404 scanner traffic, 401 missing token, 400 bad
+      // payload) and would flood the log with noise — full context for
+      // those still flows through the OTel span via endHttpServerSpan
+      // below (recordException + span.setStatus ERROR), so SigNoz remains
+      // the source of truth for forensic debugging. Lesson L11 sub-rule.
+      const status = typeof mapped.status === "number" ? mapped.status : 500;
+      if (status >= 500) {
+        console.error("[api] error", {
+          requestId,
+          code: mapped.body.error.code,
+          name: error instanceof Error ? error.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
       set.status = mapped.status;
       // Close the OTel SERVER span with error semconv + recordException —
       // handled HERE (not in the plugin) because plugin's .onError is
@@ -73,7 +83,7 @@ export async function startServer(): Promise<ServerHandle> {
         request,
         error,
         route,
-        statusCode: typeof mapped.status === "number" ? mapped.status : 500,
+        statusCode: status,
       });
       return mapped.body;
     })
