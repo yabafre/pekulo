@@ -206,7 +206,7 @@ sprint:
     0-4-prisma-setup: {status: done, depends_on: [0-3-api-scaffold], ticket: "#4", worktree: null, started_at: "2026-05-04T10:00:00Z", reviewed_at: "2026-05-04T15:00:00Z"}
     0-5-orpc-contracts-scaffold: {status: done, depends_on: [0-3-api-scaffold], ticket: "#5", worktree: null, started_at: "2026-05-04T16:00:00Z", reviewed_at: "2026-05-04T20:00:00Z"}
     0-6-zapaction-orpc-bridge: {status: done, depends_on: [0-5-orpc-contracts-scaffold], ticket: "#6", worktree: null, started_at: "2026-05-04T22:00:00Z", dev_completed_at: "2026-05-04T22:30:00Z", reviewed_at: "2026-05-04T23:30:00Z"}
-    0-7-otel-three-runtimes: {status: review-queued, depends_on: [0-3-api-scaffold], ticket: '#7', worktree: null, started_at: "2026-05-04T00:00:00Z", dev_completed_at: "2026-05-05T08:35:00Z"}
+    0-7-otel-three-runtimes: {status: done, depends_on: [0-3-api-scaffold], ticket: '#7', worktree: null, started_at: "2026-05-04T00:00:00Z", dev_completed_at: "2026-05-05T08:35:00Z", reviewed_at: "2026-05-05T22:00:00Z"}
     0-8-github-actions-pr: {status: pending, depends_on: [0-2-oxc-toolchain], ticket: "#8", worktree: null}
     0-9-tamagui-spike: {status: pending, depends_on: [0-3-api-scaffold], ticket: "#9", worktree: null}
     0-10-pekulo-ui-migration: {status: pending, depends_on: [0-9-tamagui-spike], ticket: "#10", worktree: null}
