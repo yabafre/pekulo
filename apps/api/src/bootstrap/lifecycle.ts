@@ -10,6 +10,38 @@ export interface LifecycleDeps {
   shutdownOtel: () => Promise<void>;
 }
 
+/**
+ * Bound an async step against a budget. Errors in `promise` are caught and
+ * logged as `[api] {label} failed:`. Returns true on success, false on
+ * timeout or rejection. Resources held by the underlying promise are NOT
+ * cancelled on timeout — Bun/Node have no generic cancellation primitive
+ * for arbitrary Promises; the caller proceeds to the next step on `false`.
+ */
+async function withTimeout(label: string, promise: Promise<unknown>, ms: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutSignal: unique symbol = Symbol("timeout") as never;
+  const timeout = new Promise<typeof timeoutSignal>((resolve) => {
+    timer = setTimeout(() => resolve(timeoutSignal), ms);
+  });
+  const wrapped = promise.then(
+    () => "done" as const,
+    (err) => {
+      console.error(`[api] ${label} failed:`, err);
+      return "error" as const;
+    },
+  );
+  try {
+    const outcome = await Promise.race([wrapped, timeout]);
+    if (outcome === timeoutSignal) {
+      console.error(`[api] ${label} timed out after ${ms}ms`);
+      return false;
+    }
+    return outcome === "done";
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 export async function registerLifecycle(
   app: AnyElysia,
   options: LifecycleOptions,
@@ -18,42 +50,36 @@ export async function registerLifecycle(
   const onShutdown = async (signal: NodeJS.Signals) => {
     console.log(`[api] received ${signal}, shutting down`);
     let exitCode = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const timeout = new Promise<"timeout">((resolve) => {
-        timer = setTimeout(() => resolve("timeout"), options.shutdownTimeoutMs);
-      });
-      try {
-        const outcome = await Promise.race([app.stop().then(() => "stopped" as const), timeout]);
-        if (outcome === "timeout") {
-          console.error(`[api] elysia.stop timed out after ${options.shutdownTimeoutMs}ms`);
-          exitCode = 1;
-        }
-      } catch (err) {
-        console.error("[api] elysia.stop failed:", err);
-        exitCode = 1;
-      }
-      // Flush OTel BEFORE Prisma disconnects — span ordering rationale lives
-      // in the story 0-7 file under § Lifecycle ordering.
-      try {
-        await deps.shutdownOtel();
-      } catch (err) {
-        console.error("[api] otel.shutdown failed:", err);
-        exitCode = 1;
-      }
-      // Drain Prisma connection pool ALWAYS — even if elysia.stop threw or timed
-      // out. Otherwise the Postgres backend keeps the half-closed connections
-      // until it notices the TCP teardown, wasting pool slots on Dokploy.
-      try {
-        await deps.prismaService.disconnect();
-      } catch (err) {
-        console.error("[api] prisma.disconnect failed:", err);
-        exitCode = 1;
-      }
-    } finally {
-      if (timer !== undefined) clearTimeout(timer);
-      process.exit(exitCode);
+    // Per-step budget split (story 0-7 review finding H8):
+    //   - elysia 30 % — request drain
+    //   - otel   50 % — span flush (BSP exportTimeoutMillis: 2000 fits inside)
+    //   - prisma 20 % — pool drain
+    // Every step gets a bounded slice so a stuck step cannot blow the
+    // entire SHUTDOWN_TIMEOUT_MS budget. Defaults at 10 000 ms total →
+    // (3000, 5000, 2000) ms.
+    const total = options.shutdownTimeoutMs;
+    const elysiaBudget = Math.max(1, Math.floor(total * 0.3));
+    const otelBudget = Math.max(1, Math.floor(total * 0.5));
+    const prismaBudget = Math.max(1, total - elysiaBudget - otelBudget);
+
+    if (!(await withTimeout("elysia.stop", app.stop(), elysiaBudget))) {
+      exitCode = 1;
     }
+
+    // Flush OTel BEFORE Prisma disconnects — span ordering rationale lives
+    // in the story 0-7 file under § Lifecycle ordering.
+    if (!(await withTimeout("otel.shutdown", deps.shutdownOtel(), otelBudget))) {
+      exitCode = 1;
+    }
+
+    // Drain Prisma connection pool ALWAYS — even if previous steps failed.
+    // Otherwise Postgres keeps half-closed connections until the TCP
+    // teardown is observed, wasting pool slots on Dokploy.
+    if (!(await withTimeout("prisma.disconnect", deps.prismaService.disconnect(), prismaBudget))) {
+      exitCode = 1;
+    }
+
+    process.exit(exitCode);
   };
   process.once("SIGTERM", () => void onShutdown("SIGTERM"));
   process.once("SIGINT", () => void onShutdown("SIGINT"));

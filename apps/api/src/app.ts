@@ -1,3 +1,4 @@
+import { trace } from "@opentelemetry/api";
 import { Elysia } from "elysia";
 import { loadEnv } from "./config/env";
 import { createRuntimeDependencies } from "./bootstrap/runtime-dependencies";
@@ -6,7 +7,7 @@ import { createHealthModule } from "./modules/health/health.module";
 import { mapErrorToOrpcResponse } from "./platform/http/error-mapper";
 import { mountOrpc } from "./platform/http/orpc-mount";
 import { extractRequestId } from "./common/errors";
-import { elysiaOtelPlugin, shutdownOtel } from "./platform/observability";
+import { elysiaOtelHttpPlugin, endHttpServerSpan, shutdownOtel } from "./platform/observability";
 
 export interface ServerHandle {
   stop: () => Promise<void>;
@@ -18,13 +19,23 @@ export async function startServer(): Promise<ServerHandle> {
   const healthModule = createHealthModule({ readiness: deps.readiness });
 
   // L2 — let Elysia infer the chained type; never annotate the variable with the bare Elysia type.
+  // OTel plugin is mounted FIRST so .onRequest fires before any other hook,
+  // starting the SERVER span. .onAfterHandle ends the span on success; the
+  // error path is closed inside the .onError below via endHttpServerSpan
+  // (plugin-level .onError would be suppressed once this local .onError
+  // returns a Response — story 0-7 review finding H5).
   const app = new Elysia()
-    .onError(({ error, set }) => {
-      // Prefer the requestId attached by mountOrpc (single correlation
-      // handle across the mount-side log line + wire body). Fall back to a
-      // fresh UUID for errors thrown outside the oRPC mount path (e.g.
-      // health/route handlers).
-      const requestId = extractRequestId(error) ?? crypto.randomUUID();
+    .use(elysiaOtelHttpPlugin())
+    .onError(({ error, set, request, route }) => {
+      // requestId correlation: prefer the requestId attached by mountOrpc;
+      // fall back to the active OTel trace_id (architecture L573 contract:
+      // "5xx errors carry code + requestId (the OTel trace_id, for forensic
+      // cross-reference)"); last-resort a fresh UUID for paths with no OTel
+      // span context. Story 0-7 review finding H6.
+      const requestId =
+        extractRequestId(error) ??
+        trace.getActiveSpan()?.spanContext().traceId ??
+        crypto.randomUUID();
       const mapped = mapErrorToOrpcResponse(error, requestId);
       console.error("[api] error", {
         requestId,
@@ -32,12 +43,17 @@ export async function startServer(): Promise<ServerHandle> {
         name: error instanceof Error ? error.name : typeof error,
       });
       set.status = mapped.status;
+      // Close the OTel SERVER span with error semconv + recordException —
+      // handled HERE (not in the plugin) because plugin's .onError is
+      // suppressed once this local hook returns a Response.
+      endHttpServerSpan({
+        request,
+        error,
+        route,
+        statusCode: typeof mapped.status === "number" ? mapped.status : 500,
+      });
       return mapped.body;
     })
-    // OTel plugin AFTER .onError so even error responses produce a span;
-    // BEFORE module mounts so module-handler spans nest under the OTel
-    // server span (AC-1).
-    .use(elysiaOtelPlugin())
     .use(healthModule.router);
 
   mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
