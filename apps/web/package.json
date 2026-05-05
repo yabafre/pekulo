@@ -48,7 +48,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "supabase": "^2.95.4",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "typescript": "^6.0.3"
   },
   "trustedDependencies": [
     "unrs-resolver"

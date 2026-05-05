@@ -141,9 +141,7 @@ function hypothesesToWriteData(input: Hypotheses) {
   };
 }
 
-export function createHypothesisService(deps: {
-  client: ExtendedPrismaClient;
-}): HypothesisService {
+export function createHypothesisService(deps: { client: ExtendedPrismaClient }): HypothesisService {
   return {
     async get(userId) {
       const row = await deps.client.hypothesis.findUnique({ where: { userId } });

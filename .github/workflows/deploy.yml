@@ -1,0 +1,40 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  dokploy:
+    name: dokploy-webhooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: POST Dokploy webhooks (api then prices, sequential, fail on non-2xx)
+        env:
+          DOKPLOY_API_DEPLOY_HOOK: ${{ secrets.DOKPLOY_API_DEPLOY_HOOK }}
+          DOKPLOY_PRICES_DEPLOY_HOOK: ${{ secrets.DOKPLOY_PRICES_DEPLOY_HOOK }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DOKPLOY_API_DEPLOY_HOOK" ] || [ -z "$DOKPLOY_PRICES_DEPLOY_HOOK" ]; then
+            echo "::error::DOKPLOY_*_DEPLOY_HOOK secrets not configured — see docs/ci/README.md"
+            exit 1
+          fi
+          echo "[deploy] POST apps/api hook"
+          curl --fail-with-body --show-error --silent \
+               --request POST \
+               --header "Content-Length: 0" \
+               --write-out "\n[deploy] api status: %{http_code}\n" \
+               "$DOKPLOY_API_DEPLOY_HOOK"
+          echo "[deploy] POST apps/prices hook"
+          curl --fail-with-body --show-error --silent \
+               --request POST \
+               --header "Content-Length: 0" \
+               --write-out "\n[deploy] prices status: %{http_code}\n" \
+               "$DOKPLOY_PRICES_DEPLOY_HOOK"

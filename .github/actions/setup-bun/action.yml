@@ -1,0 +1,12 @@
+name: setup-bun
+description: "Pekulo CI shared setup — checkout, install Bun 1.3.13, frozen install. Reused by every job in pr.yml and deploy.yml."
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.3.13
+    - name: Install dependencies (frozen)
+      shell: bash
+      run: bun install --frozen-lockfile

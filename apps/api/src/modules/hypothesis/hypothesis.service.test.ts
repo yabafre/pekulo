@@ -16,8 +16,8 @@ type UpsertArgs = {
 };
 
 function fakeClient(behaviour: { findUniqueResult?: unknown; upsertResult?: unknown }) {
-  const findUnique = mock(async (_args: { where: { userId: string } }) =>
-    behaviour.findUniqueResult ?? null,
+  const findUnique = mock(
+    async (_args: { where: { userId: string } }) => behaviour.findUniqueResult ?? null,
   );
   const upsert = mock(async (_args: UpsertArgs) => behaviour.upsertResult ?? null);
   return {
