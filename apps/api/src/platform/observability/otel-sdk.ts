@@ -90,8 +90,15 @@ export async function startOtel(env: Env): Promise<void> {
   // misconfig) surface at the requested level.
   diag.setLogger(new DiagConsoleLogger(), diagLogLevelFromEnv(env.OTEL_LOG_LEVEL));
 
+  // OTLPTraceExporter() with no `url:` reads OTEL_EXPORTER_OTLP_ENDPOINT
+  // from process.env and APPENDS the per-signal path (`/v1/traces`).
+  // Passing `url: env.OTEL_EXPORTER_OTLP_ENDPOINT` directly treats it as
+  // the *specific* endpoint (equivalent to OTEL_EXPORTER_OTLP_TRACES_ENDPOINT)
+  // and skips the path append — POSTs hit the root which returns 404 on
+  // most collectors (otel-collector-contrib, SigNoz, GlitchTip). See L10
+  // in lessons.md (surfaced live on the SigNoz Dokploy deploy 2026-05-05).
   const exporter = env.OTEL_EXPORTER_OTLP_ENDPOINT
-    ? new OTLPTraceExporter({ url: env.OTEL_EXPORTER_OTLP_ENDPOINT })
+    ? new OTLPTraceExporter()
     : new ConsoleSpanExporter();
 
   // OTEL_LOG_LEVEL=debug flips to SimpleSpanProcessor for sync dev visibility.

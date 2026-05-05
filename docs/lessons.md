@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-05 — `OTLPTraceExporter({ url })` skips the per-signal path append — pass no `url:` or include the full `/v1/traces` (Scope: aped-dev — apps/api OTel + every future OTLP exporter wiring)
+
+- **Date:** 2026-05-05
+- **Mistake:** `apps/api/src/platform/observability/otel-sdk.ts:94` originally instantiated the exporter as `new OTLPTraceExporter({ url: env.OTEL_EXPORTER_OTLP_ENDPOINT })`. Story 0-7 review let this through — the spec emitter in dev was `ConsoleSpanExporter` so the URL path was never exercised. Surfaced live on the first Dokploy + SigNoz deploy (2026-05-05): the SDK POSTed to the bare `https://signoz-otel.dkp.trafijs.com/` (root) and the collector returned `404 page not found` (only `/v1/traces` is routed). Verified by curl from inside the container: env var is correct, network is fine, `POST /v1/traces` returns `200 {"partialSuccess":{}}` — but the SDK never hit `/v1/traces`.
+- **Correction:** Dropped the `url:` argument. `new OTLPTraceExporter()` with no config reads `OTEL_EXPORTER_OTLP_ENDPOINT` from `process.env` AND appends `/v1/traces` automatically (the conventional behaviour). The conditional `if (env.OTEL_EXPORTER_OTLP_ENDPOINT)` is preserved to switch between OTLP and `ConsoleSpanExporter`. Bonus: when metrics/logs exporters land later, they auto-discover `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` / `_LOGS_ENDPOINT` overrides for free.
+- **Rule:** Never pass a base endpoint URL to `OTLPTraceExporter({ url })`. The `url:` config is the _specific_ per-signal endpoint and disables auto-path append. Two correct shapes: (a) `new OTLPTraceExporter()` + `OTEL_EXPORTER_OTLP_ENDPOINT=https://collector` (SDK appends `/v1/traces`) ; (b) `new OTLPTraceExporter({ url: "https://collector/v1/traces" })` (explicit, full URL). Generalises to `OTLPMetricExporter` and `OTLPLogExporter`. Verify in dev by running `OTEL_LOG_LEVEL=debug` and checking the SDK's diag output — exporter URL is logged on first batch.
+
 ### 2026-05-05 — Next.js workspaces MUST declare `typescript` per-package — workspace hoisting is fragile across installers (Scope: aped-dev, aped-story — story 0-8 + every Next.js / TS-aware app added under apps/\*)
 
 - **Date:** 2026-05-05
