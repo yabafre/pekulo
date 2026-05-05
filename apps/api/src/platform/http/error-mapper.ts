@@ -35,6 +35,27 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
 };
 
 /**
+ * Detect Elysia framework's `NotFoundError` shape.
+ *
+ * Elysia 1.4.x throws on unmatched routes with `{ name: "Error", code: "NOT_FOUND",
+ * status: 404, message: "NOT_FOUND" }`. The `name` is the generic "Error"
+ * (Elysia doesn't override it on subclasses), so `isPekuloError` rejects it
+ * (strict `name === "PekuloError"` check). Without this branch, every
+ * unmapped path (`/`, `/favicon.ico`, scanner traffic) falls through to
+ * INTERNAL 500 instead of NOT_FOUND 404. Surfaced 2026-05-05 on Dokploy
+ * deploy when scanner traffic generated INTERNAL noise; reproduced locally
+ * with `curl /openapi`. See L11 in lessons.md.
+ */
+function isElysiaNotFoundError(err: unknown): err is { code: "NOT_FOUND" } {
+  return (
+    err !== null &&
+    typeof err === "object" &&
+    "code" in err &&
+    (err as { code: unknown }).code === "NOT_FOUND"
+  );
+}
+
+/**
  * Map any thrown value to an oRPC-shaped response.
  *
  * Every response carries a `requestId` so logs and the wire body share a
@@ -48,6 +69,8 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
  *
  * - `PekuloError`: status from the lookup, body carries the error's `code`
  *   + `message` + the requestId.
+ * - Elysia `NotFoundError` (unmapped route): status 404, body carries
+ *   `code: "NOT_FOUND"` + a sanitised message + the requestId.
  * - native `Error` / non-Error: status 500, message sanitised, body carries
  *   `code: "INTERNAL"` + the requestId.
  *
@@ -63,6 +86,18 @@ export function mapErrorToOrpcResponse(err: unknown, requestId: string): MappedE
         error: {
           code: err.code,
           message: err.message,
+          requestId,
+        },
+      },
+    };
+  }
+  if (isElysiaNotFoundError(err)) {
+    return {
+      status: 404,
+      body: {
+        error: {
+          code: "NOT_FOUND",
+          message: "route not found",
           requestId,
         },
       },
