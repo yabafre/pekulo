@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-05 — Prisma 7 `defineConfig` evaluates `env("DATABASE_URL")` at config-load time even for no-connection commands (Scope: aped-dev, aped-story, aped-arch — story 0-8 + every CI/Docker context invoking prisma format/validate without a live DB)
+
+- **Date:** 2026-05-05
+- **Mistake:** Story 0-8 AC-1 + Dev Notes claimed `prisma format --check` and `prisma validate` "need no DB connection so they run on every PR". Verified live on PR #61: `prisma-check` job failed at GREEN with `Failed to load config file ".../apps/api" as a TypeScript/JavaScript module. Error: PrismaConfigEnvError: Cannot resolve environment variable: DATABASE_URL.` Root cause: Prisma 7's `defineConfig({ datasource: { url: env<Env>("DATABASE_URL") } })` in `apps/api/prisma.config.ts` calls `env()` at module-evaluation time — Prisma loads + parses the config before deciding which command to run, so static checks (`format --check`, `validate`) trip on missing env vars even though they'd never connect.
+- **Correction:** Patched the `prisma-check` job in `.github/workflows/pr.yml` with a job-level `env: DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"` block. The stub satisfies the `env()` resolver but is never connected to (validate / format --check are pure schema-text operations). `docs/ci/README.md` § Pitfalls flags the trap so future CI / Docker contexts apply the same fix.
+- **Rule:** Any CI step or Docker build context that invokes `prisma format --check`, `prisma validate`, `prisma generate`, or any other no-connection prisma subcommand MUST set a stub `DATABASE_URL` env var first. The stub doesn't need to point to a real host — Prisma never opens a connection for these commands. Apply when authoring future CI workflows, Dockerfile RUN steps, or pre-commit hooks that call into prisma. If `prisma.config.ts` ever moves from `env()` to inline string substitution (would require a migration), this lesson can be retired — until then, the stub is mandatory.
+
 ### 2026-05-05 — `bun --cwd <relative> run <script>` silently fails — use cd-then-run or `--filter` (Scope: aped-dev, aped-story — story 0-8 + every future cross-workspace proxy script; formalises W3 watch item)
 
 - **Date:** 2026-05-05

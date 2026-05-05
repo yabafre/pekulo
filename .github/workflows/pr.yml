@@ -56,6 +56,12 @@ jobs:
   prisma-check:
     name: prisma-check
     runs-on: ubuntu-latest
+    # Prisma 7's defineConfig evaluates env("DATABASE_URL") at config-load time,
+    # even for no-connection commands like `format --check` and `validate`.
+    # Stub the var so the loader resolves; neither command actually connects.
+    # See L8 in docs/lessons.md.
+    env:
+      DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-bun
