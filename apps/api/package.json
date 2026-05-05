@@ -9,6 +9,7 @@
     "dev": "bun --hot src/main.ts",
     "start": "bun src/main.ts",
     "build": "bun build src/main.ts --target=bun --outdir=dist",
+    "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",

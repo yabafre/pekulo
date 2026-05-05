@@ -16,6 +16,13 @@ permissions:
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  # L8: Prisma 7's defineConfig evaluates env("DATABASE_URL") at config-load time,
+  # which fires on every `bun install` (apps/api postinstall = `prisma generate`)
+  # and every `prisma format/validate/generate` invocation. Workflow-level stub
+  # satisfies the loader for jobs that only do schema-text work; rls-audit
+  # overrides this at the step level with the real RLS_AUDIT_DATABASE_URL secret
+  # when configured.
+  DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"
 
 jobs:
   lint:
@@ -56,12 +63,6 @@ jobs:
   prisma-check:
     name: prisma-check
     runs-on: ubuntu-latest
-    # Prisma 7's defineConfig evaluates env("DATABASE_URL") at config-load time,
-    # even for no-connection commands like `format --check` and `validate`.
-    # Stub the var so the loader resolves; neither command actually connects.
-    # See L8 in docs/lessons.md.
-    env:
-      DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-bun
