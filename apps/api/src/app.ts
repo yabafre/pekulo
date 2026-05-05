@@ -43,7 +43,13 @@ export async function startServer(): Promise<ServerHandle> {
             description:
               "Pekulo domain API — Bun + Elysia + oRPC. Direct REST routes documented here ; per-procedure oRPC docs via /rpc/v1/* not yet generated (see ADR-0009).",
           },
-          servers: [{ url: `http://${env.HOST}:${env.PORT}`, description: "Local" }],
+          // No `servers:` block — Scalar / the OpenAPI plugin auto-infer the
+          // server URL from the page origin where the spec is fetched. Local
+          // dev → `http://127.0.0.1:3001`, Dokploy prod → `https://pekulo-api.dkp.trafijs.com`.
+          // Hard-coding `http://${env.HOST}:${env.PORT}` was wrong: in a
+          // container `env.HOST = "0.0.0.0"` (the BIND address), not the
+          // public URL clients should hit. Surfaced live on the prod Scalar
+          // UI which shipped `http://0.0.0.0:3001` as the test target.
         },
         exclude: { methods: ["options", "head"] },
       }),
