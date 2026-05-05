@@ -3,7 +3,10 @@
 //
 // Coverage:
 //   - startOtel boots without throwing on a valid Env
-//   - startOtel throws on a second invocation (single-init guard)
+//   - startOtel is HMR-safe: a second call without shutdown silently no-ops
+//     (was a hard throw before L12 — see lessons.md). Shielded from
+//     `bun --hot` re-imports re-running NodeSDK.start against an already-
+//     registered process global.
 //   - shutdownOtel is idempotent
 //   - loadEnv rejects malformed OTEL_EXPORTER_OTLP_ENDPOINT (AC-4)
 //   - elysiaOtelHttpPlugin emits a SpanKind.SERVER span with HTTP semconv
@@ -64,9 +67,21 @@ describe("startOtel / shutdownOtel", () => {
     await shutdownOtel();
   });
 
-  test("startOtel throws when called twice without shutdown", async () => {
+  test("startOtel is HMR-safe — second call without shutdown silently no-ops (L12)", async () => {
+    // Reproduces the `bun --hot` HMR scenario: when the api source changes,
+    // bun re-imports main.ts which re-calls startOtel. The OTel global
+    // registrations (trace/context/propagation) survive the module reload, so
+    // re-running NodeSDK.start would throw "Attempted duplicate registration
+    // of API". The fix: guard on globalThis.__pekuloOtelSdk and silently
+    // return on the second call.
     await startOtel(makeEnv());
-    await expect(startOtel(makeEnv())).rejects.toThrow(/startOtel called twice/);
+    await expect(startOtel(makeEnv())).resolves.toBeUndefined();
+    // The previously-started SDK keeps working — verify we can still get a
+    // tracer with a valid trace id format.
+    const tracer = trace.getTracer("pekulo-api-test");
+    const span = tracer.startSpan("post-hmr");
+    expect(span.spanContext().traceId).toMatch(/^[0-9a-f]{32}$/);
+    span.end();
   });
 
   test("shutdownOtel is safe to call before startOtel", async () => {
