@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-05 — `action-validator` npm package is bare metadata; the CLI lives in `@action-validator/cli` (Scope: aped-dev, aped-story — story 0-8 + every future CI workflow story)
+
+- **Date:** 2026-05-05
+- **Mistake:** Story 0-8 instructed `bunx --bun action-validator <file>` in T1, T2, T3, T7 + AC-5. Verified during T1 RED: `bunx --bun action-validator@latest` exits 1 with `error: could not determine executable to run for package action-validator`. `npm view action-validator bin` returns empty — the unscoped npm package (`action-validator@0.0.7`) has no `bin` entry, only metadata. The actual CLI is published as the scoped package `@action-validator/cli@0.6.0` (sibling to `@action-validator/core`), with `bin: { 'action-validator': 'cli.mjs' }`.
+- **Correction:** Story body patched on dev pickup: every `bunx --bun action-validator …` invocation became `bunx --bun @action-validator/cli …` (or `@action-validator/cli@latest` for the one-shot fetch). The output binary is still named `action-validator`, only the package name changes. `docs/ci/README.md` § Pitfalls (T6) documents the trap so reviewers don't propose reverting to the bare name.
+- **Rule:** Before quoting an npm package name in a downstream spec or ADR, verify the `bin` field exists on that exact name via `npm view <pkg> bin` — if the package is published under a `@scope/cli` companion, cite the scoped one. Generalises L3's CLI-flag verification rule to package names. Apply when adopting any new CLI tool with planned downstream invocations (CI workflows, lefthook hooks, Dokploy hooks). Pre-1.0 ecosystem in particular ships orphan unscoped names that squat the natural search hit.
+
 ### 2026-05-05 — `@elysiajs/opentelemetry@1.4.0` rootSpan-export hooks do not fire in Elysia 1.4.4 + Bun (Scope: aped-arch, aped-dev — every apps/api story that touches OTel)
 
 - **Date:** 2026-05-05
