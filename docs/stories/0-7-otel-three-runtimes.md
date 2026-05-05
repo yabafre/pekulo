@@ -1473,7 +1473,11 @@ The test wires a real `BatchSpanProcessor` + `InMemorySpanExporter`, emits a spa
 - **[HIGH] H9** — Final commit body missing `Closes #7` (source: Rex). Resolution: this story closes via the final commit on this branch (see end of branch log; the umbrella PR already references `Closes #7` in its body per the dev-complete handoff).
 - **[HIGH] H10** — AC-1 strict reading: `handle` span was `SpanKind.INTERNAL`, not `SpanKind.SERVER` (sources: Diego, Eva re-val). Resolution: replaced `@elysiajs/opentelemetry@1.4.0` (which was the source of the gap) with a self-contained custom plugin `elysiaOtelHttpPlugin()`. The new plugin starts a `kind: SpanKind.SERVER` span on `.onRequest` with W3C `traceparent` extraction + HTTP semconv attributes, and ends it on `.onAfterHandle({ as: "global" })` (success) or via `endHttpServerSpan(...)` from the app-level `.onError` (error path — sidesteps H5). Test: "emits a SpanKind.SERVER span with http.route + http.method + http.status_code on success" in `otel-sdk.test.ts` — verified attribute shape; test pivot from `elysiaHttpAttrsPlugin` (the Round-1 workaround) to `elysiaOtelHttpPlugin` (the proper SpanKind.SERVER fix).
 - **[MEDIUM] M1** — Dual emission `http.method` + `http.request.method` (and status_code) without removal date (source: Marcus). Resolution: kept dual emission for collector-pipeline compat but added explicit `TODO 0-7-bis or 0-8 — drop the old-form pair once the GlitchTip collector pipeline is on a semconv ≥1.23 schema` comment.
+- **[MEDIUM] M2** — `FetchInstrumentation` + `UndiciInstrumentation` may double-record outgoing fetches (source: Lucas). Resolution: dropped `@opentelemetry/instrumentation-undici` from `apps/web/package.json`, kept `@opentelemetry/instrumentation-fetch` only. Lucas's preferred direction was the opposite (drop Fetch, keep Undici) but `FetchInstrumentation` carries the `propagateTraceHeaderCorsUrls` allowlist API that H3 depends on; Undici@0.13 has no equivalent surface, so dropping Fetch would regress H3. Documented the rationale in `instrumentation.node.ts` header. Optional `NEXT_OTEL_FETCH_DISABLED=1` mentioned for future Next-span dedup.
+- **[MEDIUM] M3** — Env-var validation asymmetry across runtimes (sources: Kai, Diego). Resolution: `apps/web/src/instrumentation.node.ts` now calls `validateUrlOrThrow("OTEL_EXPORTER_OTLP_ENDPOINT", value)` at boot — fail-loud parity with apps/api's Zod gate. `apps/prices/main.py` runs `urllib.parse.urlparse()` and `sys.exit(1)`s with a structured stderr message on a malformed endpoint.
+- **[MEDIUM] M4** — Plugin `.onError` `set.status` snapshot timing — earlier test only asserted `typeof === "number"` (source: Diego). Resolution: added "captures the exact mapped status code (e.g. 422 validation)" test that wires an app-level `.onError` mapping a synthetic validation error → 422 and asserts `serverSpan.attributes["http.status_code"] === 422`. Pins the post-mapping contract (the new design closes the span via `endHttpServerSpan(...)` from app-level `.onError`, AFTER the status mapping).
 - **[MEDIUM] M5** — Architecture package equivalence (`@elysiajs/opentelemetry` ≡ `@opentelemetry/instrumentation-elysia`) only in story Dev Notes, not in source comments (source: Diego). Resolution: added "Package equivalence vs architecture L243" block to the `otel-sdk.ts` header comment.
+- **[MEDIUM] M7** — No automated test for cross-runtime nesting / W3C `traceparent` propagation (sources: Sam, Marcus 5-AP #5). Resolution: added `@opentelemetry/core` (W3CTraceContextPropagator) to `apps/api/package.json`. New test "inherits the upstream W3C traceparent (non-empty parentSpanId, same traceId)" registers the W3C propagator + sends a request with a synthetic `traceparent: 00-<trace>-<span>-01` and asserts the SERVER span's `parentSpanContext.spanId === <upstream-span>` and `traceId === <upstream-trace>`. AC-1 strict propagation guard is now automated.
 - **[MEDIUM] M8** — `docs/dev/otel-collector-dev.yaml` lacked production-pin guidance (source: Kai). Resolution: added "Production deployments MUST pin a specific tag" comment to the YAML header.
 - **[LOW] L1** — `getTracer()` allocated a new `ProxyTracer` per call (source: Lucas). Resolution: cached at module-scope in `apps/web/src/lib/otel/tracer.ts`.
 
@@ -1485,16 +1489,16 @@ The test wires a real `BatchSpanProcessor` + `InMemorySpanExporter`, emits a spa
 - **[NIT] L9** — `apps/web/next.config.ts` left bare. **Rationale:** Next.js 16 enables the instrumentation hook by default; no flag flip needed. Lucas verified end-to-end.
 - **[INFO] L10** — (b)+ GlitchTip flip is NOT pure config (Sentry DSN format). **Rationale:** out of scope for story 0-7 (foundation work). Triage ticket for the (b)-ramp pre-flight to validate GlitchTip OTLP support is implicit follow-up under epic-11 / NFR-25.
 
-#### Deferred to story 0-7-bis (single follow-up scope)
+#### Round-3 follow-up — none
 
-- **[MEDIUM] M2** — `FetchInstrumentation` + `UndiciInstrumentation` may double-record outgoing fetches in Next.js 16. Decide which to keep; consider `NEXT_OTEL_FETCH_DISABLED=1`. Documented in `instrumentation.node.ts` comment.
-- **[MEDIUM] M3** — Env-var validation asymmetry: api fail-fast (Zod), web/prices silent. Add URL-shape check in `apps/web` and `apps/prices` for symmetry.
-- **[MEDIUM] M4** — Plugin `.onError` `set.status` snapshot timing — strengthen test to assert exact mapped status (currently only asserts numeric).
-- **[MEDIUM] M7** — Cross-runtime nesting integration test (`handle` ↔ `prisma:client:db_query` parent-child) — automated regression guard for AC-1 (currently manual smoke only). Requires `@opentelemetry/core` (W3CTraceContextPropagator) as a direct dep of `apps/api` for the propagation layer.
-- **[NIT] L2** — `url.scheme` derived via `protocol.slice(0, -1)` (was `replace(":", "")`) — current is fine; revisit if HTTP/2 semantics differ.
-- **[NIT] L3** — Test hygiene: `clearOtelGlobals()` helper added to all `afterEach` blocks (this round) — order-coupling now bounded.
-- **[NIT] L7** — Promote OTel rootSpan plugin gap lesson to `docs/lessons.md` — DONE in this round.
-- **[NIT] L8** — `apps/prices/main.py` does not validate `OTEL_EXPORTER_OTLP_ENDPOINT` URL shape — covered under M3 above.
+All review findings (HIGH + MEDIUM) are now resolved in-session. No story 0-7-bis required.
+
+#### Resolved NITs (informational)
+
+- **[NIT] L2** — `url.scheme` derived via `protocol.slice(0, -1)` (was `replace(":", "")`). Current form is fine; revisit if HTTP/2 semantics differ.
+- **[NIT] L3** — Test hygiene: `clearOtelGlobals()` helper added to all `afterEach` blocks; order-coupling bounded.
+- **[NIT] L7** — Promoted OTel rootSpan plugin gap lesson to `docs/lessons.md`.
+- **[NIT] L8** — `apps/prices/main.py` URL validation — covered by M3 fix.
 
 ### 5-anti-pattern testing audit (Marcus)
 
@@ -1509,10 +1513,10 @@ The test wires a real `BatchSpanProcessor` + `InMemorySpanExporter`, emits a spa
 ### Verification
 
 - Test command: `bun test apps/api/src/platform/observability/otel-sdk.test.ts`
-- Test output (final pass): `10 pass, 0 fail, 30 expect() calls — Ran 10 tests across 1 file`
+- Test output (final pass): `12 pass, 0 fail, 38 expect() calls — Ran 12 tests across 1 file`
 - Typecheck: `bun run --cwd apps/api typecheck` → exit 0; `bun run --cwd apps/web typecheck` → exit 0
 - L2 lesson check: `grep -rn ': Elysia\b' apps/api/src` → 0 matches (clean)
-- AC-1 evidence (Round 2): SpanKind.SERVER span emitted with `http.method`, `http.request.method`, `http.route` (with `<unmatched>` sentinel for 404), `http.status_code`, `http.response.status_code`, `url.path`, `url.scheme`. Both success and error paths covered. `parentSpanId` propagation via `propagation.extract(...)` — automated test deferred to 0-7-bis (M7); manual smoke at story L1356-1366 remains valid.
+- AC-1 evidence (final): SpanKind.SERVER span emitted with `http.method`, `http.request.method`, `http.route` (with `<unmatched>` sentinel for 404), `http.status_code`, `http.response.status_code`, `url.path`, `url.scheme`. Success path + error path (500 + 422 mapping) + W3C traceparent extraction (parent-spanId inheritance) all covered by automated tests. Manual smoke at story L1356-1366 remains valid as cross-process evidence.
 - Visual verification: not applicable (server-only instrumentation; no UI).
 
 ### Ticket sync
@@ -1520,6 +1524,8 @@ The test wires a real `BatchSpanProcessor` + `InMemorySpanExporter`, emits a spa
 - Ticket comment: posted to https://github.com/yabafre/pekulo/issues/7 with the Round-2 review summary
 - PR: existing PR #60 — body updated with the post-review punch list and `Closes #7` confirmed.
 
-### Follow-up — story 0-7-bis (to be drafted by aped-iterate)
+### Follow-up — none
 
-Scope: M2 (Fetch/Undici dedup) · M3 (URL validation parity web/prices) · M4 (status_code mapping test) · M7 (cross-runtime nesting integration test) · re-evaluate `@elysiajs/opentelemetry` upgrade once upstream ships a fix (with the lessons.md guardrail enforced).
+All review findings (CRITICAL/HIGH/MEDIUM) addressed in-session across two fix rounds. NITs resolved or acknowledged. No `0-7-bis` story drafted — everything reviewers flagged is closed.
+
+The only forward-pointer is informational: if `@elysiajs/opentelemetry` ever ships a fix to its rootSpan-export hooks, do NOT re-adopt the plugin without first wiring a span-attribute filter to strip `http.response.body` + `url.full` (with query strings — Supabase OAuth `?token=` / `?code=` flow secrets). The lessons.md entry "OTel rootSpan plugin gap (Elysia 1.4.4 + Bun)" carries that guardrail.
