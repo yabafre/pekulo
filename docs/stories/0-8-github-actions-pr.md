@@ -1,7 +1,7 @@
 # Story: 0-8-github-actions-pr — GitHub Actions PR check matrix + post-merge deploy hooks
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** review
+**Status:** done
 **Ticket:** [#8](https://github.com/yabafre/pekulo/issues/8)
 **Branch:** `feature/8-0-8-github-actions-pr`
 **Commit prefix:** `feat(#8): ...` (or `chore(#8):` / `docs(#8):` / `ci(#8):` per task type)
@@ -755,6 +755,10 @@ turbo.json                                       (renamed check-types → typech
 ```
 
 CI run #25383719691 (commit 558889d) — 11/11 checks pass. Forward-compat job logs verified: `skip: vitest.config.* not present`, `skip: playwright.config.* not present`, `skip: lighthouserc.* not present`, axe-a11y guard step present. AC-3 fork-PR fallback verified: typecheck job log contains `Remote caching disabled` (TURBO_TOKEN/TEAM not yet configured) followed by `Tasks: 8 successful, 8 total` — gate passes regardless. AC-4 verified: `deploy.yml` absent from PR check list (push: main only).
+
+### Review skipped (judgement call by Alex, 2026-05-05)
+
+`aped-review` (Kai persona) was deliberately skipped on this story. Rationale: (1) zero production runtime code — only YAML, doc, and 2 proxy scripts ; (2) the live GitHub runner exercising 9 jobs on real code is a stronger validation than YAML inspection ; (3) the 4 fix iterations on T7 (L6 → L9) functioned as review-as-you-go — every drift the reviewer might have flagged was caught and patched against the actual toolchain ; (4) lessons + Pitfalls already inline in `docs/ci/README.md` and `docs/lessons.md` (which is the artefact a Kai pass would have produced). The reflex `aped-review` resumes from story 0-9 onward where domain code lands.
 
 ### Manual setup deferred to Alex (one-time, post-merge)
 
