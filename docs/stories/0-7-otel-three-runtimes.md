@@ -1440,3 +1440,86 @@ The test wires a real `BatchSpanProcessor` + `InMemorySpanExporter`, emits a spa
 **Tasks not modified despite being in the original File List section:**
 - `apps/web/next.config.ts` — Next.js 16 enables the instrumentation hook by default (it left experimental in 15); the existing scaffold config requires no flag flip. Verified by T2 typecheck pass.
 - `apps/api/src/platform/index.ts` — only the line referencing `observability/` was tightened from "@opentelemetry/sdk-node init (story 0-7)" → "shipped in story 0-7; exports startOtel/shutdownOtel + the Elysia plugin factory". One-line doc-comment edit, no behavioural change.
+
+---
+
+## Review Record
+
+**Date:** 2026-05-05
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Diego, Lucas, Kai, Sam) — Stage 1.5 skipped (`review.parallel_reviewers` not enabled)
+**Verdict:** done — every HIGH addressed in-session; deferred MEDIUMs are routed to story 0-7-bis with explicit scope.
+
+### Specialists dispatched
+- Eva (ac-validator) — initial: CHANGES_REQUESTED (HIGH conf) → re-validation post Round-1 fixes: APPROVED (HIGH conf)
+- Marcus (code-quality + 5-anti-pattern audit) — CHANGES_REQUESTED (HIGH conf)
+- Rex (git-auditor) — CHANGES_REQUESTED (HIGH conf)
+- Diego (backend-specialist) — CHANGES_REQUESTED (HIGH conf)
+- Lucas (frontend-specialist) — APPROVED (HIGH conf)
+- Kai (devops-specialist) — CHANGES_REQUESTED (HIGH conf)
+- Sam (fullstack-specialist) — APPROVED (HIGH conf)
+
+### Findings (consolidated)
+
+#### Resolved (10 HIGH + 4 MEDIUM/LOW resolved in-session)
+
+- **[HIGH] H1** — `http.route` cardinality on 404/unmatched fallback (sources: Marcus, Eva, Diego). Resolution: `route ?? "<unmatched>"` sentinel in `elysiaOtelHttpPlugin`'s `.onAfterHandle` and in `endHttpServerSpan` — bounds trace-storage cardinality. Test: "uses '<unmatched>' sentinel for routes that do not match" in `otel-sdk.test.ts`.
+- **[HIGH] H2** — `SimpleSpanProcessor` durability claim wrong on `apps/web` + perf foot-gun (sources: Marcus, Lucas). Resolution: switched `apps/web/src/instrumentation.node.ts` to `BatchSpanProcessor` + added `process.once("SIGTERM"|"SIGINT", () => sdk.shutdown())` shutdown hook + corrected the misleading comment.
+- **[HIGH] H3** — Wildcard `traceparent` propagation `[/.*/]` leaked trace IDs to ANY 3rd-party (sources: Marcus, Kai, Lucas). Resolution: `propagateTraceHeaderCorsUrls` now driven by an allowlist `buildPropagationAllowlist()` — defaults to local dev hosts + `*.pekulo.*`, override via `OTEL_PROPAGATE_HOSTS` env (comma-separated regex/substrings).
+- **[HIGH] H4** — Latent `http.response.body` + `url.full` (with secrets) leak in `@elysiajs/opentelemetry@1.4.0` (source: Marcus). Resolution: dropped the dependency entirely (replaced by custom `elysiaOtelHttpPlugin`); the latent leak surface is gone. Promoted to `docs/lessons.md` with explicit guardrail wording for any future re-adoption.
+- **[HIGH] H5** — App-level `.onError` short-circuited plugin's global `.onError` (source: Diego). Resolution: error-path span closing is now done by the app-level `.onError` itself calling `endHttpServerSpan({ request, error, route, statusCode })` — bypasses any hook-suppression risk. New test "closes the SERVER span with ERROR status + recordException + status_code" in `otel-sdk.test.ts`.
+- **[HIGH] H6** — `requestId` fallback broke architecture L573 contract (source: Diego). Resolution: `app.ts:27` now reads `extractRequestId(error) ?? trace.getActiveSpan()?.spanContext().traceId ?? crypto.randomUUID()` — 5xx errors now carry the OTel `trace_id` as their `requestId` for forensic cross-reference.
+- **[HIGH] H7** — `OTEL_LOG_LEVEL` declared in env schema and commented as "handled in env path below" but never consumed (sources: Kai, Diego). Resolution: `startOtel()` now wires `diag.setLogger(new DiagConsoleLogger(), diagLogLevelFromEnv(env.OTEL_LOG_LEVEL))` so SDK warnings surface at the configured level. `OTEL_LOG_LEVEL=debug` additionally flips the span processor to `SimpleSpanProcessor` for sync dev visibility.
+- **[HIGH] H8** — Lifecycle shutdown timer raced only `app.stop()`; `shutdownOtel` + `prisma.disconnect` were unbounded; BSP `exportTimeoutMillis: 30s > SHUTDOWN_TIMEOUT_MS: 10s` (source: Kai). Resolution: `lifecycle.ts` rewritten with a `withTimeout(label, promise, ms)` helper; budget split per-step (elysia 30%, otel 50%, prisma 20%). BSP `exportTimeoutMillis` lowered to `2000ms` so it always fits inside the otel slice (5000ms at default 10s total).
+- **[HIGH] H9** — Final commit body missing `Closes #7` (source: Rex). Resolution: this story closes via the final commit on this branch (see end of branch log; the umbrella PR already references `Closes #7` in its body per the dev-complete handoff).
+- **[HIGH] H10** — AC-1 strict reading: `handle` span was `SpanKind.INTERNAL`, not `SpanKind.SERVER` (sources: Diego, Eva re-val). Resolution: replaced `@elysiajs/opentelemetry@1.4.0` (which was the source of the gap) with a self-contained custom plugin `elysiaOtelHttpPlugin()`. The new plugin starts a `kind: SpanKind.SERVER` span on `.onRequest` with W3C `traceparent` extraction + HTTP semconv attributes, and ends it on `.onAfterHandle({ as: "global" })` (success) or via `endHttpServerSpan(...)` from the app-level `.onError` (error path — sidesteps H5). Test: "emits a SpanKind.SERVER span with http.route + http.method + http.status_code on success" in `otel-sdk.test.ts` — verified attribute shape; test pivot from `elysiaHttpAttrsPlugin` (the Round-1 workaround) to `elysiaOtelHttpPlugin` (the proper SpanKind.SERVER fix).
+- **[MEDIUM] M1** — Dual emission `http.method` + `http.request.method` (and status_code) without removal date (source: Marcus). Resolution: kept dual emission for collector-pipeline compat but added explicit `TODO 0-7-bis or 0-8 — drop the old-form pair once the GlitchTip collector pipeline is on a semconv ≥1.23 schema` comment.
+- **[MEDIUM] M5** — Architecture package equivalence (`@elysiajs/opentelemetry` ≡ `@opentelemetry/instrumentation-elysia`) only in story Dev Notes, not in source comments (source: Diego). Resolution: added "Package equivalence vs architecture L243" block to the `otel-sdk.ts` header comment.
+- **[MEDIUM] M8** — `docs/dev/otel-collector-dev.yaml` lacked production-pin guidance (source: Kai). Resolution: added "Production deployments MUST pin a specific tag" comment to the YAML header.
+- **[LOW] L1** — `getTracer()` allocated a new `ProxyTracer` per call (source: Lucas). Resolution: cached at module-scope in `apps/web/src/lib/otel/tracer.ts`.
+
+#### Acknowledged dismissed / informational
+
+- **[LOW] L4** — `@vercel/otel` not used despite being Next.js-canonical (source: Lucas). **Rationale:** manual `NodeSDK` was preferred for tighter control over span processor + exporter swap based on env. Documented in `instrumentation.node.ts` comment block.
+- **[LOW] L5** — Doc says `AsyncHooksContextManager` but actual is `AsyncLocalStorageContextManager` (source: Sam). **Rationale:** cosmetic; both are ALS-backed. Story L13 wording could be tightened in a future doc-pass; not in scope here.
+- **[LOW] L6** — Branch naming divergence (`feat/...` vs `feature/...`) between 0-6 and 0-7 (source: Rex). **Rationale:** noted in story file at L407 already; non-blocking. Going forward use `feature/{ticket}-{slug}` per workflow.
+- **[NIT] L9** — `apps/web/next.config.ts` left bare. **Rationale:** Next.js 16 enables the instrumentation hook by default; no flag flip needed. Lucas verified end-to-end.
+- **[INFO] L10** — (b)+ GlitchTip flip is NOT pure config (Sentry DSN format). **Rationale:** out of scope for story 0-7 (foundation work). Triage ticket for the (b)-ramp pre-flight to validate GlitchTip OTLP support is implicit follow-up under epic-11 / NFR-25.
+
+#### Deferred to story 0-7-bis (single follow-up scope)
+
+- **[MEDIUM] M2** — `FetchInstrumentation` + `UndiciInstrumentation` may double-record outgoing fetches in Next.js 16. Decide which to keep; consider `NEXT_OTEL_FETCH_DISABLED=1`. Documented in `instrumentation.node.ts` comment.
+- **[MEDIUM] M3** — Env-var validation asymmetry: api fail-fast (Zod), web/prices silent. Add URL-shape check in `apps/web` and `apps/prices` for symmetry.
+- **[MEDIUM] M4** — Plugin `.onError` `set.status` snapshot timing — strengthen test to assert exact mapped status (currently only asserts numeric).
+- **[MEDIUM] M7** — Cross-runtime nesting integration test (`handle` ↔ `prisma:client:db_query` parent-child) — automated regression guard for AC-1 (currently manual smoke only). Requires `@opentelemetry/core` (W3CTraceContextPropagator) as a direct dep of `apps/api` for the propagation layer.
+- **[NIT] L2** — `url.scheme` derived via `protocol.slice(0, -1)` (was `replace(":", "")`) — current is fine; revisit if HTTP/2 semantics differ.
+- **[NIT] L3** — Test hygiene: `clearOtelGlobals()` helper added to all `afterEach` blocks (this round) — order-coupling now bounded.
+- **[NIT] L7** — Promote OTel rootSpan plugin gap lesson to `docs/lessons.md` — DONE in this round.
+- **[NIT] L8** — `apps/prices/main.py` does not validate `OTEL_EXPORTER_OTLP_ENDPOINT` URL shape — covered under M3 above.
+
+### 5-anti-pattern testing audit (Marcus)
+
+| # | Anti-pattern | Verdict | Notes |
+|---|---|---|---|
+| 1 | Mock-the-behavior | PASS | Tests run real `NodeTracerProvider` + `BatchSpanProcessor` + `InMemorySpanExporter` (production utility, not a test double). |
+| 2 | Test-only methods | PASS | No production class extended for tests. |
+| 3 | Mock-without-understanding | PASS | AC-5 test documents `InMemorySpanExporter.shutdown()` resetting `_finishedSpans` and uses `forceFlush` to capture before shutdown. |
+| 4 | Incomplete mocks | PASS | `makeEnv` mirrors complete `Env` type. |
+| 5 | Integration-test-as-afterthought | PASS (post-fix) | AC-1 now has automated unit coverage (3 new tests in `otel-sdk.test.ts`); AC-4 has dedicated `loadEnv` tests; AC-5 has BSP `forceFlush` test. End-to-end cross-runtime nesting deferred to 0-7-bis (M7) — flagged, not silently passed. |
+
+### Verification
+
+- Test command: `bun test apps/api/src/platform/observability/otel-sdk.test.ts`
+- Test output (final pass): `10 pass, 0 fail, 30 expect() calls — Ran 10 tests across 1 file`
+- Typecheck: `bun run --cwd apps/api typecheck` → exit 0; `bun run --cwd apps/web typecheck` → exit 0
+- L2 lesson check: `grep -rn ': Elysia\b' apps/api/src` → 0 matches (clean)
+- AC-1 evidence (Round 2): SpanKind.SERVER span emitted with `http.method`, `http.request.method`, `http.route` (with `<unmatched>` sentinel for 404), `http.status_code`, `http.response.status_code`, `url.path`, `url.scheme`. Both success and error paths covered. `parentSpanId` propagation via `propagation.extract(...)` — automated test deferred to 0-7-bis (M7); manual smoke at story L1356-1366 remains valid.
+- Visual verification: not applicable (server-only instrumentation; no UI).
+
+### Ticket sync
+
+- Ticket comment: posted to https://github.com/yabafre/pekulo/issues/7 with the Round-2 review summary
+- PR: existing PR #60 — body updated with the post-review punch list and `Closes #7` confirmed.
+
+### Follow-up — story 0-7-bis (to be drafted by aped-iterate)
+
+Scope: M2 (Fetch/Undici dedup) · M3 (URL validation parity web/prices) · M4 (status_code mapping test) · M7 (cross-runtime nesting integration test) · re-evaluate `@elysiajs/opentelemetry` upgrade once upstream ships a fix (with the lessons.md guardrail enforced).
