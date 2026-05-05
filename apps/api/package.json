@@ -16,6 +16,7 @@
     "prisma:migrate:status": "prisma migrate status",
     "prisma:format": "prisma format",
     "prisma:validate": "prisma validate",
+    "prisma:check": "prisma format --check && prisma validate",
     "db:rls-audit": "bun run scripts/rls-audit.ts"
   },
   "dependencies": {
