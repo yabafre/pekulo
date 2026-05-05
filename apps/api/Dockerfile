@@ -28,7 +28,12 @@ COPY --chown=bun:bun apps/web/package.json apps/web/
 COPY --chown=bun:bun packages packages
 
 # Install ALL workspace deps (Bun resolves @pekulo/* via workspace:* protocol).
-RUN bun install --frozen-lockfile
+# `--ignore-scripts` skips lifecycle scripts (notably apps/api's `postinstall: prisma generate`,
+# added in story 0-8 for CI/local DX): the schema isn't yet in the image at this layer
+# (cache-friendly pattern: package.json BEFORE prisma/), so the postinstall would fail.
+# The explicit `bunx prisma generate` step below handles generation once the schema is copied.
+# See L8 in docs/lessons.md for the full rationale.
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Copy Prisma config + schema BEFORE generate so the generator can read both.
 # Prisma 7+ requires prisma.config.ts (datasource.url moved out of the .prisma files).
