@@ -66,7 +66,24 @@ import { Elysia } from "elysia";
 
 import type { Env } from "../../config/env";
 
-let sdk: NodeSDK | undefined;
+// L12: pin the active SDK on globalThis so it survives `bun --hot` HMR reloads.
+// Module-level state resets when the module re-imports, but OTel's global
+// registrations (trace/context/propagation) persist at the process level —
+// re-running startOtel against the same process tree triggers "Attempted
+// duplicate registration of API". Using globalThis as the source of truth
+// lets HMR safely no-op while keeping the original SDK + spans alive.
+declare global {
+  // eslint-disable-next-line no-var
+  var __pekuloOtelSdk: NodeSDK | undefined;
+}
+
+function getSdk(): NodeSDK | undefined {
+  return globalThis.__pekuloOtelSdk;
+}
+
+function setSdk(value: NodeSDK | undefined): void {
+  globalThis.__pekuloOtelSdk = value;
+}
 
 function diagLogLevelFromEnv(level: Env["OTEL_LOG_LEVEL"]): DiagLogLevel {
   switch (level) {
@@ -82,8 +99,14 @@ function diagLogLevelFromEnv(level: Env["OTEL_LOG_LEVEL"]): DiagLogLevel {
 }
 
 export async function startOtel(env: Env): Promise<void> {
-  if (sdk) {
-    throw new Error("[otel] startOtel called twice");
+  if (getSdk()) {
+    // HMR re-import (`bun --hot`) — the existing process already has an SDK
+    // registered globally, with its globals (trace/context/propagation) still
+    // active. Re-running NodeSDK.start would throw "Attempted duplicate
+    // registration of API". Silent return; the previously-started SDK keeps
+    // exporting under the original env config. Restart the process to pick
+    // up new env values (OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_LOG_LEVEL, etc.).
+    return;
   }
 
   // Wire OTel's internal diag logger so SDK warnings (failed exports,
@@ -116,7 +139,7 @@ export async function startOtel(env: Env): Promise<void> {
           maxExportBatchSize: 512,
         });
 
-  sdk = new NodeSDK({
+  const newSdk = new NodeSDK({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: env.OTEL_SERVICE_NAME,
       [ATTR_SERVICE_VERSION]: process.env.npm_package_version ?? "0.0.0",
@@ -130,13 +153,15 @@ export async function startOtel(env: Env): Promise<void> {
     ],
   });
 
-  sdk.start();
+  newSdk.start();
+  setSdk(newSdk);
 }
 
 export async function shutdownOtel(): Promise<void> {
-  if (!sdk) return;
-  await sdk.shutdown();
-  sdk = undefined;
+  const current = getSdk();
+  if (!current) return;
+  await current.shutdown();
+  setSdk(undefined);
 }
 
 // Per-request span store. WeakMap keyed by Elysia's incoming Request — GC
