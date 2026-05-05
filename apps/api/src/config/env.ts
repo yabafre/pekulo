@@ -14,6 +14,11 @@ const envSchema = z.object({
   // belt+suspenders). The value is the same as `NEXT_PUBLIC_SUPABASE_URL` on
   // the web tier; it lives here too so apps/api can run independently.
   SUPABASE_URL: z.string().url(),
+  // OTel SDK config (story 0-7 — ADR-0005). All three are optional with
+  // safe defaults so brownfield .env files keep working.
+  OTEL_SERVICE_NAME: z.string().min(1).default("pekulo-api"),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  OTEL_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("error"),
 });
 
 export type Env = z.infer<typeof envSchema>;

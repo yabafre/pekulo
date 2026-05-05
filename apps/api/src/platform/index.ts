@@ -9,7 +9,8 @@
 //                              story 6-3: opt-in-guard for 3rd-party LLM path.)
 //   - logging/             → otel-logger wrapper (story 0-7).
 //   - audit/               → masked-userId helpers (story 0-5+).
-//   - observability/       → @opentelemetry/sdk-node init (story 0-7).
+//   - observability/       → @opentelemetry/sdk-node init (shipped in story 0-7;
+//                             exports startOtel/shutdownOtel + the Elysia plugin factory).
 //
 // See ADR-0009 + docs/architecture.md L786-796 for the canonical layout.
 export {};

@@ -6,8 +6,10 @@ Run:
     uvicorn main:app --host 0.0.0.0 --port 8000
 
 Env:
-    PRICES_SERVICE_TOKEN  Bearer token required on every request (optional in dev).
-    ALLOWED_ORIGIN        CORS origin allowlist, default '*'.
+    PRICES_SERVICE_TOKEN          Bearer token required on every request (optional in dev).
+    ALLOWED_ORIGIN                CORS origin allowlist, default '*'.
+    OTEL_EXPORTER_OTLP_ENDPOINT   Optional OTLP-HTTP traces endpoint (story 0-7 — ADR-0005).
+    OTEL_SERVICE_NAME             Defaults to "pekulo-prices".
 
 Compatible with Python 3.9+ (uses typing.Optional/Union/List/Dict instead of PEP 604/585).
 """
@@ -17,16 +19,56 @@ import os
 import sys
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional, Union
+from urllib.parse import urlparse
 
 import yfinance as yf
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import (
+    BatchSpanProcessor,
+    ConsoleSpanExporter,
+)
+
 
 SERVICE_TOKEN = os.environ.get("PRICES_SERVICE_TOKEN", "").strip()
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*").strip() or "*"
 YF_IMPERSONATE = os.environ.get("YF_IMPERSONATE", "chrome").strip() or "chrome"
+OTEL_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
+OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "pekulo-prices").strip() or "pekulo-prices"
+
+
+# M3 — env validation parity with apps/api's Zod gate. Fail loud at boot so
+# a malformed OTEL_EXPORTER_OTLP_ENDPOINT does not silently fall back at
+# runtime (story 0-7 review).
+if OTEL_OTLP_ENDPOINT:
+    _parsed = urlparse(OTEL_OTLP_ENDPOINT)
+    if not _parsed.scheme or not _parsed.netloc:
+        print(
+            "[prices-service] invalid OTEL_EXPORTER_OTLP_ENDPOINT: {!r} is not a parseable URL".format(
+                OTEL_OTLP_ENDPOINT
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
+
+
+# OTel init — runs at import time so the FastAPIInstrumentor below has a
+# registered TracerProvider when it patches the app's route table.
+_otel_provider = TracerProvider(resource=Resource.create({"service.name": OTEL_SERVICE_NAME}))
+if OTEL_OTLP_ENDPOINT:
+    _otel_exporter: Any = OTLPSpanExporter(endpoint=OTEL_OTLP_ENDPOINT)
+else:
+    _otel_exporter = ConsoleSpanExporter()
+_otel_provider.add_span_processor(BatchSpanProcessor(_otel_exporter))
+trace.set_tracer_provider(_otel_provider)
 
 
 # yfinance is NOT auto-aware of curl_cffi. Without an explicit Session, requests go out
@@ -60,6 +102,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+# Patch the FastAPI app AFTER add_middleware so spans wrap the full middleware chain.
+FastAPIInstrumentor.instrument_app(app)
 
 
 class Quote(BaseModel):

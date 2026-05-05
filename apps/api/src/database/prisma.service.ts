@@ -5,6 +5,14 @@
 //   - PrismaPg adapter from @prisma/adapter-pg
 //   - prefixed-ids extension as the only extension at V1 (a)
 //
+// Per story 0-7:
+//   - PrismaInstrumentation is registered globally inside
+//     `apps/api/src/platform/observability/otel-sdk.ts`'s `startOtel()` —
+//     not here. The instrumentation patches the Prisma Engine RPC layer
+//     once, and every PrismaClient instance auto-emits db spans.
+//   - The Prisma extension chain (`prefixedIdsExtension`) is independent
+//     of the OTel patching — they compose without conflict.
+//
 // The exported PrismaService is a wrapper around the extended Prisma client.
 // Domain repositories in epics 1–8 import { PrismaService } and access the
 // extended client via `service.client.<model>.<op>(...)`. The wrapper avoids
