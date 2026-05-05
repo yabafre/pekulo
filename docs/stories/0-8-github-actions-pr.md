@@ -78,7 +78,7 @@ This story modifies two existing files (`package.json` at repo root, `apps/api/p
 ```
 <!-- aped-lint-enable -->
 
-T4 inserts two new entries inside the `"scripts"` object: `"prisma:check"` and `"db:rls-audit"`. The rest of the file is preserved byte-for-byte.
+T4 inserts two new entries inside the `"scripts"` object: `"prisma:check"` and `"db:rls-audit"`. The rest of the file is preserved byte-for-byte. **Note (L7, applied on dev pickup 2026-05-05):** the proxy uses the `cd <path> && bun run <script>` form (matches the existing `dev:prices` pattern) — the originally-drafted `bun --cwd apps/api run <script>` form silently fails on relative paths (Bun expects absolute) and W3 in the architecture watch list explicitly bans it.
 
 #### `apps/api/package.json` (current — modified by Task 5)
 
@@ -490,8 +490,8 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
     "typecheck": "turbo run typecheck",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "prisma:check": "bun --cwd apps/api run prisma:check",
-    "db:rls-audit": "bun --cwd apps/api run db:rls-audit"
+    "prisma:check": "cd apps/api && bun run prisma:check",
+    "db:rls-audit": "cd apps/api && bun run db:rls-audit"
   },
   ```
   <!-- aped-lint-enable -->

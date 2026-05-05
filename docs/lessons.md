@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-05 — `bun --cwd <relative> run <script>` silently fails — use cd-then-run or `--filter` (Scope: aped-dev, aped-story — story 0-8 + every future cross-workspace proxy script; formalises W3 watch item)
+
+- **Date:** 2026-05-05
+- **Mistake:** Story 0-8 T4 drafted root proxy scripts as `"prisma:check": "bun --cwd apps/api run prisma:check"` (and same for `db:rls-audit`). Verified during T4 GREEN: `bun --cwd apps/api run prisma:check` (space form) prints `bun run` help with the apps/api script registry and exits 0 — silent failure (the script never executes). `bun --cwd=apps/api run prisma:check` (= form, relative path) prints `ENOENT: Could not change directory to "apps/api"` and ALSO exits 0 — silent again. Only `bun --cwd=$(pwd)/apps/api run prisma:check` (absolute path) actually runs the script. The architecture watch item W3 (epic-0-context.md) had already flagged `bun --cwd <path> run <script>` as broken; the story spec ignored it.
+- **Correction:** Switched both proxy scripts to the cd-then-run form already used by `dev:prices` in the same `package.json`: `"prisma:check": "cd apps/api && bun run prisma:check"` and `"db:rls-audit": "cd apps/api && bun run db:rls-audit"`. Verified end-to-end: exit 0, "All files are formatted correctly!" + "The schemas at prisma/schema are valid 🚀". The alternative `bun --filter='@pekulo/api' <script>` was tested and also works — kept as a future option when scripts need to fan out across multiple workspaces.
+- **Rule:** Cross-workspace proxy scripts at the root `package.json` MUST NOT use `bun --cwd <relative-path> run <script>` — that form silently exits 0 on path-resolution failure. Use `cd <path> && bun run <script>` (idiomatic shell, matches the repo's existing `dev:prices` pattern, exit codes propagate correctly through `&&`) or `bun --filter='<workspace-name>' <script>` (workspace-aware, refactor-safe). Apply to every future story that adds a cross-workspace root script — including story 0-11 (lefthook) and 0-12 (oxlint-config), which will both need to invoke per-workspace tooling. Formalises W3 from epic-0-context as a hard rule, not a watch item.
+
 ### 2026-05-05 — `action-validator` npm package is bare metadata; the CLI lives in `@action-validator/cli` (Scope: aped-dev, aped-story — story 0-8 + every future CI workflow story)
 
 - **Date:** 2026-05-05
