@@ -168,4 +168,3 @@ export interface HoldingLot {
   notes: string | null;
   createdAt: string;
 }
-

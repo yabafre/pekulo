@@ -84,13 +84,12 @@ beforeAll(async () => {
   });
 
   const port = PORT_BASE + Math.floor(Math.random() * 200);
-  const app = new Elysia()
-    .onError(({ error, set }) => {
-      const requestId = extractRequestId(error) ?? crypto.randomUUID();
-      const mapped = mapErrorToOrpcResponse(error, requestId);
-      set.status = mapped.status;
-      return mapped.body;
-    });
+  const app = new Elysia().onError(({ error, set }) => {
+    const requestId = extractRequestId(error) ?? crypto.randomUUID();
+    const mapped = mapErrorToOrpcResponse(error, requestId);
+    set.status = mapped.status;
+    return mapped.body;
+  });
   mountOrpc(app, { jwtVerifier, orpcRouter });
   await new Promise<void>((resolve) => {
     app.listen({ port, hostname: "127.0.0.1" }, () => resolve());

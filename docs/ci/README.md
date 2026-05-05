@@ -8,36 +8,36 @@ This file documents the two workflows that gate every PR and deploy on merge: `.
 
 ### Tier 1 — Hard gates (always run, fail loud)
 
-| Job | Command | Gates |
-|---|---|---|
-| `lint` | `bun run lint` (oxlint, monorepo-wide) | NFR-12 hygiene |
-| `format-check` | `bun run format:check` (oxfmt --check) | code-style drift |
-| `typecheck` | `bun run typecheck` (turbo run typecheck) | TS soundness |
-| `prisma-check` | `bun run prisma:check` (`prisma format --check && prisma validate`) | schema regression |
-| `rls-audit` | `bun run db:rls-audit` if `RLS_AUDIT_DATABASE_URL` set, otherwise skip | NFR-8 (RLS coverage 100 %) |
+| Job            | Command                                                                | Gates                      |
+| -------------- | ---------------------------------------------------------------------- | -------------------------- |
+| `lint`         | `bun run lint` (oxlint, monorepo-wide)                                 | NFR-12 hygiene             |
+| `format-check` | `bun run format:check` (oxfmt --check)                                 | code-style drift           |
+| `typecheck`    | `bun run typecheck` (turbo run typecheck)                              | TS soundness               |
+| `prisma-check` | `bun run prisma:check` (`prisma format --check && prisma validate`)    | schema regression          |
+| `rls-audit`    | `bun run db:rls-audit` if `RLS_AUDIT_DATABASE_URL` set, otherwise skip | NFR-8 (RLS coverage 100 %) |
 
 ### Tier 2 — Forward-compat (skip-if-absent)
 
 Each job evaluates a step-level guard for the artefact below. If absent, the job logs `skip: <artefact> not present` and exits 0 (job appears green in the PR check list). When the artefact lands in the owning story, the job auto-activates and behaves as a hard gate.
 
-| Job | Owning story | Activation artefact | Command when active |
-|---|---|---|---|
-| `test-unit` | 0-9 / 0-10 | `vitest.config.{ts,mts,js,cjs}` anywhere outside `node_modules` | `bun test` |
-| `test-e2e-smoke` | 0-10 (visual snapshot suite) | `playwright.config.{ts,js}` at repo root or `apps/web/` | `bunx playwright test --grep @smoke` |
-| `lighthouse-ci` | 11-4 | `lighthouserc.{json,cjs}` at repo root or `apps/web/` | `bunx --bun @lhci/cli@0.14.x autorun` |
-| `axe-a11y` | 0-10 / 11-4 | any `*.axe.test.*` fixture outside `node_modules` | `bunx vitest run --grep axe` |
+| Job              | Owning story                 | Activation artefact                                             | Command when active                   |
+| ---------------- | ---------------------------- | --------------------------------------------------------------- | ------------------------------------- |
+| `test-unit`      | 0-9 / 0-10                   | `vitest.config.{ts,mts,js,cjs}` anywhere outside `node_modules` | `bun test`                            |
+| `test-e2e-smoke` | 0-10 (visual snapshot suite) | `playwright.config.{ts,js}` at repo root or `apps/web/`         | `bunx playwright test --grep @smoke`  |
+| `lighthouse-ci`  | 11-4                         | `lighthouserc.{json,cjs}` at repo root or `apps/web/`           | `bunx --bun @lhci/cli@0.14.x autorun` |
+| `axe-a11y`       | 0-10 / 11-4                  | any `*.axe.test.*` fixture outside `node_modules`               | `bunx vitest run --grep axe`          |
 
 ## Secrets
 
 Configure under repo `Settings → Secrets and variables → Actions`:
 
-| Secret | Source | Required for |
-|---|---|---|
-| `TURBO_TOKEN` | https://vercel.com/account/tokens (or Turborepo Cloud) | remote cache (optimisation, not gate) |
-| `TURBO_TEAM` | Vercel team slug | remote cache |
-| `RLS_AUDIT_DATABASE_URL` | Supabase preview-branch / dedicated read-only role | `rls-audit` hard gate (skips if unset) |
-| `DOKPLOY_API_DEPLOY_HOOK` | Dokploy → apps/api → Deploy hook URL | `deploy.yml` post-merge |
-| `DOKPLOY_PRICES_DEPLOY_HOOK` | Dokploy → apps/prices → Deploy hook URL | `deploy.yml` post-merge |
+| Secret                       | Source                                                 | Required for                           |
+| ---------------------------- | ------------------------------------------------------ | -------------------------------------- |
+| `TURBO_TOKEN`                | https://vercel.com/account/tokens (or Turborepo Cloud) | remote cache (optimisation, not gate)  |
+| `TURBO_TEAM`                 | Vercel team slug                                       | remote cache                           |
+| `RLS_AUDIT_DATABASE_URL`     | Supabase preview-branch / dedicated read-only role     | `rls-audit` hard gate (skips if unset) |
+| `DOKPLOY_API_DEPLOY_HOOK`    | Dokploy → apps/api → Deploy hook URL                   | `deploy.yml` post-merge                |
+| `DOKPLOY_PRICES_DEPLOY_HOOK` | Dokploy → apps/prices → Deploy hook URL                | `deploy.yml` post-merge                |
 
 ## Branch protection setup
 

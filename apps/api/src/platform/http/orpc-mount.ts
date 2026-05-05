@@ -84,7 +84,7 @@ export function mountOrpc(app: AnyElysia, deps: MountOrpcDeps) {
       // "anonymous" if the error fired before requireUserContext returned.
       const errorCode = mapped.body.error.code;
       const userId =
-        errorCode === "UNAUTHORIZED" ? "anonymous" : userContext?.userId ?? "anonymous";
+        errorCode === "UNAUTHORIZED" ? "anonymous" : (userContext?.userId ?? "anonymous");
       // Surface the underlying cause class for ops debugging (e.g.
       // "JWTExpired" vs "JWSSignatureVerificationFailed") without leaking it
       // to the wire body. Low cardinality, only set for failures.
