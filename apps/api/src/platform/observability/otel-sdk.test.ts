@@ -14,6 +14,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { context, propagation, SpanKind, trace } from "@opentelemetry/api";
+import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import { BatchSpanProcessor, InMemorySpanExporter } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { Elysia } from "elysia";
@@ -163,13 +164,42 @@ describe("elysiaOtelHttpPlugin (AC-1)", () => {
     }
   });
 
-  // Note: traceparent-propagation test (was here in an earlier draft) is
-  // deferred to story 0-7-bis (review finding M7) — exercising
-  // propagation.extract requires registering W3CTraceContextPropagator,
-  // which lives in @opentelemetry/core (not currently a direct dep of
-  // apps/api). The dev's manual smoke at story L1356-1366 covers
-  // end-to-end propagation correctness; this test file covers the plugin's
-  // span shape + attribute emission.
+  // M7 — cross-runtime nesting / W3C traceparent propagation regression
+  // guard. With @opentelemetry/core wired (W3CTraceContextPropagator), we
+  // can now assert that a synthetic upstream `traceparent` header is
+  // extracted and the SERVER span chains under it (non-empty parentSpanId,
+  // shared traceId).
+  test("inherits the upstream W3C traceparent (non-empty parentSpanId, same traceId)", async () => {
+    const exporter = new InMemorySpanExporter();
+    const provider = new NodeTracerProvider({
+      spanProcessors: [new BatchSpanProcessor(exporter)],
+    });
+    provider.register({ propagator: new W3CTraceContextPropagator() });
+    try {
+      const app = new Elysia().use(elysiaOtelHttpPlugin()).get("/ready", () => ({ ok: true }));
+
+      const upstreamTraceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+      const upstreamSpanId = "00f067aa0ba902b7";
+      const traceparent = `00-${upstreamTraceId}-${upstreamSpanId}-01`;
+
+      const req = new Request("http://localhost/ready", {
+        headers: { traceparent },
+      });
+      await app.handle(req);
+
+      await provider.forceFlush();
+      const spans = exporter.getFinishedSpans();
+      const serverSpan = spans.find((s) => s.kind === SpanKind.SERVER);
+      expect(serverSpan).toBeDefined();
+      // Same traceId as upstream → propagation worked
+      expect(serverSpan?.spanContext().traceId).toBe(upstreamTraceId);
+      // Non-empty parentSpanId, equal to the upstream span id → AC-1 strict
+      expect(serverSpan?.parentSpanContext?.spanId).toBe(upstreamSpanId);
+    } finally {
+      await provider.shutdown();
+      clearOtelGlobals();
+    }
+  });
 
   test("uses '<unmatched>' sentinel for routes that do not match (cardinality bound — H1)", async () => {
     const exporter = new InMemorySpanExporter();
@@ -214,8 +244,8 @@ describe("elysiaOtelHttpPlugin (AC-1)", () => {
   });
 });
 
-describe("endHttpServerSpan (error path — H5 workaround)", () => {
-  test("closes the SERVER span with ERROR status + recordException + status_code", async () => {
+describe("endHttpServerSpan (error path — H5 workaround + M4 status mapping)", () => {
+  test("closes the SERVER span with ERROR status + recordException + status_code === 500", async () => {
     const exporter = new InMemorySpanExporter();
     const provider = new NodeTracerProvider({
       spanProcessors: [new BatchSpanProcessor(exporter)],
@@ -250,6 +280,55 @@ describe("endHttpServerSpan (error path — H5 workaround)", () => {
       expect(serverSpan?.attributes["http.response.status_code"]).toBe(500);
       expect(serverSpan?.status.code).toBe(2 /* ERROR */);
       expect(serverSpan?.events.some((e) => e.name === "exception")).toBe(true);
+    } finally {
+      await provider.shutdown();
+      clearOtelGlobals();
+    }
+  });
+
+  test("captures the exact mapped status code (e.g. 422 validation) — M4 strict", async () => {
+    // M4 — Diego flagged that the plugin's previous .onError snapshot of
+    // set.status could capture the pre-mapping value. With the new design
+    // (app-level .onError calls endHttpServerSpan with the mapped status),
+    // the captured status_code reflects post-mapping. This test pins that
+    // contract: when the .onError maps a validation error to 422, the
+    // SERVER span MUST carry http.status_code === 422 (not the default 500).
+    const exporter = new InMemorySpanExporter();
+    const provider = new NodeTracerProvider({
+      spanProcessors: [new BatchSpanProcessor(exporter)],
+    });
+    provider.register();
+    try {
+      const app = new Elysia()
+        .use(elysiaOtelHttpPlugin())
+        .onError(({ error, set, request, route }) => {
+          // Simulate a validation-error → 422 mapping (the production app's
+          // mapErrorToOrpcResponse does similar shape-dependent mapping).
+          set.status = 422;
+          endHttpServerSpan({
+            request,
+            error,
+            route,
+            statusCode: 422,
+          });
+          return { error: "validation_failed" };
+        })
+        .get("/validate", () => {
+          throw new Error("synthetic-validation-failure");
+        });
+
+      const req = new Request("http://localhost/validate");
+      await app.handle(req);
+
+      await provider.forceFlush();
+      const spans = exporter.getFinishedSpans();
+      const serverSpan = spans.find((s) => s.kind === SpanKind.SERVER);
+      expect(serverSpan).toBeDefined();
+      expect(serverSpan?.attributes["http.route"]).toBe("/validate");
+      // The exact mapped value, not a default 500 fallback.
+      expect(serverSpan?.attributes["http.status_code"]).toBe(422);
+      expect(serverSpan?.attributes["http.response.status_code"]).toBe(422);
+      expect(serverSpan?.status.code).toBe(2 /* ERROR */);
     } finally {
       await provider.shutdown();
       clearOtelGlobals();
