@@ -1,12 +1,12 @@
 # Story: 0-8-github-actions-pr — GitHub Actions PR check matrix + post-merge deploy hooks
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#8](https://github.com/yabafre/pekulo/issues/8)
 **Branch:** `feature/8-0-8-github-actions-pr`
 **Commit prefix:** `feat(#8): ...` (or `chore(#8):` / `docs(#8):` / `ci(#8):` per task type)
 **Closes:** #8
-**Stepscompleted:** 0/7 (T1–T7)
+**Stepscompleted:** 7/7 (T1–T7)
 **Reference ADRs:** [ADR-0002 — Test pyramid (Vitest + Playwright + axe + Lighthouse CI + pytest)](../adr/0002-test-pyramid.md), [ADR-0004 — Lint + format toolchain — oxlint + oxfmt](../adr/0004-lint-format-toolchain-oxc.md), [ADR-0014 — Schema migrations via Prisma migrate](../adr/0014-prisma-migrations.md)
 **Reference architecture sections:** `docs/architecture.md` L230–L240 (CI/CD matrix definition), L889 (file-structure target), L1024 (GitHub Actions integration row)
 **Reference NFRs:** NFR-3 (Lighthouse ≥ 90), NFR-22 (WCAG 2.2 AA), NFR-8 (RLS coverage 100 %), NFR-12 (no secrets in git — gated separately by 0-11), NFR-25/26/27 (observability — passes through trace context, no CI-specific work)
@@ -212,7 +212,7 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
 
 ## Tasks
 
-- [ ] **T1 — Create composite action `.github/actions/setup-bun/action.yml`** [AC: AC-3, AC-5]
+- [x] **T1 — Create composite action `.github/actions/setup-bun/action.yml`** [AC: AC-3, AC-5]
 
   Create the directory structure (`mkdir -p .github/actions/setup-bun`) then write the file below verbatim:
 
@@ -250,7 +250,7 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
   git commit -m "ci(#8): T1 — composite setup-bun action (Bun 1.3.13 + frozen install)"
   ```
 
-- [ ] **T2 — Create `.github/workflows/pr.yml`** [AC: AC-1, AC-2, AC-3, AC-5]
+- [x] **T2 — Create `.github/workflows/pr.yml`** [AC: AC-1, AC-2, AC-3, AC-5]
 
   Create `mkdir -p .github/workflows` then write the file below verbatim:
 
@@ -410,7 +410,7 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
   git commit -m "ci(#8): T2 — pr.yml matrix (5 hard gates + 4 forward-compat skip-if-absent)"
   ```
 
-- [ ] **T3 — Create `.github/workflows/deploy.yml`** [AC: AC-4, AC-5]
+- [x] **T3 — Create `.github/workflows/deploy.yml`** [AC: AC-4, AC-5]
 
   Write the file below verbatim:
 
@@ -474,7 +474,7 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
   git commit -m "ci(#8): T3 — deploy.yml — sequential Dokploy webhooks (api then prices, fail on non-2xx)"
   ```
 
-- [ ] **T4 — Add `prisma:check` and `db:rls-audit` scripts to root `package.json`** [AC: AC-1]
+- [x] **T4 — Add `prisma:check` and `db:rls-audit` scripts to root `package.json`** [AC: AC-1]
 
   Open `package.json` (repo root) and replace the entire `"scripts"` block with the version below. Every existing key is preserved verbatim; two new keys (`prisma:check`, `db:rls-audit`) are appended after `format:check`:
 
@@ -511,7 +511,7 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
   git commit -m "chore(#8): T4 — proxy scripts prisma:check + db:rls-audit at repo root"
   ```
 
-- [ ] **T5 — Add `prisma:check` script to `apps/api/package.json`** [AC: AC-1]
+- [x] **T5 — Add `prisma:check` script to `apps/api/package.json`** [AC: AC-1]
 
   Open `apps/api/package.json` and append a single new key (`prisma:check`) inside the `"scripts"` block, after `prisma:validate`. The full target shape of the `"scripts"` block is:
 
@@ -551,7 +551,7 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
   git commit -m "chore(#8): T5 — apps/api prisma:check chains format --check && validate"
   ```
 
-- [ ] **T6 — Create `docs/ci/README.md`** [AC: AC-1, AC-2, AC-3, AC-4]
+- [x] **T6 — Create `docs/ci/README.md`** [AC: AC-1, AC-2, AC-3, AC-4]
 
   Create the directory if absent (`mkdir -p docs/ci`) then write the file below verbatim:
 
@@ -644,7 +644,7 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
   git commit -m "docs(#8): T6 — CI matrix reference (gates, secrets, branch protection, lessons)"
   ```
 
-- [ ] **T7 — Local + remote validation pass** [AC: AC-1, AC-2, AC-3, AC-4, AC-5]
+- [x] **T7 — Local + remote validation pass** [AC: AC-1, AC-2, AC-3, AC-4, AC-5]
 
   Run the full local validation chain. Each command MUST exit 0 — if any step fails, the dev fixes the underlying issue before pushing.
 
@@ -694,12 +694,72 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
 
 ## Dev Agent Record
 
-- **Model:** {{model used}}
-- **Started:** {{timestamp}}
-- **Completed:** {{timestamp}}
+- **Model:** Claude Opus 4.7 (1M context) — `claude-opus-4-7[1m]`
+- **Started:** 2026-05-05T22:30:00Z
+- **Completed:** 2026-05-05T15:00:00Z (UTC offset reflects machine clock vs config)
+- **PR:** [#61](https://github.com/yabafre/pekulo/pull/61)
+- **CI run validating GREEN:** [run #25383719691](https://github.com/yabafre/pekulo/actions/runs/25383719691) — 11/11 checks pass (9 pr.yml jobs + Vercel + Vercel Preview Comments)
 
-### Debug Log
+### Implementation summary
 
-### Completion Notes
+Story shipped end-to-end through 7 tasks + 4 fix iterations on T7. The 5 hard-gate jobs (lint, format-check, typecheck, prisma-check, rls-audit) and 4 forward-compat skip-if-absent jobs (test-unit, test-e2e-smoke, lighthouse-ci, axe-a11y) all run green on every PR. The `deploy.yml` workflow ships sequential Dokploy webhooks (api → prices, fail on non-2xx) gated to `push: main` only. The composite `setup-bun` action (Bun 1.3.13 + frozen install) is reused by every job ; `actions/checkout@v5` precedes it per its limitation. Branch protection setup (the 9 required check names + linear history + force-push block) is left as a one-time manual step for Alex post-merge ; documented in `docs/ci/README.md` § Branch protection setup.
 
-### File List
+### Deviations from the original plan (all surfaced + documented as lessons)
+
+The story was internally consistent at draft time but broke against the actual toolchain at four points. Each was patched in-place + captured as a lesson so the next CI / monorepo / Vercel story does not repeat them:
+
+| # | Drift | Cause | Fix | Lesson |
+|---|---|---|---|---|
+| 1 | `bunx --bun action-validator` exits 1 (could not determine executable) | Bare npm `action-validator@0.0.7` is metadata-only; CLI lives in scoped `@action-validator/cli@0.6.0` | Story patched (T1, T2, T3, T7, AC-5 + Dev Notes) ; switched to `bunx --bun @action-validator/cli@latest` | **L6** |
+| 2 | Root proxy `bun --cwd apps/api run prisma:check` silently exits 0 (ENOENT) | Bun's `--cwd` requires absolute paths; relative form fails silently. Formalises W3 watch item from epic-0-context | Switched to `cd apps/api && bun run prisma:check` (matches existing `dev:prices` pattern) | **L7** |
+| 3 | `prisma-check` job failed: `PrismaConfigEnvError: Cannot resolve environment variable: DATABASE_URL` | Prisma 7's `defineConfig` evaluates `env<Env>("DATABASE_URL")` at module-load time, even for no-connection commands like `format --check` and `validate`. Postinstall `prisma generate` (added later) hits the same loader | Two-layer fix: (i) workflow-level `env: DATABASE_URL: postgresql://stub:stub@localhost:5432/stub` in pr.yml ; (ii) `apps/api/package.json#postinstall = "prisma generate"` to materialise `apps/api/generated/prisma/` for the typecheck job | **L8** |
+| 4 | Vercel preview build of apps/web aborted with `Please install typescript` | apps/web previously relied on workspace hoisting from `packages/tsconfig` (typescript ^6.0.3). Bun 1.3.13 hoisting works on dev box + GHA runners ; Vercel's Bun 1.3.6 build context can't resolve the hoisted copy from `apps/web` cwd | Declared `typescript: "^6.0.3"` directly in `apps/web/package.json#devDependencies` | **L9** |
+
+Two pre-existing brownfield issues were also surfaced + fixed in T7's CI-readiness pass (gates couldn't be GREEN otherwise):
+
+- **`turbo.json` typecheck task name** — declared as `check-types` while every workspace's package.json has `typecheck`. Renamed turbo task to `typecheck` (single source of truth: workspace scripts).
+- **6 oxfmt drift files** — 5 pre-existing from story 0-6 (`apps/api/src/modules/hypothesis/*` + `apps/api/src/platform/http/orpc-mount.ts` + `apps/web/src/lib/types.ts`) plus the new `docs/ci/README.md`. The format-check gate is brand new (this story is the gate-introducer) ; previous stories shipped before the gate existed.
+
+### Files changed
+
+```
+.github/actions/setup-bun/action.yml             (new)
+.github/workflows/pr.yml                         (new)
+.github/workflows/deploy.yml                     (new)
+apps/api/package.json                            (added prisma:check + postinstall)
+apps/api/src/modules/hypothesis/hypothesis.integration.test.ts  (oxfmt)
+apps/api/src/modules/hypothesis/hypothesis.service.test.ts      (oxfmt)
+apps/api/src/modules/hypothesis/hypothesis.service.ts           (oxfmt)
+apps/api/src/platform/http/orpc-mount.ts                        (oxfmt)
+apps/web/package.json                            (added typescript devDep)
+apps/web/src/lib/types.ts                        (oxfmt)
+bun.lock                                         (typescript hoisting update)
+docs/ci/README.md                                (new — CI matrix reference)
+docs/lessons.md                                  (added L6, L7, L8, L9)
+docs/state.yaml                                  (status flip — final at step-08)
+docs/stories/0-8-github-actions-pr.md            (this file — patches + Dev Agent Record)
+package.json                                     (added prisma:check + db:rls-audit proxies)
+turbo.json                                       (renamed check-types → typecheck)
+```
+
+### Verification command output (captured at step-07)
+
+```
+=== bun run lint ===                  Found 12 warnings and 0 errors. (exit 0)
+=== bun run format:check ===          All matched files use the correct format. (exit 0)
+=== bun run typecheck ===             Tasks: 8 successful, 8 total — Cached: 8 cached, 8 total — >>> FULL TURBO (exit 0)
+=== bun run prisma:check ===          The schemas at prisma/schema are valid 🚀 (exit 0)
+=== action-validator setup-bun.yml === (exit 0)
+=== action-validator pr.yml ===       (exit 0)
+=== action-validator deploy.yml ===   (exit 0)
+```
+
+CI run #25383719691 (commit 558889d) — 11/11 checks pass. Forward-compat job logs verified: `skip: vitest.config.* not present`, `skip: playwright.config.* not present`, `skip: lighthouserc.* not present`, axe-a11y guard step present. AC-3 fork-PR fallback verified: typecheck job log contains `Remote caching disabled` (TURBO_TOKEN/TEAM not yet configured) followed by `Tasks: 8 successful, 8 total` — gate passes regardless. AC-4 verified: `deploy.yml` absent from PR check list (push: main only).
+
+### Manual setup deferred to Alex (one-time, post-merge)
+
+Documented in `docs/ci/README.md` § Secrets and § Branch protection setup:
+
+- Add repo secrets: `TURBO_TOKEN`, `TURBO_TEAM`, `RLS_AUDIT_DATABASE_URL`, `DOKPLOY_API_DEPLOY_HOOK`, `DOKPLOY_PRICES_DEPLOY_HOOK`.
+- Add `DATABASE_URL=postgresql://stub:stub@localhost:5432/stub` to Vercel project env (preview + production) — already done by Alex during T7 fix iteration #3.
+- Configure branch protection for `main` with the 9 required check names: `pr / lint`, `pr / format-check`, `pr / typecheck`, `pr / prisma-check`, `pr / rls-audit`, `pr / test-unit`, `pr / test-e2e-smoke`, `pr / lighthouse-ci`, `pr / axe-a11y` ; require linear history ; block force pushes.
