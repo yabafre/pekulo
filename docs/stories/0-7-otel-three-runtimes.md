@@ -1,7 +1,7 @@
 # Story: 0-7-otel-three-runtimes — OpenTelemetry SDK init across web, api, prices
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** dev-complete (review-queued)
+**Status:** done (reviewed 2026-05-05 — see Review Record at end of file)
 **Ticket:** [#7](https://github.com/yabafre/pekulo/issues/7)
 **Branch:** `feature/7-0-7-otel-three-runtimes`
 **Commit prefix:** `feat(#7): ...` (or `chore(#7):` / `test(#7):` / `docs(#7):` per task type)
