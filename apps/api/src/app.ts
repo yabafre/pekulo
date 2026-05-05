@@ -1,4 +1,5 @@
 import { trace } from "@opentelemetry/api";
+import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import { loadEnv } from "./config/env";
 import { createRuntimeDependencies } from "./bootstrap/runtime-dependencies";
@@ -25,6 +26,28 @@ export async function startServer(): Promise<ServerHandle> {
   // (plugin-level .onError would be suppressed once this local .onError
   // returns a Response — story 0-7 review finding H5).
   const app = new Elysia()
+    // OpenAPI / Scalar UI — auto-scrapes Elysia-native routes (e.g. /health, /ready).
+    // The oRPC mount at /rpc/v1/* appears as a single wildcard route here ; per-procedure
+    // documentation would require either (a) declaring procedures in @pekulo/contracts with
+    // .route({ method, path }) annotations and switching to oRPC's OpenAPIHandler, or
+    // (b) emitting a sister spec from the contracts at codegen time. Both are deferred.
+    // V1 (a) perso — playground exposed publicly ; gate behind auth at the (b) public ramp.
+    .use(
+      openapi({
+        path: "/openapi",
+        provider: "scalar",
+        documentation: {
+          info: {
+            title: "Pekulo API",
+            version: "v1",
+            description:
+              "Pekulo domain API — Bun + Elysia + oRPC. Direct REST routes documented here ; per-procedure oRPC docs via /rpc/v1/* not yet generated (see ADR-0009).",
+          },
+          servers: [{ url: `http://${env.HOST}:${env.PORT}`, description: "Local" }],
+        },
+        exclude: { methods: ["options", "head"] },
+      }),
+    )
     .use(elysiaOtelHttpPlugin())
     .onError(({ error, set, request, route }) => {
       // requestId correlation: prefer the requestId attached by mountOrpc;
