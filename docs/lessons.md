@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-05 — Next.js workspaces MUST declare `typescript` per-package — workspace hoisting is fragile across installers (Scope: aped-dev, aped-story — story 0-8 + every Next.js / TS-aware app added under apps/\*)
+
+- **Date:** 2026-05-05
+- **Mistake:** `apps/web/package.json` originally relied on `typescript` being hoisted from `packages/tsconfig` (which declares `typescript: "^6.0.3"` as its own devDep). Locally with Bun 1.3.13 + on GitHub Actions runners, Bun's workspace hoisting puts `typescript` at root `node_modules/typescript` and Node module resolution walks up from `apps/web` to find it. Verified live on Vercel (Bun 1.3.6, build context = `/vercel/path0/apps/web`): `next build` aborted with `Please install typescript by running: yarn add --dev typescript`. Next.js looks up `typescript` via the package's own `node_modules` first ; in Vercel's apps/web build context the hoisted root copy was not visible. Story 0-8 surfaced this because it's the first PR run on a Vercel preview deploy with the new monorepo install path.
+- **Correction:** Added `"typescript": "^6.0.3"` to `apps/web/package.json#devDependencies` (matches the version already declared in `packages/tsconfig`). `bun install` updates the lockfile ; local typecheck still works (cached, no behaviour change). The duplicate declaration is intentional — workspace hoisting is an optimisation, not a contract.
+- **Rule:** Every Next.js app workspace MUST declare `typescript` in its own `devDependencies`, even if a shared `@pekulo/tsconfig` (or similar) already pulls it transitively. Applies to: any future `apps/*` adding Next.js, any extraction of apps/web sub-apps, any standalone TS-aware app on a managed installer (Vercel, Netlify, Render, Cloudflare Pages). The `tsconfig.json + missing typescript dep` combo is the Next.js canonical error and surfaces only at install-time on the deploy host. Locally + on GHA it's masked by hoisting. Apply when adding any new Next.js workspace ; consider the same for `apps/api` if it ever migrates to Vercel (currently Dockerised on Dokploy, so apps/api's hoisting is fine because the Dockerfile copies its workspace tree).
+
 ### 2026-05-05 — Prisma 7 `defineConfig` evaluates `env("DATABASE_URL")` at config-load time even for no-connection commands (Scope: aped-dev, aped-story, aped-arch — story 0-8 + every CI/Docker context invoking prisma format/validate without a live DB)
 
 - **Date:** 2026-05-05
