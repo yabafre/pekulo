@@ -19,6 +19,7 @@ import os
 import sys
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional, Union
+from urllib.parse import urlparse
 
 import yfinance as yf
 from fastapi import FastAPI, Header, HTTPException, Query
@@ -41,6 +42,22 @@ ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*").strip() or "*"
 YF_IMPERSONATE = os.environ.get("YF_IMPERSONATE", "chrome").strip() or "chrome"
 OTEL_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
 OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "pekulo-prices").strip() or "pekulo-prices"
+
+
+# M3 — env validation parity with apps/api's Zod gate. Fail loud at boot so
+# a malformed OTEL_EXPORTER_OTLP_ENDPOINT does not silently fall back at
+# runtime (story 0-7 review).
+if OTEL_OTLP_ENDPOINT:
+    _parsed = urlparse(OTEL_OTLP_ENDPOINT)
+    if not _parsed.scheme or not _parsed.netloc:
+        print(
+            "[prices-service] invalid OTEL_EXPORTER_OTLP_ENDPOINT: {!r} is not a parseable URL".format(
+                OTEL_OTLP_ENDPOINT
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
 
 
 # OTel init — runs at import time so the FastAPIInstrumentor below has a
