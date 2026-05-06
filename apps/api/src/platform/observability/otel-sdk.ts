@@ -109,6 +109,22 @@ export async function startOtel(env: Env): Promise<void> {
     return;
   }
 
+  // Dev gate (L11). Auto-instrumentation patches Elysia route handlers,
+  // Prisma queries, and the require chain (`@opentelemetry/instrumentation`'s
+  // transitive `require-in-the-middle` intercepts every dynamic require for
+  // tracing). Under `bun --hot`, the watcher re-runs the patched modules on
+  // every save and the BatchSpanProcessor's 5s timer keeps the event loop
+  // scheduled — without an OTLP endpoint, the spans go to ConsoleSpanExporter
+  // which is debug noise nobody is reading. The cost is real (CPU, fan
+  // noise on Apple Silicon) and the value in dev is zero unless the dev is
+  // actively shipping spans somewhere. Gate on production OR explicit OTLP
+  // endpoint; if a dev wants console traces locally, point OTLP at any
+  // endpoint to lift the gate (the ConsoleSpanExporter fallback is still
+  // wired below for misconfig debugging).
+  const isDev = env.NODE_ENV === "development";
+  const hasOtlp = !!env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+  if (isDev && !hasOtlp) return;
+
   // Wire OTel's internal diag logger so SDK warnings (failed exports,
   // misconfig) surface at the requested level.
   diag.setLogger(new DiagConsoleLogger(), diagLogLevelFromEnv(env.OTEL_LOG_LEVEL));

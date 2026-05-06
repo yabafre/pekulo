@@ -9,9 +9,13 @@ bun.lockb
 # Builds
 .next/
 .turbo/
+.tamagui/
 dist/
 out/
 build/
+
+# Tamagui CLI artefacts (regenerated on dev/build)
+apps/web/tamagui-prompt.md
 
 # Env (local secrets — never commit)
 .env
@@ -51,3 +55,11 @@ venv/
 
 # Supabase CLI local-state directory (per-machine branch metadata, not committed)
 apps/web/supabase/.branches/
+.vercel
+
+# Yarn 4 — Vercel install only; bun is local DX. Keep .yarn/releases (binary)
+# and .yarnrc.yml committed; ignore everything else yarn generates.
+.yarn/*
+!.yarn/releases
+.yarn/install-state.gz
+yarn.lock

@@ -67,11 +67,35 @@
       "skillPath": "skills/frontend-design/SKILL.md",
       "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
     },
+    "monorepo-tamagui": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "monorepo-tamagui/SKILL.md",
+      "computedHash": "e5e8afc72e6868187c205f0a4c169f9652f3c858a7809cecb25fe4b7073d72bf"
+    },
     "native-data-fetching": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/native-data-fetching/SKILL.md",
       "computedHash": "3cd0ba91f359f9f84cd40f36f356287994a0e952520fac6e03ef7952d0397879"
+    },
+    "tamagui": {
+      "source": "tamagui/tamagui",
+      "sourceType": "github",
+      "skillPath": "plans/tamagui-skill/skills/tamagui/SKILL.md",
+      "computedHash": "c16ef17b45cf188289a72600898110f6245c295c41cf5493b8ead3fd45027544"
+    },
+    "tamagui-best-practices": {
+      "source": "0xbigboss/claude-code",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/tamagui-best-practices/SKILL.md",
+      "computedHash": "b2f815652ca756166a6d9d8d8d324e756f8bd1e8cd32f92955872ad781ef9c92"
+    },
+    "tamagui-v2": {
+      "source": "ramarivera/tamagui-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tamagui-v2/SKILL.md",
+      "computedHash": "ba7274d65b299059bbf2a6f706b69a10e7624aff5fe4dfb4301d55be41c5a1e0"
     },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
