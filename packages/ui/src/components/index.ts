@@ -6,3 +6,4 @@
 export * from "./PekuloDonut";
 export * from "./PekuloHero";
 export * from "./PekuloKpiTile";
+export * from "./PekuloMilestoneRow";
