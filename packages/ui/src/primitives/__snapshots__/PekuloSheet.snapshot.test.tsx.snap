@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PekuloSheet snapshot > renders open at first snap point 1`] = `"<span class="_dsp_contents  font_body"><div style="display: contents;"></div></span>"`;
