@@ -58,7 +58,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
-        {process.env.NODE_ENV === "development" && (
+        {/* react-grab observe le DOM en continu. En dev, sur les routes qui
+            mutent le DOM par injection CSS atomique (Tamagui sans compiler),
+            l'observer amplifie la pression CPU. Opt-in via flag explicite —
+            par défaut OFF, à activer ponctuellement (NEXT_PUBLIC_REACT_GRAB=1)
+            quand on a besoin de l'inspection. */}
+        {process.env.NEXT_PUBLIC_REACT_GRAB === "1" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"

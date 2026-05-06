@@ -28,7 +28,7 @@
 //      gain delta line. Labels, headings, neutral chrome must use
 //      $color / $colorSecondary / $colorTertiary.
 
-import { Text, Theme, View } from "tamagui";
+import { Text, View } from "tamagui";
 
 const TOTAL_EUR = 180_400;
 const PLAN_12M_START = 159_017;
@@ -60,74 +60,59 @@ export function HeroBlock() {
   const aheadSign = AHEAD_EUR >= 0 ? "+" : "−";
   const aheadAbs = formatEur(Math.abs(AHEAD_EUR));
 
+  // Theme wrapper retiré — TamaguiProvider porte déjà defaultTheme="pekulo-dark"
+  // (provider.tsx). Un <Theme> imbriqué crée un sub-ThemeContext consumer
+  // redondant qui déclenche un re-render + atomic-CSS lookup à chaque mount.
   return (
-    <Theme name="pekulo-dark">
-      <View
-        backgroundColor="$backgroundCard"
-        borderRadius={16}
-        padding={24}
-        width="100%"
-        maxWidth={520}
-      >
-        <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
-          Patrimoine total
-        </Text>
-        <Text
-          color="$color"
-          fontSize={44}
-          fontWeight="600"
-          letterSpacing={-0.5}
-          marginTop={8}
-        >
-          {formatEur(TOTAL_EUR)}
-        </Text>
+    <View
+      backgroundColor="$backgroundCard"
+      borderRadius={16}
+      padding={24}
+      width="100%"
+      maxWidth={520}
+    >
+      <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
+        Patrimoine total
+      </Text>
+      <Text color="$color" fontSize={44} fontWeight="600" letterSpacing={-0.5} marginTop={8}>
+        {formatEur(TOTAL_EUR)}
+      </Text>
 
-        <View flexDirection="row" alignItems="baseline" gap={6} marginTop={8}>
-          <Text color="$accent" fontSize={14} fontWeight="500">
-            {aheadSign}
-            {aheadAbs}
+      <View flexDirection="row" alignItems="baseline" gap={6} marginTop={8}>
+        <Text color="$accent" fontSize={14} fontWeight="500">
+          {aheadSign}
+          {aheadAbs}
+        </Text>
+        <Text color="$colorTertiary" fontSize={14}>
+          vs plan · 12 mois
+        </Text>
+      </View>
+
+      <View flexDirection="row" gap={32} marginTop={32}>
+        <View flex={1}>
+          <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
+            Cap
           </Text>
-          <Text color="$colorTertiary" fontSize={14}>
-            vs plan · 12 mois
+          <Text color="$color" fontSize={20} fontWeight="600" marginTop={4}>
+            {formatEur(TARGET_CAPITAL)}
+          </Text>
+          <Text color="$colorTertiary" fontSize={12}>
+            en {TARGET_YEAR}
           </Text>
         </View>
 
-        <View flexDirection="row" gap={32} marginTop={32}>
-          <View flex={1}>
-            <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
-              Cap
-            </Text>
-            <Text
-              color="$color"
-              fontSize={20}
-              fontWeight="600"
-              marginTop={4}
-            >
-              {formatEur(TARGET_CAPITAL)}
-            </Text>
-            <Text color="$colorTertiary" fontSize={12}>
-              en {TARGET_YEAR}
-            </Text>
-          </View>
-
-          <View flex={1}>
-            <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
-              Plan / an
-            </Text>
-            <Text
-              color="$color"
-              fontSize={20}
-              fontWeight="600"
-              marginTop={4}
-            >
-              {formatCompactEur(REQUIRED_12M_EUR)}
-            </Text>
-            <Text color="$colorTertiary" fontSize={12}>
-              linéaire
-            </Text>
-          </View>
+        <View flex={1}>
+          <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
+            Plan / an
+          </Text>
+          <Text color="$color" fontSize={20} fontWeight="600" marginTop={4}>
+            {formatCompactEur(REQUIRED_12M_EUR)}
+          </Text>
+          <Text color="$colorTertiary" fontSize={12}>
+            linéaire
+          </Text>
         </View>
       </View>
-    </Theme>
+    </View>
   );
 }
