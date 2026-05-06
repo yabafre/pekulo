@@ -14,19 +14,30 @@ import * as matchers from "vitest-axe/matchers";
 import { expect } from "vitest";
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
+import { TamaguiProvider } from "tamagui";
+
+import { config } from "../src/config/tamagui";
 
 expect.extend(matchers);
 
-// Lazy import to avoid loading Tamagui at config-evaluation time.
-function PekuloTestProvider({ children }: { children: ReactNode }): ReactElement {
-  // Imported inside the component so the module graph in vitest.config.ts
-  // doesn't pull Tamagui into setup before happy-dom is ready.
-  const { PekuloRootProvider } = require("../src/provider");
-  return PekuloRootProvider({ children });
+// Test wrapper: TamaguiProvider only (no NextThemeProvider — that wrapper
+// pulls @tamagui/next-theme which imports next/script, a peer that lives
+// only in apps/web). defaultTheme="pekulo-dark" still applies in tests.
+function TamaguiTestProvider({ children }: { children: ReactNode }): ReactElement {
+  return (
+    <TamaguiProvider
+      config={config}
+      defaultTheme="pekulo-dark"
+      disableInjectCSS
+      disableRootThemeClass
+    >
+      {children}
+    </TamaguiProvider>
+  );
 }
 
 export function renderWithTamagui(ui: ReactElement, options?: RenderOptions) {
-  return render(ui, { wrapper: PekuloTestProvider, ...options });
+  return render(ui, { wrapper: TamaguiTestProvider, ...options });
 }
 
 // Re-export common testing utilities for convenience.
