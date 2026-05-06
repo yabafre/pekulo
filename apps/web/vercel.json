@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "bun install --filter=web --filter='@pekulo/*' --ignore-scripts"
+  "bunVersion": "1.x",
+  "installCommand": "corepack enable && yarn install"
 }
