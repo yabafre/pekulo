@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "tamagui generate-css && bun run fix:tamagui-css && next dev",
+    "build": "tamagui generate-css && bun run fix:tamagui-css && tamagui build --target web ./src -- next build",
+    "fix:tamagui-css": "sed -i '' -e 's/^     {/:root {/g' -e 's/^, \\.tm_/:root, .tm_/g' public/tamagui.generated.css",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:contrast": "bun test 'src/app/(spike)/tamagui-spike/contrast.test.ts'"
@@ -27,6 +28,7 @@
     "@tamagui/config": "2.0.0-rc.41",
     "@tamagui/core": "2.0.0-rc.41",
     "@tamagui/next-theme": "2.0.0-rc.41",
+    "@tamagui/web": "2.0.0-rc.41",
     "@tanstack/react-form": "^1.29.1",
     "@tanstack/react-query": "^5.100.5",
     "@zapaction/core": "^0.2.2",

@@ -66,6 +66,7 @@
         "@tamagui/config": "2.0.0-rc.41",
         "@tamagui/core": "2.0.0-rc.41",
         "@tamagui/next-theme": "2.0.0-rc.41",
+        "@tamagui/web": "2.0.0-rc.41",
         "@tanstack/react-form": "^1.29.1",
         "@tanstack/react-query": "^5.100.5",
         "@zapaction/core": "^0.2.2",

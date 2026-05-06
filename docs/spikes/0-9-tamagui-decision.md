@@ -27,6 +27,44 @@ A fourth signal surfaced during T4.2 manual review: **runtime theme application 
 
 This isn't a formally-defined pivot trigger either, but it's the third independent rough edge on the Tamagui v2-rc.41 ↔ Next 16 ↔ React 19 surface — together they say the substrate is not yet stable enough to absorb. The fix shipped in commit `e0ecc0f`; the dev render now carries the correct hex values (`#07090E` / `#0E1117` / `#10B981` / `#F1F5F9`) per the curl-confirmed payload at T6 time.
 
+A fifth signal surfaced post-merge during reviewer's manual `bun run dev` (root, not `dev:web`) walkthrough: **the spike's `transpilePackages` + `turbopack.resolveAlias` cost is unsustainable on a 16 GB Apple Silicon laptop**. Measured live with `top -l 2 -s 1 -o cpu` while the spike route was being reviewed:
+
+| Process | CPU | RAM (rss) | Note |
+| --- | --- | --- | --- |
+| `next-server (v16.2.4)` | **269%** | **3.69 GB** (5 GB virtual) | Turbopack worker pool compiling Tamagui + react-native-web |
+| `fseventsd` | **256%** | 7 KB | Kernel daemon flooded by the file-event firehose from the watcher tree under `node_modules/.bun/@tamagui+*/…` and the spike's `apps/web/.tamagui/` cache rewriting on every render |
+| `kernel_task` | 96% | 85 MB | System-overload symptom while the Mac swap-thrashed |
+
+System Load Avg peaked at **11.6** with **60% sys time** and **80 MB unused PhysMem** (16 GB Mac), forcing macOS into 5 GB of compressor pressure and continuous swap. The reviewer's fans pegged loud enough that the spike route was unreviewable until the dev tier was killed. Cause attribution:
+
+1. `transpilePackages: ['tamagui', '@tamagui/core', '@tamagui/config', '@tamagui/next-theme', 'react-native-web']` forces Turbopack to traverse every TypeScript source file in those packages on cold start — `react-native-web@0.19.13` alone ships ~2 MB of source across hundreds of files. Once bundled, the graph stays in Turbopack's memory cache.
+2. `turbopack.resolveAlias['react-native']: 'react-native-web'` deepens every transitive `import 'react-native'` resolution chain, multiplying the watcher's surface area.
+3. `apps/web/.tamagui/tamagui.config.cjs` is regenerated on dev start (Tamagui's runtime config-bundler artefact); inside the watched tree, this looks like a churning file to Turbopack and feeds back into HMR.
+
+Two unrelated Mac-config sinks were ruled out during the diagnosis (so future readers know the cost above is pure spike attribution): a 5 GB `OrbStack Helper` resident from a stopped Linux-container daemon, and two orphaned `bun test` processes (738 MB + 397 MB) left over from this skill's earlier test runs. After clearing both, `next-server`'s 5 GB and `fseventsd`'s 256% remained — the spike workload is the residual.
+
+This is not a formal pivot trigger either, but combined with finding 4 (substrate fragility), finding 1 (AC-1 strict-fail), finding 2 (AC-2 contrast), and finding 3 (`@tamagui/cli` blocked on bun monorepo), it adds a hard local-DX constraint: V1 cannot ship a design system whose dev-loop pegs a 16 GB Apple Silicon laptop and forces reviewers to stop apps/api just to keep the fans calm. The pivot decision absorbs this mechanically — once the Tamagui transpile chain leaves `apps/web/next.config.ts`, the dev tier returns to its pre-spike footprint.
+
+A sixth signal surfaced after a serious effort to follow the official Tamagui Next.js Turbopack guide end-to-end (https://tamagui.dev/docs/guides/next-js, "App Router (Turbopack)"). The reviewer challenged the heat by asking "did you respect the docs?", and the honest answer was that the **`outputCSS` static-extraction step had been skipped** because `@tamagui/cli`'s config bundler bailed on bun's nested `.bun` package layout (finding 3). On retry, the CLI block was unblocked by hoisting `@tamagui/web` as a direct dep of `apps/web/package.json` (so `apps/web/.tamagui/tamagui.config.cjs`'s `require('@tamagui/web')` resolves through the workspace's own `node_modules`). With that fixed:
+
+1. `@tamagui/cli@2.0.0-rc.41` could now run `tamagui generate-css`, emitting `apps/web/public/tamagui.generated.css` (12 KB with all `--t0…--t23` Pekulo tokens, font stacks, sizes, radii).
+2. The CSS was wired into `apps/web/src/app/layout.tsx` via `import "../../public/tamagui.generated.css"`, before the `Providers` mount.
+3. `TamaguiProvider` was switched to `disableInjectCSS` + `disableRootThemeClass` per the docs example, since the static CSS now carries the token map and `NextThemeProvider` raises the `data-theme` attribute on `<html>`.
+4. `tamagui.build.ts` was added with `outputCSS: './public/tamagui.generated.css'` so future `tamagui build --target web ./src -- next build` invocations regenerate at the documented path.
+
+Two CLI emit-bugs surfaced when the static CSS was first served by Next:
+
+- The `@media(prefers-color-scheme:light)` block emitted an empty selector (`{ --background: var(--t14); …}` with nothing before the `{`); PostCSS rejected the whole file with `Invalid empty selector`.
+- The pekulo-dark theme emitted `, .tm_xxt {…}` (leading-comma selector with no first selector); PostCSS rejected this too.
+
+A two-line `sed` post-process step was added to the `dev`/`build` scripts (`fix:tamagui-css`) that rewrites `^     {` → `:root {` and `^, \.tm_` → `:root, .tm_`. With both patches applied the CSS is valid and `next-server` serves the spike route again.
+
+`pekulo-light` was dropped from `tamagui.config.ts#themes` (kept in `tokens.ts` for the AC-2 contrast test, which exercises both palettes directly without going through Tamagui) because the CLI emit-bugs got worse with two custom-named themes than with one — the second theme's `prefers-color-scheme` block always emitted with a missing selector. This is itself a **design constraint inherited from the RC**: the v2-rc.41 CLI assumes themes are named `light` / `dark` (Tamagui-default convention) and any other naming triggers selector-generation drift.
+
+After all that — an honest end-to-end implementation of the doc-recommended path with two CLI bug-workarounds — **the reviewer's Mac fans still spun loud on the spike route**. Restart-and-load measurement confirmed the residual cost is the `transpilePackages` + `turbopack.resolveAlias` chain (still required, the static CSS doesn't replace package transpile), not the runtime CSS injection that the static file replaced. So the pre-existing finding 5 measurement (269% CPU, 5 GB RAM on `next-server`) drops, but does not eliminate, when the CSS path is wired correctly. The dev-tier tax for Tamagui v2-rc.41 on a 16 GB Apple Silicon laptop is not paid back by the static-CSS optimisation alone.
+
+This is the hardest signal of the six. The reviewer asked the right question — "did you respect the docs?" — the honest engineering answer was "no, partly", we then **did** respect the docs end-to-end, and the dev-tier was still untenable. That is the W2 closure: not "Tamagui is wrong" but "Tamagui v2-rc.41 + Next 16 Turbopack + bun monorepo + 16 GB Apple Silicon = the four-axis combination this project actually has — does not stabilise into a comfortable dev loop in 2026-Q2."
+
 The next action below routes to `aped-course` to revert ADR-0007 and unblock story 0-10 with a Tailwind-only ramp.
 
 ## Measurements
@@ -97,7 +135,9 @@ Per ADR-0007 "Consequences" → "Pivot conditions", any of the following trigger
 - Any contrast pair below WCAG 2.2 AA → **triggered** (see AC-2 table; 2 / 16 pairs fail in pekulo-light, though the cause is token design rather than Tamagui's theming system).
 - Migration runtime estimate balloons past 4 weeks → out of scope for this spike (covered at story 0-10 kick-off).
 
-A fourth pragmatic concern surfaced outside the formal pivot list: **`@tamagui/cli` cannot bundle the config under bun monorepo layout** (see T3 commit body and the Debug Log entry "T1.2 Turbopack pivot"). This removes the `outputCSS` static-extraction lever Tamagui ships for production perf, leaving Pekulo on Tamagui's runtime style injection only — acceptable for a spike, not for V1's perf budgets.
+Two pragmatic concerns surfaced outside the formal pivot list:
+
+(a) **`@tamagui/cli` cannot bundle the config under bun monorepo layout** (see T3 commit body and the Debug Log entry "T1.2 Turbopack pivot"). This removes the `outputCSS` static-extraction lever Tamagui ships for production perf, leaving Pekulo on Tamagui's runtime style injection only — acceptable for a spike, not for V1's perf budgets.
 
 ## Next action
 

@@ -29,23 +29,9 @@ const pekuloDark = {
   info: pekuloColors.dark.semantic.info,
 } as const;
 
-const pekuloLight = {
-  background: pekuloColors.light.surface.bg,
-  backgroundCard: pekuloColors.light.surface.card,
-  backgroundElevated: pekuloColors.light.surface.elevated,
-  backgroundMuted: pekuloColors.light.surface.muted,
-  color: pekuloColors.light.text.primary,
-  colorSecondary: pekuloColors.light.text.secondary,
-  colorTertiary: pekuloColors.light.text.tertiary,
-  colorMuted: pekuloColors.light.text.muted,
-  colorOnAccent: pekuloColors.light.text.onAccent,
-  accent: pekuloColors.light.accent[500],
-  accentHover: pekuloColors.light.accent[600],
-  success: pekuloColors.light.semantic.success,
-  warning: pekuloColors.light.semantic.warning,
-  danger: pekuloColors.light.semantic.danger,
-  info: pekuloColors.light.semantic.info,
-} as const;
+// pekuloLight removed from runtime — see the `themes:` block below for the
+// CLI's `prefers-color-scheme` selector-emission bug. The light palette stays
+// in tokens.ts so the contrast test can still exercise it.
 
 export const config = createTamagui({
   ...defaultConfig,
@@ -68,9 +54,18 @@ export const config = createTamagui({
   // `<View backgroundColor="$backgroundCard">`. The spike only consumes <View>
   // and <Text> primitives which don't need component themes (Button, Input,
   // …). Story 0-10 will revisit theme composition when @pekulo/ui ships.
+  // We register only `pekulo-dark` in Tamagui's runtime config because the
+  // CLI's `tamagui generate-css` (v2-rc.41) emits malformed CSS when a second
+  // custom-named theme is present alongside a `prefers-color-scheme` media
+  // block — the second theme's selector is dropped and PostCSS rejects the
+  // whole file with `Invalid empty selector` (verified live, line 32 of the
+  // generated output). The W2 contrast contract tests `pekulo-light` from
+  // `tokens.ts` directly (independent of Tamagui's runtime), so the AC-2
+  // proof survives. When 0-10 (or its post-pivot replacement) re-evaluates
+  // the design system, the second theme either lands on a stable Tamagui
+  // release or gets emitted via a hand-rolled CSS layer.
   themes: {
     "pekulo-dark": pekuloDark,
-    "pekulo-light": pekuloLight,
   },
   defaultTheme: "pekulo-dark",
 });
