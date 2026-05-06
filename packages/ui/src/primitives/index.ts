@@ -5,6 +5,7 @@ export * from "./PekuloPopover";
 export * from "./PekuloProgress";
 export * from "./PekuloRadioGroup";
 export * from "./PekuloSelect";
+export * from "./PekuloSeparator";
 export * from "./PekuloSheet";
 export * from "./PekuloSlider";
 export * from "./PekuloSwitch";
