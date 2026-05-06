@@ -14,9 +14,9 @@
   "files": ["src", "public", "tamagui.config.ts", "tamagui.build.ts"],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:visual": "vitest run --testNamePattern='snapshot'",
-    "test:axe": "vitest run --testNamePattern='a11y'",
+    "test": "vitest run --passWithNoTests",
+    "test:visual": "vitest run --passWithNoTests --testNamePattern='snapshot'",
+    "test:axe": "vitest run --passWithNoTests --testNamePattern='a11y'",
     "test:watch": "vitest",
     "generate:tamagui-css": "tamagui generate-css && bun run fix:tamagui-css",
     "fix:tamagui-css": "sed -i '' -e 's/^     {/:root {/g' -e 's/^, \\.tm_/:root, .tm_/g' public/tamagui.generated.css"

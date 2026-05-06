@@ -16,8 +16,12 @@
     "typecheck": "turbo run typecheck",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "generate:tamagui-css": "bun --filter='@pekulo/ui' run generate:tamagui-css",
     "prisma:check": "cd apps/api && bun run prisma:check",
-    "db:rls-audit": "cd apps/api && bun run db:rls-audit"
+    "db:rls-audit": "cd apps/api && bun run db:rls-audit",
+    "test:ui": "bun --filter='@pekulo/ui' run test",
+    "test:ui:axe": "bun --filter='@pekulo/ui' run test:axe",
+    "test:ui:visual": "bun --filter='@pekulo/ui' run test:visual"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
