@@ -1,0 +1,169 @@
+{
+  "generatedAt": "2026-05-06T09:49:36.808Z",
+  "thresholds": {
+    "body": 4.5,
+    "large": 3
+  },
+  "rows": [
+    {
+      "theme": "dark",
+      "pair": "text.primary on surface.bg",
+      "fg": "#F1F5F9",
+      "bg": "#07090E",
+      "size": "body",
+      "ratio": 18.179167615468472,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "pair": "text.primary on surface.card",
+      "fg": "#F1F5F9",
+      "bg": "#0E1117",
+      "size": "body",
+      "ratio": 17.250367967834844,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "pair": "text.secondary on surface.card",
+      "fg": "#CBD5E1",
+      "bg": "#0E1117",
+      "size": "body",
+      "ratio": 12.728528699505102,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "pair": "text.tertiary on surface.card",
+      "fg": "#94A3B8",
+      "bg": "#0E1117",
+      "size": "large",
+      "ratio": 7.370424989525952,
+      "threshold": 3,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "pair": "accent.500 on surface.card",
+      "fg": "#10B981",
+      "bg": "#0E1117",
+      "size": "body",
+      "ratio": 7.449992169775917,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "pair": "semantic.danger on surface.card",
+      "fg": "#F87171",
+      "bg": "#0E1117",
+      "size": "body",
+      "ratio": 6.831918155901546,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "pair": "semantic.warning on surface.card",
+      "fg": "#FBBF24",
+      "bg": "#0E1117",
+      "size": "body",
+      "ratio": 11.320524138355612,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "pair": "semantic.info on surface.card",
+      "fg": "#60A5FA",
+      "bg": "#0E1117",
+      "size": "body",
+      "ratio": 7.433097133181882,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "pair": "text.primary on surface.bg",
+      "fg": "#0F172A",
+      "bg": "#FAFAFA",
+      "size": "body",
+      "ratio": 17.103975676880832,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "pair": "text.primary on surface.card",
+      "fg": "#0F172A",
+      "bg": "#FFFFFF",
+      "size": "body",
+      "ratio": 17.85253496299567,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "pair": "text.secondary on surface.card",
+      "fg": "#334155",
+      "bg": "#FFFFFF",
+      "size": "body",
+      "ratio": 10.35474573184942,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "pair": "text.tertiary on surface.card",
+      "fg": "#475569",
+      "bg": "#FFFFFF",
+      "size": "large",
+      "ratio": 7.577663953533317,
+      "threshold": 3,
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "pair": "accent.500 on surface.card",
+      "fg": "#059669",
+      "bg": "#FFFFFF",
+      "size": "body",
+      "ratio": 3.7681843718971657,
+      "threshold": 4.5,
+      "pass": false
+    },
+    {
+      "theme": "light",
+      "pair": "semantic.danger on surface.card",
+      "fg": "#DC2626",
+      "bg": "#FFFFFF",
+      "size": "body",
+      "ratio": 4.829404522659002,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "pair": "semantic.warning on surface.card",
+      "fg": "#D97706",
+      "bg": "#FFFFFF",
+      "size": "body",
+      "ratio": 3.1858232404059073,
+      "threshold": 4.5,
+      "pass": false
+    },
+    {
+      "theme": "light",
+      "pair": "semantic.info on surface.card",
+      "fg": "#2563EB",
+      "bg": "#FFFFFF",
+      "size": "body",
+      "ratio": 5.168555560022562,
+      "threshold": 4.5,
+      "pass": true
+    }
+  ]
+}
