@@ -80,7 +80,6 @@ export function PekuloSuggestionRow({ tx, onConfirm, onEdit }: PekuloSuggestionR
         <View flex={1} />
         <View
           render="button"
-          role="button"
           onPress={onConfirm}
           paddingHorizontal="$3"
           paddingVertical={6}
@@ -100,7 +99,6 @@ export function PekuloSuggestionRow({ tx, onConfirm, onEdit }: PekuloSuggestionR
         </View>
         <View
           render="button"
-          role="button"
           onPress={onEdit}
           paddingHorizontal="$2"
           paddingVertical={6}

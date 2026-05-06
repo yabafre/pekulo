@@ -1,3 +1,5 @@
+"use client";
+
 // packages/ui/src/animations/use-count-up.ts
 // rAF-based count-up. Replaces framer-motion's useMotionValue + useSpring.
 // Returns the currently-animated number, ticking on requestAnimationFrame.

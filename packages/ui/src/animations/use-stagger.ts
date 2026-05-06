@@ -1,3 +1,5 @@
+"use client";
+
 // packages/ui/src/animations/use-stagger.ts
 // Computes per-item delays for a staggered list animation. Returns
 // [0, delayMs, 2·delayMs, ...] under normal motion ; [0, 0, ...] under

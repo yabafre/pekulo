@@ -29,11 +29,10 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthPage = pathname.startsWith("/auth");
   const isApi = pathname.startsWith("/api");
-  const isSpike = pathname.startsWith("/tamagui-spike");
   const isStatic = pathname.startsWith("/_next") || pathname.includes(".");
 
   if (!isStatic) {
-    if (!user && !isAuthPage && !isApi && !isSpike && pathname !== "/") {
+    if (!user && !isAuthPage && !isApi && pathname !== "/") {
       return NextResponse.redirect(new URL("/auth/login", request.url));
     }
     if (user && isAuthPage) {
