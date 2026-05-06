@@ -4,10 +4,14 @@
 
 // (T5/T6 components inserted alphabetically — see each task for the export line)
 export * from "./PekuloCompositionRow";
+export * from "./PekuloContextualAddButton";
 export * from "./PekuloDonut";
 export * from "./PekuloHero";
 export * from "./PekuloHypothesisVerdict";
 export * from "./PekuloKpiTile";
 export * from "./PekuloMilestoneRow";
+export * from "./PekuloNavRail";
 export * from "./PekuloProjectionChart";
+export * from "./PekuloTopTabToggle";
 export * from "./PekuloTrajectoryChart";
+export * from "./PekuloUserDot";
