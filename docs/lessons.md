@@ -13,6 +13,15 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-06 — OTel NodeSDK in Next.js dev pegs CPU and spins laptop fans — gate on `OTEL_EXPORTER_OTLP_ENDPOINT` outside production (Scope: aped-arch, aped-dev — apps/web instrumentation + every future Next.js / Node app that wires `@opentelemetry/sdk-node`)
+
+- **Date:** 2026-05-06
+- **Mistake:** `apps/web/src/instrumentation.ts` invoked `await import("./instrumentation.node")` whenever `NEXT_RUNTIME === "nodejs"`, with no dev gate. The Node SDK then booted with `BatchSpanProcessor` (5s flush timer), `ConsoleSpanExporter` (stdout dump), `FetchInstrumentation` (patches every `fetch()` — Next 16 RSC fires dozens per second between server payloads, HMR chunks, prefetch, hydration), and `@opentelemetry/instrumentation`'s transitive `require-in-the-middle` (intercepts every dynamic `require()` for tracing — the build had already flagged `Critical dependency: require function is used in a way in which dependencies cannot be statically extracted`). On Apple Silicon laptops the combination kept the CPU pegged enough to spin the fans loudly. None of this provides any value locally without an OTLP endpoint to ship spans to.
+- **Correction:** `apps/web/src/instrumentation.ts` now early-returns in dev unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set. The full gate is `if (NEXT_RUNTIME !== "nodejs") return; if (NODE_ENV !== "production" && !OTEL_EXPORTER_OTLP_ENDPOINT) return; await import("./instrumentation.node")`. Production keeps default-on behaviour; dev folks who want OTel locally just export the OTLP endpoint and the gate lets the import through.
+- **Rule:** Auto-instrumentation packages that patch dynamic requires (`@opentelemetry/instrumentation`, `require-in-the-middle`, `import-in-the-middle`, `app-instrumentation`) MUST be gated behind a production-or-explicit-opt-in check before `register()` lands them in dev. Default-on dev tracing under Next.js Turbopack + RSC compounds with the framework's internal fetch traffic and turns the dev server into a CPU sink. Apply at every future Next.js/Node app instrumentation hook (apps/api currently uses Bun + Elysia, different runtime — but the same gate applies if `apps/api/src/otel.ts` ever calls `sdk.start()` from a dev script).
+- **Generalisation:** the same trap applies to any auto-instrumentation that runs by default and traces a hot path (DB query interceptors, file-system mock layers, console-exporter telemetry). The dev-gate template is the same: `production OR explicit endpoint OR explicit env flag → load; else early-return`.
+
+
 ### 2026-05-06 — `bun --hot` HMR re-imports module-level state but OTel global registrations survive — pin SDK on globalThis (Scope: aped-dev — apps/api OTel + every future SDK with global registrations under bun --hot)
 
 - **Date:** 2026-05-06
