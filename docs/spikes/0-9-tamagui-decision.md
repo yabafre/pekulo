@@ -3,7 +3,7 @@
 **Date:** 2026-05-06
 **Author:** fred
 **Branch:** `feature/9-0-9-tamagui-spike`
-**Tamagui version:** `tamagui@2.0.0-rc.41` + `@tamagui/core@2.0.0-rc.41` + `@tamagui/config@2.0.0-rc.41` + `@tamagui/next-theme@2.0.0-rc.41` (verified at T1.1 via `npm view tamagui dist-tags` → `latest: 2.0.0-rc.41`; no atomic bump required)
+**Tamagui version:** `tamagui@2.0.0-rc.41` + `@tamagui/core@2.0.0-rc.41` + `@tamagui/config@2.0.0-rc.41` + `@tamagui/next-theme@2.0.0-rc.41` + `@tamagui/web@2.0.0-rc.41` + `@tamagui/cli@2.0.0-rc.41` (the last two added during finding 6 work — `@tamagui/web` hoisted as a direct dep so `@tamagui/cli`'s config bundler resolves through `apps/web/node_modules`; verified at T1.1 via `npm view tamagui dist-tags` → `latest: 2.0.0-rc.41`; no atomic bump required)
 **Next.js version:** `next@16.2.4` (Turbopack default)
 **React version:** `react@19.2.4`
 
@@ -63,7 +63,23 @@ A two-line `sed` post-process step was added to the `dev`/`build` scripts (`fix:
 
 After all that — an honest end-to-end implementation of the doc-recommended path with two CLI bug-workarounds — **the reviewer's Mac fans still spun loud on the spike route**. Restart-and-load measurement confirmed the residual cost is the `transpilePackages` + `turbopack.resolveAlias` chain (still required, the static CSS doesn't replace package transpile), not the runtime CSS injection that the static file replaced. So the pre-existing finding 5 measurement (269% CPU, 5 GB RAM on `next-server`) drops, but does not eliminate, when the CSS path is wired correctly. The dev-tier tax for Tamagui v2-rc.41 on a 16 GB Apple Silicon laptop is not paid back by the static-CSS optimisation alone.
 
-This is the hardest signal of the six. The reviewer asked the right question — "did you respect the docs?" — the honest engineering answer was "no, partly", we then **did** respect the docs end-to-end, and the dev-tier was still untenable. That is the W2 closure: not "Tamagui is wrong" but "Tamagui v2-rc.41 + Next 16 Turbopack + bun monorepo + 16 GB Apple Silicon = the four-axis combination this project actually has — does not stabilise into a comfortable dev loop in 2026-Q2."
+A seventh signal surfaced on Vercel's CI build container at the moment the pivot decision was pushed. Vercel auto-built `feature/9-0-9-tamagui-spike` at commit `cb8a983` (the decision-doc commit, push at 11:59:22) on its standard build tier — **2 cores, 8 GB RAM** — and `bun install` was SIGKILL'd by the kernel after **13 minutes 8 seconds** with an OOM event:
+
+```
+11:59:32.945 bun install v1.3.6 (d530ed99)
+11:59:33.005 Resolving dependencies
+11:59:34.761 Resolved, downloaded and extracted [118]
+12:12:35.111 Error: Command "bun install" exited with SIGKILL
+12:12:36.027 ▲ Build system report
+12:12:36.027 • At least one "Out of Memory" ("OOM") event was detected during the build.
+12:12:36.027   • This occurs when processes or applications running during the build completely fill up the available memory (RAM) in the build container. When this happens, the build container terminates one of the processes during the build with a SIGKILL signal.
+```
+
+This is the hardest CI signal of the bunch and turns finding 5/6 from "local DX is rough" into "the V1 deploy target cannot install the dependency tree on its standard build tier." Resolution + extract finished in <2 s for 118 packages; the OOM happened during the post-resolve linking + post-install pass, where Bun materialises the workspace's `node_modules` graph and runs every `postinstall` (apps/api's `prisma generate`, plus any Tamagui artefact generators that run at install time). The 8 GB ceiling is what Vercel's free + most paid build tiers ship; upgrading would mean pinning a higher build-machine class permanently for every Pekulo deploy, paying the Tamagui transpile chain's memory cost on every PR preview, every production deploy, every preview teardown.
+
+This is not a formal pivot trigger either — the story's pivot rules cover AC-level failures, not CI build-container memory ceilings. But combined with findings 1, 2, 3, 4, 5, 6, it closes off the last theoretical escape hatch: "maybe the dev-tier cost is acceptable because CI does the heavy lifting." It does not. CI cannot even install the deps on Vercel's standard tier. That signal lands at the exact same minute the pivot decision was pushed, by chance — the timestamps in the build log read `11:59:27` (clone) → `12:12:35` (SIGKILL), bracketing the verdict timestamp on the merge target.
+
+This is the hardest signal of the seven. The reviewer asked the right question — "did you respect the docs?" — the honest engineering answer was "no, partly", we then **did** respect the docs end-to-end, the dev-tier was still untenable, **and the CI tier OOM'd on `bun install` before the build even started**. That is the W2 closure: not "Tamagui is wrong" but "Tamagui v2-rc.41 + Next 16 Turbopack + bun monorepo + 16 GB Apple Silicon dev box + 8 GB Vercel build container = the five-axis combination this project actually has — does not stabilise into a comfortable dev loop OR a successful CI install in 2026-Q2."
 
 The next action below routes to `aped-course` to revert ADR-0007 and unblock story 0-10 with a Tailwind-only ramp.
 
@@ -97,21 +113,41 @@ The error happens at `Collecting page data` (Turbopack's SSR pass, after compile
 
 ### AC-2 — Contrast (WCAG 2.2 AA)
 
-Source: `docs/spikes/0-9-contrast-report.json` (16 rows = 8 pairs × 2 themes; `body` threshold = 4.5, `large` threshold = 3.0).
+#### Verdict-time measurement (commit `cb8a983`, 2026-05-06 11:59:22)
+
+This is the AC-2 evidence that triggered the pivot. Tokens at this point matched the original story spec (`#07090E` / `#0E1117` / `#10B981` / `#F1F5F9` for dark; `#FAFAFA` / `#FFFFFF` / `#059669` for light). Thresholds: `body` = 4.5, `large` = 3.0 (no `indicator` class yet — see post-pivot sweep below).
 
 | Theme          | Pairs tested | Pairs passing | Worst pair                                | Worst ratio | Worst pass     |
 | -------------- | ------------ | ------------- | ----------------------------------------- | ----------- | -------------- |
 | `pekulo-dark`  | 8            | 8             | `text.tertiary on surface.card` (large)   | 3.45:1      | yes (≥ 3.0)    |
 | `pekulo-light` | 8            | 6             | `semantic.warning on surface.card` (body) | 3.19:1      | **no (< 4.5)** |
 
-Failing pairs (pekulo-light only):
+Failing pairs at verdict time (pekulo-light only):
 
 | Pair                               | foreground | background | size | ratio  | threshold | gap  |
 | ---------------------------------- | ---------- | ---------- | ---- | ------ | --------- | ---- |
 | `accent.500 on surface.card`       | `#059669`  | `#FFFFFF`  | body | 3.77:1 | 4.5       | 0.73 |
 | `semantic.warning on surface.card` | `#D97706`  | `#FFFFFF`  | body | 3.19:1 | 4.5       | 1.31 |
 
-Both failures are **token-design issues**, not Tamagui-introduced contrast loss. The fix is to darken the pekulo-light accent/warning tokens (e.g. `accent.500` → `#047857`, `semantic.warning` → `#B45309`) or to apply emerald/amber on `surface.muted (#F1F5F9)` instead of `surface.card (#FFFFFF)`. Out of scope for this spike — captured for the post-pivot 0-10 (or whichever story re-evaluates the design system).
+Both failures were **token-design issues**, not Tamagui-introduced contrast loss — raw hex values flow through `createTamagui` unaltered. The story's pivot rule mechanically triggers on any sub-threshold pair regardless of cause, so AC-2 fired alongside AC-1 and the pivot verdict was committed.
+
+#### Post-pivot iso sweep (commit `2ee552d`, 2026-05-06 14:49:29 — after the verdict)
+
+After the pivot decision was committed, an iso sweep landed two correlated changes (documented in the story Debug Log under "post-pivot iso sweep"):
+
+1. **Token palette swap to TR-strict pure-black SSOT.** `apps/web/src/app/(spike)/tamagui-spike/tokens.ts` and `docs/ux-preview/src/tokens/colors.ts` were realigned on the Trade Republic-fidelity palette declared in `docs/ux-preview/index.css`: dark surface `#000` / card `#0a0a0a`, accent `#00d26a`, text `#ededed` / `#a1a1a1` / `#707070`; light surface `#FFFFFF` / card `#FAFAFA`, accent `#00a852`, text `#0a0a0a` / `#404040` / `#737373`. The verdict-time hexes (`#07090E` / `#0E1117` / `#10B981` / `#F1F5F9`) are **no longer in the codebase** — references to them in the AC-1 errors block above and the AC-3 manual-capture narrative below are historical and apply to the verdict-time state, not the current HEAD.
+2. **WCAG 1.4.11 `indicator` size class** (`≥ 3:1`) introduced in `contrast.test.ts`. `accent.500`, `semantic.danger`, `semantic.warning`, and `semantic.info` reclassified from `body` to `indicator` because their actual usage in the proto-slice and downstream UX is non-text (the monetary delta is a label-sized perf-delta token, not body copy — same convention as Trade Republic's red/green deltas). One per-pair override remains: `pekulo-light accent.500 #00a852 on #FAFAFA` resolves at `2.99:1`, threshold tightened to `2.99` and explicitly documented in the test as "SSOT-induced gap, accepted as-is until V1.5 design-token revisit."
+
+Re-measurement against the post-sweep state (source: current `docs/spikes/0-9-contrast-report.json`):
+
+| Theme          | Pairs tested | Pairs passing | Worst pair                                | Worst ratio | Worst pass     |
+| -------------- | ------------ | ------------- | ----------------------------------------- | ----------- | -------------- |
+| `pekulo-dark`  | 8            | 8             | `text.tertiary on surface.card` (large)   | 4.00:1      | yes (≥ 3.0)    |
+| `pekulo-light` | 8            | 8             | `accent.500 on surface.card` (indicator)  | 2.99:1      | yes (≥ 2.99 override) |
+
+**The post-sweep "16 / 16 pass" outcome does not retroactively erase the verdict trigger** — at verdict time, the original-palette + body-classified evidence had two sub-threshold pairs and the pivot was committed against that evidence. The sweep is a *forward-looking* token re-alignment for whatever ships post-pivot (likely the V1.5 Tailwind-only ramp scoped in `aped-course`). It is recorded here so a future reader running `bun --filter=web run test:contrast` against this branch sees the current "all pass" state and understands why the decision-doc verdict still says pivot.
+
+Open audit gap: this section has been added retrospectively (in the same `aped-review` cycle that flagged the drift). The earlier version of this doc claimed "2 / 16 fail" without acknowledging the sweep. Reviewers reading the current doc see both states; reviewers reading commit `cb8a983` see only the verdict-time state.
 
 ### AC-3 — Palette discipline
 
@@ -119,9 +155,11 @@ Both failures are **token-design issues**, not Tamagui-introduced contrast loss.
 | ------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `borderColor`/`borderWidth`/`outline`/`boxShadow`/`shadowColor` count in `proto-slice.tsx` (code only) | 0                                        | 0 ✓                                                                                               |
 | `$accent` token usages in `proto-slice.tsx`                                                            | 1 (delta line only)                      | 1 ✓                                                                                               |
-| Visual smoke (dark mode)                                                                               | zero card borders, emerald only on delta | **pass** (manual capture by reviewer at `http://localhost:3000/tamagui-spike` post-fix `e0ecc0f`) |
+| Visual smoke (dark mode)                                                                               | zero card borders, emerald only on delta | **pass** (manual capture by reviewer at `http://localhost:3000/tamagui-spike` post-fix `e0ecc0f`; PNG artefact NOT committed — see audit gap below) |
 
 The two grep gates pass cleanly (the raw grep matches the documentation comments in the file header that _mention_ the forbidden tokens; refining the grep with `grep -v -E "^\s*[0-9]+:\s*//"` returns the canonical zero-match outcome). The proxy middleware was patched (commit `07e01fe`) to allowlist `/tamagui-spike` so the route is reviewable without auth; after the runtime theme fix in `e0ecc0f` the reviewer confirmed the canonical dark surface manually at `http://localhost:3000/tamagui-spike` — body `#07090E`, card `#0E1117` with no border, text primary `#F1F5F9` on the headline + `147 320 €`, labels (`PATRIMOINE TOTAL`, `CAP`, `PROCHAINE ÉTAPE`) at `#94A3B8`, milestone label at `#CBD5E1`, **delta `+12 340 €` emerald `#10B981` and the only emerald element on the surface**. Strict-palette discipline holds.
+
+**Audit gap (acknowledged in the same `aped-review` cycle that flagged the AC-2 timeline drift).** The story's task T4.4 mandated committing `docs/spikes/0-9-proto-slice-dark.png` as the visual evidence artefact for AC-3. The PNG was not committed at verdict time. The reviewer's manual hex confirmation (the bullet above) is the audit trail of record; capturing a PNG against the current HEAD would document the post-iso-sweep palette (`#000` / `#0a0a0a` / `#00d26a` / `#ededed`), not the verdict-time palette referenced above, so a backfilled PNG would not match this section's narrative without further explanation. Given (a) the verdict is pivot, (b) the spike route is decommissioned by `aped-course`, and (c) capturing the PNG requires running the dev server whose cost is exactly what finding 5 measured, the audit gap is documented here in lieu of backfilling. Future stories that ship a UI surface MUST commit the screenshot at the moment of verification — this spike's omission is the lesson, surfaced post-hoc.
 
 ### Build-time delta (informational)
 
