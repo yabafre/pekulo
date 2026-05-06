@@ -19,9 +19,9 @@ export async function register(): Promise<void> {
   // second) and the ConsoleSpanExporter pegs the CPU — fan-noise loud on
   // Apple Silicon. In dev, OTel is opt-in: load only when an OTLP endpoint
   // is configured (the developer is actively shipping spans somewhere).
-  const isProd = process.env.NODE_ENV === "production";
+  const isDev = process.env.NODE_ENV === "development";
   const hasOtlp = !!process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
-  if (!isProd && !hasOtlp) return;
+  if (isDev && !hasOtlp) return;
 
   await import("./instrumentation.node");
 }
