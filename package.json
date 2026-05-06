@@ -11,6 +11,8 @@
     "dev:web": "dotenv -c -e .env -e .env.local -- turbo run dev --filter=web",
     "dev:prices": "dotenv -c -e .env -e .env.local -- bash -lc 'cd apps/prices && uvicorn main:app --reload --port 8000'",
     "build": "dotenv -c -e .env -e .env.local -- turbo run build",
+    "start": "dotenv -c -e .env -e .env.local -- bun --filter=web run start",
+    "start:web": "dotenv -c -e .env -e .env.local -- bun --filter=web run start",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "typecheck": "turbo run typecheck",
