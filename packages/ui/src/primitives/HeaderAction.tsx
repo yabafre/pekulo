@@ -30,9 +30,9 @@ const PillButton = styled(View, {
   alignItems: "center",
   justifyContent: "center",
   gap: 6,
-  height: 32,
-  paddingHorizontal: 12,
-  borderRadius: 9999,
+  height: "$8",
+  paddingHorizontal: "$3",
+  borderRadius: "$full",
   backgroundColor: "$backgroundMuted",
   cursor: "pointer",
   hoverStyle: {
@@ -69,7 +69,7 @@ export function HeaderAction({
   return (
     <PillButton onPress={handleClick} disabled={disabled} aria-disabled={disabled || undefined}>
       {Icon && <Icon size={14} color="currentColor" />}
-      <Text color="$color" fontSize={13} fontWeight="500">
+      <Text color="$color" fontSize="$caption" fontWeight="500">
         {label}
       </Text>
       {IconRight && <IconRight size={14} color="currentColor" />}

@@ -45,8 +45,8 @@ function Frame({
       backgroundColor="$backgroundElevated"
       borderTopLeftRadius={20}
       borderTopRightRadius={20}
-      padding={20}
-      gap={12}
+      padding="$5"
+      gap="$3"
       {...props}
     >
       {children}
@@ -59,11 +59,11 @@ function Handle(props: ComponentProps<typeof TamaSheet.Handle>) {
     <TamaSheet.Handle
       backgroundColor="$colorTertiary"
       opacity={0.5}
-      height={4}
-      width={48}
-      borderRadius={9999}
+      height="$1"
+      width="$12"
+      borderRadius="$full"
       alignSelf="center"
-      marginBottom={12}
+      marginBottom="$3"
       {...props}
     />
   );

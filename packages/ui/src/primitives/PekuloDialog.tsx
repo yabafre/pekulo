@@ -36,9 +36,9 @@ function Content({
   return (
     <TamaDialog.Content
       backgroundColor="$backgroundElevated"
-      borderRadius={16}
-      padding={24}
-      gap={12}
+      borderRadius="$xl"
+      padding="$6"
+      gap="$3"
       transition="quick"
       enterStyle={{ opacity: 0, scale: 0.96, y: 8 }}
       exitStyle={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -52,11 +52,11 @@ function Content({
 }
 
 function Title(props: ComponentProps<typeof TamaDialog.Title>) {
-  return <TamaDialog.Title color="$color" fontSize={18} fontWeight="600" {...props} />;
+  return <TamaDialog.Title color="$color" fontSize={18} fontWeight="600" {...props} />; // 18 has no exact token (between $bodyLg=17 and $h2=20); kept numeric for visual fidelity
 }
 
 function Description(props: ComponentProps<typeof TamaDialog.Description>) {
-  return <TamaDialog.Description color="$colorSecondary" fontSize={14} {...props} />;
+  return <TamaDialog.Description color="$colorSecondary" fontSize="$bodySm" {...props} />;
 }
 
 const Close = TamaDialog.Close;

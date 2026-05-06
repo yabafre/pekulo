@@ -26,7 +26,7 @@ function Content({
   return (
     <TamaTooltip.Content
       backgroundColor="$backgroundElevated"
-      borderRadius={8}
+      borderRadius="$md"
       paddingHorizontal={10}
       paddingVertical={6}
       transition="quick"

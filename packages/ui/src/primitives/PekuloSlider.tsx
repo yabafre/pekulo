@@ -8,7 +8,7 @@ function Root(props: SliderProps) {
 }
 
 function Track(props: ComponentProps<typeof TamaSlider.Track>) {
-  return <TamaSlider.Track backgroundColor="$backgroundMuted" height={4} {...props} />;
+  return <TamaSlider.Track backgroundColor="$backgroundMuted" height="$1" {...props} />;
 }
 
 function TrackActive(props: ComponentProps<typeof TamaSlider.TrackActive>) {
@@ -20,7 +20,7 @@ function Thumb(props: ComponentProps<typeof TamaSlider.Thumb>) {
     <TamaSlider.Thumb
       backgroundColor="$color"
       borderWidth={0}
-      size={16}
+      size="$4"
       circular
       focusVisibleStyle={{
         outlineColor: "$borderFocus",

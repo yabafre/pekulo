@@ -7,7 +7,7 @@ function Root(props: ProgressProps) {
   return (
     <TamaProgress
       backgroundColor="$backgroundMuted"
-      borderRadius={9999}
+      borderRadius="$full"
       height={6}
       overflow="hidden"
       {...props}

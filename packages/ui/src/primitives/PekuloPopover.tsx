@@ -28,9 +28,9 @@ function Content({
   return (
     <TamaPopover.Content
       backgroundColor="$backgroundElevated"
-      borderRadius={12}
-      padding={12}
-      gap={8}
+      borderRadius="$lg"
+      padding="$3"
+      gap="$2"
       transition="quick"
       enterStyle={{ opacity: 0, y: -4 }}
       exitStyle={{ opacity: 0, y: -4 }}

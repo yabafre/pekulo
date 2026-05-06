@@ -26,19 +26,19 @@ export function Section({ className, ariaLabel, title, action, children }: Secti
       className={className}
       aria-label={ariaLabel}
       backgroundColor="$backgroundCard"
-      borderRadius={16}
-      padding={20}
-      $lg={{ padding: 24 }}
+      borderRadius="$xl"
+      padding="$5"
+      $lg={{ padding: "$6" }}
     >
       {(title || action) && (
         <View
           flexDirection="row"
           alignItems="center"
           justifyContent="space-between"
-          marginBottom={16}
+          marginBottom="$4"
         >
           {title ? (
-            <Text color="$color" fontSize={16} fontWeight="600">
+            <Text color="$color" fontSize="$h3" fontWeight="600">
               {title}
             </Text>
           ) : (

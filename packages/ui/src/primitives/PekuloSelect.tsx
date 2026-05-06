@@ -14,10 +14,10 @@ function Trigger({
   return (
     <TamaSelect.Trigger
       backgroundColor="$backgroundMuted"
-      borderRadius={8}
-      paddingHorizontal={12}
+      borderRadius="$md"
+      paddingHorizontal="$3"
       paddingVertical={10}
-      gap={8}
+      gap="$2"
       flexDirection="row"
       alignItems="center"
       cursor="pointer"
@@ -43,8 +43,8 @@ function Content({
     <TamaSelect.Content {...props}>
       <TamaSelect.Viewport
         backgroundColor="$backgroundElevated"
-        borderRadius={12}
-        padding={4}
+        borderRadius="$lg"
+        padding="$1"
         minWidth={200}
         zIndex={200000}
       >
@@ -61,14 +61,14 @@ function Item({
   return (
     <TamaSelect.Item
       paddingHorizontal={10}
-      paddingVertical={8}
-      borderRadius={6}
+      paddingVertical="$2"
+      borderRadius="$sm"
       cursor="pointer"
       hoverStyle={{ backgroundColor: "$backgroundMuted" }}
       focusStyle={{ backgroundColor: "$backgroundMuted" }}
       {...props}
     >
-      <TamaSelect.ItemText color="$color" fontSize={13}>
+      <TamaSelect.ItemText color="$color" fontSize="$caption">
         {children}
       </TamaSelect.ItemText>
     </TamaSelect.Item>
