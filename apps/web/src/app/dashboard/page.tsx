@@ -1,7 +1,10 @@
+"use client";
+
 // apps/web/src/app/dashboard/page.tsx
-// Server Component. Plain HTML wrapper avoids importing tamagui at the
-// server boundary; PekuloEmptyState / Section are client-side primitives
-// that render fine when consumed from a server tree.
+// Client Component because PekuloEmptyState's `icon` prop is a React
+// component (function reference) which RSC cannot serialise across the
+// server→client boundary. The auth gate lives in the layout (Server
+// Component); this page has no server-only work.
 import { Compass } from "lucide-react";
 import { PekuloEmptyState, Section } from "@pekulo/ui";
 
