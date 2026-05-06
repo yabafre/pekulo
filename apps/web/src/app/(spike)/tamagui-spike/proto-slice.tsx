@@ -22,7 +22,7 @@
 //   grep -nE "(borderColor|borderWidth|outline|boxShadow|shadowColor)" proto-slice.tsx
 //   → must return ZERO matches.
 
-import { Text, View } from "tamagui";
+import { Text, Theme, View } from "tamagui";
 
 export interface ProtoSliceProps {
   totalWealthEur: number;
@@ -49,13 +49,14 @@ export function ProtoSlice(props: ProtoSliceProps) {
   const deltaAbsoluteEur = formatEur(Math.abs(nextMilestoneDeltaEur));
 
   return (
-    <View
-      backgroundColor="$backgroundCard"
-      borderRadius={16}
-      padding={24}
-      width="100%"
-      maxWidth={520}
-    >
+    <Theme name="pekulo-dark">
+      <View
+        backgroundColor="$backgroundCard"
+        borderRadius={16}
+        padding={24}
+        width="100%"
+        maxWidth={520}
+      >
       <View gap={4}>
         <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
           PATRIMOINE TOTAL
@@ -88,6 +89,7 @@ export function ProtoSlice(props: ProtoSliceProps) {
           </Text>
         </View>
       </View>
-    </View>
+      </View>
+    </Theme>
   );
 }

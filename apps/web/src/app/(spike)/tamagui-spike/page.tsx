@@ -6,7 +6,7 @@ import { ProtoSlice } from "./proto-slice";
 
 export default function TamaguiSpikePage() {
   return (
-    <main style={{ minHeight: "100vh", padding: "24px" }}>
+    <main style={{ minHeight: "100vh", padding: "24px", backgroundColor: "#07090E", color: "#F1F5F9" }}>
       <h1 style={{ marginBottom: "16px", fontSize: "1.5rem" }}>
         Tamagui spike — W2 pre-flight
       </h1>
