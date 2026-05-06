@@ -5,3 +5,4 @@
 // (T5/T6 components inserted alphabetically — see each task for the export line)
 export * from "./PekuloDonut";
 export * from "./PekuloHero";
+export * from "./PekuloKpiTile";
