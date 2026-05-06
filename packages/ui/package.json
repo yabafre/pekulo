@@ -2,17 +2,65 @@
   "name": "@pekulo/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "Pekulo Design System (Tamagui Core) — placeholder; real DS lands in story 0-10 per ADR-0007.",
+  "description": "Pekulo Design System on Tamagui Core (ADR-0007). Sole styling surface for apps/web and apps/mobile (V1.5).",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./reset.css": "./node_modules/@tamagui/core/reset.css",
+    "./generated.css": "./public/tamagui.generated.css"
   },
+  "files": ["src", "public", "tamagui.config.ts", "tamagui.build.ts"],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:visual": "vitest run --testNamePattern='snapshot'",
+    "test:axe": "vitest run --testNamePattern='a11y'",
+    "test:watch": "vitest",
+    "generate:tamagui-css": "tamagui generate-css && bun run fix:tamagui-css",
+    "fix:tamagui-css": "sed -i '' -e 's/^     {/:root {/g' -e 's/^, \\.tm_/:root, .tm_/g' public/tamagui.generated.css"
+  },
+  "dependencies": {
+    "@tamagui/animations-css": "2.0.0-rc.41",
+    "@tamagui/avatar": "2.0.0-rc.41",
+    "@tamagui/checkbox": "2.0.0-rc.41",
+    "@tamagui/config": "2.0.0-rc.41",
+    "@tamagui/core": "2.0.0-rc.41",
+    "@tamagui/dialog": "2.0.0-rc.41",
+    "@tamagui/next-theme": "2.0.0-rc.41",
+    "@tamagui/popover": "2.0.0-rc.41",
+    "@tamagui/progress": "2.0.0-rc.41",
+    "@tamagui/radio-group": "2.0.0-rc.41",
+    "@tamagui/select": "2.0.0-rc.41",
+    "@tamagui/separator": "2.0.0-rc.41",
+    "@tamagui/sheet": "2.0.0-rc.41",
+    "@tamagui/slider": "2.0.0-rc.41",
+    "@tamagui/switch": "2.0.0-rc.41",
+    "@tamagui/tooltip": "2.0.0-rc.41",
+    "@tamagui/web": "2.0.0-rc.41",
+    "lucide-react": "^1.11.0",
+    "react-native-web": "^0.19.13",
+    "tamagui": "2.0.0-rc.41"
+  },
+  "peerDependencies": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@pekulo/tsconfig": "workspace:*"
+    "@pekulo/tsconfig": "workspace:*",
+    "@tamagui/cli": "2.0.0-rc.41",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/bun": "^1.3.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "happy-dom": "^15.0.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "typescript": "^6.0.3",
+    "vitest": "^2.0.0",
+    "vitest-axe": "^0.1.0"
   }
 }
