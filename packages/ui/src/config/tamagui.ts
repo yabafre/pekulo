@@ -68,7 +68,7 @@ export const config = createTamagui({
 
 export type AppConfig = typeof config;
 
-declare module "@tamagui/core" {
+declare module "@tamagui/web" {
   // biome-ignore lint/style/useNamingConvention: Tamagui module-augmentation contract
   interface TamaguiCustomConfig extends AppConfig {}
 }
