@@ -1,52 +1,64 @@
 "use client";
 
 // apps/web/src/app/(spike)/tamagui-spike/proto-slice.tsx
+// Faithful port of HeroBlock (variant="card") from docs/ux-preview/src/App.tsx
+// L381-417 onto Tamagui primitives. Mock values come from
+// docs/ux-preview/src/data/mock.ts (WEALTH.totalEur, WEALTH.curve12m[0].plan,
+// WEALTH.required12mEur, COMPASS.targetCapital, COMPASS.targetYear) so the
+// rendered numbers match the canonical UX preview exactly:
+//   - totalEur          = 180 400 €
+//   - ahead vs plan 12m = 21 383 € (totalEur − curve12m[0].plan = 180_400 − 159_017)
+//   - targetCapital     = 800 000 € en 2055
+//   - required12mEur    ≈ 21,4k € linéaire
+//
 // Tamagui v2-rc.41 obliges 'use client' on every component that imports its
 // primitives — verified by repeated build attempts: a Server-Component leaf
 // importing <View>/<Text> from `tamagui` triggers `(0 , j.createContext) is
-// not a function` in Turbopack's SSR pass (the runtime pulls React's context
-// API through a bundle path that breaks under Next 16 Turbopack). Tamagui's
-// own App-Router example in https://tamagui.dev/docs/guides/next-js puts
-// 'use client' on `app/page.tsx`. AC-1's strictest reading ("only the provider
-// declares 'use client'") therefore fails on this RC; the practical pattern
-// is provider + every Tamagui-consuming component as client.
+// not a function` in Turbopack's SSR pass. Tamagui's own App-Router example
+// in https://tamagui.dev/docs/guides/next-js puts 'use client' on
+// app/page.tsx. AC-1's strictest reading ("only the provider declares
+// 'use client'") therefore fails on this RC; recorded as the canonical W2
+// pivot signal in the T6 decision doc.
 //
-// Discipline contract (still enforced by T4.3 grep):
-//   1. ZERO card borders — surfaces rely on backgroundCard contrast against background.
-//   2. accent.500 (emerald) appears on EXACTLY one element: the monetary delta.
-//      Labels, headings, neutral chrome must use color / colorSecondary / colorTertiary.
-//   3. No shadowColor / boxShadow / outline — flat dark surfaces only (Trade Republic
-//      fidelity per project_pekulo_style_references memory).
-//
-// grep audit (run in T4.3):
-//   grep -nE "(borderColor|borderWidth|outline|boxShadow|shadowColor)" proto-slice.tsx
-//   → must return ZERO matches.
+// Discipline contract (T4.3 grep audits):
+//   1. ZERO card decoration tokens — surfaces rely on backgroundCard contrast
+//      against background. No borderColor / borderWidth / outline / boxShadow
+//      / shadowColor allowed.
+//   2. The single emerald accent ($accent) appears EXACTLY once: on the
+//      gain delta line. Labels, headings, neutral chrome must use
+//      $color / $colorSecondary / $colorTertiary.
 
 import { Text, Theme, View } from "tamagui";
 
-export interface ProtoSliceProps {
-  totalWealthEur: number;
-  compassPercentage: number;
-  nextMilestoneDeltaEur: number;
-  nextMilestoneLabel: string;
-}
+const TOTAL_EUR = 180_400;
+const PLAN_12M_START = 159_017;
+const AHEAD_EUR = TOTAL_EUR - PLAN_12M_START;
+const TARGET_CAPITAL = 800_000;
+const TARGET_YEAR = 2055;
+const REQUIRED_12M_EUR = 21_383;
+
+const eur0 = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+const eurCompact = new Intl.NumberFormat("fr-FR", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 function formatEur(value: number): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return eur0.format(value);
 }
 
-function formatPercentage(value: number): string {
-  return `${value.toFixed(1).replace(".", ",")} %`;
+function formatCompactEur(value: number): string {
+  return `${eurCompact.format(value)} €`;
 }
 
-export function ProtoSlice(props: ProtoSliceProps) {
-  const { totalWealthEur, compassPercentage, nextMilestoneDeltaEur, nextMilestoneLabel } = props;
-  const deltaSign = nextMilestoneDeltaEur >= 0 ? "+" : "−";
-  const deltaAbsoluteEur = formatEur(Math.abs(nextMilestoneDeltaEur));
+export function HeroBlock() {
+  const aheadSign = AHEAD_EUR >= 0 ? "+" : "−";
+  const aheadAbs = formatEur(Math.abs(AHEAD_EUR));
 
   return (
     <Theme name="pekulo-dark">
@@ -57,38 +69,64 @@ export function ProtoSlice(props: ProtoSliceProps) {
         width="100%"
         maxWidth={520}
       >
-      <View gap={4}>
         <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
-          PATRIMOINE TOTAL
+          Patrimoine total
         </Text>
-        <Text color="$color" fontSize={44} fontWeight="600" letterSpacing={-0.5}>
-          {formatEur(totalWealthEur)}
+        <Text
+          color="$color"
+          fontSize={44}
+          fontWeight="600"
+          letterSpacing={-0.5}
+          marginTop={8}
+        >
+          {formatEur(TOTAL_EUR)}
         </Text>
-      </View>
 
-      <View gap={4} marginTop={20}>
-        <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
-          CAP
-        </Text>
-        <Text color="$colorSecondary" fontSize={20}>
-          {formatPercentage(compassPercentage)}
-        </Text>
-      </View>
-
-      <View gap={4} marginTop={20}>
-        <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
-          PROCHAINE ÉTAPE
-        </Text>
-        <View flexDirection="row" alignItems="baseline" gap={8}>
-          <Text color="$colorSecondary" fontSize={16}>
-            {nextMilestoneLabel}
+        <View flexDirection="row" alignItems="baseline" gap={6} marginTop={8}>
+          <Text color="$accent" fontSize={14} fontWeight="500">
+            {aheadSign}
+            {aheadAbs}
           </Text>
-          <Text color="$accent" fontSize={16} fontWeight="600">
-            {deltaSign}
-            {deltaAbsoluteEur}
+          <Text color="$colorTertiary" fontSize={14}>
+            vs plan · 12 mois
           </Text>
         </View>
-      </View>
+
+        <View flexDirection="row" gap={32} marginTop={32}>
+          <View flex={1}>
+            <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
+              Cap
+            </Text>
+            <Text
+              color="$color"
+              fontSize={20}
+              fontWeight="600"
+              marginTop={4}
+            >
+              {formatEur(TARGET_CAPITAL)}
+            </Text>
+            <Text color="$colorTertiary" fontSize={12}>
+              en {TARGET_YEAR}
+            </Text>
+          </View>
+
+          <View flex={1}>
+            <Text color="$colorTertiary" fontSize={12} letterSpacing={0.5}>
+              Plan / an
+            </Text>
+            <Text
+              color="$color"
+              fontSize={20}
+              fontWeight="600"
+              marginTop={4}
+            >
+              {formatCompactEur(REQUIRED_12M_EUR)}
+            </Text>
+            <Text color="$colorTertiary" fontSize={12}>
+              linéaire
+            </Text>
+          </View>
+        </View>
       </View>
     </Theme>
   );
