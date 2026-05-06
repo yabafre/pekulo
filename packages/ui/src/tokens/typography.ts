@@ -9,6 +9,7 @@ export const pekuloFonts = {
 
 export const pekuloFontSizes = {
   "11": 11,
+  xs: 12,
   caption: 13,
   bodySm: 14,
   body: 16,

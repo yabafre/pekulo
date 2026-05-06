@@ -3,4 +3,4 @@
 // task — keep alphabetical order to make merge conflicts trivial.
 
 // (T5/T6 components inserted alphabetically — see each task for the export line)
-export {};
+export * from "./PekuloDonut";
