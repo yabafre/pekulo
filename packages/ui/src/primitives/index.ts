@@ -1,6 +1,7 @@
 export * from "./Section";
 export * from "./HeaderAction";
 export * from "./PekuloAvatar";
+export * from "./PekuloCheckbox";
 export * from "./PekuloDialog";
 export * from "./PekuloPopover";
 export * from "./PekuloProgress";
