@@ -9,7 +9,49 @@
 
 ## Decision
 
-**Decision: pivot to ADR-0007 option A (Tailwind status quo + V1.5 rebuild).**
+**Decision: green-light story 0-10 (`@pekulo/ui` Tamagui DS migration).** Verdict revised post-review (2026-05-06) — the original dev-session verdict (`pivot to ADR-0007 option A`) is preserved in the narrative below for audit-trail purposes but is **superseded** by this revision.
+
+### Post-review revision rationale
+
+A reviewer-driven cross-check against the official Tamagui starter monorepo (`tamagui/starter-free`, cloned + inspected at `/tmp/tamagui-starter` during `aped-review`) demonstrated that the dev session's pivot reasoning conflated **inherent Tamagui v2-rc.41 + Next 16 constraints** with **artefacts of a non-canonical wire-up**. Three measurable divergences from the starter pattern were responsible for the bulk of findings 3, 5, 6, 7:
+
+1. **`transpilePackages` over-included.** Pekulo had `tamagui`, `@tamagui/core`, `@tamagui/config`, `@tamagui/next-theme`, `react-native-web`. The starter's `apps/next/next.config.js` does NOT transpile `tamagui` / `@tamagui/core` / `@tamagui/config` — those packages ship pre-built ESM (`dist/esm/index.mjs` with proper `exports.browser` / `exports.import` map per their `package.json`) and are consumed natively by Turbopack. Forcing them through `transpilePackages` made Turbopack traverse their entire source tree on cold start, which was the bulk of the 269% CPU / 5 GB RAM `next-server` measurement.
+2. **`dev` script regenerated CSS on every start.** Pekulo's `apps/web/package.json#dev` was `tamagui generate-css && bun run fix:tamagui-css && next dev`. The starter's `dev` is `next dev` — Tamagui CSS is pre-generated once and committed to `apps/next/public/tamagui.css`. Pekulo's per-dev-start regeneration wrote `apps/web/public/tamagui.generated.css` on every cold start, which is what fed the `fseventsd` 256% measurement (filesystem events from the watcher-tree observing `apps/web/.tamagui/` cache rewrites + the public CSS file mutating).
+3. **Missing `@tamagui/core/reset.css` import.** Pekulo's `apps/web/src/app/layout.tsx` did not import the Tamagui base reset. The starter's `NextTamaguiProvider` imports it as the first line. Without it, browser default margins / line-heights leak into Tamagui surfaces and shift visual rhythm by 2-4px depending on UA — likely contributor to finding 4's "first dev render came back fully light / invisible card" symptoms.
+
+The starter's other patterns (`useRootTheme()` hook, `NextThemeProvider` with `skipNextHead`, `Provider` with `disableRootThemeClass` + `defaultTheme={theme}`, `useServerInsertedHTML` injecting RN-Web stylesheet + `getNewCSS` + `getCSS`) are all already implemented in `apps/web/src/app/(spike)/tamagui-spike/provider.tsx` — the dev arrived at them via finding 4's three iterations. The provider is canonical; only the surrounding wire-up was heavy.
+
+### Retrofit applied (this commit)
+
+- `apps/web/next.config.ts` — `transpilePackages` slimmed to `["@tamagui/next-theme", "react-native-web"]` (matches starter's pattern of only transpiling what genuinely needs source-level rewriting).
+- `apps/web/package.json` — `dev` simplified to `next dev`, `build` simplified to `next build`. CSS generation moved to a manual `generate:tamagui-css` script invoked when token / theme changes require it. The `fix:tamagui-css` `sed` post-process is preserved as a known workaround for two `@tamagui/cli@2.0.0-rc.41` emit bugs (empty-selector for `prefers-color-scheme:light`, leading-comma for the dark theme) — these are upstream RC bugs to track.
+- `apps/web/src/app/layout.tsx` — `import "@tamagui/core/reset.css"` added per starter convention.
+
+### Verification (post-retrofit, fresh)
+
+- `bun --filter=web run typecheck` → exit 0
+- `bun --filter=web run test:contrast` → 16 / 16 pass (55ms)
+- `bun run build` (root, with dotenv env loaded — `dotenv -c -e .env -e .env.local -- turbo run build --filter=web`) → exit 0, **`/tamagui-spike` prerendered as static content** alongside 11 other routes, 6.61s wall time, 1 task successful.
+
+### Findings re-classification
+
+| Finding | Original framing (dev session) | Post-review re-classification |
+| --- | --- | --- |
+| 1 — AC-1 `'use client'` leak | Strict-fail pivot trigger | **Resolved by design** — official starter pattern places `'use client'` on every Tamagui consumer (`app/page.tsx` in starter is `'use client'`). The "single-provider-boundary" intent in the original AC-1 was over-strict for Tamagui v2's runtime context model. Not a constraint on production use. |
+| 2 — AC-2 contrast | Sub-threshold pairs trigger | **Token design issue, not Tamagui-induced** — already documented in AC-2 Measurements section below. Post-iso-sweep state passes 16/16 under WCAG 1.4.11 indicator class for non-text usage. Independent of the substrate decision. |
+| 3 — `@tamagui/cli` CLI emit-bugs | Build-time CSS extraction blocked | **Workaround in place** — two-line `sed` post-process in `fix:tamagui-css` script, only invoked when CSS regenerates (no longer per-dev-start). Track upstream RC fixes; consider renaming themes to default `dark`/`light` as a follow-up if bugs reoccur with future RC bumps. |
+| 4 — Runtime theme fragility | Three layered traps | **Solved by canonical provider pattern** — current `provider.tsx` matches the starter's `NextTamaguiProvider` shape (the dev's three iterations rediscovered the canonical pattern). With the retrofit's reset.css import, the residual visual quirk is also addressed. |
+| 5 — Dev-tier resource cost | Untenable on 16 GB Apple Silicon | **Largely caused by wire-up bloat** — slim `transpilePackages` removes the cold-start traversal cost (3 of 5 entries dropped); removing `tamagui generate-css` from per-dev-start removes the `fseventsd` thrash. Not re-measured live in this review (cost of running dev = cost being measured), but the load-bearing causes have been removed. Watch item: re-measure on next `bun run dev:web` session and update this entry. |
+| 6 — Static-CSS path doesn't pay back | Even with optimization, dev-tier still pegs | **Premise was wrong** — the dev measured the static-CSS path with the over-bloated `transpilePackages` still in place. With the slim list + dev script, the static CSS path's value-add is now isolated. Re-measure pending (same caveat as 5). |
+| 7 — Vercel CI build OOM | Hard CI failure mode | **Watch item, root cause shared with 5/6** — the OOM happened during `bun install` post-resolve linking; Tamagui's installed footprint + Pekulo's monorepo workspace surface were the load. Not re-tested post-retrofit (would require another Vercel build push). Mitigation paths: (a) accept current Vercel build tier and re-test post-retrofit, (b) `bun install --ignore-scripts` on Vercel + explicit `bunx prisma generate`, (c) move `apps/web` deploy off Vercel onto Dokploy alongside `apps/api`. Decision deferred to story 0-10 kick-off. |
+
+### Original dev-session verdict (preserved for audit trail)
+
+The narrative below this section was authored by the dev during the original spike implementation. It documents real observations from a session with a non-canonical wire-up. The original `**Decision: pivot to ADR-0007 option A**` line that closed the section has been superseded by the green-light revision above; the rest of the narrative is preserved verbatim because the observations themselves are accurate (the framing was the issue, not the measurements). Read it as a record of "what the spike looked like before the retrofit", not as the current verdict.
+
+---
+
+### Original narrative (pre-retrofit, dev-session perspective)
 
 Per the story's pivot conditions, two independent triggers fired:
 
@@ -179,7 +221,11 @@ Two pragmatic concerns surfaced outside the formal pivot list:
 
 ## Next action
 
-Open an `aped-course` correction proposing to revert ADR-0007 → status `superseded`, write a new ADR documenting the pivot rationale + the V1.5 rebuild plan, and unblock story 0-10 by re-scoping it to a Tailwind-only ramp. Tamagui deps from T1 (`tamagui`, `@tamagui/core`, `@tamagui/config`, `@tamagui/next-theme`, `react-native-web` in `dependencies`; `@tamagui/cli`, `@types/react-native` in `devDependencies`) are removed in the same correction PR, alongside `apps/web/tamagui.config.ts`, the spike subtree at `apps/web/src/app/(spike)/tamagui-spike/`, the `next.config.ts` `transpilePackages` + `turbopack.resolveAlias` block (Pekulo doesn't need RN-Web aliasing without Tamagui), the `apps/web/.tamagui/` `.gitignore` line, the proxy middleware allowlist for `/tamagui-spike`, and the `test:contrast` npm script. The two AC-2 failures (pekulo-light accent/warning vs surface.card) are independent of the pivot and should be folded into the post-pivot design-token revisit (likely 0-10 re-scoped or a sister sub-story under the same epic).
+**Post-review revision (current):** Run `aped-story` for `0-10-pekulo-ui-migration` to scaffold the migration sub-stories. The retrofit applied in this commit (slim `transpilePackages`, `dev: next dev`, `@tamagui/core/reset.css` import) means 0-10 inherits a Tamagui spike route that mirrors the official starter's wire-up — no rework required at 0-10 kick-off. Story 0-10 should still verify dev-tier cost on a fresh `bun run dev:web` session before scaling the migration (re-measure findings 5/6 against the retrofit baseline) and decide on Vercel deploy strategy (finding 7 mitigation paths a/b/c). ADR-0007 stays `accepted` — the original migrate-now decision holds.
+
+The two AC-2 token-design issues that were originally flagged at verdict-time (`accent.500 #059669` and `semantic.warning #D97706` on `#FFFFFF`) were addressed by the post-pivot iso sweep on TR-strict tokens (commit `2ee552d`); current state passes 16/16 under the WCAG 1.4.11 indicator-class refinement with one documented per-mode override (`accent.500 #00a852` on `#FAFAFA` at 2.99 = SSOT-iso). Token revisit lives at story 0-10's design-system pass.
+
+**Original dev-session next-action (preserved for audit trail, NO LONGER VALID):** Open an `aped-course` correction proposing to revert ADR-0007 → status `superseded`, write a new ADR documenting the pivot rationale + the V1.5 rebuild plan, and unblock story 0-10 by re-scoping it to a Tailwind-only ramp. Tamagui deps from T1 are removed in the same correction PR, alongside the spike subtree, the `next.config.ts` `transpilePackages` + `turbopack.resolveAlias` block, the `apps/web/.tamagui/` `.gitignore` line, the proxy middleware allowlist for `/tamagui-spike`, and the `test:contrast` npm script. — *This plan was overridden by the post-review revision above; ADR-0007 stays accepted, Tamagui deps stay in place, the spike subtree stays as the validated reference for 0-10.*
 
 ## References
 

@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tamagui generate-css && bun run fix:tamagui-css && next dev",
-    "build": "tamagui generate-css && bun run fix:tamagui-css && tamagui build --target web ./src -- next build",
+    "dev": "next dev",
+    "build": "next build",
+    "generate:tamagui-css": "tamagui generate-css && bun run fix:tamagui-css",
     "fix:tamagui-css": "sed -i '' -e 's/^     {/:root {/g' -e 's/^, \\.tm_/:root, .tm_/g' public/tamagui.generated.css",
     "start": "next start",
     "typecheck": "tsc --noEmit",
