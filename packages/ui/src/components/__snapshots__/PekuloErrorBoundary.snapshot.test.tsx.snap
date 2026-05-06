@@ -1,0 +1,5 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PekuloErrorBoundary snapshot > renders children when no error 1`] = `"<span class="_dsp_contents  font_body"><span>ok</span><div style="display: contents;"></div></span>"`;
+
+exports[`PekuloErrorBoundary snapshot > renders default fallback when child throws 1`] = `"<span class="_dsp_contents  font_body"><div role="alert" aria-live="polite" class="is_View _bg-backgroundC96851 _btlr-c-radius-lg _btrr-c-radius-lg _bbrr-c-radius-lg _bblr-c-radius-lg _pt-c-space-5 _pr-c-space-5 _pb-c-space-5 _pl-c-space-5"><span class="is_Text _col-danger _fs-f-size-body2682 _fw-600">Une erreur s'est produite.</span><span class="is_Text _col-colorSecond96872 _fs-f-size-capt104456 _mt-c-space-1">kaboom</span></div><div style="display: contents;"></div></span>"`;
