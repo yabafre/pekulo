@@ -50,6 +50,7 @@
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4",
+    "@tamagui/cli": "2.0.0-rc.41",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

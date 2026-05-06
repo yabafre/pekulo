@@ -50,8 +50,25 @@ const pekuloLight = {
 export const config = createTamagui({
   ...defaultConfig,
   animations,
+  // @tamagui/config/v5 defaults to onlyAllowShorthands: true, which rejects
+  // longhand style props like `backgroundColor`, `borderRadius`, `padding`,
+  // `marginTop`, `alignItems`. The spike port keeps the longhand vocabulary
+  // (the docs/ux-preview source uses it, and reviewers read longhands more
+  // fluently than `bg` / `rounded` / `p` / `mt` / `items`). Disabling the
+  // restriction here re-allows both forms — shorthands still work where used.
+  settings: {
+    ...defaultConfig.settings,
+    onlyAllowShorthands: false,
+  },
+  // We deliberately do NOT spread ...defaultConfig.themes here. Tamagui's type
+  // system intersects keys across every theme — mixing v5 component themes
+  // (which expose only `background`, `color`, `borderColor`, …) with the Pekulo
+  // themes (which add `backgroundCard`, `colorSecondary`, `colorTertiary`, …)
+  // would erase our custom keys from the inferred type and reject usages like
+  // `<View backgroundColor="$backgroundCard">`. The spike only consumes <View>
+  // and <Text> primitives which don't need component themes (Button, Input,
+  // …). Story 0-10 will revisit theme composition when @pekulo/ui ships.
   themes: {
-    ...defaultConfig.themes,
     "pekulo-dark": pekuloDark,
     "pekulo-light": pekuloLight,
   },
