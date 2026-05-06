@@ -24,63 +24,63 @@ The `styled()` function creates new components by extending existing ones with c
 ### Basic Signature
 
 ```typescript
-import { View, styled } from '@tamagui/core'
+import { View, styled } from "@tamagui/core";
 
 export const RoundedSquare = styled(View, {
   borderRadius: 20,
-})
+});
 ```
 
 ### Complete Configuration
 
 ```typescript
-import { View, styled, GetProps } from '@tamagui/core'
+import { View, styled, GetProps } from "@tamagui/core";
 
 export const CustomComponent = styled(
-  View,                          // Parent component
+  View, // Parent component
   {
     // Base styles
-    padding: '$4',
-    backgroundColor: '$background',
-    borderRadius: '$2',
-    
+    padding: "$4",
+    backgroundColor: "$background",
+    borderRadius: "$2",
+
     // Variants definition
     variants: {
       size: {
-        small: { padding: '$2' },
-        large: { padding: '$6' },
+        small: { padding: "$2" },
+        large: { padding: "$6" },
       },
     },
-    
+
     // Default variant values
     defaultVariants: {
-      size: 'small',
+      size: "small",
     },
-    
+
     // Component name (for debugging)
-    name: 'CustomComponent',
-    
+    name: "CustomComponent",
+
     // Styled context (for compound components)
     context: MyContext,
-    
+
     // Render as specific HTML element (web only)
-    render: 'button',
+    render: "button",
   },
   {
     // Static configuration (third argument)
     acceptsClassName: true,
     isText: false,
     isReactNative: false,
-    
+
     // Custom props that accept tokens
     accept: {
-      fill: 'color',
+      fill: "color",
     } as const,
-  }
-)
+  },
+);
 
 // Helper to extract props type
-export type CustomComponentProps = GetProps<typeof CustomComponent>
+export type CustomComponentProps = GetProps<typeof CustomComponent>;
 ```
 
 ### Key Features
@@ -151,7 +151,7 @@ Use `...size`, `...fontSize`, `...color`, or `...space` to automatically map tok
 ```typescript
 const Circle = styled(View, {
   borderRadius: 100_000,
-  
+
   variants: {
     size: {
       '...size': (size, { tokens }) => {
@@ -175,21 +175,21 @@ const Circle = styled(View, {
 Use `getFontSized` helper for text components that need font scaling:
 
 ```typescript
-import { getFontSized } from '@tamagui/get-font-sized'
-import { Text, styled } from '@tamagui/core'
+import { getFontSized } from "@tamagui/get-font-sized";
+import { Text, styled } from "@tamagui/core";
 
 const SizableText = styled(Text, {
-  name: 'SizableText',
-  fontFamily: '$body',
-  
+  name: "SizableText",
+  fontFamily: "$body",
+
   variants: {
     size: getFontSized,
   } as const,
-  
+
   defaultVariants: {
-    size: '$true',
+    size: "$true",
   },
-})
+});
 
 // Returns styles like:
 // { fontSize: ..., lineHeight: ..., fontWeight: ..., letterSpacing: ... }
@@ -203,18 +203,20 @@ Boolean variants that compute styles based on other props:
 const InputGroup = styled(XGroup, {
   variants: {
     applyFocusStyle: {
-      ':boolean': (val, { props }) => {
+      ":boolean": (val, { props }) => {
         if (val) {
-          return props.focusStyle || {
-            outlineColor: '$outlineColor',
-            outlineWidth: 2,
-            borderColor: '$borderColorFocus',
-          }
+          return (
+            props.focusStyle || {
+              outlineColor: "$outlineColor",
+              outlineWidth: 2,
+              borderColor: "$borderColorFocus",
+            }
+          );
         }
       },
     },
   } as const,
-})
+});
 ```
 
 ### 5. Number Variants (Numeric Values)
@@ -246,17 +248,17 @@ All variant functions receive `{ props, tokens, theme, font }` as second argumen
 const Button = styled(View, {
   variants: {
     size: {
-      '...size': (val = '$true', { tokens, props }) => {
-        const radiusToken = tokens.radius[val] ?? tokens.radius['$true']
+      "...size": (val = "$true", { tokens, props }) => {
+        const radiusToken = tokens.radius[val] ?? tokens.radius["$true"];
         return {
           height: val,
           borderRadius: props.circular ? 100_000 : radiusToken,
           paddingHorizontal: tokens.space[val],
-        }
+        };
       },
     },
   } as const,
-})
+});
 ```
 
 ---
@@ -268,91 +270,91 @@ For **compound component APIs** where parent props cascade to children:
 ### Basic Usage
 
 ```typescript
-import { createStyledContext, styled, View, Text } from '@tamagui/core'
-import type { SizeTokens } from '@tamagui/core'
+import { createStyledContext, styled, View, Text } from "@tamagui/core";
+import type { SizeTokens } from "@tamagui/core";
 
 // 1. Create context with default values
 export const ButtonContext = createStyledContext<{
-  size: SizeTokens
+  size: SizeTokens;
 }>({
-  size: '$4',
-})
+  size: "$4",
+});
 
 // 2. Reference context in styled components
 export const ButtonFrame = styled(View, {
-  name: 'Button',
+  name: "Button",
   context: ButtonContext,
-  
+
   variants: {
     size: {
-      '...size': (name, { tokens }) => ({
+      "...size": (name, { tokens }) => ({
         height: tokens.size[name],
         borderRadius: tokens.radius[name],
         gap: tokens.space[name].val * 0.2,
       }),
     },
   } as const,
-  
+
   defaultVariants: {
-    size: '$4',
+    size: "$4",
   },
-})
+});
 
 export const ButtonText = styled(Text, {
-  name: 'ButtonText',
+  name: "ButtonText",
   context: ButtonContext,
-  
+
   variants: {
     size: {
-      '...fontSize': (name, { font }) => ({
+      "...fontSize": (name, { font }) => ({
         fontSize: font?.size[name],
       }),
     },
   } as const,
-})
+});
 ```
 
 ### Real Example from Bento (InputContext)
 
 ```typescript
-import { createStyledContext } from 'tamagui'
-import type { ColorTokens, FontSizeTokens } from 'tamagui'
+import { createStyledContext } from "tamagui";
+import type { ColorTokens, FontSizeTokens } from "tamagui";
 
 const defaultContextValues = {
-  size: '$true',
+  size: "$true",
   scaleIcon: 1.2,
   color: undefined,
-} as const
+} as const;
 
 export const InputContext = createStyledContext<{
-  size: FontSizeTokens
-  scaleIcon: number
-  color?: ColorTokens | string
-}>(defaultContextValues)
+  size: FontSizeTokens;
+  scaleIcon: number;
+  color?: ColorTokens | string;
+}>(defaultContextValues);
 
 // Used in InputGroup, InputIcon, InputLabel, etc.
 const InputGroupFrame = styled(XGroup, {
   context: InputContext,
   variants: {
     size: {
-      '...size': (val, { tokens }) => ({
+      "...size": (val, { tokens }) => ({
         borderRadius: tokens.radius[val],
       }),
     },
   } as const,
-})
+});
 
 // Accessing context in functional components
 const InputIcon = InputIconFrame.styleable<{
-  scaleIcon?: number
-  color?: ColorTokens | string
+  scaleIcon?: number;
+  color?: ColorTokens | string;
 }>((props, ref) => {
-  const inputContext = InputContext.useStyledContext()
-  const { size = '$true', color, scaleIcon = 1 } = inputContext
-  
-  const iconSize = getIconSize(size as FontSizeTokens, scaleIcon)
+  const inputContext = InputContext.useStyledContext();
+  const { size = "$true", color, scaleIcon = 1 } = inputContext;
+
+  const iconSize = getIconSize(size as FontSizeTokens, scaleIcon);
   // ... render icon with context values
-})
+});
 ```
 
 ### Context API
@@ -425,11 +427,11 @@ export const Card = withStaticProperties(CardFrame, {
 ### Bento Input Example (Full Pattern)
 
 ```typescript
-import { 
-  XGroup, 
-  withStaticProperties, 
+import {
+  XGroup,
+  withStaticProperties,
   createStyledContext,
-  styled 
+  styled
 } from 'tamagui'
 
 // 1. Create context
@@ -544,8 +546,8 @@ const StyledText = styled(Text, {
 })
 
 // ✅ Correct: Use .styleable()
-const HigherOrderText = StyledText.styleable<{ 
-  customProp?: boolean 
+const HigherOrderText = StyledText.styleable<{
+  customProp?: boolean
 }>((props, ref) => {
   // Add logic here
   return <StyledText ref={ref} {...props} />
@@ -564,40 +566,36 @@ const FinalText = styled(HigherOrderText, {
 ### Generic Type Parameters
 
 ```typescript
-import { TamaguiComponent, GetRef, GetProps } from '@tamagui/core'
+import { TamaguiComponent, GetRef, GetProps } from "@tamagui/core";
 
 type MyComponent = TamaguiComponent<
-  TamaDefer,                    // Deferred type resolution
-  GetRef<ParentComponent>,      // Ref type
-  ParentNonStyledProps,         // Non-style props
-  ParentStylesBase,             // Base style props
-  MyVariants,                   // Variant types
-  StaticConfig                  // Static configuration
->
+  TamaDefer, // Deferred type resolution
+  GetRef<ParentComponent>, // Ref type
+  ParentNonStyledProps, // Non-style props
+  ParentStylesBase, // Base style props
+  MyVariants, // Variant types
+  StaticConfig // Static configuration
+>;
 ```
 
 ### Variant Type Extraction
 
 ```typescript
-import { 
-  GetStyledVariants, 
-  GetVariantValues,
-  VariantSpreadFunction 
-} from '@tamagui/core'
+import { GetStyledVariants, GetVariantValues, VariantSpreadFunction } from "@tamagui/core";
 
 const MyButton = styled(View, {
   variants: {
     size: { small: {}, large: {} },
     variant: { primary: {}, secondary: {} },
   } as const,
-})
+});
 
 // Extract variant types
-type ButtonVariants = GetStyledVariants<typeof MyButton>
+type ButtonVariants = GetStyledVariants<typeof MyButton>;
 // Result: { size?: 'small' | 'large', variant?: 'primary' | 'secondary' }
 
 // Extract specific variant values
-type SizeValues = GetVariantValues<ButtonVariants['size']>
+type SizeValues = GetVariantValues<ButtonVariants["size"]>;
 // Result: 'small' | 'large'
 ```
 
@@ -609,53 +607,53 @@ Tamagui provides built-in shorthands for common CSS properties:
 
 ### Complete Shorthand Table
 
-| Shorthand | Full Property | Example |
-|-----------|--------------|---------|
-| **Text** |
-| `text` | `textAlign` | `text="center"` |
+| Shorthand   | Full Property       | Example                   |
+| ----------- | ------------------- | ------------------------- |
+| **Text**    |
+| `text`      | `textAlign`         | `text="center"`           |
 | **Spacing** |
-| `m` | `margin` | `m="$4"` |
-| `mt` | `marginTop` | `mt={10}` |
-| `mr` | `marginRight` | `mr="$2"` |
-| `mb` | `marginBottom` | `mb="$3"` |
-| `ml` | `marginLeft` | `ml="$2"` |
-| `mx` | `marginHorizontal` | `mx="$4"` |
-| `my` | `marginVertical` | `my="$2"` |
-| `p` | `padding` | `p="$4"` |
-| `pt` | `paddingTop` | `pt={10}` |
-| `pr` | `paddingRight` | `pr="$2"` |
-| `pb` | `paddingBottom` | `pb="$3"` |
-| `pl` | `paddingLeft` | `pl="$2"` |
-| `px` | `paddingHorizontal` | `px="$4"` |
-| `py` | `paddingVertical` | `py="$2"` |
-| **Layout** |
-| `b` | `bottom` | `b={0}` |
-| `l` | `left` | `l={0}` |
-| `r` | `right` | `r={0}` |
-| `t` | `top` | `t={0}` |
-| `content` | `alignContent` | `content="center"` |
-| `items` | `alignItems` | `items="center"` |
-| `justify` | `justifyContent` | `justify="space-between"` |
-| `self` | `alignSelf` | `self="flex-start"` |
-| **Sizing** |
-| `maxH` | `maxHeight` | `maxH={500}` |
-| `maxW` | `maxWidth` | `maxW="100%"` |
-| `minH` | `minHeight` | `minH={200}` |
-| `minW` | `minWidth` | `minW={100}` |
-| **Flex** |
-| `grow` | `flexGrow` | `grow={1}` |
-| `shrink` | `flexShrink` | `shrink={0}` |
-| **Visual** |
-| `bg` | `backgroundColor` | `bg="$background"` |
-| `rounded` | `borderRadius` | `rounded="$4"` |
-| `z` | `zIndex` | `z={100}` |
-| **Misc** |
-| `select` | `userSelect` | `select="none"` |
+| `m`         | `margin`            | `m="$4"`                  |
+| `mt`        | `marginTop`         | `mt={10}`                 |
+| `mr`        | `marginRight`       | `mr="$2"`                 |
+| `mb`        | `marginBottom`      | `mb="$3"`                 |
+| `ml`        | `marginLeft`        | `ml="$2"`                 |
+| `mx`        | `marginHorizontal`  | `mx="$4"`                 |
+| `my`        | `marginVertical`    | `my="$2"`                 |
+| `p`         | `padding`           | `p="$4"`                  |
+| `pt`        | `paddingTop`        | `pt={10}`                 |
+| `pr`        | `paddingRight`      | `pr="$2"`                 |
+| `pb`        | `paddingBottom`     | `pb="$3"`                 |
+| `pl`        | `paddingLeft`       | `pl="$2"`                 |
+| `px`        | `paddingHorizontal` | `px="$4"`                 |
+| `py`        | `paddingVertical`   | `py="$2"`                 |
+| **Layout**  |
+| `b`         | `bottom`            | `b={0}`                   |
+| `l`         | `left`              | `l={0}`                   |
+| `r`         | `right`             | `r={0}`                   |
+| `t`         | `top`               | `t={0}`                   |
+| `content`   | `alignContent`      | `content="center"`        |
+| `items`     | `alignItems`        | `items="center"`          |
+| `justify`   | `justifyContent`    | `justify="space-between"` |
+| `self`      | `alignSelf`         | `self="flex-start"`       |
+| **Sizing**  |
+| `maxH`      | `maxHeight`         | `maxH={500}`              |
+| `maxW`      | `maxWidth`          | `maxW="100%"`             |
+| `minH`      | `minHeight`         | `minH={200}`              |
+| `minW`      | `minWidth`          | `minW={100}`              |
+| **Flex**    |
+| `grow`      | `flexGrow`          | `grow={1}`                |
+| `shrink`    | `flexShrink`        | `shrink={0}`              |
+| **Visual**  |
+| `bg`        | `backgroundColor`   | `bg="$background"`        |
+| `rounded`   | `borderRadius`      | `rounded="$4"`            |
+| `z`         | `zIndex`            | `z={100}`                 |
+| **Misc**    |
+| `select`    | `userSelect`        | `select="none"`           |
 
 ### Usage Example
 
 ```typescript
-<View 
+<View
   bg="$background"
   p="$4"
   m="$2"
@@ -682,16 +680,16 @@ Tamagui provides built-in shorthands for common CSS properties:
 ### Custom Shorthands
 
 ```typescript
-import { createTamagui } from '@tamagui/core'
+import { createTamagui } from "@tamagui/core";
 
 export default createTamagui({
   shorthands: {
     // Add custom shorthands
-    shadow: 'boxShadow',
-    w: 'width',
-    h: 'height',
+    shadow: "boxShadow",
+    w: "width",
+    h: "height",
   } as const,
-})
+});
 ```
 
 ---
@@ -745,17 +743,17 @@ const MyComponent = () => (
 
 ```typescript
 const Button = styled(View, {
-  padding: '$4',
-  
+  padding: "$4",
+
   ...(isWeb && {
-    cursor: 'pointer',
-    userSelect: 'none',
+    cursor: "pointer",
+    userSelect: "none",
   }),
-  
+
   ...(isNative && {
     activeOpacity: 0.7,
   }),
-})
+});
 ```
 
 ---
@@ -766,31 +764,35 @@ const Button = styled(View, {
 
 ```typescript
 // Basic usage
-const Comp = styled(ParentComp, {
-  // Base styles
-  padding: '$4',
-  
-  // Variants
-  variants: {
-    variant: { primary: {}, secondary: {} },
-  } as const,
-  
-  // Defaults
-  defaultVariants: { variant: 'primary' },
-  
-  // Context
-  context: MyContext,
-  
-  // Name
-  name: 'MyComponent',
-  
-  // HTML element (web)
-  render: 'button',
-}, {
-  // Static config
-  acceptsClassName: true,
-  accept: { fill: 'color' } as const,
-})
+const Comp = styled(
+  ParentComp,
+  {
+    // Base styles
+    padding: "$4",
+
+    // Variants
+    variants: {
+      variant: { primary: {}, secondary: {} },
+    } as const,
+
+    // Defaults
+    defaultVariants: { variant: "primary" },
+
+    // Context
+    context: MyContext,
+
+    // Name
+    name: "MyComponent",
+
+    // HTML element (web)
+    render: "button",
+  },
+  {
+    // Static config
+    acceptsClassName: true,
+    accept: { fill: "color" } as const,
+  },
+);
 ```
 
 ### Variant Patterns
@@ -816,13 +818,13 @@ prop: { ':number': {} as any }
 
 ```typescript
 // 1. Create
-const Ctx = createStyledContext({ size: '$4' })
+const Ctx = createStyledContext({ size: "$4" });
 
 // 2. Use in styled
-const Comp = styled(View, { context: Ctx })
+const Comp = styled(View, { context: Ctx });
 
 // 3. Access in functional components
-const value = Ctx.useStyledContext()
+const value = Ctx.useStyledContext();
 ```
 
 ### Composition Pattern
@@ -850,11 +852,11 @@ export const Card = withStaticProperties(Frame, {
 ### TypeScript Helpers
 
 ```typescript
-import { GetProps, GetRef, GetStyledVariants } from '@tamagui/core'
+import { GetProps, GetRef, GetStyledVariants } from "@tamagui/core";
 
-type Props = GetProps<typeof MyComp>
-type Ref = GetRef<typeof MyComp>
-type Variants = GetStyledVariants<typeof MyComp>
+type Props = GetProps<typeof MyComp>;
+type Ref = GetRef<typeof MyComp>;
+type Variants = GetStyledVariants<typeof MyComp>;
 ```
 
 ### Common Gotchas

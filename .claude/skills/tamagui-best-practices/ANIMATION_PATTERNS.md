@@ -50,64 +50,64 @@ For Dialog/Sheet/Popover, apply to Content component:
 
 Choose based on platform:
 
-| Driver | Package | Best For |
-|--------|---------|----------|
-| CSS | `@tamagui/animations-css` | Web apps, small bundle |
-| Animated | `@tamagui/animations-react-native` | Cross-platform RN |
-| Reanimated | `@tamagui/animations-moti` | Native apps, complex motion |
+| Driver     | Package                            | Best For                    |
+| ---------- | ---------------------------------- | --------------------------- |
+| CSS        | `@tamagui/animations-css`          | Web apps, small bundle      |
+| Animated   | `@tamagui/animations-react-native` | Cross-platform RN           |
+| Reanimated | `@tamagui/animations-moti`         | Native apps, complex motion |
 
 ### CSS Driver Config
 
 ```tsx
 // tamagui.config.ts
-import { createAnimations } from '@tamagui/animations-css'
+import { createAnimations } from "@tamagui/animations-css";
 
 const animations = createAnimations({
-  fast: 'ease-in 150ms',
-  medium: 'ease-in 300ms',
-  slow: 'ease-in 450ms',
-  quick: 'ease-out 100ms',
-  bouncy: 'cubic-bezier(0.175, 0.885, 0.32, 1.275) 300ms',
-})
+  fast: "ease-in 150ms",
+  medium: "ease-in 300ms",
+  slow: "ease-in 450ms",
+  quick: "ease-out 100ms",
+  bouncy: "cubic-bezier(0.175, 0.885, 0.32, 1.275) 300ms",
+});
 ```
 
 ### Reanimated Driver Config
 
 ```tsx
 // tamagui.config.ts
-import { createAnimations } from '@tamagui/animations-moti'
+import { createAnimations } from "@tamagui/animations-moti";
 
 const animations = createAnimations({
   fast: {
-    type: 'spring',
+    type: "spring",
     damping: 20,
     mass: 1.2,
     stiffness: 250,
   },
   medium: {
-    type: 'spring',
+    type: "spring",
     damping: 15,
     mass: 1,
     stiffness: 200,
   },
   slow: {
-    type: 'spring',
+    type: "spring",
     damping: 20,
     stiffness: 60,
   },
   quick: {
-    type: 'spring',
+    type: "spring",
     damping: 20,
     mass: 0.8,
     stiffness: 300,
   },
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     mass: 0.9,
     stiffness: 100,
   },
-})
+});
 ```
 
 ## enterStyle and exitStyle
@@ -125,6 +125,7 @@ Define initial and final animation states:
 ### Default Normalization
 
 Tamagui normalizes unmapped properties:
+
 - `opacity` defaults to `1`
 - `x`, `y` default to `0`
 - `scale` defaults to `1`
@@ -169,7 +170,7 @@ Customize animation per property:
 For mount/unmount animations:
 
 ```tsx
-import { AnimatePresence } from 'tamagui'
+import { AnimatePresence } from "tamagui";
 
 function Notification({ show, message }: { show: boolean; message: string }) {
   return (
@@ -187,7 +188,7 @@ function Notification({ show, message }: { show: boolean; message: string }) {
         </View>
       )}
     </AnimatePresence>
-  )
+  );
 }
 ```
 
@@ -197,9 +198,9 @@ Each child needs a unique `key` for AnimatePresence to track:
 
 ```tsx
 <AnimatePresence>
-  {items.map(item => (
+  {items.map((item) => (
     <View
-      key={item.id}  // REQUIRED
+      key={item.id} // REQUIRED
       animation="quick"
       enterStyle={{ opacity: 0 }}
       exitStyle={{ opacity: 0 }}
@@ -215,13 +216,13 @@ Each child needs a unique `key` for AnimatePresence to track:
 Pass direction for exit animations:
 
 ```tsx
-<AnimatePresence custom={{ direction: 'left' }}>
+<AnimatePresence custom={{ direction: "left" }}>
   {show && (
     <View
       key="slide"
       animation="quick"
       enterStyle={{ x: 100 }}
-      exitStyle={(custom) => ({ x: custom.direction === 'left' ? -100 : 100 })}
+      exitStyle={(custom) => ({ x: custom.direction === "left" ? -100 : 100 })}
     />
   )}
 </AnimatePresence>
@@ -232,11 +233,7 @@ Pass direction for exit animations:
 ### Fade
 
 ```tsx
-<View
-  animation="quick"
-  enterStyle={{ opacity: 0 }}
-  exitStyle={{ opacity: 0 }}
-/>
+<View animation="quick" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
 ```
 
 ### Fade + Scale
@@ -244,7 +241,7 @@ Pass direction for exit animations:
 ```tsx
 <View
   animation="quick"
-  animateOnly={['opacity', 'transform']}
+  animateOnly={["opacity", "transform"]}
   enterStyle={{ opacity: 0, scale: 0.9 }}
   exitStyle={{ opacity: 0, scale: 0.95 }}
 />
@@ -255,7 +252,7 @@ Pass direction for exit animations:
 ```tsx
 <View
   animation="quick"
-  animateOnly={['opacity', 'transform']}
+  animateOnly={["opacity", "transform"]}
   enterStyle={{ opacity: 0, y: 20 }}
   exitStyle={{ opacity: 0, y: 20 }}
 />
@@ -265,8 +262,8 @@ Pass direction for exit animations:
 
 ```tsx
 <View
-  animation={['quick', { opacity: { overshootClamping: true } }]}
-  animateOnly={['opacity', 'transform']}
+  animation={["quick", { opacity: { overshootClamping: true } }]}
+  animateOnly={["opacity", "transform"]}
   enterStyle={{ opacity: 0, y: -20, scale: 0.9 }}
   exitStyle={{ opacity: 0, y: 10, scale: 0.95 }}
 />
@@ -275,11 +272,7 @@ Pass direction for exit animations:
 ### Bounce In
 
 ```tsx
-<View
-  animation="bouncy"
-  animateOnly={['transform']}
-  enterStyle={{ scale: 0.5 }}
-/>
+<View animation="bouncy" animateOnly={["transform"]} enterStyle={{ scale: 0.5 }} />
 ```
 
 ## Overlay Animations
@@ -301,8 +294,8 @@ Standard patterns for Dialog/Sheet/Popover:
 
 ```tsx
 <Dialog.Content
-  animation={['quick', { opacity: { overshootClamping: true } }]}
-  animateOnly={['transform', 'opacity']}
+  animation={["quick", { opacity: { overshootClamping: true } }]}
+  animateOnly={["transform", "opacity"]}
   enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
   exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
 />
@@ -322,8 +315,7 @@ For reduced motion or performance:
 
 ```tsx
 // Disable with null
-<View animation={prefersReducedMotion ? null : 'quick'} />
-
+<View animation={prefersReducedMotion ? null : "quick"} />
 ```
 
 ## Debug Animations

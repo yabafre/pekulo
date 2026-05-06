@@ -29,11 +29,11 @@ This isn't a formally-defined pivot trigger either, but it's the third independe
 
 A fifth signal surfaced post-merge during reviewer's manual `bun run dev` (root, not `dev:web`) walkthrough: **the spike's `transpilePackages` + `turbopack.resolveAlias` cost is unsustainable on a 16 GB Apple Silicon laptop**. Measured live with `top -l 2 -s 1 -o cpu` while the spike route was being reviewed:
 
-| Process | CPU | RAM (rss) | Note |
-| --- | --- | --- | --- |
-| `next-server (v16.2.4)` | **269%** | **3.69 GB** (5 GB virtual) | Turbopack worker pool compiling Tamagui + react-native-web |
-| `fseventsd` | **256%** | 7 KB | Kernel daemon flooded by the file-event firehose from the watcher tree under `node_modules/.bun/@tamagui+*/…` and the spike's `apps/web/.tamagui/` cache rewriting on every render |
-| `kernel_task` | 96% | 85 MB | System-overload symptom while the Mac swap-thrashed |
+| Process                 | CPU      | RAM (rss)                  | Note                                                                                                                                                                               |
+| ----------------------- | -------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `next-server (v16.2.4)` | **269%** | **3.69 GB** (5 GB virtual) | Turbopack worker pool compiling Tamagui + react-native-web                                                                                                                         |
+| `fseventsd`             | **256%** | 7 KB                       | Kernel daemon flooded by the file-event firehose from the watcher tree under `node_modules/.bun/@tamagui+*/…` and the spike's `apps/web/.tamagui/` cache rewriting on every render |
+| `kernel_task`           | 96%      | 85 MB                      | System-overload symptom while the Mac swap-thrashed                                                                                                                                |
 
 System Load Avg peaked at **11.6** with **60% sys time** and **80 MB unused PhysMem** (16 GB Mac), forcing macOS into 5 GB of compressor pressure and continuous swap. The reviewer's fans pegged loud enough that the spike route was unreviewable until the dev tier was killed. Cause attribution:
 
@@ -71,14 +71,14 @@ The next action below routes to `aped-course` to revert ADR-0007 and unblock sto
 
 ### AC-1 — RSC `'use client'` boundary
 
-| File | `'use client'` present | Required by AC-1 |
-| --- | --- | --- |
-| `provider.tsx` | yes | yes |
-| `layout.tsx` | no | no |
-| `page.tsx` | no | no |
-| `proto-slice.tsx` | **yes** | **no** ← fail |
-| `tokens.ts` | no | no |
-| `contrast.ts` | no | no |
+| File              | `'use client'` present | Required by AC-1 |
+| ----------------- | ---------------------- | ---------------- |
+| `provider.tsx`    | yes                    | yes              |
+| `layout.tsx`      | no                     | no               |
+| `page.tsx`        | no                     | no               |
+| `proto-slice.tsx` | **yes**                | **no** ← fail    |
+| `tokens.ts`       | no                     | no               |
+| `contrast.ts`     | no                     | no               |
 
 Build outcome under root `dotenv -c -e .env -e .env.local -- turbo run build --filter=web`: exit 0 with `✓ Compiled successfully in 2.9s`, `○ /tamagui-spike` prerendered as static content, 9/9 static pages generated, 1 task successful.
 
@@ -99,29 +99,29 @@ The error happens at `Collecting page data` (Turbopack's SSR pass, after compile
 
 Source: `docs/spikes/0-9-contrast-report.json` (16 rows = 8 pairs × 2 themes; `body` threshold = 4.5, `large` threshold = 3.0).
 
-| Theme | Pairs tested | Pairs passing | Worst pair | Worst ratio | Worst pass |
-| --- | --- | --- | --- | --- | --- |
-| `pekulo-dark` | 8 | 8 | `text.tertiary on surface.card` (large) | 3.45:1 | yes (≥ 3.0) |
-| `pekulo-light` | 8 | 6 | `semantic.warning on surface.card` (body) | 3.19:1 | **no (< 4.5)** |
+| Theme          | Pairs tested | Pairs passing | Worst pair                                | Worst ratio | Worst pass     |
+| -------------- | ------------ | ------------- | ----------------------------------------- | ----------- | -------------- |
+| `pekulo-dark`  | 8            | 8             | `text.tertiary on surface.card` (large)   | 3.45:1      | yes (≥ 3.0)    |
+| `pekulo-light` | 8            | 6             | `semantic.warning on surface.card` (body) | 3.19:1      | **no (< 4.5)** |
 
 Failing pairs (pekulo-light only):
 
-| Pair | foreground | background | size | ratio | threshold | gap |
-| --- | --- | --- | --- | --- | --- | --- |
-| `accent.500 on surface.card` | `#059669` | `#FFFFFF` | body | 3.77:1 | 4.5 | 0.73 |
-| `semantic.warning on surface.card` | `#D97706` | `#FFFFFF` | body | 3.19:1 | 4.5 | 1.31 |
+| Pair                               | foreground | background | size | ratio  | threshold | gap  |
+| ---------------------------------- | ---------- | ---------- | ---- | ------ | --------- | ---- |
+| `accent.500 on surface.card`       | `#059669`  | `#FFFFFF`  | body | 3.77:1 | 4.5       | 0.73 |
+| `semantic.warning on surface.card` | `#D97706`  | `#FFFFFF`  | body | 3.19:1 | 4.5       | 1.31 |
 
 Both failures are **token-design issues**, not Tamagui-introduced contrast loss. The fix is to darken the pekulo-light accent/warning tokens (e.g. `accent.500` → `#047857`, `semantic.warning` → `#B45309`) or to apply emerald/amber on `surface.muted (#F1F5F9)` instead of `surface.card (#FFFFFF)`. Out of scope for this spike — captured for the post-pivot 0-10 (or whichever story re-evaluates the design system).
 
 ### AC-3 — Palette discipline
 
-| Audit | Expected | Observed |
-| --- | --- | --- |
-| `borderColor`/`borderWidth`/`outline`/`boxShadow`/`shadowColor` count in `proto-slice.tsx` (code only) | 0 | 0 ✓ |
-| `$accent` token usages in `proto-slice.tsx` | 1 (delta line only) | 1 ✓ |
-| Visual smoke (dark mode) | zero card borders, emerald only on delta | **pass** (manual capture by reviewer at `http://localhost:3000/tamagui-spike` post-fix `e0ecc0f`) |
+| Audit                                                                                                  | Expected                                 | Observed                                                                                          |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `borderColor`/`borderWidth`/`outline`/`boxShadow`/`shadowColor` count in `proto-slice.tsx` (code only) | 0                                        | 0 ✓                                                                                               |
+| `$accent` token usages in `proto-slice.tsx`                                                            | 1 (delta line only)                      | 1 ✓                                                                                               |
+| Visual smoke (dark mode)                                                                               | zero card borders, emerald only on delta | **pass** (manual capture by reviewer at `http://localhost:3000/tamagui-spike` post-fix `e0ecc0f`) |
 
-The two grep gates pass cleanly (the raw grep matches the documentation comments in the file header that *mention* the forbidden tokens; refining the grep with `grep -v -E "^\s*[0-9]+:\s*//"` returns the canonical zero-match outcome). The proxy middleware was patched (commit `07e01fe`) to allowlist `/tamagui-spike` so the route is reviewable without auth; after the runtime theme fix in `e0ecc0f` the reviewer confirmed the canonical dark surface manually at `http://localhost:3000/tamagui-spike` — body `#07090E`, card `#0E1117` with no border, text primary `#F1F5F9` on the headline + `147 320 €`, labels (`PATRIMOINE TOTAL`, `CAP`, `PROCHAINE ÉTAPE`) at `#94A3B8`, milestone label at `#CBD5E1`, **delta `+12 340 €` emerald `#10B981` and the only emerald element on the surface**. Strict-palette discipline holds.
+The two grep gates pass cleanly (the raw grep matches the documentation comments in the file header that _mention_ the forbidden tokens; refining the grep with `grep -v -E "^\s*[0-9]+:\s*//"` returns the canonical zero-match outcome). The proxy middleware was patched (commit `07e01fe`) to allowlist `/tamagui-spike` so the route is reviewable without auth; after the runtime theme fix in `e0ecc0f` the reviewer confirmed the canonical dark surface manually at `http://localhost:3000/tamagui-spike` — body `#07090E`, card `#0E1117` with no border, text primary `#F1F5F9` on the headline + `147 320 €`, labels (`PATRIMOINE TOTAL`, `CAP`, `PROCHAINE ÉTAPE`) at `#94A3B8`, milestone label at `#CBD5E1`, **delta `+12 340 €` emerald `#10B981` and the only emerald element on the surface**. Strict-palette discipline holds.
 
 ### Build-time delta (informational)
 

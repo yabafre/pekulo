@@ -11,9 +11,9 @@ Bento Tables are built using Tamagui's `createStyledContext` pattern to provide 
 ### Core Components
 
 ```tsx
-import { Table } from '@tamagui/bento/elements/tables'
+import { Table } from "@tamagui/bento/elements/tables";
 
-<Table cellWidth="$15" cellHeight="$5" alignCells={{ x: 'center', y: 'center' }}>
+<Table cellWidth="$15" cellHeight="$5" alignCells={{ x: "center", y: "center" }}>
   <Table.Head>
     <Table.Row>
       <Table.HeaderCell>Name</Table.HeaderCell>
@@ -24,10 +24,8 @@ import { Table } from '@tamagui/bento/elements/tables'
       <Table.Cell>Content</Table.Cell>
     </Table.Row>
   </Table.Body>
-  <Table.Foot>
-    {/* Optional footer */}
-  </Table.Foot>
-</Table>
+  <Table.Foot>{/* Optional footer */}</Table.Foot>
+</Table>;
 ```
 
 ### Component Hierarchy
@@ -46,21 +44,24 @@ The table context provides shared configuration across all child components:
 
 ```tsx
 type TableContext = {
-  cellWidth: SizeTokens | number      // Width for all cells
-  cellHeight: SizeTokens | number     // Min height for cells
-  alignHeaderCells: {                 // Header alignment
-    x: 'center' | 'start' | 'end'
-    y: 'center' | 'start' | 'end'
-  }
-  alignCells: {                       // Body cell alignment
-    x: 'center' | 'start' | 'end'
-    y: 'center' | 'start' | 'end'
-  }
-  borderColor: string                 // Border color token
-}
+  cellWidth: SizeTokens | number; // Width for all cells
+  cellHeight: SizeTokens | number; // Min height for cells
+  alignHeaderCells: {
+    // Header alignment
+    x: "center" | "start" | "end";
+    y: "center" | "start" | "end";
+  };
+  alignCells: {
+    // Body cell alignment
+    x: "center" | "start" | "end";
+    y: "center" | "start" | "end";
+  };
+  borderColor: string; // Border color token
+};
 ```
 
 **Defaults:**
+
 ```tsx
 {
   cellWidth: '$8',
@@ -96,11 +97,13 @@ Use size tokens like `$8`, `$10`, `$15`, `$18` for consistent spacing.
 ### Row and Cell Variants
 
 **Row Locations:**
+
 - `first` - Top row (no bottom border on last)
 - `middle` - Middle rows (bottom border)
 - `last` - Bottom row (no bottom border)
 
 **Cell Locations:**
+
 - `first` - First column (no left border)
 - `middle` - Middle columns (left border)
 - `last` - Last column (left border)
@@ -117,14 +120,14 @@ npm install @tanstack/react-table
 
 ```tsx
 type Person = {
-  avatar: string
-  firstName: string
-  lastName: string
-  age: number
-  visits: number
-  status: string
-  progress: number
-}
+  avatar: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  visits: number;
+  status: string;
+  progress: number;
+};
 ```
 
 ### Column Helper Pattern
@@ -132,49 +135,49 @@ type Person = {
 TanStack Table provides a type-safe `createColumnHelper` for defining columns:
 
 ```tsx
-import { createColumnHelper } from '@tanstack/react-table'
+import { createColumnHelper } from "@tanstack/react-table";
 
-const columnHelper = createColumnHelper<Person>()
+const columnHelper = createColumnHelper<Person>();
 
 const columns = [
-  columnHelper.accessor('avatar', {
+  columnHelper.accessor("avatar", {
     cell: (info) => (
       <Avatar circular size="$3">
         <Avatar.Image src={info.getValue()} />
         <Avatar.Fallback bg="$color6" />
       </Avatar>
     ),
-    header: () => 'Avatar',
+    header: () => "Avatar",
     footer: (info) => info.column.id,
   }),
-  columnHelper.accessor('firstName', {
+  columnHelper.accessor("firstName", {
     cell: (info) => info.getValue(),
-    header: () => 'First Name',
+    header: () => "First Name",
     footer: (info) => info.column.id,
   }),
   // More columns...
-]
+];
 ```
 
 ### Table Hook Setup
 
 ```tsx
-import { useReactTable, getCoreRowModel } from '@tanstack/react-table'
+import { useReactTable, getCoreRowModel } from "@tanstack/react-table";
 
 function MyTable() {
-  const [data, setData] = React.useState<Person[]>([])
-  
+  const [data, setData] = React.useState<Person[]>([]);
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  })
-  
-  const headerGroups = table.getHeaderGroups()
-  const tableRows = table.getRowModel().rows
-  const footerGroups = table.getFooterGroups()
-  
-  return <Table>...</Table>
+  });
+
+  const headerGroups = table.getHeaderGroups();
+  const tableRows = table.getRowModel().rows;
+  const footerGroups = table.getFooterGroups();
+
+  return <Table>...</Table>;
 }
 ```
 
@@ -183,15 +186,15 @@ function MyTable() {
 Use TanStack's `flexRender` utility to render dynamic cell content:
 
 ```tsx
-import { flexRender } from '@tanstack/react-table'
+import { flexRender } from "@tanstack/react-table";
 
-{headerGroup.headers.map((header) => (
-  <Table.HeaderCell key={header.id}>
-    <Text>
-      {flexRender(header.column.columnDef.header, header.getContext())}
-    </Text>
-  </Table.HeaderCell>
-))}
+{
+  headerGroup.headers.map((header) => (
+    <Table.HeaderCell key={header.id}>
+      <Text>{flexRender(header.column.columnDef.header, header.getContext())}</Text>
+    </Table.HeaderCell>
+  ));
+}
 ```
 
 ## Basic Table Example
@@ -204,70 +207,70 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from '@tanstack/react-table'
-import * as React from 'react'
-import { Avatar, Text, getTokenValue } from 'tamagui'
-import { Table } from '@tamagui/bento/elements/tables'
+} from "@tanstack/react-table";
+import * as React from "react";
+import { Avatar, Text, getTokenValue } from "tamagui";
+import { Table } from "@tamagui/bento/elements/tables";
 
 type Person = {
-  avatar: string
-  firstName: string
-  lastName: string
-  age: number
-  visits: number
-  status: string
-  progress: number
-}
+  avatar: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  visits: number;
+  status: string;
+  progress: number;
+};
 
-const columnHelper = createColumnHelper<Person>()
+const columnHelper = createColumnHelper<Person>();
 
 const columns = [
-  columnHelper.accessor('avatar', {
+  columnHelper.accessor("avatar", {
     cell: (info) => (
       <Avatar circular size="$3">
         <Avatar.Image src={info.getValue()} />
         <Avatar.Fallback bg="$color6" />
       </Avatar>
     ),
-    header: () => 'Avatar',
+    header: () => "Avatar",
   }),
-  columnHelper.accessor('firstName', {
+  columnHelper.accessor("firstName", {
     cell: (info) => info.getValue(),
-    header: () => 'First Name',
+    header: () => "First Name",
   }),
-  columnHelper.accessor('age', {
-    header: () => 'Age',
+  columnHelper.accessor("age", {
+    header: () => "Age",
     cell: (info) => info.renderValue(),
   }),
-]
+];
 
-const CELL_WIDTH = '$15'
+const CELL_WIDTH = "$15";
 
 export function BasicTable() {
   const [data] = React.useState<Person[]>([
     {
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      firstName: 'Robert',
-      lastName: 'Smith',
+      avatar: "https://i.pravatar.cc/150?img=1",
+      firstName: "Robert",
+      lastName: "Smith",
       age: 24,
       visits: 100,
-      status: 'Active',
+      status: "Active",
       progress: 50,
     },
-  ])
+  ]);
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  })
+  });
 
   return (
     <Table
       cellWidth={CELL_WIDTH}
       cellHeight="$5"
-      alignCells={{ x: 'center', y: 'center' }}
-      alignHeaderCells={{ x: 'center', y: 'center' }}
+      alignCells={{ x: "center", y: "center" }}
+      alignHeaderCells={{ x: "center", y: "center" }}
       borderWidth={0.5}
       maxW={getTokenValue(CELL_WIDTH) * columns.length}
     >
@@ -289,7 +292,7 @@ export function BasicTable() {
           <Table.Row key={row.id}>
             {row.getVisibleCells().map((cell) => (
               <Table.Cell key={cell.id}>
-                {cell.column.id === 'avatar' ? (
+                {cell.column.id === "avatar" ? (
                   flexRender(cell.column.columnDef.cell, cell.getContext())
                 ) : (
                   <Text fontSize="$4" color="$color11">
@@ -302,7 +305,7 @@ export function BasicTable() {
         ))}
       </Table.Body>
     </Table>
-  )
+  );
 }
 ```
 
@@ -311,22 +314,19 @@ export function BasicTable() {
 Add sorting capabilities with TanStack Table's sorting features:
 
 ```tsx
-import {
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from '@tamagui/lucide-icons'
-import { View, Text } from 'tamagui'
+import { getSortedRowModel, useReactTable } from "@tanstack/react-table";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "@tamagui/lucide-icons";
+import { View, Text } from "tamagui";
 
 export function SortableTable() {
-  const [data, setData] = React.useState<Person[]>([])
+  const [data, setData] = React.useState<Person[]>([]);
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-  })
+  });
 
   return (
     <Table>
@@ -334,12 +334,12 @@ export function SortableTable() {
         {table.getHeaderGroups().map((headerGroup) => (
           <Table.Row key={headerGroup.id} bg="$color2">
             {headerGroup.headers.map((header) => {
-              const canSort = header.column.getCanSort()
+              const canSort = header.column.getCanSort();
               return (
                 <Table.HeaderCell key={header.id}>
                   <View
                     flexDirection="row"
-                    cursor={canSort ? 'pointer' : 'default'}
+                    cursor={canSort ? "pointer" : "default"}
                     onPress={canSort ? header.column.getToggleSortingHandler() : undefined}
                     gap="$2"
                     items="center"
@@ -347,30 +347,30 @@ export function SortableTable() {
                     <Text fontSize="$4" selectable={false}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </Text>
-                    {{
-                      asc: <ChevronUp size="$1" color="$color10" />,
-                      desc: <ChevronDown size="$1" color="$color10" />,
-                      noSort: canSort ? <ChevronsUpDown size="$1" color="$color10" /> : null,
-                    }[header.column.getIsSorted() || 'noSort']}
+                    {
+                      {
+                        asc: <ChevronUp size="$1" color="$color10" />,
+                        desc: <ChevronDown size="$1" color="$color10" />,
+                        noSort: canSort ? <ChevronsUpDown size="$1" color="$color10" /> : null,
+                      }[header.column.getIsSorted() || "noSort"]
+                    }
                   </View>
                 </Table.HeaderCell>
-              )
+              );
             })}
           </Table.Row>
         ))}
       </Table.Head>
-      <Table.Body>
-        {/* Row rendering */}
-      </Table.Body>
+      <Table.Body>{/* Row rendering */}</Table.Body>
     </Table>
-  )
+  );
 }
 ```
 
 ### Sort Indicators
 
 - **Ascending:** `<ChevronUp />` - Indicates A→Z or 0→9 sort
-- **Descending:** `<ChevronDown />` - Indicates Z→A or 9→0 sort  
+- **Descending:** `<ChevronDown />` - Indicates Z→A or 9→0 sort
 - **Unsorted:** `<ChevronsUpDown />` - Shows column is sortable but not currently sorted
 
 ## Pagination
@@ -378,9 +378,9 @@ export function SortableTable() {
 Implement pagination with `getPaginationRowModel`:
 
 ```tsx
-import { getPaginationRowModel } from '@tanstack/react-table'
-import { Button, Input, Text, View, XGroup } from 'tamagui'
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from '@tamagui/lucide-icons'
+import { getPaginationRowModel } from "@tanstack/react-table";
+import { Button, Input, Text, View, XGroup } from "tamagui";
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from "@tamagui/lucide-icons";
 
 export function PaginatedTable() {
   const table = useReactTable({
@@ -395,41 +395,32 @@ export function PaginatedTable() {
         pageIndex: 0,
       },
     },
-  })
+  });
 
   return (
     <>
       <Table>{/* Table content */}</Table>
-      
+
       {/* Pagination Controls */}
       <View flexDirection="row" items="center" justify="space-between" px="$4">
         {/* Navigation Buttons */}
         <XGroup>
           <XGroup.Item>
-            <Button
-              onPress={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-            >
+            <Button onPress={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
               <Button.Icon>
                 <ChevronFirst />
               </Button.Icon>
             </Button>
           </XGroup.Item>
           <XGroup.Item>
-            <Button
-              onPress={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
+            <Button onPress={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
               <Button.Icon>
                 <ChevronLeft />
               </Button.Icon>
             </Button>
           </XGroup.Item>
           <XGroup.Item>
-            <Button
-              onPress={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
+            <Button onPress={() => table.nextPage()} disabled={!table.getCanNextPage()}>
               <Button.Icon>
                 <ChevronRight />
               </Button.Icon>
@@ -465,15 +456,17 @@ export function PaginatedTable() {
 
         {/* Go to Page Input */}
         <View flexDirection="row" gap="$4" items="center">
-          <Text fontSize="$5" fontWeight="$5">Go to page</Text>
+          <Text fontSize="$5" fontWeight="$5">
+            Go to page
+          </Text>
           <Input
             inputMode="numeric"
             type="number"
             defaultValue={String(table.getState().pagination.pageIndex + 1)}
             onChange={(e: any) => {
-              const text = e.target?.value ?? e.nativeEvent?.text ?? ''
-              const page = text ? Number(text) - 1 : 0
-              table.setPageIndex(page)
+              const text = e.target?.value ?? e.nativeEvent?.text ?? "";
+              const page = text ? Number(text) - 1 : 0;
+              table.setPageIndex(page);
             }}
             textAlign="center"
             maxW={45}
@@ -482,22 +475,22 @@ export function PaginatedTable() {
         </View>
       </View>
     </>
-  )
+  );
 }
 ```
 
 ### Pagination API
 
 ```tsx
-table.setPageIndex(0)                          // Go to first page
-table.previousPage()                           // Go to previous page
-table.nextPage()                               // Go to next page
-table.setPageIndex(table.getPageCount() - 1)   // Go to last page
-table.getCanPreviousPage()                     // Can go back?
-table.getCanNextPage()                         // Can go forward?
-table.getPageCount()                           // Total page count
-table.getState().pagination.pageIndex          // Current page (0-indexed)
-table.setPageSize(20)                          // Change page size
+table.setPageIndex(0); // Go to first page
+table.previousPage(); // Go to previous page
+table.nextPage(); // Go to next page
+table.setPageIndex(table.getPageCount() - 1); // Go to last page
+table.getCanPreviousPage(); // Can go back?
+table.getCanNextPage(); // Can go forward?
+table.getPageCount(); // Total page count
+table.getState().pagination.pageIndex; // Current page (0-indexed)
+table.setPageSize(20); // Change page size
 ```
 
 ## Responsive Tables
@@ -505,38 +498,33 @@ table.setPageSize(20)                          // Change page size
 Use `useGroupMedia` to switch between table and card views:
 
 ```tsx
-import { useGroupMedia } from '@tamagui/bento/hooks'
-import { View, YStack, Separator, Text, Avatar } from 'tamagui'
+import { useGroupMedia } from "@tamagui/bento/hooks";
+import { View, YStack, Separator, Text, Avatar } from "tamagui";
 
 export function ResponsiveTable() {
-  const [data] = React.useState<Person[]>([/* ... */])
-  const { sm } = useGroupMedia('window')
-  
+  const [data] = React.useState<Person[]>([
+    /* ... */
+  ]);
+  const { sm } = useGroupMedia("window");
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  })
+  });
 
   // Mobile Card View
   if (sm) {
     return (
       <YStack gap="$5" width="100%" py="$6">
         {data.map((row, i) => (
-          <View
-            key={i}
-            rounded="$4"
-            borderWidth="$1"
-            borderColor="$borderColor"
-            flex={1}
-            gap="$3"
-          >
+          <View key={i} rounded="$4" borderWidth="$1" borderColor="$borderColor" flex={1} gap="$3">
             <View gap="$3" mx="$3" my="$3">
               {Object.entries(row).map(([name, value], idx) => (
                 <View key={idx}>
                   <View flexDirection="row" items="center" justify="space-between">
                     <Text>{name.charAt(0).toUpperCase() + name.slice(1)}</Text>
-                    {name === 'avatar' ? (
+                    {name === "avatar" ? (
                       <Avatar circular size="$3">
                         <Avatar.Image src={value as string} />
                         <Avatar.Fallback bg="$color6" />
@@ -552,15 +540,11 @@ export function ResponsiveTable() {
           </View>
         ))}
       </YStack>
-    )
+    );
   }
 
   // Desktop Table View
-  return (
-    <Table>
-      {/* Standard table rendering */}
-    </Table>
-  )
+  return <Table>{/* Standard table rendering */}</Table>;
 }
 ```
 
@@ -569,7 +553,7 @@ export function ResponsiveTable() {
 The `useGroupMedia` hook from Bento provides responsive utilities:
 
 ```tsx
-const { xs, sm, md, lg, xl } = useGroupMedia('window')
+const { xs, sm, md, lg, xl } = useGroupMedia("window");
 
 // xs: < 660px (extra small - phones)
 // sm: < 860px (small - tablets portrait)
@@ -589,9 +573,7 @@ Create sticky table headers with `position: absolute`:
   <Table.Head position="absolute" z="$1" maxW={TABLE_WIDTH}>
     {/* Headers */}
   </Table.Head>
-  <Table.Body mt="$8">
-    {/* Body rows - margin-top offsets the sticky header */}
-  </Table.Body>
+  <Table.Body mt="$8">{/* Body rows - margin-top offsets the sticky header */}</Table.Body>
 </Table>
 ```
 
@@ -602,7 +584,7 @@ Add hover effects using the `hoverStyle` prop:
 ```tsx
 <Table.Row
   hoverStyle={{
-    bg: '$color2',
+    bg: "$color2",
   }}
   key={row.id}
 >
@@ -615,28 +597,28 @@ Add hover effects using the `hoverStyle` prop:
 #### Avatar Cell
 
 ```tsx
-columnHelper.accessor('avatar', {
+columnHelper.accessor("avatar", {
   cell: (info) => (
     <Avatar circular size="$3">
       <Avatar.Image accessibilityLabel="Profile image" src={info.getValue()} />
       <Avatar.Fallback bg="$color6" />
     </Avatar>
   ),
-  header: () => 'Avatar',
-})
+  header: () => "Avatar",
+});
 ```
 
 #### Badge/Status Cell
 
 ```tsx
-import { Circle, View, Text } from 'tamagui'
+import { Circle, View, Text } from "tamagui";
 
 const StatusBadge = ({ status }: { status: string }) => (
   <View
     flexDirection="row"
     items="center"
     gap="$2"
-    theme={status.toLowerCase() === 'active' ? 'green' : 'orange'}
+    theme={status.toLowerCase() === "active" ? "green" : "orange"}
     bg="$color6"
     rounded={1000_000_000}
     px="$2"
@@ -647,12 +629,12 @@ const StatusBadge = ({ status }: { status: string }) => (
       {status}
     </Text>
   </View>
-)
+);
 
-columnHelper.accessor('status', {
-  header: 'Status',
+columnHelper.accessor("status", {
+  header: "Status",
   cell: (info) => <StatusBadge status={info.getValue()} />,
-})
+});
 ```
 
 #### Composite Cell (Multiple Values)
@@ -665,9 +647,9 @@ columnHelper.accessor(
     image: row.avatar,
   }),
   {
-    id: 'user_base',
+    id: "user_base",
     cell: (info) => {
-      const { fullName, username, image } = info.getValue()
+      const { fullName, username, image } = info.getValue();
       return (
         <View flexDirection="row" items="center" gap="$3" ml="$2">
           <Avatar circular size="$4">
@@ -681,11 +663,11 @@ columnHelper.accessor(
             </Text>
           </View>
         </View>
-      )
+      );
     },
-    header: () => 'User',
-  }
-)
+    header: () => "User",
+  },
+);
 ```
 
 ### Horizontal Scrolling
@@ -693,15 +675,13 @@ columnHelper.accessor(
 For wide tables, wrap in `ScrollView`:
 
 ```tsx
-import { ScrollView, View } from 'tamagui'
+import { ScrollView, View } from "tamagui";
 
 <ScrollView horizontal maxW="100%">
   <View minW={TABLE_WIDTH} width="100%" px="$4" py="$6">
-    <Table maxW={TABLE_WIDTH}>
-      {/* Table content */}
-    </Table>
+    <Table maxW={TABLE_WIDTH}>{/* Table content */}</Table>
   </View>
-</ScrollView>
+</ScrollView>;
 ```
 
 ## Performance
@@ -722,7 +702,7 @@ const table = useReactTable({
       pageIndex: 0,
     },
   },
-})
+});
 ```
 
 ### Memoization Patterns
@@ -732,22 +712,22 @@ Memoize columns and data to prevent unnecessary re-renders:
 ```tsx
 const columns = React.useMemo(
   () => [
-    columnHelper.accessor('firstName', {
+    columnHelper.accessor("firstName", {
       cell: (info) => info.getValue(),
-      header: () => 'First Name',
+      header: () => "First Name",
     }),
     // More columns...
   ],
-  []
-)
+  [],
+);
 
-const data = React.useMemo(() => makeData(1000), [])
+const data = React.useMemo(() => makeData(1000), []);
 
 const table = useReactTable({
   data,
   columns,
   getCoreRowModel: getCoreRowModel(),
-})
+});
 ```
 
 ### Generating Test Data
@@ -755,19 +735,19 @@ const table = useReactTable({
 Use the Bento `makeData` utility for testing:
 
 ```tsx
-import { makeData } from '@tamagui/bento/elements/tables/utils'
+import { makeData } from "@tamagui/bento/elements/tables/utils";
 
 // Generate 100 rows
-const data = makeData(100)
+const data = makeData(100);
 
 // Generate nested data (100 parent rows, each with 10 children)
-const nestedData = makeData(100, 10)
+const nestedData = makeData(100, 10);
 ```
 
 Alternatively, use `@ngneat/falso` directly:
 
 ```tsx
-import { randFirstName, randLastName, randNumber } from '@ngneat/falso'
+import { randFirstName, randLastName, randNumber } from "@ngneat/falso";
 
 const generatePerson = (): Person => ({
   avatar: `https://i.pravatar.cc/150?img=${randNumber({ max: 70 })}`,
@@ -776,55 +756,61 @@ const generatePerson = (): Person => ({
   age: randNumber({ max: 40 }),
   visits: randNumber({ max: 1000 }),
   progress: randNumber({ max: 100 }),
-  status: ['Active', 'Offline', 'Pending'][Math.floor(Math.random() * 3)],
-})
+  status: ["Active", "Offline", "Pending"][Math.floor(Math.random() * 3)],
+});
 ```
 
 ## Quick Reference
 
 ### Table Props
+
 ```tsx
-cellWidth: SizeTokens | number        // Cell width (default: '$8')
-cellHeight: SizeTokens | number       // Cell min-height (default: '$8')
-alignCells: AlignCells                // Body cell alignment
-alignHeaderCells: AlignHeaderCells    // Header cell alignment
-borderColor: string                   // Border color token
+cellWidth: SizeTokens | number; // Cell width (default: '$8')
+cellHeight: SizeTokens | number; // Cell min-height (default: '$8')
+alignCells: AlignCells; // Body cell alignment
+alignHeaderCells: AlignHeaderCells; // Header cell alignment
+borderColor: string; // Border color token
 ```
 
 ### Row Variants
+
 ```tsx
-rowLocation: 'first' | 'middle' | 'last'   // Controls bottom borders
+rowLocation: "first" | "middle" | "last"; // Controls bottom borders
 ```
 
 ### Cell Variants
+
 ```tsx
-cellLocation: 'first' | 'middle' | 'last'  // Controls left borders
-cellWidth: SizeTokens                       // Override width
-cellHeight: SizeTokens                      // Override height
-alignCells: AlignCells                      // Override alignment
+cellLocation: "first" | "middle" | "last"; // Controls left borders
+cellWidth: SizeTokens; // Override width
+cellHeight: SizeTokens; // Override height
+alignCells: AlignCells; // Override alignment
 ```
 
 ### TanStack Table Core Models
+
 ```tsx
-getCoreRowModel()          // Required - basic row model
-getSortedRowModel()        // Sorting functionality
-getPaginationRowModel()    // Pagination functionality
-getFilteredRowModel()      // Filtering functionality
-getGroupedRowModel()       // Grouping functionality
+getCoreRowModel(); // Required - basic row model
+getSortedRowModel(); // Sorting functionality
+getPaginationRowModel(); // Pagination functionality
+getFilteredRowModel(); // Filtering functionality
+getGroupedRowModel(); // Grouping functionality
 ```
 
 ### Common Patterns
 
 **Basic Setup:**
+
 ```tsx
 const table = useReactTable({
   data,
   columns,
   getCoreRowModel: getCoreRowModel(),
-})
+});
 ```
 
 **With Sorting + Pagination:**
+
 ```tsx
 const table = useReactTable({
   data,
@@ -832,20 +818,23 @@ const table = useReactTable({
   getCoreRowModel: getCoreRowModel(),
   getSortedRowModel: getSortedRowModel(),
   getPaginationRowModel: getPaginationRowModel(),
-})
+});
 ```
 
 **Render Pattern:**
+
 ```tsx
-{table.getHeaderGroups().map(headerGroup => (
-  <Table.Row key={headerGroup.id}>
-    {headerGroup.headers.map(header => (
-      <Table.HeaderCell key={header.id}>
-        {flexRender(header.column.columnDef.header, header.getContext())}
-      </Table.HeaderCell>
-    ))}
-  </Table.Row>
-))}
+{
+  table.getHeaderGroups().map((headerGroup) => (
+    <Table.Row key={headerGroup.id}>
+      {headerGroup.headers.map((header) => (
+        <Table.HeaderCell key={header.id}>
+          {flexRender(header.column.columnDef.header, header.getContext())}
+        </Table.HeaderCell>
+      ))}
+    </Table.Row>
+  ));
+}
 ```
 
 ### Related Documentation

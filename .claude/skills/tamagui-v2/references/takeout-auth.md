@@ -84,18 +84,18 @@ Better Auth is already installed in Takeout. Core dependencies:
 Location: `src/features/auth/server/authServer.ts`
 
 ```typescript
-import { betterAuth } from 'better-auth'
-import { admin, bearer, emailOTP, jwt, magicLink, phoneNumber } from 'better-auth/plugins'
-import { expo } from '@better-auth/expo'
-import { database } from '~/database/database'
-import { BETTER_AUTH_SECRET, BETTER_AUTH_URL } from '~/server/env-server'
+import { betterAuth } from "better-auth";
+import { admin, bearer, emailOTP, jwt, magicLink, phoneNumber } from "better-auth/plugins";
+import { expo } from "@better-auth/expo";
+import { database } from "~/database/database";
+import { BETTER_AUTH_SECRET, BETTER_AUTH_URL } from "~/server/env-server";
 
 export const authServer = betterAuth({
-  database,  // Drizzle ORM instance
+  database, // Drizzle ORM instance
 
   session: {
-    freshAge: time.minute.days(2),  // Sessions older than 2 days are refreshed
-    storeSessionInDatabase: true,    // Persist sessions in DB
+    freshAge: time.minute.days(2), // Sessions older than 2 days are refreshed
+    storeSessionInDatabase: true, // Persist sessions in DB
   },
 
   emailAndPassword: {
@@ -104,15 +104,15 @@ export const authServer = betterAuth({
 
   trustedOrigins: [
     `https://${DOMAIN}`,
-    'http://localhost:8081',
-    `${APP_SCHEME}://`,  // For React Native deep links
+    "http://localhost:8081",
+    `${APP_SCHEME}://`, // For React Native deep links
   ],
 
   databaseHooks: {
     user: {
       create: {
         async after(user) {
-          await afterCreateUser(user)  // Custom post-registration logic
+          await afterCreateUser(user); // Custom post-registration logic
         },
       },
     },
@@ -121,27 +121,27 @@ export const authServer = betterAuth({
   plugins: [
     // JWT for Zero sync and React Native
     jwt({
-      jwt: { expirationTime: '3y' },
+      jwt: { expirationTime: "3y" },
       jwks: {
-        keyPairConfig: { alg: 'EdDSA', crv: 'Ed25519' },  // Zero-compatible
+        keyPairConfig: { alg: "EdDSA", crv: "Ed25519" }, // Zero-compatible
       },
     }),
 
-    bearer(),      // Bearer token authentication
-    expo(),        // React Native support
-    
+    bearer(), // Bearer token authentication
+    expo(), // React Native support
+
     magicLink({
       sendMagicLink: async ({ email, url }) => {
         // Implement email sending logic
       },
     }),
 
-    admin(),       // Admin role management
+    admin(), // Admin role management
 
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
-        console.info(`📧 OTP CODE for ${email}: ${otp}`)
-        storeOTP(email, otp)  // Dev mode storage
+        console.info(`📧 OTP CODE for ${email}: ${otp}`);
+        storeOTP(email, otp); // Dev mode storage
       },
     }),
 
@@ -151,24 +151,24 @@ export const authServer = betterAuth({
       },
       signUpOnVerification: {
         getTempEmail: (phoneNumber) => `${phoneNumber}@phone.local`,
-        getTempName: (phoneNumber) => '',
+        getTempName: (phoneNumber) => "",
       },
     }),
   ],
 
   logger: {
-    level: 'debug',
+    level: "debug",
     log(level, message, ...args) {
-      console.info(level, message, ...args)
+      console.info(level, message, ...args);
     },
   },
 
   account: {
     accountLinking: {
-      allowDifferentEmails: true,  // Link accounts with different emails
+      allowDifferentEmails: true, // Link accounts with different emails
     },
   },
-})
+});
 ```
 
 ### Environment Variables
@@ -185,45 +185,44 @@ BETTER_AUTH_URL=http://localhost:8081   # Base URL for auth endpoints
 Location: `src/features/auth/client/authClient.ts`
 
 ```typescript
-import { createBetterAuthClient } from '@take-out/better-auth-utils'
-import { SERVER_URL } from '~/constants/urls'
-import { setUser } from '~/features/user/getUser'
-import { showToast } from '~/interface/toast/Toast'
-import { plugins } from './plugins'
+import { createBetterAuthClient } from "@take-out/better-auth-utils";
+import { SERVER_URL } from "~/constants/urls";
+import { setUser } from "~/features/user/getUser";
+import { showToast } from "~/interface/toast/Toast";
+import { plugins } from "./plugins";
 
-type AppUser = User & { role?: 'admin' }
+type AppUser = User & { role?: "admin" };
 
 const betterAuthClient = createBetterAuthClient({
   baseURL: SERVER_URL,
   plugins,
-  
+
   // Transform user object with app-specific fields
   createUser: (user) => user as AppUser,
-  
+
   // React to auth state changes
   onAuthStateChange: (state) => {
-    setUser(state.user)
+    setUser(state.user);
   },
-  
+
   // Handle auth errors
   onAuthError: (error: any) => {
     showToast(`Auth error: ${error.message || JSON.stringify(error)}`, {
-      type: 'error',
-    })
+      type: "error",
+    });
   },
-})
+});
 
 export const useAuth = () => {
-  const auth = betterAuthClient.useAuth()
+  const auth = betterAuthClient.useAuth();
   return {
     ...auth,
-    loginText: auth.state === 'logged-in' ? 'Account' : 'Login',
-    loginLink: href(auth.state === 'logged-in' ? '/home/feed' : '/auth/login'),
-  }
-}
+    loginText: auth.state === "logged-in" ? "Account" : "Login",
+    loginLink: href(auth.state === "logged-in" ? "/home/feed" : "/auth/login"),
+  };
+};
 
-export const { setAuthClientToken, clearAuthClientToken, authState, authClient } =
-  betterAuthClient
+export const { setAuthClientToken, clearAuthClientToken, authState, authClient } = betterAuthClient;
 ```
 
 ### API Route Setup
@@ -231,24 +230,24 @@ export const { setAuthClientToken, clearAuthClientToken, authState, authClient }
 Location: `app/api/auth/[...sub]+api.ts`
 
 ```typescript
-import { authAPIHandler } from '~/features/auth/server/apiHandler'
-import type { Endpoint } from 'one'
+import { authAPIHandler } from "~/features/auth/server/apiHandler";
+import type { Endpoint } from "one";
 
-export const GET: Endpoint = authAPIHandler('GET')
-export const POST: Endpoint = authAPIHandler('POST')
+export const GET: Endpoint = authAPIHandler("GET");
+export const POST: Endpoint = authAPIHandler("POST");
 ```
 
 The `authAPIHandler` bridges One.js routes to Better Auth:
 
 ```typescript
 // src/features/auth/server/apiHandler.ts
-import { authServer } from './authServer'
+import { authServer } from "./authServer";
 
-export function authAPIHandler(method: 'GET' | 'POST') {
+export function authAPIHandler(method: "GET" | "POST") {
   return async (request: Request) => {
     // Better Auth handles all /api/auth/* endpoints
-    return authServer.handler(request)
-  }
+    return authServer.handler(request);
+  };
 }
 ```
 
@@ -259,6 +258,7 @@ export function authAPIHandler(method: 'GET' | 'POST') {
 ### Email/Password
 
 **Server Setup** (already configured):
+
 ```typescript
 emailAndPassword: {
   enabled: true,
@@ -266,70 +266,75 @@ emailAndPassword: {
 ```
 
 **Client Usage**:
+
 ```typescript
-import { authClient } from '~/features/auth/client/authClient'
+import { authClient } from "~/features/auth/client/authClient";
 
 // Sign up
 const { data, error } = await authClient.signUp.email({
-  email: 'user@example.com',
-  password: 'secure-password',
-  name: 'John Doe',
-})
+  email: "user@example.com",
+  password: "secure-password",
+  name: "John Doe",
+});
 
 // Sign in
 const { data, error } = await authClient.signIn.email({
-  email: 'user@example.com',
-  password: 'secure-password',
-})
+  email: "user@example.com",
+  password: "secure-password",
+});
 ```
 
 ### Email OTP
 
 **Server Plugin**:
+
 ```typescript
 emailOTP({
   async sendVerificationOTP({ email, otp, type }) {
     // Send OTP via email service
     await emailService.send({
       to: email,
-      subject: 'Your verification code',
+      subject: "Your verification code",
       body: `Your code is: ${otp}`,
-    })
+    });
   },
-})
+});
 ```
 
 **Client Flow**:
+
 ```typescript
-import { authClient } from '~/features/auth/client/authClient'
+import { authClient } from "~/features/auth/client/authClient";
 
 // Step 1: Request OTP
 const { data, error } = await authClient.emailOtp.sendVerificationOtp({
-  email: 'user@example.com',
-  type: 'sign-in',
-})
+  email: "user@example.com",
+  type: "sign-in",
+});
 
 // Step 2: Verify OTP
 const { data, error } = await authClient.signIn.emailOtp({
-  email: 'user@example.com',
-  otp: '123456',
-})
+  email: "user@example.com",
+  otp: "123456",
+});
 ```
 
 **Helper Function** (from `otpLogin.ts`):
+
 ```typescript
-import { validateLoginOtpCode, otpLogin } from '~/features/auth/client/otpLogin'
+import { validateLoginOtpCode, otpLogin } from "~/features/auth/client/otpLogin";
 
 // Send OTP
-const { success, error } = await validateLoginOtpCode('email', 'user@example.com')
+const { success, error } = await validateLoginOtpCode("email", "user@example.com");
 
 // Verify and login
-const { success, error } = await otpLogin('email', 'user@example.com', '123456')
+const { success, error } = await otpLogin("email", "user@example.com", "123456");
 ```
 
 ### Phone Number OTP
 
 **Server Plugin**:
+
 ```typescript
 phoneNumber({
   sendOTP: async ({ phoneNumber, code }) => {
@@ -337,51 +342,54 @@ phoneNumber({
     await smsService.send({
       to: phoneNumber,
       message: `Your verification code is: ${code}`,
-    })
+    });
   },
   signUpOnVerification: {
     getTempEmail: (phoneNumber) => `${phoneNumber}@phone.local`,
-    getTempName: (phoneNumber) => '',
+    getTempName: (phoneNumber) => "",
   },
-})
+});
 ```
 
 **Client Usage**:
+
 ```typescript
 // Request OTP
 const { data, error } = await authClient.phoneNumber.sendOtp({
-  phoneNumber: '+14155551234',
-})
+  phoneNumber: "+14155551234",
+});
 
 // Verify (automatically creates session)
 const { data, error } = await authClient.phoneNumber.verify({
-  phoneNumber: '+14155551234',
-  code: '123456',
-})
+  phoneNumber: "+14155551234",
+  code: "123456",
+});
 ```
 
 ### Magic Link
 
 **Server Plugin**:
+
 ```typescript
 magicLink({
   sendMagicLink: async ({ email, url }) => {
     await emailService.send({
       to: email,
-      subject: 'Sign in to your account',
+      subject: "Sign in to your account",
       body: `Click here to sign in: ${url}`,
-    })
+    });
   },
-})
+});
 ```
 
 **Client Usage**:
+
 ```typescript
 // Request magic link
 const { data, error } = await authClient.signIn.magicLink({
-  email: 'user@example.com',
-  callbackURL: '/auth/verify',
-})
+  email: "user@example.com",
+  callbackURL: "/auth/verify",
+});
 
 // User clicks link, Better Auth handles verification automatically
 ```
@@ -389,8 +397,9 @@ const { data, error } = await authClient.signIn.magicLink({
 ### OAuth Providers (Google, GitHub, Apple)
 
 **Configuration** (add to server plugins):
+
 ```typescript
-import { google, github, apple } from 'better-auth/plugins'
+import { google, github, apple } from "better-auth/plugins";
 
 plugins: [
   google({
@@ -405,16 +414,17 @@ plugins: [
     clientId: process.env.APPLE_CLIENT_ID,
     clientSecret: process.env.APPLE_CLIENT_SECRET,
   }),
-]
+];
 ```
 
 **Client Usage**:
+
 ```typescript
 // Initiate OAuth flow
 await authClient.signIn.social({
-  provider: 'google',
-  callbackURL: '/auth/callback',
-})
+  provider: "google",
+  callbackURL: "/auth/callback",
+});
 ```
 
 ---
@@ -461,6 +471,7 @@ function UserProfile() {
 ```
 
 **Auth State Values**:
+
 - `state`: `'loading' | 'logged-in' | 'logged-out'`
 - `user`: User object or `null`
 - `session`: Session object or `null`
@@ -471,15 +482,15 @@ function UserProfile() {
 Non-reactive auth state access (for non-component code):
 
 ```typescript
-import { betterAuthClient } from '~/features/auth/client/authClient'
+import { betterAuthClient } from "~/features/auth/client/authClient";
 
-const { getAuth } = betterAuthClient
+const { getAuth } = betterAuthClient;
 
 // In utilities, middleware, etc.
 function requireAuth() {
-  const { loggedIn, user } = getAuth()
-  if (!loggedIn) throw new Error('Unauthorized')
-  return user
+  const { loggedIn, user } = getAuth();
+  if (!loggedIn) throw new Error("Unauthorized");
+  return user;
 }
 ```
 
@@ -494,11 +505,11 @@ Sessions are automatically refreshed by the `@take-out/better-auth-utils` wrappe
 ```typescript
 // Configured in createBetterAuthClient
 const betterAuthClient = createBetterAuthClient({
-  retryDelay: 4000,  // Retry after 4 seconds on error
+  retryDelay: 4000, // Retry after 4 seconds on error
   onAuthError: (error) => {
     // Handle errors, display toasts, etc.
   },
-})
+});
 ```
 
 ### Server-Side Session Access
@@ -506,23 +517,23 @@ const betterAuthClient = createBetterAuthClient({
 Access sessions in API routes:
 
 ```typescript
-import { authServer } from '~/features/auth/server/authServer'
-import type { Endpoint } from 'one'
+import { authServer } from "~/features/auth/server/authServer";
+import type { Endpoint } from "one";
 
 export const GET: Endpoint = async (request) => {
   const session = await authServer.api.getSession({
     headers: request.headers,
-  })
+  });
 
   if (!session) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   return Response.json({
     user: session.user,
     message: `Hello, ${session.user.name}!`,
-  })
-}
+  });
+};
 ```
 
 ---
@@ -542,7 +553,7 @@ export const LoginPage = () => {
   return (
     <YStack gap="$4">
       <H2>Login to {APP_NAME}</H2>
-      
+
       {/* Email/OTP Login */}
       <Link href="/auth/signup/email">
         <ButtonAction theme="accent" size="large">
@@ -574,17 +585,17 @@ export const SignupPage = () => {
 
   const handleContinue = async () => {
     setLoading(true)
-    
+
     // Step 1: Send OTP
     const { success, error } = await validateLoginOtpCode(method, inputValue)
-    
+
     if (success) {
       // Redirect to OTP verification page
       router.push(`/auth/signup/otp?method=${method}&value=${encodeURIComponent(inputValue)}`)
     } else {
       showError(error)
     }
-    
+
     setLoading(false)
   }
 
@@ -596,7 +607,7 @@ export const SignupPage = () => {
         onChange={(e) => setInputValue(e.target.value)}
         type={isPhone ? 'tel' : 'email'}
       />
-      
+
       <ButtonAction onPress={handleContinue} disabled={!inputValue.trim()}>
         {loading ? 'Processing...' : 'Next'}
       </ButtonAction>
@@ -617,7 +628,7 @@ export const OTPPage = () => {
 
   const handleVerify = async () => {
     const { success, error } = await otpLogin(method, value, otp)
-    
+
     if (success) {
       router.replace('/home/feed')  // Redirect to app
     } else {
@@ -645,14 +656,14 @@ export const OTPPage = () => {
 ```typescript
 // Request reset
 await authClient.forgetPassword({
-  email: 'user@example.com',
-  redirectTo: '/auth/reset-password',
-})
+  email: "user@example.com",
+  redirectTo: "/auth/reset-password",
+});
 
 // Reset password (after clicking email link)
 await authClient.resetPassword({
-  newPassword: 'new-secure-password',
-})
+  newPassword: "new-secure-password",
+});
 ```
 
 ---
@@ -689,20 +700,20 @@ For server-side route protection:
 
 ```typescript
 // middleware.ts
-import { authServer } from '~/features/auth/server/authServer'
+import { authServer } from "~/features/auth/server/authServer";
 
 export async function middleware(request: Request) {
   const session = await authServer.api.getSession({
     headers: request.headers,
-  })
+  });
 
-  const isProtectedRoute = request.url.startsWith('/app/')
-  
+  const isProtectedRoute = request.url.startsWith("/app/");
+
   if (isProtectedRoute && !session) {
-    return Response.redirect('/auth/login')
+    return Response.redirect("/auth/login");
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 ```
 
@@ -712,10 +723,10 @@ Preserve intended destination after login:
 
 ```typescript
 // Save redirect URL before login
-const returnTo = router.query.returnTo || '/home/feed'
+const returnTo = router.query.returnTo || "/home/feed";
 
 // After successful auth
-router.replace(returnTo)
+router.replace(returnTo);
 ```
 
 Example login flow:
@@ -741,20 +752,20 @@ export async function afterCreateUser(user: User) {
   await db.insert(userProfiles).values({
     userId: user.id,
     createdAt: new Date(),
-  })
+  });
 }
 ```
 
 ### Profile Updates
 
 ```typescript
-import { authClient } from '~/features/auth/client/authClient'
+import { authClient } from "~/features/auth/client/authClient";
 
 // Update user profile
 const { data, error } = await authClient.updateUser({
-  name: 'New Name',
-  image: 'https://example.com/avatar.jpg',
-})
+  name: "New Name",
+  image: "https://example.com/avatar.jpg",
+});
 ```
 
 ### Password Changes
@@ -762,20 +773,20 @@ const { data, error } = await authClient.updateUser({
 ```typescript
 // Change password (requires current password)
 const { data, error } = await authClient.changePassword({
-  currentPassword: 'old-password',
-  newPassword: 'new-password',
-})
+  currentPassword: "old-password",
+  newPassword: "new-password",
+});
 ```
 
 ### Account Deletion
 
 ```typescript
 // Delete user account
-const { data, error } = await authClient.deleteUser()
+const { data, error } = await authClient.deleteUser();
 
 // Clear local state
-clearAuthClientToken()
-router.replace('/auth/login')
+clearAuthClientToken();
+router.replace("/auth/login");
 ```
 
 ---
@@ -786,51 +797,61 @@ router.replace('/auth/login')
 
 Takeout uses the following Better Auth plugins:
 
-| Plugin | Purpose | Import |
-|--------|---------|--------|
-| `jwt` | Generate JWT tokens for native/Zero | `better-auth/plugins` |
-| `bearer` | Bearer token authentication | `better-auth/plugins` |
-| `admin` | Admin role management | `better-auth/plugins` |
-| `emailOTP` | Email-based OTP | `better-auth/plugins` |
-| `phoneNumber` | Phone-based OTP | `better-auth/plugins` |
-| `magicLink` | Passwordless email links | `better-auth/plugins` |
-| `expo` | React Native support | `@better-auth/expo` |
+| Plugin        | Purpose                             | Import                |
+| ------------- | ----------------------------------- | --------------------- |
+| `jwt`         | Generate JWT tokens for native/Zero | `better-auth/plugins` |
+| `bearer`      | Bearer token authentication         | `better-auth/plugins` |
+| `admin`       | Admin role management               | `better-auth/plugins` |
+| `emailOTP`    | Email-based OTP                     | `better-auth/plugins` |
+| `phoneNumber` | Phone-based OTP                     | `better-auth/plugins` |
+| `magicLink`   | Passwordless email links            | `better-auth/plugins` |
+| `expo`        | React Native support                | `@better-auth/expo`   |
 
 ### Plugin Configuration
 
 **Server** (`src/features/auth/server/authServer.ts`):
+
 ```typescript
-import { jwt, bearer, admin, emailOTP, phoneNumber, magicLink } from 'better-auth/plugins'
-import { expo } from '@better-auth/expo'
+import { jwt, bearer, admin, emailOTP, phoneNumber, magicLink } from "better-auth/plugins";
+import { expo } from "@better-auth/expo";
 
 plugins: [
-  jwt({ /* config */ }),
+  jwt({
+    /* config */
+  }),
   bearer(),
   admin(),
-  emailOTP({ /* config */ }),
-  phoneNumber({ /* config */ }),
-  magicLink({ /* config */ }),
+  emailOTP({
+    /* config */
+  }),
+  phoneNumber({
+    /* config */
+  }),
+  magicLink({
+    /* config */
+  }),
   expo(),
-]
+];
 ```
 
 **Client** (`src/features/auth/client/plugins.ts`):
+
 ```typescript
 import {
   adminClient,
   emailOTPClient,
   magicLinkClient,
   phoneNumberClient,
-} from 'better-auth/client/plugins'
-import { platformClient } from './platformClient'
+} from "better-auth/client/plugins";
+import { platformClient } from "./platformClient";
 
 export const plugins = [
   adminClient(),
   magicLinkClient(),
   emailOTPClient(),
   phoneNumberClient(),
-  platformClient(),  // Expo client for React Native
-]
+  platformClient(), // Expo client for React Native
+];
 ```
 
 ### Custom Plugin Creation
@@ -839,41 +860,41 @@ Create a server plugin:
 
 ```typescript
 // src/features/auth/plugins/customPlugin.ts
-import type { BetterAuthPlugin } from 'better-auth'
+import type { BetterAuthPlugin } from "better-auth";
 
 export const myCustomPlugin = (): BetterAuthPlugin => ({
-  id: 'my-plugin',
+  id: "my-plugin",
   endpoints: {
-    '/custom-endpoint': {
-      method: 'POST',
+    "/custom-endpoint": {
+      method: "POST",
       handler: async (request) => {
         // Custom logic
-        return { success: true }
+        return { success: true };
       },
     },
   },
   hooks: {
     after: [
       {
-        matcher: (context) => context.path === '/sign-in/email',
+        matcher: (context) => context.path === "/sign-in/email",
         handler: async (context) => {
           // Run after email sign-in
         },
       },
     ],
   },
-})
+});
 ```
 
 Add to server:
 
 ```typescript
-import { myCustomPlugin } from './plugins/customPlugin'
+import { myCustomPlugin } from "./plugins/customPlugin";
 
 plugins: [
   // ... existing plugins
   myCustomPlugin(),
-]
+];
 ```
 
 ---
@@ -894,30 +915,30 @@ Implement rate limiting for auth endpoints:
 
 ```typescript
 // Example with better-auth hooks
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, '1 m'),  // 5 requests per minute
-})
+  limiter: Ratelimit.slidingWindow(5, "1 m"), // 5 requests per minute
+});
 
 export const authServer = betterAuth({
   // ... config
   hooks: {
     before: [
       {
-        matcher: (ctx) => ctx.path.startsWith('/sign-in'),
+        matcher: (ctx) => ctx.path.startsWith("/sign-in"),
         handler: async (ctx) => {
-          const { success } = await ratelimit.limit(ctx.request.headers.get('x-forwarded-for'))
+          const { success } = await ratelimit.limit(ctx.request.headers.get("x-forwarded-for"));
           if (!success) {
-            throw new Error('Rate limit exceeded')
+            throw new Error("Rate limit exceeded");
           }
         },
       },
     ],
   },
-})
+});
 ```
 
 ### Secure Cookie Configuration
@@ -938,24 +959,27 @@ session: {
 ### Best Practices
 
 1. **Use environment variables** for secrets:
+
    ```bash
    BETTER_AUTH_SECRET=<random-secret-key>
    ```
 
 2. **Validate user input** before passing to Better Auth:
+
    ```typescript
-   import { z } from 'zod'
-   
-   const emailSchema = z.string().email()
-   const email = emailSchema.parse(userInput)
+   import { z } from "zod";
+
+   const emailSchema = z.string().email();
+   const email = emailSchema.parse(userInput);
    ```
 
 3. **Implement proper CORS** for trusted origins:
+
    ```typescript
    trustedOrigins: [
-     'https://yourdomain.com',
-     'http://localhost:8081',  // Dev only
-   ]
+     "https://yourdomain.com",
+     "http://localhost:8081", // Dev only
+   ];
    ```
 
 4. **Use HTTPS in production** (enforced by Better Auth)
@@ -980,19 +1004,19 @@ Zero (the local-first database sync) requires JWT tokens for authentication. Bet
 ### Server Configuration
 
 ```typescript
-import { jwt } from 'better-auth/plugins'
+import { jwt } from "better-auth/plugins";
 
 plugins: [
   jwt({
     jwt: {
-      expirationTime: '3y',  // Long-lived for offline-first apps
+      expirationTime: "3y", // Long-lived for offline-first apps
     },
     jwks: {
       // EdDSA with Ed25519 is required for Zero compatibility
-      keyPairConfig: { alg: 'EdDSA', crv: 'Ed25519' },
+      keyPairConfig: { alg: "EdDSA", crv: "Ed25519" },
     },
   }),
-]
+];
 ```
 
 ### Client Integration
@@ -1000,16 +1024,16 @@ plugins: [
 Get JWT token for Zero:
 
 ```typescript
-import { betterAuthClient } from '~/features/auth/client/authClient'
+import { betterAuthClient } from "~/features/auth/client/authClient";
 
 // Get valid token (cached, auto-refreshed)
-const token = await betterAuthClient.getValidToken()
+const token = await betterAuthClient.getValidToken();
 
 // Use token for Zero sync
 const zero = new Zero({
   server: ZERO_SERVER_URL,
   auth: token,
-})
+});
 ```
 
 ### User Context in Zero Queries
@@ -1021,12 +1045,12 @@ import { useAuth } from '~/features/auth/client/authClient'
 
 function MyComponent() {
   const { user } = useAuth()
-  
+
   const posts = useZero(
     (zero) => zero.query.posts.where('authorId', user.id),
     [user.id]
   )
-  
+
   return <PostList posts={posts} />
 }
 ```
@@ -1037,19 +1061,19 @@ The `authFetch` wrapper automatically includes the JWT:
 
 ```typescript
 // src/features/auth/client/authFetch.ts
-import { createFetch } from '@better-fetch/fetch'
-import { authState } from './authClient'
+import { createFetch } from "@better-fetch/fetch";
+import { authState } from "./authClient";
 
 export const authFetch = createFetch({
   baseURL: SERVER_URL,
   auth: {
-    type: 'Bearer',
+    type: "Bearer",
     token: () => authState.value?.session?.token,
   },
-})
+});
 
 // Usage
-const response = await authFetch('/api/protected-endpoint')
+const response = await authFetch("/api/protected-endpoint");
 ```
 
 ---
@@ -1058,79 +1082,85 @@ const response = await authFetch('/api/protected-endpoint')
 
 ### Auth Hooks
 
-| Hook | Purpose | Returns |
-|------|---------|---------|
-| `useAuth()` | Get auth state in React | `{ state, user, session, token }` |
+| Hook        | Purpose                       | Returns                                     |
+| ----------- | ----------------------------- | ------------------------------------------- |
+| `useAuth()` | Get auth state in React       | `{ state, user, session, token }`           |
 | `getAuth()` | Get auth state (non-reactive) | `{ state, user, session, token, loggedIn }` |
 
 ### Auth Client Methods
 
-| Method | Purpose | Example |
-|--------|---------|---------|
-| `signUp.email()` | Register with email/password | `authClient.signUp.email({ email, password, name })` |
-| `signIn.email()` | Login with email/password | `authClient.signIn.email({ email, password })` |
-| `signIn.emailOtp()` | Login with email OTP | `authClient.signIn.emailOtp({ email, otp })` |
-| `signIn.social()` | OAuth login | `authClient.signIn.social({ provider: 'google' })` |
-| `signOut()` | Logout | `authClient.signOut()` |
-| `updateUser()` | Update profile | `authClient.updateUser({ name, image })` |
-| `changePassword()` | Change password | `authClient.changePassword({ currentPassword, newPassword })` |
-| `forgetPassword()` | Request password reset | `authClient.forgetPassword({ email })` |
-| `$fetch()` | Make authenticated request | `authClient.$fetch('/endpoint')` |
+| Method              | Purpose                      | Example                                                       |
+| ------------------- | ---------------------------- | ------------------------------------------------------------- |
+| `signUp.email()`    | Register with email/password | `authClient.signUp.email({ email, password, name })`          |
+| `signIn.email()`    | Login with email/password    | `authClient.signIn.email({ email, password })`                |
+| `signIn.emailOtp()` | Login with email OTP         | `authClient.signIn.emailOtp({ email, otp })`                  |
+| `signIn.social()`   | OAuth login                  | `authClient.signIn.social({ provider: 'google' })`            |
+| `signOut()`         | Logout                       | `authClient.signOut()`                                        |
+| `updateUser()`      | Update profile               | `authClient.updateUser({ name, image })`                      |
+| `changePassword()`  | Change password              | `authClient.changePassword({ currentPassword, newPassword })` |
+| `forgetPassword()`  | Request password reset       | `authClient.forgetPassword({ email })`                        |
+| `$fetch()`          | Make authenticated request   | `authClient.$fetch('/endpoint')`                              |
 
 ### Provider Configuration
 
-| Provider | Server Plugin | Client Plugin | Usage |
-|----------|--------------|---------------|-------|
-| Email/Password | Built-in | Built-in | `signIn.email()` |
-| Email OTP | `emailOTP()` | `emailOTPClient()` | `emailOtp.sendVerificationOtp()` |
-| Phone OTP | `phoneNumber()` | `phoneNumberClient()` | `phoneNumber.sendOtp()` |
-| Magic Link | `magicLink()` | `magicLinkClient()` | `signIn.magicLink()` |
-| Google OAuth | `google()` | N/A | `signIn.social({ provider: 'google' })` |
-| GitHub OAuth | `github()` | N/A | `signIn.social({ provider: 'github' })` |
-| Apple OAuth | `apple()` | N/A | `signIn.social({ provider: 'apple' })` |
+| Provider       | Server Plugin   | Client Plugin         | Usage                                   |
+| -------------- | --------------- | --------------------- | --------------------------------------- |
+| Email/Password | Built-in        | Built-in              | `signIn.email()`                        |
+| Email OTP      | `emailOTP()`    | `emailOTPClient()`    | `emailOtp.sendVerificationOtp()`        |
+| Phone OTP      | `phoneNumber()` | `phoneNumberClient()` | `phoneNumber.sendOtp()`                 |
+| Magic Link     | `magicLink()`   | `magicLinkClient()`   | `signIn.magicLink()`                    |
+| Google OAuth   | `google()`      | N/A                   | `signIn.social({ provider: 'google' })` |
+| GitHub OAuth   | `github()`      | N/A                   | `signIn.social({ provider: 'github' })` |
+| Apple OAuth    | `apple()`       | N/A                   | `signIn.social({ provider: 'apple' })`  |
 
 ### Common Patterns
 
 **Check if logged in**:
+
 ```typescript
-const { state } = useAuth()
-const isLoggedIn = state === 'logged-in'
+const { state } = useAuth();
+const isLoggedIn = state === "logged-in";
 ```
 
 **Get current user**:
+
 ```typescript
-const { user } = useAuth()
-console.log(user?.id, user?.email, user?.name)
+const { user } = useAuth();
+console.log(user?.id, user?.email, user?.name);
 ```
 
 **Protect a route**:
+
 ```typescript
 const { state } = useAuth()
 if (state === 'logged-out') return <Redirect href="/auth/login" />
 ```
 
 **Make authenticated API call**:
+
 ```typescript
-import { authFetch } from '~/features/auth/client/authFetch'
-const data = await authFetch('/api/user/posts').then(r => r.json())
+import { authFetch } from "~/features/auth/client/authFetch";
+const data = await authFetch("/api/user/posts").then((r) => r.json());
 ```
 
 **Sign out**:
+
 ```typescript
-import { authClient } from '~/features/auth/client/authClient'
-await authClient.signOut()
+import { authClient } from "~/features/auth/client/authClient";
+await authClient.signOut();
 ```
 
 **Handle auth errors**:
+
 ```typescript
 const betterAuthClient = createBetterAuthClient({
   onAuthError: (error) => {
     if (error.status === 401) {
-      showToast('Session expired. Please log in again.')
-      router.push('/auth/login')
+      showToast("Session expired. Please log in again.");
+      router.push("/auth/login");
     }
   },
-})
+});
 ```
 
 ---
@@ -1154,18 +1184,18 @@ const betterAuthClient = createBetterAuthClient({
 
 ```typescript
 // src/features/auth/client/platformClient.native.ts
-import { expoClient } from '@better-auth/expo/client'
-import { createStorage } from '@take-out/helpers'
-import { APP_SCHEME } from '../constants'
+import { expoClient } from "@better-auth/expo/client";
+import { createStorage } from "@take-out/helpers";
+import { APP_SCHEME } from "../constants";
 
-const expoStorage = createStorage('expo-auth-client')
+const expoStorage = createStorage("expo-auth-client");
 
 export function platformClient(): BetterAuthClientPlugin {
   return expoClient({
-    scheme: APP_SCHEME,           // e.g., 'myapp://'
+    scheme: APP_SCHEME, // e.g., 'myapp://'
     storagePrefix: APP_SCHEME,
-    storage: expoStorage,          // MMKV-backed storage
-  })
+    storage: expoStorage, // MMKV-backed storage
+  });
 }
 ```
 
@@ -1175,8 +1205,8 @@ CRITICAL: Must be initialized before auth code runs:
 
 ```typescript
 // src/setupClient.ts (imported in vite.config.ts)
-import '~/features/storage/setupStorage'  // Sets up MMKV driver
-import '~/helpers/crypto/polyfill'        // Polyfills crypto API
+import "~/features/storage/setupStorage"; // Sets up MMKV driver
+import "~/helpers/crypto/polyfill"; // Polyfills crypto API
 ```
 
 Without this, auth tokens won't persist on React Native. See test file: `src/test/unit/auth-initialization.test.ts`.
@@ -1214,9 +1244,9 @@ test: {
 ```typescript
 jwt({
   jwks: {
-    keyPairConfig: { alg: 'EdDSA', crv: 'Ed25519' },
+    keyPairConfig: { alg: "EdDSA", crv: "Ed25519" },
   },
-})
+});
 ```
 
 ### CORS errors
@@ -1226,10 +1256,7 @@ jwt({
 **Fix**: Add origin to `trustedOrigins`:
 
 ```typescript
-trustedOrigins: [
-  'https://yourdomain.com',
-  'http://localhost:8081',
-]
+trustedOrigins: ["https://yourdomain.com", "http://localhost:8081"];
 ```
 
 ### Rate limit issues
@@ -1242,7 +1269,8 @@ trustedOrigins: [
 
 **Symptom**: Users not receiving OTP emails/SMS
 
-**Fix**: 
+**Fix**:
+
 1. Check server logs for OTP codes (dev mode)
 2. Implement actual email/SMS service in production
 3. Verify email/phone number is valid
@@ -1254,6 +1282,7 @@ trustedOrigins: [
 ### From Custom Auth
 
 1. **Install Better Auth**:
+
    ```bash
    bun add better-auth @better-auth/expo @take-out/better-auth-utils
    ```

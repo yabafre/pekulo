@@ -38,15 +38,17 @@ This skill provides comprehensive guidance for building cross-platform React app
 Activate this skill when encountering these triggers:
 
 ### Core Framework
+
 - "tamagui", "universal UI", "react native web", "cross-platform UI"
 - "styled()", "design tokens", "$token", "theme tokens"
 - "XStack", "YStack", "ZStack", "Stack components"
 - "useTheme", "useMedia", "responsive design"
-- "@tamagui/*" imports, "@tamagui/core"
+- "@tamagui/\*" imports, "@tamagui/core"
 - "createStyledContext", "withStaticProperties"
 - "variant", "variants", "defaultVariants"
 
 ### Bento Components
+
 - "bento", "@tamagui/bento", "bento components"
 - "React Hook Form", "react-hook-form", "form validation"
 - "Zod", "zod validation", "form schema"
@@ -54,6 +56,7 @@ Activate this skill when encountering these triggers:
 - "virtualized list", "FlatList", "masonry layout"
 
 ### Takeout Starter
+
 - "takeout", "tamagui takeout", "one.js"
 - "file-based routing", "one router", "SSG", "SSR"
 - "Better Auth", "authentication", "OAuth"
@@ -61,6 +64,7 @@ Activate this skill when encountering these triggers:
 - "Zero Sync", "real-time sync", "offline-first"
 
 ### Platform-Specific
+
 - "animation driver", "CSS animations", "Reanimated"
 - "compiler optimization", "static extraction", "bundle size"
 - "web-only", "native-only", "platform-specific"
@@ -91,7 +95,7 @@ export const Button = styled(View, {
   borderRadius: '$2',
   backgroundColor: '$blue10',
   cursor: 'pointer',
-  
+
   variants: {
     variant: {
       primary: {
@@ -112,7 +116,7 @@ export const Button = styled(View, {
       large: { padding: '$4' },
     },
   } as const,
-  
+
   defaultVariants: {
     variant: 'primary',
     size: 'medium',
@@ -128,7 +132,7 @@ export const Button = styled(View, {
 **Stacks** are the foundation of Tamagui layouts:
 
 ```tsx
-import { XStack, YStack, ZStack, Text, Button } from 'tamagui'
+import { XStack, YStack, ZStack, Text, Button } from "tamagui";
 
 export function LayoutExample() {
   return (
@@ -138,16 +142,16 @@ export function LayoutExample() {
         <Text>Label</Text>
         <Button>Action</Button>
       </XStack>
-      
+
       {/* Vertical stack with responsive gap */}
-      <YStack 
+      <YStack
         gap="$4"
-        $gtSm={{ gap: '$6' }}  // Larger gap on small+ screens
+        $gtSm={{ gap: "$6" }} // Larger gap on small+ screens
       >
         <Card>Item 1</Card>
         <Card>Item 2</Card>
       </YStack>
-      
+
       {/* Overlay stack (position: relative) */}
       <ZStack width={300} height={200}>
         <View backgroundColor="$blue5" fullscreen />
@@ -156,7 +160,7 @@ export function LayoutExample() {
         </Text>
       </ZStack>
     </YStack>
-  )
+  );
 }
 ```
 
@@ -196,7 +200,7 @@ const config = createTamagui({
 })
 
 // Use tokens with $ prefix
-<View 
+<View
   padding="$4"           // Uses space.4 = 16px
   backgroundColor="$blue" // Uses color.blue
   borderRadius="$3"      // Uses radius.3 = 12px
@@ -221,7 +225,7 @@ import { YStack, Text, Theme } from 'tamagui'
 
 export function ThemeExample() {
   return (
-    <YStack 
+    <YStack
       backgroundColor="$color1"  // Subtle background
       borderColor="$color6"      // Regular border
       padding="$4"
@@ -229,10 +233,10 @@ export function ThemeExample() {
       <Text color="$color12">Heading (highest contrast)</Text>
       <Text color="$color11">Body text (high contrast)</Text>
       <Text color="$color10">Muted text (low contrast)</Text>
-      
+
       {/* Apply sub-theme */}
       <Theme name="blue">
-        <YStack 
+        <YStack
           backgroundColor="$color9"  // Blue solid background
           padding="$3"
           borderRadius="$2"
@@ -249,11 +253,11 @@ import { useTheme } from '@tamagui/core'
 
 export function ThemedComponent() {
   const theme = useTheme()
-  
+
   // Access theme values directly
   console.log(theme.background.val) // e.g., "#ffffff"
   console.log(theme.color11.val)    // e.g., "#333333"
-  
+
   return <Text color={theme.color11}>Themed Text</Text>
 }
 ```
@@ -263,31 +267,27 @@ export function ThemedComponent() {
 Use media query props for responsive layouts:
 
 ```tsx
-import { YStack, Text, useMedia } from 'tamagui'
+import { YStack, Text, useMedia } from "tamagui";
 
 export function ResponsiveExample() {
-  const media = useMedia()
-  
+  const media = useMedia();
+
   return (
     <YStack
       padding="$4"
-      $gtSm={{ padding: '$6' }}     // > sm breakpoint
-      $gtMd={{ padding: '$8' }}     // > md breakpoint
+      $gtSm={{ padding: "$6" }} // > sm breakpoint
+      $gtMd={{ padding: "$8" }} // > md breakpoint
       flexDirection="column"
-      $gtLg={{ flexDirection: 'row' }}  // Row layout on large screens
+      $gtLg={{ flexDirection: "row" }} // Row layout on large screens
     >
-      <Text
-        fontSize="$4"
-        $gtSm={{ fontSize: '$5' }}
-        $gtMd={{ fontSize: '$6' }}
-      >
+      <Text fontSize="$4" $gtSm={{ fontSize: "$5" }} $gtMd={{ fontSize: "$6" }}>
         Responsive Text
       </Text>
-      
+
       {/* Conditional rendering based on media query */}
       {media.gtMd && <Text>Only on medium+ screens</Text>}
     </YStack>
-  )
+  );
 }
 
 // Configure media queries in createTamagui
@@ -304,7 +304,7 @@ const config = createTamagui({
     gtMd: { minWidth: 1020 + 1 },
     gtLg: { minWidth: 1280 + 1 },
   },
-})
+});
 ```
 
 ### 6. Animations with enterStyle/exitStyle
@@ -312,29 +312,27 @@ const config = createTamagui({
 Add smooth animations to any component:
 
 ```tsx
-import { YStack, Button, AnimatePresence } from 'tamagui'
-import { useState } from 'react'
+import { YStack, Button, AnimatePresence } from "tamagui";
+import { useState } from "react";
 
 export function AnimationExample() {
-  const [show, setShow] = useState(false)
-  
+  const [show, setShow] = useState(false);
+
   return (
     <YStack gap="$4">
-      <Button onPress={() => setShow(!show)}>
-        Toggle
-      </Button>
-      
+      <Button onPress={() => setShow(!show)}>Toggle</Button>
+
       <AnimatePresence>
         {show && (
           <YStack
             key="animated-box"
             animation="quick"
-            enterStyle={{ 
-              opacity: 0, 
+            enterStyle={{
+              opacity: 0,
               y: -20,
               scale: 0.9,
             }}
-            exitStyle={{ 
+            exitStyle={{
               opacity: 0,
               y: 20,
               scale: 0.9,
@@ -351,26 +349,26 @@ export function AnimationExample() {
         )}
       </AnimatePresence>
     </YStack>
-  )
+  );
 }
 
 // Define animations in createTamagui
-import { createAnimations } from '@tamagui/animations-react-native'
+import { createAnimations } from "@tamagui/animations-react-native";
 
 const animations = createAnimations({
   quick: {
-    type: 'spring',
+    type: "spring",
     damping: 20,
     mass: 1.2,
     stiffness: 250,
   },
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     mass: 0.9,
     stiffness: 100,
   },
-})
+});
 ```
 
 ### 7. Compound Components with createStyledContext
@@ -392,9 +390,9 @@ const CardFrame = styled(View, {
   borderRadius: '$4',
   borderWidth: 1,
   borderColor: '$borderColor',
-  
+
   context: CardContext,
-  
+
   variants: {
     size: {
       small: { padding: '$3' },
@@ -408,7 +406,7 @@ const CardFrame = styled(View, {
 const CardTitle = styled(Text, {
   context: CardContext,
   fontWeight: 'bold',
-  
+
   variants: {
     size: {
       small: { fontSize: '$4' },
@@ -421,7 +419,7 @@ const CardTitle = styled(Text, {
 const CardDescription = styled(Text, {
   context: CardContext,
   color: '$color11',
-  
+
   variants: {
     size: {
       small: { fontSize: '$3' },
@@ -449,43 +447,39 @@ export const Card = withStaticProperties(CardFrame, {
 ### 8. Form Component Example
 
 ```tsx
-import { Button, Dialog, Input, Label, XStack, YStack } from 'tamagui'
+import { Button, Dialog, Input, Label, XStack, YStack } from "tamagui";
 
 export function LoginForm() {
   return (
     <YStack gap="$4" padding="$4">
       <YStack gap="$2">
         <Label htmlFor="email">Email</Label>
-        <Input 
-          id="email" 
+        <Input
+          id="email"
           placeholder="email@example.com"
           autoCapitalize="none"
           keyboardType="email-address"
         />
       </YStack>
-      
+
       <YStack gap="$2">
         <Label htmlFor="password">Password</Label>
-        <Input 
-          id="password" 
-          secureTextEntry
-          placeholder="••••••••"
-        />
+        <Input id="password" secureTextEntry placeholder="••••••••" />
       </YStack>
-      
+
       <XStack gap="$2" justifyContent="flex-end">
         <Button variant="outlined">Cancel</Button>
         <Button theme="blue">Sign In</Button>
       </XStack>
     </YStack>
-  )
+  );
 }
 ```
 
 ### 9. Dialog Pattern
 
 ```tsx
-import { Button, Dialog, XStack, YStack, H2, Paragraph } from 'tamagui'
+import { Button, Dialog, XStack, YStack, H2, Paragraph } from "tamagui";
 
 export function DialogExample() {
   return (
@@ -507,15 +501,13 @@ export function DialogExample() {
           bordered
           elevate
           key="content"
-          animation={['quick', { opacity: { overshootClamping: true } }]}
+          animation={["quick", { opacity: { overshootClamping: true } }]}
           enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
           exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
           gap="$4"
         >
           <Dialog.Title>Confirm Action</Dialog.Title>
-          <Dialog.Description>
-            Are you sure you want to proceed?
-          </Dialog.Description>
+          <Dialog.Description>Are you sure you want to proceed?</Dialog.Description>
 
           <XStack alignSelf="flex-end" gap="$2">
             <Dialog.Close displayWhenAdapted asChild>
@@ -528,14 +520,14 @@ export function DialogExample() {
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>
-  )
+  );
 }
 ```
 
 ### 10. Adapt Pattern (Mobile Sheet on Small Screens)
 
 ```tsx
-import { Button, Dialog, Sheet, Adapt } from 'tamagui'
+import { Button, Dialog, Sheet, Adapt } from "tamagui";
 
 export function AdaptiveDialog() {
   return (
@@ -549,11 +541,7 @@ export function AdaptiveDialog() {
           <Sheet.Frame padding="$4" gap="$4">
             <Adapt.Contents />
           </Sheet.Frame>
-          <Sheet.Overlay 
-            animation="lazy"
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-          />
+          <Sheet.Overlay animation="lazy" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
         </Sheet>
       </Adapt>
 
@@ -562,13 +550,11 @@ export function AdaptiveDialog() {
         <Dialog.Content>
           {/* Content shows as Dialog on desktop, Sheet on mobile */}
           <Dialog.Title>Adaptive UI</Dialog.Title>
-          <Dialog.Description>
-            This is a dialog on desktop, sheet on mobile
-          </Dialog.Description>
+          <Dialog.Description>This is a dialog on desktop, sheet on mobile</Dialog.Description>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>
-  )
+  );
 }
 ```
 
@@ -583,21 +569,25 @@ Premium components from `@tamagui/bento` (requires [Bento license](https://tamag
 Composable input components with React Hook Form and Zod integration:
 
 ```tsx
-import { Input } from '@tamagui/bento/components/inputsParts'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { Input } from "@tamagui/bento/components/inputsParts";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
+  email: z.string().email("Invalid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 export function BentoForm() {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(schema),
-  })
-  
+  });
+
   return (
     <YStack gap="$4">
       <Input size="$4">
@@ -606,25 +596,19 @@ export function BentoForm() {
           <Input.Section>
             <Mail size={16} />
           </Input.Section>
-          <Input.Area 
-            id="email" 
-            placeholder="email@example.com"
-            {...register('email')}
-          />
+          <Input.Area id="email" placeholder="email@example.com" {...register("email")} />
         </Input.Box>
-        {errors.email && (
-          <Input.Info color="$red10">{errors.email.message}</Input.Info>
-        )}
+        {errors.email && <Input.Info color="$red10">{errors.email.message}</Input.Info>}
       </Input>
-      
+
       <Input size="$4">
         <Input.Label htmlFor="password">Password</Input.Label>
         <Input.Box>
-          <Input.Area 
-            id="password" 
+          <Input.Area
+            id="password"
             secureTextEntry
             placeholder="••••••••"
-            {...register('password')}
+            {...register("password")}
           />
           <Input.Section>
             <Input.Button>
@@ -632,16 +616,15 @@ export function BentoForm() {
             </Input.Button>
           </Input.Section>
         </Input.Box>
-        {errors.password && (
-          <Input.Info color="$red10">{errors.password.message}</Input.Info>
-        )}
+        {errors.password && <Input.Info color="$red10">{errors.password.message}</Input.Info>}
       </Input>
     </YStack>
-  )
+  );
 }
 ```
 
 **Key Features:**
+
 - **Input.Label** - Accessible label with `htmlFor` binding
 - **Input.Box** - Focus-aware container with `FocusContext`
 - **Input.Section** - Layout sections for icons/buttons
@@ -655,32 +638,32 @@ export function BentoForm() {
 Production-ready data tables with sorting, filtering, and pagination:
 
 ```tsx
-import { DataTable } from '@tamagui/bento/components/Table'
-import { createColumnHelper } from '@tanstack/react-table'
+import { DataTable } from "@tamagui/bento/components/Table";
+import { createColumnHelper } from "@tanstack/react-table";
 
 type User = {
-  id: number
-  name: string
-  email: string
-  role: string
-}
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+};
 
-const columnHelper = createColumnHelper<User>()
+const columnHelper = createColumnHelper<User>();
 
 const columns = [
-  columnHelper.accessor('name', {
-    header: 'Name',
-    cell: info => info.getValue(),
+  columnHelper.accessor("name", {
+    header: "Name",
+    cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor('email', {
-    header: 'Email',
-    cell: info => info.getValue(),
+  columnHelper.accessor("email", {
+    header: "Email",
+    cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor('role', {
-    header: 'Role',
-    cell: info => <Text textTransform="capitalize">{info.getValue()}</Text>,
+  columnHelper.accessor("role", {
+    header: "Role",
+    cell: (info) => <Text textTransform="capitalize">{info.getValue()}</Text>,
   }),
-]
+];
 
 export function UsersTable({ users }: { users: User[] }) {
   return (
@@ -692,7 +675,7 @@ export function UsersTable({ users }: { users: User[] }) {
       enablePagination
       pageSize={10}
     />
-  )
+  );
 }
 ```
 
@@ -701,8 +684,8 @@ export function UsersTable({ users }: { users: User[] }) {
 Efficient list rendering with FlatList patterns:
 
 ```tsx
-import { FlatList } from '@tamagui/bento/components/List'
-import { YStack, Text } from 'tamagui'
+import { FlatList } from "@tamagui/bento/components/List";
+import { YStack, Text } from "tamagui";
 
 export function VirtualizedList({ items }: { items: string[] }) {
   return (
@@ -716,11 +699,12 @@ export function VirtualizedList({ items }: { items: string[] }) {
       )}
       estimatedItemSize={60}
     />
-  )
+  );
 }
 ```
 
 **Additional Patterns:**
+
 - **Masonry layouts** - Pinterest-style grids
 - **Horizontal carousels** - Swipeable lists
 - **Animated lists** - Enter/exit animations
@@ -751,48 +735,46 @@ app/
 **Type-safe navigation:**
 
 ```tsx
-import { Link, useRouter, useParams } from 'one'
+import { Link, useRouter, useParams } from "one";
 
 export function Navigation() {
-  const router = useRouter()
-  
+  const router = useRouter();
+
   return (
     <YStack gap="$2">
       {/* Declarative navigation */}
       <Link href="/">Home</Link>
       <Link href="/blog/hello-world">Blog Post</Link>
-      
+
       {/* Programmatic navigation */}
-      <Button onPress={() => router.push('/about')}>
-        Go to About
-      </Button>
+      <Button onPress={() => router.push("/about")}>Go to About</Button>
     </YStack>
-  )
+  );
 }
 
 // Dynamic routes
 export function BlogPost() {
-  const { slug } = useParams<{ slug: string }>()
-  return <Text>Post: {slug}</Text>
+  const { slug } = useParams<{ slug: string }>();
+  return <Text>Post: {slug}</Text>;
 }
 ```
 
 **Server-side data loading:**
 
 ```tsx
-import { createLoader } from 'one'
+import { createLoader } from "one";
 
 export const loader = createLoader(async (context) => {
   const post = await db.query.posts.findFirst({
     where: eq(posts.slug, context.params.slug),
-  })
-  
-  return { post }
-})
+  });
+
+  return { post };
+});
 
 export default function BlogPost() {
-  const { post } = useLoader(loader)
-  return <Text>{post.title}</Text>
+  const { post } = useLoader(loader);
+  return <Text>{post.title}</Text>;
 }
 ```
 
@@ -801,42 +783,37 @@ export default function BlogPost() {
 Complete authentication system with multiple strategies:
 
 ```tsx
-import { signIn, signOut, useSession } from '~/lib/auth'
+import { signIn, signOut, useSession } from "~/lib/auth";
 
 export function AuthExample() {
-  const session = useSession()
-  
+  const session = useSession();
+
   if (!session.user) {
     return (
       <YStack gap="$4">
         {/* Email/password */}
-        <Button onPress={() => signIn.email({ email, password })}>
-          Sign In
-        </Button>
-        
+        <Button onPress={() => signIn.email({ email, password })}>Sign In</Button>
+
         {/* OAuth */}
-        <Button onPress={() => signIn.social({ provider: 'github' })}>
-          Sign in with GitHub
-        </Button>
-        
+        <Button onPress={() => signIn.social({ provider: "github" })}>Sign in with GitHub</Button>
+
         {/* Magic link */}
-        <Button onPress={() => signIn.magicLink({ email })}>
-          Send Magic Link
-        </Button>
+        <Button onPress={() => signIn.magicLink({ email })}>Send Magic Link</Button>
       </YStack>
-    )
+    );
   }
-  
+
   return (
     <YStack gap="$2">
       <Text>Welcome, {session.user.name}</Text>
       <Button onPress={() => signOut()}>Sign Out</Button>
     </YStack>
-  )
+  );
 }
 ```
 
 **Features:**
+
 - Email/password authentication
 - OAuth (GitHub, Google, etc.)
 - Magic links (email)
@@ -849,43 +826,41 @@ export function AuthExample() {
 Type-safe database queries with PostgreSQL:
 
 ```tsx
-import { db } from '~/db'
-import { posts, users } from '~/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { db } from "~/db";
+import { posts, users } from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 // Define schema
-export const posts = pgTable('posts', {
-  id: serial('id').primaryKey(),
-  title: text('title').notNull(),
-  slug: text('slug').notNull().unique(),
-  content: text('content'),
-  authorId: integer('author_id').references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow(),
-})
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content"),
+  authorId: integer("author_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Query
 const allPosts = await db.query.posts.findMany({
   orderBy: [desc(posts.createdAt)],
   with: {
-    author: true,  // Join with users
+    author: true, // Join with users
   },
-})
+});
 
 // Insert
 await db.insert(posts).values({
-  title: 'My Post',
-  slug: 'my-post',
-  content: 'Post content...',
+  title: "My Post",
+  slug: "my-post",
+  content: "Post content...",
   authorId: 1,
-})
+});
 
 // Update
-await db.update(posts)
-  .set({ title: 'Updated Title' })
-  .where(eq(posts.id, 1))
+await db.update(posts).set({ title: "Updated Title" }).where(eq(posts.id, 1));
 
 // Delete
-await db.delete(posts).where(eq(posts.id, 1))
+await db.delete(posts).where(eq(posts.id, 1));
 ```
 
 ### Zero Sync (Real-time Data)
@@ -893,8 +868,8 @@ await db.delete(posts).where(eq(posts.id, 1))
 Offline-first real-time synchronization:
 
 ```tsx
-import { useQuery, useMutation } from '@rocicorp/zero/react'
-import { z } from '@rocicorp/zero'
+import { useQuery, useMutation } from "@rocicorp/zero/react";
+import { z } from "@rocicorp/zero";
 
 // Define schema
 const todoSchema = z.object({
@@ -902,12 +877,12 @@ const todoSchema = z.object({
   text: z.string(),
   completed: z.boolean(),
   createdAt: z.number(),
-})
+});
 
 export function TodoList() {
   // Real-time query (updates automatically)
-  const [todos] = useQuery(q => q.todos.orderBy('createdAt', 'desc'))
-  
+  const [todos] = useQuery((q) => q.todos.orderBy("createdAt", "desc"));
+
   // Optimistic mutation
   const [addTodo] = useMutation(async (tx, text: string) => {
     await tx.todos.insert({
@@ -915,36 +890,34 @@ export function TodoList() {
       text,
       completed: false,
       createdAt: Date.now(),
-    })
-  })
-  
+    });
+  });
+
   const [toggleTodo] = useMutation(async (tx, id: string) => {
-    const todo = await tx.todos.get(id)
+    const todo = await tx.todos.get(id);
     if (todo) {
       await tx.todos.update({
         id,
         completed: !todo.completed,
-      })
+      });
     }
-  })
-  
+  });
+
   return (
     <YStack gap="$2">
-      {todos.map(todo => (
+      {todos.map((todo) => (
         <XStack key={todo.id} gap="$2">
-          <Checkbox 
-            checked={todo.completed}
-            onCheckedChange={() => toggleTodo(todo.id)}
-          />
+          <Checkbox checked={todo.completed} onCheckedChange={() => toggleTodo(todo.id)} />
           <Text>{todo.text}</Text>
         </XStack>
       ))}
     </YStack>
-  )
+  );
 }
 ```
 
 **Features:**
+
 - Real-time synchronization across devices
 - Offline-first architecture
 - Optimistic mutations (instant UI updates)
@@ -958,22 +931,22 @@ export function TodoList() {
 
 For detailed documentation on specific topics, refer to these reference files:
 
-| Topic | Reference File | Description |
-|-------|---------------|-------------|
-| **Core Styling** | [`core-styling.md`](./references/core-styling.md) | `styled()` API, variant systems, `createStyledContext`, composition patterns, TypeScript integration |
-| **Components** | [`components.md`](./references/components.md) | Button, Dialog, Sheet, Input, Select, Tabs, Switch, Popover, Stacks, Adapt pattern |
-| **Theming** | [`theming.md`](./references/theming.md) | 12-step color scale system, theme creation, dynamic theme switching, `useTheme` hook |
-| **Animations** | [`animations.md`](./references/animations.md) | Animation drivers (CSS, React Native, Reanimated, Motion), `enterStyle`/`exitStyle`, `AnimatePresence` |
-| **Configuration** | [`configuration.md`](./references/configuration.md) | `createTamagui` function, tokens, themes, fonts, media queries, shorthands |
-| **Compiler** | [`compiler.md`](./references/compiler.md) | Static extraction, Babel optimization, atomic CSS generation, platform-specific setup |
-| **Bento Forms** | [`bento-forms.md`](./references/bento-forms.md) | React Hook Form integration, Zod validation, composable input system, accessibility |
-| **Bento Tables** | [`bento-tables.md`](./references/bento-tables.md) | TanStack Table v8 integration, sorting, pagination, filtering, responsive layouts |
-| **Bento Lists** | [`bento-lists.md`](./references/bento-lists.md) | FlatList patterns, virtualized lists, masonry layouts, performance optimization |
-| **Takeout Routing** | [`takeout-routing.md`](./references/takeout-routing.md) | One.js file-based routing, SSG/SSR/SPA modes, dynamic routes, server-side data loading |
-| **Takeout Auth** | [`takeout-auth.md`](./references/takeout-auth.md) | Better Auth integration, session management, OAuth, magic links, OTP |
-| **Takeout Database** | [`takeout-database.md`](./references/takeout-database.md) | Drizzle ORM setup, schema definitions, type-safe queries, migrations |
-| **Takeout Zero** | [`takeout-zero.md`](./references/takeout-zero.md) | Zero Sync for real-time data, offline-first architecture, optimistic mutations |
-| **Breaking Changes** | [`breaking-changes-and-new-features.md`](./references/breaking-changes-and-new-features.md) | Migration guide from older versions, config v4/v5 differences |
+| Topic                | Reference File                                                                              | Description                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Core Styling**     | [`core-styling.md`](./references/core-styling.md)                                           | `styled()` API, variant systems, `createStyledContext`, composition patterns, TypeScript integration   |
+| **Components**       | [`components.md`](./references/components.md)                                               | Button, Dialog, Sheet, Input, Select, Tabs, Switch, Popover, Stacks, Adapt pattern                     |
+| **Theming**          | [`theming.md`](./references/theming.md)                                                     | 12-step color scale system, theme creation, dynamic theme switching, `useTheme` hook                   |
+| **Animations**       | [`animations.md`](./references/animations.md)                                               | Animation drivers (CSS, React Native, Reanimated, Motion), `enterStyle`/`exitStyle`, `AnimatePresence` |
+| **Configuration**    | [`configuration.md`](./references/configuration.md)                                         | `createTamagui` function, tokens, themes, fonts, media queries, shorthands                             |
+| **Compiler**         | [`compiler.md`](./references/compiler.md)                                                   | Static extraction, Babel optimization, atomic CSS generation, platform-specific setup                  |
+| **Bento Forms**      | [`bento-forms.md`](./references/bento-forms.md)                                             | React Hook Form integration, Zod validation, composable input system, accessibility                    |
+| **Bento Tables**     | [`bento-tables.md`](./references/bento-tables.md)                                           | TanStack Table v8 integration, sorting, pagination, filtering, responsive layouts                      |
+| **Bento Lists**      | [`bento-lists.md`](./references/bento-lists.md)                                             | FlatList patterns, virtualized lists, masonry layouts, performance optimization                        |
+| **Takeout Routing**  | [`takeout-routing.md`](./references/takeout-routing.md)                                     | One.js file-based routing, SSG/SSR/SPA modes, dynamic routes, server-side data loading                 |
+| **Takeout Auth**     | [`takeout-auth.md`](./references/takeout-auth.md)                                           | Better Auth integration, session management, OAuth, magic links, OTP                                   |
+| **Takeout Database** | [`takeout-database.md`](./references/takeout-database.md)                                   | Drizzle ORM setup, schema definitions, type-safe queries, migrations                                   |
+| **Takeout Zero**     | [`takeout-zero.md`](./references/takeout-zero.md)                                           | Zero Sync for real-time data, offline-first architecture, optimistic mutations                         |
+| **Breaking Changes** | [`breaking-changes-and-new-features.md`](./references/breaking-changes-and-new-features.md) | Migration guide from older versions, config v4/v5 differences                                          |
 
 ---
 
@@ -982,12 +955,14 @@ For detailed documentation on specific topics, refer to these reference files:
 ### 1. Token Usage
 
 **❌ Wrong:**
+
 ```tsx
 <View padding={16} />  // Hard-coded value
 <View padding="16px" /> // String with unit
 ```
 
 **✅ Correct:**
+
 ```tsx
 <View padding="$4" />  // Token reference
 <View padding={16} />  // Number is OK if intentional (not extracted by compiler)
@@ -996,6 +971,7 @@ For detailed documentation on specific topics, refer to these reference files:
 ### 2. Variant Definitions
 
 **❌ Wrong:**
+
 ```tsx
 // Missing `as const`
 variants: {
@@ -1007,6 +983,7 @@ variants: {
 ```
 
 **✅ Correct:**
+
 ```tsx
 // Must use `as const` for proper TypeScript inference
 variants: {
@@ -1020,14 +997,16 @@ variants: {
 ### 3. Platform-Specific Styles
 
 **❌ Wrong:**
+
 ```tsx
 // Using platform detection in styled()
 const Component = styled(View, {
-  padding: Platform.OS === 'web' ? 10 : 20,  // Won't extract
-})
+  padding: Platform.OS === "web" ? 10 : 20, // Won't extract
+});
 ```
 
 **✅ Correct:**
+
 ```tsx
 // Use platform prop modifiers
 const Component = styled(View, {
@@ -1041,75 +1020,81 @@ const Component = styled(View, {
 ### 4. Media Query Prop Order
 
 **❌ Wrong:**
+
 ```tsx
-<View 
-  $gtMd={{ padding: '$8' }}  // Applied first
-  padding="$4"               // Overrides media query
+<View
+  $gtMd={{ padding: "$8" }} // Applied first
+  padding="$4" // Overrides media query
 />
 ```
 
 **✅ Correct:**
+
 ```tsx
-<View 
-  padding="$4"               // Base value
-  $gtMd={{ padding: '$8' }}  // Overrides on medium+
+<View
+  padding="$4" // Base value
+  $gtMd={{ padding: "$8" }} // Overrides on medium+
 />
 ```
 
 ### 5. Animation Driver Mismatch
 
 **❌ Wrong:**
+
 ```tsx
 // Using spring physics with CSS driver
-import { createAnimations } from '@tamagui/animations-css'
+import { createAnimations } from "@tamagui/animations-css";
 
 const animations = createAnimations({
   bouncy: {
-    type: 'spring',  // CSS doesn't support springs!
+    type: "spring", // CSS doesn't support springs!
     damping: 10,
   },
-})
+});
 ```
 
 **✅ Correct:**
+
 ```tsx
 // CSS driver uses easing strings
-import { createAnimations } from '@tamagui/animations-css'
+import { createAnimations } from "@tamagui/animations-css";
 
 const animations = createAnimations({
-  bouncy: 'cubic-bezier(0.68, -0.55, 0.265, 1.55) 500ms',
-})
+  bouncy: "cubic-bezier(0.68, -0.55, 0.265, 1.55) 500ms",
+});
 
 // Or use React Native driver for springs
-import { createAnimations } from '@tamagui/animations-react-native'
+import { createAnimations } from "@tamagui/animations-react-native";
 
 const animations = createAnimations({
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     stiffness: 100,
   },
-})
+});
 ```
 
 ### 6. Context Without Static Properties
 
 **❌ Wrong:**
+
 ```tsx
 // Creating compound components without withStaticProperties
-const Card = styled(View, { context: CardContext })
-const CardTitle = styled(Text, { context: CardContext })
+const Card = styled(View, { context: CardContext });
+const CardTitle = styled(Text, { context: CardContext });
 
 // Usage requires separate imports
-import { Card } from './Card'
-import { CardTitle } from './CardTitle'
+import { Card } from "./Card";
+import { CardTitle } from "./CardTitle";
 
 <Card>
   <CardTitle>Title</CardTitle>
-</Card>
+</Card>;
 ```
 
 **✅ Correct:**
+
 ```tsx
 import { withStaticProperties } from '@tamagui/helpers'
 
@@ -1129,62 +1114,70 @@ export const Card = withStaticProperties(CardFrame, {
 ### 7. Missing AnimatePresence
 
 **❌ Wrong:**
+
 ```tsx
 // Using exitStyle without AnimatePresence
-{show && (
-  <View 
-    animation="quick"
-    enterStyle={{ opacity: 0 }}
-    exitStyle={{ opacity: 0 }}  // Won't animate on exit!
-  />
-)}
+{
+  show && (
+    <View
+      animation="quick"
+      enterStyle={{ opacity: 0 }}
+      exitStyle={{ opacity: 0 }} // Won't animate on exit!
+    />
+  );
+}
 ```
 
 **✅ Correct:**
+
 ```tsx
-import { AnimatePresence } from 'tamagui'
+import { AnimatePresence } from "tamagui";
 
 <AnimatePresence>
   {show && (
-    <View 
-      key="animated-view"  // Key is required!
+    <View
+      key="animated-view" // Key is required!
       animation="quick"
       enterStyle={{ opacity: 0 }}
       exitStyle={{ opacity: 0 }}
     />
   )}
-</AnimatePresence>
+</AnimatePresence>;
 ```
 
 ### 8. Inline Styles vs. styled()
 
 **❌ Wrong (Performance):**
+
 ```tsx
 // Inline styles aren't extracted by compiler
-{items.map(item => (
-  <View 
-    key={item.id}
-    style={{ 
-      padding: 16, 
-      backgroundColor: '#fff',
-      borderRadius: 8,
-    }}
-  />
-))}
+{
+  items.map((item) => (
+    <View
+      key={item.id}
+      style={{
+        padding: 16,
+        backgroundColor: "#fff",
+        borderRadius: 8,
+      }}
+    />
+  ));
+}
 ```
 
 **✅ Correct:**
+
 ```tsx
 // Use styled() for extractable styles
 const ItemView = styled(View, {
-  padding: '$4',
-  backgroundColor: '$background',
-  borderRadius: '$2',
-})
+  padding: "$4",
+  backgroundColor: "$background",
+  borderRadius: "$2",
+});
 
-{items.map(item => (
-  <ItemView key={item.id} />
-))}
+{
+  items.map((item) => <ItemView key={item.id} />);
+}
 ```
 
 ### 9. Web vs. Native Differences
@@ -1202,12 +1195,14 @@ Be aware of platform-specific behaviors:
 Styles must be **statically analyzable** for the compiler to extract them:
 
 **❌ Won't Extract:**
+
 ```tsx
 const dynamicPadding = isPremium ? '$6' : '$4'
 <View padding={dynamicPadding} />  // Runtime dynamic value
 ```
 
 **✅ Will Extract:**
+
 ```tsx
 <View padding={isPremium ? '$6' : '$4'} />  // Inline ternary is OK
 // Or use variants
@@ -1262,7 +1257,7 @@ export const Component = withStaticProperties(Parent, { Child })
 Always add accessibility props:
 
 ```tsx
-<Input 
+<Input
   id="email"
   aria-label="Email address"
   aria-describedby="email-error"
@@ -1279,10 +1274,10 @@ Include responsive props for better UX:
 ```tsx
 <YStack
   padding="$4"
-  $gtSm={{ padding: '$6' }}
-  $gtMd={{ padding: '$8' }}
+  $gtSm={{ padding: "$6" }}
+  $gtMd={{ padding: "$8" }}
   flexDirection="column"
-  $gtLg={{ flexDirection: 'row' }}
+  $gtLg={{ flexDirection: "row" }}
 />
 ```
 
@@ -1349,26 +1344,28 @@ When generating test code:
 **Current Version:** 1.144.0+
 
 **Dependencies:**
+
 - React 19+ (or React 18.2+)
 - React Native (for native targets)
 - Expo SDK (optional, for managed workflow)
 
 **Ecosystem Packages:**
 
-| Package | Description |
-|---------|-------------|
-| `tamagui` | Meta-package with core + components |
-| `@tamagui/core` | Core styling engine |
-| `@tamagui/animations-css` | CSS animation driver |
-| `@tamagui/animations-react-native` | React Native animation driver |
-| `@tamagui/animations-reanimated` | Reanimated v3 driver |
-| `@tamagui/animations-moti` | Moti/Motion driver |
-| `@tamagui/themes` | Theme creation helpers |
-| `@tamagui/colors` | Radix UI color scales |
-| `@tamagui/bento` | Premium components (license required) |
-| Tamagui Takeout | Full-stack starter (license required) |
+| Package                            | Description                           |
+| ---------------------------------- | ------------------------------------- |
+| `tamagui`                          | Meta-package with core + components   |
+| `@tamagui/core`                    | Core styling engine                   |
+| `@tamagui/animations-css`          | CSS animation driver                  |
+| `@tamagui/animations-react-native` | React Native animation driver         |
+| `@tamagui/animations-reanimated`   | Reanimated v3 driver                  |
+| `@tamagui/animations-moti`         | Moti/Motion driver                    |
+| `@tamagui/themes`                  | Theme creation helpers                |
+| `@tamagui/colors`                  | Radix UI color scales                 |
+| `@tamagui/bento`                   | Premium components (license required) |
+| Tamagui Takeout                    | Full-stack starter (license required) |
 
 **Migration from v1.x:**
+
 - Read [`breaking-changes-and-new-features.md`](./references/breaking-changes-and-new-features.md)
 - Update to v4 or v5 config format
 - Realign media queries to v4 naming

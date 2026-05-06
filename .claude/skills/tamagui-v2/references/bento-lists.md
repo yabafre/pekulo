@@ -30,23 +30,17 @@ Bento provides a comprehensive collection of list components built on Tamagui an
 The `List` component demonstrates a standard FlatList pattern with avatars, separators, and interaction:
 
 ```tsx
-import { FlatList } from 'react-native'
-import { View, Avatar, Button, Text, Separator } from 'tamagui'
+import { FlatList } from "react-native";
+import { View, Avatar, Button, Text, Separator } from "tamagui";
 
 const personsList = [
-  { id: '1', name: 'John Doe', status: 'Available', image: 'url' },
+  { id: "1", name: "John Doe", status: "Available", image: "url" },
   // ... more items
-]
+];
 
 export function List() {
   const renderItem = ({ item: person }) => (
-    <View
-      flexDirection="row"
-      py="$2"
-      gap="$4"
-      bg="$color1"
-      items="center"
-    >
+    <View flexDirection="row" py="$2" gap="$4" bg="$color1" items="center">
       <Avatar circular size="$4">
         <Avatar.Image src={person.image} />
         <Avatar.Fallback bg="$background" />
@@ -55,9 +49,11 @@ export function List() {
         <Text fontWeight="$6">{person.name}</Text>
         <Text theme="alt1">{person.status}</Text>
       </View>
-      <Button circular size="$4">Action</Button>
+      <Button circular size="$4">
+        Action
+      </Button>
     </View>
-  )
+  );
 
   return (
     <FlatList
@@ -68,7 +64,7 @@ export function List() {
       contentContainerStyle={{ gap: 16 }}
       showsVerticalScrollIndicator={false}
     />
-  )
+  );
 }
 ```
 
@@ -101,6 +97,7 @@ const StyledList = styled(FlatList<MessageType>, {
 ```
 
 **Performance tips:**
+
 - Use `windowSize={2}` for memory-constrained environments
 - Set `removeClippedSubviews={true}` on Android for better performance
 - Provide stable `keyExtractor` functions
@@ -108,27 +105,28 @@ const StyledList = styled(FlatList<MessageType>, {
 ### Grid Layout with FlatList
 
 ```tsx
-import { FlatList } from 'react-native'
-import { useContainerDim } from '../../hooks/useContainerDim'
+import { FlatList } from "react-native";
+import { useContainerDim } from "../../hooks/useContainerDim";
 
 export function FlatGrid() {
-  const { width: deviceWidth } = useContainerDim('window')
-  const numberOfColumns = Math.round((deviceWidth - 20) / 300)
+  const { width: deviceWidth } = useContainerDim("window");
+  const numberOfColumns = Math.round((deviceWidth - 20) / 300);
 
   return (
     <FlatList
       data={items}
       renderItem={renderItem}
       numColumns={numberOfColumns}
-      key={numberOfColumns}  // Force re-render on column change
-      columnWrapperStyle={{ gap: 22 }}  // For numColumns > 1
+      key={numberOfColumns} // Force re-render on column change
+      columnWrapperStyle={{ gap: 22 }} // For numColumns > 1
       contentContainerStyle={{ gap: 16 }}
     />
-  )
+  );
 }
 ```
 
 **Key points:**
+
 - `numColumns` creates responsive grids
 - `key={numberOfColumns}` forces remount when columns change
 - `columnWrapperStyle` applies to row wrapper when `numColumns > 1`
@@ -142,8 +140,8 @@ export function FlatGrid() {
 Tamagui's ListItem component provides consistent styling and sizing:
 
 ```tsx
-import { ListItem, Separator, YGroup } from 'tamagui'
-import { ChevronRight } from '@tamagui/lucide-icons'
+import { ListItem, Separator, YGroup } from "tamagui";
+import { ChevronRight } from "@tamagui/lucide-icons";
 
 export default () => (
   <YGroup separator={<Separator />}>
@@ -162,13 +160,13 @@ export default () => (
       <ListItem>Custom children content</ListItem>
     </YGroup.Item>
   </YGroup>
-)
+);
 ```
 
 ### ListItem with Avatars
 
 ```tsx
-import { ListItem, Avatar, XStack } from 'tamagui'
+import { ListItem, Avatar, XStack } from "tamagui";
 
 <ListItem
   title="John Doe"
@@ -180,7 +178,7 @@ import { ListItem, Avatar, XStack } from 'tamagui'
     </Avatar>
   }
   iconAfter={<Text color="$green10">●</Text>}
-/>
+/>;
 ```
 
 ### ListItem Sizing
@@ -206,7 +204,7 @@ The `size` prop controls all dimensions consistently:
 Pass common props to multiple ListItems:
 
 ```tsx
-import { ListItem, YGroup } from 'tamagui'
+import { ListItem, YGroup } from "tamagui";
 
 <YGroup>
   <ListItem.Apply color="$red10" size="$5">
@@ -217,7 +215,7 @@ import { ListItem, YGroup } from 'tamagui'
       <ListItem icon={Trash} title="Remove all" />
     </YGroup.Item>
   </ListItem.Apply>
-</YGroup>
+</YGroup>;
 ```
 
 ## Animated Lists
@@ -227,19 +225,19 @@ import { ListItem, YGroup } from 'tamagui'
 Staggered entry animations using AnimatePresence:
 
 ```tsx
-import { FlatList } from 'react-native'
-import { AnimatePresence, View, Text } from 'tamagui'
+import { FlatList } from "react-native";
+import { AnimatePresence, View, Text } from "tamagui";
 
 const ChatItem = ({ item, index }) => {
-  const [showMessage, setShowMessage] = useState(false)
-  const showDelay = index * 300
+  const [showMessage, setShowMessage] = useState(false);
+  const showDelay = index * 300;
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      setShowMessage(true)
-    }, showDelay)
-    return () => clearTimeout(timeout)
-  }, [showDelay])
+      setShowMessage(true);
+    }, showDelay);
+    return () => clearTimeout(timeout);
+  }, [showDelay]);
 
   return (
     <AnimatePresence>
@@ -262,20 +260,18 @@ const ChatItem = ({ item, index }) => {
         </View>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};
 
 export function ChatList() {
   return (
     <FlatList
       inverted
       data={messages}
-      renderItem={({ item, index }) => (
-        <ChatItem item={item} index={index} />
-      )}
+      renderItem={({ item, index }) => <ChatItem item={item} index={index} />}
       contentContainerStyle={{ gap: 16 }}
     />
-  )
+  );
 }
 ```
 
@@ -291,27 +287,25 @@ import Animated, {
   useAnimatedStyle,
   interpolate,
   useSharedValue,
-} from 'react-native-reanimated'
+} from "react-native-reanimated";
 
 const AnimatedList = Animated.createAnimatedComponent(
-  styled(Animated.FlatList<CardData>, { flex: 1 })
-)
+  styled(Animated.FlatList<CardData>, { flex: 1 }),
+);
 
 export function WheelList() {
-  const scrollY = useSharedValue(0)
+  const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y
+      scrollY.value = event.contentOffset.y;
     },
-  })
+  });
 
   return (
     <AnimatedList
       onScroll={scrollHandler}
       data={data}
-      renderItem={({ item, index }) => (
-        <CardItem index={index} item={item} scrollY={scrollY} />
-      )}
+      renderItem={({ item, index }) => <CardItem index={index} item={item} scrollY={scrollY} />}
       snapToInterval={ITEM_SIZE + SPACING}
       decelerationRate="fast"
       contentContainerStyle={{
@@ -319,33 +313,21 @@ export function WheelList() {
         paddingBottom: 300,
       }}
     />
-  )
+  );
 }
 
 const CardItem = ({ scrollY, index }) => {
-  const inputRange = [
-    (index - 1) * SIZE_RANGE,
-    index * SIZE_RANGE,
-    (index + 1) * SIZE_RANGE,
-  ]
+  const inputRange = [(index - 1) * SIZE_RANGE, index * SIZE_RANGE, (index + 1) * SIZE_RANGE];
 
   const animatedStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(
-      scrollY.value,
-      inputRange,
-      [45, 0, -45]
-    )
+    const rotate = interpolate(scrollY.value, inputRange, [45, 0, -45]);
     return {
       transform: [{ rotate: `${rotate}deg` }],
-    }
-  })
+    };
+  });
 
-  return (
-    <Animated.View style={animatedStyle}>
-      {/* Card content */}
-    </Animated.View>
-  )
-}
+  return <Animated.View style={animatedStyle}>{/* Card content */}</Animated.View>;
+};
 ```
 
 **Source**: `WheelList.tsx` - Carousel with 3D rotation effects
@@ -355,7 +337,7 @@ const CardItem = ({ scrollY, index }) => {
 ### Section Lists with YGroup
 
 ```tsx
-import { YGroup, ListItem, Separator } from 'tamagui'
+import { YGroup, ListItem, Separator } from "tamagui";
 
 export function GroupedList() {
   return (
@@ -378,7 +360,7 @@ export function GroupedList() {
         </YGroup.Item>
       </YGroup>
     </>
-  )
+  );
 }
 ```
 
@@ -387,11 +369,11 @@ export function GroupedList() {
 Custom masonry implementation for staggered grids:
 
 ```tsx
-import { MasonryList } from './components/MasonryList'
+import { MasonryList } from "./components/MasonryList";
 
 export function MasonryExample() {
-  const { width: deviceWidth } = useContainerDim('window')
-  const numberOfColumns = Math.max(Math.round(deviceWidth / 300), 2)
+  const { width: deviceWidth } = useContainerDim("window");
+  const numberOfColumns = Math.max(Math.round(deviceWidth / 300), 2);
 
   return (
     <MasonryList
@@ -402,11 +384,12 @@ export function MasonryExample() {
       keyExtractor={(item) => item.id}
       gap="$4"
     />
-  )
+  );
 }
 ```
 
 **MasonryList features:**
+
 - Distributes items across columns evenly
 - Supports pull-to-refresh
 - Infinite scroll via `onEndReached`
@@ -419,23 +402,21 @@ export function MasonryExample() {
 ### Pull to Refresh
 
 ```tsx
-import { FlatList, RefreshControl } from 'react-native'
+import { FlatList, RefreshControl } from "react-native";
 
-const [refreshing, setRefreshing] = useState(false)
+const [refreshing, setRefreshing] = useState(false);
 
 const onRefresh = async () => {
-  setRefreshing(true)
-  await fetchNewData()
-  setRefreshing(false)
-}
+  setRefreshing(true);
+  await fetchNewData();
+  setRefreshing(false);
+};
 
 <FlatList
   data={data}
   renderItem={renderItem}
-  refreshControl={
-    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-  }
-/>
+  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+/>;
 ```
 
 MasonryList built-in support:
@@ -453,21 +434,21 @@ MasonryList built-in support:
 ### Infinite Scroll / Pagination
 
 ```tsx
-const [loading, setLoading] = useState(false)
+const [loading, setLoading] = useState(false);
 
 const loadMore = () => {
-  if (loading) return
-  setLoading(true)
-  fetchMoreItems().then(() => setLoading(false))
-}
+  if (loading) return;
+  setLoading(true);
+  fetchMoreItems().then(() => setLoading(false));
+};
 
 <FlatList
   data={items}
   renderItem={renderItem}
   onEndReached={loadMore}
-  onEndReachedThreshold={0.5}  // Trigger at 50% from bottom
+  onEndReachedThreshold={0.5} // Trigger at 50% from bottom
   ListFooterComponent={loading ? <Spinner /> : null}
-/>
+/>;
 ```
 
 ### Item Value List Pattern
@@ -475,33 +456,30 @@ const loadMore = () => {
 Key-value list for displaying structured data:
 
 ```tsx
-import { View, Text, Separator } from 'tamagui'
+import { View, Text, Separator } from "tamagui";
 
 const data = [
-  { title: 'Amount', value: '10000 USDT' },
-  { title: 'Fee', value: '10 USDT' },
-  { title: 'Total', value: '10010 USDT' },
-]
+  { title: "Amount", value: "10000 USDT" },
+  { title: "Fee", value: "10 USDT" },
+  { title: "Total", value: "10010 USDT" },
+];
 
 export function ItemValueList() {
   return (
     <View gap="$4">
       {data.map((item, index) => (
         <>
-          <View
-            key={index}
-            flexDirection="row"
-            justify="space-between"
-            items="center"
-          >
+          <View key={index} flexDirection="row" justify="space-between" items="center">
             <Text size="$4">{item.title}</Text>
-            <Text size="$4" color="$color11">{item.value}</Text>
+            <Text size="$4" color="$color11">
+              {item.value}
+            </Text>
           </View>
           {index < data.length - 1 && <Separator />}
         </>
       ))}
     </View>
-  )
+  );
 }
 ```
 
@@ -512,12 +490,12 @@ export function ItemValueList() {
 ### Simple Horizontal ScrollView
 
 ```tsx
-import { ScrollView, View, Image, Text } from 'tamagui'
+import { ScrollView, View, Image, Text } from "tamagui";
 
 const data = [
-  { uri: 'image1.jpg', title: 'Item 1' },
-  { uri: 'image2.jpg', title: 'Item 2' },
-]
+  { uri: "image1.jpg", title: "Item 1" },
+  { uri: "image2.jpg", title: "Item 2" },
+];
 
 export function HList() {
   return (
@@ -533,7 +511,7 @@ export function HList() {
         </View>
       ))}
     </ScrollView>
-  )
+  );
 }
 ```
 
@@ -583,26 +561,25 @@ const StyledList = styled(FlatList, {
 ### Item Spacing and Dividers
 
 **Option 1: ItemSeparatorComponent**
+
 ```tsx
-<FlatList
-  ItemSeparatorComponent={() => <Separator pt={16} />}
-/>
+<FlatList ItemSeparatorComponent={() => <Separator pt={16} />} />
 ```
 
 **Option 2: contentContainerStyle gap**
+
 ```tsx
-<FlatList
-  contentContainerStyle={{ gap: 16 }}
-/>
+<FlatList contentContainerStyle={{ gap: 16 }} />
 ```
 
 **Option 3: Built-in item spacing**
+
 ```tsx
 const renderItem = ({ item }) => (
   <View mb="$4">
     <ItemContent item={item} />
   </View>
-)
+);
 ```
 
 ### Themed List Variations
@@ -634,11 +611,11 @@ const renderItem = ({ item }) => (
   p="$2"
   gap="$4"
   $group-window-gtXs={{
-    p: '$4',
-    gap: '$4',
+    p: "$4",
+    gap: "$4",
   }}
   $group-window-xs={{
-    flexDirection: 'column',
+    flexDirection: "column",
   }}
 >
   {/* Responsive list item */}
@@ -650,7 +627,7 @@ const renderItem = ({ item }) => (
 ### Screen Reader Support
 
 ```tsx
-import { ListItem } from 'tamagui'
+import { ListItem } from "tamagui";
 
 <ListItem
   title="Settings"
@@ -659,7 +636,7 @@ import { ListItem } from 'tamagui'
   accessibilityLabel="Open settings"
   accessibilityHint="Double tap to open settings screen"
   accessibilityRole="button"
-/>
+/>;
 ```
 
 ### Focus Management
@@ -688,8 +665,8 @@ For web, ensure interactive list items are keyboard accessible:
 <ListItem
   onPress={handlePress}
   focusable={true}
-  pressStyle={{ bg: '$color3' }}
-  focusStyle={{ bg: '$color4', borderColor: '$blue10' }}
+  pressStyle={{ bg: "$color3" }}
+  focusStyle={{ bg: "$color4", borderColor: "$blue10" }}
 />
 ```
 
@@ -698,12 +675,12 @@ For web, ensure interactive list items are keyboard accessible:
 ### Lists with Forms (Checkbox/Radio Lists)
 
 ```tsx
-import { Checkbox, YStack } from 'tamagui'
+import { Checkbox, YStack } from "tamagui";
 
-const options = ['Option 1', 'Option 2', 'Option 3']
+const options = ["Option 1", "Option 2", "Option 3"];
 
 export function CheckboxList() {
-  const [selected, setSelected] = useState<string[]>([])
+  const [selected, setSelected] = useState<string[]>([]);
 
   return (
     <YStack gap="$3">
@@ -713,11 +690,7 @@ export function CheckboxList() {
           size="$5"
           checked={selected.includes(option)}
           onCheckedChange={(checked) => {
-            setSelected(prev =>
-              checked
-                ? [...prev, option]
-                : prev.filter(v => v !== option)
-            )
+            setSelected((prev) => (checked ? [...prev, option] : prev.filter((v) => v !== option)));
           }}
         >
           <Checkbox.Indicator />
@@ -725,7 +698,7 @@ export function CheckboxList() {
         </Checkbox>
       ))}
     </YStack>
-  )
+  );
 }
 ```
 
@@ -734,45 +707,45 @@ export function CheckboxList() {
 ### Lists with Navigation
 
 ```tsx
-import { useRouter } from 'solito/router'
-import { ListItem } from 'tamagui'
+import { useRouter } from "solito/router";
+import { ListItem } from "tamagui";
 
 export function NavigationList() {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <YGroup separator={<Separator />}>
       <YGroup.Item>
         <ListItem
           title="Profile"
-          onPress={() => router.push('/profile')}
+          onPress={() => router.push("/profile")}
           icon={User}
           iconAfter={ChevronRight}
         />
       </YGroup.Item>
     </YGroup>
-  )
+  );
 }
 ```
 
 ### Product Lists with Data Fetching
 
 ```tsx
-import { useEffect, useState } from 'react'
-import { FlatList } from 'react-native'
+import { useEffect, useState } from "react";
+import { FlatList } from "react-native";
 
 export function ProductList() {
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchProducts()
       .then(setProducts)
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) {
-    return <Spinner />
+    return <Spinner />;
   }
 
   return (
@@ -781,7 +754,7 @@ export function ProductList() {
       renderItem={({ item }) => <ProductCard item={item} />}
       keyExtractor={(item) => item.id}
     />
-  )
+  );
 }
 ```
 
@@ -791,53 +764,53 @@ export function ProductList() {
 
 ### List Component Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `data` | `T[]` | Array of items to render |
-| `renderItem` | `({ item, index }) => ReactElement` | Function that renders each item |
-| `keyExtractor` | `(item, index) => string` | Extract unique key for each item |
-| `numColumns` | `number` | Number of columns for grid layout |
-| `horizontal` | `boolean` | Horizontal scrolling direction |
-| `inverted` | `boolean` | Reverse scroll direction (for chats) |
-| `windowSize` | `number` | Number of viewports to render (default: 21) |
-| `onEndReached` | `() => void` | Callback when scrolled near end |
-| `onEndReachedThreshold` | `number` | Distance from end to trigger callback (0-1) |
-| `ItemSeparatorComponent` | `ComponentType` | Component between items |
-| `ListHeaderComponent` | `ComponentType` | Component at list start |
-| `ListFooterComponent` | `ComponentType` | Component at list end |
-| `ListEmptyComponent` | `ComponentType` | Component when data is empty |
-| `refreshControl` | `ReactElement` | Pull-to-refresh control |
-| `contentContainerStyle` | `StyleProp` | Style for scroll content |
+| Prop                     | Type                                | Description                                 |
+| ------------------------ | ----------------------------------- | ------------------------------------------- |
+| `data`                   | `T[]`                               | Array of items to render                    |
+| `renderItem`             | `({ item, index }) => ReactElement` | Function that renders each item             |
+| `keyExtractor`           | `(item, index) => string`           | Extract unique key for each item            |
+| `numColumns`             | `number`                            | Number of columns for grid layout           |
+| `horizontal`             | `boolean`                           | Horizontal scrolling direction              |
+| `inverted`               | `boolean`                           | Reverse scroll direction (for chats)        |
+| `windowSize`             | `number`                            | Number of viewports to render (default: 21) |
+| `onEndReached`           | `() => void`                        | Callback when scrolled near end             |
+| `onEndReachedThreshold`  | `number`                            | Distance from end to trigger callback (0-1) |
+| `ItemSeparatorComponent` | `ComponentType`                     | Component between items                     |
+| `ListHeaderComponent`    | `ComponentType`                     | Component at list start                     |
+| `ListFooterComponent`    | `ComponentType`                     | Component at list end                       |
+| `ListEmptyComponent`     | `ComponentType`                     | Component when data is empty                |
+| `refreshControl`         | `ReactElement`                      | Pull-to-refresh control                     |
+| `contentContainerStyle`  | `StyleProp`                         | Style for scroll content                    |
 
 ### ListItem Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `title` | `string` | Main text content |
-| `subtitle` | `string` | Secondary text below title |
-| `icon` | `ReactElement` | Icon before content |
-| `iconAfter` | `ReactElement` | Icon after content |
-| `size` | `SizeTokens` | Size variant ($2, $3, $4, etc.) |
-| `iconSize` | `number` | Override icon size |
-| `variant` | `'outlined'` | Visual style variant |
-| `color` | `ColorTokens` | Text color |
-| `onPress` | `() => void` | Press handler |
-| `disabled` | `boolean` | Disable interaction |
+| Prop        | Type           | Description                     |
+| ----------- | -------------- | ------------------------------- |
+| `title`     | `string`       | Main text content               |
+| `subtitle`  | `string`       | Secondary text below title      |
+| `icon`      | `ReactElement` | Icon before content             |
+| `iconAfter` | `ReactElement` | Icon after content              |
+| `size`      | `SizeTokens`   | Size variant ($2, $3, $4, etc.) |
+| `iconSize`  | `number`       | Override icon size              |
+| `variant`   | `'outlined'`   | Visual style variant            |
+| `color`     | `ColorTokens`  | Text color                      |
+| `onPress`   | `() => void`   | Press handler                   |
+| `disabled`  | `boolean`      | Disable interaction             |
 
 ### MasonryList Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `data` | `T[]` | Array of items |
-| `renderItem` | `({ item, i }) => ReactElement` | Render function |
-| `numColumns` | `number` | Number of columns (default: 2) |
-| `gap` | `SpaceTokens` | Gap between items |
-| `refreshing` | `boolean` | Pull-to-refresh state |
-| `onRefresh` | `() => void` | Refresh callback |
-| `onEndReached` | `() => void` | Infinite scroll callback |
-| `onEndReachedThreshold` | `number` | Trigger distance (0-1) |
-| `ListEmptyComponent` | `ComponentType` | Empty state component |
-| `LoadingView` | `ComponentType` | Loading indicator |
+| Prop                    | Type                            | Description                    |
+| ----------------------- | ------------------------------- | ------------------------------ |
+| `data`                  | `T[]`                           | Array of items                 |
+| `renderItem`            | `({ item, i }) => ReactElement` | Render function                |
+| `numColumns`            | `number`                        | Number of columns (default: 2) |
+| `gap`                   | `SpaceTokens`                   | Gap between items              |
+| `refreshing`            | `boolean`                       | Pull-to-refresh state          |
+| `onRefresh`             | `() => void`                    | Refresh callback               |
+| `onEndReached`          | `() => void`                    | Infinite scroll callback       |
+| `onEndReachedThreshold` | `number`                        | Trigger distance (0-1)         |
+| `ListEmptyComponent`    | `ComponentType`                 | Empty state component          |
+| `LoadingView`           | `ComponentType`                 | Loading indicator              |
 
 ### Common List Patterns Cheatsheet
 
@@ -888,6 +861,7 @@ export function ProductList() {
 ---
 
 **Related Bento Components:**
+
 - `List.tsx` - Basic FlatList with avatars
 - `HList.tsx` - Horizontal image carousel
 - `ChatList.tsx` - Inverted animated chat
@@ -899,6 +873,7 @@ export function ProductList() {
 - `CheckboxList.tsx`, `RadioList.tsx` - Form lists
 
 **Tamagui Core:**
+
 - [ListItem Documentation](https://tamagui.dev/ui/list-item)
 - [YGroup Component](https://tamagui.dev/ui/group)
 - [Separator Component](https://tamagui.dev/ui/separator)

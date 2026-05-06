@@ -24,9 +24,7 @@ All overlay components should adapt to Sheet on touch:
     </Popover.Sheet>
   </Adapt>
 
-  <Popover.Content>
-    {/* content */}
-  </Popover.Content>
+  <Popover.Content>{/* content */}</Popover.Content>
 </Popover>
 ```
 
@@ -36,14 +34,14 @@ All overlay components need PortalProvider in app root:
 
 ```tsx
 // App.tsx or _app.tsx
-import { PortalProvider } from '@tamagui/portal'
+import { PortalProvider } from "@tamagui/portal";
 
 function App() {
   return (
     <PortalProvider shouldAddRootHost>
       <YourApp />
     </PortalProvider>
-  )
+  );
 }
 ```
 
@@ -68,7 +66,7 @@ For proper styling and event handling:
 ### Complete Example
 
 ```tsx
-import { Popover, Adapt, Button, YStack, Text } from 'tamagui'
+import { Popover, Adapt, Button, YStack, Text } from "tamagui";
 
 function PopoverDemo() {
   return (
@@ -92,7 +90,7 @@ function PopoverDemo() {
         enterStyle={{ y: -10, opacity: 0 }}
         exitStyle={{ y: -10, opacity: 0 }}
         elevate
-        animation={['quick', { opacity: { overshootClamping: true } }]}
+        animation={["quick", { opacity: { overshootClamping: true } }]}
         padding="$4"
       >
         <Popover.Arrow borderWidth={1} borderColor="$borderColor" />
@@ -104,18 +102,18 @@ function PopoverDemo() {
         </YStack>
       </Popover.Content>
     </Popover>
-  )
+  );
 }
 ```
 
 ### Positioning Props
 
-| Prop | Values | Description |
-|------|--------|-------------|
-| `placement` | `'top'`, `'bottom'`, `'left'`, `'right'` | Base position |
-| | + `-start`, `-end` variants | Alignment |
-| `allowFlip` | boolean | Auto-flip when not enough space |
-| `offset` | number | Distance from trigger |
+| Prop        | Values                                   | Description                     |
+| ----------- | ---------------------------------------- | ------------------------------- |
+| `placement` | `'top'`, `'bottom'`, `'left'`, `'right'` | Base position                   |
+|             | + `-start`, `-end` variants              | Alignment                       |
+| `allowFlip` | boolean                                  | Auto-flip when not enough space |
+| `offset`    | number                                   | Distance from trigger           |
 
 ### Controlled Popover
 
@@ -135,7 +133,7 @@ const [open, setOpen] = useState(false)
 Simpler than Popover - for hover hints only:
 
 ```tsx
-import { Tooltip, Button, Text } from 'tamagui'
+import { Tooltip, Button, Text } from "tamagui";
 
 function TooltipDemo() {
   return (
@@ -147,7 +145,7 @@ function TooltipDemo() {
       <Tooltip.Content
         enterStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
         exitStyle={{ x: 0, y: -5, opacity: 0, scale: 0.9 }}
-        animation={['quick', { opacity: { overshootClamping: true } }]}
+        animation={["quick", { opacity: { overshootClamping: true } }]}
         padding="$2"
         borderRadius="$2"
       >
@@ -155,34 +153,34 @@ function TooltipDemo() {
         <Text fontSize="$2">Helpful hint</Text>
       </Tooltip.Content>
     </Tooltip>
-  )
+  );
 }
 ```
 
 ### Tooltip Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `delay` | number | ms before showing |
-| `restMs` | number | ms to wait after last pointer move |
-| `placement` | string | Same as Popover |
+| Prop        | Type   | Description                        |
+| ----------- | ------ | ---------------------------------- |
+| `delay`     | number | ms before showing                  |
+| `restMs`    | number | ms to wait after last pointer move |
+| `placement` | string | Same as Popover                    |
 
 ## Select
 
 ### Complete Example
 
 ```tsx
-import { Check, ChevronDown, ChevronUp } from '@tamagui/lucide-icons'
-import { Select, Adapt, Sheet } from 'tamagui'
+import { Check, ChevronDown, ChevronUp } from "@tamagui/lucide-icons";
+import { Select, Adapt, Sheet } from "tamagui";
 
 const items = [
-  { value: 'apple', label: 'Apple' },
-  { value: 'banana', label: 'Banana' },
-  { value: 'orange', label: 'Orange' },
-]
+  { value: "apple", label: "Apple" },
+  { value: "banana", label: "Banana" },
+  { value: "orange", label: "Orange" },
+];
 
 function SelectDemo() {
-  const [value, setValue] = useState('apple')
+  const [value, setValue] = useState("apple");
 
   return (
     <Select value={value} onValueChange={setValue}>
@@ -202,11 +200,7 @@ function SelectDemo() {
       </Adapt>
 
       <Select.Content zIndex={200000}>
-        <Select.ScrollUpButton
-          alignItems="center"
-          justifyContent="center"
-          height="$3"
-        >
+        <Select.ScrollUpButton alignItems="center" justifyContent="center" height="$3">
           <ChevronUp size={20} />
         </Select.ScrollUpButton>
 
@@ -224,22 +218,19 @@ function SelectDemo() {
           </Select.Group>
         </Select.Viewport>
 
-        <Select.ScrollDownButton
-          alignItems="center"
-          justifyContent="center"
-          height="$3"
-        >
+        <Select.ScrollDownButton alignItems="center" justifyContent="center" height="$3">
           <ChevronDown size={20} />
         </Select.ScrollDownButton>
       </Select.Content>
     </Select>
-  )
+  );
 }
 ```
 
 ### Select Structure
 
 Required components in order:
+
 1. `Select` - root
 2. `Select.Trigger` - opens dropdown
 3. `Select.Value` - displays selected value
@@ -254,9 +245,7 @@ Required components in order:
 Use native picker on mobile:
 
 ```tsx
-<Select native>
-  {/* ... */}
-</Select>
+<Select native>{/* ... */}</Select>
 ```
 
 ### Select Item Index
@@ -264,11 +253,13 @@ Use native picker on mobile:
 Each item needs an `index` prop for keyboard navigation:
 
 ```tsx
-{items.map((item, i) => (
-  <Select.Item key={item.value} index={i} value={item.value}>
-    <Select.ItemText>{item.label}</Select.ItemText>
-  </Select.Item>
-))}
+{
+  items.map((item, i) => (
+    <Select.Item key={item.value} index={i} value={item.value}>
+      <Select.ItemText>{item.label}</Select.ItemText>
+    </Select.Item>
+  ));
+}
 ```
 
 ## zIndex Considerations
@@ -328,7 +319,7 @@ function MenuPopover({ items }: { items: MenuItem[] }) {
         </YStack>
       </Popover.Content>
     </Popover>
-  )
+  );
 }
 ```
 
@@ -340,16 +331,16 @@ function ConfirmPopover({
   onConfirm,
   message,
 }: {
-  trigger: React.ReactNode
-  onConfirm: () => void
-  message: string
+  trigger: React.ReactNode;
+  onConfirm: () => void;
+  message: string;
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   const handleConfirm = () => {
-    onConfirm()
-    setOpen(false)
-  }
+    onConfirm();
+    setOpen(false);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -378,7 +369,9 @@ function ConfirmPopover({
           <Text>{message}</Text>
           <XStack gap="$2" justifyContent="flex-end">
             <Popover.Close asChild>
-              <Button size="$3" chromeless>Cancel</Button>
+              <Button size="$3" chromeless>
+                Cancel
+              </Button>
             </Popover.Close>
             <Button size="$3" theme="red" onPress={handleConfirm}>
               Confirm
@@ -387,7 +380,7 @@ function ConfirmPopover({
         </YStack>
       </Popover.Content>
     </Popover>
-  )
+  );
 }
 ```
 
@@ -396,15 +389,8 @@ function ConfirmPopover({
 Note: `Select` does not wire `Label htmlFor` to the trigger. Use `aria-label`/`aria-labelledby` on `Select.Trigger` or wrap the field in a `fieldset`/`legend`.
 
 ```tsx
-function SelectField({
-  label,
-  id,
-  value,
-  onValueChange,
-  options,
-  error,
-}: SelectFieldProps) {
-  const labelId = `${id}-label`
+function SelectField({ label, id, value, onValueChange, options, error }: SelectFieldProps) {
+  const labelId = `${id}-label`;
 
   return (
     <YStack gap="$1">
@@ -413,7 +399,7 @@ function SelectField({
         <Select.Trigger
           width="100%"
           iconAfter={ChevronDown}
-          borderColor={error ? '$red10' : undefined}
+          borderColor={error ? "$red10" : undefined}
           aria-labelledby={labelId}
         >
           <Select.Value placeholder={`Select ${label.toLowerCase()}`} />
@@ -444,9 +430,11 @@ function SelectField({
         </Select.Content>
       </Select>
       {error && (
-        <Text color="$red10" fontSize="$2">{error}</Text>
+        <Text color="$red10" fontSize="$2">
+          {error}
+        </Text>
       )}
     </YStack>
-  )
+  );
 }
 ```

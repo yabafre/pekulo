@@ -5,18 +5,21 @@ The Tamagui compiler extracts styles at build time, generating atomic CSS and fl
 ## What Gets Optimized
 
 ### Static Props
+
 ```tsx
 // OPTIMIZED - all values known at compile time
 <View backgroundColor="$blue10" padding="$4" borderRadius="$2" />
 ```
 
 ### Variants
+
 ```tsx
 // OPTIMIZED - variant values are static
 <Button size="$large" variant="primary" />
 ```
 
 ### Spread from Variables (with constraints)
+
 ```tsx
 // OPTIMIZED - if buttonProps contains only static values
 const buttonProps = { size: '$large' } as const
@@ -26,6 +29,7 @@ const buttonProps = { size: '$large' } as const
 ## What Breaks Optimization
 
 ### Dynamic Values
+
 ```tsx
 // NOT OPTIMIZED - runtime calculation
 <View width={containerWidth * 0.5} />
@@ -41,12 +45,14 @@ const Box = styled(View, {
 ```
 
 ### Inline Functions
+
 ```tsx
 // NOT OPTIMIZED - function reference
 <View onPress={() => doSomething()} />
 ```
 
 ### Non-deterministic Spread
+
 ```tsx
 // NOT OPTIMIZED - props could be anything
 <View {...props} />
@@ -56,6 +62,7 @@ const Box = styled(View, {
 ```
 
 ### Theme Usage on Native (experimental)
+
 ```tsx
 // NOT OPTIMIZED on native by default
 <View backgroundColor="$background" />
@@ -68,16 +75,18 @@ const Box = styled(View, {
 ### File-Level: `// tamagui-ignore`
 
 Disable compiler for entire file:
+
 ```tsx
 // tamagui-ignore
 
-import { View } from 'tamagui'
+import { View } from "tamagui";
 // All components in this file skip optimization
 ```
 
 ### Component-Level: `disableOptimization`
 
 Disable for single component instance:
+
 ```tsx
 <View disableOptimization backgroundColor="$blue10" />
 ```
@@ -88,50 +97,50 @@ Disable for single component instance:
 
 ```tsx
 // vite.config.ts
-import { tamaguiPlugin } from '@tamagui/vite-plugin'
+import { tamaguiPlugin } from "@tamagui/vite-plugin";
 
 export default defineConfig({
   plugins: [
     tamaguiPlugin({
-      config: 'src/tamagui.config.ts',
-      components: ['tamagui'],
+      config: "src/tamagui.config.ts",
+      components: ["tamagui"],
       optimize: true,
     }),
   ],
-})
+});
 ```
 
 ### Webpack
 
 ```js
 // webpack.config.js
-const { TamaguiPlugin } = require('tamagui-loader')
+const { TamaguiPlugin } = require("tamagui-loader");
 
 module.exports = {
   plugins: [
     new TamaguiPlugin({
-      config: './tamagui.config.ts',
-      components: ['tamagui'],
-      importsWhitelist: ['constants.js', 'colors.js'],
+      config: "./tamagui.config.ts",
+      components: ["tamagui"],
+      importsWhitelist: ["constants.js", "colors.js"],
       logTimings: true,
-      disableExtraction: process.env.NODE_ENV === 'development',
+      disableExtraction: process.env.NODE_ENV === "development",
     }),
   ],
-}
+};
 ```
 
 ### Next.js
 
 ```js
 // next.config.js
-const { withTamagui } = require('@tamagui/next-plugin')
+const { withTamagui } = require("@tamagui/next-plugin");
 
 module.exports = withTamagui({
-  config: './tamagui.config.ts',
-  components: ['tamagui'],
-  disableExtraction: process.env.NODE_ENV === 'development',
-  excludeReactNativeWebExports: ['Switch', 'ProgressBar', 'Picker'],
-})
+  config: "./tamagui.config.ts",
+  components: ["tamagui"],
+  disableExtraction: process.env.NODE_ENV === "development",
+  excludeReactNativeWebExports: ["Switch", "ProgressBar", "Picker"],
+});
 ```
 
 ### Babel / Metro (React Native)
@@ -141,18 +150,18 @@ module.exports = withTamagui({
 module.exports = {
   plugins: [
     [
-      '@tamagui/babel-plugin',
+      "@tamagui/babel-plugin",
       {
-        components: ['tamagui'],
-        config: './tamagui.config.ts',
+        components: ["tamagui"],
+        config: "./tamagui.config.ts",
         logTimings: true,
-        disableExtraction: process.env.NODE_ENV === 'development',
+        disableExtraction: process.env.NODE_ENV === "development",
         // v1.75+: experimental native theme flattening
         experimentalFlattenThemesOnNative: true,
       },
     ],
   ],
-}
+};
 ```
 
 ### CLI-Based (Turbopack, any bundler)
@@ -174,28 +183,29 @@ npx tamagui build --target web --expect-optimizations 10 ./src
 ```
 
 Config file:
+
 ```ts
 // tamagui.build.ts
-import type { TamaguiBuildOptions } from 'tamagui'
+import type { TamaguiBuildOptions } from "tamagui";
 
 export default {
-  config: './tamagui.config.ts',
-  components: ['tamagui'],
-  importsWhitelist: ['constants.js', 'colors.js'],
-  outputCSS: './public/tamagui.css',
-} satisfies TamaguiBuildOptions
+  config: "./tamagui.config.ts",
+  components: ["tamagui"],
+  importsWhitelist: ["constants.js", "colors.js"],
+  outputCSS: "./public/tamagui.css",
+} satisfies TamaguiBuildOptions;
 ```
 
 ## Key Options
 
-| Option | Description |
-|--------|-------------|
-| `config` | Path to tamagui.config.ts |
-| `components` | Array of component packages to optimize |
-| `importsWhitelist` | Files whose exports can be evaluated at compile time |
-| `disableExtraction` | Skip optimization (faster dev builds) |
-| `logTimings` | Log compilation timing info |
-| `enableDynamicEvaluation` | Experimental: optimize inline styled() calls |
+| Option                    | Description                                          |
+| ------------------------- | ---------------------------------------------------- |
+| `config`                  | Path to tamagui.config.ts                            |
+| `components`              | Array of component packages to optimize              |
+| `importsWhitelist`        | Files whose exports can be evaluated at compile time |
+| `disableExtraction`       | Skip optimization (faster dev builds)                |
+| `logTimings`              | Log compilation timing info                          |
+| `enableDynamicEvaluation` | Experimental: optimize inline styled() calls         |
 
 ## Development vs Production
 

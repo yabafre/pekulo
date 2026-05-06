@@ -5,6 +5,7 @@ Prescriptive patterns for forms, inputs, and validation. Read this before writin
 ## Cross-Skill: Load typescript-best-practices
 
 Form validation uses type-first patterns. Load the `typescript-best-practices` skill for:
+
 - Zod schema definitions
 - Discriminated unions for form state
 - Type inference from schemas
@@ -60,6 +61,7 @@ Accessibility requirement - IDs must match exactly:
 ### 4. No Built-in Validation
 
 Tamagui Form has no validation. Use external libraries:
+
 - `react-hook-form` + `zod` (recommended)
 - `formik` + `yup`
 
@@ -69,12 +71,12 @@ Use discriminated unions for form state (from typescript-best-practices):
 
 ```tsx
 type FormState =
-  | { status: 'idle' }
-  | { status: 'submitting' }
-  | { status: 'error'; error: string }
-  | { status: 'success'; data: ResponseData }
+  | { status: "idle" }
+  | { status: "submitting" }
+  | { status: "error"; error: string }
+  | { status: "success"; data: ResponseData };
 
-const [state, setState] = useState<FormState>({ status: 'idle' })
+const [state, setState] = useState<FormState>({ status: "idle" });
 ```
 
 ## Complete Form Example
@@ -82,29 +84,29 @@ const [state, setState] = useState<FormState>({ status: 'idle' })
 ### With react-hook-form + zod
 
 ```tsx
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Form, Input, Label, Button, YStack, XStack, Text } from 'tamagui'
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, Input, Label, Button, YStack, XStack, Text } from "tamagui";
 
 // 1. Define schema (type-first)
 const createUserSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  age: z.coerce.number().min(18, 'Must be 18 or older').optional(),
-})
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  age: z.coerce.number().min(18, "Must be 18 or older").optional(),
+});
 
-type CreateUserInput = z.infer<typeof createUserSchema>
+type CreateUserInput = z.infer<typeof createUserSchema>;
 
 // 2. Form state union
 type FormState =
-  | { status: 'idle' }
-  | { status: 'submitting' }
-  | { status: 'error'; error: string }
-  | { status: 'success' }
+  | { status: "idle" }
+  | { status: "submitting" }
+  | { status: "error"; error: string }
+  | { status: "success" };
 
 function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
-  const [state, setState] = useState<FormState>({ status: 'idle' })
+  const [state, setState] = useState<FormState>({ status: "idle" });
 
   const {
     control,
@@ -113,23 +115,23 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
     reset,
   } = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
-    defaultValues: { name: '', email: '' },
-  })
+    defaultValues: { name: "", email: "" },
+  });
 
   const onSubmit = async (data: CreateUserInput) => {
-    setState({ status: 'submitting' })
+    setState({ status: "submitting" });
     try {
-      await api.createUser(data)
-      setState({ status: 'success' })
-      reset()
-      onSuccess()
+      await api.createUser(data);
+      setState({ status: "success" });
+      reset();
+      onSuccess();
     } catch (err) {
       setState({
-        status: 'error',
-        error: err instanceof Error ? err.message : 'Unknown error',
-      })
+        status: "error",
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
     }
-  }
+  };
 
   return (
     <Form onSubmit={handleSubmit(onSubmit)}>
@@ -147,7 +149,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
                 onChangeText={onChange}
                 onBlur={onBlur}
                 placeholder="Enter name"
-                borderColor={errors.name ? '$red10' : undefined}
+                borderColor={errors.name ? "$red10" : undefined}
               />
             )}
           />
@@ -173,7 +175,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
                 placeholder="Enter email"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                borderColor={errors.email ? '$red10' : undefined}
+                borderColor={errors.email ? "$red10" : undefined}
               />
             )}
           />
@@ -185,23 +187,21 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
         </YStack>
 
         {/* Form-level error */}
-        {state.status === 'error' && (
-          <Text color="$red10">{state.error}</Text>
-        )}
+        {state.status === "error" && <Text color="$red10">{state.error}</Text>}
 
         {/* Submit button */}
         <Form.Trigger asChild>
           <Button
             theme="active"
-            disabled={state.status === 'submitting'}
-            opacity={state.status === 'submitting' ? 0.5 : 1}
+            disabled={state.status === "submitting"}
+            opacity={state.status === "submitting" ? 0.5 : 1}
           >
-            {state.status === 'submitting' ? 'Submitting...' : 'Create User'}
+            {state.status === "submitting" ? "Submitting..." : "Create User"}
           </Button>
         </Form.Trigger>
       </YStack>
     </Form>
-  )
+  );
 }
 ```
 
@@ -211,11 +211,11 @@ Extract reusable form fields:
 
 ```tsx
 type FieldProps = {
-  label: string
-  id: string
-  error?: string
-  children: React.ReactNode
-}
+  label: string;
+  id: string;
+  error?: string;
+  children: React.ReactNode;
+};
 
 function Field({ label, id, error, children }: FieldProps) {
   return (
@@ -228,7 +228,7 @@ function Field({ label, id, error, children }: FieldProps) {
         </Text>
       )}
     </YStack>
-  )
+  );
 }
 
 // Usage
@@ -242,11 +242,11 @@ function Field({ label, id, error, children }: FieldProps) {
         value={value}
         onChangeText={onChange}
         onBlur={onBlur}
-        borderColor={errors.email ? '$red10' : undefined}
+        borderColor={errors.email ? "$red10" : undefined}
       />
     )}
   />
-</Field>
+</Field>;
 ```
 
 ## Input Variants
@@ -254,11 +254,7 @@ function Field({ label, id, error, children }: FieldProps) {
 ### Text Input
 
 ```tsx
-<Input
-  id="name"
-  placeholder="Enter name"
-  autoCapitalize="words"
-/>
+<Input id="name" placeholder="Enter name" autoCapitalize="words" />
 ```
 
 ### Email Input
@@ -300,11 +296,7 @@ const [showPassword, setShowPassword] = useState(false)
 ### TextArea
 
 ```tsx
-<TextArea
-  id="description"
-  placeholder="Enter description"
-  numberOfLines={4}
-/>
+<TextArea id="description" placeholder="Enter description" numberOfLines={4} />
 ```
 
 ## Checkbox and Switch
@@ -335,6 +327,7 @@ import { Check } from '@tamagui/lucide-icons'
 ## Form in Dialog
 
 See @DIALOG_PATTERNS.md for complete form-in-dialog example. Key points:
+
 - Use controlled Dialog state
 - Close dialog on successful submit
 - Handle loading/error states
@@ -345,35 +338,39 @@ See @DIALOG_PATTERNS.md for complete form-in-dialog example. Key points:
 Common zod patterns for forms:
 
 ```tsx
-import { z } from 'zod'
+import { z } from "zod";
 
 // Required string
-z.string().min(1, 'Required')
+z.string().min(1, "Required");
 
 // Email
-z.string().email('Invalid email')
+z.string().email("Invalid email");
 
 // Password with requirements
 z.string()
-  .min(8, 'Must be at least 8 characters')
-  .regex(/[A-Z]/, 'Must contain uppercase')
-  .regex(/[0-9]/, 'Must contain number')
+  .min(8, "Must be at least 8 characters")
+  .regex(/[A-Z]/, "Must contain uppercase")
+  .regex(/[0-9]/, "Must contain number");
 
 // Optional with transform
-z.string().optional().transform(v => v || undefined)
+z.string()
+  .optional()
+  .transform((v) => v || undefined);
 
 // Number from string input
-z.coerce.number().min(0).max(100)
+z.coerce.number().min(0).max(100);
 
 // Enum/select
-z.enum(['option1', 'option2', 'option3'])
+z.enum(["option1", "option2", "option3"]);
 
 // Refinement for confirm password
-const schema = z.object({
-  password: z.string().min(8),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'Passwords must match',
-  path: ['confirmPassword'],
-})
+const schema = z
+  .object({
+    password: z.string().min(8),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords must match",
+    path: ["confirmPassword"],
+  });
 ```

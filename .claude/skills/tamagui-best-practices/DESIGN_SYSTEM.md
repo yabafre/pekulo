@@ -11,6 +11,7 @@ Before writing Tamagui code, understand the context:
 **Platform Reality**: Will this run on web, iOS, Android, or all three? Each has different interaction patterns (hover vs press, scroll behavior, safe areas).
 
 **Tone**: Commit to an aesthetic direction that works cross-platform:
+
 - Brutally minimal (works everywhere)
 - Soft/organic (leverage borderRadius tokens, gentle shadows)
 - Editorial/magazine (typography-forward, works best on larger screens)
@@ -24,10 +25,10 @@ Before writing Tamagui code, understand the context:
 ### Custom Fonts via createFont
 
 ```tsx
-import { createFont } from 'tamagui'
+import { createFont } from "tamagui";
 
 const headingFont = createFont({
-  family: 'SpaceGrotesk',
+  family: "SpaceGrotesk",
   size: {
     1: 12,
     2: 14,
@@ -41,15 +42,15 @@ const headingFont = createFont({
     3: 22,
   },
   weight: {
-    4: '400',
-    6: '600',
-    7: '700',
+    4: "400",
+    6: "600",
+    7: "700",
   },
   letterSpacing: {
     4: 0,
     7: -0.5,
   },
-})
+});
 ```
 
 ### Font Loading by Platform
@@ -59,6 +60,7 @@ const headingFont = createFont({
 **Native**: Use expo-font or react-native-asset to bundle fonts, then reference family name.
 
 **Avoid generic system fonts** - Inter, Roboto, Arial create "AI slop" aesthetics. Choose distinctive fonts:
+
 - Display: Space Grotesk, Clash Display, Satoshi, General Sans
 - Body: iA Writer, IBM Plex, Source Serif
 - Monospace: JetBrains Mono, Berkeley Mono, Monaspace
@@ -87,29 +89,29 @@ Don't accept default grayscale. Create palettes with character:
 
 ```tsx
 const warmPalette = [
-  '#faf8f5',  // cream white
-  '#f5f0e8',
-  '#ebe3d6',
+  "#faf8f5", // cream white
+  "#f5f0e8",
+  "#ebe3d6",
   // ... 12 steps
-  '#1a1612',  // warm black
-]
+  "#1a1612", // warm black
+];
 
 const coolPalette = [
-  '#f8fafc',  // cool white
-  '#f0f4f8',
-  '#e2e8f0',
+  "#f8fafc", // cool white
+  "#f0f4f8",
+  "#e2e8f0",
   // ... 12 steps
-  '#0f172a',  // deep navy
-]
+  "#0f172a", // deep navy
+];
 
 createThemes({
   base: {
     palette: {
       light: warmPalette,
-      dark: coolPalette,  // Different character, not just inverted
+      dark: coolPalette, // Different character, not just inverted
     },
   },
-})
+});
 ```
 
 ### Accent Themes for Bold Contrast
@@ -153,16 +155,17 @@ createThemes({
 
 ### Animation Drivers
 
-| Driver | Platform | Performance | Use Case |
-|--------|----------|-------------|----------|
-| `css` | Web | Excellent | Default for web |
-| `react-native-reanimated` | Native | Native thread | Required for native |
+| Driver                    | Platform | Performance   | Use Case            |
+| ------------------------- | -------- | ------------- | ------------------- |
+| `css`                     | Web      | Excellent     | Default for web     |
+| `react-native-reanimated` | Native   | Native thread | Required for native |
 
 Configure in tamagui.config.ts:
+
 ```tsx
-import { createAnimations } from '@tamagui/animations-css'
+import { createAnimations } from "@tamagui/animations-css";
 // or
-import { createAnimations } from '@tamagui/animations-reanimated'
+import { createAnimations } from "@tamagui/animations-reanimated";
 ```
 
 ### Page Transitions with enterStyle/exitStyle
@@ -175,8 +178,8 @@ const FadeIn = styled(View, {
     opacity: 0,
     y: 20,
   },
-  animation: 'quick',
-})
+  animation: "quick",
+});
 ```
 
 ### Micro-interactions via Pseudo Styles
@@ -191,8 +194,8 @@ const InteractiveCard = styled(Card, {
     scale: 1.02,
     shadowRadius: 20,
   },
-  animation: 'quick',
-})
+  animation: "quick",
+});
 ```
 
 ### Staggered Reveals
@@ -200,23 +203,25 @@ const InteractiveCard = styled(Card, {
 Use animation delay for orchestrated page loads:
 
 ```tsx
-{items.map((item, i) => (
-  <FadeInItem
-    key={item.id}
-    animation="quick"
-    animateOnly={['opacity', 'transform']}
-    enterStyle={{ opacity: 0, y: 20 }}
-    style={{ animationDelay: `${i * 50}ms` }}
-  >
-    {item.content}
-  </FadeInItem>
-))}
+{
+  items.map((item, i) => (
+    <FadeInItem
+      key={item.id}
+      animation="quick"
+      animateOnly={["opacity", "transform"]}
+      enterStyle={{ opacity: 0, y: 20 }}
+      style={{ animationDelay: `${i * 50}ms` }}
+    >
+      {item.content}
+    </FadeInItem>
+  ));
+}
 ```
 
 ### AnimatePresence for Exit Animations
 
 ```tsx
-import { AnimatePresence } from 'tamagui'
+import { AnimatePresence } from "tamagui";
 
 <AnimatePresence>
   {show && (
@@ -229,7 +234,7 @@ import { AnimatePresence } from 'tamagui'
       Content
     </View>
   )}
-</AnimatePresence>
+</AnimatePresence>;
 ```
 
 ## Spatial Composition
@@ -249,10 +254,7 @@ import { AnimatePresence } from 'tamagui'
 ### Responsive Asymmetry
 
 ```tsx
-<XStack
-  flexDirection="column"
-  $md={{ flexDirection: 'row' }}
->
+<XStack flexDirection="column" $md={{ flexDirection: "row" }}>
   <YStack flex={1} $md={{ flex: 2 }} />
   <YStack flex={1} $md={{ flex: 3 }} />
 </XStack>
@@ -279,7 +281,7 @@ import { AnimatePresence } from 'tamagui'
   <Image source={bg} />
   <View
     position="absolute"
-    top="$-4"  // Negative token - breaks grid intentionally
+    top="$-4" // Negative token - breaks grid intentionally
     right="$6"
     backgroundColor="$background"
     padding="$4"
@@ -297,15 +299,15 @@ import { AnimatePresence } from 'tamagui'
 
 ```tsx
 // GENERIC
-import { defaultConfig } from '@tamagui/config/v4'
-export const config = createTamagui(defaultConfig)
+import { defaultConfig } from "@tamagui/config/v4";
+export const config = createTamagui(defaultConfig);
 
 // DISTINCTIVE
 export const config = createTamagui({
   ...defaultConfig,
   fonts: { heading: myCustomFont, body: myBodyFont },
   themes: myCustomThemes,
-})
+});
 ```
 
 ### Don't: Rely on default component styling
@@ -323,11 +325,11 @@ If you find yourself using the same tokens everywhere (`$4`, `$blue10`, `$gray5`
 
 ```tsx
 const semanticTokens = {
-  $heroSpacing: '$8',
-  $cardRadius: '$4',
-  $subtleBackground: '$gray2',
-  $emphasisColor: '$blue9',
-}
+  $heroSpacing: "$8",
+  $cardRadius: "$4",
+  $subtleBackground: "$gray2",
+  $emphasisColor: "$blue9",
+};
 ```
 
 ## Design System Checklist

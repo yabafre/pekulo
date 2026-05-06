@@ -167,7 +167,17 @@ describe("WCAG 2.2 AA contrast — pekulo-light", () => {
 });
 
 afterAll(() => {
-  const reportPath = resolve(import.meta.dir, "../../../../../../docs/spikes/0-9-contrast-report.json");
+  const reportPath = resolve(
+    import.meta.dir,
+    "../../../../../../docs/spikes/0-9-contrast-report.json",
+  );
   mkdirSync(dirname(reportPath), { recursive: true });
-  writeFileSync(reportPath, JSON.stringify({ generatedAt: new Date().toISOString(), thresholds: THRESHOLDS, rows: report }, null, 2) + "\n");
+  writeFileSync(
+    reportPath,
+    JSON.stringify(
+      { generatedAt: new Date().toISOString(), thresholds: THRESHOLDS, rows: report },
+      null,
+      2,
+    ) + "\n",
+  );
 });

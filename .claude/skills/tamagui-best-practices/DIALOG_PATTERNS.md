@@ -38,8 +38,8 @@ Never use `Platform.OS` branching. Use `Adapt` to transform Dialog to Sheet on t
     <Dialog.Content
       bordered
       elevate
-      animateOnly={['transform', 'opacity']}
-      animation={['quick', { opacity: { overshootClamping: true } }]}
+      animateOnly={["transform", "opacity"]}
+      animation={["quick", { opacity: { overshootClamping: true } }]}
       enterStyle={{ y: -20, opacity: 0, scale: 0.9 }}
       exitStyle={{ y: 10, opacity: 0, scale: 0.95 }}
     >
@@ -66,10 +66,10 @@ Never use `Platform.OS` branching. Use `Adapt` to transform Dialog to Sheet on t
 
 ```tsx
 // WRONG - manual platform branching
-if (Platform.OS === 'web') {
-  return <Dialog>...</Dialog>
+if (Platform.OS === "web") {
+  return <Dialog>...</Dialog>;
 }
-return <Sheet>...</Sheet>
+return <Sheet>...</Sheet>;
 ```
 
 ### 3. Animation on Content, Not Portal
@@ -106,13 +106,13 @@ function ConfirmDialog({
   onOpenChange,
   onConfirm,
   title,
-  description
+  description,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
-  title: string
-  description: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  title: string;
+  description: string;
 }) {
   return (
     <Dialog modal open={open} onOpenChange={onOpenChange}>
@@ -126,8 +126,8 @@ function ConfirmDialog({
         <Dialog.Content
           bordered
           elevate
-          animation={['quick', { opacity: { overshootClamping: true } }]}
-          animateOnly={['transform', 'opacity']}
+          animation={["quick", { opacity: { overshootClamping: true } }]}
+          animateOnly={["transform", "opacity"]}
           enterStyle={{ y: -20, opacity: 0, scale: 0.9 }}
           exitStyle={{ y: 10, opacity: 0, scale: 0.95 }}
           width="90%"
@@ -158,7 +158,7 @@ function ConfirmDialog({
         </Sheet>
       </Adapt>
     </Dialog>
-  )
+  );
 }
 ```
 
@@ -178,8 +178,8 @@ function FormDialog({ open, onOpenChange }: DialogProps) {
         <Dialog.Content
           bordered
           elevate
-          animation={['quick', { opacity: { overshootClamping: true } }]}
-          animateOnly={['transform', 'opacity']}
+          animation={["quick", { opacity: { overshootClamping: true } }]}
+          animateOnly={["transform", "opacity"]}
           enterStyle={{ y: -20, opacity: 0, scale: 0.9 }}
           exitStyle={{ y: 10, opacity: 0, scale: 0.95 }}
           width="90%"
@@ -222,7 +222,7 @@ function FormDialog({ open, onOpenChange }: DialogProps) {
         </Sheet>
       </Adapt>
     </Dialog>
-  )
+  );
 }
 ```
 
@@ -241,32 +241,26 @@ function BottomSheet({ open, onOpenChange, children }: SheetProps) {
       dismissOnSnapToBottom
       dismissOnOverlayPress
     >
-      <Sheet.Overlay
-        animation="quick"
-        enterStyle={{ opacity: 0 }}
-        exitStyle={{ opacity: 0 }}
-      />
+      <Sheet.Overlay animation="quick" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
       <Sheet.Frame>
         <Sheet.Handle />
-        <Sheet.ScrollView>
-          {children}
-        </Sheet.ScrollView>
+        <Sheet.ScrollView>{children}</Sheet.ScrollView>
       </Sheet.Frame>
     </Sheet>
-  )
+  );
 }
 ```
 
 ### Sheet Props Reference
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `modal` | boolean | Renders in portal, adds overlay |
-| `snapPoints` | number[] | Snap positions as % of screen |
-| `dismissOnSnapToBottom` | boolean | Close when dragged to bottom |
-| `dismissOnOverlayPress` | boolean | Close on overlay tap |
-| `position` | number | Current snap index |
-| `onPositionChange` | (pos: number) => void | Snap position changed |
+| Prop                    | Type                  | Description                     |
+| ----------------------- | --------------------- | ------------------------------- |
+| `modal`                 | boolean               | Renders in portal, adds overlay |
+| `snapPoints`            | number[]              | Snap positions as % of screen   |
+| `dismissOnSnapToBottom` | boolean               | Close when dragged to bottom    |
+| `dismissOnOverlayPress` | boolean               | Close on overlay tap            |
+| `position`              | number                | Current snap index              |
+| `onPositionChange`      | (pos: number) => void | Snap position changed           |
 
 ## Preventing Dismiss
 

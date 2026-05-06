@@ -19,9 +19,7 @@ export default function TamaguiSpikePage() {
         color: pekuloColors.dark.text.primary,
       }}
     >
-      <h1 style={{ marginBottom: "24px", fontSize: "1.5rem" }}>
-        Tamagui spike — W2 pre-flight
-      </h1>
+      <h1 style={{ marginBottom: "24px", fontSize: "1.5rem" }}>Tamagui spike — W2 pre-flight</h1>
       <HeroBlock />
     </main>
   );

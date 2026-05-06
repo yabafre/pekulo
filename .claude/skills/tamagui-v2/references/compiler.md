@@ -57,35 +57,35 @@ npm install @tamagui/next-plugin
 Configure `next.config.js`:
 
 ```js
-const { withTamagui } = require('@tamagui/next-plugin')
+const { withTamagui } = require("@tamagui/next-plugin");
 
 module.exports = withTamagui({
-  config: './tamagui.config.ts',
-  components: ['tamagui'],
-  
+  config: "./tamagui.config.ts",
+  components: ["tamagui"],
+
   // Optional: disable in dev for faster iteration
-  disableExtraction: process.env.NODE_ENV === 'development',
-  
+  disableExtraction: process.env.NODE_ENV === "development",
+
   // Optional: exclude specific React Native Web exports
-  excludeReactNativeWebExports: ['Switch', 'ProgressBar', 'Picker'],
-})
+  excludeReactNativeWebExports: ["Switch", "ProgressBar", "Picker"],
+});
 ```
 
 **For App Router**, generate a static CSS file:
 
 ```js
 module.exports = withTamagui({
-  config: './tamagui.config.ts',
-  components: ['tamagui'],
-  outputCSS: './public/tamagui.css',
-  disableExtraction: process.env.NODE_ENV === 'development',
-})
+  config: "./tamagui.config.ts",
+  components: ["tamagui"],
+  outputCSS: "./public/tamagui.css",
+  disableExtraction: process.env.NODE_ENV === "development",
+});
 ```
 
 Then import it in `app/layout.tsx`:
 
 ```tsx
-import '../public/tamagui.css'
+import "../public/tamagui.css";
 ```
 
 ### Vite
@@ -99,17 +99,17 @@ npm install @tamagui/vite-plugin
 Update `vite.config.ts`:
 
 ```ts
-import { tamaguiPlugin } from '@tamagui/vite-plugin'
+import { tamaguiPlugin } from "@tamagui/vite-plugin";
 
 export default defineConfig({
   plugins: [
     tamaguiPlugin({
-      config: './tamagui.config.ts',
-      components: ['tamagui'],
+      config: "./tamagui.config.ts",
+      components: ["tamagui"],
       optimize: true, // enables optimization
     }),
   ],
-})
+});
 ```
 
 ### Webpack
@@ -123,25 +123,25 @@ npm install tamagui-loader
 Configure `webpack.config.js`:
 
 ```js
-const { TamaguiPlugin } = require('tamagui-loader')
+const { TamaguiPlugin } = require("tamagui-loader");
 
 module.exports = {
   plugins: [
     new TamaguiPlugin({
-      config: './tamagui.config.ts',
-      components: ['tamagui'],
-      importsWhitelist: ['constants.js', 'colors.js'],
+      config: "./tamagui.config.ts",
+      components: ["tamagui"],
+      importsWhitelist: ["constants.js", "colors.js"],
       logTimings: true,
-      disableExtraction: process.env.NODE_ENV === 'development',
+      disableExtraction: process.env.NODE_ENV === "development",
     }),
   ],
-}
+};
 ```
 
 Or use the loader directly:
 
 ```js
-const { shouldExclude } = require('tamagui-loader')
+const { shouldExclude } = require("tamagui-loader");
 
 module.exports = {
   module: {
@@ -150,20 +150,20 @@ module.exports = {
         test: /\.[jt]sx?$/,
         exclude: (path) => shouldExclude(path, __dirname, tamaguiOptions),
         use: [
-          'thread-loader', // optional: parallel processing
-          'esbuild-loader',
+          "thread-loader", // optional: parallel processing
+          "esbuild-loader",
           {
-            loader: 'tamagui-loader',
+            loader: "tamagui-loader",
             options: {
-              config: './tamagui.config.ts',
-              components: ['tamagui'],
+              config: "./tamagui.config.ts",
+              components: ["tamagui"],
             },
           },
         ],
       },
     ],
   },
-}
+};
 ```
 
 ### Expo / Metro (Babel)
@@ -180,17 +180,17 @@ Add to `babel.config.js`:
 module.exports = {
   plugins: [
     [
-      '@tamagui/babel-plugin',
+      "@tamagui/babel-plugin",
       {
-        components: ['tamagui'],
-        config: './tamagui.config.ts',
-        importsWhitelist: ['constants.js', 'colors.js'],
+        components: ["tamagui"],
+        config: "./tamagui.config.ts",
+        importsWhitelist: ["constants.js", "colors.js"],
         logTimings: true,
-        disableExtraction: process.env.NODE_ENV === 'development',
+        disableExtraction: process.env.NODE_ENV === "development",
       },
     ],
   ],
-}
+};
 ```
 
 <Notice theme="blue">
@@ -208,13 +208,13 @@ npm install -D @tamagui/cli
 Create `tamagui.build.ts`:
 
 ```ts
-import type { TamaguiBuildOptions } from 'tamagui'
+import type { TamaguiBuildOptions } from "tamagui";
 
 export default {
-  config: './tamagui.config.ts',
-  components: ['tamagui'],
-  outputCSS: './public/tamagui.css',
-} satisfies TamaguiBuildOptions
+  config: "./tamagui.config.ts",
+  components: ["tamagui"],
+  outputCSS: "./public/tamagui.css",
+} satisfies TamaguiBuildOptions;
 ```
 
 Add to `package.json`:
@@ -256,38 +256,44 @@ The compiler performs **partial evaluation** of your components to determine whi
 ### What Gets Extracted
 
 ✅ **Static Props**
+
 ```tsx
 <View backgroundColor="$blue10" padding="$4" />
 // → Extracted to atomic CSS/StyleSheet
 ```
 
 ✅ **Token References**
+
 ```tsx
 <Text fontSize="$6" color="$color" />
 // → Resolved to theme tokens at compile time
 ```
 
 ✅ **Variants**
+
 ```tsx
 <Button variant="outlined" size="large" />
 // → Variant styles extracted statically
 ```
 
 ✅ **Media Queries (Web)**
+
 ```tsx
-<View $sm={{ padding: '$2' }} $md={{ padding: '$4' }} />
+<View $sm={{ padding: "$2" }} $md={{ padding: "$4" }} />
 // → Converted to CSS @media rules
 ```
 
 ✅ **Pseudo Styles (Web)**
+
 ```tsx
-<Button hoverStyle={{ backgroundColor: '$blue11' }} />
+<Button hoverStyle={{ backgroundColor: "$blue11" }} />
 // → Converted to CSS :hover
 ```
 
 ### What Doesn't Get Extracted
 
 ❌ **Dynamic Props**
+
 ```tsx
 const size = Math.random() > 0.5 ? '$4' : '$6'
 <View padding={size} />
@@ -295,18 +301,21 @@ const size = Math.random() > 0.5 ? '$4' : '$6'
 ```
 
 ❌ **Spread Props**
+
 ```tsx
 <View {...dynamicProps} />
 // → Cannot analyze at compile time
 ```
 
 ❌ **Conditional Logic**
+
 ```tsx
-<View padding={isLarge ? '$4' : '$2'} />
+<View padding={isLarge ? "$4" : "$2"} />
 // → Requires runtime evaluation
 ```
 
 ❌ **Function References**
+
 ```tsx
 const getColor = () => '$blue10'
 <View backgroundColor={getColor()} />
@@ -338,6 +347,7 @@ const InnerBox = styled(OuterBox, {
 ```
 
 **Requirements for Flattening:**
+
 - All props must be statically analyzable
 - No dynamic children or render props
 - Component must be in configured `components` array
@@ -348,17 +358,17 @@ All compiler plugins accept these options:
 
 ### Core Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `config` | `string` | **Required** | Path to your `tamagui.config.ts` file |
-| `components` | `string[]` | `['tamagui']` | Array of npm packages containing Tamagui components to optimize |
-| `importsWhitelist` | `string[]` | `[]` | Files the compiler can import at build time (e.g., `['constants.js', 'colors.js']`) |
-| `logTimings` | `boolean` | `true` | Log compilation times and optimization stats |
-| `disable` | `boolean` | `false` | Disable all compiler features (extraction + debug attrs) |
-| `disableExtraction` | `boolean` | `false` | Disable CSS extraction (faster dev iteration) |
-| `disableDebugAttr` | `boolean` | `false` | Disable debug `data-*` attributes in DOM |
-| `disableFlattening` | `boolean` | `false` | Disable component tree flattening |
-| `enableDynamicEvaluation` | `boolean` | `false` | **(Experimental)** Extract `styled()` outside configured components |
+| Option                    | Type       | Default       | Description                                                                         |
+| ------------------------- | ---------- | ------------- | ----------------------------------------------------------------------------------- |
+| `config`                  | `string`   | **Required**  | Path to your `tamagui.config.ts` file                                               |
+| `components`              | `string[]` | `['tamagui']` | Array of npm packages containing Tamagui components to optimize                     |
+| `importsWhitelist`        | `string[]` | `[]`          | Files the compiler can import at build time (e.g., `['constants.js', 'colors.js']`) |
+| `logTimings`              | `boolean`  | `true`        | Log compilation times and optimization stats                                        |
+| `disable`                 | `boolean`  | `false`       | Disable all compiler features (extraction + debug attrs)                            |
+| `disableExtraction`       | `boolean`  | `false`       | Disable CSS extraction (faster dev iteration)                                       |
+| `disableDebugAttr`        | `boolean`  | `false`       | Disable debug `data-*` attributes in DOM                                            |
+| `disableFlattening`       | `boolean`  | `false`       | Disable component tree flattening                                                   |
+| `enableDynamicEvaluation` | `boolean`  | `false`       | **(Experimental)** Extract `styled()` outside configured components                 |
 
 ### importsWhitelist
 
@@ -366,7 +376,7 @@ The compiler takes a **conservative approach** to partial evaluation. Only files
 
 ```js
 {
-  importsWhitelist: ['constants.js', 'colors.js']
+  importsWhitelist: ["constants.js", "colors.js"];
 }
 ```
 
@@ -387,7 +397,7 @@ Disable static extraction in development for **faster hot reloading**:
 
 ```js
 {
-  disableExtraction: process.env.NODE_ENV === 'development'
+  disableExtraction: process.env.NODE_ENV === "development";
 }
 ```
 
@@ -399,17 +409,19 @@ When disabled, Tamagui uses runtime style generation but keeps helpful debug att
 
 ```js
 {
-  enableDynamicEvaluation: true
+  enableDynamicEvaluation: true;
 }
 ```
 
 **How it works:**
+
 1. Detects `styled()` outside component modules
 2. Forces exports of all top-level variables
 3. Bundles file with esbuild to `.tamagui-dynamic-eval-*.js`
 4. Loads and optimizes the component
 
 **Caveats:**
+
 - May cause webpack warnings
 - Can have cache invalidation issues
 - Use with caution in production
@@ -419,18 +431,23 @@ When disabled, Tamagui uses runtime style generation but keeps helpful debug att
 ### Use Static Values
 
 ✅ **Good**: Static props compile perfectly
+
 ```tsx
-<Button size="$4" variant="outlined">Click</Button>
+<Button size="$4" variant="outlined">
+  Click
+</Button>
 ```
 
 ❌ **Avoid**: Dynamic expressions fall back to runtime
+
 ```tsx
-<Button size={isLarge ? '$6' : '$4'}>Click</Button>
+<Button size={isLarge ? "$6" : "$4"}>Click</Button>
 ```
 
 ### Leverage Variants
 
 ✅ **Good**: Define variants in `styled()` for full extraction
+
 ```tsx
 const Button = styled(View, {
   variants: {
@@ -445,18 +462,21 @@ const Button = styled(View, {
 ```
 
 ❌ **Avoid**: Computing styles at runtime
+
 ```tsx
-<Button style={{ padding: size === 'large' ? 16 : 8 }} />
+<Button style={{ padding: size === "large" ? 16 : 8 }} />
 ```
 
 ### Prefer Token References
 
 ✅ **Good**: Tokens resolve at compile time
+
 ```tsx
 <View backgroundColor="$blue10" padding="$4" />
 ```
 
 ❌ **Avoid**: Raw values bypass optimization
+
 ```tsx
 <View backgroundColor="#0066FF" padding={16} />
 ```
@@ -464,15 +484,13 @@ const Button = styled(View, {
 ### Use Media Queries Declaratively
 
 ✅ **Good**: Media props convert to CSS @media
+
 ```tsx
-<View
-  padding="$2"
-  $sm={{ padding: '$4' }}
-  $md={{ padding: '$6' }}
-/>
+<View padding="$2" $sm={{ padding: "$4" }} $md={{ padding: "$6" }} />
 ```
 
 ❌ **Avoid**: `useMedia()` hook requires runtime
+
 ```tsx
 const media = useMedia()
 <View padding={media.sm ? '$4' : '$2'} />
@@ -485,11 +503,13 @@ const media = useMedia()
 ### Minimize Spread Props
 
 ✅ **Good**: Explicit props
+
 ```tsx
 <Button size="$4" variant="outlined" />
 ```
 
 ❌ **Avoid**: Spreads prevent static analysis
+
 ```tsx
 <Button {...buttonProps} />
 ```
@@ -502,9 +522,9 @@ Add `// debug` pragma at the top of any file:
 
 ```tsx
 // debug
-import { Button } from 'tamagui'
+import { Button } from "tamagui";
 
-export default () => <Button>Test</Button>
+export default () => <Button>Test</Button>;
 ```
 
 This prints detailed extraction info:
@@ -548,24 +568,25 @@ Use the debug overlay (web only, development mode):
 In development, Tamagui adds `data-*` attributes to show optimization status:
 
 ```html
-<div data-tamagui="button" data-optimized="true" data-flattened="true">
-  Click me
-</div>
+<div data-tamagui="button" data-optimized="true" data-flattened="true">Click me</div>
 ```
 
 ### Common Issues
 
 **No styles extracted:**
+
 - Check `components` includes your package
 - Verify `config` path is correct
 - Ensure props are static, not dynamic
 
 **Component not flattened:**
+
 - Dynamic props prevent flattening
 - Check for spread operators
 - Render props block flattening
 
 **Slow compilation:**
+
 - Enable `disableExtraction` in dev mode
 - Use `thread-loader` for parallel processing
 - Limit `importsWhitelist` to essential files
@@ -588,6 +609,7 @@ The compiler generates **atomic CSS classes**:
 ```
 
 **Benefits:**
+
 - High reusability (same class across components)
 - Minimal CSS file size (each style defined once)
 - Optimal browser caching
@@ -625,6 +647,7 @@ const styles = StyleSheet.create({
 ```
 
 **Benefits:**
+
 - Pre-computed styles (no runtime calculations)
 - Optimized style references
 - Reduced bridge traffic
@@ -635,15 +658,16 @@ const styles = StyleSheet.create({
 
 Expected improvements with the compiler enabled:
 
-| Scenario | Without Compiler | With Compiler | Improvement |
-|----------|------------------|---------------|-------------|
-| **Simple app** (10 components) | ~45KB | ~28KB | **~38%** |
-| **Medium app** (50 components) | ~120KB | ~65KB | **~46%** |
-| **Large app** (200+ components) | ~380KB | ~180KB | **~53%** |
+| Scenario                        | Without Compiler | With Compiler | Improvement |
+| ------------------------------- | ---------------- | ------------- | ----------- |
+| **Simple app** (10 components)  | ~45KB            | ~28KB         | **~38%**    |
+| **Medium app** (50 components)  | ~120KB           | ~65KB         | **~46%**    |
+| **Large app** (200+ components) | ~380KB           | ~180KB        | **~53%**    |
 
-*Sizes are gzipped JavaScript bundles. Actual results vary based on component complexity and dynamic prop usage.*
+_Sizes are gzipped JavaScript bundles. Actual results vary based on component complexity and dynamic prop usage._
 
 **Additional savings:**
+
 - CSS extraction reduces runtime style injection code
 - Component flattening eliminates wrapper components
 - Dead code elimination removes unused variants
@@ -657,7 +681,7 @@ Add pragma at the top:
 ```tsx
 // tamagui-ignore
 
-import { Button } from 'tamagui'
+import { Button } from "tamagui";
 // Rest of file...
 ```
 
@@ -673,17 +697,18 @@ This bypasses the compiler and uses full runtime styling.
 
 ## Quick Reference
 
-| Feature | Web | Native | Notes |
-|---------|-----|--------|-------|
-| **Static extraction** | ✅ | ✅ | Core optimization |
-| **Component flattening** | ✅ | ✅ | Removes wrappers |
-| **Atomic CSS** | ✅ | ❌ | Web-only |
-| **Media query extraction** | ✅ | ❌ | Native uses runtime |
-| **Pseudo styles** | ✅ | ❌ | `:hover`, `:focus` web-only |
-| **Token resolution** | ✅ | ✅ | Both platforms |
-| **Variant extraction** | ✅ | ✅ | Both platforms |
+| Feature                    | Web | Native | Notes                       |
+| -------------------------- | --- | ------ | --------------------------- |
+| **Static extraction**      | ✅  | ✅     | Core optimization           |
+| **Component flattening**   | ✅  | ✅     | Removes wrappers            |
+| **Atomic CSS**             | ✅  | ❌     | Web-only                    |
+| **Media query extraction** | ✅  | ❌     | Native uses runtime         |
+| **Pseudo styles**          | ✅  | ❌     | `:hover`, `:focus` web-only |
+| **Token resolution**       | ✅  | ✅     | Both platforms              |
+| **Variant extraction**     | ✅  | ✅     | Both platforms              |
 
 **Setup Checklist:**
+
 - [ ] Install appropriate plugin (`@tamagui/next-plugin`, `@tamagui/vite-plugin`, etc.)
 - [ ] Configure `config` path to `tamagui.config.ts`
 - [ ] Set `components` array to packages you use
@@ -693,12 +718,14 @@ This bypasses the compiler and uses full runtime styling.
 - [ ] Test with `// debug` pragma to verify extraction
 
 **CI Verification:**
+
 ```bash
 # Fail build if fewer than 10 components optimized
 tamagui build --expect-optimizations 10 ./src
 ```
 
 **Environment Variables:**
+
 ```bash
 TAMAGUI_TARGET=web              # or 'native'
 DEBUG=tamagui                   # Verbose logging

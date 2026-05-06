@@ -9,14 +9,14 @@ Tamagui v1.x patterns beyond fundamentals: Config v4, compiler optimization, com
 
 ## Reference Files — Read Before Writing Code
 
-| Context | File | What it covers |
-|---------|------|----------------|
-| Dialog, Sheet, modal overlays | @DIALOG_PATTERNS.md | Adapt component, accessibility |
-| Form, Input, Label, validation | @FORM_PATTERNS.md | zod integration |
-| Animations, transitions | @ANIMATION_PATTERNS.md | drivers, enterStyle/exitStyle |
-| Popover, Tooltip, Select | @OVERLAY_PATTERNS.md | overlay primitives |
-| Compiler optimization | @COMPILER_PATTERNS.md | what the compiler can/cannot flatten |
-| Design tokens, theming | @DESIGN_SYSTEM.md | palette, token structure |
+| Context                        | File                   | What it covers                       |
+| ------------------------------ | ---------------------- | ------------------------------------ |
+| Dialog, Sheet, modal overlays  | @DIALOG_PATTERNS.md    | Adapt component, accessibility       |
+| Form, Input, Label, validation | @FORM_PATTERNS.md      | zod integration                      |
+| Animations, transitions        | @ANIMATION_PATTERNS.md | drivers, enterStyle/exitStyle        |
+| Popover, Tooltip, Select       | @OVERLAY_PATTERNS.md   | overlay primitives                   |
+| Compiler optimization          | @COMPILER_PATTERNS.md  | what the compiler can/cannot flatten |
+| Design tokens, theming         | @DESIGN_SYSTEM.md      | palette, token structure             |
 
 ## Config v4
 
@@ -46,14 +46,14 @@ For custom themes use `createThemes` with `palette`/`accent`/`childrenThemes` �
 
 ```tsx
 // BAD — breaks compiler
-<View backgroundColor={isDark ? '$gray1' : '$gray12'} />
+<View backgroundColor={isDark ? "$gray1" : "$gray12"} />;
 
 // GOOD — use variants
 const Box = styled(View, {
   variants: {
-    dark: { true: { backgroundColor: '$gray1' }, false: { backgroundColor: '$gray12' } },
+    dark: { true: { backgroundColor: "$gray1" }, false: { backgroundColor: "$gray12" } },
   },
-})
+});
 ```
 
 ## styled() vs Inline
@@ -65,27 +65,29 @@ const Box = styled(View, {
 ## Key Gotchas
 
 **Prop order determines override priority** — props after a spread cannot be overridden by callers:
+
 ```tsx
 // width is locked; backgroundColor can be overridden
 <View backgroundColor="$red10" {...props} width={200} />
 ```
 
 **Variant order matters** — later props win:
+
 ```tsx
 <Component scale={3} huge />  // scale = 3 (scale listed first)
 <Component huge scale={3} />  // scale = 2 (huge overrides, comes first in variants)
 ```
 
 **Use `.styleable()` when wrapping styled components** — preserves variant inheritance:
+
 ```tsx
-const CorrectWrapper = StyledText.styleable((props, ref) => (
-  <StyledText ref={ref} {...props} />
-))
+const CorrectWrapper = StyledText.styleable((props, ref) => <StyledText ref={ref} {...props} />);
 ```
 
 **`accept` prop for non-standard token resolution** (SVG fill/stroke, contentContainerStyle):
+
 ```tsx
-const StyledSVG = styled(SVG, {}, { accept: { fill: 'color', stroke: 'color' } as const })
+const StyledSVG = styled(SVG, {}, { accept: { fill: "color", stroke: "color" } as const });
 ```
 
 **Import consistency** — `tamagui`, `@tamagui/core`, and `@tamagui/button` are different packages; pick one approach per project.

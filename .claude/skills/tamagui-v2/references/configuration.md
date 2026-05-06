@@ -9,11 +9,9 @@
 ### Complete Function Signature
 
 ```typescript
-import type { CreateTamaguiProps } from '@tamagui/web'
+import type { CreateTamaguiProps } from "@tamagui/web";
 
-function createTamagui<Conf extends CreateTamaguiProps>(
-  config: Conf
-): InferTamaguiConfig<Conf>
+function createTamagui<Conf extends CreateTamaguiProps>(config: Conf): InferTamaguiConfig<Conf>;
 ```
 
 ### All Configuration Options
@@ -39,15 +37,15 @@ Tokens are your base design variables, similar to CSS custom properties. They're
 Tamagui supports these token categories:
 
 ```typescript
-import { createTokens } from 'tamagui'
+import { createTokens } from "tamagui";
 
 const tokens = createTokens({
   // Colors - no units
   color: {
-    white: '#fff',
-    black: '#000',
-    gray1: '#f9f9f9',
-    gray2: '#f0f0f0',
+    white: "#fff",
+    black: "#000",
+    gray1: "#f9f9f9",
+    gray2: "#f0f0f0",
     // ...
   },
 
@@ -75,8 +73,8 @@ const tokens = createTokens({
     3: 15,
     true: 15, // default space token
     4: 20,
-    '-1': -5,
-    '-2': -10,
+    "-1": -5,
+    "-2": -10,
     // ...
   },
 
@@ -104,7 +102,7 @@ const tokens = createTokens({
     4: 400,
     5: 500,
   },
-})
+});
 ```
 
 ### Creating Custom Tokens
@@ -114,23 +112,29 @@ You can add custom token categories:
 ```typescript
 const tokens = createTokens({
   // Standard categories
-  size: { /* ... */ },
-  space: { /* ... */ },
-  color: { /* ... */ },
-  
+  size: {
+    /* ... */
+  },
+  space: {
+    /* ... */
+  },
+  color: {
+    /* ... */
+  },
+
   // Custom categories (unitless by default)
   opacity: {
     subtle: 0.5,
     medium: 0.75,
     opaque: 1,
   },
-  
+
   duration: {
     fast: 150,
     normal: 300,
     slow: 500,
   },
-})
+});
 ```
 
 ### Token Naming Conventions
@@ -154,14 +158,14 @@ export const media = {
   md: { maxWidth: 1020 },
   lg: { maxWidth: 1280 },
   xl: { maxWidth: 1650 },
-  
+
   // Desktop-first approach - min-width
   gtXs: { minWidth: 661 },
   gtSm: { minWidth: 801 },
   gtMd: { minWidth: 1021 },
   gtLg: { minWidth: 1281 },
   gtXl: { minWidth: 1651 },
-}
+};
 ```
 
 ### Mobile-First Approach
@@ -177,7 +181,7 @@ const media = {
 }
 
 // Use in components
-<Text 
+<Text
   fontSize="$4"      // mobile default
   $sm={{ fontSize: '$5' }}   // tablets
   $md={{ fontSize: '$6' }}   // desktops
@@ -192,21 +196,21 @@ You can define any media query:
 ```typescript
 const media = {
   // Orientation
-  portrait: { orientation: 'portrait' },
-  landscape: { orientation: 'landscape' },
-  
+  portrait: { orientation: "portrait" },
+  landscape: { orientation: "landscape" },
+
   // Pointer capability
-  hover: { hover: 'hover' },
-  touch: { hover: 'none' },
-  
+  hover: { hover: "hover" },
+  touch: { hover: "none" },
+
   // Dark mode
-  dark: { prefers: 'dark' },
-  light: { prefers: 'light' },
-  
+  dark: { prefers: "dark" },
+  light: { prefers: "light" },
+
   // Custom combinations
   short: { maxHeight: 700 },
   tall: { minHeight: 900 },
-}
+};
 ```
 
 ### mediaQueryDefaultActive (SSR)
@@ -221,13 +225,13 @@ export const mediaQueryDefaultActive = {
   md: true,
   lg: true,
   xl: true,
-  
+
   // Desktop-first: larger breakpoints false by default
   gtXs: false,
   gtSm: false,
   gtMd: false,
   gtLg: false,
-}
+};
 ```
 
 This prevents hydration mismatches by ensuring the server renders with predictable media states.
@@ -239,14 +243,12 @@ Fonts are created with the `createFont` helper, which provides intelligent defau
 ### createFont Helper
 
 ```typescript
-import { createFont } from 'tamagui'
-import { isWeb } from '@tamagui/constants'
+import { createFont } from "tamagui";
+import { isWeb } from "@tamagui/constants";
 
 const bodyFont = createFont({
   // Font family - different for web/native
-  family: isWeb 
-    ? 'Inter, Helvetica, Arial, sans-serif' 
-    : 'Inter',
+  family: isWeb ? "Inter, Helvetica, Arial, sans-serif" : "Inter",
 
   // Size scale (required)
   size: {
@@ -278,10 +280,10 @@ const bodyFont = createFont({
 
   // Font weights
   weight: {
-    1: '300',  // light
-    4: '400',  // normal
-    6: '600',  // semibold
-    7: '700',  // bold
+    1: "300", // light
+    4: "400", // normal
+    6: "600", // semibold
+    7: "700", // bold
   },
 
   // Letter spacing
@@ -294,46 +296,53 @@ const bodyFont = createFont({
 
   // Transform
   transform: {
-    6: 'uppercase',
-    7: 'none',
+    6: "uppercase",
+    7: "none",
   },
 
   // Color (can reference theme variables)
   color: {
-    6: '$colorFocus',
-    7: '$color',
+    6: "$colorFocus",
+    7: "$color",
   },
 
   // Android font face mapping (REQUIRED for native)
   face: {
-    400: { normal: 'Inter', italic: 'Inter-Italic' },
-    500: { normal: 'InterMedium' },
-    600: { normal: 'InterSemiBold' },
-    700: { normal: 'InterBold', italic: 'InterBold-Italic' },
+    400: { normal: "Inter", italic: "Inter-Italic" },
+    500: { normal: "InterMedium" },
+    600: { normal: "InterSemiBold" },
+    700: { normal: "InterBold", italic: "InterBold-Italic" },
   },
-})
+});
 ```
 
 ### System Fonts vs Custom Fonts
 
 **System fonts (web):**
+
 ```typescript
 const systemFont = createFont({
   family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  size: { /* ... */ },
-})
+  size: {
+    /* ... */
+  },
+});
 ```
 
 **Custom fonts (web):**
+
 ```typescript
 // Load via @font-face first
 const customFont = createFont({
-  family: 'MyCustomFont, sans-serif',
-  size: { /* ... */ },
-})
+  family: "MyCustomFont, sans-serif",
+  size: {
+    /* ... */
+  },
+});
 ```
 
 **Custom fonts (native):**
+
 ```typescript
 // Load with expo-font or React Native
 import { useFonts } from 'expo-font'
@@ -343,7 +352,7 @@ function App() {
     Inter: require('./assets/fonts/Inter-Regular.otf'),
     InterBold: require('./assets/fonts/Inter-Bold.otf'),
   })
-  
+
   if (!loaded) return null
   return <MyApp />
 }
@@ -371,7 +380,7 @@ const headingFont = createFont({
   },
   // If you only define some sizes, createFont fills gaps
   // by repeating the last defined value
-})
+});
 
 // Result:
 // size: { 1: 12, 2: 12, 3: 12, ..., 10: 44 }
@@ -380,19 +389,19 @@ const headingFont = createFont({
 You can also use helper functions:
 
 ```typescript
-import { createInterFont } from '@tamagui/font-inter'
+import { createInterFont } from "@tamagui/font-inter";
 
 const bodyFont = createInterFont(
   {
     size: { 1: 12, 10: 44 },
-    weight: { 1: '400' },
+    weight: { 1: "400" },
   },
   {
     // Helpers for generating lineHeight
     sizeLineHeight: (size) => Math.round(size * 1.2 + 4),
     sizeSize: (size) => Math.round(size),
-  }
-)
+  },
+);
 ```
 
 ## Settings
@@ -404,27 +413,27 @@ The `settings` object controls Tamagui's behavior.
 Type-level validation for style values (TypeScript only):
 
 ```typescript
-import { createTamagui } from 'tamagui'
+import { createTamagui } from "tamagui";
 
 const config = createTamagui({
   settings: {
     allowedStyleValues: {
       strict: {
         // Only allow token values
-        space: 'only-tokens',
-        color: 'only-tokens',
+        space: "only-tokens",
+        color: "only-tokens",
       },
       somewhat: {
         // Tokens + number/string
-        fontSize: 'strict',
+        fontSize: "strict",
       },
       allowAllValues: {
         // No restrictions
-        opacity: 'all',
+        opacity: "all",
       },
     },
   },
-})
+});
 ```
 
 Possible values: `'strict'` | `'somewhat-strict'` | `'only-tokens'` | `'all'`
@@ -438,17 +447,21 @@ const config = createTamagui({
   settings: {
     shouldAddPrefersColorThemes: true, // default
   },
-})
+});
 ```
 
 When enabled, if you have `light` and `dark` themes, Tamagui generates:
 
 ```css
 @media (prefers-color-scheme: dark) {
-  .t_dark { /* dark theme variables */ }
+  .t_dark {
+    /* dark theme variables */
+  }
 }
 @media (prefers-color-scheme: light) {
-  .t_light { /* light theme variables */ }
+  .t_light {
+    /* light theme variables */
+  }
 }
 ```
 
@@ -459,9 +472,9 @@ Apply theme class to `<html>` or `<body>` instead of TamaguiProvider:
 ```typescript
 const config = createTamagui({
   settings: {
-    addThemeClassName: 'body', // or 'html' or false
+    addThemeClassName: "body", // or 'html' or false
   },
-})
+});
 ```
 
 ### fastSchemeChange
@@ -473,7 +486,7 @@ const config = createTamagui({
   settings: {
     fastSchemeChange: true,
   },
-})
+});
 ```
 
 ### defaultFont
@@ -487,9 +500,9 @@ const config = createTamagui({
     heading: headingFont,
   },
   settings: {
-    defaultFont: 'body', // without $ prefix
+    defaultFont: "body", // without $ prefix
   },
-})
+});
 ```
 
 Now all `Text` components default to `fontFamily="$body"`.
@@ -503,7 +516,7 @@ const config = createTamagui({
   settings: {
     disableSSR: true, // client-only apps
   },
-})
+});
 ```
 
 ### onlyAllowShorthands
@@ -533,14 +546,14 @@ Custom text selection colors for web:
 const config = createTamagui({
   selectionStyles: (theme) => {
     // Return null to skip generation
-    if (!theme.color5) return null
-    
+    if (!theme.color5) return null;
+
     return {
       backgroundColor: theme.color5,
       color: theme.color11,
-    }
+    };
   },
-})
+});
 ```
 
 Generates:
@@ -557,18 +570,18 @@ Generates:
 Augment Tamagui's types with your custom config:
 
 ```typescript
-import { createTamagui } from 'tamagui'
+import { createTamagui } from "tamagui";
 
 export const config = createTamagui({
   tokens,
   themes,
   fonts,
   media,
-})
+});
 
-export type Conf = typeof config
+export type Conf = typeof config;
 
-declare module 'tamagui' {
+declare module "tamagui" {
   interface TamaguiCustomConfig extends Conf {}
 }
 ```
@@ -613,7 +626,7 @@ const tokens = createTokens({
     blue9: '#075985',
     blue10: '#0c4a6e',
   },
-  
+
   size: {
     0: 0,
     1: 5,
@@ -628,7 +641,7 @@ const tokens = createTokens({
     9: 75,
     10: 95,
   },
-  
+
   space: {
     0: 0,
     1: 5,
@@ -640,7 +653,7 @@ const tokens = createTokens({
     '-1': -5,
     '-2': -10,
   },
-  
+
   radius: {
     0: 0,
     1: 3,
@@ -651,7 +664,7 @@ const tokens = createTokens({
     5: 10,
     6: 16,
   },
-  
+
   zIndex: {
     0: 0,
     1: 100,
@@ -665,7 +678,7 @@ const tokens = createTokens({
 // 2. Create fonts
 const bodyFont = createFont({
   family: isWeb ? 'Inter, system-ui, sans-serif' : 'Inter',
-  
+
   size: {
     1: 12,
     2: 14,
@@ -678,7 +691,7 @@ const bodyFont = createFont({
     9: 32,
     10: 44,
   },
-  
+
   lineHeight: {
     1: 17,
     2: 20,
@@ -691,19 +704,19 @@ const bodyFont = createFont({
     9: 40,
     10: 52,
   },
-  
+
   weight: {
     1: '300',
     4: '400',
     6: '600',
     7: '700',
   },
-  
+
   letterSpacing: {
     4: 0,
     9: -1,
   },
-  
+
   face: {
     300: { normal: 'Inter' },
     400: { normal: 'Inter' },
@@ -714,7 +727,7 @@ const bodyFont = createFont({
 
 const headingFont = createFont({
   family: isWeb ? 'Inter, system-ui, sans-serif' : 'Inter',
-  
+
   size: {
     5: 13,
     6: 15,
@@ -723,18 +736,18 @@ const headingFont = createFont({
     9: 32,
     10: 44,
   },
-  
+
   weight: {
     6: '600',
     7: '700',
   },
-  
+
   letterSpacing: {
     5: 1,
     9: -1,
     10: -1.5,
   },
-  
+
   face: {
     600: { normal: 'InterSemiBold' },
     700: { normal: 'InterBold' },
@@ -756,7 +769,7 @@ const themes = {
     borderColorHover: tokens.color.gray7,
     shadowColor: tokens.color.gray8,
   },
-  
+
   dark: {
     background: tokens.color.gray12,
     backgroundHover: tokens.color.gray11,
@@ -770,14 +783,14 @@ const themes = {
     borderColorHover: tokens.color.gray5,
     shadowColor: tokens.color.black,
   },
-  
+
   light_blue: {
     background: tokens.color.blue1,
     backgroundHover: tokens.color.blue2,
     color: tokens.color.blue10,
     colorHover: tokens.color.blue9,
   },
-  
+
   dark_blue: {
     background: tokens.color.blue10,
     backgroundHover: tokens.color.blue9,
@@ -840,7 +853,7 @@ export const config = createTamagui({
   media,
   shorthands,
   animations,
-  
+
   settings: {
     defaultFont: 'body',
     shouldAddPrefersColorThemes: true,
@@ -848,7 +861,7 @@ export const config = createTamagui({
     fastSchemeChange: true,
     allowedStyleValues: 'somewhat-strict',
   },
-  
+
   selectionStyles: (theme) => ({
     backgroundColor: theme.backgroundFocus,
     color: theme.color,
@@ -875,41 +888,45 @@ export default function App() {
 
 ## Quick Reference
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `tokens` | `TokensParsed` | Base design tokens (color, size, space, radius, zIndex) |
-| `themes` | `ThemesLikeObject` | Theme definitions referencing tokens |
-| `fonts` | `Record<string, GenericFont>` | Font configurations created with `createFont` |
-| `media` | `Record<string, MediaQueryObject>` | Responsive breakpoint definitions |
-| `animations` | `AnimationDriver` | Animation configuration (css/react-native/reanimated/motion) |
-| `shorthands` | `Record<string, string>` | Style property aliases |
-| `settings.defaultFont` | `string` | Default font family key |
-| `settings.shouldAddPrefersColorThemes` | `boolean` | Generate prefers-color-scheme media queries |
-| `settings.mediaQueryDefaultActive` | `Record<string, boolean>` | SSR media query defaults |
-| `settings.fastSchemeChange` | `boolean` | Optimize theme switching |
-| `settings.disableSSR` | `boolean` | Skip double-render for SPAs |
-| `settings.onlyAllowShorthands` | `boolean` | Hide longform prop types |
-| `settings.allowedStyleValues` | `AllowedStyleValuesSetting` | Type-level style validation |
-| `selectionStyles` | `(theme) => SelectionStyles` | Custom text selection colors |
+| Property                               | Type                               | Description                                                  |
+| -------------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
+| `tokens`                               | `TokensParsed`                     | Base design tokens (color, size, space, radius, zIndex)      |
+| `themes`                               | `ThemesLikeObject`                 | Theme definitions referencing tokens                         |
+| `fonts`                                | `Record<string, GenericFont>`      | Font configurations created with `createFont`                |
+| `media`                                | `Record<string, MediaQueryObject>` | Responsive breakpoint definitions                            |
+| `animations`                           | `AnimationDriver`                  | Animation configuration (css/react-native/reanimated/motion) |
+| `shorthands`                           | `Record<string, string>`           | Style property aliases                                       |
+| `settings.defaultFont`                 | `string`                           | Default font family key                                      |
+| `settings.shouldAddPrefersColorThemes` | `boolean`                          | Generate prefers-color-scheme media queries                  |
+| `settings.mediaQueryDefaultActive`     | `Record<string, boolean>`          | SSR media query defaults                                     |
+| `settings.fastSchemeChange`            | `boolean`                          | Optimize theme switching                                     |
+| `settings.disableSSR`                  | `boolean`                          | Skip double-render for SPAs                                  |
+| `settings.onlyAllowShorthands`         | `boolean`                          | Hide longform prop types                                     |
+| `settings.allowedStyleValues`          | `AllowedStyleValuesSetting`        | Type-level style validation                                  |
+| `selectionStyles`                      | `(theme) => SelectionStyles`       | Custom text selection colors                                 |
 
 **Common token patterns:**
+
 - Use numbered keys: `{ 1: small, 5: medium, 10: large }`
 - Add `true` key for defaults: `{ true: 20 }`
 - Reference with `$` prefix: `fontSize="$4"`
 - Negative space: `space: { '-1': -5 }`
 
 **Font requirements:**
+
 - Define `size` (required)
 - Define `face` for Android native
 - Use `isWeb` for platform-specific families
 - Use `createFont` for automatic filling
 
 **Media query tips:**
+
 - Mobile-first: use `maxWidth`
 - Set `mediaQueryDefaultActive` for SSR
 - Use in components: `$md={{ fontSize: '$6' }}`
 
 **Theme naming:**
+
 - Sub-themes: `light_blue`, `dark_blue`
 - Deep nesting: `light_blue_subtle`
 - Parent fallback: partial themes inherit from parent

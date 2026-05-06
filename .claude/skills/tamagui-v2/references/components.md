@@ -31,7 +31,7 @@ A flexible button component with automatic theming, sizing, and icon support.
 ### Basic Usage
 
 ```tsx
-import { Button } from 'tamagui'
+import { Button } from "tamagui";
 
 export default () => (
   <>
@@ -40,31 +40,31 @@ export default () => (
     <Button theme="blue">Themed Button</Button>
     <Button variant="outlined">Outlined Button</Button>
   </>
-)
+);
 ```
 
 ### Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `size` | `SizeTokens \| number` | Button size from theme tokens (e.g., `"$2"`, `"$5"`) |
-| `variant` | `"outlined"` | Visual style variant |
-| `theme` | `string` | Apply theme context to button |
-| `themeInverse` | `boolean` | Flip between dark/light theme |
-| `icon` | `JSX.Element \| Component` | Icon before text |
-| `iconAfter` | `JSX.Element \| Component` | Icon after text |
-| `iconSize` | `SizeTokens` | Explicit icon size (overrides `size`) |
-| `scaleIcon` | `number` | Scale icon relative to computed size |
-| `circular` | `boolean` | Force circular shape |
-| `disabled` | `boolean` | Disable interactions |
-| `unstyled` | `boolean` | Remove default styles |
+| Prop           | Type                       | Description                                          |
+| -------------- | -------------------------- | ---------------------------------------------------- |
+| `size`         | `SizeTokens \| number`     | Button size from theme tokens (e.g., `"$2"`, `"$5"`) |
+| `variant`      | `"outlined"`               | Visual style variant                                 |
+| `theme`        | `string`                   | Apply theme context to button                        |
+| `themeInverse` | `boolean`                  | Flip between dark/light theme                        |
+| `icon`         | `JSX.Element \| Component` | Icon before text                                     |
+| `iconAfter`    | `JSX.Element \| Component` | Icon after text                                      |
+| `iconSize`     | `SizeTokens`               | Explicit icon size (overrides `size`)                |
+| `scaleIcon`    | `number`                   | Scale icon relative to computed size                 |
+| `circular`     | `boolean`                  | Force circular shape                                 |
+| `disabled`     | `boolean`                  | Disable interactions                                 |
+| `unstyled`     | `boolean`                  | Remove default styles                                |
 
 ### Icon Theming
 
 Icons are automatically themed with `size` and `color`. The icon size is calculated as 50% of the button size by default, with automatic spacing (40% of icon size).
 
 ```tsx
-import { Button, Star } from 'tamagui'
+import { Button, Star } from "tamagui";
 
 export default () => (
   <>
@@ -72,18 +72,16 @@ export default () => (
     <Button icon={Star} size="$5">
       Favorite
     </Button>
-    
+
     {/* Explicit icon size */}
     <Button icon={Star} iconSize="$2" size="$5">
       Small Icon
     </Button>
-    
+
     {/* Icon after text */}
-    <Button iconAfter={Star}>
-      Continue
-    </Button>
+    <Button iconAfter={Star}>Continue</Button>
   </>
-)
+);
 ```
 
 ### Group Theming with Button.Apply
@@ -91,7 +89,7 @@ export default () => (
 Theme multiple buttons at once using shared context:
 
 ```tsx
-import { Button, YStack } from 'tamagui'
+import { Button, YStack } from "tamagui";
 
 export default () => (
   <YStack gap="$4">
@@ -106,7 +104,7 @@ export default () => (
       <Button>Large 2</Button>
     </Button.Apply>
   </YStack>
-)
+);
 ```
 
 ### Web Form Integration
@@ -114,24 +112,20 @@ export default () => (
 Button supports all standard HTML `<button>` attributes (web-only):
 
 ```tsx
-import { Button, Form } from 'tamagui'
+import { Button, Form } from "tamagui";
 
 export default () => (
   <Form action="/submit">
     <Button type="submit">Submit Form</Button>
     <Button type="reset">Reset</Button>
     <Button type="button">Regular Button</Button>
-    
+
     {/* Override form attributes */}
-    <Button
-      type="submit"
-      formAction="/alternative"
-      formMethod="post"
-    >
+    <Button type="submit" formAction="/alternative" formMethod="post">
       Submit to Different Endpoint
     </Button>
   </Form>
-)
+);
 ```
 
 **Important:** Button defaults to `type="button"` to prevent unintended form submissions. Use `type="submit"` explicitly when needed.
@@ -147,7 +141,7 @@ A modal dialog component with portal rendering, focus management, and mobile ada
 ### Anatomy
 
 ```tsx
-import { Dialog } from 'tamagui'
+import { Dialog } from "tamagui";
 
 export default () => (
   <Dialog>
@@ -161,13 +155,13 @@ export default () => (
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog>
-)
+);
 ```
 
 ### Basic Usage
 
 ```tsx
-import { Dialog, Button, XStack, YStack, H2, Paragraph } from 'tamagui'
+import { Dialog, Button, XStack, YStack, H2, Paragraph } from "tamagui";
 
 export default () => (
   <Dialog>
@@ -188,9 +182,9 @@ export default () => (
         bordered
         elevate
         key="content"
-        animateOnly={['transform', 'opacity']}
+        animateOnly={["transform", "opacity"]}
         animation={[
-          'quick',
+          "quick",
           {
             opacity: {
               overshootClamping: true,
@@ -223,37 +217,37 @@ export default () => (
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog>
-)
+);
 ```
 
 ### Props
 
 **Dialog (Root)**
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `open` | `boolean` | Controlled open state |
-| `defaultOpen` | `boolean` | Uncontrolled default state |
-| `onOpenChange` | `(open: boolean) => void` | Callback on state change |
-| `modal` | `boolean` | Modal behavior (default: `true`) |
-| `disableRemoveScroll` | `boolean` | Disable scroll lock when open |
+| Prop                  | Type                      | Description                      |
+| --------------------- | ------------------------- | -------------------------------- |
+| `open`                | `boolean`                 | Controlled open state            |
+| `defaultOpen`         | `boolean`                 | Uncontrolled default state       |
+| `onOpenChange`        | `(open: boolean) => void` | Callback on state change         |
+| `modal`               | `boolean`                 | Modal behavior (default: `true`) |
+| `disableRemoveScroll` | `boolean`                 | Disable scroll lock when open    |
 
 **Dialog.Content**
 
-| Prop | Type | Description |
-|------|------|-------------|
+| Prop         | Type      | Description                          |
+| ------------ | --------- | ------------------------------------ |
 | `forceMount` | `boolean` | Force mounting for animation control |
 
 **Dialog.Overlay**
 
-| Prop | Type | Description |
-|------|------|-------------|
+| Prop         | Type      | Description                          |
+| ------------ | --------- | ------------------------------------ |
 | `forceMount` | `boolean` | Force mounting for animation control |
 
 **Dialog.Close**
 
-| Prop | Type | Description |
-|------|------|-------------|
+| Prop                 | Type      | Description                         |
+| -------------------- | --------- | ----------------------------------- |
 | `displayWhenAdapted` | `boolean` | Show when adapted (default: hidden) |
 
 ### Adapt Pattern (Dialog → Sheet on Mobile)
@@ -261,7 +255,7 @@ export default () => (
 Automatically switch to Sheet on small screens:
 
 ```tsx
-import { Dialog, Sheet, Adapt } from 'tamagui'
+import { Dialog, Sheet, Adapt } from "tamagui";
 
 export default () => (
   <Dialog>
@@ -274,11 +268,7 @@ export default () => (
         <Sheet.Frame padding="$4" gap="$4">
           <Adapt.Contents />
         </Sheet.Frame>
-        <Sheet.Overlay
-          animation="lazy"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
+        <Sheet.Overlay animation="lazy" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
       </Sheet>
     </Adapt>
 
@@ -291,7 +281,7 @@ export default () => (
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog>
-)
+);
 ```
 
 ### Accessibility
@@ -313,7 +303,7 @@ A bottom sheet / modal drawer component with snap points, drag-to-dismiss, and n
 ### Anatomy
 
 ```tsx
-import { Sheet } from 'tamagui'
+import { Sheet } from "tamagui";
 
 export default () => (
   <Sheet>
@@ -323,24 +313,22 @@ export default () => (
       {/* Content */}
     </Sheet.Frame>
   </Sheet>
-)
+);
 ```
 
 ### Basic Usage
 
 ```tsx
-import { Sheet, Button } from 'tamagui'
-import { useState } from 'react'
+import { Sheet, Button } from "tamagui";
+import { useState } from "react";
 
 export default () => {
-  const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState(0)
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState(0);
 
   return (
     <>
-      <Button onPress={() => setOpen(true)}>
-        Open Sheet
-      </Button>
+      <Button onPress={() => setOpen(true)}>Open Sheet</Button>
 
       <Sheet
         forceRemoveScrollEnabled={open}
@@ -355,47 +343,38 @@ export default () => {
         zIndex={100_000}
         animation="medium"
       >
-        <Sheet.Overlay
-          animation="lazy"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
+        <Sheet.Overlay animation="lazy" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
 
         <Sheet.Handle />
 
         <Sheet.Frame padding="$4" justifyContent="center" alignItems="center" gap="$5">
-          <Button
-            size="$6"
-            circular
-            icon={ChevronDown}
-            onPress={() => setOpen(false)}
-          />
+          <Button size="$6" circular icon={ChevronDown} onPress={() => setOpen(false)} />
           {/* Your content */}
         </Sheet.Frame>
       </Sheet>
     </>
-  )
-}
+  );
+};
 ```
 
 ### Props
 
 **Sheet (Root)**
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `open` | `boolean` | Controlled open state |
-| `defaultOpen` | `boolean` | Uncontrolled default state |
-| `onOpenChange` | `(open: boolean) => void` | Callback on state change |
-| `position` | `number` | Current snap point index |
-| `defaultPosition` | `number` | Default snap point index |
-| `onPositionChange` | `(position: number) => void` | Callback on position change |
-| `snapPoints` | `number[]` | Snap point values |
-| `snapPointsMode` | `"percent" \| "fit" \| "constant" \| "mixed"` | How to interpret snap points |
-| `dismissOnSnapToBottom` | `boolean` | Auto-dismiss when snapped to 0 |
-| `modal` | `boolean` | Modal behavior with overlay |
-| `animation` | `string` | Animation preset name |
-| `zIndex` | `number` | Z-index for layering |
+| Prop                    | Type                                          | Description                    |
+| ----------------------- | --------------------------------------------- | ------------------------------ |
+| `open`                  | `boolean`                                     | Controlled open state          |
+| `defaultOpen`           | `boolean`                                     | Uncontrolled default state     |
+| `onOpenChange`          | `(open: boolean) => void`                     | Callback on state change       |
+| `position`              | `number`                                      | Current snap point index       |
+| `defaultPosition`       | `number`                                      | Default snap point index       |
+| `onPositionChange`      | `(position: number) => void`                  | Callback on position change    |
+| `snapPoints`            | `number[]`                                    | Snap point values              |
+| `snapPointsMode`        | `"percent" \| "fit" \| "constant" \| "mixed"` | How to interpret snap points   |
+| `dismissOnSnapToBottom` | `boolean`                                     | Auto-dismiss when snapped to 0 |
+| `modal`                 | `boolean`                                     | Modal behavior with overlay    |
+| `animation`             | `string`                                      | Animation preset name          |
+| `zIndex`                | `number`                                      | Z-index for layering           |
 
 ### Snap Points
 
@@ -438,7 +417,7 @@ Cross-platform text input with React Native and web alignment.
 ### Basic Usage
 
 ```tsx
-import { Input, YStack } from 'tamagui'
+import { Input, YStack } from "tamagui";
 
 export default () => (
   <YStack gap="$4">
@@ -446,13 +425,13 @@ export default () => (
     <Input size="$4" placeholder="Medium input" />
     <Input secureTextEntry placeholder="Password" />
   </YStack>
-)
+);
 ```
 
 ### Cross-Platform Props
 
 ```tsx
-import { Input } from 'tamagui'
+import { Input } from "tamagui";
 
 export default () => (
   <>
@@ -474,34 +453,34 @@ export default () => (
     {/* Multi-line */}
     <Input multiline numberOfLines={4} placeholder="Comments" />
   </>
-)
+);
 ```
 
 ### Callbacks
 
 ```tsx
-import { Input } from 'tamagui'
+import { Input } from "tamagui";
 
 export default () => {
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState("");
 
   return (
     <Input
       value={value}
       onChangeText={setValue}
       onSubmitEditing={(e) => {
-        console.log('Submitted:', e.nativeEvent.text)
+        console.log("Submitted:", e.nativeEvent.text);
       }}
       placeholder="Type and press Enter"
     />
-  )
-}
+  );
+};
 ```
 
 ### Styling
 
 ```tsx
-import { Input } from 'tamagui'
+import { Input } from "tamagui";
 
 export default () => (
   <Input
@@ -512,7 +491,7 @@ export default () => (
     selectionColor="$blue10"
     backgroundColor="$background"
   />
-)
+);
 ```
 
 ---
@@ -526,7 +505,7 @@ A dropdown selection component with native adaptation and custom styling.
 ### Anatomy
 
 ```tsx
-import { Select } from 'tamagui'
+import { Select } from "tamagui";
 
 export default () => (
   <Select>
@@ -548,17 +527,17 @@ export default () => (
       <Select.ScrollDownButton />
     </Select.Content>
   </Select>
-)
+);
 ```
 
 ### Basic Usage
 
 ```tsx
-import { Select, SelectProps, YStack } from 'tamagui'
-import { Check, ChevronDown, ChevronUp } from '@tamagui/lucide-icons'
+import { Select, SelectProps, YStack } from "tamagui";
+import { Check, ChevronDown, ChevronUp } from "@tamagui/lucide-icons";
 
 export default () => {
-  const [val, setVal] = useState('apple')
+  const [val, setVal] = useState("apple");
 
   return (
     <Select value={val} onValueChange={setVal}>
@@ -590,14 +569,14 @@ export default () => {
         </Select.ScrollDownButton>
       </Select.Content>
     </Select>
-  )
-}
+  );
+};
 
 const items = [
-  { name: 'Apple', value: 'apple' },
-  { name: 'Banana', value: 'banana' },
-  { name: 'Cherry', value: 'cherry' },
-]
+  { name: "Apple", value: "apple" },
+  { name: "Banana", value: "banana" },
+  { name: "Cherry", value: "cherry" },
+];
 ```
 
 ### Native Adaptation
@@ -618,16 +597,16 @@ Render as native `<select>` on web:
 ### Custom Styling
 
 ```tsx
-import { Select, styled } from 'tamagui'
+import { Select, styled } from "tamagui";
 
 const CustomSelectTrigger = styled(Select.Trigger, {
-  borderRadius: '$4',
-  backgroundColor: '$blue5',
-  borderColor: '$blue10',
+  borderRadius: "$4",
+  backgroundColor: "$blue5",
+  borderColor: "$blue10",
   hoverStyle: {
-    backgroundColor: '$blue6',
+    backgroundColor: "$blue6",
   },
-})
+});
 
 export default () => (
   <Select>
@@ -636,7 +615,7 @@ export default () => (
     </CustomSelectTrigger>
     {/* ... */}
   </Select>
-)
+);
 ```
 
 ---
@@ -650,7 +629,7 @@ Tabbed interface component with keyboard navigation and active state management.
 ### Anatomy
 
 ```tsx
-import { Tabs } from 'tamagui'
+import { Tabs } from "tamagui";
 
 export default () => (
   <Tabs defaultValue="tab1">
@@ -663,21 +642,17 @@ export default () => (
       </Tabs.Tab>
     </Tabs.List>
 
-    <Tabs.Content value="tab1">
-      {/* Tab 1 content */}
-    </Tabs.Content>
+    <Tabs.Content value="tab1">{/* Tab 1 content */}</Tabs.Content>
 
-    <Tabs.Content value="tab2">
-      {/* Tab 2 content */}
-    </Tabs.Content>
+    <Tabs.Content value="tab2">{/* Tab 2 content */}</Tabs.Content>
   </Tabs>
-)
+);
 ```
 
 ### Basic Usage
 
 ```tsx
-import { Tabs, YStack, H5, Paragraph } from 'tamagui'
+import { Tabs, YStack, H5, Paragraph } from "tamagui";
 
 export default () => (
   <Tabs
@@ -722,33 +697,33 @@ export default () => (
       <Paragraph>Configure your notification preferences.</Paragraph>
     </Tabs.Content>
   </Tabs>
-)
+);
 ```
 
 ### Active State Management
 
 ```tsx
-import { Tabs } from 'tamagui'
-import { useState } from 'react'
+import { Tabs } from "tamagui";
+import { useState } from "react";
 
 export default () => {
-  const [activeTab, setActiveTab] = useState('tab1')
+  const [activeTab, setActiveTab] = useState("tab1");
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <Tabs.List>
         <Tabs.Tab value="tab1">
-          <Text>Tab 1 {activeTab === 'tab1' && '✓'}</Text>
+          <Text>Tab 1 {activeTab === "tab1" && "✓"}</Text>
         </Tabs.Tab>
         <Tabs.Tab value="tab2">
-          <Text>Tab 2 {activeTab === 'tab2' && '✓'}</Text>
+          <Text>Tab 2 {activeTab === "tab2" && "✓"}</Text>
         </Tabs.Tab>
       </Tabs.List>
 
       {/* Content */}
     </Tabs>
-  )
-}
+  );
+};
 ```
 
 ---
@@ -760,64 +735,54 @@ Form control components with accessible labels and state management.
 ### Switch
 
 ```tsx
-import { Switch, Label, XStack } from 'tamagui'
+import { Switch, Label, XStack } from "tamagui";
 
 export default () => {
-  const [checked, setChecked] = useState(false)
+  const [checked, setChecked] = useState(false);
 
   return (
     <XStack gap="$4" alignItems="center">
-      <Switch
-        id="airplane-mode"
-        size="$4"
-        checked={checked}
-        onCheckedChange={setChecked}
-      >
+      <Switch id="airplane-mode" size="$4" checked={checked} onCheckedChange={setChecked}>
         <Switch.Thumb animation="quick" />
       </Switch>
       <Label htmlFor="airplane-mode">Airplane Mode</Label>
     </XStack>
-  )
-}
+  );
+};
 ```
 
 ### Checkbox
 
 ```tsx
-import { Checkbox, Label, XStack } from 'tamagui'
-import { Check } from '@tamagui/lucide-icons'
+import { Checkbox, Label, XStack } from "tamagui";
+import { Check } from "@tamagui/lucide-icons";
 
 export default () => {
-  const [checked, setChecked] = useState<boolean | 'indeterminate'>(false)
+  const [checked, setChecked] = useState<boolean | "indeterminate">(false);
 
   return (
     <XStack gap="$4" alignItems="center">
-      <Checkbox
-        id="accept-terms"
-        size="$5"
-        checked={checked}
-        onCheckedChange={setChecked}
-      >
+      <Checkbox id="accept-terms" size="$5" checked={checked} onCheckedChange={setChecked}>
         <Checkbox.Indicator>
           <Check />
         </Checkbox.Indicator>
       </Checkbox>
       <Label htmlFor="accept-terms">Accept terms and conditions</Label>
     </XStack>
-  )
-}
+  );
+};
 ```
 
 ### Form Integration
 
 ```tsx
-import { Checkbox, Switch, Label, YStack, Button } from 'tamagui'
+import { Checkbox, Switch, Label, YStack, Button } from "tamagui";
 
 export default () => {
   const [formData, setFormData] = useState({
     newsletter: false,
     notifications: false,
-  })
+  });
 
   return (
     <YStack gap="$4">
@@ -825,9 +790,7 @@ export default () => {
         <Checkbox
           id="newsletter"
           checked={formData.newsletter}
-          onCheckedChange={(checked) =>
-            setFormData({ ...formData, newsletter: checked === true })
-          }
+          onCheckedChange={(checked) => setFormData({ ...formData, newsletter: checked === true })}
         >
           <Checkbox.Indicator>
             <Check />
@@ -840,9 +803,7 @@ export default () => {
         <Switch
           id="notifications"
           checked={formData.notifications}
-          onCheckedChange={(checked) =>
-            setFormData({ ...formData, notifications: checked })
-          }
+          onCheckedChange={(checked) => setFormData({ ...formData, notifications: checked })}
         >
           <Switch.Thumb />
         </Switch>
@@ -851,8 +812,8 @@ export default () => {
 
       <Button onPress={() => console.log(formData)}>Submit</Button>
     </YStack>
-  )
-}
+  );
+};
 ```
 
 ---
@@ -866,7 +827,7 @@ A floating content component with positioning, arrow, and hover support.
 ### Anatomy
 
 ```tsx
-import { Popover } from 'tamagui'
+import { Popover } from "tamagui";
 
 export default () => (
   <Popover>
@@ -877,13 +838,13 @@ export default () => (
       <Popover.Close />
     </Popover.Content>
   </Popover>
-)
+);
 ```
 
 ### Basic Usage
 
 ```tsx
-import { Popover, Button, XStack, YStack, H4, Paragraph } from 'tamagui'
+import { Popover, Button, XStack, YStack, H4, Paragraph } from "tamagui";
 
 export default () => (
   <Popover placement="bottom" allowFlip>
@@ -898,7 +859,7 @@ export default () => (
       exitStyle={{ y: -10, opacity: 0 }}
       elevate
       animation={[
-        'quick',
+        "quick",
         {
           opacity: {
             overshootClamping: true,
@@ -912,14 +873,14 @@ export default () => (
         <H4>Dimensions</H4>
         <Paragraph size="$2">Set the dimensions for the element.</Paragraph>
         {/* Your content */}
-        
+
         <Popover.Close asChild>
           <Button size="$3">Close</Button>
         </Popover.Close>
       </YStack>
     </Popover.Content>
   </Popover>
-)
+);
 ```
 
 ### Positioning
@@ -941,7 +902,7 @@ export default () => (
 ### Hoverable Popover
 
 ```tsx
-import { Popover } from 'tamagui'
+import { Popover } from "tamagui";
 
 export default () => (
   <Popover hoverable restMs={25}>
@@ -954,23 +915,23 @@ export default () => (
       <Paragraph>Stays open while hovering</Paragraph>
     </Popover.Content>
   </Popover>
-)
+);
 ```
 
 ### Custom Anchor
 
 ```tsx
-import { Popover, View } from 'tamagui'
+import { Popover, View } from "tamagui";
 
 export default () => {
-  const [anchorRect, setAnchorRect] = useState(null)
+  const [anchorRect, setAnchorRect] = useState(null);
 
   return (
     <>
       <View
         onLayout={(e) => {
-          const { x, y, width, height } = e.nativeEvent.layout
-          setAnchorRect({ x, y, width, height })
+          const { x, y, width, height } = e.nativeEvent.layout;
+          setAnchorRect({ x, y, width, height });
         }}
       >
         Custom anchor element
@@ -978,13 +939,11 @@ export default () => {
 
       <Popover>
         <Popover.Anchor virtualRef={{ current: anchorRect }} />
-        <Popover.Content>
-          {/* Anchored to custom element */}
-        </Popover.Content>
+        <Popover.Content>{/* Anchored to custom element */}</Popover.Content>
       </Popover>
     </>
-  )
-}
+  );
+};
 ```
 
 ---
@@ -998,7 +957,7 @@ Layout primitives for arranging children in different directions.
 ### XStack (Horizontal)
 
 ```tsx
-import { XStack, Circle } from 'tamagui'
+import { XStack, Circle } from "tamagui";
 
 export default () => (
   <XStack gap="$4" padding="$4" alignItems="center">
@@ -1006,13 +965,13 @@ export default () => (
     <Circle size={50} backgroundColor="$green10" />
     <Circle size={50} backgroundColor="$red10" />
   </XStack>
-)
+);
 ```
 
 ### YStack (Vertical)
 
 ```tsx
-import { YStack, Button } from 'tamagui'
+import { YStack, Button } from "tamagui";
 
 export default () => (
   <YStack gap="$3" padding="$4">
@@ -1020,13 +979,13 @@ export default () => (
     <Button>Second</Button>
     <Button>Third</Button>
   </YStack>
-)
+);
 ```
 
 ### ZStack (Layered)
 
 ```tsx
-import { ZStack, Circle, H3 } from 'tamagui'
+import { ZStack, Circle, H3 } from "tamagui";
 
 export default () => (
   <ZStack width={200} height={200}>
@@ -1035,28 +994,28 @@ export default () => (
       Overlaid Text
     </H3>
   </ZStack>
-)
+);
 ```
 
 ### Common Props
 
 ```tsx
-import { YStack } from 'tamagui'
+import { YStack } from "tamagui";
 
 export default () => (
   <YStack
-    gap="$4"              // Spacing between children
-    padding="$4"          // Internal padding
+    gap="$4" // Spacing between children
+    padding="$4" // Internal padding
     backgroundColor="$background"
     borderRadius="$4"
     borderWidth={1}
     borderColor="$borderColor"
-    fullscreen            // position: absolute; inset: 0
-    elevation="$2"        // Add elevation/shadow
+    fullscreen // position: absolute; inset: 0
+    elevation="$2" // Add elevation/shadow
   >
     {/* Children */}
   </YStack>
-)
+);
 ```
 
 ### ThemeableStack
@@ -1064,13 +1023,13 @@ export default () => (
 Stacks with automatic theme support:
 
 ```tsx
-import { ThemeableStack } from '@tamagui/stacks'
+import { ThemeableStack } from "@tamagui/stacks";
 
 export default () => (
   <ThemeableStack theme="blue" padding="$4">
     {/* Inherits blue theme */}
   </ThemeableStack>
-)
+);
 ```
 
 ---
@@ -1082,7 +1041,7 @@ Automatically adapt components based on screen size or platform.
 ### Dialog to Sheet
 
 ```tsx
-import { Dialog, Sheet, Adapt, Button } from 'tamagui'
+import { Dialog, Sheet, Adapt, Button } from "tamagui";
 
 export default () => (
   <Dialog>
@@ -1107,13 +1066,13 @@ export default () => (
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog>
-)
+);
 ```
 
 ### Popover to Sheet
 
 ```tsx
-import { Popover, Sheet, Adapt, Button } from 'tamagui'
+import { Popover, Sheet, Adapt, Button } from "tamagui";
 
 export default () => (
   <Popover>
@@ -1135,7 +1094,7 @@ export default () => (
       {/* Mobile: Sheet */}
     </Popover.Content>
   </Popover>
-)
+);
 ```
 
 ### Conditions
@@ -1160,40 +1119,47 @@ export default () => (
 ### Component Checklist
 
 **Button:**
+
 - ✓ `icon` / `iconAfter` for icons
 - ✓ `size` for consistent sizing
 - ✓ `variant="outlined"` for outlined style
 - ✓ `Button.Apply` for group theming
 
 **Dialog:**
+
 - ✓ Always include `Dialog.Title` and `Dialog.Description`
 - ✓ Use `Dialog.Portal` for proper rendering
 - ✓ Add `Adapt` for mobile support
 - ✓ `displayWhenAdapted` on `Dialog.Close` if needed
 
 **Sheet:**
+
 - ✓ Set `snapPoints` and `snapPointsMode`
 - ✓ Use `dismissOnSnapToBottom` for auto-dismiss
 - ✓ Add `Sheet.Handle` for visual affordance
 - ✓ Wrap in `Adapt` when used with Dialog/Popover
 
 **Input:**
+
 - ✓ Use `onChangeText` instead of `onChange`
 - ✓ `secureTextEntry` for password fields
 - ✓ `keyboardType` for mobile keyboards
 
 **Select:**
+
 - ✓ Wrap items in `Select.Group` with `Select.Label`
 - ✓ Each item needs unique `index` and `value`
 - ✓ Use `Select.ItemIndicator` for checkmarks
 - ✓ Add `native` prop for native `<select>` on web
 
 **Tabs:**
+
 - ✓ Set `defaultValue` or control with `value`/`onValueChange`
 - ✓ Match `Tabs.Tab` `value` to `Tabs.Content` `value`
 - ✓ Use `Tabs.List` to wrap triggers
 
 **Popover:**
+
 - ✓ Use `placement` for positioning
 - ✓ Add `allowFlip` to prevent overflow
 - ✓ Use `hoverable` for hover-to-open behavior
@@ -1203,12 +1169,12 @@ export default () => (
 
 ```tsx
 // From main package
-import { 
-  Button, 
-  Dialog, 
-  Sheet, 
-  Input, 
-  Select, 
+import {
+  Button,
+  Dialog,
+  Sheet,
+  Input,
+  Select,
   Tabs,
   Switch,
   Checkbox,
@@ -1216,34 +1182,38 @@ import {
   XStack,
   YStack,
   ZStack,
-} from 'tamagui'
+} from "tamagui";
 
 // Individual packages
-import { Button } from '@tamagui/button'
-import { Dialog } from '@tamagui/dialog'
-import { Sheet } from '@tamagui/sheet'
+import { Button } from "@tamagui/button";
+import { Dialog } from "@tamagui/dialog";
+import { Sheet } from "@tamagui/sheet";
 ```
 
 ### Common Patterns
 
 **Controlled Components:**
+
 ```tsx
 const [value, setValue] = useState('')
 <Input value={value} onChangeText={setValue} />
 ```
 
 **Uncontrolled Components:**
+
 ```tsx
 <Input defaultValue="Initial value" />
 ```
 
 **Theming:**
+
 ```tsx
 <Button theme="blue">Blue Button</Button>
 <YStack theme="dark">Dark content</YStack>
 ```
 
 **Animations:**
+
 ```tsx
 <Dialog.Content
   animation="quick"
@@ -1253,6 +1223,7 @@ const [value, setValue] = useState('')
 ```
 
 **Responsive:**
+
 ```tsx
 <YStack
   $sm={{ flexDirection: 'column' }}

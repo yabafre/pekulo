@@ -32,11 +32,11 @@ app/
 
 ```tsx
 // ❌ Bad
-import { ComponentName } from '~/features/...'
-export default ComponentName
+import { ComponentName } from "~/features/...";
+export default ComponentName;
 
 // ✅ Good
-export { ComponentName as default } from '~/features/...'
+export { ComponentName as default } from "~/features/...";
 ```
 
 ### Route Types
@@ -49,7 +49,7 @@ export { ComponentName as default } from '~/features/...'
 // app/blog/index.tsx → /blog
 
 export default function AboutPage() {
-  return <Text>About Us</Text>
+  return <Text>About Us</Text>;
 }
 ```
 
@@ -60,11 +60,11 @@ Use `[param]` syntax for dynamic segments:
 ```tsx
 // app/blog/[slug].tsx → /blog/hello-world
 
-import { useParams } from 'one'
+import { useParams } from "one";
 
 export default function BlogPost() {
-  const { slug } = useParams<{ slug: string }>()
-  return <Text>Post: {slug}</Text>
+  const { slug } = useParams<{ slug: string }>();
+  return <Text>Post: {slug}</Text>;
 }
 ```
 
@@ -75,12 +75,12 @@ Use `[...rest]` for catch-all segments:
 ```tsx
 // app/catalog/[...rest].tsx → /catalog/a/b/c
 
-import { useParams } from 'one'
+import { useParams } from "one";
 
 export default function CatalogPage() {
-  const { rest } = useParams<{ rest: string[] }>()
+  const { rest } = useParams<{ rest: string[] }>();
   // rest = ['a', 'b', 'c']
-  return <Text>Path: {rest.join('/')}</Text>
+  return <Text>Path: {rest.join("/")}</Text>;
 }
 ```
 
@@ -110,12 +110,12 @@ Use platform extensions to create platform-specific routes:
 ```tsx
 // app/(app)/auth/login.native.tsx
 export default function NativeLogin() {
-  return <BiometricAuth />
+  return <BiometricAuth />;
 }
 
 // app/(app)/auth/login.tsx (fallback for web)
 export default function WebLogin() {
-  return <PasswordForm />
+  return <PasswordForm />;
 }
 ```
 
@@ -127,7 +127,7 @@ Layouts frame routes in a directory and can nest inside each other. Must render 
 
 ```tsx
 // app/_layout.tsx
-import { Slot } from 'one'
+import { Slot } from "one";
 
 export default function Layout() {
   return (
@@ -140,7 +140,7 @@ export default function Layout() {
         <Slot />
       </body>
     </html>
-  )
+  );
 }
 ```
 
@@ -150,7 +150,7 @@ Renders children directly without frame. Simplest layout option:
 
 ```tsx
 // app/(app)/_layout.tsx
-import { Slot } from 'one'
+import { Slot } from "one";
 
 export default function AppLayout() {
   return (
@@ -159,7 +159,7 @@ export default function AppLayout() {
       <Slot />
       <Footer />
     </>
-  )
+  );
 }
 ```
 
@@ -169,23 +169,23 @@ React Navigation native stack for iOS/Android with configurable screens:
 
 ```tsx
 // app/home/_layout.tsx
-import { Stack } from 'one'
+import { Stack } from "one";
 
 export default function HomeLayout() {
   return (
     <Stack screenOptions={{ headerRight: () => <SettingsButton /> }}>
-      <Stack.Screen name="index" options={{ title: 'Feed' }} />
-      <Stack.Screen name="[id]" options={{ title: 'Post' }} />
+      <Stack.Screen name="index" options={{ title: "Feed" }} />
+      <Stack.Screen name="[id]" options={{ title: "Post" }} />
       <Stack.Screen
         name="sheet"
         options={{
-          presentation: 'formSheet',
-          animation: 'slide_from_bottom',
+          presentation: "formSheet",
+          animation: "slide_from_bottom",
           headerShown: false,
         }}
       />
     </Stack>
-  )
+  );
 }
 ```
 
@@ -193,18 +193,31 @@ export default function HomeLayout() {
 
 ```tsx
 type StackOptions = {
-  presentation?: 'card' | 'modal' | 'transparentModal' | 'containedModal' 
-    | 'containedTransparentModal' | 'fullScreenModal' | 'formSheet'
-  animation?: 'default' | 'fade' | 'fade_from_bottom' | 'flip' 
-    | 'simple_push' | 'slide_from_bottom' | 'slide_from_right' 
-    | 'slide_from_left' | 'none'
-  headerShown?: boolean
-  title?: string
-  headerRight?: () => ReactElement
-  headerLeft?: () => ReactElement
-  headerStyle?: object
-  headerTintColor?: string
-}
+  presentation?:
+    | "card"
+    | "modal"
+    | "transparentModal"
+    | "containedModal"
+    | "containedTransparentModal"
+    | "fullScreenModal"
+    | "formSheet";
+  animation?:
+    | "default"
+    | "fade"
+    | "fade_from_bottom"
+    | "flip"
+    | "simple_push"
+    | "slide_from_bottom"
+    | "slide_from_right"
+    | "slide_from_left"
+    | "none";
+  headerShown?: boolean;
+  title?: string;
+  headerRight?: () => ReactElement;
+  headerLeft?: () => ReactElement;
+  headerStyle?: object;
+  headerTintColor?: string;
+};
 ```
 
 ### Tab Navigation (Native)
@@ -213,11 +226,11 @@ React Navigation bottom tabs for native. Must set `href` on each screen:
 
 ```tsx
 // app/(app)/home/(tabs)/_layout.native.tsx
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { withLayoutContext } from 'one'
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { withLayoutContext } from "one";
 
-const Tab = createBottomTabNavigator()
-const Tabs = withLayoutContext(Tab.Navigator)
+const Tab = createBottomTabNavigator();
+const Tabs = withLayoutContext(Tab.Navigator);
 
 export default function TabsLayout() {
   return (
@@ -231,7 +244,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="search" />
       <Tabs.Screen name="profile" />
     </Tabs>
-  )
+  );
 }
 ```
 
@@ -239,7 +252,7 @@ export default function TabsLayout() {
 
 ```tsx
 // app/(app)/home/(tabs)/_layout.tsx
-import { Slot } from 'one'
+import { Slot } from "one";
 
 export default function TabsLayout() {
   return (
@@ -248,7 +261,7 @@ export default function TabsLayout() {
       <Slot />
       <BottomTabBar />
     </>
-  )
+  );
 }
 ```
 
@@ -258,29 +271,29 @@ Layouts can nest for complex navigation patterns (e.g., tabs with stacks):
 
 ```tsx
 // app/_layout.tsx (Root: Tabs)
-import { Tabs } from 'one'
+import { Tabs } from "one";
 
 export default function RootLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="home" options={{ title: 'Feed', href: '/' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile', href: '/profile' }} />
+      <Tabs.Screen name="home" options={{ title: "Feed", href: "/" }} />
+      <Tabs.Screen name="profile" options={{ title: "Profile", href: "/profile" }} />
     </Tabs>
-  )
+  );
 }
 
 // app/home/_layout.tsx (Nested: Stack inside Feed tab)
-import { Stack, Slot } from 'one'
+import { Stack, Slot } from "one";
 
 export default function FeedLayout() {
-  return typeof window !== 'undefined' ? (
+  return typeof window !== "undefined" ? (
     <Slot /> // Web: use browser navigation
   ) : (
     <Stack>
-      <Stack.Screen name="index" options={{ title: 'Feed' }} />
-      <Stack.Screen name="post-[id]" options={{ title: 'Post' }} />
+      <Stack.Screen name="index" options={{ title: "Feed" }} />
+      <Stack.Screen name="post-[id]" options={{ title: "Post" }} />
     </Stack>
-  )
+  );
 }
 ```
 
@@ -290,22 +303,22 @@ Create separate layouts for web and native:
 
 ```tsx
 // app/settings/_layout.native.tsx
-import { Stack } from 'one'
+import { Stack } from "one";
 
 export default function SettingsLayout() {
   return (
     <Stack>
-      <Stack.Screen name="index" options={{ title: 'Settings' }} />
+      <Stack.Screen name="index" options={{ title: "Settings" }} />
       <Stack.Screen name="edit-profile" />
     </Stack>
-  )
+  );
 }
 
 // app/settings/_layout.tsx (web fallback)
-import { Slot } from 'one'
+import { Slot } from "one";
 
 export default function SettingsLayout() {
-  return <Slot /> // Use browser back button
+  return <Slot />; // Use browser back button
 }
 ```
 
@@ -314,11 +327,11 @@ export default function SettingsLayout() {
 Wrap any React Navigation navigator:
 
 ```tsx
-import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation'
-import { withLayoutContext } from 'one'
+import { createNativeBottomTabNavigator } from "@bottom-tabs/react-navigation";
+import { withLayoutContext } from "one";
 
-const NativeTabsNavigator = createNativeBottomTabNavigator().Navigator
-export const NativeTabs = withLayoutContext(NativeTabsNavigator)
+const NativeTabsNavigator = createNativeBottomTabNavigator().Navigator;
+export const NativeTabs = withLayoutContext(NativeTabsNavigator);
 
 // Use in layout
 export default function Layout() {
@@ -326,7 +339,7 @@ export default function Layout() {
     <NativeTabs>
       <NativeTabs.Screen name="home" />
     </NativeTabs>
-  )
+  );
 }
 ```
 
@@ -369,15 +382,15 @@ import { Link } from 'one'
 
 ```tsx
 type LinkProps = {
-  href: Href                    // Type-safe route path
-  asChild?: boolean             // Forward props to child
-  replace?: boolean             // Replace history instead of push
-  push?: boolean                // Explicitly push to history
-  className?: string            // Web class, native CSS interop
-  target?: string               // Web-only (_blank, _self, etc.)
-  rel?: string                  // Web-only (nofollow, noopener, etc.)
-  download?: boolean | string   // Web-only download attribute
-}
+  href: Href; // Type-safe route path
+  asChild?: boolean; // Forward props to child
+  replace?: boolean; // Replace history instead of push
+  push?: boolean; // Explicitly push to history
+  className?: string; // Web class, native CSS interop
+  target?: string; // Web-only (_blank, _self, etc.)
+  rel?: string; // Web-only (nofollow, noopener, etc.)
+  download?: boolean | string; // Web-only download attribute
+};
 ```
 
 ### useRouter Hook
@@ -385,31 +398,21 @@ type LinkProps = {
 Programmatic navigation:
 
 ```tsx
-import { useRouter } from 'one'
+import { useRouter } from "one";
 
 export default function Component() {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <>
-      <Button onPress={() => router.push('/profile')}>
-        Go to Profile
-      </Button>
-      <Button onPress={() => router.back()}>
-        Go Back
-      </Button>
-      <Button onPress={() => router.replace('/home')}>
-        Replace with Home
-      </Button>
-      <Button onPress={() => router.setParams({ tab: 'settings' })}>
-        Update Params
-      </Button>
+      <Button onPress={() => router.push("/profile")}>Go to Profile</Button>
+      <Button onPress={() => router.back()}>Go Back</Button>
+      <Button onPress={() => router.replace("/home")}>Replace with Home</Button>
+      <Button onPress={() => router.setParams({ tab: "settings" })}>Update Params</Button>
       {/* Native only */}
-      <Button onPress={() => router.dismiss()}>
-        Dismiss Modal
-      </Button>
+      <Button onPress={() => router.dismiss()}>Dismiss Modal</Button>
     </>
-  )
+  );
 }
 ```
 
@@ -417,18 +420,18 @@ export default function Component() {
 
 ```tsx
 type Router = {
-  back: () => void
-  canGoBack: () => boolean
-  push: (href: Href, options?: LinkToOptions) => void
-  navigate: (href: Href, options?: LinkToOptions) => void
-  replace: (href: Href, options?: LinkToOptions) => void
-  dismiss: (count?: number) => void              // Native only
-  dismissAll: () => void                          // Native only
-  canDismiss: () => boolean                       // Native only
-  setParams: (params?: Record<string, string | undefined | null>) => void
-  subscribe: (listener: RootStateListener) => () => void
-  onLoadState: (listener: LoadingStateListener) => () => void
-}
+  back: () => void;
+  canGoBack: () => boolean;
+  push: (href: Href, options?: LinkToOptions) => void;
+  navigate: (href: Href, options?: LinkToOptions) => void;
+  replace: (href: Href, options?: LinkToOptions) => void;
+  dismiss: (count?: number) => void; // Native only
+  dismissAll: () => void; // Native only
+  canDismiss: () => boolean; // Native only
+  setParams: (params?: Record<string, string | undefined | null>) => void;
+  subscribe: (listener: RootStateListener) => () => void;
+  onLoadState: (listener: LoadingStateListener) => () => void;
+};
 ```
 
 ### useParams Hook
@@ -436,11 +439,11 @@ type Router = {
 Access route parameters:
 
 ```tsx
-import { useParams } from 'one'
+import { useParams } from "one";
 
 export default function PostPage() {
-  const { slug } = useParams<{ slug: string }>()
-  return <Text>Post: {slug}</Text>
+  const { slug } = useParams<{ slug: string }>();
+  return <Text>Post: {slug}</Text>;
 }
 ```
 
@@ -449,10 +452,10 @@ export default function PostPage() {
 Type-level validation for routes:
 
 ```tsx
-import { href } from 'one'
+import { href } from "one";
 
-const postLink = href('/blog/hello-world')     // ✅ Type-checked
-const invalidLink = href('/invalid/route')     // ❌ Type error
+const postLink = href("/blog/hello-world"); // ✅ Type-checked
+const invalidLink = href("/invalid/route"); // ❌ Type error
 ```
 
 ## Loaders (Server-Side Data Loading)
@@ -462,17 +465,17 @@ Server-side data loading that runs at build-time (SSG), request-time (SSR), or l
 ### Basic Usage
 
 ```tsx
-import { useLoader } from 'one'
+import { useLoader } from "one";
 
 export async function loader({ params, path, request }) {
   // Server-only code - can access secrets
-  const user = await getUser(params.id)
-  return { greet: `Hello ${user.name}` }
+  const user = await getUser(params.id);
+  return { greet: `Hello ${user.name}` };
 }
 
 export default function Page() {
-  const data = useLoader(loader) // Automatically type-safe
-  return <Text>{data.greet}</Text>
+  const data = useLoader(loader); // Automatically type-safe
+  return <Text>{data.greet}</Text>;
 }
 ```
 
@@ -480,10 +483,10 @@ export default function Page() {
 
 ```tsx
 type LoaderArgs = {
-  params: Record<string, string>  // Dynamic route segments
-  path: string                    // Full pathname
-  request: Request                // Web Request object (SSR only)
-}
+  params: Record<string, string>; // Dynamic route segments
+  path: string; // Full pathname
+  request: Request; // Web Request object (SSR only)
+};
 ```
 
 ### Return Types
@@ -497,14 +500,14 @@ type LoaderArgs = {
 **Redirect if not found:**
 
 ```tsx
-import { redirect } from 'one'
+import { redirect } from "one";
 
 export async function loader({ params: { id } }) {
-  const user = await db.users.findOne({ id })
+  const user = await db.users.findOne({ id });
   if (!user) {
-    throw redirect('/login')
+    throw redirect("/login");
   }
-  return { user }
+  return { user };
 }
 ```
 
@@ -513,8 +516,8 @@ export async function loader({ params: { id } }) {
 ```tsx
 export async function loader() {
   return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+    headers: { "Content-Type": "application/json" },
+  });
 }
 ```
 
@@ -522,11 +525,8 @@ export async function loader() {
 
 ```tsx
 export async function loader({ params }) {
-  const [user, posts] = await Promise.all([
-    getUser(params.id),
-    getUserPosts(params.id),
-  ])
-  return { user, posts }
+  const [user, posts] = await Promise.all([getUser(params.id), getUserPosts(params.id)]);
+  return { user, posts };
 }
 ```
 
@@ -543,23 +543,23 @@ Pre-renders HTML/CSS at build time, served from CDN.
 ```tsx
 // app/blog/[slug]+ssg.tsx
 export async function generateStaticParams() {
-  const posts = await getAllBlogPosts()
-  return posts.map((post) => ({ slug: post.slug }))
+  const posts = await getAllBlogPosts();
+  return posts.map((post) => ({ slug: post.slug }));
 }
 
 export async function loader({ params }) {
-  const post = await getPost(params.slug)
-  return { post }
+  const post = await getPost(params.slug);
+  return { post };
 }
 
 export default function BlogPost() {
-  const { post } = useLoader(loader)
+  const { post } = useLoader(loader);
   return (
     <>
       <H1>{post.title}</H1>
       <Paragraph>{post.content}</Paragraph>
     </>
-  )
+  );
 }
 ```
 
@@ -576,13 +576,13 @@ No server rendering, client-only JavaScript.
 ```tsx
 // app/dashboard+spa.tsx
 export async function loader() {
-  const data = await fetchDashboardData()
-  return { data }
+  const data = await fetchDashboardData();
+  return { data };
 }
 
 export default function Dashboard() {
-  const { data } = useLoader(loader)
-  return <DashboardUI data={data} />
+  const { data } = useLoader(loader);
+  return <DashboardUI data={data} />;
 }
 ```
 
@@ -599,14 +599,14 @@ Renders on each request.
 ```tsx
 // app/issues/[id]+ssr.tsx
 export async function loader({ params, request }) {
-  const session = await getSession(request)
-  const issue = await getIssue(params.id, session.userId)
-  return { issue }
+  const session = await getSession(request);
+  const issue = await getIssue(params.id, session.userId);
+  return { issue };
 }
 
 export default function IssuePage() {
-  const { issue } = useLoader(loader)
-  return <IssueView issue={issue} />
+  const { issue } = useLoader(loader);
+  return <IssueView issue={issue} />;
 }
 ```
 
@@ -624,24 +624,24 @@ Create API endpoints using Web Standard Request/Response:
 
 ```tsx
 // app/api/users+api.ts
-import type { Endpoint } from 'one'
+import type { Endpoint } from "one";
 
 export const GET: Endpoint = async (request) => {
-  const users = await db.users.findAll()
-  return Response.json(users)
-}
+  const users = await db.users.findAll();
+  return Response.json(users);
+};
 
 export const POST: Endpoint = async (request) => {
-  const data = await request.json()
-  const user = await db.users.create(data)
-  return Response.json(user, { status: 201 })
-}
+  const data = await request.json();
+  const user = await db.users.create(data);
+  return Response.json(user, { status: 201 });
+};
 
 export const DELETE: Endpoint = async (request) => {
-  const { id } = await request.json()
-  await db.users.delete(id)
-  return new Response(null, { status: 204 })
-}
+  const { id } = await request.json();
+  await db.users.delete(id);
+  return new Response(null, { status: 204 });
+};
 ```
 
 ### Default Export (Catch-All)
@@ -650,10 +650,10 @@ export const DELETE: Endpoint = async (request) => {
 // app/api/health+api.ts
 export default (request: Request): Response => {
   return Response.json({
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
-  })
-}
+  });
+};
 ```
 
 ### Dynamic API Routes
@@ -661,12 +661,12 @@ export default (request: Request): Response => {
 ```tsx
 // app/api/users/[id]+api.ts
 export const GET: Endpoint = async (request, { params }) => {
-  const user = await db.users.find(params.id)
+  const user = await db.users.find(params.id);
   if (!user) {
-    return Response.json({ error: 'Not found' }, { status: 404 })
+    return Response.json({ error: "Not found" }, { status: 404 });
   }
-  return Response.json(user)
-}
+  return Response.json(user);
+};
 ```
 
 ## Middlewares
@@ -677,33 +677,33 @@ Place `_middleware.ts` anywhere in `app/`. Middlewares nest and run top to botto
 
 ```tsx
 // app/_middleware.ts
-import { createMiddleware } from 'one'
+import { createMiddleware } from "one";
 
 export default createMiddleware(async ({ request, next, context }) => {
   // Before route
-  if (request.url.includes('test')) {
-    return Response.json({ middleware: 'works' })
+  if (request.url.includes("test")) {
+    return Response.json({ middleware: "works" });
   }
 
-  const response = await next() // Run rest of middlewares + route
+  const response = await next(); // Run rest of middlewares + route
 
   // After route
-  if (!response && request.url.endsWith('/missing')) {
-    return Response.json({ notFound: true })
+  if (!response && request.url.endsWith("/missing")) {
+    return Response.json({ notFound: true });
   }
 
-  return response
-})
+  return response;
+});
 ```
 
 **Middleware Args:**
 
 ```tsx
 type MiddlewareArgs = {
-  request: Request            // Web Request object
-  next: () => Promise<Response | null>  // Continue chain
-  context: Record<string, any>          // Mutable context object
-}
+  request: Request; // Web Request object
+  next: () => Promise<Response | null>; // Continue chain
+  context: Record<string, any>; // Mutable context object
+};
 ```
 
 ## Helper Functions
@@ -713,16 +713,16 @@ type MiddlewareArgs = {
 Server: returns Response.redirect | Client: calls router.navigate
 
 ```tsx
-import { redirect } from 'one'
+import { redirect } from "one";
 
 export function redirectToLogin() {
-  return redirect('/login')
+  return redirect("/login");
 }
 
 // In loader
 export async function loader({ params }) {
-  const user = await db.users.findOne({ id: params.id })
-  if (!user) throw redirect('/login')
+  const user = await db.users.findOne({ id: params.id });
+  if (!user) throw redirect("/login");
 }
 ```
 
@@ -731,9 +731,9 @@ export async function loader({ params }) {
 Returns current app URL, uses `ONE_SERVER_URL` in production:
 
 ```tsx
-import { getURL } from 'one'
+import { getURL } from "one";
 
-const url = getURL() // http://127.0.0.1:8081 (dev) or https://app.com (prod)
+const url = getURL(); // http://127.0.0.1:8081 (dev) or https://app.com (prod)
 ```
 
 ### Protected
@@ -741,11 +741,11 @@ const url = getURL() // http://127.0.0.1:8081 (dev) or https://app.com (prod)
 Guard routes based on auth state (native only, use Redirect for web):
 
 ```tsx
-import { Protected, Stack } from 'one'
+import { Protected, Stack } from "one";
 
 export default function Layout() {
-  const isLoggedIn = useAuth()
-  
+  const isLoggedIn = useAuth();
+
   return (
     <Stack>
       <Protected guard={!isLoggedIn}>
@@ -755,7 +755,7 @@ export default function Layout() {
         <Stack.Screen name="home" />
       </Protected>
     </Stack>
-  )
+  );
 }
 ```
 
@@ -763,42 +763,42 @@ export default function Layout() {
 
 ### File Naming Conventions
 
-| Pattern | Route |
-|---------|-------|
-| `index.tsx` | `/` |
-| `about.tsx` | `/about` |
-| `blog/index.tsx` | `/blog` |
-| `blog/[slug].tsx` | `/blog/:slug` |
-| `catalog/[...rest].tsx` | `/catalog/*` |
-| `(legal)/privacy.tsx` | `/privacy` (group invisible) |
-| `+not-found.tsx` | Custom 404 |
-| `page.native.tsx` | Native only |
-| `page.web.tsx` | Web only |
-| `page+ssg.tsx` | Static generation |
-| `page+ssr.tsx` | Server-side render |
-| `page+spa.tsx` | Single page app |
-| `api/users+api.ts` | API endpoint |
+| Pattern                 | Route                        |
+| ----------------------- | ---------------------------- |
+| `index.tsx`             | `/`                          |
+| `about.tsx`             | `/about`                     |
+| `blog/index.tsx`        | `/blog`                      |
+| `blog/[slug].tsx`       | `/blog/:slug`                |
+| `catalog/[...rest].tsx` | `/catalog/*`                 |
+| `(legal)/privacy.tsx`   | `/privacy` (group invisible) |
+| `+not-found.tsx`        | Custom 404                   |
+| `page.native.tsx`       | Native only                  |
+| `page.web.tsx`          | Web only                     |
+| `page+ssg.tsx`          | Static generation            |
+| `page+ssr.tsx`          | Server-side render           |
+| `page+spa.tsx`          | Single page app              |
+| `api/users+api.ts`      | API endpoint                 |
 
 ### Import Patterns
 
 ```tsx
 // Navigation
-import { Link, useRouter, useParams } from 'one'
+import { Link, useRouter, useParams } from "one";
 
 // Layouts
-import { Slot, Stack, Tabs } from 'one'
+import { Slot, Stack, Tabs } from "one";
 
 // Data loading
-import { useLoader, redirect } from 'one'
+import { useLoader, redirect } from "one";
 
 // Utilities
-import { getURL, href } from 'one'
+import { getURL, href } from "one";
 
 // Components
-import { Head, LoadProgressBar, ScrollBehavior, SafeAreaView } from 'one'
+import { Head, LoadProgressBar, ScrollBehavior, SafeAreaView } from "one";
 
 // Advanced
-import { Protected, withLayoutContext } from 'one'
+import { Protected, withLayoutContext } from "one";
 ```
 
 ### Common Patterns
@@ -811,7 +811,7 @@ import { Protected, withLayoutContext } from 'one'
   <Stack.Screen
     name="modal"
     options={{
-      presentation: 'modal',
+      presentation: "modal",
       headerShown: false,
     }}
   />
@@ -824,7 +824,7 @@ import { Protected, withLayoutContext } from 'one'
 <Stack.Screen
   name="sheet"
   options={{
-    presentation: 'formSheet',
+    presentation: "formSheet",
     sheetAllowedDetents: [0.5, 1],
     sheetGrabberVisible: true,
   }}
@@ -834,15 +834,15 @@ import { Protected, withLayoutContext } from 'one'
 **Type-safe navigation:**
 
 ```tsx
-const router = useRouter()
-router.push(`/post/${id}`) // Type-checked against app/ structure
+const router = useRouter();
+router.push(`/post/${id}`); // Type-checked against app/ structure
 ```
 
 **SSG with params:**
 
 ```tsx
 export async function generateStaticParams() {
-  return posts.map((p) => ({ slug: p.slug }))
+  return posts.map((p) => ({ slug: p.slug }));
 }
 ```
 
@@ -852,11 +852,11 @@ export async function generateStaticParams() {
 export const GET: Endpoint = async () => {
   return Response.json(data, {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST",
     },
-  })
-}
+  });
+};
 ```
 
 ## Related Documentation

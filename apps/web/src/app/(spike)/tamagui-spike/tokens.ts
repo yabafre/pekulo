@@ -53,7 +53,7 @@ export const pekuloColors = {
       // a UI affordance for warnings actually lands.
       warning: "#FBBF24",
       danger: "#ff5c5c", // = loss
-      info: "#2f73ff",   // = data-blue (TR analytics-donut exception)
+      info: "#2f73ff", // = data-blue (TR analytics-donut exception)
     },
   },
   light: {
@@ -82,8 +82,8 @@ export const pekuloColors = {
     semantic: {
       success: "#00a852",
       warning: "#D97706", // see dark.semantic.warning note — no TR equivalent
-      danger: "#dc2626",  // = loss
-      info: "#2f73ff",    // data-blue (declared in :root, inherited in .light)
+      danger: "#dc2626", // = loss
+      info: "#2f73ff", // data-blue (declared in :root, inherited in .light)
     },
   },
 } as const;
@@ -103,10 +103,10 @@ export const pekuloSpacing = {
 
 export const pekuloRadius = {
   none: 0,
-  sm: 6,   // index.css --radius-sm
-  md: 8,   // index.css --radius-md
-  lg: 12,  // index.css --radius-lg (default card)
-  xl: 16,  // index.css --radius-xl (hero)
+  sm: 6, // index.css --radius-sm
+  md: 8, // index.css --radius-md
+  lg: 12, // index.css --radius-lg (default card)
+  xl: 16, // index.css --radius-xl (hero)
   full: 9999,
 } as const;
 

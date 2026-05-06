@@ -35,6 +35,7 @@
 ## Generation Instructions
 
 For each file:
+
 1. Explore the relevant source directories
 2. Extract real code examples
 3. Document patterns and best practices

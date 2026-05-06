@@ -40,17 +40,18 @@ The Input system uses `createStyledContext` to share size and styling across all
 
 ```typescript
 const InputContext = createStyledContext<{
-  size: FontSizeTokens
-  scaleIcon: number
-  color?: ColorTokens | string
+  size: FontSizeTokens;
+  scaleIcon: number;
+  color?: ColorTokens | string;
 }>({
-  size: '$true',
+  size: "$true",
   scaleIcon: 1.2,
   color: undefined,
-})
+});
 ```
 
 **Benefits:**
+
 - All nested components automatically inherit size
 - Consistent spacing and typography
 - Simplified API (set size once on parent)
@@ -67,7 +68,7 @@ const FocusContext = createStyledContext({
 
 const InputGroupImpl = InputGroupFrame.styleable((props, forwardedRef) => {
   const [focused, setFocused] = useState(false)
-  
+
   return (
     <FocusContext.Provider focused={focused} setFocused={setFocused}>
       <InputGroupFrame applyFocusStyle={focused} ref={forwardedRef} {...rest}>
@@ -79,6 +80,7 @@ const InputGroupImpl = InputGroupFrame.styleable((props, forwardedRef) => {
 ```
 
 **Focus Styles:**
+
 ```typescript
 focusStyle: {
   outlineColor: '$outlineColor',
@@ -94,8 +96,8 @@ focusStyle: {
 <Input size="$4">
   <Input.Label htmlFor="email">Email</Input.Label>
   <Input.Box>
-    <Input.Area 
-      id="email" 
+    <Input.Area
+      id="email"
       placeholder="email@example.com"
     />
   </Input.Box>
@@ -171,7 +173,7 @@ function MyForm() {
           </Input>
         )}
       />
-      
+
       <Button onPress={handleSubmit(onSubmit)}>Submit</Button>
     </View>
   )
@@ -215,20 +217,24 @@ The Input.Area component handles both web and native change events:
 ### Schema Definition
 
 ```typescript
-import { z } from 'zod'
+import { z } from "zod";
 
-const signupSchema = z.object({
-  firstName: z.string().min(1, { message: 'First name is required' }),
-  lastName: z.string().min(1, { message: 'Last name is required' }),
-  email: z.string().email({ message: 'Invalid email format' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
-  confirmedPassword: z.string().min(6, { message: 'Confirm password must be at least 6 characters' }),
-  postalCode: z.string().min(4, { message: 'Invalid postal code format' }),
-  accountType: z.enum(['personal', 'business'], { message: 'Account type is required' }),
-}).refine((data) => data.password === data.confirmedPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmedPassword'],  // Attach error to confirmedPassword field
-})
+const signupSchema = z
+  .object({
+    firstName: z.string().min(1, { message: "First name is required" }),
+    lastName: z.string().min(1, { message: "Last name is required" }),
+    email: z.string().email({ message: "Invalid email format" }),
+    password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+    confirmedPassword: z
+      .string()
+      .min(6, { message: "Confirm password must be at least 6 characters" }),
+    postalCode: z.string().min(4, { message: "Invalid postal code format" }),
+    accountType: z.enum(["personal", "business"], { message: "Account type is required" }),
+  })
+  .refine((data) => data.password === data.confirmedPassword, {
+    message: "Passwords do not match",
+    path: ["confirmedPassword"], // Attach error to confirmedPassword field
+  });
 ```
 
 ### Custom Refinements
@@ -257,13 +263,13 @@ import { Info } from '@tamagui/lucide-icons'
 >
   <Input.Label>First Name</Input.Label>
   <Input.Box>
-    <Input.Area 
+    <Input.Area
       placeholder="First name"
       onChangeText={onChange}
       value={value}
     />
   </Input.Box>
-  
+
   <AnimatePresence>
     {errors.firstName && (
       <View
@@ -296,6 +302,7 @@ import { Info } from '@tamagui/lucide-icons'
 ```
 
 **Key Animation Properties:**
+
 - `transition="bouncy"` - Smooth spring animation
 - `scaleY={1}` - Full height when visible
 - `enterStyle` - Animate from above with opacity fade
@@ -415,7 +422,7 @@ export function SignupValidatedHookForm() {
               </Input>
             )}
           />
-          
+
           <Controller
             control={control}
             name="lastName"
@@ -568,7 +575,7 @@ export function SignupValidatedHookForm() {
                   </RadioGroup.Item>
                   <Input.Label htmlFor="personal">Personal</Input.Label>
                 </View>
-                
+
                 <View flexDirection="row" items="center" gap="$3">
                   <RadioGroup.Item id="business" value="business">
                     <RadioGroup.Indicator />
@@ -734,17 +741,17 @@ function PhoneInputExample() {
 ```
 
 **Phone number validation** (recommended):
-```typescript
-import { isValidPhoneNumber } from 'libphonenumber-js'
 
-const phoneNumberSchema = z.string().refine(
-  isValidPhoneNumber,
-  (val) => ({ message: `${val} is not a valid phone number` })
-)
+```typescript
+import { isValidPhoneNumber } from "libphonenumber-js";
+
+const phoneNumberSchema = z
+  .string()
+  .refine(isValidPhoneNumber, (val) => ({ message: `${val} is not a valid phone number` }));
 
 const schema = z.object({
-  phone_number: phoneNumberSchema
-})
+  phone_number: phoneNumberSchema,
+});
 ```
 
 ### One-Time Code (OTP) Input
@@ -822,6 +829,7 @@ function CodeConfirmation({ codeSize = 4, onEnter }: CodeConfirmationProps) {
 ```
 
 **Features:**
+
 - Auto-focus next input on entry
 - Backspace navigation
 - Paste support for full code
@@ -846,7 +854,7 @@ type TextInputProps = {
 const TextInput = (props: TextInputProps) => {
   const { label, labelId, placeholder, value, onChange, onBlur, error } = props
   const { size } = InputContext.useStyledContext()
-  
+
   return (
     <Input
       {...(error && { theme: 'red' })}
@@ -955,6 +963,7 @@ Always use `htmlFor` to associate labels with inputs:
 ```
 
 **Benefits:**
+
 - Screen readers announce label when input is focused
 - Clicking label focuses input
 - Improves keyboard navigation
@@ -980,6 +989,7 @@ Use ARIA live regions for error announcements:
 ### Keyboard Navigation
 
 Input.Area automatically handles:
+
 - **Tab navigation** - `tabIndex={0}` on web, `focusable={true}` on native
 - **Enter key** - Set `enterKeyHint` for mobile keyboards
 - **Focus styles** - Automatically applied via `focusStyle`
@@ -991,7 +1001,7 @@ Use proper form semantics:
 ```typescript
 <FormCard render="form">  {/* Renders as <form> element */}
   {/* inputs */}
-  <Button 
+  <Button
     onPress={handleSubmit(onSubmit)}
     type="submit"  // Native form submission
   >
@@ -1027,20 +1037,20 @@ Use proper form semantics:
 ### Common Size Tokens
 
 ```typescript
-size="$2"  // Extra small
-size="$3"  // Small
-size="$4"  // Medium (default)
-size="$5"  // Large
-size="$6"  // Extra large
+size = "$2"; // Extra small
+size = "$3"; // Small
+size = "$4"; // Medium (default)
+size = "$5"; // Large
+size = "$6"; // Extra large
 ```
 
 ### Theme Variants
 
 ```typescript
-theme="red"     // Error state
-theme="green"   // Success state
-theme="blue"    // Info state
-theme="accent"  // Accent color
+theme = "red"; // Error state
+theme = "green"; // Success state
+theme = "blue"; // Info state
+theme = "accent"; // Accent color
 ```
 
 ### Input.Area Props
@@ -1085,24 +1095,36 @@ theme="accent"  // Accent color
 ### Form Setup Checklist
 
 1. **Install dependencies:**
+
    ```bash
    npm install react-hook-form @hookform/resolvers zod
    ```
 
 2. **Define schema:**
+
    ```typescript
-   const schema = z.object({ /* fields */ })
+   const schema = z.object({
+     /* fields */
+   });
    ```
 
 3. **Initialize form:**
+
    ```typescript
-   const { control, handleSubmit, formState: { errors } } = useForm({
+   const {
+     control,
+     handleSubmit,
+     formState: { errors },
+   } = useForm({
      resolver: zodResolver(schema),
-     defaultValues: { /* defaults */ }
-   })
+     defaultValues: {
+       /* defaults */
+     },
+   });
    ```
 
 4. **Wrap inputs with Controller:**
+
    ```typescript
    <Controller control={control} name="field" render={...} />
    ```

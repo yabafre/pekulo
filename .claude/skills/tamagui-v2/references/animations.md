@@ -12,29 +12,30 @@ Tamagui supports four animation drivers, each optimized for different use cases.
 
 ### Driver Comparison
 
-| Driver | Platform | Bundle Impact | Performance | Spring Physics |
-|--------|----------|---------------|-------------|----------------|
-| **CSS** | Web only | Lightest (~1KB) | Fast (CSS transitions) | No (easing only) |
-| **React Native** | Web + Native | No extra hit beyond RNW | On-thread | Yes (basic) |
-| **Reanimated** | Web + Native | Larger (~40KB) | Off-thread (native), slower (web) | Yes (advanced) |
-| **Motion** | Web only | Medium (~15KB) | Off-thread (WAAPI) | Yes (excellent) |
+| Driver           | Platform     | Bundle Impact           | Performance                       | Spring Physics   |
+| ---------------- | ------------ | ----------------------- | --------------------------------- | ---------------- |
+| **CSS**          | Web only     | Lightest (~1KB)         | Fast (CSS transitions)            | No (easing only) |
+| **React Native** | Web + Native | No extra hit beyond RNW | On-thread                         | Yes (basic)      |
+| **Reanimated**   | Web + Native | Larger (~40KB)          | Off-thread (native), slower (web) | Yes (advanced)   |
+| **Motion**       | Web only     | Medium (~15KB)          | Off-thread (WAAPI)                | Yes (excellent)  |
 
 ### CSS Driver (`@tamagui/animations-css`)
 
 Best for simple web-only apps. Uses CSS transitions under the hood for maximum performance with minimal bundle size.
 
 ```tsx
-import { createAnimations } from '@tamagui/animations-css'
+import { createAnimations } from "@tamagui/animations-css";
 
 export const animations = createAnimations({
-  quick: 'ease-in 200ms',
-  medium: 'ease-in-out 400ms',
-  slow: 'cubic-bezier(0.215, 0.610, 0.355, 1.000) 600ms',
-  bouncy: 'cubic-bezier(0.68, -0.55, 0.265, 1.55) 500ms',
-})
+  quick: "ease-in 200ms",
+  medium: "ease-in-out 400ms",
+  slow: "cubic-bezier(0.215, 0.610, 0.355, 1.000) 600ms",
+  bouncy: "cubic-bezier(0.68, -0.55, 0.265, 1.55) 500ms",
+});
 ```
 
 **Limitations:**
+
 - No spring physics (easing curves only)
 - Cannot animate properties that require native driver on native platforms
 
@@ -43,34 +44,35 @@ export const animations = createAnimations({
 Zero bundle overhead beyond React Native Web. Good for basic cross-platform animations.
 
 ```tsx
-import { createAnimations } from '@tamagui/animations-react-native'
+import { createAnimations } from "@tamagui/animations-react-native";
 
 export const animations = createAnimations({
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     mass: 0.9,
     stiffness: 100,
   },
   lazy: {
-    type: 'spring',
+    type: "spring",
     damping: 18,
     stiffness: 50,
   },
   quick: {
-    type: 'spring',
+    type: "spring",
     damping: 20,
     mass: 1.2,
     stiffness: 250,
   },
   timing: {
-    type: 'timing',
+    type: "timing",
     duration: 300,
   },
-})
+});
 ```
 
 **Spring Config Properties:**
+
 - `type?: 'spring'` - Default spring animation
 - `damping?: number` - Controls bounce (higher = less bounce)
 - `mass?: number` - Weight of spring (higher = slower)
@@ -80,12 +82,14 @@ export const animations = createAnimations({
 - `delay?: number` - Delay in milliseconds
 
 **Timing Config Properties:**
+
 - `type: 'timing'` - Timing-based animation
 - `duration?: number` - Duration in milliseconds
 - `easing?: EasingFunction` - React Native easing function
 - `delay?: number` - Delay in milliseconds
 
 **Performance Note:**
+
 - Runs on JavaScript thread (not native thread)
 - Properties like `transform` and `opacity` can use native driver
 - Color and layout properties (width, height, borderRadius) cannot use native driver and may be slower
@@ -95,20 +99,20 @@ export const animations = createAnimations({
 Most powerful option for native with off-thread animations. Larger bundle but best native performance.
 
 ```tsx
-import { createAnimations } from '@tamagui/animations-reanimated'
+import { createAnimations } from "@tamagui/animations-reanimated";
 
 export const animations = createAnimations({
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     stiffness: 100,
   },
   lazy: {
-    type: 'spring',
+    type: "spring",
     damping: 20,
     stiffness: 60,
   },
-})
+});
 ```
 
 ### Motion Driver (`@tamagui/animations-motion`)
@@ -116,15 +120,15 @@ export const animations = createAnimations({
 Web-only driver with excellent spring physics using WAAPI (Web Animations API).
 
 ```tsx
-import { createAnimations } from '@tamagui/animations-motion'
+import { createAnimations } from "@tamagui/animations-motion";
 
 export const animations = createAnimations({
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     stiffness: 100,
   },
-})
+});
 ```
 
 ---
@@ -136,38 +140,38 @@ export const animations = createAnimations({
 Add your chosen driver to `tamagui.config.ts`:
 
 ```tsx
-import { createAnimations } from '@tamagui/animations-react-native'
-import { createTamagui } from 'tamagui'
+import { createAnimations } from "@tamagui/animations-react-native";
+import { createTamagui } from "tamagui";
 
 export default createTamagui({
   animations: createAnimations({
     quick: {
-      type: 'spring',
+      type: "spring",
       damping: 20,
       stiffness: 250,
     },
     medium: {
-      type: 'spring',
+      type: "spring",
       damping: 15,
       stiffness: 150,
     },
     slow: {
-      type: 'spring',
+      type: "spring",
       damping: 12,
       stiffness: 80,
     },
     bouncy: {
-      type: 'spring',
+      type: "spring",
       damping: 8,
       stiffness: 100,
     },
     lazy: {
-      type: 'spring',
+      type: "spring",
       damping: 18,
       stiffness: 50,
     },
   }),
-})
+});
 ```
 
 ### Platform-Specific Drivers
@@ -176,37 +180,37 @@ Use file extensions to load different drivers per platform:
 
 ```tsx
 // animations.ts (web)
-import { createAnimations } from '@tamagui/animations-motion'
+import { createAnimations } from "@tamagui/animations-motion";
 
 export const animations = createAnimations({
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     stiffness: 100,
   },
-})
+});
 ```
 
 ```tsx
 // animations.native.ts
-import { createAnimations } from '@tamagui/animations-reanimated'
+import { createAnimations } from "@tamagui/animations-reanimated";
 
 export const animations = createAnimations({
   bouncy: {
-    type: 'spring',
+    type: "spring",
     damping: 10,
     stiffness: 100,
   },
-})
+});
 ```
 
 ```tsx
 // tamagui.config.ts
-import { animations } from './animations' // Picks .native.ts on native
+import { animations } from "./animations"; // Picks .native.ts on native
 
 export default createTamagui({
   animations,
-})
+});
 ```
 
 ### Multiple Drivers
@@ -214,19 +218,19 @@ export default createTamagui({
 Configure multiple drivers and switch between them using `animatedBy`:
 
 ```tsx
-import { createAnimations as createCSS } from '@tamagui/animations-css'
-import { createAnimations as createSpring } from '@tamagui/animations-moti'
+import { createAnimations as createCSS } from "@tamagui/animations-css";
+import { createAnimations as createSpring } from "@tamagui/animations-moti";
 
 export default createTamagui({
   animations: {
-    default: createCSS({ 
-      quick: 'ease-in 200ms',
+    default: createCSS({
+      quick: "ease-in 200ms",
     }),
-    spring: createSpring({ 
-      bouncy: { type: 'spring', damping: 10 },
+    spring: createSpring({
+      bouncy: { type: "spring", damping: 10 },
     }),
   },
-})
+});
 ```
 
 ```tsx
@@ -239,33 +243,29 @@ export default createTamagui({
 Reduce initial bundle size by lazy loading animation drivers:
 
 ```tsx
-import { Configuration } from 'tamagui'
-import { createAnimations } from '@tamagui/animations-moti'
+import { Configuration } from "tamagui";
+import { createAnimations } from "@tamagui/animations-moti";
 
-const springDriver = createAnimations({ bouncy: { type: 'spring', damping: 10 } })
+const springDriver = createAnimations({ bouncy: { type: "spring", damping: 10 } });
 
 export function AuthenticatedLayout({ children }) {
-  return (
-    <Configuration animationDriver={springDriver}>
-      {children}
-    </Configuration>
-  )
+  return <Configuration animationDriver={springDriver}>{children}</Configuration>;
 }
 ```
 
 Or add drivers dynamically:
 
 ```tsx
-import { loadAnimationDriver } from 'tamagui'
-import { createAnimations } from '@tamagui/animations-moti'
+import { loadAnimationDriver } from "tamagui";
+import { createAnimations } from "@tamagui/animations-moti";
 
-const driver = createAnimations({ bouncy: { type: 'spring', damping: 10 } })
-loadAnimationDriver('spring', driver)
+const driver = createAnimations({ bouncy: { type: "spring", damping: 10 } });
+loadAnimationDriver("spring", driver);
 
 // Add types for autocomplete
-declare module 'tamagui' {
+declare module "tamagui" {
   interface TypeOverride {
-    animationDrivers(): 'spring'
+    animationDrivers(): "spring";
   }
 }
 ```
@@ -279,7 +279,7 @@ declare module 'tamagui' {
 The `transition` prop activates animations on any component. It accepts an animation name from your config:
 
 ```tsx
-import { Square } from 'tamagui'
+import { Square } from "tamagui";
 
 export default () => (
   <Square
@@ -289,7 +289,7 @@ export default () => (
     hoverStyle={{ scale: 1.1 }}
     pressStyle={{ scale: 0.9 }}
   />
-)
+);
 ```
 
 **Important Rules:**
@@ -310,23 +310,23 @@ export default () => (
 ### Animating Hover and Press States
 
 ```tsx
-import { Button } from 'tamagui'
+import { Button } from "tamagui";
 
 export default () => (
   <Button
     transition="quick"
     hoverStyle={{
       scale: 1.05,
-      backgroundColor: '$blue11',
+      backgroundColor: "$blue11",
     }}
     pressStyle={{
       scale: 0.95,
-      backgroundColor: '$blue9',
+      backgroundColor: "$blue9",
     }}
   >
     Click Me
   </Button>
-)
+);
 ```
 
 ---
@@ -344,7 +344,7 @@ The `enterStyle` and `exitStyle` props define mount and unmount animations respe
 5. **Unmount**: Component is removed from DOM
 
 ```tsx
-import { View } from 'tamagui'
+import { View } from "tamagui";
 
 export default () => (
   <View
@@ -358,10 +358,11 @@ export default () => (
       y: 10,
     }}
   />
-)
+);
 ```
 
 **Note:** You don't need to define base values for opacity, scale, x, y - Tamagui normalizes them:
+
 - `opacity` defaults to `1`
 - `scale` defaults to `1`
 - `x`, `y` default to `0`
@@ -369,7 +370,7 @@ export default () => (
 ### Real-World Example: Card Entry
 
 ```tsx
-import { Card, H3, Paragraph } from 'tamagui'
+import { Card, H3, Paragraph } from "tamagui";
 
 export const AnimatedCard = () => (
   <Card
@@ -385,7 +386,7 @@ export const AnimatedCard = () => (
     <H3>Welcome</H3>
     <Paragraph>This card animates in on mount</Paragraph>
   </Card>
-)
+);
 ```
 
 ### Staggered Entry Animations
@@ -393,21 +394,21 @@ export const AnimatedCard = () => (
 Use `delay` to create staggered animations:
 
 ```tsx
-import { Square, XStack } from 'tamagui'
+import { Square, XStack } from "tamagui";
 
 export default () => (
   <XStack gap="$2">
     {[0, 1, 2, 3].map((i) => (
       <Square
         key={i}
-        transition={['bouncy', { delay: i * 100 }]}
+        transition={["bouncy", { delay: i * 100 }]}
         enterStyle={{ opacity: 0, scale: 0.5, y: 20 }}
         size={50}
         bg="$blue10"
       />
     ))}
   </XStack>
-)
+);
 ```
 
 ---
@@ -419,12 +420,12 @@ export default () => (
 ### Basic Usage
 
 ```tsx
-import { AnimatePresence, View } from 'tamagui'
-import { useState } from 'react'
+import { AnimatePresence, View } from "tamagui";
+import { useState } from "react";
 
 export default () => {
-  const [visible, setVisible] = useState(true)
-  
+  const [visible, setVisible] = useState(true);
+
   return (
     <AnimatePresence>
       {visible && (
@@ -446,40 +447,41 @@ export default () => {
         />
       )}
     </AnimatePresence>
-  )
-}
+  );
+};
 ```
 
 **Key Requirements:**
+
 - Children must have unique `key` prop
 - Wrap only direct children that should animate
 - Works with any animation driver
 
 ### Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `initial` | `boolean` | If `false`, disables enter animations on first render |
-| `exitBeforeEnter` | `boolean` | If `true`, waits for exit to finish before entering new children |
-| `onExitComplete` | `() => void` | Callback fired when all exiting children finish animating |
-| `custom` | `Object` | Custom data passed to children for conditional exit animations |
-| `presenceAffectsLayout` | `boolean` | Whether siblings re-render when child exits (default: `true`) |
+| Prop                    | Type         | Description                                                      |
+| ----------------------- | ------------ | ---------------------------------------------------------------- |
+| `initial`               | `boolean`    | If `false`, disables enter animations on first render            |
+| `exitBeforeEnter`       | `boolean`    | If `true`, waits for exit to finish before entering new children |
+| `onExitComplete`        | `() => void` | Callback fired when all exiting children finish animating        |
+| `custom`                | `Object`     | Custom data passed to children for conditional exit animations   |
+| `presenceAffectsLayout` | `boolean`    | Whether siblings re-render when child exits (default: `true`)    |
 
 ### Custom Exit Data
 
 Use the `custom` prop to pass data that affects how components exit:
 
 ```tsx
-import { AnimatePresence, styled, Image, YStack } from 'tamagui'
-import { useState } from 'react'
+import { AnimatePresence, styled, Image, YStack } from "tamagui";
+import { useState } from "react";
 
 const GalleryItem = styled(YStack, {
   fullscreen: true,
   zIndex: 1,
-  
+
   variants: {
     going: {
-      ':number': (direction) => ({
+      ":number": (direction) => ({
         enterStyle: {
           x: direction > 0 ? 1000 : -1000,
           opacity: 0,
@@ -492,23 +494,23 @@ const GalleryItem = styled(YStack, {
       }),
     },
   } as const,
-})
+});
 
 export function ImageGallery() {
-  const [[page, direction], setPage] = useState([0, 0])
-  const images = ['img1.jpg', 'img2.jpg', 'img3.jpg']
-  
+  const [[page, direction], setPage] = useState([0, 0]);
+  const images = ["img1.jpg", "img2.jpg", "img3.jpg"];
+
   const paginate = (newDirection: number) => {
-    setPage([page + newDirection, newDirection])
-  }
-  
+    setPage([page + newDirection, newDirection]);
+  };
+
   return (
     <AnimatePresence initial={false} custom={{ going: direction }}>
       <GalleryItem key={page} transition="quick" going={direction}>
         <Image src={images[page]} />
       </GalleryItem>
     </AnimatePresence>
-  )
+  );
 }
 ```
 
@@ -517,7 +519,7 @@ export function ImageGallery() {
 Ensure only one child renders at a time:
 
 ```tsx
-import { AnimatePresence, View } from 'tamagui'
+import { AnimatePresence, View } from "tamagui";
 
 export default ({ currentTab }) => (
   <AnimatePresence exitBeforeEnter>
@@ -530,7 +532,7 @@ export default ({ currentTab }) => (
       {/* Tab content */}
     </View>
   </AnimatePresence>
-)
+);
 ```
 
 ---
@@ -542,20 +544,20 @@ export default ({ currentTab }) => (
 Animate different properties with different configs:
 
 ```tsx
-import { YStack } from 'tamagui'
+import { YStack } from "tamagui";
 
 export default () => (
   <YStack
     transition={{
-      x: 'bouncy',
-      opacity: 'quick',
+      x: "bouncy",
+      opacity: "quick",
       y: {
-        type: 'bouncy',
+        type: "bouncy",
         overshootClamping: true,
       },
     }}
   />
-)
+);
 ```
 
 ### Array Syntax with Defaults
@@ -563,22 +565,23 @@ export default () => (
 Set a default animation and override specific properties:
 
 ```tsx
-import { YStack } from 'tamagui'
+import { YStack } from "tamagui";
 
 export default () => (
   <YStack
     transition={[
-      'bouncy',        // default for all properties
+      "bouncy", // default for all properties
       {
-        y: 'slow',     // override for y
-        scale: {       // override with config
-          type: 'quick',
+        y: "slow", // override for y
+        scale: {
+          // override with config
+          type: "quick",
           delay: 100,
         },
       },
     ]}
   />
-)
+);
 ```
 
 ### Enter/Exit Transitions
@@ -586,33 +589,33 @@ export default () => (
 Use different animations for entering and exiting:
 
 ```tsx
-import { AnimatePresence, View } from 'tamagui'
+import { AnimatePresence, View } from "tamagui";
 
 export default ({ show }) => (
   <AnimatePresence>
     {show && (
       <View
         key="modal"
-        transition={{ 
-          enter: 'lazy',    // slow enter
-          exit: 'quick',    // fast exit
+        transition={{
+          enter: "lazy", // slow enter
+          exit: "quick", // fast exit
         }}
         enterStyle={{ opacity: 0, y: 20 }}
         exitStyle={{ opacity: 0, y: -20 }}
       />
     )}
   </AnimatePresence>
-)
+);
 ```
 
 Combine with default for property changes while mounted:
 
 ```tsx
 <View
-  transition={{ 
-    enter: 'lazy', 
-    exit: 'quick', 
-    default: 'bouncy',  // for other state changes
+  transition={{
+    enter: "lazy",
+    exit: "quick",
+    default: "bouncy", // for other state changes
   }}
   enterStyle={{ opacity: 0 }}
   exitStyle={{ opacity: 0 }}
@@ -624,13 +627,13 @@ Or use with array syntax:
 ```tsx
 <View
   transition={[
-    'bouncy',
-    { 
-      enter: 'lazy', 
-      exit: 'quick', 
+    "bouncy",
+    {
+      enter: "lazy",
+      exit: "quick",
       delay: 200,
-      x: 'slow',
-    }
+      x: "slow",
+    },
   ]}
   enterStyle={{ opacity: 0, x: -100 }}
   exitStyle={{ opacity: 0, x: 100 }}
@@ -642,19 +645,19 @@ Or use with array syntax:
 Limit animations to specific properties:
 
 ```tsx
-import { Square } from 'tamagui'
+import { Square } from "tamagui";
 
 export default () => (
   <Square
     transition="bouncy"
-    animateOnly={['opacity', 'scale']}
+    animateOnly={["opacity", "scale"]}
     hoverStyle={{
       opacity: 0.8,
       scale: 1.1,
-      backgroundColor: '$blue10', // Won't animate
+      backgroundColor: "$blue10", // Won't animate
     }}
   />
-)
+);
 ```
 
 ### delay
@@ -662,14 +665,9 @@ export default () => (
 Add delay before animation starts (all drivers support this):
 
 ```tsx
-import { View } from 'tamagui'
+import { View } from "tamagui";
 
-export default () => (
-  <View
-    transition={['quick', { delay: 300 }]}
-    enterStyle={{ opacity: 0 }}
-  />
-)
+export default () => <View transition={["quick", { delay: 300 }]} enterStyle={{ opacity: 0 }} />;
 ```
 
 Per-property delay:
@@ -677,8 +675,8 @@ Per-property delay:
 ```tsx
 <View
   transition={{
-    opacity: { type: 'quick', delay: 0 },
-    y: { type: 'bouncy', delay: 100 },
+    opacity: { type: "quick", delay: 0 },
+    y: { type: "bouncy", delay: 100 },
   }}
   enterStyle={{ opacity: 0, y: 20 }}
 />
@@ -703,11 +701,13 @@ Per-property delay:
 ```
 
 **Pros:**
+
 - Minimal bundle size
 - Browser-optimized CSS transitions
 - No JavaScript execution overhead
 
 **Cons:**
+
 - No spring physics (easing curves only)
 - Limited to CSS-animatable properties
 
@@ -715,17 +715,18 @@ Per-property delay:
 
 ```tsx
 // Uses React Native Animated API
-const animatedValue = new Animated.Value(0)
+const animatedValue = new Animated.Value(0);
 
 Animated.spring(animatedValue, {
   toValue: 1,
   damping: 10,
   stiffness: 100,
   useNativeDriver: true, // When possible
-}).start()
+}).start();
 ```
 
 **Native Driver Support:**
+
 - ✅ `transform` (translateX, translateY, scale, rotate)
 - ✅ `opacity`
 - ❌ Layout properties (width, height, padding, margin)
@@ -733,6 +734,7 @@ Animated.spring(animatedValue, {
 - ❌ Border radius
 
 **Properties that can't use native driver:**
+
 ```tsx
 const costlyToAnimate = {
   borderRadius: true,
@@ -740,7 +742,7 @@ const costlyToAnimate = {
   backgroundColor: true,
   borderColor: true,
   // Layout-affecting properties
-}
+};
 ```
 
 These properties animate on the JavaScript thread, which may cause performance issues for complex animations.
@@ -751,14 +753,15 @@ Runs off the JavaScript thread on native for smooth 60fps animations, even for "
 
 ```tsx
 // Runs on UI thread
-const animatedValue = useSharedValue(0)
+const animatedValue = useSharedValue(0);
 animatedValue.value = withSpring(1, {
   damping: 10,
   stiffness: 100,
-})
+});
 ```
 
 **Performance:**
+
 - Native: Excellent (off-thread)
 - Web: Slower than React Native driver (worklet overhead)
 
@@ -822,10 +825,7 @@ Animate fewer properties for better performance:
 For frequently animated elements, add `will-change`:
 
 ```tsx
-<View
-  style={{ willChange: 'transform, opacity' }}
-  transition="quick"
-/>
+<View style={{ willChange: "transform, opacity" }} transition="quick" />
 ```
 
 ### 5. Avoid Layout Thrashing
@@ -868,10 +868,7 @@ Use React DevTools Profiler and browser performance tools to identify bottleneck
 
 ```tsx
 // Enable verbose debugging
-<View
-  debug="verbose"
-  transition="bouncy"
-/>
+<View debug="verbose" transition="bouncy" />
 ```
 
 ---
@@ -883,55 +880,43 @@ Use React DevTools Profiler and browser performance tools to identify bottleneck
 ```tsx
 createAnimations({
   quick: {
-    type: 'spring',
+    type: "spring",
     damping: 20,
     stiffness: 250,
   },
   timing: {
-    type: 'timing',
+    type: "timing",
     duration: 300,
   },
-})
+});
 ```
 
 ### Animation Config (CSS Driver)
 
 ```tsx
 createAnimations({
-  quick: 'ease-in 200ms',
-  slow: 'cubic-bezier(0.215, 0.610, 0.355, 1.000) 600ms',
-})
+  quick: "ease-in 200ms",
+  slow: "cubic-bezier(0.215, 0.610, 0.355, 1.000) 600ms",
+});
 ```
 
 ### Basic Animation
 
 ```tsx
-<View
-  transition="quick"
-  hoverStyle={{ opacity: 0.8 }}
-/>
+<View transition="quick" hoverStyle={{ opacity: 0.8 }} />
 ```
 
 ### Enter Animation
 
 ```tsx
-<View
-  transition="bouncy"
-  enterStyle={{ opacity: 0, y: 20 }}
-/>
+<View transition="bouncy" enterStyle={{ opacity: 0, y: 20 }} />
 ```
 
 ### Exit Animation
 
 ```tsx
 <AnimatePresence>
-  {visible && (
-    <View
-      key="item"
-      transition="quick"
-      exitStyle={{ opacity: 0, x: -20 }}
-    />
-  )}
+  {visible && <View key="item" transition="quick" exitStyle={{ opacity: 0, x: -20 }} />}
 </AnimatePresence>
 ```
 
@@ -940,8 +925,8 @@ createAnimations({
 ```tsx
 <View
   transition={{
-    opacity: 'quick',
-    y: 'bouncy',
+    opacity: "quick",
+    y: "bouncy",
   }}
 />
 ```
@@ -949,10 +934,7 @@ createAnimations({
 ### With Delay
 
 ```tsx
-<View
-  transition={['quick', { delay: 200 }]}
-  enterStyle={{ opacity: 0 }}
-/>
+<View transition={["quick", { delay: 200 }]} enterStyle={{ opacity: 0 }} />
 ```
 
 ### Platform-Specific
@@ -978,11 +960,7 @@ import { animations } from './animations'
 <AnimatePresence>
   {open && (
     <Dialog.Portal key="modal">
-      <Dialog.Overlay
-        transition="quick"
-        enterStyle={{ opacity: 0 }}
-        exitStyle={{ opacity: 0 }}
-      />
+      <Dialog.Overlay transition="quick" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
       <Dialog.Content
         transition="medium"
         enterStyle={{ opacity: 0, scale: 0.9, y: -20 }}
@@ -1001,11 +979,11 @@ import { animations } from './animations'
 <ListItem
   transition="quick"
   hoverStyle={{
-    backgroundColor: '$blue4',
+    backgroundColor: "$blue4",
     scale: 1.02,
   }}
   pressStyle={{
-    backgroundColor: '$blue5',
+    backgroundColor: "$blue5",
     scale: 0.98,
   }}
 />
@@ -1018,7 +996,7 @@ import { animations } from './animations'
   {toasts.map((toast) => (
     <Toast
       key={toast.id}
-      transition={['quick', { delay: 50 }]}
+      transition={["quick", { delay: 50 }]}
       enterStyle={{ opacity: 0, y: -20 }}
       exitStyle={{ opacity: 0, x: 100 }}
     >

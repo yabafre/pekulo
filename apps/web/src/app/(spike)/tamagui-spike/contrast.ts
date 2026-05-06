@@ -16,9 +16,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 
 function channelToLinear(channel8bit: number): number {
   const normalised = channel8bit / 255;
-  return normalised <= 0.03928
-    ? normalised / 12.92
-    : Math.pow((normalised + 0.055) / 1.055, 2.4);
+  return normalised <= 0.03928 ? normalised / 12.92 : Math.pow((normalised + 0.055) / 1.055, 2.4);
 }
 
 export function relativeLuminance(hex: string): number {
