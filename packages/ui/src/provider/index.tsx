@@ -27,6 +27,7 @@ import { NextThemeProvider } from "@tamagui/next-theme";
 import { TamaguiProvider } from "tamagui";
 
 import { config } from "../config/tamagui";
+import { PekuloToastViewport, ToastProvider } from "../components/toast";
 
 export function PekuloRootProvider({ children }: { children: ReactNode }) {
   return (
@@ -41,7 +42,10 @@ export function PekuloRootProvider({ children }: { children: ReactNode }) {
         disableInjectCSS
         disableRootThemeClass
       >
-        {children}
+        <ToastProvider>
+          {children}
+          <PekuloToastViewport />
+        </ToastProvider>
       </TamaguiProvider>
     </NextThemeProvider>
   );
