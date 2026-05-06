@@ -13,6 +13,55 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-06 — Tamagui v2 prop renames vs v1: `tag` → `render`, `animation` → `transition` (Scope: aped-dev, aped-arch — every Tamagui v2-rc.41+ component file in this monorepo)
+
+- **Date:** 2026-05-06
+- **Mistake:** Story 0-10 transcribed Tamagui v1 prop syntax verbatim (`<View tag="section">`, `<TamaDialog.Content animation="quick">`, `styled(View, { tag: "button" })`). Tamagui v2-rc.41 renamed both: `tag` → `render` (on View/Text and inside `styled()` options) and `animation` → `transition`. Story T4.1, T4.4, T4bis.1–T4bis.9, T5.9–T5.12, T6.10–T6.12 all needed the rename to typecheck. The `TamaguiCustomConfig` augmentation also moved: in v2-rc.41 the interface lives in `@tamagui/web/types/types.d.ts`, NOT `@tamagui/core` (which v1 used) — the augmentation must target `declare module "@tamagui/web"` to propagate registered config types (notably `media` keys) to View/Text consumers imported from `tamagui`.
+- **Correction:** Per Alex's directive ("on ne rétrograde rien, on fix avec ce qui est recommandé pour la v2"), every primitive + component was rewritten using the v2 syntax. context7 confirmed both renames against `https://tamagui.dev/docs/guides/how-to-upgrade` migration checklist. The augmentation target was diagnosed by adding a typed probe (`type Keys = keyof typeof config["media"]`) and tracing where `TamaguiCustomConfig` is declared in node_modules.
+- **Rule:** When migrating any Tamagui v1 → v2-rc code or transcribing an LLM-authored story:
+  1. Replace `tag="<el>"` (on View/Text/styled options) with `render="<el>"`.
+  2. Replace `animation="<key>"` with `transition="<key>"`.
+  3. `declare module "@tamagui/web" { interface TamaguiCustomConfig extends typeof config {} }` — NOT `@tamagui/core`.
+  4. v2 default media keys are mobile-first Tailwind-aligned: `$sm/$md/$lg/$xl/$xxl` = min-width 640/768/1024/1280/1536. v1's `gtMd` (>1020) maps closest to v2's `$lg` (>1024). For "max-width" use the kebab-case `$max-md` form.
+
+### 2026-05-06 — `vitest run` exits code 1 (not 0) when zero test files match — add `--passWithNoTests` to package scripts (Scope: aped-dev — every package whose test scripts are wired up before the first test file lands)
+
+- **Date:** 2026-05-06
+- **Mistake:** Story 0-10 T2.3 expected `bun run test:ui` to exit 0 with "No test files found, exiting with code 0" when the `@pekulo/ui` test suite was bootstrapped before T4.1 wrote the first test. vitest 2.1.9 changed this default — it exits 1 when no test files match the configured `include` glob. T2.3 verification could not pass.
+- **Correction:** Added `--passWithNoTests` to the three `vitest run` scripts in `packages/ui/package.json`. Once T4.1+ tests land the flag is a no-op.
+- **Rule:** When wiring vitest 2.x scripts in a package whose test files are added later, default to `vitest run --passWithNoTests`. Same applies to the `--testNamePattern` variants (`test:visual`, `test:axe`).
+
+### 2026-05-06 — Tamagui v2 `Select.Content` is a FocusScope wrapper, not a styled View — style props go on `.Viewport` (Scope: aped-dev — every `@tamagui/select` consumer in this monorepo)
+
+- **Date:** 2026-05-06
+- **Mistake:** Story 0-10 T4bis.5 placed `zIndex={200000}` directly on `<TamaSelect.Content>`. v2-rc.41's Select.Content is a `FocusScope`-typed component (props: `loop?`, `trapped?`, `onMountAutoFocus?`, etc.) that does not accept Tamagui style props. The styled View inside Select is the `.Viewport` part.
+- **Correction:** Moved `zIndex` onto `<TamaSelect.Viewport>`, kept Content props limited to scope/focus options.
+- **Rule:** For Tamagui compound primitives, identify which sub-part is the styled View vs which is a non-styled wrapper (FocusScope, Portal, etc.) before applying style props. `@tamagui/separator` similarly does not export `SeparatorProps` — use `ComponentProps<typeof Separator>` for typed props.
+
+### 2026-05-06 — `@tamagui/popover|tooltip|select` triggers must `render="button"` to satisfy axe-core's `aria-allowed-attr` (Scope: aped-dev, aped-qa — every Tamagui compound trigger surface in this monorepo)
+
+- **Date:** 2026-05-06
+- **Mistake:** Story 0-10 T4bis.3 wrapped `<TamaPopover.Trigger>` around a `<Text>` child and let Tamagui render its default `<div>` element. axe-core 4.x flags `aria-expanded` / `aria-haspopup` / `aria-controls` (auto-injected by the popover) as `critical` violations on a `<div>` — those ARIA attrs are only valid on focusable, button-semantic roles. The a11y test failed with `aria-allowed-attr: ARIA attribute is not allowed: aria-expanded="false"`.
+- **Correction:** Wrapper triggers force `render="button" unstyled` so the auto-generated ARIA attrs land on a real `<button>`. Same fix applied to `<PekuloTooltip.Trigger>`. Select.Trigger already rendered as button by default.
+- **Rule:** For any Tamagui compound primitive whose `.Trigger` injects `aria-*` attributes, the wrapper MUST force `render="button"` (or `render="a"` for link triggers). Verify via `bun --filter='@pekulo/ui' run test:axe` after each new wrapper lands.
+
+### 2026-05-06 — Tamagui in pure Server Components crashes Next.js build with "createContext is not a function" — keep Tamagui under `"use client"` boundaries (Scope: aped-dev — every apps/web RSC route that touches @pekulo/ui or tamagui imports)
+
+- **Date:** 2026-05-06
+- **Mistake:** Story 0-10 T7.5/T7.6/T7.7 specified `<View>` and `<Text>` from tamagui inside `apps/web/src/app/dashboard/{layout,page,loading}.tsx` — all Server Components (no `"use client"`). The build's "Collecting page data" step crashed with `(0, i.createContext) is not a function. (In '(0, i.createContext)("")', '(0, i.createContext)' is undefined)` because Tamagui's module-evaluation calls `createContext` at server-module-load time, and Next.js's server bundle's React import shape doesn't expose it the same way as the client bundle.
+- **Correction:** RSC routes use plain HTML chrome (`<div>` / `<header>` / `<main>` with inline `style={{ ... }}` referencing the theme CSS vars: `var(--color)`, `var(--background)`, etc.). Pekulo client primitives (Section, EmptyState, Skeleton) consumed inside the server tree work fine — they carry their own `"use client"` boundaries. The animation hooks `use-count-up.ts` and `use-stagger.ts` also gained `"use client"` directives at the top because they call `useState` / `useEffect` / `useSyncExternalStore` and were being pulled into the server graph via the `@pekulo/ui` barrel.
+- **Rule:** RSC routes that need server data fetching (auth, supabase) should use plain HTML + CSS-var inline styles for chrome. Tamagui imports MUST live behind a `"use client"` boundary — either at the page level (`"use client"` directive) or inside a Pekulo* primitive that already declares one. Animation hooks and any package module that imports from React's hooks API need `"use client"` too if they sit in a barrel that's imported by RSC.
+
+### 2026-05-06 — Tamagui v2 `styled.input` / `styled.button` style options are restricted to StackStyle — text-style props (color/fontSize/outline) need inline `style={...}` (Scope: aped-dev — every Pekulo styled HTML input/button surface)
+
+- **Date:** 2026-05-06
+- **Mistake:** Story 0-10 T7.4 specified `<View tag="input" color="$color" fontSize={14} />` for the auth form's text inputs. v2-rc.41's `styled.input` and `styled.button` HTML factories restrict their style options to `Partial<StackStyle>` — `color`, `fontSize`, `outline*` are NOT in StackStyle (they're TextStyle props, only allowed on `TextLikeElements` like span/a/label). The typecheck failed with `'color' / 'fontSize' does not exist in type 'Partial<StackStyle>'`.
+- **Correction:** `auth-form.tsx` uses `styled.input({...layout-only props...})` for the React-Native-style props (backgroundColor, borderRadius, paddingHorizontal/Vertical, borderWidth) and adds `style={{ color: "var(--color)", fontSize: 14, outline: "none" }}` inline on the JSX element for the text-style props referencing the theme CSS vars from `@pekulo/ui/generated.css`.
+- **Rule:** When styling input/button/form-element via `styled.<el>()`:
+  - Use Tamagui style options for box-model (size, padding, margin, border, background, position, flex).
+  - Use inline `style={...}` for text-style (color, fontSize, fontWeight, outline, letterSpacing) referencing theme CSS vars.
+  - Or escalate to a custom Pekulo*Input primitive in `@pekulo/ui` if reused enough (currently only one consumer — auth-form — so inline is fine).
+
 ### 2026-05-06 — Reference the framework's official starter monorepo BEFORE declaring a pivot on RC integration findings (Scope: aped-dev, aped-review, aped-arch — every spike that evaluates a pre-1.0 framework integration in this monorepo)
 
 - **Date:** 2026-05-06
