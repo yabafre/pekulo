@@ -1,0 +1,5 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PekuloStat snapshot > renders gain tone 1`] = `"<span class="_dsp_contents  font_body"><div class="is_View "><span class="is_Text _col-colorTertia3655 _fs-f-size-xs _ls-0--5px">Net</span><span class="is_Text _col-success _fs-f-size-h2 _fw-600 _mt-c-space-1">+1 050 €</span></div><div style="display: contents;"></div></span>"`;
+
+exports[`PekuloStat snapshot > renders neutral 1`] = `"<span class="_dsp_contents  font_body"><div class="is_View "><span class="is_Text _col-colorTertia3655 _fs-f-size-xs _ls-0--5px">Net</span><span class="is_Text _col-color _fs-f-size-h2 _fw-600 _mt-c-space-1">+1 050 €</span></div><div style="display: contents;"></div></span>"`;
