@@ -51,7 +51,7 @@ export function PekuloHero({
       </Text>
       <Text
         color="$color"
-        fontSize={44}
+        fontSize="$hero"
         fontWeight="600"
         letterSpacing={-0.5}
         marginTop="$2"

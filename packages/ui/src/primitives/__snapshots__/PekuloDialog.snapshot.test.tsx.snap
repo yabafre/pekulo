@@ -1,3 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`PekuloDialog snapshot > renders open with title + description 1`] = `"<span class="_dsp_contents  font_body"><div style="display: contents;"></div></span>"`;

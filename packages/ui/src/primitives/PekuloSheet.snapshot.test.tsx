@@ -14,6 +14,6 @@ describe("PekuloSheet snapshot", () => {
         </PekuloSheet.Frame>
       </PekuloSheet>,
     );
-    expect(container.innerHTML).toMatchSnapshot();
+    expect(container.innerHTML).toMatchInlineSnapshot(`"<span class="_dsp_contents  font_body"><div style="display: contents;"></div></span>"`);
   });
 });

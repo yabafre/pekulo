@@ -1,16 +1,8 @@
 "use client";
 
 import { Text, View } from "tamagui";
+import type { Property } from "@pekulo/types";
 import { PekuloDonut } from "./PekuloDonut";
-
-export interface PekuloProperty {
-  label: string;
-  valuationEur: number;
-  debtRemainingEur: number;
-  monthlyPaymentEur: number;
-  yearsRemaining: number;
-  repaidPct: number;
-}
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -19,7 +11,7 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 });
 
 export interface PekuloPropertyCardProps {
-  property: PekuloProperty;
+  property: Property;
 }
 
 export function PekuloPropertyCard({ property }: PekuloPropertyCardProps) {

@@ -25,7 +25,7 @@ function Item({
       }}
       {...props}
     >
-      <TamaRadioGroup.Indicator backgroundColor="$accent" />
+      <TamaRadioGroup.Indicator backgroundColor="$color" />
       {children}
     </TamaRadioGroup.Item>
   );

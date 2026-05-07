@@ -2,14 +2,7 @@
 
 import { Text, View } from "tamagui";
 import { Check } from "lucide-react";
-
-export interface PekuloMonthlyRecord {
-  monthLabel: string;
-  incomeEur: number;
-  spendingEur: number;
-  netEur: number;
-  closed?: boolean;
-}
+import type { MonthlyRecord } from "@pekulo/types";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -18,7 +11,7 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 });
 
 export interface PekuloMonthlyRowProps {
-  month: PekuloMonthlyRecord;
+  month: MonthlyRecord;
 }
 
 export function PekuloMonthlyRow({ month }: PekuloMonthlyRowProps) {

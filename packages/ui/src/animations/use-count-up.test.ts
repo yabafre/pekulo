@@ -43,4 +43,20 @@ describe("useCountUp", () => {
     const { result } = renderHook(() => useCountUp(50));
     expect(result.current).toBe(50);
   });
+
+  it("cancels the pending rAF on unmount (no leaked frames)", () => {
+    // Spy on rAF / cAF so we can assert the cleanup branch fires.
+    const requestSpy = vi.spyOn(window, "requestAnimationFrame");
+    const cancelSpy = vi.spyOn(window, "cancelAnimationFrame");
+    const { unmount, rerender } = renderHook(({ target }) => useCountUp(target), {
+      initialProps: { target: 0 },
+    });
+    // Bump target to a different value — schedules a rAF tick.
+    rerender({ target: 100 });
+    expect(requestSpy).toHaveBeenCalled();
+    const lastFrameId = requestSpy.mock.results.at(-1)?.value;
+    unmount();
+    // Cleanup must cancel the pending frame.
+    expect(cancelSpy).toHaveBeenCalledWith(lastFrameId);
+  });
 });

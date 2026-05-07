@@ -15,6 +15,6 @@ describe("PekuloDialog snapshot", () => {
         </PekuloDialog.Portal>
       </PekuloDialog>,
     );
-    expect(container.innerHTML).toMatchSnapshot();
+    expect(container.innerHTML).toMatchInlineSnapshot(`"<span class="_dsp_contents  font_body"><div style="display: contents;"></div></span>"`);
   });
 });

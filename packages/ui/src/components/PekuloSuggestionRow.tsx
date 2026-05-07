@@ -1,39 +1,73 @@
 "use client";
 
-import { Text, View } from "tamagui";
+import { Text, View, styled } from "tamagui";
 import { ArrowDownRight, ArrowUpRight, Sparkles } from "lucide-react";
-
-export type PekuloLlmRoute = "ios" | "ollama" | "cloud";
-
-export interface PekuloSuggestion {
-  label: string;
-  account: string;
-  dateLabel: string;
-  direction: "in" | "out";
-  amountEur: number;
-  suggestedCategory: string;
-  confidence: number;
-  route: PekuloLlmRoute;
-}
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { LlmRoute, Suggestion } from "@pekulo/types";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
   maximumFractionDigits: 0,
 });
-const ROUTE_LABEL: Record<PekuloLlmRoute, string> = {
+const ROUTE_LABEL: Record<LlmRoute, string> = {
   ios: "iOS",
   ollama: "Ollama",
   cloud: "Cloud",
 };
 
+// Use `styled.button(...)` (HTML factory) so HTML attributes (`type`,
+// `disabled`, `onClick`) are properly typed on the wrapper and forwarded
+// to the underlying <button>. focusVisibleStyle stays inline (Tamagui's
+// token narrowing widens `$borderFocus` to plain string when spread via
+// an intermediate constant — see L18 lesson on StackStyle constraints).
+const ConfirmPill = styled.button({
+  name: "PekuloSuggestionConfirm",
+  paddingHorizontal: "$3",
+  paddingVertical: 6,
+  borderRadius: "$full",
+  borderWidth: 0,
+  backgroundColor: "$color",
+  cursor: "pointer",
+  focusVisibleStyle: {
+    outlineColor: "$borderFocus",
+    outlineStyle: "solid",
+    outlineWidth: 2,
+  },
+});
+
+const EditPill = styled.button({
+  name: "PekuloSuggestionEdit",
+  paddingHorizontal: "$2",
+  paddingVertical: 6,
+  borderRadius: "$full",
+  borderWidth: 0,
+  backgroundColor: "transparent",
+  cursor: "pointer",
+  focusVisibleStyle: {
+    outlineColor: "$borderFocus",
+    outlineStyle: "solid",
+    outlineWidth: 2,
+  },
+});
+
+type PillButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { children?: ReactNode };
+const ConfirmPillTyped = ConfirmPill as unknown as React.ComponentType<PillButtonProps>;
+const EditPillTyped = EditPill as unknown as React.ComponentType<PillButtonProps>;
+
 export interface PekuloSuggestionRowProps {
-  tx: PekuloSuggestion;
+  tx: Suggestion;
   onConfirm?: () => void;
   onEdit?: () => void;
+  disabled?: boolean;
 }
 
-export function PekuloSuggestionRow({ tx, onConfirm, onEdit }: PekuloSuggestionRowProps) {
+export function PekuloSuggestionRow({
+  tx,
+  onConfirm,
+  onEdit,
+  disabled,
+}: PekuloSuggestionRowProps) {
   const Arrow = tx.direction === "in" ? ArrowDownRight : ArrowUpRight;
   const sign = tx.direction === "in" ? "+" : "−";
   return (
@@ -63,12 +97,16 @@ export function PekuloSuggestionRow({ tx, onConfirm, onEdit }: PekuloSuggestionR
           borderRadius="$full"
           backgroundColor="$backgroundMuted"
         >
-          <Sparkles size={12} color="var(--accent)" />
+          {/* Sparkles is chrome (icon next to a label), not a perf delta — TR-strict
+              keeps it on the grayscale ramp. */}
+          <Sparkles size={12} color="var(--colorSecondary)" />
           <Text color="$colorSecondary" fontSize="$xs">
             {tx.suggestedCategory}
           </Text>
         </View>
         <Text
+          // `$warning` is a documented Pekulo extension (amber) reserved for
+          // LLM-confidence labels < 75 %. See packages/ui/src/tokens/colors.ts.
           color={(tx.confidence < 0.75 ? "$warning" : "$colorTertiary") as never}
           fontSize="$xs"
         >
@@ -78,37 +116,30 @@ export function PekuloSuggestionRow({ tx, onConfirm, onEdit }: PekuloSuggestionR
           · {ROUTE_LABEL[tx.route]}
         </Text>
         <View flex={1} />
-        <View
-          render="button"
-          onPress={onConfirm}
-          paddingHorizontal="$3"
-          paddingVertical={6}
-          borderRadius="$full"
-          backgroundColor="$color"
-          cursor="pointer"
-          focusVisibleStyle={{
-            outlineColor: "$borderFocus",
-            outlineStyle: "solid",
-            outlineWidth: 2,
-          }}
+        <ConfirmPillTyped
+          type="button"
+          disabled={disabled}
           aria-label="Confirmer la catégorie"
+          onClick={() => {
+            if (!disabled) onConfirm?.();
+          }}
         >
           <Text color="$colorOnAccent" fontSize="$xs" fontWeight="600">
             ✓ Confirmer
           </Text>
-        </View>
-        <View
-          render="button"
-          onPress={onEdit}
-          paddingHorizontal="$2"
-          paddingVertical={6}
-          cursor="pointer"
+        </ConfirmPillTyped>
+        <EditPillTyped
+          type="button"
+          disabled={disabled}
           aria-label="Modifier la catégorie"
+          onClick={() => {
+            if (!disabled) onEdit?.();
+          }}
         >
           <Text color="$colorSecondary" fontSize="$xs">
             Modifier
           </Text>
-        </View>
+        </EditPillTyped>
       </View>
     </View>
   );

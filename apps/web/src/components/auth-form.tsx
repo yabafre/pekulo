@@ -65,12 +65,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          toast.danger(
-            "Connexion refusée",
+          // Never echo raw Supabase error messages — they can leak rate-limit
+          // hints / server details. Surface "Invalid login credentials"
+          // explicitly (UX); collapse every other error to a generic line.
+          const friendly =
             error.message === "Invalid login credentials"
               ? "Email ou mot de passe incorrect"
-              : error.message,
-          );
+              : "Connexion impossible. Réessaie plus tard.";
+          toast.danger("Connexion refusée", friendly);
         } else {
           router.push("/dashboard");
           router.refresh();

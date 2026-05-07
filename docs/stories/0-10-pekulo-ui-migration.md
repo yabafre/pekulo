@@ -6121,3 +6121,77 @@ Both are pure `useEffect` + `requestAnimationFrame` ; no external dep added.
 
 - `scripts/check-no-tailwind.sh` (AC-1 audit)
 - `package.json` (root) — added `test:ui`, `test:ui:visual`, `test:ui:axe`, `generate:tamagui-css` proxy scripts
+
+---
+
+## Review Record
+
+**Date:** 2026-05-07
+**Reviewer:** APED Lead Reviewer (Eva — ac-validator + 4 Stage-2 specialists: Marcus / Rex / Lucas / Aria)
+**Verdict:** done
+
+### Specialists dispatched
+
+- Eva (ac-validator) — initial verdict CHANGES_REQUESTED → fixed inline → re-gated APPROVED
+- Marcus (code-quality + 5-anti-pattern audit) — APPROVED with 1 HIGH, 3 LOW (all resolved)
+- Rex (git-auditor) — APPROVED (80 commits, all `(#10)`-scoped, no merge / amend / `--no-verify`)
+- Lucas (frontend-specialist) — CHANGES_REQUESTED → 2 HIGH + 3 MEDIUM + 2 LOW (all resolved)
+- Aria (visual-reviewer; React Grab MCP unavailable — deep visual deferred) — CHANGES_REQUESTED → 2 HIGH + 3 MEDIUM + 2 LOW (all resolved)
+
+### Findings (consolidated)
+
+#### Resolved — Eva gate (fixed inline before Stage 2)
+
+- **[CRITICAL] AC-2 — snapshot format violated spec** (file-based `__snapshots__/*.snap` vs spec-mandated inline strings). Fix: 68 calls converted `toMatchSnapshot()` → `toMatchInlineSnapshot()`, regenerated via `vitest -u`, `__snapshots__/` directories deleted.
+- **[MAJOR] AC-1(f) — `scripts/check-no-tailwind.sh` did not enforce only-2-files-importing-styling rule.** Fix: added check #5 (allowed importers = `apps/web/src/app/layout.tsx` + `apps/web/src/components/providers.tsx`).
+- **[MINOR] L14 — `--passWithNoTests` redundant on `test` script.** Fix: removed (kept on `test:visual` / `test:axe` as defensive on `--testNamePattern` empty matches).
+
+#### Resolved — Stage 2 (HIGH)
+
+- **F1 — TR-strict fidelity: emerald `$accent` on control chrome** (Lucas + Aria, cross-confirmed) [`PekuloToggleRow.tsx:29`, `PekuloRadioGroup.tsx:28`, `PekuloSlider.tsx:15`, `PekuloSuggestionRow.tsx:66`]. Fix: `$accent` → `$color` (white) on the four chrome surfaces; Sparkles icon → `var(--colorSecondary)`. `$accent` is now strictly reserved for ± monetary deltas (Hero `aheadEur`, HypothesisVerdict `delta`).
+- **F2 — dead `tailwind-merge` dep imported by `apps/web/src/lib/utils.ts`** despite Path C decommission (Lucas). Fix: file deleted (`git rm`); 0 callers.
+- **F3 — `<PekuloErrorBoundary>` exported but never wired** in `apps/web` (Marcus, arch L578 / L1104). Fix: wrapped `<QueryClientProvider>` in `apps/web/src/components/providers.tsx` with stub `onError` console reporter (full GlitchTip pipe lands at epic 11 per architecture L242–L252).
+- **[Architecture violation] Domain types inlined in `@pekulo/ui`** instead of `@pekulo/types` (user surfaced mid-review — arch L366). Fix: extracted `Account / AccountType / Holding / HoldingKind / Activity / Suggestion / LlmRoute / Milestone / MilestoneStatus / MonthlyRecord / Property / CompositionItem / TxDirection / StatTone` + literal arrays (`ACCOUNT_TYPES / HOLDING_KINDS / TX_DIRECTIONS / LLM_ROUTES / MILESTONE_STATUSES / STAT_TONES`) into `packages/types/src/index.ts`. `@pekulo/ui` consumes from `@pekulo/types` (added as workspace dep). Components keep `Pekulo*` prefix; types lose the prefix per arch L366 ("Domain TS types: PascalCase").
+
+#### Resolved — Stage 2 (MEDIUM)
+
+- **F4 — `PekuloSelect.Trigger` shipped Tamagui ListItem default 1px hairline border** (Aria; violates TR-strict "zero card borders"). Fix: `borderWidth={0}` added to Trigger.
+- **F5 — UX-spec components missing from public barrel** (Lucas; `docs/ux/components.md` catalog). Fix: 11 components shipped with snapshot + a11y tests = 33 new files: `PekuloHeroCard`, `PekuloDonutCard`, `PekuloTrajectoryCard`, `PekuloMilestonesCard`, `PekuloCompositionCard`, `PekuloRecentActivityCard`, `PekuloHypothesisCard`, `PekuloAccountsSection`, `PekuloStaggerList`, `PekuloCountUpEUR`, `PekuloCountUpPct`.
+- **F6 — `PekuloSuggestionRow` Confirm/Edit buttons rendered as `<View render="button">` without `type="button"` or `disabled`** (Lucas). Fix: refactored to `styled.button(...)` with proper HTML attributes (`type`, `disabled`, `onClick`); inline `focusVisibleStyle` to keep Tamagui token narrowing.
+- **F7 — token discipline drift** (Lucas + Aria): `paddingVertical={10}` literals in `PekuloActivityRow` / `PekuloClassRow` / `PekuloCompositionRow`; `fontSize={44}` in `PekuloHero` (vs `$hero=42`). Fix: `paddingVertical="$3"` (12px) and `fontSize="$hero"`.
+- **F8 — `pekuloColors` was a structural fork of the SSOT** (Aria; violates `feedback_ssot_ux_preview` "subset OK, fork no"). Fix: full re-port to align 1:1 with `docs/ux-preview/src/tokens/colors.ts`. New structure: `surface.{bg,card,elevated,muted,overlay}`, `perf.{gain,gainSoft,loss,lossSoft,neutral}`, `dataBlue`, `warning`. Theme files keep ergonomic aliases (`$accent` / `$success` → `perf.gain`, `$danger` → `perf.loss`, `$info` → `dataBlue`) and add new SSOT-aligned keys (`$perfGain`, `$perfGainSoft`, `$perfLoss`, `$perfLossSoft`, `$perfNeutral`, `$dataBlue`, `$backgroundOverlay`).
+- **F9 — `#FBBF24` warning amber invented** in pekulo TS mirror with no SSOT origin (Aria). Fix: added `--warning` to `docs/ux-preview/src/index.css` (`:root` + `.light` + `@theme inline`) AND `docs/ux-preview/src/tokens/colors.ts`, then re-mirrored to `packages/ui/src/tokens/colors.ts`. Documented in file headers as a Pekulo extension (NOT a TR primitive — used only by `PekuloSuggestionRow` for LLM-confidence labels < 75 %).
+
+#### Resolved — Stage 2 (LOW)
+
+- **F10 — `auth-form.tsx` echoed raw Supabase `error.message`** for non-credential errors (Marcus; minor info-disclosure). Fix: collapsed unknown errors to generic `"Connexion impossible. Réessaie plus tard."`
+- **F11 — `PekuloEmptyState` icon rendered without `aria-hidden`** (Marcus). Fix: extended `LucideIcon` type, passed `aria-hidden={true}` (icon decorative; title text conveys meaning).
+- **F12 — `defaultTheme="pekulo-dark"` duplicated** on NextThemeProvider + TamaguiProvider (Lucas). Fix: kept duplication with explanatory comment (TamaguiProvider TS contract requires `defaultTheme` — both held in lock-step until light is registered).
+- **F13 — `pekuloFontWeights.light = "300"` declared but Geist 300 not bundled** (Aria). Fix: removed dead token + updated header comment.
+- **F14 — `useCountUp` rAF cleanup branch uncovered by tests** (Marcus backlog). Fix: added vitest spy test asserting `cancelAnimationFrame(lastFrameId)` on unmount.
+
+#### Resolved — F15 (added during fix cycle on user request)
+
+- **Coverage gate** — `@vitest/coverage-v8` installed in `@pekulo/ui` devDeps. `vitest.config.ts` thresholds: lines/functions/statements 70 %, branches 60 %. New script `bun --filter='@pekulo/ui' run test:coverage`. `coverage/` added to root `.gitignore`. Current coverage: **92.81 % lines / 93.1 % branches / 89.09 % functions / 92.81 % statements** (well above thresholds).
+
+#### Dismissed
+
+- **[LOW]** Rex — `git-audit.sh` parser limitation on bracket-glob expansion in story File List (script tooling, not story scope). Rationale: tracked as backlog improvement to `.aped/aped-review/scripts/git-audit.sh`; manual cross-check confirmed the File List globs hydrate to actual files on disk.
+
+### Verification (fresh evidence — captured this session)
+
+| Command | Result |
+|---|---|
+| `bun run typecheck` | **exit 0** (8 packages, FULL TURBO cache hit on 6) |
+| `bun run lint` | **exit 0**, 9 warnings (hors-scope: pre-existing in `apps/api/src/platform/observability/otel-sdk.ts`, `apps/web/src/instrumentation.node.ts`, `apps/web/src/lib/actions/portfolio.ts`) |
+| `bash scripts/check-no-tailwind.sh` | **exit 0** → `apps/web is @pekulo/ui-only ✓` (with new AC-1(f) check #5) |
+| `bun --filter='@pekulo/ui' run test:visual` | **exit 0**, 52 files / 81 inline snapshots (vs 41 / 68 pre-fix; +11 components × ~1.2 variants) |
+| `bun --filter='@pekulo/ui' run test:axe` | **exit 0**, 52 files / 64 tests, **zéro `impact: serious` ou `critical` violation** |
+| `bun --filter='@pekulo/ui' run test:coverage` | **exit 0**, 92.81 % / 93.1 % / 89.09 % / 92.81 % (gate: 70/60/70/70) |
+
+**Visual review:** deferred — React Grab MCP unavailable at 2026-05-07T00:00:00Z (Aria fell back to static code review + design-spec cross-reference; documented in Aria report).
+
+### Ticket sync
+
+- Ticket comment posted on issue #10
+- PR #69 body / comments updated with Review Record reference

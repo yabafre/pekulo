@@ -5,21 +5,11 @@
 // Status determines delta color: gain (early/on-track) / loss (late) / neutral.
 
 import { Text, View } from "tamagui";
+import type { Milestone, MilestoneStatus } from "@pekulo/types";
 import { PekuloDonut } from "./PekuloDonut";
 
-export type MilestoneStatus = "ahead" | "on-track" | "behind";
-
-export interface PekuloMilestone {
-  label: string;
-  targetEur: number;
-  targetYear: number;
-  progressPct: number;
-  deltaEur: number;
-  status: MilestoneStatus;
-}
-
 export interface PekuloMilestoneRowProps {
-  milestone: PekuloMilestone;
+  milestone: Milestone;
 }
 
 const eur0 = new Intl.NumberFormat("fr-FR", {

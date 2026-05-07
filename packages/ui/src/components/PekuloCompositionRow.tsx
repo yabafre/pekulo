@@ -1,14 +1,10 @@
 "use client";
 
 import { Text, View } from "tamagui";
+import type { CompositionItem } from "@pekulo/types";
 import { PekuloDonut } from "./PekuloDonut";
 
-export interface PekuloCompositionRowProps {
-  label: string;
-  amount: number;
-  pct: number;
-  sub?: string;
-}
+export type PekuloCompositionRowProps = CompositionItem;
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -18,7 +14,7 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 
 export function PekuloCompositionRow({ label, amount, pct, sub }: PekuloCompositionRowProps) {
   return (
-    <View flexDirection="row" alignItems="center" gap="$3" paddingVertical={10}>
+    <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
       <PekuloDonut pct={pct} size={28} stroke={3} />
       <View flex={1}>
         <Text color="$color" fontSize="$bodySm" fontWeight="500">

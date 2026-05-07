@@ -12,7 +12,8 @@ function Track(props: ComponentProps<typeof TamaSlider.Track>) {
 }
 
 function TrackActive(props: ComponentProps<typeof TamaSlider.TrackActive>) {
-  return <TamaSlider.TrackActive backgroundColor="$accent" {...props} />;
+  // TR-strict — control chrome stays white; emerald reserved for ± deltas.
+  return <TamaSlider.TrackActive backgroundColor="$color" {...props} />;
 }
 
 function Thumb(props: ComponentProps<typeof TamaSlider.Thumb>) {

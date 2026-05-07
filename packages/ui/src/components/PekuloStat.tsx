@@ -1,11 +1,12 @@
 "use client";
 
 import { Text, View } from "tamagui";
+import type { StatTone } from "@pekulo/types";
 
 export interface PekuloStatProps {
   label: string;
   value: string;
-  tone?: "gain" | "loss";
+  tone?: StatTone;
 }
 
 export function PekuloStat({ label, value, tone }: PekuloStatProps) {

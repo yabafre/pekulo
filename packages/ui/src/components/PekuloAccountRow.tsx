@@ -1,22 +1,18 @@
 "use client";
 
 import { Text, View } from "tamagui";
+import type { Account, AccountType } from "@pekulo/types";
 
-export type PekuloAccountType = "livret" | "pea" | "cto" | "av" | "autre";
-
-export interface PekuloAccountRowProps {
-  label: string;
-  type: PekuloAccountType;
-  institution?: string;
-  balanceEur: number;
-}
+// Component props — re-export the domain shape (architecture L366: domain
+// types live in @pekulo/types, not inlined per component).
+export type PekuloAccountRowProps = Account;
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
   maximumFractionDigits: 0,
 });
-const TYPE_LABEL: Record<PekuloAccountType, string> = {
+const TYPE_LABEL: Record<AccountType, string> = {
   livret: "Livret",
   pea: "PEA",
   cto: "CTO",

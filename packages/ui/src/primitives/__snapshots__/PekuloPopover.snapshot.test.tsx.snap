@@ -1,3 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`PekuloPopover snapshot > renders open content 1`] = `"<span class="_dsp_contents  font_body"><button aria-expanded="false" data-state="closed" data-disable-theme="true" aria-haspopup="dialog" aria-controls="floating-0" class="is_View "><span class="is_Text _col-color">Open</span></button><div style="display: contents;"></div></span>"`;

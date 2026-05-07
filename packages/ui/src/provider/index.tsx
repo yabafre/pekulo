@@ -36,6 +36,10 @@ export function PekuloRootProvider({ children }: { children: ReactNode }) {
       defaultTheme="pekulo-dark"
       themes={["pekulo-light", "pekulo-dark"]}
     >
+      {/* TamaguiProvider's TS contract requires `defaultTheme` (matches
+          NextThemeProvider above). Both fall back to the same value at
+          runtime — kept in sync by hand for now. When light is registered
+          the value will flip in lock-step. */}
       <TamaguiProvider
         config={config}
         defaultTheme="pekulo-dark"

@@ -3,7 +3,7 @@
 import type { ComponentType } from "react";
 import { Text, View, styled } from "tamagui";
 
-type LucideIcon = ComponentType<{ size?: number; color?: string }>;
+type LucideIcon = ComponentType<{ size?: number; color?: string; "aria-hidden"?: boolean }>;
 
 export interface PekuloEmptyStateProps {
   icon: LucideIcon;
@@ -46,7 +46,8 @@ export function PekuloEmptyState({
         alignItems="center"
         justifyContent="center"
       >
-        <Icon size={24} color="var(--colorSecondary)" />
+        {/* Decorative — title text already conveys the meaning. */}
+        <Icon size={24} color="var(--colorSecondary)" aria-hidden={true} />
       </View>
       <Text color="$color" fontSize="$h3" fontWeight="600">
         {title}

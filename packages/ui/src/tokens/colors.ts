@@ -1,27 +1,37 @@
 // packages/ui/src/tokens/colors.ts
-// Pekulo design tokens — TR-strict (Trade Republic fidelity layer). Mirrors
-// docs/ux-preview/src/index.css (the runtime SSOT for ux-preview) and
-// docs/ux-preview/src/tokens/colors.ts (the typed TS mirror).
+// Pekulo design tokens — TR-strict (Trade Republic fidelity layer). 1:1 port
+// of `docs/ux-preview/src/index.css` (the runtime SSOT) and
+// `docs/ux-preview/src/tokens/colors.ts` (the typed TS mirror).
 //
-// Discipline contract (memory feedback_trade_republic_fidelity):
-//   - Background = pure #000 in dark, pure #FFF in light
-//   - Cards = barely darker than bg (no borders, no decoration)
-//   - Chrome (focus, neutral text) = grayscale only
-//   - Color (emerald/red) = reserved for performance deltas ONLY
+// Discipline contract (memory feedback_trade_republic_fidelity +
+// feedback_ssot_ux_preview "subset OK, fork no"):
+//   - Background = pure #000 in dark, pure #FFF in light.
+//   - Cards barely darker than bg, NO borders.
+//   - Chrome (focus, neutral text) = grayscale only.
+//   - Color (gain/loss/data-blue) reserved for performance deltas + the
+//     analytics-donut indicator. NEVER body text.
+//   - `warning` is a documented Pekulo extension (LLM-confidence labels);
+//     lives in the SSOT first, mirrored here second.
 //
 // Pure data — no React, no Tamagui imports — so contrast tests, the Tamagui
 // config, and consumer code can all consume this file.
 
 export const pekuloColors = {
   dark: {
-    surface: { bg: "#000000", card: "#0a0a0a", elevated: "#121212", muted: "#161616" },
+    surface: {
+      bg: "#000000",
+      card: "#0a0a0a",
+      elevated: "#121212",
+      muted: "#161616",
+      overlay: "rgba(0, 0, 0, 0.82)",
+    },
     text: {
       primary: "#ededed",
       secondary: "#a1a1a1",
       tertiary: "#707070",
       muted: "#4d4d4d",
-      // onAccent — text color on a gain (#00d26a) surface. TR doesn't put text
-      // on emerald, but Tamagui's theme slot needs a value. #000 = max contrast.
+      // onAccent — text on a gain-colored surface. TR doesn't put text on
+      // emerald, but Tamagui's theme-slot needs a value. Black = max contrast.
       onAccent: "#000000",
     },
     border: {
@@ -29,14 +39,20 @@ export const pekuloColors = {
       strong: "rgba(255, 255, 255, 0.16)",
       focus: "#ededed",
     },
-    accent: { 500: "#00d26a", 400: "#00d26a" },
-    semantic: {
-      success: "#00d26a",
-      warning: "#FBBF24",
-      danger: "#ff5c5c",
-      info: "#2f73ff",
+    // Performance deltas — the ONLY chromatic accents in TR-strict UI.
+    perf: {
+      gain: "#00d26a",
+      gainSoft: "rgba(0, 210, 106, 0.12)",
+      loss: "#ff5c5c",
+      lossSoft: "rgba(255, 92, 92, 0.12)",
+      neutral: "#b3b3b3",
     },
-    // chart series — strict grayscale + 1 white actual line
+    // Single tiny data-indicator blue — TR's analytics-donut exception.
+    dataBlue: "#2f73ff",
+    // Pekulo extension (NOT a TR primitive) — amber for LLM-confidence
+    // labels under 75 %. See `docs/ux-preview/src/index.css#--warning`.
+    warning: "#fbbf24",
+    // Strict grayscale + 1 white actual line.
     chart: {
       actual: "#ffffff",
       plan: "rgba(255, 255, 255, 0.32)",
@@ -46,7 +62,13 @@ export const pekuloColors = {
     donut: { track: "rgba(255, 255, 255, 0.08)", fill: "#ffffff" },
   },
   light: {
-    surface: { bg: "#ffffff", card: "#fafafa", elevated: "#ffffff", muted: "#f2f2f2" },
+    surface: {
+      bg: "#ffffff",
+      card: "#fafafa",
+      elevated: "#ffffff",
+      muted: "#f2f2f2",
+      overlay: "rgba(255, 255, 255, 0.78)",
+    },
     text: {
       primary: "#0a0a0a",
       secondary: "#404040",
@@ -59,13 +81,15 @@ export const pekuloColors = {
       strong: "rgba(0, 0, 0, 0.14)",
       focus: "#0a0a0a",
     },
-    accent: { 500: "#00a852", 600: "#00a852" },
-    semantic: {
-      success: "#00a852",
-      warning: "#D97706",
-      danger: "#dc2626",
-      info: "#2f73ff",
+    perf: {
+      gain: "#00a852",
+      gainSoft: "rgba(0, 168, 82, 0.10)",
+      loss: "#dc2626",
+      lossSoft: "rgba(220, 38, 38, 0.08)",
+      neutral: "#525252",
     },
+    dataBlue: "#2f73ff",
+    warning: "#d97706",
     chart: {
       actual: "#0a0a0a",
       plan: "rgba(10, 10, 10, 0.32)",

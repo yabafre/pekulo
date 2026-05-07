@@ -15,6 +15,9 @@ function Trigger({
     <TamaSelect.Trigger
       backgroundColor="$backgroundMuted"
       borderRadius="$md"
+      // Tamagui's Select.Trigger inherits ListItem default which leaks a
+      // 1px hairline border. TR-strict requires zero card borders.
+      borderWidth={0}
       paddingHorizontal="$3"
       paddingVertical={10}
       gap="$2"

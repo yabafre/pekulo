@@ -17,7 +17,7 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 
 export function PekuloClassRow({ label, amountEur, pct }: PekuloClassRowProps) {
   return (
-    <View flexDirection="row" alignItems="center" gap="$3" paddingVertical={10}>
+    <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
       <PekuloDonut pct={pct} size={28} stroke={3} />
       <Text color="$color" fontSize="$bodySm" fontWeight="500" flex={1}>
         {label}

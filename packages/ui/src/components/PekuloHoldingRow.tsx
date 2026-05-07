@@ -1,20 +1,7 @@
 "use client";
 
 import { Text, View } from "tamagui";
-
-export type PekuloHoldingKind = "etf" | "action" | "crypto" | "autre";
-
-export interface PekuloHolding {
-  ticker: string;
-  label: string;
-  account: string;
-  kind: PekuloHoldingKind;
-  quantity: number;
-  pricePerUnit: number;
-  marketValueEur: number;
-  pnlEur: number;
-  pnlPct: number;
-}
+import type { Holding, HoldingKind } from "@pekulo/types";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -26,7 +13,7 @@ const eur2 = new Intl.NumberFormat("fr-FR", {
   currency: "EUR",
   maximumFractionDigits: 2,
 });
-const KIND_LABEL: Record<PekuloHoldingKind, string> = {
+const KIND_LABEL: Record<HoldingKind, string> = {
   etf: "ETF",
   action: "Action",
   crypto: "Crypto",
@@ -34,7 +21,7 @@ const KIND_LABEL: Record<PekuloHoldingKind, string> = {
 };
 
 export interface PekuloHoldingRowProps {
-  holding: PekuloHolding;
+  holding: Holding;
 }
 
 export function PekuloHoldingRow({ holding }: PekuloHoldingRowProps) {

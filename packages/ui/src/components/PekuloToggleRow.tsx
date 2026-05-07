@@ -26,7 +26,9 @@ const Switch = styled(View, {
   },
   variants: {
     checked: {
-      true: { backgroundColor: "$accent" },
+      // TR-strict — chrome stays white. Reserve `$accent` (perf.gain) for
+      // ± monetary deltas only.
+      true: { backgroundColor: "$color" },
       false: { backgroundColor: "$backgroundMuted" },
     },
     disabled: { true: { opacity: 0.5, cursor: "not-allowed" } },
@@ -38,7 +40,9 @@ const Knob = styled(View, {
   width: 22,
   height: 22,
   borderRadius: "$full",
-  backgroundColor: "$colorOnAccent",
+  // Knob sits on top of the white track — needs the inverse (background bg
+  // = #000 in dark) so it stays visible.
+  backgroundColor: "$background",
   position: "absolute",
   top: 2,
 });

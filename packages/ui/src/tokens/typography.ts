@@ -1,6 +1,7 @@
 // packages/ui/src/tokens/typography.ts
 // Pekulo type scale — port from docs/ux/design-spec.md § 2.2.
-// Geist + Geist Mono ; weights 300/400/500/600/700.
+// Geist + Geist Mono ; weights 400/500/600/700 (no light at V1 — Geist 300
+// is not bundled).
 
 export const pekuloFonts = {
   sans: "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
@@ -22,7 +23,6 @@ export const pekuloFontSizes = {
 } as const;
 
 export const pekuloFontWeights = {
-  light: "300",
   regular: "400",
   medium: "500",
   semibold: "600",
