@@ -19,7 +19,7 @@
 
 ## Acceptance Criteria
 
-- **AC-1 (gitleaks blocks secrets):** **Given** a staged file containing a fake AWS access key matching the literal pattern `AKIAIOSFODNN7EXAMPLE`, **When** I run `git commit -m "leak test"`, **Then** the lefthook `gitleaks` hook exits non-zero, the commit is aborted, and the captured output names the rule (`aws-access-token`) and the file path.
+- **AC-1 (gitleaks blocks secrets):** **Given** a staged file containing a fake AWS access key shaped like the AWS pattern (`AKIA` + 16 base32 chars; fixture: `AKIAQYLPMN5HCQGZWXYZ` — chosen to avoid gitleaks' built-in `EXAMPLE` stopword that auto-allowlists the AWS docs canonical key `AKIAIOSFODNN7EXAMPLE`), **When** I run `git commit -m "leak test"`, **Then** the lefthook `gitleaks` hook exits non-zero, the commit is aborted, and the captured output names the rule (`aws-access-token`) and the file path.
 
 - **AC-2 (prisma format auto-rewrites staged schema):** **Given** an unformatted Prisma schema file (extra blank lines, unaligned attribute columns) is staged via `git add`, **When** I run `git commit -m "fmt test"`, **Then** the `prisma format` hook rewrites the file in place, lefthook re-stages the modified schema file, and the resulting commit contains the canonically-formatted version (verifiable: the post-commit blob equals the output of `prisma format` run on a clean tree).
 
@@ -397,20 +397,21 @@ gitleaks detect --config=.gitleaks.toml --no-banner --no-git --source=docs --red
 
 Expected output: `gitleaks` parses the config (no `Failed to parse` error), scans `docs/`, prints a summary line with `0 leaks found` (or any non-zero count if a real leak surfaces — in which case STOP and surface to the user). Exit code 0.
 
-**3c. AC-1 leak-blocking smoke-test:**
+**3c. AC-1 leak-blocking smoke-test (using a stopword-clean fake key):**
 
 ```bash
-echo 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE' > /tmp/leak-test.txt
-git add /tmp/leak-test.txt 2>/dev/null || true
-mkdir -p /tmp/leak-fixture && cp /tmp/leak-test.txt /tmp/leak-fixture/.env.leak
-gitleaks detect --config=.gitleaks.toml --no-banner --no-git --source=/tmp/leak-fixture --redact --verbose
+FIXDIR=$(mktemp -d -t pekulo-leak)
+echo 'AWS_ACCESS_KEY_ID=AKIAQYLPMN5HCQGZWXYZ' > "$FIXDIR/.env.leak"
+gitleaks detect --config=.gitleaks.toml --no-banner --no-git --source="$FIXDIR" --redact >/dev/null 2>&1
 LEAK_EXIT=$?
 echo "AC-1 leak detection exit code: $LEAK_EXIT"
 [ $LEAK_EXIT -ne 0 ] && echo "AC-1 PASS (leak detected)" || echo "AC-1 FAIL (leak missed)"
-rm -rf /tmp/leak-fixture /tmp/leak-test.txt
+rm -rf "$FIXDIR"
 ```
 
 Expected output: `aws-access-token` rule firing on the fake key; `AC-1 leak detection exit code: 1`; `AC-1 PASS (leak detected)`.
+
+> The literal AWS docs canonical example `AKIAIOSFODNN7EXAMPLE` is auto-allowlisted by gitleaks' built-in stopword list (the `EXAMPLE` substring filters obvious doc keys). We use `AKIAQYLPMN5HCQGZWXYZ` — same shape (`AKIA` + 16 base32 chars), no stopword — so the rule actually fires.
 
 > Note: this verification uses `--no-git` against a tmp directory because `gitleaks git --pre-commit` requires actually staging via git, which Task 6 covers end-to-end. AC-1's gate-via-lefthook will be re-verified in Task 6.
 
@@ -530,7 +531,7 @@ Run each verification block and confirm the expected output before pasting the c
 
 ```bash
 echo "===== AC-1: gitleaks blocks staged secret ====="
-echo 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE' > leak-fixture.env
+echo 'AWS_ACCESS_KEY_ID=AKIAQYLPMN5HCQGZWXYZ' > leak-fixture.env
 git add leak-fixture.env
 git commit -m "leak test (should be blocked)" 2>&1 | tee /tmp/ac1.log
 COMMIT_EXIT=${PIPESTATUS[0]}
@@ -544,6 +545,8 @@ else
   exit 1
 fi
 ```
+
+> Stopword note: the fake key is `AKIAQYLPMN5HCQGZWXYZ`, NOT the AWS docs canonical `AKIAIOSFODNN7EXAMPLE` — the latter is in gitleaks' built-in stopword list (`EXAMPLE`) and is silently allowlisted. AC-1 still tests the same rule (`aws-access-token`) on the same shape.
 
 Expected output: `AC-1 PASS (commit blocked, gitleaks rule fired)`.
 
