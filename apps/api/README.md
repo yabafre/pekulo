@@ -202,3 +202,5 @@ LEFTHOOK=0 git commit -m "wip: ..."
 ```
 
 Use only when the dev machine cannot run gitleaks / lefthook. NEVER push a commit that bypassed gitleaks without re-running `gitleaks detect --source . --redact` first.
+
+`git commit --no-verify` is the git-native equivalent — it also skips lefthook (and therefore gitleaks). Same caveat applies: re-run `gitleaks detect --source . --redact` before pushing.

@@ -284,7 +284,7 @@ Expected output: `bun install` exits 0; `bun.lock` contains an entry for `leftho
 **1d. Verify auto-install (this is the AC-4 gate):**
 
 ```bash
-test -f .git/hooks/pre-commit && head -5 .git/hooks/pre-commit | grep -q lefthook \
+test -f .git/hooks/pre-commit && grep -q lefthook .git/hooks/pre-commit \
   && echo "AC-4 PASS" || echo "AC-4 FAIL"
 ```
 
@@ -615,7 +615,7 @@ Expected output: `AC-3 PASS (sibling unchanged on disk)`.
 echo "===== AC-4: prepare → lefthook install ====="
 rm -f .git/hooks/pre-commit
 bun install >/dev/null 2>&1
-if [ -f .git/hooks/pre-commit ] && head -5 .git/hooks/pre-commit | grep -q lefthook; then
+if [ -f .git/hooks/pre-commit ] && grep -q lefthook .git/hooks/pre-commit; then
   echo "AC-4 PASS"
 else
   echo "AC-4 FAIL"
@@ -689,7 +689,7 @@ All 5 acceptance criteria verified end-to-end through the live lefthook hook:
 ### File List
 
 - `package.json` (M) — added `lefthook@2.1.6` exact-pin devDep + `prepare: "lefthook install"` script
-- `bun.lock` (M) — registered lefthook 2.1.6 + 9 platform-binary optional deps
+- `bun.lock` (M) — registered lefthook 2.1.6 + 10 platform-binary optional deps (darwin-arm64/x64, linux-arm64/x64, freebsd-arm64/x64, openbsd-arm64/x64, windows-arm64/x64)
 - `lefthook.yml` (A) — 4 pre-commit commands: gitleaks → oxlint → oxfmt → prisma_format (sequential, fail_text on gitleaks)
 - `.gitleaks.toml` (A) — `[extend] useDefault = true` + Pekulo `[allowlist] paths` (4 entries: `.example`, supabase linked-project, `docs/*.md`, `bun.lock`)
 - `apps/web/README.md` (M) — appended `## Pre-commit hooks` onboarding section
