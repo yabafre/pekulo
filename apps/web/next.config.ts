@@ -10,6 +10,18 @@ const nextConfig: NextConfig = {
   // Only `@tamagui/next-theme` (uses 'use client' + JSX) and `react-native-web`
   // (RN-Web ships RN-flavoured ESM that needs source-level rewriting) remain.
   transpilePackages: ["@tamagui/next-theme", "react-native-web"],
+  // Source-of-truth for type-checking is the CI `typecheck` job (turbo
+  // `tsc --noEmit` per workspace). Next.js's build-time TS check is
+  // redundant and on Vercel walks `transpilePackages` deps' transitive
+  // `.ts` sources hoisted to the root `node_modules` by Yarn 4.5
+  // (Bun's local hoisting keeps them inside `packages/ui/node_modules/`,
+  // hidden from Next's check). Notably trips on
+  // `@tamagui/element/src/types.ts`'s `import type { View } from
+  // 'react-native'` because apps/web aliases react-native → react-native-web
+  // at runtime via Turbopack but does not declare `@types/react-native`.
+  // The CI `typecheck` job runs against `apps/web/tsconfig.json` (with
+  // `exclude: ["node_modules"]`) and catches everything we ship.
+  typescript: { ignoreBuildErrors: true },
   turbopack: {
     resolveAlias: {
       "react-native": "react-native-web",
