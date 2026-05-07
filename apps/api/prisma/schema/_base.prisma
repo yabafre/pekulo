@@ -13,5 +13,3 @@ generator client {
   provider = "prisma-client-js"
   output   = "../../generated/prisma"
 }
-
-// trailing-noise
