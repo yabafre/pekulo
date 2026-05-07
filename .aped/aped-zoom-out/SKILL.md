@@ -9,8 +9,10 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.1
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Zoom Out — Step Back
 
@@ -26,7 +28,7 @@ This skill produces no artefact. Its only output is the agent's re-orientation m
 - **Drift, if any:** divergence between the two, with file/decision pointers.
 - **Recommendation:** continue / re-anchor / stop and re-PRD.
 
-Use this when you sense the implementation has been deep in details too long and the original framing is fading. Adapted from Matt Pocock's `zoom-out` skill (MIT) — APED preserves the original 2-sentence brevity philosophy.
+Use this when you sense the implementation has been deep in details too long and the original framing is fading. Keep the answer to two sentences — brevity is the whole point.
 
 ## No State Change
 

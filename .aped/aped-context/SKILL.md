@@ -9,8 +9,10 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.1
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Context — Brownfield Project Analysis
 
@@ -95,7 +97,7 @@ Surface the classification in the discovery report and in `project-context.md`'s
 
 > ⚠ `docs/requirements.md` is **stale** (last edited 2025-09-12; latest commit on `src/auth/` is 2026-03-17). Treat as historical context, not authoritative spec. Re-run `aped-prd` if a fresh requirement is needed.
 
-When a downstream skill (`aped-analyze`, `aped-prd`, `aped-arch`) tries to load a doc marked `stale` from `project-context.md`, it must ask the user whether to (a) refresh the doc first, (b) use it as historical context only, or (c) override and treat as authoritative. Refs: Pocock workshop L2167 ("a month later, … the actual code has changed so much from the original PRD that it's almost unrecognizable").
+When a downstream skill (`aped-analyze`, `aped-prd`, `aped-arch`) tries to load a doc marked `stale` from `project-context.md`, it must ask the user whether to (a) refresh the doc first, (b) use it as historical context only, or (c) override and treat as authoritative. The reasoning: a month later, the actual code has often changed enough that the original PRD becomes unrecognizable.
 
 ## Self-review (run before user gate)
 

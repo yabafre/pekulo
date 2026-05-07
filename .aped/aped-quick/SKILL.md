@@ -9,8 +9,10 @@ argument-hint: "<title> [fix|feature|refactor]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.1
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Quick — Fast Track for Small Changes
 
@@ -131,6 +133,7 @@ Quick checklist — no full adversarial review. Each `[x]` requires fresh eviden
 
 Read `ticket_system` and `git_provider` from config.
 Read `.aped/aped-dev/references/ticket-git-workflow.md` for full guide.
+Read `.aped/aped-skills/writing-discipline.md` before drafting commit / PR / ticket comment text — short, sharp, slightly human; the diff proves the work, prose adds the *why*.
 
 1. **Branch**: create `fix/{ticket-id}-{slug}` or `feature/{ticket-id}-{slug}`
 2. **Commits**: `type({ticket-id}): description` — include magic words per ticket provider
@@ -138,7 +141,7 @@ Read `.aped/aped-dev/references/ticket-git-workflow.md` for full guide.
    - `github`: `gh pr create --title "fix({ticket-id}): description" --body "Fixes {ticket-id}"`
    - `gitlab`: `glab mr create --title "fix({ticket-id}): description" --description "Closes {ticket-id}"`
    - `bitbucket`: push branch, create PR via web
-4. **Ticket**: move to Done after merge
+4. **Ticket**: move to Done after merge — short comment + link to the merged PR, don't re-narrate the work in the ticket
 
 ## Output
 

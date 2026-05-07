@@ -210,20 +210,113 @@ self_heal_corrections_pointer() {
 }
 self_heal_corrections_pointer
 
-case "$schema_version" in
-  1)
-    # Sub-case: if there's nothing to migrate (no corrections block at all),
-    # we still bump schema + write the pointer + count=0 so subsequent calls
-    # are no-ops. This keeps the validate-state.sh contract uniform.
-    migrate_v1_to_v2
-    exit $?
-    ;;
-  2)
-    # Already on v2 — idempotent no-op (after self-heal above).
-    exit 0
-    ;;
-  *)
-    echo "ERROR: unsupported schema_version $schema_version; upgrade aped-method (\`npm i -g aped-method@latest\`) and retry." >&2
-    exit 1
-    ;;
-esac
+migrate_v2_to_v3() {
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "ERROR: v2 → v3 migration requires \`yq\` to manipulate YAML structurally. Install yq (\`brew install yq\` or \`npm i -g yq\`) and re-run \`aped-method --update\`." >&2
+    return 3
+  fi
+
+  local cfg=""
+  for candidate in "$APED_DIR_ABS/config.yaml" "$PROJECT_ROOT/.aped/config.yaml"; do
+    if [[ -f "$candidate" ]]; then cfg="$candidate"; break; fi
+  done
+  if [[ -z "$cfg" ]]; then
+    echo "ERROR: v2 → v3 migration requires config.yaml under $APED_DIR_ABS/. Re-run \`aped-method --update\` to scaffold the missing config first." >&2
+    return 4
+  fi
+
+  local backup="$PROJECT_ROOT/docs/state.yaml.pre-v3-migration.bak"
+  echo "Migrating state.yaml schema 2 → 3 (extracting sprint.parallel_limit / sprint.review_limit to config.yaml)..." >&2
+
+  # 1. Backup before any mutation.
+  if ! cp -f "$STATE_FILE" "$backup"; then
+    echo "ERROR: failed to write backup at $backup — aborting migration." >&2
+    return 1
+  fi
+
+  # 2. Read existing values from state.yaml; default to 3/2 if absent
+  # (matches the historical seeded defaults from config.js).
+  local parallel_limit review_limit
+  parallel_limit=$(yq eval '.sprint.parallel_limit // 3' "$STATE_FILE" 2>/dev/null || echo 3)
+  review_limit=$(yq eval '.sprint.review_limit // 2' "$STATE_FILE" 2>/dev/null || echo 2)
+
+  # 3. Write to config.yaml under sprint:. Only overwrite if the keys are
+  # missing OR still match the historical defaults; if the user already
+  # set custom values in config.yaml we trust those and only delete the
+  # state.yaml duplicates.
+  local cfg_tmp
+  cfg_tmp=$(mktemp "$(dirname "$cfg")/.config.XXXXXX")
+  cp -f "$cfg" "$cfg_tmp"
+  local cfg_pl cfg_rl
+  cfg_pl=$(yq eval '.sprint.parallel_limit // ""' "$cfg_tmp" 2>/dev/null || echo "")
+  cfg_rl=$(yq eval '.sprint.review_limit // ""' "$cfg_tmp" 2>/dev/null || echo "")
+  if [[ -z "$cfg_pl" || "$cfg_pl" == "null" ]]; then
+    yq eval -i ".sprint.parallel_limit = $parallel_limit" "$cfg_tmp"
+  fi
+  if [[ -z "$cfg_rl" || "$cfg_rl" == "null" ]]; then
+    yq eval -i ".sprint.review_limit = $review_limit" "$cfg_tmp"
+  fi
+  # Seed the new defaults if absent so downstream readers can rely on them.
+  if [[ "$(yq eval '.sprint.push_umbrella_on_create // ""' "$cfg_tmp" 2>/dev/null || echo "")" == "" ]]; then
+    yq eval -i '.sprint.push_umbrella_on_create = true' "$cfg_tmp"
+  fi
+  if [[ "$(yq eval '.sprint.merge_poll_timeout_seconds // ""' "$cfg_tmp" 2>/dev/null || echo "")" == "" ]]; then
+    yq eval -i '.sprint.merge_poll_timeout_seconds = 120' "$cfg_tmp"
+  fi
+  if [[ "$(yq eval '.review.parallel_reviewers // ""' "$cfg_tmp" 2>/dev/null || echo "")" == "" ]]; then
+    yq eval -i '.review.parallel_reviewers = false' "$cfg_tmp"
+  fi
+  if [[ "$(yq eval '.base_branch // ""' "$cfg_tmp" 2>/dev/null || echo "")" == "" ]]; then
+    yq eval -i '.base_branch = "main"' "$cfg_tmp"
+  fi
+
+  if ! yq eval 'true' "$cfg_tmp" >/dev/null 2>&1; then
+    echo "ERROR: produced config.yaml is not valid YAML. State unchanged. Backup at $backup; produced file at $cfg_tmp." >&2
+    return 1
+  fi
+  mv -f "$cfg_tmp" "$cfg"
+
+  # 4. Mutate state.yaml: remove sprint.parallel_limit/review_limit, bump schema.
+  local state_tmp
+  state_tmp=$(mktemp "$(dirname "$STATE_FILE")/.state.XXXXXX")
+  cp -f "$STATE_FILE" "$state_tmp"
+  yq eval -i '
+    del(.sprint.parallel_limit) |
+    del(.sprint.review_limit) |
+    .schema_version = 3
+  ' "$state_tmp"
+
+  if ! yq eval 'true' "$state_tmp" >/dev/null 2>&1; then
+    echo "ERROR: produced state.yaml is not valid YAML. State unchanged. Backup at $backup; produced file at $state_tmp." >&2
+    return 1
+  fi
+  mv -f "$state_tmp" "$STATE_FILE"
+
+  echo "Migration complete. parallel_limit=$parallel_limit, review_limit=$review_limit moved to config.yaml. Backup at $backup." >&2
+  return 0
+}
+
+# Chain migrations so a single run brings legacy 3.x scaffolds all the way
+# up to the latest schema. Avoid bash-4-only `;;&` fall-through: we use a
+# while loop that re-reads schema_version after each step. Each migrator is
+# idempotent on its target version so re-entry is safe.
+while true; do
+  case "$schema_version" in
+    1)
+      migrate_v1_to_v2 || exit $?
+      schema_version=2
+      ;;
+    2)
+      migrate_v2_to_v3 || exit $?
+      schema_version=3
+      ;;
+    3)
+      # Reached the head of the migration chain.
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unsupported schema_version $schema_version; upgrade aped-method (\`npm i -g aped-method@latest\`) and retry." >&2
+      exit 1
+      ;;
+  esac
+done

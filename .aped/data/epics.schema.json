@@ -1,0 +1,14 @@
+{
+  "artefact_name": "epics",
+  "description": "APED epics breakdown — produced by aped-epics, consumed by aped-story.",
+  "version": 1,
+  "_note": "top_level intentionally omitted: '## Epic 1: ...', '## Epic 2: ...' headings vary in count per project. Only '## FR Coverage Map' is universally required. Pattern-matching for '^Epic [0-9]+:' deferred to 6.4.0 (DSL field heading_pattern).",
+  "sections": [
+    {
+      "heading": "FR Coverage Map",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": false
+    }
+  ]
+}

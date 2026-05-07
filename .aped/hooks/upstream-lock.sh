@@ -60,16 +60,8 @@ esac
 # No state.yaml → no sprint → allow.
 [[ -f "$STATE_FILE" ]] || exit 0
 
-# Any story in-progress? Scope to the `sprint:` subtree so a phase-level
-# `pipeline.phases.*.status: in-progress` (e.g. aped-arch in flight) does not
-# false-positive as a sprint story being worked on.
-SPRINT_HAS_IN_PROGRESS=$(awk '
-  /^sprint:[[:space:]]*$/ { in_sprint = 1; next }
-  /^[A-Za-z]/             { in_sprint = 0 }
-  in_sprint && /status:[[:space:]]*"?in-progress"?/ { print "1"; exit }
-' "$STATE_FILE" 2>/dev/null)
-
-if [[ -z "${SPRINT_HAS_IN_PROGRESS:-}" ]]; then
+# Any story in-progress?
+if ! grep -q 'status:[[:space:]]*"*in-progress"*' "$STATE_FILE" 2>/dev/null; then
   exit 0
 fi
 

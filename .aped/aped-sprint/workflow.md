@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 
 # APED Sprint — Parallel Story Dispatch
 
@@ -18,7 +20,18 @@ Before any other action, read `.aped/config.yaml` and resolve:
 - Only run from the **main project root**. If `.aped/WORKTREE` exists in the current dir, HALT (you're inside a worktree, not the Lead).
 - Support `--plan-only`: if the user passes the flag, run Setup → DAG → Capacity Check → Story Proposal → present, then **STOP before any mutation** (no umbrella creation, no ticket sync, no dispatch, no state.yaml writes). Print every command that would have run, with its exact arguments. Use this when reviewing a sprint plan before committing to it, or for audit/replay purposes.
 - Exactly **one active epic** at a time. Refuse if `sprint.active_epic` is set to a different epic and that epic still has stories not `done`.
-- Respect `sprint.parallel_limit` and `sprint.review_limit` in state.yaml.
+- Respect `sprint.parallel_limit` and `sprint.review_limit`. **Schema v3 (6.1.0+) reads them from `.aped/config.yaml.sprint.*`; v2 scaffolds keep the legacy values under `state.yaml.sprint.*`.** Use the resolution snippet below — config.yaml wins, state.yaml is the v2 fallback, hardcoded defaults (`3` / `2`) are the last resort:
+
+  ```bash
+  PARALLEL_LIMIT=$(yq '.sprint.parallel_limit // ""' .aped/config.yaml)
+  if [[ -z "$PARALLEL_LIMIT" || "$PARALLEL_LIMIT" == "null" ]]; then
+    PARALLEL_LIMIT=$(yq '.sprint.parallel_limit // 3' docs/state.yaml)
+  fi
+  REVIEW_LIMIT=$(yq '.sprint.review_limit // ""' .aped/config.yaml)
+  if [[ -z "$REVIEW_LIMIT" || "$REVIEW_LIMIT" == "null" ]]; then
+    REVIEW_LIMIT=$(yq '.sprint.review_limit // 2' docs/state.yaml)
+  fi
+  ```
 - NEVER dispatch a story whose `depends_on` list contains a story not yet `done`.
 - NEVER auto-launch `aped-dev`. The Story Leader's first action in its worktree is always `aped-story <story-key>` — story files belong to the feature branch, never to main.
 - NEVER post the `story-ready` check-in from this skill. That is `aped-story`'s responsibility once the file is committed on the feature branch.
@@ -52,12 +65,17 @@ After `sprint.active_epic` is set:
 EPIC_N=$(yq '.sprint.active_epic' docs/state.yaml)
 UMBRELLA="sprint/epic-${EPIC_N}"
 BASE_BRANCH=$(yq '.base_branch // "main"' .aped/config.yaml)
+PUSH_UMBRELLA=$(yq '.sprint.push_umbrella_on_create // true' .aped/config.yaml)
 
-# Create the umbrella from the latest base if it doesn't exist locally
+# Create the umbrella from the latest base if it doesn't exist locally.
+# `push_umbrella_on_create: false` keeps the branch local until the user
+# decides to push (offline / branch-protected / solo workflows).
 if ! git rev-parse --verify "$UMBRELLA" >/dev/null 2>&1; then
   git fetch origin --quiet
   git branch "$UMBRELLA" "origin/${BASE_BRANCH}"
-  git push -u origin "$UMBRELLA"
+  if [[ "$PUSH_UMBRELLA" == "true" ]]; then
+    git push -u origin "$UMBRELLA"
+  fi
 fi
 
 # Record it in state.yaml so every other skill (review, lead, ship) reads

@@ -28,9 +28,11 @@ Verify the original repro no longer fails, remove instrumentation, write the pos
 - [ ] **Regression test passes** (or absence of seam is documented as a finding for `aped-arch-audit`).
 - [ ] **All `[DEBUG-...]` tags removed** — `grep -r "\[DEBUG-" src/` returns nothing in the diff.
 - [ ] **Throwaway prototypes deleted** (or moved to `docs/debug/` with a clearly-marked filename).
-- [ ] **Post-mortem in commit message.** The commit body states the hypothesis that turned out correct, in one short paragraph. Future debuggers learn from this — make it findable. Template:
+- [ ] **Post-mortem in commit message.** The commit body states the cause + fix + the hypotheses that turned out wrong, in one short paragraph. Future debuggers find this via `git log --grep`. Read `.aped/aped-skills/writing-discipline.md` first — Iron Law applies here too: short, sharp, no bullet inventory, the diff already shows the *what*.
 
-  > *"Cause: {one-line root cause statement, file:line}. Fix: {one-line summary of the change}. Falsified hypotheses: {bullet list of the 2–4 ranked hypotheses from step 05 that turned out wrong, one line each}."*
+  Template:
+
+  > *"Cause: {one-line root cause statement, file:line}. Fix: {one-line summary of the change}. Falsified hypotheses: {2–4 short lines, one per ranked hypothesis from step 05 that turned out wrong}."*
 
 ## WHAT WOULD HAVE PREVENTED THIS BUG?
 

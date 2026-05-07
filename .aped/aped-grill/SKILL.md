@@ -1,7 +1,7 @@
 ---
 name: aped-grill
 keep-coding-instructions: true
-description: 'Use when user says "grill me", "align on this", "interview me about", "get on the same page", "pin down the spec", "stress test the plan", or invokes aped-grill. Pocock-style relentless one-question-at-a-time alignment. Stops when (a) no new question for two turns, (b) token budget exceeds 25k, (c) user says stop. Emits grill-summary.md for downstream skills (aped-prd, aped-arch). Not for divergent ideation — see aped-brainstorm. Not for critique-method elicitation — see aped-elicit.'
+description: 'Use when user says "grill me", "align on this", "interview me about", "get on the same page", "pin down the spec", "stress test the plan", or invokes aped-grill. Relentless one-question-at-a-time alignment. Stops when (a) no new question for two turns, (b) token budget exceeds 25k, (c) user says stop. Emits grill-summary.md for downstream skills (aped-prd, aped-arch). Not for divergent ideation — see aped-brainstorm. Not for critique-method elicitation — see aped-elicit.'
 allowed-tools: "Read Edit Write Bash Grep Glob"
 allowed-paths:
   write: ["docs/**", ".aped/**"]
@@ -10,10 +10,12 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.1
 ---
 
-# APED Grill — Pocock-style alignment grilling
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
+# APED Grill — One-question-at-a-time alignment
 
 Pin down a half-formed product idea, plan, or refactor by asking ONE concrete question per turn. Each question targets an unstated decision the user hasn't made. Stop when the questions stop being meaningful.
 
@@ -34,13 +36,13 @@ If none of (3)-(6) exist, this is a cold-start grill. Surface that to the user e
 
 ## How a good grill question is shaped
 
-A *good* grill question (Pocock workshop L513-528):
+A *good* grill question:
 - Surfaces a decision the user **also** has not made — they should answer "huh, hadn't thought about that".
 - Concerns scope, sequencing, edge cases, or downstream consequence — never UI colour or vocabulary.
 - Includes a **recommended answer** based on what's loaded so far. If the user agrees, one round done; if not, you learn the constraint that disagrees.
 - Single question, single decision. No multi-part questions.
 
-A *bad* grill question (workshop L646-649):
+A *bad* grill question:
 - Targets the wrong audience (PO-domain question to a developer; tech-debt question to a stakeholder). When in doubt: ask the user "is this question for you, or for someone else?".
 - Asks for an opinion when code or a doc already answers (read first).
 - Re-asks something already answered earlier in the session.
@@ -63,7 +65,7 @@ Repeat:
 
 a) **No new meaningful question for two consecutive turns.** Means: the question well is dry on what's been loaded; further grilling would either repeat or invent. Stop and write `grill-summary.md`.
 
-b) **Token budget exceeds 25k since grill start.** Pocock's workshop ceiling (L777-787) — past 25k of grilling, returns diminish and the model enters the dumb zone (workshop L93-108: "by around 100k it starts to just get dumber"). Stop, write the summary, suggest `/clear` then `aped-prd` or `aped-arch`.
+b) **Token budget exceeds 25k since grill start.** Past ~25k of grilling, returns diminish; past ~100k the model degrades noticeably. Stop, write the summary, suggest `/clear` then `aped-prd` or `aped-arch`.
 
 c) **User says "stop", "enough", "no more", "let's move on", "good enough", or similar.** Honour immediately, write summary.
 

@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 # APED Analyze — Parallel Research to Product Brief
 
 **Goal:** Convert a project idea into a validated product brief through 4 conversational discovery rounds + 3 parallel research agents (Mary / Derek / Tom). Discovery is the foundation — pay 10× downstream.

@@ -36,6 +36,10 @@ Write the final `docs/epics.md` with:
 
 Every story entry MUST include a `**Depends on:**` line (with `none` if no deps). Required for `aped-sprint`.
 
+## SCHEMA VALIDATION (WARN-only in 6.3.0)
+
+Immediately after the write, run `bash .aped/scripts/validate-epics.sh docs/epics.md`. On non-zero, present the validator's stderr verbatim, advise the user to re-run aped-epics (or hand-edit the missing structural pieces — typically `## FR Coverage Map`), and **do NOT advance state.yaml below**. If the validator script is absent (non-scaffolded scaffold), warn-once and proceed — same graceful pattern as ajv-cli skip in `validate-state.sh`. Escalates to ERROR in 7.0.0.
+
 ## STATE.YAML UPDATE
 
 **Prefer MCP**: `aped_state.advance(phase: "epics", status: "complete")`.

@@ -9,8 +9,10 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.1
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Status — Sprint Dashboard
 
@@ -30,7 +32,20 @@ Before any other action, read `.aped/config.yaml` and resolve:
 
 ## Setup
 
-1. Read `docs/state.yaml` — pipeline + sprint state (active_epic, parallel_limit, review_limit, stories with their `status`, `worktree`, `depends_on`, `ticket`). **If state.yaml is absent**, the project is pre-pipeline (greenfield, never ran `aped-prd`/`aped-epics`). Surface "no state.yaml — pipeline not started yet" and stop here; do NOT invent a phase or fabricate a dashboard from git alone.
+1. Read `docs/state.yaml` — pipeline + sprint state (active_epic, umbrella_branch, stories with their `status`, `worktree`, `depends_on`, `ticket`). **If state.yaml is absent**, the project is pre-pipeline (greenfield, never ran `aped-prd`/`aped-epics`). Surface "no state.yaml — pipeline not started yet" and stop here; do NOT invent a phase or fabricate a dashboard from git alone.
+
+   `parallel_limit` and `review_limit` come from `.aped/config.yaml.sprint.*` on schema v3 (6.1.0+); fall back to `state.yaml.sprint.*` for v2 scaffolds, then to hardcoded `3`/`2` if both are absent. Use the shared resolution snippet:
+
+   ```bash
+   PARALLEL_LIMIT=$(yq '.sprint.parallel_limit // ""' .aped/config.yaml)
+   if [[ -z "$PARALLEL_LIMIT" || "$PARALLEL_LIMIT" == "null" ]]; then
+     PARALLEL_LIMIT=$(yq '.sprint.parallel_limit // 3' docs/state.yaml)
+   fi
+   REVIEW_LIMIT=$(yq '.sprint.review_limit // ""' .aped/config.yaml)
+   if [[ -z "$REVIEW_LIMIT" || "$REVIEW_LIMIT" == "null" ]]; then
+     REVIEW_LIMIT=$(yq '.sprint.review_limit // 2' docs/state.yaml)
+   fi
+   ```
 2. Read `.aped/aped-status/references/status-format.md` for display conventions
 3. Probe optional tooling once: `command -v workmux >/dev/null` — if available, surface a "Live agents: `workmux dashboard`" hint in the header so the user knows where the fuller TUI view is.
 
@@ -82,10 +97,10 @@ Gather this by:
 
 For stories in `review`, also show:
 ```
-  Review: 5 findings (HIGH×2, MEDIUM×2, LOW×1) · specialists: Eva, Marcus, Rex, Diego
+  Review: 5 findings (HIGH×2, MEDIUM×2, LOW×1) · auditors: Spec, Code, Edge
 ```
 
-Read these from the story file's Review Record (no live specialist spawning here).
+Read these from the story file's Review Record (no live auditor spawning here).
 
 For any story with `ticket_sync_status: failed` set on it (deferred ticket mutation from `aped-sprint`), append a warning line under that worktree row:
 

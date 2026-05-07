@@ -1,7 +1,7 @@
 ---
 name: aped-glossary
 keep-coding-instructions: true
-description: 'Use when user says "build glossary", "update glossary", "domain dictionary", "shared language", "sharpen language", "canonicalize terms", "glossary check", or invokes aped-glossary. Builds and maintains a project-wide domain glossary at docs/aped/glossary.md so every APED skill, persona, and downstream artefact uses the same vocabulary. Pocock-style CONTEXT.md analog. Not for divergent ideation (use aped-brainstorm), not for stress-testing decisions (use aped-grill).'
+description: 'Use when user says "build glossary", "update glossary", "domain dictionary", "shared language", "sharpen language", "canonicalize terms", "glossary check", or invokes aped-glossary. Builds and maintains a project-wide domain glossary at docs/aped/glossary.md so every APED skill, persona, and downstream artefact uses the same vocabulary. Acts as the project-wide CONTEXT.md analog. Not for divergent ideation (use aped-brainstorm), not for stress-testing decisions (use aped-grill).'
 allowed-tools: "Read Edit Write Glob Grep"
 allowed-paths:
   write: ["docs/**", ".aped/**"]
@@ -10,8 +10,10 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.1
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Glossary — Project-wide Domain Dictionary
 
@@ -45,7 +47,7 @@ Read `.aped/config.yaml` and resolve `{user_name}` / `{communication_language}` 
    - `docs/product-brief.md` — business / market terms.
    - `docs/project-context.md` (brownfield) — existing-system terms.
    - `docs/stories/*.md` — story-specific vocabulary that may have drifted.
-5. Any `CONTEXT.md` at the project root — Pocock-style domain context, treat as authoritative if present.
+5. Any `CONTEXT.md` at the project root — domain context file, treat as authoritative if present.
 
 If none of the upstream artefacts exist, ask the user what corpus to glossarise against and HALT until they answer.
 

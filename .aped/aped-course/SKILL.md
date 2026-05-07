@@ -10,8 +10,10 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.1
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Correct Course — Managed Pivot
 
@@ -46,7 +48,7 @@ Source of truth: `state.yaml`. Cross-check: if `command -v workmux` succeeds, al
 If any exist:
 1. List them to the user with their branches + tickets.
 2. ⏸ **GATE:** "Continuing will invalidate epic context caches used by those worktrees. Proceed?"
-3. On confirmation, post a notification comment on each active ticket (via `gh`/`glab`/linear per `ticket_system`):
+3. On confirmation, post a notification comment on each active ticket (via `gh`/`glab`/linear per `ticket_system`). Read `.aped/aped-skills/writing-discipline.md` first — short, sharp, no padding:
    > "APED scope change in progress. Please pause your next commit until the update lands. A follow-up comment will confirm when it's safe to refresh your epic context and continue."
 4. Write `sprint.scope_change_active: true` in state.yaml (atomic — use `.aped/scripts/sync-state.sh set-scope-change true` if present, else direct edit under flock).
 

@@ -78,7 +78,7 @@ For decisions flagged as **high-stakes** (kind that would cost weeks to reverse 
 
 The Council dispatches specialist subagents in parallel for divergent perspectives. Skip for low-stakes choices (e.g., a logging library).
 
-## ADR SHARDING (v6.0.0+, Pocock pattern)
+## ADR SHARDING (v6.0.0+)
 
 For each decision that passes **all three** of:
 

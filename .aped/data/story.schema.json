@@ -1,0 +1,60 @@
+{
+  "artefact_name": "story",
+  "description": "APED story spec consumed by aped-dev (TDD) and aped-review.",
+  "version": 1,
+  "top_level": [
+    "User Story",
+    "Acceptance Criteria",
+    "Tasks",
+    "Dev Notes",
+    "File List",
+    "Dev Agent Record",
+    "Review Record"
+  ],
+  "sections": [
+    {
+      "heading": "User Story",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Acceptance Criteria",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true,
+      "lines_match": "^[\\s]*-.*([Gg]iven|[Ww]hen|[Tt]hen)"
+    },
+    {
+      "heading": "Tasks",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true,
+      "lines_match": "^[\\s]*-[\\s]+"
+    },
+    {
+      "heading": "Dev Notes",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": false
+    },
+    {
+      "heading": "File List",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": false
+    },
+    {
+      "heading": "Dev Agent Record",
+      "level": 2,
+      "required": false,
+      "forbid_invented_sub_headings": false
+    },
+    {
+      "heading": "Review Record",
+      "level": 2,
+      "required": false,
+      "forbid_invented_sub_headings": false
+    }
+  ]
+}

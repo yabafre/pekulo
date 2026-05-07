@@ -20,7 +20,7 @@ pre-commit:
     2_oxlint:
       tags: lint
       glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
-      run: bunx oxlint --fix {staged_files}
+      run: bunx oxlint --fix --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
     3_oxfmt:
       tags: format

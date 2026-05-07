@@ -64,7 +64,7 @@ For any task that modifies existing code:
 2. Quote the current state of every symbol you intend to change verbatim.
 3. Drop the quoted block into the story's Dev Notes (you'll write it in step 05) — function signature, type definition, exported constant, current return shape, current error path.
 
-Pocock superpowers issue #1234: "the most common plan-vs-reality mismatch is the writer's mental model of the code differing from the actual code at write time." The verbatim quote is the only mechanism that catches this *before* the dev agent burns three RED cycles.
+The most common plan-vs-reality mismatch is the writer's mental model of the code differing from the actual code at write time. The verbatim quote is the only mechanism that catches this *before* the dev agent burns three RED cycles.
 
 Example block (will go into Dev Notes in step 05):
 

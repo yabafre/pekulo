@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 # APED Dev — TDD Story Implementation
 
 **Goal:** Implement one story end-to-end through disciplined TDD (RED → GREEN → REFACTOR), small commits, ticket-as-source-of-truth, and an explicit verification gate before declaring `review`.

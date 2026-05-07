@@ -59,7 +59,9 @@ If `ticket_system` ≠ `none`:
 
 ## PR / MR (classic mode that does NOT use sprint umbrella)
 
-If solo mode AND not in a sprint umbrella context, push the branch and create a PR/MR:
+If solo mode AND not in a sprint umbrella context, push the branch and create a PR/MR.
+
+> **Writing discipline.** Before drafting the PR title, body, or commit message, read `.aped/aped-skills/writing-discipline.md`. Iron Law: short, sharp, slightly human — the diff proves the work; prose adds the *why*. No file lists, no test counts, no boundary checkboxes.
 
 - `github`: `gh pr create --title "feat({ticket}): {story-key}" --body "Fixes {ticket}"`.
 - `gitlab`: `glab mr create --title "feat({ticket}): {story-key}" --description "Closes {ticket}"`.

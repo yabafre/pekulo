@@ -1,7 +1,7 @@
 # APED Pipeline State
 # Phases: none → analyze → prd → ux → architecture → sprint
 # "sprint" is the final phase — covers story/dev/review cycle
-schema_version: 2
+schema_version: 3
 pipeline:
   current_phase: "sprint"
   phases:
@@ -196,8 +196,6 @@ corrections_count: 0
 sprint:
   project: "pekulo-v1"
   active_epic: 0
-  parallel_limit: 3
-  review_limit: 2
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
     0-1-packages-reorg: {status: done, depends_on: [], ticket: "#1", worktree: null, started_at: "2026-05-03T00:00:00Z", reviewed_at: "2026-05-03T20:50:00Z"}

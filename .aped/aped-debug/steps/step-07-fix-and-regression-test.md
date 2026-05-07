@@ -64,7 +64,7 @@ When this rule fires:
 3. Surface to the user: *"I have tried three fixes on this failure and none has moved it forward. They share the assumption that &lt;X&gt;. Is that assumption right? Should we look at &lt;architectural alternative&gt; instead?"*
 4. ⏸ **HALT** until the user agrees on a new direction.
 
-This rule is the empirical observation that beyond 3 attempts the marginal cost of the 4th vastly exceeds the cost of stepping back. Lifted from Superpowers' `systematic-debugging`.
+This rule is the empirical observation that beyond 3 attempts the marginal cost of the 4th vastly exceeds the cost of stepping back.
 
 ## NEXT STEP
 

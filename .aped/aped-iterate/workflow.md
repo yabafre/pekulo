@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 
 # APED Iterate — Post-Ship Router
 

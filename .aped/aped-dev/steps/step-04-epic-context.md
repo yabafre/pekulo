@@ -1,22 +1,18 @@
 ---
 step: 4
 reads:
-  - "docs/epic-{N}-context.md"
-  - "docs/prd.md"
-  - "docs/architecture.md"
-  - "docs/ux/**"
-  - "docs/project-context.md"
-writes:
-  - "docs/epic-{N}-context.md"
+  - "docs/epics-context/epic-{N}-context.md"
+  - "docs/stories/{story-key}.md"
+writes: []
 mutates_state: false
 ---
 
-# Step 4: Epic Context Cache + Story Context Gathering
+# Step 4: Story Context Gathering + Classification
 
 ## MANDATORY EXECUTION RULES (READ FIRST):
 
-- 🛑 The cache is reused across stories of the same epic — never recompile if fresh
-- 📖 The cache is the input to every TDD cycle's grounding
+- 🛑 The cache was already loaded in step 02 — do NOT recompile it here (6.2.0+)
+- 📖 The cache is the canonical input for every TDD cycle's grounding
 - 🚫 Do not invent FR/NFR IDs — every test traces back to a real one (verified in step 06)
 
 ## CONTEXT BOUNDARIES
@@ -24,41 +20,15 @@ mutates_state: false
 - Pre-implementation checklist passed.
 - Story is `in-progress`.
 - Story tasks tracked.
+- `epic-{N}-context.md` already loaded in step 02.
 
 ## YOUR TASK
 
-Compile (or load) the epic-context cache. Run two parallel agents to gather story-specific context. Classify the story (single-layer / fullstack).
+Run two parallel agents to gather story-specific context. Classify the story (single-layer / fullstack).
 
-## EPIC CONTEXT CACHE
+## EPIC CONTEXT — ALREADY LOADED
 
-**Cache path:** `docs/epic-{N}-context.md` (where `N` = epic number from story key — e.g. `1-2-jwt` → epic `1` → cache at `docs/epic-1-context.md`).
-
-### If cache exists and is fresh
-
-- Read it — skip compilation.
-- A cache is "fresh" if no stories in this epic have been completed since the cache was written.
-- Check: compare cache file mtime with the latest story completion timestamp in `state.yaml`.
-
-### If cache is missing or stale
-
-Launch an Agent to compile the epic context:
-
-- `subagent_type: "Explore"`
-- `run_in_background: false` (need the result before proceeding)
-
-The agent reads and compiles into a single `epic-{N}-context.md`:
-
-1. **PRD excerpts** — FRs mapped to this epic (from `docs/prd.md`).
-2. **Architecture decisions** — relevant patterns and conventions (from `docs/architecture.md` if exists).
-3. **UX references** — screens and components for this epic (from `docs/ux/` if exists).
-4. **Project context** — existing-system constraints and conventions (from `docs/project-context.md` if exists — brownfield only).
-5. **Lessons** — entries from `docs/lessons.md` with `Scope: aped-dev` or `Scope: all` (rules to enforce during implementation; missing on the first epic of a project).
-6. **Completed stories** — implementation details and decisions from already-done stories in this epic (from `docs/stories/`).
-7. **Key code patterns** — scan the codebase for established patterns relevant to this epic.
-
-Write the compiled context to `docs/epic-{N}-context.md`.
-
-This compilation runs **once per epic** and is reused across all stories in the epic.
+`aped-story` is the canonical compiler of the epic-context cache (6.2.0+). Step 02 loaded it as a required input. **Do not recompile it here, do not load the raw PRD / UX / Project Context.** If the cache is stale or wrong, the fix is to re-run `aped-story` — never to work around it from `aped-dev`.
 
 ## STORY CONTEXT GATHERING
 
