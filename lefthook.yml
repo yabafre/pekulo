@@ -1,0 +1,34 @@
+# Pekulo pre-commit hooks — see docs/stories/0-11-precommit-secrets.md for the rationale.
+#
+# Hook order matters: gitleaks runs FIRST so a leaking commit is blocked before any auto-fixer
+# rewrites the staged content. Auto-fixers run sequentially after, with stage_fixed: true so
+# their rewrites land in the same commit.
+#
+# Bypass for emergencies (DISCOURAGED): LEFTHOOK=0 git commit ...
+
+pre-commit:
+  parallel: false
+  commands:
+    1_gitleaks:
+      tags: security
+      run: gitleaks git --pre-commit --staged --redact --verbose --config=.gitleaks.toml
+      fail_text: |
+        🚫 gitleaks detected a potential secret in staged changes.
+        Review the report above. If it is a false positive, add the file/regex to
+        .gitleaks.toml's [allowlist] block, then re-stage and re-commit.
+        Bypass for emergencies (DISCOURAGED): LEFTHOOK=0 git commit ...
+    2_oxlint:
+      tags: lint
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
+      run: bunx oxlint --fix {staged_files}
+      stage_fixed: true
+    3_oxfmt:
+      tags: format
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,md,yml,yaml}"
+      run: bunx oxfmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+    4_prisma_format:
+      tags: format
+      glob: "apps/api/prisma/**/*.prisma"
+      run: bash -c '(cd apps/api && bun run prisma:format)'
+      stage_fixed: true
