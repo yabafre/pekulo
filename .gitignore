@@ -56,6 +56,9 @@ venv/
 # APED engine local runtime artefacts (per-machine, not committed)
 .aped/.last-test-exit
 
+# Claude Code per-machine runtime state (session lockfiles, etc.)
+.claude/scheduled_tasks.lock
+
 # Supabase CLI local-state directory (per-machine branch metadata, not committed)
 apps/web/supabase/.branches/
 .vercel
