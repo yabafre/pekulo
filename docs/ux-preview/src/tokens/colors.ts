@@ -46,6 +46,9 @@ export const colors = {
     },
     // Single tiny data-indicator blue — TR's analytics-donut exception
     dataBlue: "#2f73ff",
+    // Pekulo extension (NOT a TR primitive) — amber for LLM-confidence
+    // labels under 75 %. See index.css `--warning`.
+    warning: "#fbbf24",
     donut: {
       track: "rgba(255, 255, 255, 0.08)",
       fill: "#ffffff",
@@ -87,6 +90,7 @@ export const colors = {
     // dataBlue is declared only in `:root` of index.css (not redefined in
     // `.light`) — CSS inheritance keeps it identical in both modes.
     dataBlue: "#2f73ff",
+    warning: "#d97706",
     donut: {
       track: "rgba(0, 0, 0, 0.08)",
       fill: "#0a0a0a",

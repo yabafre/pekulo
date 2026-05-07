@@ -3,7 +3,7 @@
 # "sprint" is the final phase — covers story/dev/review cycle
 schema_version: 2
 pipeline:
-  current_phase: "dev"
+  current_phase: "sprint"
   phases:
     context:
       generated: true
@@ -25,8 +25,8 @@ pipeline:
       preview: "docs/ux-preview/"
       completed_at: "2026-05-03"
       design_system:
-        ui_library: "tailwind-v4 + shadcn base-nova + @base-ui/react + lucide-react + recharts + framer-motion"
-        tokens: "docs/ux-preview/src/tokens/"
+        ui_library: "@pekulo/ui (Tamagui Core 2.0.0-rc.41)"
+        tokens: "packages/ui/src/tokens/"
       style_direction:
         primary_ref: "Trade Republic"
         secondary_ref: "Vercel (Geist + near-black)"
@@ -209,7 +209,7 @@ sprint:
     0-7-otel-three-runtimes: {status: done, depends_on: [0-3-api-scaffold], ticket: '#7', worktree: null, started_at: "2026-05-04T00:00:00Z", dev_completed_at: "2026-05-05T08:35:00Z", reviewed_at: "2026-05-05T22:00:00Z"}
     0-8-github-actions-pr: {status: done, depends_on: [0-2-oxc-toolchain], ticket: "#8", worktree: null, started_at: "2026-05-05T22:30:00Z", dev_completed_at: "2026-05-05T15:00:00Z", reviewed_at: "2026-05-05T15:05:00Z", review_skipped: true}
     0-9-tamagui-spike: {status: done, depends_on: [0-3-api-scaffold], ticket: "#9", worktree: null, started_at: "2026-05-06T00:00:00Z", dev_completed_at: "2026-05-06T13:00:00Z", reviewed_at: "2026-05-06T15:30:00Z", verdict: "green-light", original_verdict: "pivot", verdict_revised_at: "2026-05-06T15:30:00Z", review_findings: 4, review_notes: "Eva NACK absorbed (AC-2 timeline / AC-3 PNG / AC-4 version-header drift); finding 7 (Vercel CI OOM) added then resolved 2026-05-06T15:00 via mitigation b adapted (yarn 4.5 install + bun runtime, starter-free pattern); verdict revised pivot → green-light after reviewer cross-check against tamagui/starter-free monorepo demonstrated 3 measurable wire-up divergences (over-broad transpilePackages, per-dev-start CSS regen, missing reset.css) responsible for bulk of negative findings — retrofit applied, ADR-0007 stays accepted, story 0-10 enchaîne via aped-story; lesson L12 added"}
-    0-10-pekulo-ui-migration: {status: pending, depends_on: [0-9-tamagui-spike], ticket: "#10", worktree: null}
+    0-10-pekulo-ui-migration: {status: done, depends_on: [0-9-tamagui-spike], ticket: "#10", worktree: null, started_at: "2026-05-06T00:00:00Z", dev_completed_at: "2026-05-06T23:30:00Z", reviewed_at: "2026-05-07T00:40:00Z", review_findings: 15, review_notes: "Eva NACK absorbed (AC-2 inline snapshots + AC-1(f) script + L14); Stage 2 surfaced 12 findings across Marcus/Rex/Lucas/Aria, all resolved including [HIGH] TR-fidelity emerald-on-chrome (toggle/radio/slider/sparkles), [HIGH] dead tailwind-merge import, [HIGH] PekuloErrorBoundary unwired, [HIGH] domain types inlined in @pekulo/ui (arch L366 violation — extracted to @pekulo/types). 11 UX-spec components shipped (StaggerList, CountUpEUR/Pct, AccountsSection, 7 bento Cards = 33 new files). F15 coverage gate added (70/60 thresholds, current 92.81%/93.1%). Visual review deferred (React Grab MCP unavailable). All verification commands exit 0."}
     0-11-precommit-secrets: {status: pending, depends_on: [0-2-oxc-toolchain], ticket: "#11", worktree: null}
     0-12-custom-oxlint-rules: {status: pending, depends_on: [0-2-oxc-toolchain, 0-10-pekulo-ui-migration], ticket: "#12", worktree: null}
     # Epic 1 — Compass & milestones (V1 differentiator)

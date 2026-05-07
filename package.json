@@ -11,13 +11,19 @@
     "dev:web": "dotenv -c -e .env -e .env.local -- turbo run dev --filter=web",
     "dev:prices": "dotenv -c -e .env -e .env.local -- bash -lc 'cd apps/prices && uvicorn main:app --reload --port 8000'",
     "build": "dotenv -c -e .env -e .env.local -- turbo run build",
+    "start": "dotenv -c -e .env -e .env.local -- bun --filter=web run start",
+    "start:web": "dotenv -c -e .env -e .env.local -- bun --filter=web run start",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "typecheck": "turbo run typecheck",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "generate:tamagui-css": "bun --filter='@pekulo/ui' run generate:tamagui-css",
     "prisma:check": "cd apps/api && bun run prisma:check",
-    "db:rls-audit": "cd apps/api && bun run db:rls-audit"
+    "db:rls-audit": "cd apps/api && bun run db:rls-audit",
+    "test:ui": "bun --filter='@pekulo/ui' run test",
+    "test:ui:axe": "bun --filter='@pekulo/ui' run test:axe",
+    "test:ui:visual": "bun --filter='@pekulo/ui' run test:visual"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
