@@ -5,9 +5,7 @@ import { PekuloTopTabToggle } from "./PekuloTopTabToggle";
 
 describe("PekuloTopTabToggle a11y", () => {
   it("has no serious/critical violations", async () => {
-    const { container } = renderWithTamagui(
-      <PekuloTopTabToggle topTab="cap" onChange={vi.fn()} />,
-    );
+    const { container } = renderWithTamagui(<PekuloTopTabToggle topTab="cap" onChange={vi.fn()} />);
     const r = await axe(container);
     expect(
       (r.violations ?? []).filter((v) => v.impact === "serious" || v.impact === "critical"),

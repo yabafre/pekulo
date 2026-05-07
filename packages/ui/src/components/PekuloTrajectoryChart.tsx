@@ -34,9 +34,7 @@ export function PekuloTrajectoryChart({
   const xStep = (width - 2 * padding) / Math.max(months.length - 1, 1);
   const toY = (v: number) => padding + (height - 2 * padding) * (1 - (v - min) / range);
   const toPath = (data: number[]) =>
-    data
-      .map((v, i) => `${i === 0 ? "M" : "L"} ${padding + i * xStep} ${toY(v)}`)
-      .join(" ");
+    data.map((v, i) => `${i === 0 ? "M" : "L"} ${padding + i * xStep} ${toY(v)}`).join(" ");
   const inner = (
     <svg
       width="100%"

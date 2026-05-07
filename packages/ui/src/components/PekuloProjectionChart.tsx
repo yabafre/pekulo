@@ -48,12 +48,7 @@ export function PekuloProjectionChart({
           strokeDasharray="4 4"
           fill="none"
         />
-        <path
-          d={toPath(actual)}
-          stroke="var(--chartActual)"
-          strokeWidth={2}
-          fill="none"
-        />
+        <path d={toPath(actual)} stroke="var(--chartActual)" strokeWidth={2} fill="none" />
         {nowMarker && (
           <circle
             cx={toX(idxOf(nowMarker.year))}

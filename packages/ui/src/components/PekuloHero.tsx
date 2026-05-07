@@ -49,13 +49,7 @@ export function PekuloHero({
       <Text color="$colorTertiary" fontSize="$xs" letterSpacing={0.5}>
         {label}
       </Text>
-      <Text
-        color="$color"
-        fontSize="$hero"
-        fontWeight="600"
-        letterSpacing={-0.5}
-        marginTop="$2"
-      >
+      <Text color="$color" fontSize="$hero" fontWeight="600" letterSpacing={-0.5} marginTop="$2">
         {formatEur(animated)}
       </Text>
       <View flexDirection="row" alignItems="baseline" gap={6} marginTop="$2">

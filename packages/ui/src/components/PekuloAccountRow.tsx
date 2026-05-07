@@ -20,12 +20,7 @@ const TYPE_LABEL: Record<AccountType, string> = {
   autre: "Autre",
 };
 
-export function PekuloAccountRow({
-  label,
-  type,
-  institution,
-  balanceEur,
-}: PekuloAccountRowProps) {
+export function PekuloAccountRow({ label, type, institution, balanceEur }: PekuloAccountRowProps) {
   const sub = institution ? `${TYPE_LABEL[type]} · ${institution}` : TYPE_LABEL[type];
   return (
     <View

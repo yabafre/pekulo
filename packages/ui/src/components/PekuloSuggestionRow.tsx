@@ -62,12 +62,7 @@ export interface PekuloSuggestionRowProps {
   disabled?: boolean;
 }
 
-export function PekuloSuggestionRow({
-  tx,
-  onConfirm,
-  onEdit,
-  disabled,
-}: PekuloSuggestionRowProps) {
+export function PekuloSuggestionRow({ tx, onConfirm, onEdit, disabled }: PekuloSuggestionRowProps) {
   const Arrow = tx.direction === "in" ? ArrowDownRight : ArrowUpRight;
   const sign = tx.direction === "in" ? "+" : "−";
   return (

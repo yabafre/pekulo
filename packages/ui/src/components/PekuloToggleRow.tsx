@@ -47,13 +47,7 @@ const Knob = styled(View, {
   top: 2,
 });
 
-export function PekuloToggleRow({
-  label,
-  sub,
-  checked,
-  onChange,
-  disabled,
-}: PekuloToggleRowProps) {
+export function PekuloToggleRow({ label, sub, checked, onChange, disabled }: PekuloToggleRowProps) {
   const id = useId();
   return (
     <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">

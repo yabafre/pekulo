@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { Text, View, styled } from "tamagui";
-import { Section, useToast } from "@pekulo/ui";
+import { Section, Text, View, styled, useToast } from "@pekulo/ui";
 import { createClient } from "@/lib/supabase/client";
 
 // Plain styled HTML input. `color` and `outline` are CSS-only (not in
@@ -112,7 +111,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   placeholder="jean@exemple.fr"
                   required
                   style={{ color: "var(--color)", fontSize: 14, outline: "none" }}
@@ -132,7 +131,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   minLength={6}

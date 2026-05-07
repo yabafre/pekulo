@@ -6,9 +6,7 @@ describe("PekuloAccountsSection a11y", () => {
   it("has no serious/critical violations", async () => {
     const { container } = renderWithTamagui(
       <PekuloAccountsSection
-        accounts={[
-          { label: "Livret A", type: "livret", institution: "Bourso", balanceEur: 15000 },
-        ]}
+        accounts={[{ label: "Livret A", type: "livret", institution: "Bourso", balanceEur: 15000 }]}
       />,
     );
     const results = await axe(container);

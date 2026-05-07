@@ -5,12 +5,7 @@ import { PekuloSlider } from "./PekuloSlider";
 describe("PekuloSlider a11y", () => {
   it("has no serious/critical violations", async () => {
     const { container } = renderWithTamagui(
-      <PekuloSlider
-        value={[40]}
-        max={100}
-        onValueChange={vi.fn()}
-        aria-label="Versement mensuel"
-      >
+      <PekuloSlider value={[40]} max={100} onValueChange={vi.fn()} aria-label="Versement mensuel">
         <PekuloSlider.Track>
           <PekuloSlider.TrackActive />
         </PekuloSlider.Track>

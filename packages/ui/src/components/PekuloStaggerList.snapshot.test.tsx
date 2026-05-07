@@ -11,6 +11,8 @@ describe("PekuloStaggerList snapshot", () => {
         <span>Liberté</span>
       </PekuloStaggerList>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(`"<span class="_dsp_contents  font_body"><ul aria-label="paliers" class="is_View _fd-column" style="list-style: none; padding: 0px; margin: 0px;"><li class="is_View " style="animation-delay: 0ms;"><span>Apport</span></li><li class="is_View " style="animation-delay: 40ms;"><span>Indep</span></li><li class="is_View " style="animation-delay: 80ms;"><span>Liberté</span></li></ul><div style="display: contents;"></div></span>"`);
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<span class="_dsp_contents  font_body"><ul aria-label="paliers" class="is_View _fd-column" style="list-style: none; padding: 0px; margin: 0px;"><li class="is_View " style="animation-delay: 0ms;"><span>Apport</span></li><li class="is_View " style="animation-delay: 40ms;"><span>Indep</span></li><li class="is_View " style="animation-delay: 80ms;"><span>Liberté</span></li></ul><div style="display: contents;"></div></span>"`,
+    );
   });
 });

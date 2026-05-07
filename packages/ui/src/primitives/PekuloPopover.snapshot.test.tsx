@@ -15,6 +15,8 @@ describe("PekuloPopover snapshot", () => {
         </PekuloPopover.Content>
       </PekuloPopover>,
     );
-    expect(container.innerHTML).toMatchInlineSnapshot(`"<span class="_dsp_contents  font_body"><button aria-expanded="false" data-state="closed" data-disable-theme="true" aria-haspopup="dialog" aria-controls="floating-0" class="is_View "><span class="is_Text _col-color">Open</span></button><div style="display: contents;"></div></span>"`);
+    expect(container.innerHTML).toMatchInlineSnapshot(
+      `"<span class="_dsp_contents  font_body"><button aria-expanded="false" data-state="closed" data-disable-theme="true" aria-haspopup="dialog" aria-controls="floating-0" class="is_View "><span class="is_Text _col-color">Open</span></button><div style="display: contents;"></div></span>"`,
+    );
   });
 });

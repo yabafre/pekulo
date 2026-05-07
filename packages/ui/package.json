@@ -3,6 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "description": "Pekulo Design System on Tamagui Core (ADR-0007). Sole styling surface for apps/web and apps/mobile (V1.5).",
+  "files": [
+    "src",
+    "public",
+    "tamagui.config.ts",
+    "tamagui.build.ts"
+  ],
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -11,7 +17,6 @@
     "./reset.css": "./node_modules/@tamagui/core/reset.css",
     "./generated.css": "./public/tamagui.generated.css"
   },
-  "files": ["src", "public", "tamagui.config.ts", "tamagui.build.ts"],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -45,10 +50,6 @@
     "react-native-web": "^0.19.13",
     "tamagui": "2.0.0-rc.41"
   },
-  "peerDependencies": {
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*",
     "@tamagui/cli": "2.0.0-rc.41",
@@ -65,5 +66,9 @@
     "typescript": "^6.0.3",
     "vitest": "^2.0.0",
     "vitest-axe": "^0.1.0"
+  },
+  "peerDependencies": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   }
 }

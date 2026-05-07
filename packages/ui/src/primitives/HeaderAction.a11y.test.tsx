@@ -15,9 +15,7 @@ describe("HeaderAction a11y", () => {
 
   it("activates on click", () => {
     const onPress = vi.fn();
-    const { getByRole } = renderWithTamagui(
-      <HeaderAction label="Click me" onPress={onPress} />,
-    );
+    const { getByRole } = renderWithTamagui(<HeaderAction label="Click me" onPress={onPress} />);
     fireEvent.click(getByRole("button"));
     expect(onPress).toHaveBeenCalledTimes(1);
   });

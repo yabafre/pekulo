@@ -19,11 +19,7 @@ describe("PekuloCheckbox a11y", () => {
   it("toggles on click", () => {
     const onCheckedChange = vi.fn();
     const { getByRole } = renderWithTamagui(
-      <PekuloCheckbox
-        checked={false}
-        onCheckedChange={onCheckedChange}
-        aria-label="x"
-      >
+      <PekuloCheckbox checked={false} onCheckedChange={onCheckedChange} aria-label="x">
         <PekuloCheckbox.Indicator />
       </PekuloCheckbox>,
     );

@@ -2,14 +2,7 @@
 // Lightweight toast hook + viewport. No external dep.
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { Text, View } from "tamagui";
 
 export type ToastIntent = "success" | "info" | "warning" | "danger";
@@ -123,14 +116,7 @@ export function PekuloToastViewport() {
   const ctx = useContext(ToastContext);
   if (!ctx) return null;
   return (
-    <View
-      position="fixed"
-      bottom="$4"
-      right="$4"
-      flexDirection="column"
-      gap="$2"
-      zIndex={1000}
-    >
+    <View position="fixed" bottom="$4" right="$4" flexDirection="column" gap="$2" zIndex={1000}>
       {ctx.entries.map((e) => (
         <PekuloToast key={e.id} entry={e} />
       ))}

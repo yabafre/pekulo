@@ -20,12 +20,7 @@ export function PekuloMonthlyRow({ month }: PekuloMonthlyRowProps) {
   return (
     <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
       <View flex={1}>
-        <Text
-          color="$color"
-          fontSize="$bodySm"
-          fontWeight="500"
-          textTransform="capitalize"
-        >
+        <Text color="$color" fontSize="$bodySm" fontWeight="500" textTransform="capitalize">
           {month.monthLabel}
         </Text>
         <Text color="$colorTertiary" fontSize="$xs">

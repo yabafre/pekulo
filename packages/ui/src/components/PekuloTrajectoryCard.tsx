@@ -4,10 +4,7 @@
 // Desktop bento cell — section-framed trajectory chart.
 
 import { Section } from "../primitives/Section";
-import {
-  PekuloTrajectoryChart,
-  type PekuloTrajectoryChartProps,
-} from "./PekuloTrajectoryChart";
+import { PekuloTrajectoryChart, type PekuloTrajectoryChartProps } from "./PekuloTrajectoryChart";
 
 export interface PekuloTrajectoryCardProps extends Omit<PekuloTrajectoryChartProps, "inCard"> {
   className?: string;

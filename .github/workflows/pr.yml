@@ -97,7 +97,11 @@ jobs:
             echo "skip: vitest.config.* not present"
             exit 0
           fi
-          bun test
+          # Use the workspace's `test` script (vitest via per-package
+          # config) — `bun test` is Bun's own runner and does NOT execute
+          # vitest tests (toMatchInlineSnapshot / vitest-axe / setup files
+          # are vitest-specific).
+          bun --filter='*' run test
 
   test-e2e-smoke:
     name: test-e2e-smoke

@@ -50,7 +50,7 @@ Patterns from user corrections — so the same mistake isn't made twice.
 - **Date:** 2026-05-06
 - **Mistake:** Story 0-10 T7.5/T7.6/T7.7 specified `<View>` and `<Text>` from tamagui inside `apps/web/src/app/dashboard/{layout,page,loading}.tsx` — all Server Components (no `"use client"`). The build's "Collecting page data" step crashed with `(0, i.createContext) is not a function. (In '(0, i.createContext)("")', '(0, i.createContext)' is undefined)` because Tamagui's module-evaluation calls `createContext` at server-module-load time, and Next.js's server bundle's React import shape doesn't expose it the same way as the client bundle.
 - **Correction:** RSC routes use plain HTML chrome (`<div>` / `<header>` / `<main>` with inline `style={{ ... }}` referencing the theme CSS vars: `var(--color)`, `var(--background)`, etc.). Pekulo client primitives (Section, EmptyState, Skeleton) consumed inside the server tree work fine — they carry their own `"use client"` boundaries. The animation hooks `use-count-up.ts` and `use-stagger.ts` also gained `"use client"` directives at the top because they call `useState` / `useEffect` / `useSyncExternalStore` and were being pulled into the server graph via the `@pekulo/ui` barrel.
-- **Rule:** RSC routes that need server data fetching (auth, supabase) should use plain HTML + CSS-var inline styles for chrome. Tamagui imports MUST live behind a `"use client"` boundary — either at the page level (`"use client"` directive) or inside a Pekulo* primitive that already declares one. Animation hooks and any package module that imports from React's hooks API need `"use client"` too if they sit in a barrel that's imported by RSC.
+- **Rule:** RSC routes that need server data fetching (auth, supabase) should use plain HTML + CSS-var inline styles for chrome. Tamagui imports MUST live behind a `"use client"` boundary — either at the page level (`"use client"` directive) or inside a Pekulo\* primitive that already declares one. Animation hooks and any package module that imports from React's hooks API need `"use client"` too if they sit in a barrel that's imported by RSC.
 
 ### 2026-05-06 — Tamagui v2 `styled.input` / `styled.button` style options are restricted to StackStyle — text-style props (color/fontSize/outline) need inline `style={...}` (Scope: aped-dev — every Pekulo styled HTML input/button surface)
 
@@ -60,7 +60,7 @@ Patterns from user corrections — so the same mistake isn't made twice.
 - **Rule:** When styling input/button/form-element via `styled.<el>()`:
   - Use Tamagui style options for box-model (size, padding, margin, border, background, position, flex).
   - Use inline `style={...}` for text-style (color, fontSize, fontWeight, outline, letterSpacing) referencing theme CSS vars.
-  - Or escalate to a custom Pekulo*Input primitive in `@pekulo/ui` if reused enough (currently only one consumer — auth-form — so inline is fine).
+  - Or escalate to a custom Pekulo\*Input primitive in `@pekulo/ui` if reused enough (currently only one consumer — auth-form — so inline is fine).
 
 ### 2026-05-06 — Reference the framework's official starter monorepo BEFORE declaring a pivot on RC integration findings (Scope: aped-dev, aped-review, aped-arch — every spike that evaluates a pre-1.0 framework integration in this monorepo)
 

@@ -5,9 +5,7 @@ import { PekuloNavRail } from "./PekuloNavRail";
 
 describe("PekuloNavRail a11y", () => {
   it("has no serious/critical violations", async () => {
-    const { container } = renderWithTamagui(
-      <PekuloNavRail activeKey="cap" onSelect={vi.fn()} />,
-    );
+    const { container } = renderWithTamagui(<PekuloNavRail activeKey="cap" onSelect={vi.fn()} />);
     const r = await axe(container);
     expect(
       (r.violations ?? []).filter((v) => v.impact === "serious" || v.impact === "critical"),

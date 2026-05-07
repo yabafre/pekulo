@@ -15,20 +15,9 @@ export interface PekuloKpiTileProps {
   progress?: number;
 }
 
-export function PekuloKpiTile({
-  label,
-  valueTop,
-  valueBottom,
-  progress,
-}: PekuloKpiTileProps) {
+export function PekuloKpiTile({ label, valueTop, valueBottom, progress }: PekuloKpiTileProps) {
   return (
-    <View
-      backgroundColor="$backgroundCard"
-      borderRadius="$lg"
-      padding="$4"
-      flex={1}
-      minWidth={140}
-    >
+    <View backgroundColor="$backgroundCard" borderRadius="$lg" padding="$4" flex={1} minWidth={140}>
       <View flexDirection="row" justifyContent="space-between" alignItems="flex-start">
         <Text color="$colorTertiary" fontSize="$xs" letterSpacing={0.5}>
           {label}
