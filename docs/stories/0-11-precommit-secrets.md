@@ -1,7 +1,7 @@
 # Story: 0-11-precommit-secrets — Pre-commit hooks (lefthook + gitleaks + prisma format)
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#11](https://github.com/yabafre/pekulo/issues/11)
 **Branch:** `feature/11-0-11-precommit-secrets`
 **Commit prefix:** `feat(#11): ...` (or `chore(#11):` / `fix(#11):` per task type)
@@ -648,12 +648,51 @@ Expected output: `AC-5 PASS`.
 
 ## Dev Agent Record
 
-- **Model:** {{model used}}
-- **Started:** {{timestamp}}
-- **Completed:** {{timestamp}}
+- **Model:** Claude Opus 4.7 (1M context)
+- **Started:** 2026-05-07T12:00:00Z
+- **Completed:** 2026-05-07T12:30:00Z
 
 ### Debug Log
 
+1. **Pre-flight (commits-before-Task-1):** `aped-story` had left `docs/state.yaml` (M) and `docs/stories/0-11-precommit-secrets.md` (??) uncommitted on the feature branch — bundled into `chore(#11): prepare story 0-11-precommit-secrets`.
+2. **gitleaks system pre-req:** `gitleaks` was absent from the dev machine; installed via `brew install gitleaks` (8.30.1, ≥ 8.18 ✓).
+3. **Task order swap (Task 2 ↔ Task 3):** committing `lefthook.yml` first would have failed because the live hook references `.gitleaks.toml` which didn't exist yet — gitleaks fail-closes on missing config. Committed `.gitleaks.toml` first, then `lefthook.yml`. File-on-disk order in the diff is unchanged; only commit order flipped.
+4. **`{root}` template not expanded by lefthook 2.1.6:** the story-spec value `--config={root}/.gitleaks.toml` reached gitleaks literally (`{root}` not substituted in `run:` fields). Switched to a relative path (`.gitleaks.toml`) — lefthook always cd's to the repo root, so this resolves correctly.
+5. **`oxfmt` errors on internally-ignored files:** `.oxfmtrc.json#ignorePatterns` excludes `docs/stories/`, so when lefthook's `*.{md,...}` glob matched a staged story file, oxfmt would error with `Expected at least one target file. All matched files may have been excluded by ignore rules.` Added the `--no-error-on-unmatched-pattern` flag to the oxfmt command.
+6. **Story patch — AC-1 fixture:** the canonical AWS docs example `AKIAIOSFODNN7EXAMPLE` is auto-allowlisted by gitleaks 8.18+ via the built-in `EXAMPLE` stopword (intentional gitleaks behaviour to avoid false positives on AWS docs). Verified: gitleaks exits 0 silently on that key. Patched AC-1 + Task 3c + Task 6 verification block to use `AKIAQYLPMN5HCQGZWXYZ` — same shape (`AKIA` + 16 base32), no stopword. The rule (`aws-access-token`) now fires correctly and the commit is blocked exit 1.
+7. **AC-4 literal-command drift:** `head -5 .git/hooks/pre-commit | grep -q lefthook` (story spec) FAILS on lefthook 2.1.6 because the hook template puts the first `lefthook` reference at line 11 (inside `call_lefthook()`), not in the first 5 lines. Intent (the hook materialises and references lefthook) is satisfied; verification now runs `grep -q lefthook` without the head limit. Story-spec command should be relaxed in a follow-up; intent-faithful PASS captured.
+
 ### Completion Notes
 
+All 5 acceptance criteria verified end-to-end through the live lefthook hook:
+
+| AC  | Result | Evidence (fresh capture in step 07) |
+| --- | ------ | ----------------------------------- |
+| AC-1 | ✅ PASS | Commit `leak test (should be blocked)` aborted exit 1; gitleaks rule `aws-access-token` fired on `leak-fixture.env`; fail_text rendered. |
+| AC-2 | ✅ PASS | Commit `ab43081 fmt test (should auto-format)`: prisma format ran, `_base.prisma` re-staged, committed blob = canonical format. Restore commit `cd85feb`. |
+| AC-3 | ✅ PASS | `apps/web/src/app/page.tsx` staged with violation; `apps/web/src/app/layout.tsx` had identical violation unstaged; sibling md5 unchanged across the commit. Test commit `3b4b60b` reverted. |
+| AC-4 | ✅ PASS (intent-faithful) | After `rm .git/hooks/pre-commit && bun install`: hook materialised, `grep -q lefthook` matches. Literal story command (head -5 limit) needs relaxing — see Debug Log #7. |
+| AC-5 | ✅ PASS | `git commit --allow-empty` exit 0; all 4 commands report `(skip)` correctly. |
+
+**Out-of-scope items remain out of scope** (no scope creep): no CI wiring, no custom oxlint rules, no history scan, no `.gitignore` follow-up, no architecture.md edit. All tracked separately per story Dev Notes.
+
+**Lessons applied** (from `docs/lessons.md`):
+- 2026-05-04 (oxlint/oxfmt have no `--staged` flag): used `{staged_files}` template + `stage_fixed: true` ✓
+- 2026-05-04 (`bun --cwd <path> run <script>` broken on Bun 1.3.13): `prisma_format` shells out via `bash -c '(cd apps/api && bun run prisma:format)'` ✓
+- Commit hygiene from 0-2: one commit per task with `feat(#11):` / `chore(#11):` / `docs(#11):` prefixes ✓ (exception: AC-2 evidence commit `ab43081` lacks prefix because Task 6 spec prescribed the literal commit message — squash-merge collapses).
+
+**Lessons learnt this story** (candidates for `docs/lessons.md` post-review):
+- L-2026-05-07-A: lefthook 2.1.6 does NOT expand `{root}` in `run:` fields; use relative paths (always cd's to repo root).
+- L-2026-05-07-B: `oxfmt` errors when its CLI receives files ignored by `ignorePatterns`; pass `--no-error-on-unmatched-pattern` whenever lefthook globs may broaden into ignored paths.
+- L-2026-05-07-C: gitleaks 8.18+ stopword list silently allowlists `AKIAIOSFODNN7EXAMPLE` and similar canonical doc keys; security tests must use stopword-clean fakes to actually exercise the rule.
+
 ### File List
+
+- `package.json` (M) — added `lefthook@2.1.6` exact-pin devDep + `prepare: "lefthook install"` script
+- `bun.lock` (M) — registered lefthook 2.1.6 + 9 platform-binary optional deps
+- `lefthook.yml` (A) — 4 pre-commit commands: gitleaks → oxlint → oxfmt → prisma_format (sequential, fail_text on gitleaks)
+- `.gitleaks.toml` (A) — `[extend] useDefault = true` + Pekulo `[allowlist] paths` (4 entries: `.example`, supabase linked-project, `docs/*.md`, `bun.lock`)
+- `apps/web/README.md` (M) — appended `## Pre-commit hooks` onboarding section
+- `apps/api/README.md` (M) — appended `## Pre-commit hooks` onboarding section
+- `docs/stories/0-11-precommit-secrets.md` (A) — story file (created by aped-story; AC-1 fixture patched mid-flight)
+- `docs/state.yaml` (M) — story `0-11-precommit-secrets` status `pending → ready-for-dev → in-progress → review`
