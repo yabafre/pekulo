@@ -115,7 +115,7 @@
 - **Scope**: aped-dev — story 0-12
 - **Lesson**: oxlint's schema constrains `settings.react.version` with regex `^[1-9]\d*(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?$` (SemVer-only, no `"detect"` like eslint-plugin-react). Hard-code the React version in `.oxlintrc.json` and update it in lockstep with `apps/web/package.json` on every React bump
 
-## 6. Completed stories — outcomes (0-1, 0-2, 0-3)
+## 6. Completed stories — outcomes (0-1, 0-2, 0-3, 0-10)
 
 ### Story 0-1 — Packages reorg under `@pekulo/*` namespace (DONE)
 
@@ -134,6 +134,12 @@
 - **What shipped**: `apps/api` greenfield scaffold (Bun + Elysia entrypoint), bootstrap directory structure (`bootstrap/platform/database/common/config/modules/health`), `@pekulo/api` workspace registered, Dockerfile (L1-corrected with workspace manifest copying + `.dockerignore` exceptions), health module exposing `/health` + `/ready`, env validation (NODE_ENV, PORT, HOST, SHUTDOWN_TIMEOUT_MS), readiness registry, lifecycle hooks (SIGTERM/SIGINT)
 - **Key files**: `apps/api/{package.json,tsconfig.json,src/main.ts,src/app.ts,src/config/env.ts,src/bootstrap/{readiness,lifecycle,runtime-dependencies}.ts,modules/health/health.module.ts,Dockerfile,.gitignore,.dockerignore}`
 - **Lessons emerged**: L1 (Dockerfile workspace manifest coverage — applied immediately in 0-3 Task 10, pre-Lesson formalization), L2 (Elysia invariant type — observed in 0-3 Task 5 but fixed in early commit, then formalized as L2)
+
+### Story 0-10 — `@pekulo/ui` Tamagui DS migration (DONE)
+
+- **What shipped**: `@pekulo/ui` package on Tamagui Core 2.0.0-rc.41 as `apps/web`'s sole DS surface (ADR-0007). 41 `Pekulo*` components + 14 primitives, tokens 1:1-mirrored from `docs/ux-preview/` SSOT, 8 domain types extracted to `@pekulo/types` per arch L366. `apps/web` Path C decommission complete (Tailwind / shadcn / `@base-ui/react` / framer-motion all stripped). 52 test files / 81 inline snapshots / 64 a11y assertions / coverage gate 70/60 (current 92.85 %).
+- **Key files**: `packages/{types,ui}/src/**/*`, `apps/web/src/{app/layout.tsx,components/{providers,auth-form}.tsx,app/dashboard/*,proxy.ts}`, `scripts/check-no-tailwind.sh`, `docs/ux-preview/src/{index.css,tokens/colors.ts}` (SSOT extended with `--warning` Pekulo extension).
+- **Lessons emerged**: L13–L18 (Tamagui v2 prop renames, RSC `'use client'` discipline, styled.input/button StackStyle, vitest `--passWithNoTests`, Select.Content FocusScope, compound triggers `render="button"`), L19–L26 (review fix-cycle: `bun test` ≠ `vitest run` in CI, `package.json#exports` cannot reference `node_modules/`, barrel re-exports must be RSC-safe via sub-paths, Vercel Yarn 4.5 hoisting trips Next TS check, domain types in `@pekulo/types`, tokens 1:1-mirror not fork, TR-strict `$accent` reserved for ± deltas).
 
 ## 7. Key code patterns established
 
