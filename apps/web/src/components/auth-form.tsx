@@ -4,7 +4,8 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { Section, Text, View, styled, useToast } from "@pekulo/ui";
+import { Section, useToast } from "@pekulo/ui";
+import { Text, View, styled } from "@pekulo/ui/client";
 import { createClient } from "@/lib/supabase/client";
 
 // Plain styled HTML input. `color` and `outline` are CSS-only (not in

@@ -2,16 +2,14 @@
 // Public barrel for @pekulo/ui. Consumers import everything from here.
 //
 // `apps/web` (and `apps/mobile` at V1.5) MUST consume Tamagui through this
-// barrel — never `import { ... } from "tamagui"` directly (architecture
-// L213: `@pekulo/ui` is the sole DS surface). The re-exports below give
-// consumers the low-level Tamagui primitives without leaking the dep.
-
-// Tamagui primitives — re-exported so apps don't need a direct `tamagui`
-// dep. Component-level `Pekulo*` exports below should be preferred where
-// available; raw primitives are an escape hatch for one-offs (auth form,
-// etc.).
-export { Text, View, styled } from "tamagui";
-export type { TextProps, ViewProps } from "tamagui";
+// package — never `import { ... } from "tamagui"` directly (architecture
+// L213: `@pekulo/ui` is the sole DS surface). Raw Tamagui primitives
+// (`Text`, `View`, `styled`) live behind the `@pekulo/ui/client` sub-path
+// — they cannot be re-exported from this barrel because Tamagui's module
+// evaluation calls `createContext` at load time, which crashes the Next
+// RSC server pass (lesson L17). The main barrel here keeps tokens /
+// themes / types / Pekulo-prefixed components RSC-safe; sub-modules with
+// their own `"use client"` directive handle the client islands.
 
 // Provider (single client boundary)
 export * from "./provider";

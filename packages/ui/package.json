@@ -14,7 +14,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./reset.css": "./node_modules/@tamagui/core/reset.css",
+    "./client": "./src/client.ts",
+    "./reset.css": "./public/reset.css",
     "./generated.css": "./public/tamagui.generated.css"
   },
   "scripts": {
