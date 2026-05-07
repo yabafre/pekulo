@@ -1,0 +1,19 @@
+# Pekulo extends the gitleaks default ruleset.
+# See https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Pekulo allowlist — known-safe paths and patterns. Add false-positive rules here, never disable a default rule globally."
+# Allowlist scope is intentionally narrow: env-template files only (not arbitrary
+# `*.example`), and APED-managed docs subtrees only (not arbitrary `docs/**/*.md`).
+# A new docs subdir or non-env example file must be allowlisted explicitly so a
+# real leak in a new path gets caught by the default ruleset.
+paths = [
+  '''(^|.+/)\.env(\..+)?\.example$''',
+  '''apps/web/supabase/\.temp/linked-project\.json$''',
+  '''^docs/(adr|stories|spikes|quick-specs|ux|ux-preview)/.*\.md$''',
+  '''^docs/(architecture|epics|prd|project-context|lessons|grill-summary|epic-\d+-context)\.md$''',
+  '''bun\.lock$''',
+]

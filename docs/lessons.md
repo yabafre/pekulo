@@ -13,6 +13,27 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-07 — lefthook 2.1.6 does NOT expand `{root}` inside `run:` fields ; use repo-relative paths (Scope: aped-dev, aped-arch — every lefthook command that needs to reference a repo-root file)
+
+- **Date:** 2026-05-07
+- **Mistake:** Story 0-11's `lefthook.yml` initially shipped with `gitleaks git --pre-commit --staged --redact --verbose --config={root}/.gitleaks.toml`. The `{root}` template placeholder is documented as expanded by lefthook 2.x for some fields, but **not** inside the `run:` string of a `pre-commit.commands.<name>` block. gitleaks therefore received the literal string `{root}/.gitleaks.toml` and exited with `failed to load config: open {root}/.gitleaks.toml: no such file or directory`. The hook fail-closed on every commit until corrected.
+- **Correction:** Switched to a repo-relative path: `--config=.gitleaks.toml`. Lefthook always `cd`s to the repo root before invoking the hook command, so a path relative to `.` resolves correctly on every dev machine regardless of where `git commit` was invoked from.
+- **Rule:** When writing lefthook command strings, NEVER assume template placeholders (`{root}`, `{push_files}`, etc.) work in every position. Inside `run:`, use repo-relative paths and rely on lefthook's automatic `cd` to repo root. Apply across every new `lefthook.yml` command that needs to reference a config file at the repo root. The set of expanded placeholders in `run:` is documented per release — verify with `bunx lefthook run --files=. <hook>` before committing.
+
+### 2026-05-07 — `oxfmt` errors when its CLI receives files filtered out by its own `ignorePatterns` ; pass `--no-error-on-unmatched-pattern` whenever lefthook globs may broaden into ignored paths (Scope: aped-dev — every lefthook / make / npm-script invocation of oxfmt against a globbed file list)
+
+- **Date:** 2026-05-07
+- **Mistake:** `lefthook.yml`'s `oxfmt` command originally read `bunx oxfmt {staged_files}` with the glob `*.{js,jsx,ts,tsx,mjs,cjs,json,md,yml,yaml}`. When a contributor staged a markdown file under `docs/stories/` (which `.oxfmtrc.json#ignorePatterns` excludes), lefthook expanded `{staged_files}` to that path and oxfmt errored with `Expected at least one target file. All matched files may have been excluded by ignore rules.` The pre-commit aborted on a legitimate doc edit.
+- **Correction:** Added the `--no-error-on-unmatched-pattern` flag: `bunx oxfmt --no-error-on-unmatched-pattern {staged_files}`. With the flag, oxfmt exits 0 when its post-`ignorePatterns` file set is empty, instead of erroring.
+- **Rule:** Whenever oxfmt is invoked with an externally-supplied file list (lefthook `{staged_files}`, a Makefile glob, a CI matrix), ALWAYS pass `--no-error-on-unmatched-pattern`. The ignore-pattern reconciliation happens inside oxfmt and is invisible to the caller; without the flag, the caller cannot tell "no files matched the glob" from "all matched files were ignored". Apply to every new oxfmt command that does not explicitly enumerate files.
+
+### 2026-05-07 — gitleaks 8.18+ silently allowlists `AKIAIOSFODNN7EXAMPLE` and any AWS-key fixture containing the `EXAMPLE` stopword ; security tests must use stopword-clean fakes (Scope: aped-dev, aped-qa, aped-review — every gitleaks-rule fixture in this monorepo, every future story that ships a leak-detection test)
+
+- **Date:** 2026-05-07
+- **Mistake:** Story 0-11's AC-1 originally specified the AWS docs canonical fake key `AKIAIOSFODNN7EXAMPLE`. `aped-dev` ran the live AC-1 verification, expected `gitleaks` exit 1, observed exit 0 (`no leaks found`). gitleaks 8.18+ ships a built-in stopword list (`EXAMPLE`, `XXXX`, `YYYY`, `FAKE`, `SAMPLE`, ...) that auto-allowlists matches containing those substrings, intentionally to keep AWS docs / SDK examples from triggering the `aws-access-token` rule. The dev assumed the rule had broken; in reality the test fixture was unintentionally allowlisted by gitleaks itself.
+- **Correction:** Replaced the fixture with `AKIAQYLPMN5HCQGZWXYZ` — same shape (`AKIA` + 16 base32 chars) and same rule (`aws-access-token`), but no stopword. The rule fires correctly on the new fixture (`leaks found: 1`, exit 1).
+- **Rule:** When writing a gitleaks-rule test, NEVER copy a fake key from upstream documentation (AWS, GitHub, JWT.io, etc.) — those are typically already in the stopword list. Generate a stopword-clean synthetic fixture by hand. Verify by scanning the fixture against the live `.gitleaks.toml` BEFORE wiring it into an AC: `gitleaks detect --no-git --source=<fixture-dir> --redact` must exit non-zero. Apply to every new security/secrets-discipline story (0-11 here, future repo-wide audit stories, any per-feature secrets test).
+
 ### 2026-05-07 — `bun test` ≠ `vitest run` ; CI workflow must invoke per-package `test` script (Scope: aped-dev, aped-review — every CI workflow that runs vitest tests in this monorepo)
 
 - **Date:** 2026-05-07

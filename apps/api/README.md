@@ -173,3 +173,34 @@ apps/api/
     │   └── health/                      (Elysia-native /health + /ready)
     └── platform/index.ts                (placeholder — populated 0-5/0-6/0-7)
 ```
+
+## Pre-commit hooks
+
+This monorepo uses [lefthook](https://github.com/evilmartians/lefthook) + [gitleaks](https://github.com/gitleaks/gitleaks) + `oxlint` / `oxfmt` / `prisma format` to keep secrets out of git history and to keep formatting / lint stable across contributors. See `lefthook.yml` at the repo root for the canonical config and `docs/stories/0-11-precommit-secrets.md` for the design rationale.
+
+### One-time setup
+
+1. **Install gitleaks** (system binary — version `>= 8.18`):
+   - macOS: `brew install gitleaks`
+   - Linux: download the latest release tarball from <https://github.com/gitleaks/gitleaks/releases> and place the `gitleaks` binary on `$PATH`.
+   - Verify: `gitleaks --version` prints `8.18.0` or newer.
+2. **Run `bun install` from the repo root.** The `prepare` script auto-runs `lefthook install`, which writes `.git/hooks/pre-commit` pointing at lefthook.
+
+### Hooks relevant to `apps/api`
+
+| Hook            | What it does                                                                                                                                                     |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gitleaks`      | Scans the staged tree for secret patterns. Always runs — protects `.env`, JWT secrets, `DATABASE_URL`, etc.                                                      |
+| `oxlint --fix`  | Applies oxlint auto-fixes to staged `apps/api/src/**/*.ts` files.                                                                                                |
+| `oxfmt`         | Formats staged `apps/api/src/**/*.{ts,json,md,yml,yaml}` files.                                                                                                  |
+| `prisma format` | Runs `(cd apps/api && bun run prisma:format)` whenever any `apps/api/prisma/schema/*.prisma` file is staged. Re-stages the formatted schema files automatically. |
+
+### Bypass (emergencies only — DISCOURAGED)
+
+```bash
+LEFTHOOK=0 git commit -m "wip: ..."
+```
+
+Use only when the dev machine cannot run gitleaks / lefthook. NEVER push a commit that bypassed gitleaks without re-running `gitleaks detect --source . --redact` first.
+
+`git commit --no-verify` is the git-native equivalent — it also skips lefthook (and therefore gitleaks). Same caveat applies: re-run `gitleaks detect --source . --redact` before pushing.
