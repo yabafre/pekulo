@@ -125,6 +125,14 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 ## Backlog
 
+### Ramp tiering
+
+| Tier                | Epics                                                                          |
+| ------------------- | ------------------------------------------------------------------------------ |
+| V1                  | epic-0, epic-1, epic-2, epic-3, epic-4, epic-5, epic-6, epic-7, epic-8, epic-9 |
+| V1.5 deferred       | epic-10 (10-1 ships V1, 10-2 deferred per G1)                                  |
+| Public-ramp backlog | epic-11 (11-3 priorité tôt; reste gated sur (b) decision)                      |
+
 ## Epic 0: Foundations — package layout, tooling, runtime substrate
 
 **Goal:** Establish the `@pekulo/*` workspace, oxc toolchain, Bun + Elysia API, Prisma 7 schema, oRPC contracts, OTel instrumentation, CI/CD matrix, and the Pekulo Design System on Tamagui Core — every prerequisite that V1 feature work consumes. Reproduces the Epic Zero stories from `docs/architecture.md` (E0.1 → E0.12) verbatim.

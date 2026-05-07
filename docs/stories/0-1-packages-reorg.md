@@ -25,7 +25,17 @@
 
 - **AC-3** **Given** the import hierarchy declared in ADR-0011 (`@pekulo/zod → @pekulo/validators → @pekulo/contracts → apps`, with `@pekulo/types` consumed bidirectionally), **When** I inspect each package's `dependencies` field in its `package.json`, **Then** `@pekulo/validators` lists `@pekulo/zod` and `@pekulo/types` as `workspace:*` dependencies, `@pekulo/contracts` lists `@pekulo/validators` and `@pekulo/types` as `workspace:*` dependencies, and the upstream packages (`@pekulo/zod`, `@pekulo/types`, `@pekulo/tsconfig`, `@pekulo/oxlint-config`, `@pekulo/ui`) declare zero `@pekulo/*` runtime dependencies.
 
----
+## Tasks
+
+- Task 1 — Create `@pekulo/tsconfig` (4 JSON files) [AC: AC-2]
+- Task 2 — Create `@pekulo/zod` (3 files, placeholder) [AC: AC-1, AC-2]
+- Task 3 — Create `@pekulo/types` (3 files, placeholder) [AC: AC-1, AC-2]
+- Task 4 — Create `@pekulo/validators` (3 files, deps on zod + types) [AC: AC-1, AC-2, AC-3]
+- Task 5 — Create `@pekulo/contracts` (3 files, deps on validators + types) [AC: AC-1, AC-2, AC-3]
+- Task 6 — Create `@pekulo/oxlint-config` (3 files, placeholder) [AC: AC-1, AC-2]
+- Task 7 — Create `@pekulo/ui` (3 files, placeholder) [AC: AC-1, AC-2]
+- Task 8 — Remove `packages/.gitkeep` placeholder [AC: AC-1]
+- Task 9 — Final verification of AC-1, AC-2, AC-3 [AC: AC-1, AC-2, AC-3]
 
 ## Dev Notes
 
@@ -242,7 +252,9 @@ Workspace deps use `"workspace:*"` (Bun-supported, identical semantics to pnpm/y
 
 ---
 
-## Tasks
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > Each task is intended to take 2–5 minutes. Run them in order; each ends with a `git add` + `git commit`. The dev agent can interleave reads/checks but must complete each task's commit before moving on.
 
@@ -807,26 +819,7 @@ ui: {}
 
 ---
 
-## Dev Agent Record
-
-- **Model:** claude-opus-4-7 (1M context)
-- **Started:** 2026-05-03
-- **Completed:** 2026-05-03
-
-### Debug Log
-
-- **state.yaml YAML lint fix.** MCP `aped_state.advance` initially failed with `yq parse error at line 242` because `6-1-llm-routing-and-providers:{ status: pending,` was missing the space between the key colon and the flow-style mapping `{`. Fixed in-place (1-char insertion) — pre-existing bug from `aped-epics`, not introduced by this story; flagged for follow-up.
-- **Bun `--cwd` after `run` is broken; the `cd` form is canonical.** Initial invocations used `bun --cwd packages/<pkg> run typecheck`; under Bun 1.3.13 this dumps the `bun run --help` text and **does not actually invoke `tsc`** — it exits 0 without running the script (Eva probed in aped-review by injecting `const x: string = 42` and confirmed the `--cwd`-after-`run` form silently passes while the `(cd packages/<pkg> && bun run typecheck)` form correctly raises `error TS2322`). The Dev Agent Record originally claimed both forms ran the script — that was wrong. All Run lines have been corrected to the `cd` form, and the verification block below was re-captured by the aped-review Lead using the `cd` form. Lesson: `bun --cwd` only works as a global flag _before_ the subcommand (e.g. `bun --cwd packages/zod install`); after `run`, Bun reinterprets `--cwd` as an unknown flag.
-
-### Completion Notes
-
-- All 9 tasks shipped one-commit-per-task on `feat/0-1-packages-reorg` (8 commits — Task 9 is verification-only, no commit per spec).
-- Story-level RED witnessed before any scaffold (no `@pekulo/*` workspace registered, no per-package `package.json` present). Per-task RED witnessed before each scaffold (`packages/<pkg>` did not exist).
-- AC-1, AC-2, AC-3 verified verbatim — output captured in PR body and matches the story's "Expected output" blocks.
-- **Out-of-scope finding (not blocking, not fixed):** root `bun run typecheck` (= `turbo run typecheck`) fails with `Could not find task typecheck` because `turbo.json` declares the task as `check-types`, not `typecheck`. The Dev Notes flagged this divergence and stated turbo should pass-through unknown tasks — that's no longer true in Turbo 2.x. Verified the failure pre-existed before any commit on this branch (via `git stash` on the work-in-progress + re-run). AC-2 explicitly tests per-package invocation (`(cd packages/<pkg> && bun run typecheck)`) which all pass; this is properly out-of-scope and should be picked up by story 0-8 (CI workflows) or a focused follow-up.
-- No regressions: `apps/web` typecheck (`tsc --noEmit`) still exits 0; no source files in `apps/web` or `apps/prices` were touched.
-
-### File List
+## File List
 
 **New (24 files across 7 packages):**
 
@@ -846,6 +839,25 @@ ui: {}
 
 - `bun.lock` (workspace registration only — no new external deps)
 - `docs/state.yaml` (line 242 YAML lint fix + dev phase + story status flips)
+
+## Dev Agent Record
+
+- **Model:** claude-opus-4-7 (1M context)
+- **Started:** 2026-05-03
+- **Completed:** 2026-05-03
+
+### Debug Log
+
+- **state.yaml YAML lint fix.** MCP `aped_state.advance` initially failed with `yq parse error at line 242` because `6-1-llm-routing-and-providers:{ status: pending,` was missing the space between the key colon and the flow-style mapping `{`. Fixed in-place (1-char insertion) — pre-existing bug from `aped-epics`, not introduced by this story; flagged for follow-up.
+- **Bun `--cwd` after `run` is broken; the `cd` form is canonical.** Initial invocations used `bun --cwd packages/<pkg> run typecheck`; under Bun 1.3.13 this dumps the `bun run --help` text and **does not actually invoke `tsc`** — it exits 0 without running the script (Eva probed in aped-review by injecting `const x: string = 42` and confirmed the `--cwd`-after-`run` form silently passes while the `(cd packages/<pkg> && bun run typecheck)` form correctly raises `error TS2322`). The Dev Agent Record originally claimed both forms ran the script — that was wrong. All Run lines have been corrected to the `cd` form, and the verification block below was re-captured by the aped-review Lead using the `cd` form. Lesson: `bun --cwd` only works as a global flag _before_ the subcommand (e.g. `bun --cwd packages/zod install`); after `run`, Bun reinterprets `--cwd` as an unknown flag.
+
+### Completion Notes
+
+- All 9 tasks shipped one-commit-per-task on `feat/0-1-packages-reorg` (8 commits — Task 9 is verification-only, no commit per spec).
+- Story-level RED witnessed before any scaffold (no `@pekulo/*` workspace registered, no per-package `package.json` present). Per-task RED witnessed before each scaffold (`packages/<pkg>` did not exist).
+- AC-1, AC-2, AC-3 verified verbatim — output captured in PR body and matches the story's "Expected output" blocks.
+- **Out-of-scope finding (not blocking, not fixed):** root `bun run typecheck` (= `turbo run typecheck`) fails with `Could not find task typecheck` because `turbo.json` declares the task as `check-types`, not `typecheck`. The Dev Notes flagged this divergence and stated turbo should pass-through unknown tasks — that's no longer true in Turbo 2.x. Verified the failure pre-existed before any commit on this branch (via `git stash` on the work-in-progress + re-run). AC-2 explicitly tests per-package invocation (`(cd packages/<pkg> && bun run typecheck)`) which all pass; this is properly out-of-scope and should be picked up by story 0-8 (CI workflows) or a focused follow-up.
+- No regressions: `apps/web` typecheck (`tsc --noEmit`) still exits 0; no source files in `apps/web` or `apps/prices` were touched.
 
 ### Verification output (re-captured by aped-review Lead, `cd` form — supersedes the dev's original capture which used the broken `bun --cwd` form)
 

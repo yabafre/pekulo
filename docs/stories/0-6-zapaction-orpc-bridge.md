@@ -29,7 +29,13 @@
 
 - **AC-4 (hypothesis CRUD round-trip persists with `where: { userId }` ADR-0013 guard):** **Given** the hypothesis service wired against the existing Prisma `Hypothesis` model (`@@map("hypotheses")`), **When** the round-trip `saveHypotheses(input) → handler → service.save(userId, input) → prisma.hypothesis.upsert(...)` runs, **Then** the upsert clause is exactly `{ where: { userId }, update: <camelToDb(input)>, create: { userId, ...camelToDb(input) } }` (so even with the service-role bypass, the explicit `userId` predicate is the belt + suspenders ADR-0013 demands), and the matching `getHypotheses() → handler → service.get(userId) → prisma.hypothesis.findUnique({ where: { userId } })` returns the persisted row in camelCase identical to `defaultHypotheses` shape (when the row is missing, the service returns `defaultHypotheses` rather than null — preserves brownfield contract). Verified by 3 `bun:test` cases on `apps/api/src/modules/hypothesis/hypothesis.service.test.ts` (stubbed Prisma client): (i) `service.get(userId)` returns `defaultHypotheses` when `findUnique` resolves to `null`, (ii) `service.get(userId)` maps a present row to camelCase exactly matching the brownfield `dbToCamel` helper from `apps/web/src/lib/actions/hypotheses.ts` line 12, (iii) `service.save(userId, input)` calls `upsert` exactly once with the spec'd `where`/`update`/`create` clauses (`expect(stub.upsert).toHaveBeenCalledWith({ where: { userId }, update: { salaire_net: ... }, create: { userId, salaire_net: ... } })`).
 
----
+## Tasks
+
+- Phase B — API JWT + structured log infra (Tasks 1-5)
+- Phase C — Shared validators + contract + hypothesis module (Tasks 6-10)
+- Phase D — Mount integration (Tasks 11-13)
+- Phase A — Web AsyncLocalStorage + zapaction context (Tasks 14-15)
+- Phase E + F — Action refactor + read-path refactor + smoke harness (Task 16)
 
 ## Dev Notes
 
@@ -844,7 +850,9 @@ Every task ends with a `git add ... && git commit -m "<prefix>(#6): <subject>"` 
 
 ---
 
-## Tasks
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > Each task is sized for ~3-5 minutes of dev time. Tasks reference the AC they satisfy. The dev agent runs `git status` between tasks to confirm only the expected files changed.
 
@@ -2228,6 +2236,43 @@ Every task ends with a `git add ... && git commit -m "<prefix>(#6): <subject>"` 
 
 ---
 
+## File List
+
+**Created (17):**
+- `apps/api/src/platform/security/jwt-verifier.ts`
+- `apps/api/src/platform/security/jwt-verifier.test.ts`
+- `apps/api/src/platform/security/require-user-context.ts`
+- `apps/api/src/platform/security/require-user-context.test.ts`
+- `apps/api/src/platform/security/index.ts`
+- `apps/api/src/platform/http/request-log.ts`
+- `apps/api/src/modules/hypothesis/hypothesis.service.ts`
+- `apps/api/src/modules/hypothesis/hypothesis.service.test.ts`
+- `apps/api/src/modules/hypothesis/hypothesis.routes.ts`
+- `apps/api/src/modules/hypothesis/hypothesis.module.ts`
+- `apps/api/scripts/dev-token.ts`
+- `apps/web/src/lib/orpc/request-context.ts`
+- `packages/validators/src/hypothesis.ts`
+
+**Modified (10):**
+- `apps/api/package.json` (jose dep, @pekulo/validators workspace dep)
+- `apps/api/src/config/env.ts` (SUPABASE_JWT_SECRET schema)
+- `apps/api/src/platform/index.ts` (corrected stale 0-5 → 0-6 comment)
+- `apps/api/src/platform/http/orpc-mount.ts` (deps + auth + log timer)
+- `apps/api/src/bootstrap/runtime-dependencies.ts` (jwtVerifier + orpcRouter)
+- `apps/api/src/app.ts` (mountOrpc deps wiring)
+- `apps/web/package.json` (@pekulo/validators workspace dep)
+- `apps/web/src/lib/zapaction/context.ts` (auth.getSession + ensureRequestContext)
+- `apps/web/src/lib/orpc/client.ts` (Authorization headers thunk)
+- `apps/web/src/lib/actions/hypotheses.ts` (thin oRPC delegators)
+- `apps/web/src/lib/data/hypotheses.ts` (oRPC read path, preserves return shape)
+- `apps/web/src/lib/schemas/hypotheses.ts` (re-export from @pekulo/validators)
+- `apps/web/src/lib/types.ts` (re-export Hypotheses + defaultHypotheses)
+- `packages/validators/src/index.ts` (barrel)
+- `packages/validators/package.json` (zod direct dep)
+- `packages/contracts/src/hypothesis.contract.ts` (oc.input/output procedures)
+- `.env.example` (SUPABASE_JWT_SECRET docblock)
+- `.env.local` (SUPABASE_JWT_SECRET local placeholder; gitignored)
+
 ## Dev Agent Record
 
 - **Model:** claude-opus-4-7[1m]
@@ -2264,43 +2309,6 @@ Every task ends with a `git add ... && git commit -m "<prefix>(#6): <subject>"` 
 2. `request-context.ts` `_resetRequestContextForTests` uses only `disable()` (no `enable()` in Node).
 3. `hypothesis.service.ts` casts `upsert.create` to bypass Prisma's static `id` requirement (extension auto-injects at runtime).
 4. `packages/validators/package.json` adds direct `zod` dep + `apps/web/package.json` adds `@pekulo/validators` workspace dep (transitive resolution insufficient).
-
-### File List
-
-**Created (17):**
-- `apps/api/src/platform/security/jwt-verifier.ts`
-- `apps/api/src/platform/security/jwt-verifier.test.ts`
-- `apps/api/src/platform/security/require-user-context.ts`
-- `apps/api/src/platform/security/require-user-context.test.ts`
-- `apps/api/src/platform/security/index.ts`
-- `apps/api/src/platform/http/request-log.ts`
-- `apps/api/src/modules/hypothesis/hypothesis.service.ts`
-- `apps/api/src/modules/hypothesis/hypothesis.service.test.ts`
-- `apps/api/src/modules/hypothesis/hypothesis.routes.ts`
-- `apps/api/src/modules/hypothesis/hypothesis.module.ts`
-- `apps/api/scripts/dev-token.ts`
-- `apps/web/src/lib/orpc/request-context.ts`
-- `packages/validators/src/hypothesis.ts`
-
-**Modified (10):**
-- `apps/api/package.json` (jose dep, @pekulo/validators workspace dep)
-- `apps/api/src/config/env.ts` (SUPABASE_JWT_SECRET schema)
-- `apps/api/src/platform/index.ts` (corrected stale 0-5 → 0-6 comment)
-- `apps/api/src/platform/http/orpc-mount.ts` (deps + auth + log timer)
-- `apps/api/src/bootstrap/runtime-dependencies.ts` (jwtVerifier + orpcRouter)
-- `apps/api/src/app.ts` (mountOrpc deps wiring)
-- `apps/web/package.json` (@pekulo/validators workspace dep)
-- `apps/web/src/lib/zapaction/context.ts` (auth.getSession + ensureRequestContext)
-- `apps/web/src/lib/orpc/client.ts` (Authorization headers thunk)
-- `apps/web/src/lib/actions/hypotheses.ts` (thin oRPC delegators)
-- `apps/web/src/lib/data/hypotheses.ts` (oRPC read path, preserves return shape)
-- `apps/web/src/lib/schemas/hypotheses.ts` (re-export from @pekulo/validators)
-- `apps/web/src/lib/types.ts` (re-export Hypotheses + defaultHypotheses)
-- `packages/validators/src/index.ts` (barrel)
-- `packages/validators/package.json` (zod direct dep)
-- `packages/contracts/src/hypothesis.contract.ts` (oc.input/output procedures)
-- `.env.example` (SUPABASE_JWT_SECRET docblock)
-- `.env.local` (SUPABASE_JWT_SECRET local placeholder; gitignored)
 
 ### Lessons Emerged
 

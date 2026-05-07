@@ -29,7 +29,14 @@
 
 - **AC-5 (no-staged-files = no-op):** **Given** a `git commit --allow-empty -m "no-op"` with no staged files, **When** the hook runs, **Then** every command short-circuits (lefthook's empty `{staged_files}` expansion + `glob` filters skip every command), the commit succeeds with exit 0, and the lefthook output reports each command as `(skip)` or `(no files)`.
 
----
+## Tasks
+
+- Task 1 — Add `lefthook@2.1.6` to root `package.json` + `prepare` script [AC: AC-4]
+- Task 2 — Create `lefthook.yml` (root) [AC: AC-2, AC-3, AC-5]
+- Task 3 — Create `.gitleaks.toml` (root) [AC: AC-1]
+- Task 4 — Append `## Pre-commit hooks` section to `apps/web/README.md` [AC: AC-4 onboarding]
+- Task 5 — Append `## Pre-commit hooks` section to `apps/api/README.md` [AC: AC-4 onboarding]
+- Task 6 — Final verification of AC-1, AC-2, AC-3, AC-4, AC-5 [AC: AC-1, AC-2, AC-3, AC-4, AC-5]
 
 ## Dev Notes
 
@@ -213,7 +220,9 @@ Bun + Elysia HTTP service. See [ADR-0009](../../docs/adr/0009-elysia-orpc-with-z
 
 ---
 
-## Tasks
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > 6 tasks. Each is intended to take 2–5 minutes. Run them in order; each ends with a `git add` + `git commit`. Task 6 is the final AC verification (no commit).
 
@@ -646,6 +655,19 @@ Expected output: `AC-5 PASS`.
 
 ---
 
+## File List
+
+- `package.json` (M) — added `lefthook@2.1.6` exact-pin devDep + `prepare: "lefthook install"` script
+- `bun.lock` (M) — registered lefthook 2.1.6 + 10 platform-binary optional deps (darwin-arm64/x64, linux-arm64/x64, freebsd-arm64/x64, openbsd-arm64/x64, windows-arm64/x64)
+- `lefthook.yml` (A) — 4 pre-commit commands: gitleaks → oxlint → oxfmt → prisma_format (sequential, fail_text on gitleaks)
+- `.gitleaks.toml` (A) — `[extend] useDefault = true` + Pekulo `[allowlist] paths` (4 entries: `.example`, supabase linked-project, `docs/*.md`, `bun.lock`)
+- `apps/web/README.md` (M) — appended `## Pre-commit hooks` onboarding section
+- `apps/api/README.md` (M) — appended `## Pre-commit hooks` onboarding section
+- `docs/stories/0-11-precommit-secrets.md` (A) — story file (created by aped-story; AC-1 fixture patched mid-flight)
+- `docs/state.yaml` (M) — story `0-11-precommit-secrets` status `pending → ready-for-dev → in-progress → review → done`
+
+---
+
 ## Dev Agent Record
 
 - **Model:** Claude Opus 4.7 (1M context)
@@ -685,19 +707,6 @@ All 5 acceptance criteria verified end-to-end through the live lefthook hook:
 - L-2026-05-07-A: lefthook 2.1.6 does NOT expand `{root}` in `run:` fields; use relative paths (always cd's to repo root).
 - L-2026-05-07-B: `oxfmt` errors when its CLI receives files ignored by `ignorePatterns`; pass `--no-error-on-unmatched-pattern` whenever lefthook globs may broaden into ignored paths.
 - L-2026-05-07-C: gitleaks 8.18+ stopword list silently allowlists `AKIAIOSFODNN7EXAMPLE` and similar canonical doc keys; security tests must use stopword-clean fakes to actually exercise the rule.
-
-### File List
-
-- `package.json` (M) — added `lefthook@2.1.6` exact-pin devDep + `prepare: "lefthook install"` script
-- `bun.lock` (M) — registered lefthook 2.1.6 + 10 platform-binary optional deps (darwin-arm64/x64, linux-arm64/x64, freebsd-arm64/x64, openbsd-arm64/x64, windows-arm64/x64)
-- `lefthook.yml` (A) — 4 pre-commit commands: gitleaks → oxlint → oxfmt → prisma_format (sequential, fail_text on gitleaks)
-- `.gitleaks.toml` (A) — `[extend] useDefault = true` + Pekulo `[allowlist] paths` (4 entries: `.example`, supabase linked-project, `docs/*.md`, `bun.lock`)
-- `apps/web/README.md` (M) — appended `## Pre-commit hooks` onboarding section
-- `apps/api/README.md` (M) — appended `## Pre-commit hooks` onboarding section
-- `docs/stories/0-11-precommit-secrets.md` (A) — story file (created by aped-story; AC-1 fixture patched mid-flight)
-- `docs/state.yaml` (M) — story `0-11-precommit-secrets` status `pending → ready-for-dev → in-progress → review → done`
-
----
 
 ## Review Record
 

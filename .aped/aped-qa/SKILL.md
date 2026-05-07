@@ -9,7 +9,7 @@ argument-hint: "[story-key]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.3.1
+  version: 6.3.2
 ---
 
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.

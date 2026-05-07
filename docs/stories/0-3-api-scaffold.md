@@ -29,9 +29,19 @@
 
 - **AC-5 (Caddy mount documented):** **Given** the architecture's mount layout (architecture.md L229), **When** I open `apps/api/deploy/Caddyfile.snippet`, **Then** it contains a `reverse_proxy` block routing the five paths `/api/*`, `/health`, `/ready`, `/rpc/v1/*`, `/internal/*` to upstream `pekulo-api:3001` — copy-pastable into the Dokploy Caddy config.
 
-> **Note on the ticket's original AC-2 ("Caddy routes /api/*"):** the Caddy mount lives in operator infrastructure (Dokploy), not in this repo. AC-4 + AC-5 together make the original AC verifiable inside the dev's working tree (image runs locally + the snippet is committed). The actual Caddy production wiring is owned by story 0-8 (CI/CD + deploy hooks).
+## Tasks
 
----
+- Task 1 — Create `apps/api/package.json` + `tsconfig.json` + `.gitignore` + stub `src/main.ts` [AC: AC-2, AC-3]
+- Task 2 — Create `src/config/env.ts` (Zod env validation) [AC: AC-1, AC-2]
+- Task 3 — Create `bootstrap/{readiness,runtime-dependencies,lifecycle}.ts` [AC: AC-1, AC-3]
+- Task 4 — Create `modules/health/{health.module,health.routes}.ts` [AC: AC-1]
+- Task 5 — Wire `app.ts` + replace stub `main.ts` [AC: AC-1, AC-2]
+- Task 6 — Create `platform/`, `database/`, `common/` placeholders [AC: AC-3]
+- Task 7 — Verify AC-1 + AC-2 locally (dev server + curl + typecheck) [AC: AC-1, AC-2]
+- Task 8 — Create `Dockerfile` + `.dockerignore` [AC: AC-4]
+- Task 9 — Create `deploy/Caddyfile.snippet` + `apps/api/README.md` [AC: AC-5]
+- Task 10 — Verify AC-4 (Docker build + container /health + HEALTHCHECK) [AC: AC-4]
+- Task 11 — Final cross-AC capture (no file commit) [AC: AC-1, AC-2, AC-3, AC-4, AC-5]
 
 ## Dev Notes
 
@@ -240,7 +250,15 @@ Pinned to `elysia@1.4.4` (exact). The dev MAY bump to a newer 1.4.x release at i
 
 ---
 
-## Tasks
+### AC notes
+
+_Migrated from non-Gherkin lines under the pre-6.3.0 Acceptance Criteria section._
+
+> **Note on the ticket's original AC-2 ("Caddy routes /api/*"):** the Caddy mount lives in operator infrastructure (Dokploy), not in this repo. AC-4 + AC-5 together make the original AC verifiable inside the dev's working tree (image runs locally + the snippet is committed). The actual Caddy production wiring is owned by story 0-8 (CI/CD + deploy hooks).
+
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > Each task is intended to take 3–5 minutes. Run them in order; each ends with a `git add` + `git commit`. The dev agent can interleave reads/checks but must complete each task's commit before moving on. **Per lesson 2026-05-04, every Run line uses `(cd apps/api && bun run <script>)` — never `bun --cwd apps/api <script>`.**
 
@@ -1125,6 +1143,35 @@ OK: /internal/
 
 ---
 
+## File List
+
+```
+apps/api/.dockerignore
+apps/api/.gitignore
+apps/api/Dockerfile
+apps/api/README.md
+apps/api/deploy/Caddyfile.snippet
+apps/api/package.json
+apps/api/src/app.ts
+apps/api/src/bootstrap/lifecycle.ts
+apps/api/src/bootstrap/readiness.ts
+apps/api/src/bootstrap/runtime-dependencies.ts
+apps/api/src/common/index.ts
+apps/api/src/config/env.ts
+apps/api/src/database/index.ts
+apps/api/src/main.ts
+apps/api/src/modules/health/health.module.ts
+apps/api/src/modules/health/health.routes.ts
+apps/api/src/platform/index.ts
+apps/api/tsconfig.json
+bun.lock                                 (touched by `bun install` registering the new workspace)
+docs/lessons.md                          (2 new lessons added: Elysia 1.4 invariance, Bun frozen-lockfile workspace coverage. The `bun --cwd` quirk pre-existed from story 0-1.)
+docs/state.yaml                          (single status flip pending → review-queued + started_at)
+docs/stories/0-3-api-scaffold.md         (this file — Debug Log + Dev Agent Record + 3 lock-step snippet patches)
+```
+
+---
+
 ## Dev Agent Record
 
 - **Model:** claude-opus-4-7[1m]
@@ -1168,35 +1215,6 @@ The two non-trivial deviations (Elysia 1.4 invariance, Bun frozen-lockfile works
 - No `requireUserContext`, `jwt-verifier`, or auth helper (stories 0-5 / 0-6).
 - No root `package.json` `dev:api` script or Turbo `dev --filter=api` invocation (story 0-8).
 - No `apps/web` / `apps/prices` modifications.
-
-### File List
-
-```
-apps/api/.dockerignore
-apps/api/.gitignore
-apps/api/Dockerfile
-apps/api/README.md
-apps/api/deploy/Caddyfile.snippet
-apps/api/package.json
-apps/api/src/app.ts
-apps/api/src/bootstrap/lifecycle.ts
-apps/api/src/bootstrap/readiness.ts
-apps/api/src/bootstrap/runtime-dependencies.ts
-apps/api/src/common/index.ts
-apps/api/src/config/env.ts
-apps/api/src/database/index.ts
-apps/api/src/main.ts
-apps/api/src/modules/health/health.module.ts
-apps/api/src/modules/health/health.routes.ts
-apps/api/src/platform/index.ts
-apps/api/tsconfig.json
-bun.lock                                 (touched by `bun install` registering the new workspace)
-docs/lessons.md                          (2 new lessons added: Elysia 1.4 invariance, Bun frozen-lockfile workspace coverage. The `bun --cwd` quirk pre-existed from story 0-1.)
-docs/state.yaml                          (single status flip pending → review-queued + started_at)
-docs/stories/0-3-api-scaffold.md         (this file — Debug Log + Dev Agent Record + 3 lock-step snippet patches)
-```
-
----
 
 ## Review Record
 

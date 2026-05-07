@@ -36,7 +36,9 @@
 
 - **AC-5 (workflow files validate locally).** **Given** the two workflow YAML files (`.github/workflows/pr.yml` + `.github/workflows/deploy.yml`) and the composite action (`.github/actions/setup-bun/action.yml`), **When** the dev runs the local validator `bunx --bun @action-validator/cli .github/workflows/pr.yml` AND `bunx --bun @action-validator/cli .github/workflows/deploy.yml` AND `bunx --bun @action-validator/cli .github/actions/setup-bun/action.yml`, **Then** each invocation exits 0 with no schema errors. **And** the dev opens a draft PR from `feature/8-0-8-github-actions-pr` to `main` to verify the actual GitHub runner accepts the workflow (no parse error on the PR's "Checks" tab; jobs visible regardless of pass/fail). **Note (L6, applied on dev pickup 2026-05-05):** the bare npm package `action-validator` is metadata-only (no `bin`) ; the CLI lives in the scoped `@action-validator/cli` package (v0.6.0) — invoke that explicitly.
 
----
+## Tasks
+
+- See Dev Notes § Implementation history for the full task breakdown.
 
 ## Dev Notes
 
@@ -210,7 +212,9 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
 
 ---
 
-## Tasks
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 - [x] **T1 — Create composite action `.github/actions/setup-bun/action.yml`** [AC: AC-3, AC-5]
 
@@ -691,6 +695,10 @@ Repo `Settings → Secrets and variables → Actions → New repository secret`:
   Then mark the PR ready for review (`gh pr ready` once all checks are green) and signal handover for `aped-review`.
 
 ---
+
+## File List
+
+_File list preserved in Dev Agent Record (legacy story; v3 schema added File List as a top-level section in 6.3.0)._
 
 ## Dev Agent Record
 

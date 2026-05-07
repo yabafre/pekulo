@@ -17,24 +17,10 @@ pipeline:
       completed_at: "2026-05-03"
       fr_count: 59
       mode: "interactive"
-      brief_override: true
-      brief_substitute: "docs/grill-summary.md"
     ux:
       status: "done"
       output: "docs/ux/"
-      preview: "docs/ux-preview/"
       completed_at: "2026-05-03"
-      design_system:
-        ui_library: "@pekulo/ui (Tamagui Core 2.0.0-rc.41)"
-        tokens: "packages/ui/src/tokens/"
-      style_direction:
-        primary_ref: "Trade Republic"
-        secondary_ref: "Vercel (Geist + near-black)"
-        differentiator: "compass — color reserved for monetary deltas only"
-      animation_strategy:
-        web_v1: "framer-motion@12"
-        mobile_v1_5: "moti on reanimated 4"
-        skia_reserved_for: "compass donut hot-path if jank observed at V1.5"
     architecture:
       status: "done"
       current_subphase: "done"
@@ -64,97 +50,79 @@ pipeline:
           subject: "Audit history via sister tables, not JSONB columns"
           path: "docs/adr/0001-audit-history-via-sister-tables.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0002"
           subject: "Test pyramid — Vitest + Playwright + axe + Lighthouse CI + pytest"
           path: "docs/adr/0002-test-pyramid.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0003"
           subject: "PWA offline cache — encrypted IndexedDB scoped per user"
           path: "docs/adr/0003-pwa-offline-cache-encrypted-indexeddb.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0004"
           subject: "Lint + format toolchain — oxlint + oxfmt"
           path: "docs/adr/0004-lint-format-toolchain-oxc.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0005"
           subject: "Observability spine — OpenTelemetry SDK + GlitchTip"
           path: "docs/adr/0005-observability-opentelemetry-glitchtip.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0006"
           subject: "Schema migrations via Supabase CLI"
           path: "docs/adr/0006-supabase-cli-migrations.md"
           author: "alex"
-          status: "superseded by ADR-0014"
         - id: "ADR-0007"
           subject: "Design system — migrate apps/web to Tamagui Core now"
           path: "docs/adr/0007-design-system-tamagui-migration-now.md"
           author: "alex (Council C1)"
-          status: "accepted"
         - id: "ADR-0008"
           subject: "LLM routing — server-side audit authority with async client attestation"
           path: "docs/adr/0008-llm-routing-server-audit-authority-async-attest.md"
           author: "alex (Council C2)"
-          status: "accepted"
         - id: "ADR-0009"
           subject: "Domain API on Bun + Elysia + oRPC, web tier keeps zapaction bridge"
           path: "docs/adr/0009-elysia-orpc-with-zapaction-bridge.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0010"
           subject: "Component → Hook → Server Action — hard orchestration boundary"
           path: "docs/adr/0010-hooks-orchestration-boundary.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0011"
           subject: "Packages reorg under @pekulo/* namespace"
           path: "docs/adr/0011-packages-reorg-pekulo-namespace.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0012"
           subject: "Prisma 7.8.0 + schema folder + prefixed IDs"
           path: "docs/adr/0012-prisma-7-schema-folder-prefixed-ids.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0013"
           subject: "Prisma + RLS — defense in depth via service-role bypass + explicit user_id guard"
           path: "docs/adr/0013-prisma-rls-defense-in-depth.md"
           author: "alex"
-          status: "accepted"
         - id: "ADR-0014"
           subject: "Schema migrations via Prisma migrate (supersedes ADR-0006)"
           path: "docs/adr/0014-prisma-migrations.md"
           author: "alex"
-          status: "accepted"
-      watch_items: 7
-      residual_gaps: 3
-      epic_zero_stories: 12
+      watch_items: []
+      residual_gaps: []
+      epic_zero_stories: []
     epics:
       status: "done"
       output: "docs/epics.md"
       completed_at: "2026-05-03"
       epic_count: 12
       story_count: 53
-      fr_coverage: "59/59"
+      fr_coverage:
+        ratio: "59/59"
       ticket_sync: "synced"
       synced_at: "2026-05-03T19:43:00Z"
-      ramp_tiering:
-        v1: ["epic-0", "epic-1", "epic-2", "epic-3", "epic-4", "epic-5", "epic-6", "epic-7", "epic-8", "epic-9"]
-        v1_5_deferred: ["epic-10"] # 10-1 ships V1, 10-2 deferred per G1
-        public_ramp_backlog: ["epic-11"] # 11-3 priorité tôt; reste gated sur (b) decision
     dev:
-      status: complete
+      status: "done"
 # GitHub Issues sync (top-level, written by aped-epics step 8.7)
 ticket_sync:
   provider: "github"
   sync_id: "github-issues-sync-2026-05-03T19-43-00Z"
   synced_at: "2026-05-03T19:43:00Z"
   sync_log: "docs/sync-logs/github-issues-sync-2026-05-03T19-43-00Z.json"
-  directive_version: null
   projects:
     pekulo:
       repo: "yabafre/pekulo"
@@ -196,19 +164,20 @@ corrections_count: 0
 sprint:
   project: "pekulo-v1"
   active_epic: 0
+  umbrella_branch: "main"
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
-    0-1-packages-reorg: {status: done, depends_on: [], ticket: "#1", worktree: null, started_at: "2026-05-03T00:00:00Z", reviewed_at: "2026-05-03T20:50:00Z"}
-    0-2-oxc-toolchain: {status: done, depends_on: [0-1-packages-reorg], ticket: "#2", worktree: null, started_at: "2026-05-03T21:00:00Z", reviewed_at: "2026-05-04T00:30:00Z"}
-    0-3-api-scaffold: {status: done, depends_on: [0-1-packages-reorg], ticket: "#3", worktree: null, started_at: "2026-05-04T00:00:00Z", reviewed_at: "2026-05-04T09:25:00Z"}
-    0-4-prisma-setup: {status: done, depends_on: [0-3-api-scaffold], ticket: "#4", worktree: null, started_at: "2026-05-04T10:00:00Z", reviewed_at: "2026-05-04T15:00:00Z"}
-    0-5-orpc-contracts-scaffold: {status: done, depends_on: [0-3-api-scaffold], ticket: "#5", worktree: null, started_at: "2026-05-04T16:00:00Z", reviewed_at: "2026-05-04T20:00:00Z"}
-    0-6-zapaction-orpc-bridge: {status: done, depends_on: [0-5-orpc-contracts-scaffold], ticket: "#6", worktree: null, started_at: "2026-05-04T22:00:00Z", dev_completed_at: "2026-05-04T22:30:00Z", reviewed_at: "2026-05-04T23:30:00Z"}
-    0-7-otel-three-runtimes: {status: done, depends_on: [0-3-api-scaffold], ticket: '#7', worktree: null, started_at: "2026-05-04T00:00:00Z", dev_completed_at: "2026-05-05T08:35:00Z", reviewed_at: "2026-05-05T22:00:00Z"}
-    0-8-github-actions-pr: {status: done, depends_on: [0-2-oxc-toolchain], ticket: "#8", worktree: null, started_at: "2026-05-05T22:30:00Z", dev_completed_at: "2026-05-05T15:00:00Z", reviewed_at: "2026-05-05T15:05:00Z", review_skipped: true}
-    0-9-tamagui-spike: {status: done, depends_on: [0-3-api-scaffold], ticket: "#9", worktree: null, started_at: "2026-05-06T00:00:00Z", dev_completed_at: "2026-05-06T13:00:00Z", reviewed_at: "2026-05-06T15:30:00Z", verdict: "green-light", original_verdict: "pivot", verdict_revised_at: "2026-05-06T15:30:00Z", review_findings: 4, review_notes: "Eva NACK absorbed (AC-2 timeline / AC-3 PNG / AC-4 version-header drift); finding 7 (Vercel CI OOM) added then resolved 2026-05-06T15:00 via mitigation b adapted (yarn 4.5 install + bun runtime, starter-free pattern); verdict revised pivot → green-light after reviewer cross-check against tamagui/starter-free monorepo demonstrated 3 measurable wire-up divergences (over-broad transpilePackages, per-dev-start CSS regen, missing reset.css) responsible for bulk of negative findings — retrofit applied, ADR-0007 stays accepted, story 0-10 enchaîne via aped-story; lesson L12 added"}
-    0-10-pekulo-ui-migration: {status: done, depends_on: [0-9-tamagui-spike], ticket: "#10", worktree: null, started_at: "2026-05-06T00:00:00Z", dev_completed_at: "2026-05-06T23:30:00Z", reviewed_at: "2026-05-07T00:40:00Z", review_findings: 15, review_notes: "Eva NACK absorbed (AC-2 inline snapshots + AC-1(f) script + L14); Stage 2 surfaced 12 findings across Marcus/Rex/Lucas/Aria, all resolved including [HIGH] TR-fidelity emerald-on-chrome (toggle/radio/slider/sparkles), [HIGH] dead tailwind-merge import, [HIGH] PekuloErrorBoundary unwired, [HIGH] domain types inlined in @pekulo/ui (arch L366 violation — extracted to @pekulo/types). 11 UX-spec components shipped (StaggerList, CountUpEUR/Pct, AccountsSection, 7 bento Cards = 33 new files). F15 coverage gate added (70/60 thresholds, current 92.81%/93.1%). Visual review deferred (React Grab MCP unavailable). All verification commands exit 0."}
-    0-11-precommit-secrets: '{"status": "done", "depends_on": ["0-2-oxc-toolchain"], "ticket": "#11", "worktree": null, "started_at": "2026-05-07T12:00:00Z", "dev_completed_at": "2026-05-07T12:30:00Z", "reviewed_at": "2026-05-07T14:45:00Z", "review_findings": 9, "review_notes": "Eva APPROVED 5/5 ACs; Marcus CHANGES_REQUESTED on 2 MEDIUM gitleaks-allowlist findings (F-1 docs/.*.md too broad, F-2 (.*?).example too broad), Rex + Kai APPROVED. Resolved 6/9 in 3 commits (7c7954f tighten allowlist, 1c3c6b7 README --no-verify + story drift, b47d561 promote 3 lessons L-A/B/C). Dismissed: F-4 bypass audit trail (out-of-scope, future story), F-6 AC-2 commit prefix (squash-merge collapse), F-9 git-audit.sh signature (engine-level). All re-verification PASS: lefthook validate green, gitleaks parse + clean docs scan + AKIA fixture still fires, pre-commit hook dogfooded on all 3 review commits."}'
+    0-1-packages-reorg: {status: done, depends_on: [], ticket: "#1", worktree: null, started_at: "2026-05-03T00:00:00Z"}
+    0-2-oxc-toolchain: {status: done, depends_on: [0-1-packages-reorg], ticket: "#2", worktree: null, started_at: "2026-05-03T21:00:00Z"}
+    0-3-api-scaffold: {status: done, depends_on: [0-1-packages-reorg], ticket: "#3", worktree: null, started_at: "2026-05-04T00:00:00Z"}
+    0-4-prisma-setup: {status: done, depends_on: [0-3-api-scaffold], ticket: "#4", worktree: null, started_at: "2026-05-04T10:00:00Z"}
+    0-5-orpc-contracts-scaffold: {status: done, depends_on: [0-3-api-scaffold], ticket: "#5", worktree: null, started_at: "2026-05-04T16:00:00Z"}
+    0-6-zapaction-orpc-bridge: {status: done, depends_on: [0-5-orpc-contracts-scaffold], ticket: "#6", worktree: null, started_at: "2026-05-04T22:00:00Z"}
+    0-7-otel-three-runtimes: {status: done, depends_on: [0-3-api-scaffold], ticket: "#7", worktree: null, started_at: "2026-05-04T00:00:00Z"}
+    0-8-github-actions-pr: {status: done, depends_on: [0-2-oxc-toolchain], ticket: "#8", worktree: null, started_at: "2026-05-05T22:30:00Z"}
+    0-9-tamagui-spike: {status: done, depends_on: [0-3-api-scaffold], ticket: "#9", worktree: null, started_at: "2026-05-06T00:00:00Z"}
+    0-10-pekulo-ui-migration: {status: done, depends_on: [0-9-tamagui-spike], ticket: "#10", worktree: null, started_at: "2026-05-06T00:00:00Z"}
+    0-11-precommit-secrets: {status: done, depends_on: [0-2-oxc-toolchain], ticket: "#11", worktree: null, started_at: "2026-05-07T12:00:00Z"}
     0-12-custom-oxlint-rules: {status: pending, depends_on: [0-2-oxc-toolchain, 0-10-pekulo-ui-migration], ticket: "#12", worktree: null}
     # Epic 1 — Compass & milestones (V1 differentiator)
     1-1-compass-domain: {status: pending, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#13", worktree: null}

@@ -36,7 +36,18 @@
 - **AC-3 (a11y suite, zero serious violations).** **Given** the same `@pekulo/ui` public surface and the harness `renderWithTamagui()` provided by `packages/ui/test/setup.ts`, **When** the dev runs `bun --filter='@pekulo/ui' run test:axe` from the repo root, **Then** every `Pekulo*` component + primitive has a matching `*.a11y.test.tsx` file, the run exits 0, the output reports `<K>` total tests matching the count of `*.a11y.test.tsx` files, and the aggregate `axe.run()` result for every test reports zero violations of `impact: "serious"` or `impact: "critical"` (warnings of `impact: "moderate"` or `"minor"` are allowed but logged to stdout for the dev's awareness).
 - **AC-4 (Build + typecheck + lint clean across the monorepo).** **Given** the migration through T7 and the test runs from AC-2/AC-3, **When** the dev runs `bun run typecheck` (root), `bun run lint` (root), `bun run build` (root, with `dotenv -c -e .env -e .env.local --` env loaded as in `package.json#scripts`), in that order, **Then** all three commands exit 0, the build output reports `apps/web` prerendering at least the public routes `/`, `/auth/login`, `/auth/signup`, `/dashboard` (the dashboard route is now a Pekulo-themed empty-state scaffold, not the brownfield page), the spike route `/tamagui-spike` is absent from the route table, and `curl -fsS -o /dev/null -w '%{http_code}' http://localhost:3000/tamagui-spike` returns `404` after `bun --filter=web run start` is run against the production build (verification step in T8.5).
 
----
+## Tasks
+
+- T0 — Resolve `@pekulo/ui` tsconfig override (deferred from 0-1) [AC: AC-4]
+- T1 — `@pekulo/ui` foundation: deps, tokens, themes, Tamagui config [AC: AC-4]
+- T2 — Test harness (vitest + happy-dom + RTL + axe + render helper) [AC: AC-2, AC-3]
+- T3 — Animation hooks [AC: AC-3, AC-4]
+- T4 — Provider + primitives (`Section`, `HeaderAction` — reference end-to-end) [AC: AC-1, AC-2, AC-3]
+- T4-bis — Compound primitive wrappers (Tamagui sub-packages, shadcn-equivalent toolkit) [AC: AC-1, AC-2, AC-3]
+- T5 — Cap dashboard components (12 components, each = 3 files: component + snapshot test + a11y test)
+- T6 — Feature surface components (15 components)
+- T7 — `apps/web` migration (Path C — décommission brutale) [AC: AC-1, AC-4]
+- T8 — Verification matrix [AC: AC-1, AC-2, AC-3, AC-4]
 
 ## Dev Notes
 
@@ -567,7 +578,9 @@ Both are pure `useEffect` + `requestAnimationFrame` ; no external dep added.
 
 ---
 
-## Tasks
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > Each task is a self-contained unit ≤ 5 min for the dev. The dev MUST run the listed test command after edits and confirm the expected output before committing. Commit prefix is `feat(#10):` for new code, `chore(#10):` for config/scripts, `docs(#10):` for prose, `test(#10):` for tests-only changes, `refactor(#10):` for moves/renames, `build(#10):` for build artefacts (e.g. regenerated CSS).
 
@@ -6016,7 +6029,50 @@ Both are pure `useEffect` + `requestAnimationFrame` ; no external dep added.
 
 ## File List
 
-(Filled at completion. Source: every file path mentioned in T0–T8 task patches.)
+**Created (`@pekulo/ui` package — `packages/ui/`):**
+
+- `package.json` (rewritten — Tamagui RC pins + vitest stack + scripts)
+- `tsconfig.json` (DOM lib + jsx-react override — T0)
+- `tamagui.config.ts` + `tamagui.build.ts` (CLI front-doors)
+- `vitest.config.ts`
+- `test/setup.tsx`
+- `public/tamagui.generated.css` (committed atomic CSS)
+- `src/index.ts` (public barrel)
+- `src/tokens/{colors,spacing,radius,typography,index}.ts` — TR-strict palette + scales
+- `src/themes/{pekulo-dark,pekulo-light,index}.ts`
+- `src/config/tamagui.ts` — `createTamagui()` invocation + `@tamagui/web` augmentation
+- `src/provider/index.tsx` — `<PekuloRootProvider>` with `NextThemeProvider` + `TamaguiProvider` + `ToastProvider` + `PekuloToastViewport`
+- `src/animations/{use-count-up,use-stagger,index}.ts(.test.ts)` — rAF hooks + tests
+- `src/primitives/{Section,HeaderAction,index}.{tsx,snapshot.test.tsx,a11y.test.tsx}` — 2 framework primitives
+- `src/primitives/Pekulo{Avatar,Checkbox,Dialog,Popover,Progress,RadioGroup,Select,Separator,Sheet,Slider,Switch,Tooltip}.{tsx,snapshot.test.tsx,a11y.test.tsx}` — 12 compound primitives
+- `src/components/Pekulo{AccountRow,ActivityRow,ClassRow,CompositionRow,ContextualAddButton,Donut,EmptyState,ErrorBoundary,Hero,HoldingRow,HypothesisVerdict,KpiTile,MilestoneRow,MonthlyRow,NavRail,ProjectionChart,PropertyCard,SegmentedControl,SettingRow,Skeleton,Stat,SuggestionRow,ToggleRow,TopTabToggle,TrajectoryChart,UserDot}.{tsx,snapshot.test.tsx,a11y.test.tsx}` + `toast.{tsx,snapshot.test.tsx,a11y.test.tsx}` + `index.ts` — 27 domain components
+- `src/{primitives,components}/__snapshots__/*.snap` — committed visual snapshots
+
+**Modified (`apps/web/`):**
+
+- `package.json` (stripped Tailwind/shadcn/@base-ui/Tamagui deps; added `@pekulo/ui: workspace:*`)
+- `src/app/layout.tsx` (mount `<Providers>`, import `@pekulo/ui/{reset,generated}.css`)
+- `src/components/providers.tsx` (re-export `<PekuloRootProvider>` wrapped with `<QueryClientProvider>`)
+- `src/components/auth-form.tsx` (rebuilt on Pekulo primitives + locally-styled input/button)
+- `src/app/dashboard/layout.tsx` (plain HTML chrome at RSC boundary)
+- `src/app/dashboard/page.tsx` (Pekulo `<Section>` + `<PekuloEmptyState>` scaffold)
+- `src/app/dashboard/loading.tsx` (Pekulo `<Section>` + `<PekuloSkeleton>` lines + block)
+- `src/proxy.ts` (`/tamagui-spike` allowlist removed)
+
+**Deleted (apps/web brownfield UI):**
+
+- `src/app/globals.css`, `postcss.config.mjs`, `components.json`
+- `src/components/{ui,charts}/` (subtrees)
+- `src/components/{auth-form,theme-provider,theme-toggle,nav,kpi-card,phases,detail-cards,annual-table}.tsx` (re-created or removed)
+- `src/app/(spike)/` (entire subtree — tamagui-spike route)
+- `src/app/dashboard/{mensuel,parametres,portefeuille,transactions}/` (subtrees)
+- `tamagui.config.ts`, `tamagui.build.ts`
+- `public/tamagui.generated.css`
+
+**Created (repo-root):**
+
+- `scripts/check-no-tailwind.sh` (AC-1 audit)
+- `package.json` (root) — added `test:ui`, `test:ui:visual`, `test:ui:axe`, `generate:tamagui-css` proxy scripts
 
 ---
 
@@ -6074,55 +6130,6 @@ Both are pure `useEffect` + `requestAnimationFrame` ; no external dep added.
 12. **Token-discipline sweep** — all `borderRadius={N}` / `padding={N}` / `gap={N}` / `fontSize={N}` literals replaced with `$tokens` (`$xl`, `$5`, `$caption`, etc.) across primitives + components. `pekuloFontSizes.xs = 12` added to fill the recurring "12px label" gap.
 
 **No-pivot discipline maintained** — every divergence above is a v2-rc.41-canonical fix, not a feature-skip or scope-reduction. The 4 ACs are satisfied as specified.
-
-### File List
-
-**Created (`@pekulo/ui` package — `packages/ui/`):**
-
-- `package.json` (rewritten — Tamagui RC pins + vitest stack + scripts)
-- `tsconfig.json` (DOM lib + jsx-react override — T0)
-- `tamagui.config.ts` + `tamagui.build.ts` (CLI front-doors)
-- `vitest.config.ts`
-- `test/setup.tsx`
-- `public/tamagui.generated.css` (committed atomic CSS)
-- `src/index.ts` (public barrel)
-- `src/tokens/{colors,spacing,radius,typography,index}.ts` — TR-strict palette + scales
-- `src/themes/{pekulo-dark,pekulo-light,index}.ts`
-- `src/config/tamagui.ts` — `createTamagui()` invocation + `@tamagui/web` augmentation
-- `src/provider/index.tsx` — `<PekuloRootProvider>` with `NextThemeProvider` + `TamaguiProvider` + `ToastProvider` + `PekuloToastViewport`
-- `src/animations/{use-count-up,use-stagger,index}.ts(.test.ts)` — rAF hooks + tests
-- `src/primitives/{Section,HeaderAction,index}.{tsx,snapshot.test.tsx,a11y.test.tsx}` — 2 framework primitives
-- `src/primitives/Pekulo{Avatar,Checkbox,Dialog,Popover,Progress,RadioGroup,Select,Separator,Sheet,Slider,Switch,Tooltip}.{tsx,snapshot.test.tsx,a11y.test.tsx}` — 12 compound primitives
-- `src/components/Pekulo{AccountRow,ActivityRow,ClassRow,CompositionRow,ContextualAddButton,Donut,EmptyState,ErrorBoundary,Hero,HoldingRow,HypothesisVerdict,KpiTile,MilestoneRow,MonthlyRow,NavRail,ProjectionChart,PropertyCard,SegmentedControl,SettingRow,Skeleton,Stat,SuggestionRow,ToggleRow,TopTabToggle,TrajectoryChart,UserDot}.{tsx,snapshot.test.tsx,a11y.test.tsx}` + `toast.{tsx,snapshot.test.tsx,a11y.test.tsx}` + `index.ts` — 27 domain components
-- `src/{primitives,components}/__snapshots__/*.snap` — committed visual snapshots
-
-**Modified (`apps/web/`):**
-
-- `package.json` (stripped Tailwind/shadcn/@base-ui/Tamagui deps; added `@pekulo/ui: workspace:*`)
-- `src/app/layout.tsx` (mount `<Providers>`, import `@pekulo/ui/{reset,generated}.css`)
-- `src/components/providers.tsx` (re-export `<PekuloRootProvider>` wrapped with `<QueryClientProvider>`)
-- `src/components/auth-form.tsx` (rebuilt on Pekulo primitives + locally-styled input/button)
-- `src/app/dashboard/layout.tsx` (plain HTML chrome at RSC boundary)
-- `src/app/dashboard/page.tsx` (Pekulo `<Section>` + `<PekuloEmptyState>` scaffold)
-- `src/app/dashboard/loading.tsx` (Pekulo `<Section>` + `<PekuloSkeleton>` lines + block)
-- `src/proxy.ts` (`/tamagui-spike` allowlist removed)
-
-**Deleted (apps/web brownfield UI):**
-
-- `src/app/globals.css`, `postcss.config.mjs`, `components.json`
-- `src/components/{ui,charts}/` (subtrees)
-- `src/components/{auth-form,theme-provider,theme-toggle,nav,kpi-card,phases,detail-cards,annual-table}.tsx` (re-created or removed)
-- `src/app/(spike)/` (entire subtree — tamagui-spike route)
-- `src/app/dashboard/{mensuel,parametres,portefeuille,transactions}/` (subtrees)
-- `tamagui.config.ts`, `tamagui.build.ts`
-- `public/tamagui.generated.css`
-
-**Created (repo-root):**
-
-- `scripts/check-no-tailwind.sh` (AC-1 audit)
-- `package.json` (root) — added `test:ui`, `test:ui:visual`, `test:ui:axe`, `generate:tamagui-css` proxy scripts
-
----
 
 ## Review Record
 
