@@ -695,4 +695,78 @@ All 5 acceptance criteria verified end-to-end through the live lefthook hook:
 - `apps/web/README.md` (M) — appended `## Pre-commit hooks` onboarding section
 - `apps/api/README.md` (M) — appended `## Pre-commit hooks` onboarding section
 - `docs/stories/0-11-precommit-secrets.md` (A) — story file (created by aped-story; AC-1 fixture patched mid-flight)
-- `docs/state.yaml` (M) — story `0-11-precommit-secrets` status `pending → ready-for-dev → in-progress → review`
+- `docs/state.yaml` (M) — story `0-11-precommit-secrets` status `pending → ready-for-dev → in-progress → review → done`
+
+---
+
+## Review Record
+
+**Date:** 2026-05-07
+**Reviewer:** APED Lead Reviewer (Eva, Marcus, Rex, Kai)
+**Verdict:** done
+
+### Specialists dispatched
+
+| Specialist | Scope | Verdict | Confidence | Findings |
+| --- | --- | --- | --- | --- |
+| Eva (ac-validator, Stage 1) | 5 ACs cross-referenced against implementation + Dev Record | APPROVED | HIGH | 8 INFO + 1 LOW |
+| Marcus (code-quality + security, Stage 2) | gitleaks ruleset, secret-handling correctness, command-injection, supply-chain pinning, anti-pattern audit | **CHANGES_REQUESTED** | HIGH | 2 MEDIUM + 2 LOW + 11 INFO |
+| Rex (git-auditor, Stage 2) | File List ground truth, commit hygiene, out-of-scope guard, lessons compliance, branch divergence | APPROVED | HIGH | 8 INFO |
+| Kai (devops-specialist, Stage 2) | lefthook config, gitleaks parsing + ruleset firing, oxlint/oxfmt config alignment, prisma:format reachability, README onboarding correctness | APPROVED | HIGH | 1 MEDIUM + 1 LOW + many INFO |
+
+Stage 1.5 (parallel adversarial reviewers) skipped — `review.parallel_reviewers` not enabled in `.aped/config.yaml`.
+
+### Findings (consolidated)
+
+#### Resolved
+
+- [MEDIUM] **F-1** — `.gitleaks.toml:12` `docs/.*\.md$` allowlist too broad (Marcus + Kai concur) [.gitleaks.toml:12]
+  - Resolution: commit `7c7954f` — restricted to APED-managed subtrees (`adr/`, `stories/`, `spikes/`, `quick-specs/`, `ux/`, `ux-preview/`) and known root markdown files. New docs subdirs must be allowlisted explicitly so a real leak in a new path gets caught by the default ruleset.
+
+- [MEDIUM] **F-2** — `.gitleaks.toml:10` `(.*?)\.example$` allowlist too broad (Marcus MEDIUM, Kai LOW) [.gitleaks.toml:10]
+  - Resolution: commit `7c7954f` — tightened to `(^|.+/)\.env(\..+)?\.example$` so only env-template files are allowlisted; arbitrary `*.example` paths are now subject to the default ruleset.
+
+- [LOW] **F-3** — Both READMEs missed documenting `git commit --no-verify` bypass (Marcus) [apps/web/README.md, apps/api/README.md]
+  - Resolution: commit `1c3c6b7` — added a one-line note in both Bypass sections clarifying that `--no-verify` is the git-native equivalent and the same caveat applies (re-run gitleaks before push).
+
+- [LOW] **F-5** — Dev Record File List said "9 platform-binary deps", lockfile has 10 (Kai) [docs/stories/0-11-precommit-secrets.md File List]
+  - Resolution: commit `1c3c6b7` — corrected to "10 platform-binary optional deps" with explicit platform list (darwin-arm64/x64, linux-arm64/x64, freebsd-arm64/x64, openbsd-arm64/x64, windows-arm64/x64).
+
+- [LOW] **F-7** — Story Task 1d + Task 6 AC-4 verification command (`head -5 ... | grep -q lefthook`) broken vs lefthook 2.1.6 hook template (Eva) [docs/stories/0-11-precommit-secrets.md Task 1d, Task 6 AC-4]
+  - Resolution: commit `1c3c6b7` — relaxed to plain `grep -q lefthook .git/hooks/pre-commit`. Debug Log #7 documented the drift honestly during dev; spec is now self-consistent for future re-runs.
+
+- [INFO] **F-8** — 3 candidate lessons (L-A/B/C) ready for promotion (Eva) [Dev Agent Record Lessons learnt]
+  - Resolution: commit `b47d561` — promoted L-2026-05-07-A (lefthook `{root}` not expanded in `run:`), L-2026-05-07-B (oxfmt `--no-error-on-unmatched-pattern` flag), L-2026-05-07-C (gitleaks 8.18+ `EXAMPLE` stopword auto-allowlist) to `docs/lessons.md`. Future stories now inherit the rules at runtime via aped-review's lesson-scoped checklist injection.
+
+#### Dismissed (deferred / out-of-scope)
+
+- [LOW] **F-4** — No bypass audit trail for `LEFTHOOK=0` invocations (Marcus) [lefthook.yml]
+  - Rationale: out-of-scope for 0-11 (no AC covers bypass audit). Candidate for a future security/audit story (e.g. lefthook `output:` directive, pre-push hook adding a commit-trailer when `LEFTHOOK` was set, or repo-wide gitleaks scan in CI). Risk acknowledged.
+
+- [LOW] **F-6** — AC-2 evidence commit `ab43081 fmt test (should auto-format)` lacks `(#11):` prefix (Eva) [git log]
+  - Rationale: documented exception in Dev Agent Record — Task 6 AC-2 verification block prescribes the literal commit message; squash-merge collapses the branch into a single ticket-prefixed commit at PR merge time.
+
+- [INFO] **F-9** — `.aped/aped-review/scripts/git-audit.sh` accepts `<story-id>` but the Stage-2 prompt template invoked it with the branch name (Rex) [.aped/aped-review/scripts/git-audit.sh, .aped/aped-review/steps/step-06-stage-2-specialists.md]
+  - Rationale: engine-level (APED skill itself), not a story regression. Rex fell back to manual audit cleanly. Should be patched in the APED template repo, not in 0-11.
+
+### Verification
+
+- **Verification commands** (re-run by the Lead Reviewer this session, fresh evidence):
+  - `bunx lefthook validate` → `All good` exit 0.
+  - `gitleaks detect --config=.gitleaks.toml --no-banner --no-git --source=docs --redact` → `no leaks found` (133 KB scanned in ~40 ms).
+  - AC-1 fixture re-run: `AKIAQYLPMN5HCQGZWXYZ` in tmp dir → `WRN leaks found: 1` (rule `aws-access-token` still fires after allowlist tightening).
+  - `.env.example` and `docs/stories/` regression: still allowlisted (0 bytes scanned = excluded).
+  - Pre-commit hook self-test: each of the 3 review-fix commits triggered the live lefthook hook (gitleaks scanned 517 / 709 / 4706 bytes, 0 leaks; oxfmt formatted 2 + 1 markdown files; prisma_format / oxlint correctly skipped).
+
+- **Visual verification:** N/A — tooling story, no UI surface.
+
+### Lessons applied during review
+
+- 2026-05-04 (oxlint/oxfmt have no `--staged` flag): verified — `lefthook.yml:23,28` use `{staged_files}` template, no `--staged` to oxlint/oxfmt.
+- 2026-05-04 (`bun --cwd` broken on Bun 1.3.13): verified — `lefthook.yml:33` uses `bash -c '(cd apps/api && bun run prisma:format)'`.
+- 2026-05-05 (`action-validator` is bare metadata): N/A (no GitHub Actions touched).
+
+### Ticket sync
+
+- Issue #11 comment posted: review summary with verdict + finding counts + commit refs.
+- PR #70 comment posted: same summary, plus per-finding line anchors where applicable.
