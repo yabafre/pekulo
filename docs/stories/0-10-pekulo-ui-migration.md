@@ -1,12 +1,12 @@
 # Story: 0-10-pekulo-ui-migration — `@pekulo/ui` Tamagui DS migration
 
 **Epic:** Epic 0 — Foundations (package layout, tooling, runtime substrate)
-**Status:** ready-for-dev
+**Status:** done
 **Ticket:** [#10](https://github.com/yabafre/pekulo/issues/10)
 **Branch:** `feature/10-0-10-pekulo-ui-migration`
 **Commit prefix:** `feat(#10): ...` (or `chore(#10):` / `docs(#10):` / `test(#10):` / `refactor(#10):` / `build(#10):` per task type)
 **Closes:** #10
-**StepsCompleted:** 0/9 (T0–T8)
+**StepsCompleted:** 9/9 (T0–T8)
 **Reference ADRs:** [ADR-0007 — Design system migrate apps/web to Tamagui Core now](../adr/0007-design-system-tamagui-migration-now.md), [ADR-0010 — Component → Hook → Server Action — hard orchestration boundary](../adr/0010-hooks-orchestration-boundary.md), [ADR-0011 — Packages reorg under @pekulo/* namespace](../adr/0011-packages-reorg-pekulo-namespace.md)
 **Reference architecture sections:** `docs/architecture.md` L186–L224 (Frontend), L213 (UI primitives & DS), L329–L390 (Naming conventions, `Pekulo*` prefix), L477–L555 (Code Structure — `@pekulo/ui` tree at L870–L883), L539–L555 (Layering), L555–L558 (Test placement: `<comp>.snapshot.test.tsx` + `<comp>.a11y.test.tsx` co-located in `@pekulo/ui`), L600–L650 (Process Rules — Tamagui migration discipline), L1056–L1060 (Shared Code Inventory `@pekulo/ui`), L644–L649 (Tamagui migration discipline)
 **Reference NFRs:** NFR-22 (WCAG 2.2 AA gating), NFR-23 (keyboard nav), NFR-24 (screen-reader labels), NFR-3 (Lighthouse ≥ 90 — soft target on `@pekulo/ui` shell, hard gate from feature epics onward)
