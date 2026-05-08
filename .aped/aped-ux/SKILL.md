@@ -9,7 +9,7 @@ license: MIT
 compatibility: 'Requires Node.js 18+ and npm for Vite+React preview scaffold'
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.3
 ---
 
 Follow the instructions in `.aped/aped-ux/workflow.md`.

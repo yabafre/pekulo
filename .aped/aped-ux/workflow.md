@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 # APED UX — ANF Framework
 
 **Goal:** Produce a validated, interactive React prototype from the PRD. The prototype becomes the UX spec that `aped-epics` consumes as the visual source of truth.

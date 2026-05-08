@@ -9,8 +9,10 @@ argument-hint: "[story-key]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.3
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED QA — E2E & Integration Test Generation
 
@@ -49,7 +51,7 @@ Look for these artefacts (✱ = required):
 - PRD — `*prd*.md` or `prd.md`
 - Architecture — `*architecture*.md` or `architecture.md`
 - UX Spec — `ux/*.md` (sharded) or `*ux*.md`
-- Epic Context Cache — `docs/epic-{N}-context.md` (where N = epic number)
+- Epic Context Cache — `docs/epics-context/epic-{N}-context.md` (where N = epic number)
 - Lessons — `docs/lessons.md` (filter entries with `Scope: aped-qa` or `Scope: all`)
 
 ### 2. Required-input validation (hard-stop)

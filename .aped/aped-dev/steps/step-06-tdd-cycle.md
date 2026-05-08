@@ -115,6 +115,8 @@ git commit -m "feat({ticket}): <task description> [AC-N]"
 
 (Drop `({ticket})` if `ticket_system: none`.)
 
+> **Writing discipline.** Read `.aped/aped-skills/writing-discipline.md` before writing the message. Iron Law: subject is one human sentence, imperative, ≤ 70 chars. Body only if there's a non-obvious *why* — never a bullet inventory of files, tests, or boundaries. Same rule for any inline code comments — only when WHY is non-obvious, never restate WHAT.
+
 ## HALT CONDITIONS
 
 **STOP and ask user if:** new dependency, 3 consecutive failures, missing config, ambiguity.

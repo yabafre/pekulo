@@ -24,13 +24,16 @@
 - **AC-2 (format is idempotent):** **Given** `oxfmt@0.47.0` exact-pinned in root `devDependencies` plus `.oxfmtrc.json` at repo root, **When** I run `bun run format` once (Task 6 — initial pass), commit the resulting reformat, then run `bun run format` a second time, **Then** the second invocation produces no file modifications and `git status --porcelain` returns an empty string.
 
 - **AC-3 (ESLint / Prettier are physically gone):** **Given** the migration, **When** I inspect the repo, **Then** every assertion below holds:
-  - `apps/web/package.json` `devDependencies` does NOT contain `eslint` or `eslint-config-next`.
-  - The file `apps/web/eslint.config.mjs` does NOT exist.
-  - No Prettier config (`.prettierrc*`, `prettier.config.*`) exists anywhere in the repo.
-  - The root `package.json` `scripts.lint` equals the literal string `"oxlint"` (NOT `"turbo run lint"`).
-  - The root `package.json` `scripts.format` equals the literal string `"oxfmt"`.
 
----
+## Tasks
+
+- Task 1 — Update root `package.json` + `turbo.json` [AC: AC-1, AC-2, AC-3]
+- Task 2 — Remove ESLint deps + lint script from `apps/web/package.json` [AC: AC-3]
+- Task 3 — Delete `apps/web/eslint.config.mjs` [AC: AC-3]
+- Task 4 — Create `.oxlintrc.json` (root) [AC: AC-1, AC-3]
+- Task 5 — Create `.oxfmtrc.json` (root) [AC: AC-2, AC-3]
+- Task 6 — Run oxfmt initial pass [AC: AC-2]
+- Task 7 — Final verification of AC-1, AC-2, AC-3 [AC: AC-1, AC-2, AC-3]
 
 ## Dev Notes
 
@@ -263,7 +266,19 @@ export default eslintConfig;
 
 ---
 
-## Tasks
+### AC notes
+
+_Migrated from non-Gherkin lines under the pre-6.3.0 Acceptance Criteria section._
+
+  - `apps/web/package.json` `devDependencies` does NOT contain `eslint` or `eslint-config-next`.
+  - The file `apps/web/eslint.config.mjs` does NOT exist.
+  - No Prettier config (`.prettierrc*`, `prettier.config.*`) exists anywhere in the repo.
+  - The root `package.json` `scripts.lint` equals the literal string `"oxlint"` (NOT `"turbo run lint"`).
+  - The root `package.json` `scripts.format` equals the literal string `"oxfmt"`.
+
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > 7 tasks. Each is intended to take 2–5 minutes. Run them in order; each ends with a `git add` + `git commit`. The dev agent can interleave reads/checks but must complete each task's commit before moving on.
 
@@ -705,6 +720,31 @@ Expected output: `AC-3d PASS (lint=oxlint format=oxfmt)`.
 
 ---
 
+## File List
+
+**New (2 files):**
+
+- `.oxlintrc.json`
+- `.oxfmtrc.json`
+
+**Modified (4 files via task commits):**
+
+- `package.json` (root) — devDeps + scripts
+- `apps/web/package.json` — devDeps + lint script removal
+- `turbo.json` — `tasks.lint` removed
+- `bun.lock` — devDep registration (oxlint/oxfmt added; eslint/eslint-config-next removed)
+
+**Deleted (1 file):**
+
+- `apps/web/eslint.config.mjs`
+
+**Modified for AC-1 (in-branch correction `fix(#2):`):**
+
+- `apps/web/src/components/kpi-card.tsx` — drop unused `cn` import
+- `.aped/mcp/aped-state-server.mjs` — drop unused `dirname` import
+
+**Reformatted by oxfmt initial pass (149 files in `chore(#2): apply oxfmt initial pass`):** mechanical-only diff — `git diff --name-only aba85c7~1 aba85c7` for the canonical list. Top-level breakdown: 95 under `apps/`, 44 under `docs/`, 6 under `packages/`, plus `package.json`, `turbo.json`, `README.md`, `CLAUDE.md`.
+
 ## Dev Agent Record
 
 - **Model:** claude-opus-4-7 (1M context)
@@ -759,31 +799,6 @@ Mitigation: `git restore` to clean working tree, expand `.oxfmtrc.json` ignorePa
   - **Stale `apps/web/node_modules/.bin/eslint` symlink:** cosmetic; resolves on next `rm -rf node_modules && bun install`. CI starts clean.
   - **`apps/web/supabase/.temp/linked-project.json`:** pre-existing in repo (initial commit) — contains Supabase project ref + org slug; should be `.gitignore`-d. Out of 0-2 scope (Rex INFO finding).
   - **`react/rules-of-hooks` regression check:** introducing the rule at error severity post-fact found zero violations in current codebase (clean baseline). Future changes are now gated.
-
-### File List
-
-**New (2 files):**
-
-- `.oxlintrc.json`
-- `.oxfmtrc.json`
-
-**Modified (4 files via task commits):**
-
-- `package.json` (root) — devDeps + scripts
-- `apps/web/package.json` — devDeps + lint script removal
-- `turbo.json` — `tasks.lint` removed
-- `bun.lock` — devDep registration (oxlint/oxfmt added; eslint/eslint-config-next removed)
-
-**Deleted (1 file):**
-
-- `apps/web/eslint.config.mjs`
-
-**Modified for AC-1 (in-branch correction `fix(#2):`):**
-
-- `apps/web/src/components/kpi-card.tsx` — drop unused `cn` import
-- `.aped/mcp/aped-state-server.mjs` — drop unused `dirname` import
-
-**Reformatted by oxfmt initial pass (149 files in `chore(#2): apply oxfmt initial pass`):** mechanical-only diff — `git diff --name-only aba85c7~1 aba85c7` for the canonical list. Top-level breakdown: 95 under `apps/`, 44 under `docs/`, 6 under `packages/`, plus `package.json`, `turbo.json`, `README.md`, `CLAUDE.md`.
 
 ### Verification output
 

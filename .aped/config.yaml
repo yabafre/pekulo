@@ -5,11 +5,47 @@ communication_language: french
 document_output_language: english
 aped_path: .aped
 output_path: docs
-aped_version: 6.0.0
+aped_version: 6.3.3
 
 # Integrations
 ticket_system: github-issues
 git_provider: github
+
+# Default base branch for ship/sprint mode. The sprint umbrella is cut from
+# this ref, and aped-ship opens its umbrella → base PR against it.
+# Override per-project if you trunk-deploy from `develop`, `master`,
+# `trunk`, etc. (Read by aped-sprint, aped-ship, sprint-dispatch.sh.)
+base_branch: main
+
+# Sprint-mode preferences (6.1.0). These were seeded under
+# state.yaml.sprint in 4.1.x–6.0.x — schema v3 migration moves them here so
+# they survive sprint resets and aren't conflated with runtime state.
+# Readers check config.yaml first, then fall back to state.yaml.sprint for
+# scaffolds that have not yet run `aped-method --update` to bump v2 → v3.
+sprint:
+  # Max stories dispatched concurrently (one worktree per story).
+  parallel_limit: 3
+  # Max reviews running concurrently. spec-teams are token-heavy so the
+  # default is intentionally lower than parallel_limit.
+  review_limit: 2
+  # Push the freshly-created sprint umbrella branch to origin at sprint
+  # start. Default true (matches 6.0 behaviour). Set false on solo or
+  # offline projects, or where push to origin requires a PR (branch
+  # protection on uncreated branches).
+  push_umbrella_on_create: true
+  # Polling timeout (seconds) for aped-lead's "merge story PR into umbrella"
+  # step. After enqueuing the merge with `gh pr merge --squash`, the lead
+  # polls `gh pr view --json state` until MERGED or this timeout elapses.
+  # Surfaces a clear error instead of fire-and-forget teardown.
+  merge_poll_timeout_seconds: 120
+
+# Review-stage knobs.
+# `parallel_reviewers` (6.1.0) — flag for the Stage 1.5 opt-in trio
+# (Hannah / Eli / Aaron). **Deprecated in 6.2.0**: the slim review model
+# folds Edge & hallucination into the always-on auditor set, so this
+# flag is now inert. Kept in the seed for backwards-compat.
+review:
+  parallel_reviewers: false
 
 # aped-from-ticket — external ticket intake
 # All keys are optional; defaults shown below kick in when absent.
@@ -45,6 +81,27 @@ from_ticket:
 # Set enabled: false to opt out across all skills (e.g. for projects that
 # legitimately use TODO/TBD as in-document trackers).
 placeholder_lint:
+  enabled: true
+
+# APED runtime activation (6.2.0). Manual kill switch the activation guard
+# (.aped/scripts/check-enabled.sh) reads at the top of every skill body.
+# When false, the guard exits 1 and the skill HALTs with "APED disabled —
+# run aped-method enable" — even when the user explicitly typed /aped-X.
+#
+# How disable / enable interact with this knob (6.3.3):
+# - `aped-method disable` (full mode) — writes the .aped/.DISABLED marker
+#   + flips disable-model-invocation: true on every SKILL.md + writes a
+#   snapshot. **Does not** flip this value: the marker is the runtime
+#   signal, this value stays as your manual override slot.
+# - `aped-method disable --local` (per-developer) — writes the marker AND
+#   .aped/config.local.yaml (gitignored) with aped.enabled: false. The
+#   guard reads config.local.yaml with precedence over this file, so the
+#   team-shared config.yaml can stay enabled: true while the per-developer
+#   override flips the runtime check.
+# - Hand-flipping this value to false works (the guard reads it as a
+#   third fallback) but propagates to the team on commit. Prefer
+#   `disable --local` if that's not what you want.
+aped:
   enabled: true
 
 # Skill-invocation discipline (Tier 4). Governs whether the

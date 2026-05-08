@@ -32,9 +32,18 @@
 
 - **AC-6 (id-prefixes registry is unique and well-formed):** **Given** the `id-prefixes.config.ts` registry, **When** I run `(cd apps/api && bun test src/database/id-prefixes.config.test.ts)`, **Then** all tests pass with at least the three assertions: (i) every prefix value matches the regex `^[a-z]{2,4}$`, (ii) the set of prefixes has no duplicates (the test computes `Object.values(ID_PREFIXES).length === new Set(Object.values(ID_PREFIXES)).size`), (iii) the registry contains exactly the 14 keys listed in ADR-0012's prefix table.
 
-> **AC-1 dev preconditions reminder.** Supabase CLI is available as a `devDependency` in `apps/web` (`supabase ^2.95.4`). The local Supabase project lives at `apps/web/supabase/` (already exists; ships with three `migrations/` files from the brownfield era). `(cd apps/web && bunx supabase start)` provisions a Docker-backed Postgres + the `auth` schema with `auth.users` + `auth.uid()` on port 54322 — both required by the RLS DDL in the baseline. **Do NOT remove or rewrite `apps/web/supabase/migrations/*`** in this story (they are the brownfield seed; future stories may delete them once Prisma owns deployment fully).
+## Tasks
 
----
+- Task 1 — Add Prisma deps + scripts to `apps/api/package.json` [AC: AC-4, AC-5]
+- Task 2 — Add `DATABASE_URL` to env loader and root `.env.example` [AC: AC-1]
+- Task 3 — Bootstrap the Prisma schema folder + tsconfig path alias + gitignore [AC: AC-1, AC-4]
+- Task 4 — Declare the 5 brownfield Prisma models [AC: AC-1, AC-4]
+- Task 5 — `id-prefixes.config.ts` registry + uniqueness test [AC: AC-2, AC-6]
+- Task 6 — `base62.ts` helper + `prefixed-ids.injector.ts` pure helper + their tests [AC: AC-2]
+- Task 7 — `prefixed-ids.extension.ts` + `prisma.service.ts` + replace `database/index.ts` [AC: AC-1, AC-4]
+- Task 8 — Wire `PrismaService` into bootstrap (runtime-deps + readiness probe + lifecycle disconnect) [AC: AC-1, AC-4]
+- Task 9 — Generate baseline migration + append RLS policy DDL + apply against local Supabase [AC: AC-1, AC-3]
+- Task 10 — `rls-audit` script + Dockerfile prisma-generate step + README onboarding [AC: AC-3, AC-5]
 
 ## Dev Notes
 
@@ -469,7 +478,15 @@ The seven brownfield tables that the baseline migration must reproduce. The file
 
 ---
 
-## Tasks
+### AC notes
+
+_Migrated from non-Gherkin lines under the pre-6.3.0 Acceptance Criteria section._
+
+> **AC-1 dev preconditions reminder.** Supabase CLI is available as a `devDependency` in `apps/web` (`supabase ^2.95.4`). The local Supabase project lives at `apps/web/supabase/` (already exists; ships with three `migrations/` files from the brownfield era). `(cd apps/web && bunx supabase start)` provisions a Docker-backed Postgres + the `auth` schema with `auth.users` + `auth.uid()` on port 54322 — both required by the RLS DDL in the baseline. **Do NOT remove or rewrite `apps/web/supabase/migrations/*`** in this story (they are the brownfield seed; future stories may delete them once Prisma owns deployment fully).
+
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > Each task is intended to take 3–5 minutes and ends with a `git add` + `git commit`. The dev agent runs them in order.
 
@@ -1848,7 +1865,9 @@ git commit -m "feat(#4): rls-audit script + Dockerfile prisma generate + README 
 
 ---
 
-## Definition of Done
+### Definition of Done
+
+_Migrated from invented top-level heading `## Definition of Done` (pre-6.3.0 schema)._
 
 - [x] All 6 ACs satisfied — verified by the literal `Run` / `Expected output` blocks in Tasks 1–10.
 - [x] All 10 tasks committed on `feat/0-4-prisma-setup` with the `feat(#4): ...` prefix.
@@ -1859,6 +1878,10 @@ git commit -m "feat(#4): rls-audit script + Dockerfile prisma generate + README 
 - [x] `(cd apps/api && bun run db:rls-audit)` reports OK on all 7 tables.
 - [x] `docker build` succeeds and the resulting image responds 200 on `/health`.
 - [x] `docs/state.yaml` shows `sprint.stories.0-4-prisma-setup.status: review-queued` after the dev hands off.
+
+---
+
+## File List
 
 ---
 
@@ -1968,10 +1991,6 @@ $ curl -fsS http://127.0.0.1:3001/health
 - 10 commits on `feat/0-4-prisma-setup`, prefix `feat(#4): ...`.
 - Local Supabase stack remains running for downstream stories. The README documents the schema-reset workaround for fresh checkouts.
 - Watch item W6 still applies: `prismaSchemaFolder` is now stable in Prisma 7, but Prisma version remains pinned exactly to `7.8.0` per ADR-0012 + W1 discipline.
-
-### File List
-
----
 
 ## Review Record
 

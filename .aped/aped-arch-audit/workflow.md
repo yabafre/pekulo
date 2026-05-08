@@ -1,7 +1,9 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 
 # APED Arch Audit — Surface Deepening Candidates
 
-Audit an existing codebase for **deepening opportunities** — places where shallow modules (interface nearly as complex as the implementation) could be merged into deep ones for higher leverage and locality. Translation of Matt Pocock's `improve-codebase-architecture` skill into APED voice; vocabulary inherits from Pocock's LANGUAGE / DEEPENING / INTERFACE-DESIGN, sections inlined here as a single skill body (multi-doc decomposition is Phase 2 work).
+Audit an existing codebase for **deepening opportunities** — places where shallow modules (interface nearly as complex as the implementation) could be merged into deep ones for higher leverage and locality. The skill body inlines its own LANGUAGE / DEEPENING / INTERFACE-DESIGN vocabulary; multi-doc decomposition is Phase 2 work.
 
 ## On Activation
 
@@ -102,7 +104,7 @@ Before any inventory work, gather just enough context to ground the audit.
 
 1. **APED architecture artefact.** Read `docs/architecture.md` if it exists — note any pattern decisions the audit must respect. If the candidate would contradict an existing decision, mark it clearly in the report (e.g. _"contradicts architecture.md §2.2 — but worth reopening because…"_) and don't suggest contradicting decisions casually.
 2. **Brownfield context.** Read `docs/project-context.md` if it exists — extract the modules and integration points the existing codebase already documents.
-3. **Domain glossary (optional).** If the project uses a Pocock-style `CONTEXT.md` (not yet an APED convention but compatible), read it. Use those domain terms when describing candidates ("the Order intake module", not "the FooBarHandler"). If absent, use names from the codebase's own folder structure.
+3. **Domain glossary (optional).** If the project has a `CONTEXT.md` at the root (not yet an APED convention but compatible), read it. Use those domain terms when describing candidates ("the Order intake module", not "the FooBarHandler"). If absent, use names from the codebase's own folder structure.
 4. **Stack signals.** `Read package.json` / `pyproject.toml` / `Cargo.toml` / `go.mod` — note framework conventions (Next.js page router vs app router, NestJS modules, Django apps) so the audit talks in the codebase's idiom.
 5. **Argument scope.** If the user passed an argument like `[area]`, restrict Phase 1 inventory to that area. If no argument, propose to scan the highest-leverage areas first (route handlers, data access, service layer) and ask the user to confirm before walking the whole tree.
 

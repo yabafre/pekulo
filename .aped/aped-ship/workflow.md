@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 
 # APED Ship — Sprint Umbrella → Base PR
 
@@ -108,14 +110,20 @@ Filter: test files often have `console.log` for intentional diagnostics; tag tho
 
 ### 3. Typecheck
 
-The umbrella has been collecting story merges; run typecheck against its tip. Either:
+The umbrella has been collecting story merges; run typecheck against its tip. **Trap-protect the checkout** so a failure in the runner (or an interrupted skill run) cannot leave the user stranded on the umbrella branch:
 
 ```bash
 PKG=$(bash .aped/scripts/detect-package-runner.sh)   # bun|pnpm|yarn|npm — deterministic
+ORIGINAL_BRANCH="$BASE_BRANCH"                              # captured at Setup, verified clean
+trap 'git checkout "$ORIGINAL_BRANCH" 2>/dev/null || true' EXIT INT TERM
 git checkout "$UMBRELLA"                                    # safe: working tree verified clean at Setup
-"$PKG" run typecheck                                        # uses the project's actual runner
-git checkout "$BASE_BRANCH"                                 # always return to base
+TYPECHECK_RC=0
+"$PKG" run typecheck || TYPECHECK_RC=$?                     # capture; do not abort the section
+git checkout "$ORIGINAL_BRANCH"                             # explicit return; trap is the safety net
+trap - EXIT INT TERM                                        # clear trap once the explicit checkout succeeded
 ```
+
+If `TYPECHECK_RC != 0`, classify findings as BLOCKERs and continue to Lint (we want the full picture). The trap guarantees that even if the agent crashes mid-section, the working tree returns to the base branch on exit.
 
 Detect project type from root `package.json` and workspaces:
 - If root `package.json` has `scripts.typecheck` → `$PKG run typecheck`. **Never invent the runner** — `detect-package-runner.sh` is the single source of truth (the four "or equivalent" hallucinations from pre-4.9.0 are exactly this footgun).
@@ -127,7 +135,18 @@ Capture errors. Group by file.
 
 ### 4. Lint
 
-If root `package.json` has `scripts.lint` → run it on the umbrella tip (same checkout pattern as typecheck). Capture errors vs warnings.
+If root `package.json` has `scripts.lint` → run it on the umbrella tip using the **same trap-protected checkout pattern as typecheck above**:
+
+```bash
+trap 'git checkout "$ORIGINAL_BRANCH" 2>/dev/null || true' EXIT INT TERM
+git checkout "$UMBRELLA"
+LINT_RC=0
+"$PKG" run lint || LINT_RC=$?
+git checkout "$ORIGINAL_BRANCH"
+trap - EXIT INT TERM
+```
+
+Capture errors vs warnings.
 
 ### 5. Database regen
 
@@ -135,6 +154,17 @@ Detect Prisma:
 - `apps/*/prisma/` or `prisma/` dir at root → Prisma project.
 - Root `scripts.db:generate` exists → run `pnpm db:generate` on the umbrella tip.
 - Else `pnpm exec prisma generate` in the relevant workspace.
+
+Apply the **same trap-protected checkout pattern**:
+
+```bash
+trap 'git checkout "$ORIGINAL_BRANCH" 2>/dev/null || true' EXIT INT TERM
+git checkout "$UMBRELLA"
+DB_RC=0
+"$PKG" run db:generate || DB_RC=$?
+git checkout "$ORIGINAL_BRANCH"
+trap - EXIT INT TERM
+```
 
 If regen fails on a missing env var (common: `DIRECT_URL` coalesce bugs), report the exact error as a BLOCKER. Do NOT silently fix `.env` — the user needs to know.
 
@@ -198,7 +228,11 @@ Sprint umbrella ship — `sprint/epic-1` is {AHEAD} commits ahead of origin/main
 Present three options:
 
 1. **Fix blockers first** (recommended when BLOCKERS > 0) — the user applies fixes on the umbrella branch directly (or on a story branch + rerun `aped-lead` to merge), then re-runs `aped-ship`. The composite review re-runs on the new tip.
-2. **Open the PR anyway** — only sensible when findings are all WARNINGS or INFO. Print the exact commands:
+2. **Open the PR anyway** — only sensible when findings are all WARNINGS or INFO.
+
+   > **Writing discipline (PR title + body).** Before drafting either, read `.aped/aped-skills/writing-discipline.md`. Title: short, recognizable, ≤ 70 chars (epic slug + the *one* lever the sprint pulled, not the kitchen sink). Body: 3–6 short bullets — what the sprint changed for the reader, the WARNING items the reviewer should ack, link to the merged stories. Drop file lists, test counts, "boundaries respected" checkboxes. The diff proves the work; prose adds the *why*.
+
+   Print the exact commands:
 
    ```
    git push -u origin "$UMBRELLA"
@@ -264,7 +298,7 @@ bash .aped/scripts/sync-log.sh phase $LOG tickets_closed complete '{"calls":T,"t
 bash .aped/scripts/sync-log.sh record $LOG api_calls_total T
 ```
 
-If you also post a "shipped in PR #N" comment on each ticket:
+If you also post a "shipped in PR #N" comment on each ticket — keep it one short line + the PR link, per `.aped/aped-skills/writing-discipline.md`:
 
 ```bash
 bash .aped/scripts/sync-log.sh phase $LOG comments_posted complete '{"calls":C,"tickets":[...]}'

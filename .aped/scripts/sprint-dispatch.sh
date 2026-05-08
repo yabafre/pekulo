@@ -30,7 +30,11 @@ fi
 
 STORY_KEY="$1"
 TICKET_ID="${2:-$STORY_KEY}"
-BASE_REF="${3:-HEAD}"
+# When omitted, the base ref defaults to the umbrella recorded in state.yaml
+# (sprint mode) → config.yaml.base_branch (solo mode) → HEAD (last resort).
+# /aped-sprint always passes the umbrella explicitly; this resolution chain
+# only kicks in when the script is invoked manually.
+BASE_REF="${3:-}"
 
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 if [[ ! -d "$PROJECT_ROOT/.git" ]] && ! git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
@@ -38,12 +42,33 @@ if [[ ! -d "$PROJECT_ROOT/.git" ]] && ! git -C "$PROJECT_ROOT" rev-parse --git-d
   exit 2
 fi
 
+# Resolve BASE_REF when not given on the command line. Read state.yaml first
+# (sprint umbrella wins) then config.yaml.base_branch, then HEAD.
+if [[ -z "$BASE_REF" ]]; then
+  STATE_FILE_TMP="$PROJECT_ROOT/docs/state.yaml"
+  CONFIG_FILE_TMP="$PROJECT_ROOT/.aped/config.yaml"
+  if command -v yq >/dev/null 2>&1 && [[ -f "$STATE_FILE_TMP" ]]; then
+    BASE_REF=$(yq eval '.sprint.umbrella_branch // ""' "$STATE_FILE_TMP" 2>/dev/null || echo "")
+  fi
+  if [[ -z "$BASE_REF" || "$BASE_REF" == "null" ]]; then
+    if command -v yq >/dev/null 2>&1 && [[ -f "$CONFIG_FILE_TMP" ]]; then
+      BASE_REF=$(yq eval '.base_branch // ""' "$CONFIG_FILE_TMP" 2>/dev/null || echo "")
+    fi
+  fi
+  if [[ -z "$BASE_REF" || "$BASE_REF" == "null" ]]; then
+    BASE_REF="HEAD"
+  fi
+fi
+
 # Compute target paths up-front so the lock is keyed on the actual contended
-# resource (the worktree path), not on the story key. Two stories that share
-# a TICKET_ID would resolve to the same WORKTREE_PATH and race in
-# `git worktree add`; the old per-story-key lock missed that case.
+# resource (the worktree path), not on the story key. The path includes
+# BOTH the ticket id AND the story key — without the story key, two stories
+# that share a ticket (e.g. sub-stories of the same parent ticket) would
+# collide on disk and the second `git worktree add` would fail. The lock
+# is then keyed on this resolved path, so sequential dispatch of two
+# distinct stories no longer false-conflicts on the lock either.
 PROJECT_NAME=$(basename "$PROJECT_ROOT")
-WORKTREE_PATH="$(dirname "$PROJECT_ROOT")/${PROJECT_NAME}-${TICKET_ID}"
+WORKTREE_PATH="$(dirname "$PROJECT_ROOT")/${PROJECT_NAME}-${TICKET_ID}-${STORY_KEY}"
 BRANCH_NAME="feature/${TICKET_ID}-${STORY_KEY}"
 
 # ── Fleet-lock keyed on the worktree path (sanitised for filesystem use) ─

@@ -16,7 +16,7 @@ mutates_state: false
 
 ## YOUR TASK
 
-Cluster ideas, rank within each cluster, ground every survivor before recommending. Pocock workshop convergence trap: recommendations flip when followed up because the first pass was vibing.
+Cluster ideas, rank within each cluster, ground every survivor before recommending. The convergence trap to avoid: recommendations flip when followed up because the first pass was vibing.
 
 ## STEPS
 
@@ -24,7 +24,7 @@ Cluster ideas, rank within each cluster, ground every survivor before recommendi
 
 2. **Rank** — for each cluster, pick the 1–2 strongest by a criterion the user chooses (novelty / feasibility / impact).
 
-3. **Ground each survivor before recommending it.** Pocock workshop convergence trap (superpowers issue #1266 — recommendations flip when followed up because the first pass was vibing). Per-survivor table:
+3. **Ground each survivor before recommending it.** The convergence trap: recommendations flip when followed up because the first pass was vibing. Per-survivor table:
 
    | Field | Required content |
    |---|---|

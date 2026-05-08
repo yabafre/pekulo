@@ -58,7 +58,7 @@ git branch -d feature/{ticket-id}-description
 ```
 type({ticket-id}): short description
 
-[Optional body]
+[Optional body — only when WHY is non-obvious]
 
 {Magic word} {ticket-id}
 ```
@@ -71,6 +71,8 @@ type({ticket-id}): short description
 | test | Adding or updating tests |
 | docs | Documentation changes |
 | chore | Build, config, tooling changes |
+
+**Writing discipline.** Read `{{APED_DIR}}/aped-skills/writing-discipline.md` before drafting commits, PR titles/bodies, code comments, review reports, or ticket comments. Iron Law: short, sharp, slightly human; the diff proves the work, prose adds the *why*. No file lists, no test counts, no boundary checkboxes, no "you're absolutely right" preambles.
 
 ---
 

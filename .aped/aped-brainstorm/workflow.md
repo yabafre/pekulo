@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 # APED Brainstorm — Divergent Ideation Before Convergence
 
 **Goal:** Run a creative-facilitator dialogue that generates 50+ ideas, then converges to 5–10 grounded survivors. Brainstorm is a **coaching dialogue**, not a generation script — present ONE element at a time, HALT, react, build.

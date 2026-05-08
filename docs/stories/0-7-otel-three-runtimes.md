@@ -32,7 +32,9 @@
 
 - **AC-5 (graceful shutdown flushes pending spans).** **Given** the api tier is running and at least one span is in flight when shutdown begins, **When** the process receives SIGTERM, **Then** every span emitted before SIGTERM has reached the configured exporter (stdout or OTLP) by the time the process exits, AND the process exits with code 0 within the configured shutdown timeout. Verified by the bun:test in Task 11 that emits a span, triggers shutdown, and asserts the in-memory exporter received the span.
 
----
+## Tasks
+
+- See Dev Notes § Implementation history for the full task breakdown.
 
 ## Dev Notes
 
@@ -310,11 +312,9 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-
 SERVICE_TOKEN = os.environ.get("PRICES_SERVICE_TOKEN", "").strip()
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*").strip() or "*"
 YF_IMPERSONATE = os.environ.get("YF_IMPERSONATE", "chrome").strip() or "chrome"
-
 
 # yfinance is NOT auto-aware of curl_cffi. Without an explicit Session, requests go out
 # with the stdlib User-Agent and TLS fingerprint, which Yahoo blocks aggressively from
@@ -412,7 +412,9 @@ Final commit body MUST include `Closes #7` so the GitHub issue auto-closes when 
 
 ---
 
-## Tasks
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 - [x] **T1. Add OTel deps to `apps/web/package.json` and run `bun install` [AC: AC-1, AC-2]**
 
@@ -1149,13 +1151,11 @@ Final commit body MUST include `Closes #7` so the GitHub issue auto-closes when 
       ConsoleSpanExporter,
   )
 
-
   SERVICE_TOKEN = os.environ.get("PRICES_SERVICE_TOKEN", "").strip()
   ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*").strip() or "*"
   YF_IMPERSONATE = os.environ.get("YF_IMPERSONATE", "chrome").strip() or "chrome"
   OTEL_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
   OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "pekulo-prices").strip() or "pekulo-prices"
-
 
   # OTel init — runs at import time so the FastAPIInstrumentor below has a
   # registered TracerProvider when it patches the app's route table.
@@ -1166,7 +1166,6 @@ Final commit body MUST include `Closes #7` so the GitHub issue auto-closes when 
       _otel_exporter = ConsoleSpanExporter()
   _otel_provider.add_span_processor(BatchSpanProcessor(_otel_exporter))
   trace.set_tracer_provider(_otel_provider)
-
 
   # yfinance is NOT auto-aware of curl_cffi. Without an explicit Session, requests go out
   # with the stdlib User-Agent and TLS fingerprint, which Yahoo blocks aggressively from
@@ -1304,7 +1303,7 @@ Final commit body MUST include `Closes #7` so the GitHub issue auto-closes when 
 
 ## File List
 
-Created:
+**Created:**
 - `apps/web/src/instrumentation.ts`
 - `apps/web/src/instrumentation.node.ts`
 - `apps/web/src/lib/otel/tracer.ts`
@@ -1313,17 +1312,21 @@ Created:
 - `apps/api/src/platform/observability/otel-sdk.test.ts`
 - `docs/dev/otel-collector-dev.yaml`
 
-Modified:
-- `apps/web/package.json` (T1)
-- `apps/api/package.json` (T4)
-- `apps/api/src/main.ts` (T7)
-- `apps/api/src/app.ts` (T8)
-- `apps/api/src/config/env.ts` (T6)
-- `apps/api/src/bootstrap/lifecycle.ts` (T10)
-- `apps/api/src/database/prisma.service.ts` (T9 — comment-only)
-- `apps/prices/main.py` (T12)
-- `apps/prices/requirements.txt` (T12)
+**Modified:**
+- `apps/web/package.json` (T1 — 8 OTel deps added)
+- `apps/api/package.json` (T4 — 10 OTel + Elysia plugin + Prisma instr deps added)
+- `apps/api/src/config/env.ts` (T6 — `OTEL_SERVICE_NAME` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_LOG_LEVEL` Zod fields)
+- `apps/api/src/main.ts` (T7 — dynamic import + startOtel-first ordering)
+- `apps/api/src/app.ts` (T8 — mount `elysiaOtelPlugin()` + thread `shutdownOtel` into lifecycle)
+- `apps/api/src/database/prisma.service.ts` (T9 — doc-comment update)
+- `apps/api/src/bootstrap/lifecycle.ts` (T10 — `shutdownOtel` ordered between `app.stop()` and `prismaService.disconnect()`)
+- `apps/prices/requirements.txt` (T12 — 4 OTel pinned deps)
+- `apps/prices/main.py` (T12 — TracerProvider init + `FastAPIInstrumentor.instrument_app`)
 - `bun.lock` (T1, T4 — auto-updated by `bun install`)
+
+**Tasks not modified despite being in the original File List section:**
+- `apps/web/next.config.ts` — Next.js 16 enables the instrumentation hook by default (it left experimental in 15); the existing scaffold config requires no flag flip. Verified by T2 typecheck pass.
+- `apps/api/src/platform/index.ts` — only the line referencing `observability/` was tightened from "@opentelemetry/sdk-node init (story 0-7)" → "shipped in story 0-7; exports startOtel/shutdownOtel + the Elysia plugin factory". One-line doc-comment edit, no behavioural change.
 
 ---
 
@@ -1413,35 +1416,6 @@ The test wires a real `BatchSpanProcessor` + `InMemorySpanExporter`, emits a spa
 **Lessons candidate (for `aped-retro` after epic-0 closes):**
 
 > **`@elysiajs/opentelemetry@1.4.0` does not export its rootSpan in Elysia 1.4.4 + Bun.** The plugin's source registers `event.onStop` and `onAfterResponse` lifecycle hooks that end the per-request server span; neither fires in our setup, so spans like `GET /ready` (with `http.route` / `http.request.method` / `url.path` attrs) never reach the exporter. The Elysia `handle` phase span is exported but carries no HTTP semconv. **Workaround for downstream stories**: until the plugin gap is fixed, services that need HTTP attrs on api spans should set them manually via `@elysiajs/opentelemetry`'s `setAttributes()` helper inside an Elysia `.onAfterHandle` hook, OR pin a future plugin version once it ships compat. **Trigger a follow-up story** (likely 0-7-bis or rolled into 0-8 CI work) to either (a) upgrade `@elysiajs/opentelemetry` once a fix is published, (b) replace it with a custom Elysia hook that emits HTTP-semconv-compliant root spans. Evidence: 3 smoke runs (stdout + OTLP, sleeps 6/7/13s, multiple curl flows) all show identical missing-rootSpan pattern.
-
-### File List
-
-**Created:**
-- `apps/web/src/instrumentation.ts`
-- `apps/web/src/instrumentation.node.ts`
-- `apps/web/src/lib/otel/tracer.ts`
-- `apps/api/src/platform/observability/otel-sdk.ts`
-- `apps/api/src/platform/observability/index.ts`
-- `apps/api/src/platform/observability/otel-sdk.test.ts`
-- `docs/dev/otel-collector-dev.yaml`
-
-**Modified:**
-- `apps/web/package.json` (T1 — 8 OTel deps added)
-- `apps/api/package.json` (T4 — 10 OTel + Elysia plugin + Prisma instr deps added)
-- `apps/api/src/config/env.ts` (T6 — `OTEL_SERVICE_NAME` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_LOG_LEVEL` Zod fields)
-- `apps/api/src/main.ts` (T7 — dynamic import + startOtel-first ordering)
-- `apps/api/src/app.ts` (T8 — mount `elysiaOtelPlugin()` + thread `shutdownOtel` into lifecycle)
-- `apps/api/src/database/prisma.service.ts` (T9 — doc-comment update)
-- `apps/api/src/bootstrap/lifecycle.ts` (T10 — `shutdownOtel` ordered between `app.stop()` and `prismaService.disconnect()`)
-- `apps/prices/requirements.txt` (T12 — 4 OTel pinned deps)
-- `apps/prices/main.py` (T12 — TracerProvider init + `FastAPIInstrumentor.instrument_app`)
-- `bun.lock` (T1, T4 — auto-updated by `bun install`)
-
-**Tasks not modified despite being in the original File List section:**
-- `apps/web/next.config.ts` — Next.js 16 enables the instrumentation hook by default (it left experimental in 15); the existing scaffold config requires no flag flip. Verified by T2 typecheck pass.
-- `apps/api/src/platform/index.ts` — only the line referencing `observability/` was tightened from "@opentelemetry/sdk-node init (story 0-7)" → "shipped in story 0-7; exports startOtel/shutdownOtel + the Elysia plugin factory". One-line doc-comment edit, no behavioural change.
-
----
 
 ## Review Record
 

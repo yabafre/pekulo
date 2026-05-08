@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 # APED Architecture — Collaborative Solution Design
 
 **Goal:** Create architecture decisions through step-by-step discovery so all downstream agents (`aped-dev`, `aped-review`, `aped-story`) implement consistently. Architecture is built **incrementally** — every gate writes its section into `architecture.md` before the next phase starts.
@@ -21,7 +23,7 @@ This skill uses **micro-file architecture** with an **incremental tracking contr
 - **Architecture is NOT implementation** — define WHAT and WHY, not the code.
 - **Decisions made here are LAW** for `aped-dev` and `aped-review`.
 - **For major decisions** (DB, auth, API style, frontend framework, infra) — dispatch the **Architecture Council** of specialist subagents to surface divergent perspectives. Single-brain reasoning converges to groupthink.
-- **ADR sharding** (v6.0.0+) — for every decision passing Pocock's three criteria (hard-to-reverse + surprising + real trade-off), write a separate ADR file at `docs/adr/000N-{slug}.md` using the template at `.aped/templates/adr.md`. ADRs persist beyond architecture.md's rolling structure and are the citable artefact for future readers asking "why did they pick X?". The directory ships from the scaffolder; the first ADR creates lazily.
+- **ADR sharding** (v6.0.0+) — for every decision passing the three ADR criteria (hard-to-reverse + surprising + real trade-off), write a separate ADR file at `docs/adr/000N-{slug}.md` using the template at `.aped/templates/adr.md`. ADRs persist beyond architecture.md's rolling structure and are the citable artefact for future readers asking "why did they pick X?". The directory ships from the scaffolder; the first ADR creates lazily.
 
 ## Activation
 

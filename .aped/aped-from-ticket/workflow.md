@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 
 # APED From-Ticket — External Ticket Intake
 
@@ -238,6 +240,8 @@ bash .aped/scripts/sync-log.sh phase $LOG state_registered complete '{"story_key
 ```
 
 ## Comment Back to Ticket
+
+> **Writing discipline.** If you override the default template with a custom one, read `.aped/aped-skills/writing-discipline.md` first — short, sharp, status + link to the artefact, don't re-narrate the story in the ticket.
 
 If `from_ticket.ticket_comment.enabled: true`:
 

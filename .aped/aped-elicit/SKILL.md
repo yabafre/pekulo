@@ -11,8 +11,10 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.3
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Elicit — Deep Critique Toolkit
 

@@ -1,0 +1,52 @@
+{
+  "artefact_name": "epic-context",
+  "description": "APED epic-context cache — produced by aped-story step-02, appended by aped-review at story→done.",
+  "version": 1,
+  "top_level": [
+    "Scope from PRD",
+    "Architecture references",
+    "UX references",
+    "Project context (brownfield only)",
+    "Lessons applicable",
+    "Previous stories — outcomes"
+  ],
+  "sections": [
+    {
+      "heading": "Scope from PRD",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Architecture references",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "UX references",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Project context (brownfield only)",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Lessons applicable",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Previous stories — outcomes",
+      "level": 2,
+      "required": true,
+      "_note": "forbid_invented_sub_headings: false because aped-review appends '### Story {key} — done {ISO}' level-3 blocks here. Per-block schema (Decisions/Files/Contracts/Deviations) deferred to 6.4.0 (level-3 schema validation).",
+      "forbid_invented_sub_headings": false
+    }
+  ]
+}

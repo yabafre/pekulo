@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 # APED Epics — Requirements Decomposition
 
 **Goal:** Break the PRD into epics (user-value groupings) and a story list (one entry per story key, no story files written) with FR coverage validated and tickets seeded in the configured tracker.

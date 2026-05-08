@@ -29,6 +29,8 @@ Walk the self-review checklist. Each item below maps to a Reader-persona failure
 
 - [ ] **Placeholder lint** — run `bash .aped/scripts/lint-placeholders.sh docs/stories/{story-key}.md`. If exit 1, present output verbatim and ask the user `[F]ix` / `[O]verride`.
 
+- [ ] **Schema validation (WARN-only in 6.3.0)** — run `bash .aped/scripts/validate-story.sh docs/stories/{story-key}.md`. On non-zero, present the validator's stderr verbatim, suggest the user re-run aped-story (or hand-edit) to address, and **do NOT advance state**. If `validate-story.sh` is absent (non-scaffolded scaffold), warn-once and continue — same graceful pattern as ajv-cli skip in `validate-state.sh`. Escalates to ERROR in 7.0.0.
+
 - [ ] **Exact file paths** — every Execution task references a real file path (not "the auth module"). Persona check: the junior should not have to grep.
 
 - [ ] **Test commands** — every task with verifiable behaviour has an exact test command and expected output (not "run the tests").

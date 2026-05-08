@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://aped-method.dev/schema/state.yaml.v3.json",
+  "title": "APED state.yaml — schema v3",
+  "description": "Canonical schema for state.yaml at schema_version: 3. WARN-only in 6.2.0 (rollout grace window); escalates to ERROR in 7.0.0. The schema is intentionally strict — additionalProperties: false on sprint.stories, pipeline.phases.<phase>, top-level pipeline + sprint — to surface drift (invented sub-blocks, free-form story fields, out-of-taxonomy phase shapes). ticket_sync and backlog_future_scope keep additionalProperties: true because their shape varies per provider (Linear ≠ GitHub ≠ Jira). Draft 2019-09 (rather than 2020-12) matches what ajv-cli@^5 understands so validate-state.sh can run without extra plugins.",
+
+  "type": "object",
+  "required": ["schema_version", "pipeline", "sprint"],
+  "additionalProperties": false,
+
+  "properties": {
+    "schema_version": { "const": 3 },
+
+    "corrections_pointer": { "type": "string", "minLength": 1 },
+    "corrections_count": { "type": "integer", "minimum": 0 },
+
+    "pipeline": { "$ref": "#/$defs/pipeline" },
+    "sprint":   { "$ref": "#/$defs/sprint" },
+
+    "ticket_sync":          { "$ref": "#/$defs/ticketSync" },
+    "backlog_future_scope": { "$ref": "#/$defs/backlogFutureScope" }
+  },
+
+  "$defs": {
+    "pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current_phase", "phases"],
+      "properties": {
+        "current_phase": {
+          "type": "string",
+          "enum": ["none", "analyze", "context", "prd", "ux", "architecture", "epics", "sprint"]
+        },
+        "phases": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/phase" }
+        }
+      }
+    },
+
+    "phase": {
+      "description": "Per-phase tracking shape. Union of all known fields across analyze / context / prd / ux / architecture / epics / sprint phases. additionalProperties: false surfaces drift (invented fields like design_system, councils_retired, ramp_tiering all error here).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status":              { "type": "string", "enum": ["in-progress", "done"] },
+        "output":              { "type": "string", "minLength": 1 },
+        "started_at":          { "type": "string" },
+        "last_updated":        { "type": "string" },
+        "completed_at":        { "type": "string" },
+        "current_subphase":    { "type": "string", "minLength": 1 },
+        "completed_subphases": { "type": "array", "items": { "type": "string" } },
+
+        "generated":    { "type": "boolean" },
+        "path":         { "type": "string", "minLength": 1 },
+        "type":         { "type": "string", "enum": ["brownfield", "greenfield", "hybrid"] },
+        "generated_at": { "type": "string" },
+        "refreshed_at": { "type": "string" },
+
+        "mode": { "type": "string", "enum": ["interactive", "headless"] },
+        "fr_count": { "type": "integer", "minimum": 0 },
+
+        "councils_dispatched": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/councilDispatch" }
+        },
+        "adrs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/adr" }
+        },
+        "watch_items":       { "type": "array", "items": { "type": "string" } },
+        "residual_gaps":     { "type": "array", "items": { "type": "string" } },
+        "epic_zero_stories": { "type": "array", "items": { "type": "string" } },
+
+        "epic_count":  { "type": "integer", "minimum": 0 },
+        "story_count": { "type": "integer", "minimum": 0 },
+        "fr_coverage": {
+          "type": "object",
+          "additionalProperties": { "type": ["array", "string", "integer"] }
+        },
+
+        "ticket_sync": { "type": "string", "enum": ["synced", "skipped", "failed"] },
+        "synced_at":   { "type": "string" }
+      }
+    },
+
+    "councilDispatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subject", "specialists", "verdict"],
+      "properties": {
+        "id":          { "type": "string", "minLength": 1 },
+        "subject":     { "type": "string", "minLength": 1 },
+        "specialists": { "type": "array", "items": { "type": "string" } },
+        "verdict":     { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "adr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subject", "path"],
+      "properties": {
+        "id":      { "type": "string", "minLength": 1 },
+        "subject": { "type": "string", "minLength": 1 },
+        "path":    { "type": "string", "minLength": 1 },
+        "author":  { "type": "string" }
+      }
+    },
+
+    "sprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project", "active_epic", "stories"],
+      "properties": {
+        "project":         { "type": "string" },
+        "active_epic":     { "type": ["integer", "null"], "minimum": 0 },
+        "umbrella_branch": { "type": ["string", "null"] },
+        "stories": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/story" }
+        }
+      },
+      "not": {
+        "anyOf": [
+          { "required": ["parallel_limit"] },
+          { "required": ["review_limit"] }
+        ]
+      }
+    },
+
+    "story": {
+      "description": "Per-story runtime state. Strict shape: invented fields like verdict, review_notes, dev_completed_at error here (those belong in the story file's Review Record, not state.yaml).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "ready-for-dev", "in-progress", "dev-done", "review-queued", "review", "review-done", "done"]
+        },
+        "ticket":               { "type": ["string", "null"] },
+        "worktree":             { "type": ["string", "null"] },
+        "branch":               { "type": ["string", "null"] },
+        "depends_on":           { "type": "array", "items": { "type": "string" } },
+        "started_at":           { "type": ["string", "null"] },
+        "merged_into_umbrella": { "type": "boolean" }
+      }
+    },
+
+    "ticketSync": {
+      "description": "Provider-agnostic ticket sync metadata. additionalProperties: true because provider-specific shape varies (Linear's project shape ≠ GitHub's milestone shape).",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "provider": { "type": "string", "enum": ["linear", "github", "gitlab", "jira"] },
+        "sync_id":           { "type": "string" },
+        "synced_at":         { "type": "string" },
+        "sync_log":          { "type": "string" },
+        "directive_version": { "type": "string" },
+        "projects":          { "type": "object" },
+        "milestones":        { "type": "object" },
+        "modified_tickets":  { "type": "array", "items": { "type": "object" } },
+        "totals":            { "type": "object" }
+      }
+    },
+
+    "backlogFutureScope": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "project_id": { "type": "string" },
+        "tickets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id":       { "type": "string", "minLength": 1 },
+              "category": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

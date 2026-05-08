@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 # APED Story — Detailed Story Preparation
 
 **Goal:** Create a single, implementation-ready story file with all the context the dev agent needs. One story at a time. Branch-per-story is inviolable — this skill creates the feature branch before any story file is written.

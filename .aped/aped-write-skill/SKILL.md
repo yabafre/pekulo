@@ -8,8 +8,10 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.3
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Write Skill — Meta-Skill for Writing APED-Style Skills
 
@@ -69,7 +71,7 @@ metadata:
 ```
 
 Description requirements (APED's lint tests enforce these):
-- Wrapped in **single quotes** (avoids the unquoted-`: ` silent-skip footgun, Superpowers issue #955).
+- Wrapped in **single quotes** (avoids the unquoted-`: ` silent-skip footgun where YAML parses the value as a nested mapping and the skill silently fails to register).
 - ≤ 1024 characters.
 - Includes 2+ trigger phrases the user would actually say.
 - Includes ≥1 anti-trigger pointing at the adjacent skill that handles the contrasting case.

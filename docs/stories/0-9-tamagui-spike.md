@@ -38,9 +38,134 @@
 
 - **AC-4 (Decision document).** **Given** the spike outputs from the build, contrast measurement, and palette audit, **When** the dev authors the decision document, **Then** it contains an explicit single-line verdict (green-light story 0-10 OR pivot to ADR-0007 option A), a measurements table reflecting the AC-1/AC-2/AC-3 outcomes, an informational build-time delta vs the existing Tailwind-only build, explicit references to W2 + ADR-0007 pivot conditions, and a next-action that names the downstream skill to invoke (`aped-story` for 0-10 on green-light, `aped-course` to revert ADR-0007 on pivot).
 
+## Tasks
+
+- T1 — Install Tamagui Core 2.0.0-rc.41 deps + wire `withTamagui` in `next.config.ts` [AC: AC-1]
+- T2 — Port `docs/ux-preview/src/tokens/` into `apps/web/tamagui.config.ts` (pekulo-dark + pekulo-light) [AC: AC-2, AC-3]
+- T3 — Build the spike route — RSC sentinel + isolated `'use client'` provider [AC: AC-1]
+- T4 — Port HeroBlock proto-slice from `docs/ux-preview/src/App.tsx` to Tamagui primitives [AC: AC-3]
+- T5 — Contrast measurement test (`bun:test`) + JSON report dump [AC: AC-2]
+- T6 — Decision document + final wrap [AC: AC-4]
+
+## Dev Notes
+
+### Existing code at write time (Step-0 quotes — verbatim, do not paraphrase)
+
+`apps/web/next.config.ts` (current, full file):
+
+```ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+```
+
+T1.2 replaces this entire file. The `/* config options here */` placeholder is preserved as `baseConfig` so any future Next config (rewrites, headers, image domains) lands in the same spot.
+
+`apps/web/package.json` (current `dependencies` + `devDependencies` block — abbreviated to the lines T1.1 modifies):
+
+```json
+"dependencies": {
+  "@base-ui/react": "^1.4.1",
+  …
+  "react-dom": "19.2.4",
+  "recharts": "^3.8.0",
+  "shadcn": "^4.5.0",
+  "tailwind-merge": "^3.5.0",
+  "tailwindcss-animate": "^1.0.7",
+  "tw-animate-css": "^1.4.0",
+  "yahoo-finance2": "^3.14.0",
+  "zod": "^4.3.6"
+},
+"devDependencies": {
+  "@pekulo/tsconfig": "workspace:*",
+  "@tailwindcss/postcss": "^4",
+  "@types/node": "^20",
+  "@types/react": "^19",
+  "@types/react-dom": "^19",
+  "supabase": "^2.95.4",
+  "tailwindcss": "^4",
+  "typescript": "^6.0.3"
+}
+```
+
+T1.1 inserts (alphabetically) into `dependencies`: `@tamagui/config`, `@tamagui/core`, `@tamagui/next-theme`, `react-native-web`, `tamagui`. Into `devDependencies`: `@tamagui/next-plugin`, `@types/react-native`. Every other line stays byte-identical — this is enforced by the `git diff --stat` output (review the diff before T1.4 commits).
+
+`apps/web/src/app/layout.tsx` is read-only on this story. NOT modified — the spike route brings its own `layout.tsx` under `(spike)/tamagui-spike/`. Documented here so a future reviewer doesn't propose collapsing the two.
+
+### File map (3-bullet decision per file)
+
+- **`apps/web/package.json`** — *modify* — declares Tamagui Core 2.0.0-rc.41 runtime + plugin deps (exact pins, no caret on the RC line), alphabetical insertion preserves diff readability — inputs: lockfile, outputs: resolvable `tamagui` / `@tamagui/*` / `react-native-web` modules at typecheck and build time.
+- **`apps/web/next.config.ts`** — *modify* — wires `withTamagui` so the Next compiler knows to flat-extract Tamagui CSS at build time and respect `appDir` boundaries — inputs: `apps/web/tamagui.config.ts`, outputs: a Next config object with the Tamagui plugin layered on.
+- **`apps/web/tamagui.config.ts`** — *create* — Tamagui runtime config with `pekulo-dark` + `pekulo-light` themes layered on `@tamagui/config/v5` (the v2 RC entry) + animations driver from `@tamagui/config/v5-css` — inputs: `./src/app/(spike)/tamagui-spike/tokens.ts`, outputs: a `createTamagui()` config + module-augmented `TamaguiCustomConfig` type.
+- **`apps/web/src/app/(spike)/tamagui-spike/tokens.ts`** — *create* — pure TS data file holding the ported `pekuloColors` / `pekuloSpacing` / `pekuloRadius` tables — inputs: none, outputs: typed const exports consumed by both the config and the contrast test.
+- **`apps/web/src/app/(spike)/tamagui-spike/provider.tsx`** — *create* — the SINGLE `'use client'` boundary holding `<TamaguiProvider>` + `useServerInsertedHTML` SSR wiring — inputs: `tamagui.config.ts`, outputs: a React component wrapping its children with Tamagui context.
+- **`apps/web/src/app/(spike)/tamagui-spike/layout.tsx`** — *create* — RSC layout mounting the provider once for the spike subtree — inputs: `provider.tsx`, outputs: the spike subtree with Tamagui context attached.
+- **`apps/web/src/app/(spike)/tamagui-spike/page.tsx`** — *create* — RSC sentinel page mounting `<ProtoSlice>`, used by AC-1 to verify NO `'use client'` is forced at the leaf — inputs: `proto-slice.tsx`, outputs: the rendered spike route.
+- **`apps/web/src/app/(spike)/tamagui-spike/proto-slice.tsx`** — *create* — RSC component porting one HeroBlock surface from `docs/ux-preview/src/App.tsx` to Tamagui primitives, enforcing the strict-palette discipline (zero borders, emerald only on monetary delta) — inputs: Tamagui `Stack` / `Text` / `View`, outputs: a single rendered card.
+- **`apps/web/src/app/(spike)/tamagui-spike/contrast.ts`** — *create* — pure WCAG 2.x luminance + contrast-ratio helpers, no DOM, no React, no Tamagui — inputs: hex strings, outputs: floats.
+- **`apps/web/src/app/(spike)/tamagui-spike/contrast.test.ts`** — *create* — `bun:test` matrix asserting AA thresholds across `pekuloColors` for both themes, dumps `0-9-contrast-report.json` via `afterAll` — inputs: `tokens.ts` + `contrast.ts`, outputs: test results + JSON report.
+- **`docs/spikes/0-9-contrast-report.json`** — *create (generated, committed)* — measurements artefact for AC-2 traceability — inputs: contrast test, outputs: a JSON file readable by humans and `aped-review`.
+- **`docs/spikes/0-9-proto-slice-dark.png`** — *create (committed)* — screenshot evidence for AC-3 visual smoke — inputs: dev server + react-grab-mcp, outputs: a single PNG.
+- **`docs/spikes/0-9-tamagui-decision.md`** — *create* — the decision document referenced by AC-4; sole owner of the green-light vs pivot verdict — inputs: T1–T5 measurements, outputs: a markdown file with table-formatted evidence and the chosen next action.
+
+### Architecture pointers
+
+- **ADR-0007** is the binding architecture decision — re-read `docs/adr/0007-design-system-tamagui-migration-now.md` § "Consequences" before T6.1 to make sure the "Pivot conditions" wording in the decision doc matches the ADR's wording. If the ADR has been edited since this story was drafted, the ADR wins.
+- **Architecture L213–L215** locks Tamagui Core (MIT) as the cross-platform substrate; this spike does NOT re-evaluate the choice of Tamagui Core vs Tamagui Pro — that argument is closed.
+- **Architecture L644–L649** is the migration discipline section. The phrase "Pre-flight spikes (Tamagui ↔ Next 16 RSC ; proto port ; WCAG contrast) MUST land before any feature story resumes" is what makes 0-9 a hard gate to 0-10.
+- **W2 watch item** (`docs/architecture.md` L1143) is the load-bearing pivot trigger; T6.1 must reference W2 by name.
+
+### Dependencies & version pinning
+
+- Tamagui Core is pinned at the **exact** RC tag `2.0.0-rc.41` for all five packages (`tamagui` umbrella, `@tamagui/core` runtime, `@tamagui/next-plugin` build-time, `@tamagui/config` v5 default themes, `@tamagui/next-theme` SSR theme switching). Verified at story-write time via `npm view tamagui dist-tags` → `latest: 2.0.0-rc.41`. RC builds are pinned exact (no caret) because semver ranges over pre-release identifiers behave inconsistently and a silent jump to `rc.42` could ship a new breaking change mid-spike.
+- The architecture's "Tamagui v2 compiler" reference (`docs/architecture.md` L283 etc.) is now **current**, not forward-looking — the v2 RC is the substrate this spike measures. Architecture wording predates the RC roll-out and remains accurate.
+- v2 brings breaking changes from v1 that this story already absorbs: `@tamagui/config/v3` → `@tamagui/config/v5` (animation driver split into `@tamagui/config/v5-css`), `<Stack>` → `<View>` (the layout primitive was renamed; `View` is the only flex container in v2), `animation=` → `transition=` (irrelevant here — no transitions used), `$2xl`/`$2xs` → `$xxl`/`$xxs` (irrelevant here — no responsive breakpoint props used), `themeInverse` → `theme="accent"` (irrelevant here). T6.1's decision doc references this v1→v2 migration list when discussing build-time delta.
+- `react-native-web@^0.19.13` is the peer Tamagui requires for the web target. Adding it does NOT pull React Native into the bundle — `react-native-web` is a stub layer Tamagui statically extracts to CSS at build time.
+- **Pre-flight RC verification.** Before T1.1 stages anything, the dev runs `npm view tamagui dist-tags` and `npm view @tamagui/next-plugin dist-tags`. If `latest` has rolled past `rc.41`, update all five Tamagui pins atomically to the new tag and note the exact RC measured in T6.1. If the `latest` tag has graduated to a stable `2.0.0` (no more `-rc` suffix), switch the pins to `^2.0.0` (caret restored — semver works again on stable releases) and note the graduation in T6.1.
+
+### Testing strategy
+
+- The contrast test uses `bun:test` (Bun's built-in runner), NOT Vitest. Reason: Vitest is not yet wired into `apps/web` (per `docs/project-context.md` § "Test framework"); installing it in this story would balloon scope and conflict with story 0-12's own Vitest wiring choices. `bun test` runs pure TS without ceremony and is sufficient for the AC-2 contract.
+- The visual smoke (T4.2) uses the existing `react-grab-mcp` instance loaded by `apps/web/src/app/layout.tsx` in dev mode. No new tooling.
+- The build-time delta in T6.1 is informational only — not a gate. Capturing it lets 0-10 plan against a known baseline.
+
+### Lessons applied
+
+| Lesson | Application in this story |
+| --- | --- |
+| **L9** (Next.js workspaces — `typescript` per-package) | T1.1 keeps `typescript: "^6.0.3"` declared explicitly in `apps/web/devDependencies`. Tamagui peer deps are added without disturbing this line. T1.2 runs `bun --cwd apps/web run typecheck` to confirm the workspace resolves its own TS. |
+| **L1** (Bun `--frozen-lockfile` workspace coverage) | Documented as non-applicable (Vercel handles `apps/web`, no Docker). Flagged in the lessons-enforced header so a future reviewer doesn't propose unnecessary Dockerfile changes. |
+| **L8** (Prisma 7 `defineConfig` env-load) | Non-applicable — no Prisma changes. The existing CI workflow `DATABASE_URL` stub remains; T1's `bun install` triggers the `apps/api/postinstall: prisma generate`, which the stub already covers. |
+| **L4 / L5** (oxlint quirks) | Non-applicable — no oxlint config changes in this story. Any new lint rules belong in 0-12. |
+| **L7** (`bun --cwd <relative> run <script>` silent fail) | Story originally drafted with `bun --cwd apps/web run …` for typecheck / build / dev. On dev pickup the form was substituted to `bun --filter=web …` (workspace-aware, exit codes propagate) and a `test:contrast` script was added to `apps/web/package.json` so the contrast test runs the same way (`bun --filter=web test:contrast`). Patch logged in Debug Log below. |
+
+### Pivot decision flow (cheat-sheet for T6.1)
+
+```
+AC-1 grep returns >1 match?         → Decision: pivot to A
+                |
+                v no
+AC-2 any pair < threshold?           → Decision: pivot to A
+                |
+                v no
+AC-3 grep returns any match?         → Decision: pivot to A
+                |
+                v no
+T6.2 final smoke fails?              → Decision: HALT (do not commit T6 yet)
+                |
+                v no
+                                     → Decision: green-light story 0-10
+```
+
 ---
 
-## Tasks
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 ### T1 — Install Tamagui Core 2.0.0-rc.41 deps + wire `withTamagui` in `next.config.ts` [AC: AC-1]
 
@@ -889,121 +1014,39 @@
 
 ---
 
-## Dev Notes
+## File List
 
-### Existing code at write time (Step-0 quotes — verbatim, do not paraphrase)
+Modified or created on `feature/9-0-9-tamagui-spike` (vs `main`):
 
-`apps/web/next.config.ts` (current, full file):
-
-```ts
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
-```
-
-T1.2 replaces this entire file. The `/* config options here */` placeholder is preserved as `baseConfig` so any future Next config (rewrites, headers, image domains) lands in the same spot.
-
-`apps/web/package.json` (current `dependencies` + `devDependencies` block — abbreviated to the lines T1.1 modifies):
-
-```json
-"dependencies": {
-  "@base-ui/react": "^1.4.1",
-  …
-  "react-dom": "19.2.4",
-  "recharts": "^3.8.0",
-  "shadcn": "^4.5.0",
-  "tailwind-merge": "^3.5.0",
-  "tailwindcss-animate": "^1.0.7",
-  "tw-animate-css": "^1.4.0",
-  "yahoo-finance2": "^3.14.0",
-  "zod": "^4.3.6"
-},
-"devDependencies": {
-  "@pekulo/tsconfig": "workspace:*",
-  "@tailwindcss/postcss": "^4",
-  "@types/node": "^20",
-  "@types/react": "^19",
-  "@types/react-dom": "^19",
-  "supabase": "^2.95.4",
-  "tailwindcss": "^4",
-  "typescript": "^6.0.3"
-}
-```
-
-T1.1 inserts (alphabetically) into `dependencies`: `@tamagui/config`, `@tamagui/core`, `@tamagui/next-theme`, `react-native-web`, `tamagui`. Into `devDependencies`: `@tamagui/next-plugin`, `@types/react-native`. Every other line stays byte-identical — this is enforced by the `git diff --stat` output (review the diff before T1.4 commits).
-
-`apps/web/src/app/layout.tsx` is read-only on this story. NOT modified — the spike route brings its own `layout.tsx` under `(spike)/tamagui-spike/`. Documented here so a future reviewer doesn't propose collapsing the two.
-
-### File map (3-bullet decision per file)
-
-- **`apps/web/package.json`** — *modify* — declares Tamagui Core 2.0.0-rc.41 runtime + plugin deps (exact pins, no caret on the RC line), alphabetical insertion preserves diff readability — inputs: lockfile, outputs: resolvable `tamagui` / `@tamagui/*` / `react-native-web` modules at typecheck and build time.
-- **`apps/web/next.config.ts`** — *modify* — wires `withTamagui` so the Next compiler knows to flat-extract Tamagui CSS at build time and respect `appDir` boundaries — inputs: `apps/web/tamagui.config.ts`, outputs: a Next config object with the Tamagui plugin layered on.
-- **`apps/web/tamagui.config.ts`** — *create* — Tamagui runtime config with `pekulo-dark` + `pekulo-light` themes layered on `@tamagui/config/v5` (the v2 RC entry) + animations driver from `@tamagui/config/v5-css` — inputs: `./src/app/(spike)/tamagui-spike/tokens.ts`, outputs: a `createTamagui()` config + module-augmented `TamaguiCustomConfig` type.
-- **`apps/web/src/app/(spike)/tamagui-spike/tokens.ts`** — *create* — pure TS data file holding the ported `pekuloColors` / `pekuloSpacing` / `pekuloRadius` tables — inputs: none, outputs: typed const exports consumed by both the config and the contrast test.
-- **`apps/web/src/app/(spike)/tamagui-spike/provider.tsx`** — *create* — the SINGLE `'use client'` boundary holding `<TamaguiProvider>` + `useServerInsertedHTML` SSR wiring — inputs: `tamagui.config.ts`, outputs: a React component wrapping its children with Tamagui context.
-- **`apps/web/src/app/(spike)/tamagui-spike/layout.tsx`** — *create* — RSC layout mounting the provider once for the spike subtree — inputs: `provider.tsx`, outputs: the spike subtree with Tamagui context attached.
-- **`apps/web/src/app/(spike)/tamagui-spike/page.tsx`** — *create* — RSC sentinel page mounting `<ProtoSlice>`, used by AC-1 to verify NO `'use client'` is forced at the leaf — inputs: `proto-slice.tsx`, outputs: the rendered spike route.
-- **`apps/web/src/app/(spike)/tamagui-spike/proto-slice.tsx`** — *create* — RSC component porting one HeroBlock surface from `docs/ux-preview/src/App.tsx` to Tamagui primitives, enforcing the strict-palette discipline (zero borders, emerald only on monetary delta) — inputs: Tamagui `Stack` / `Text` / `View`, outputs: a single rendered card.
-- **`apps/web/src/app/(spike)/tamagui-spike/contrast.ts`** — *create* — pure WCAG 2.x luminance + contrast-ratio helpers, no DOM, no React, no Tamagui — inputs: hex strings, outputs: floats.
-- **`apps/web/src/app/(spike)/tamagui-spike/contrast.test.ts`** — *create* — `bun:test` matrix asserting AA thresholds across `pekuloColors` for both themes, dumps `0-9-contrast-report.json` via `afterAll` — inputs: `tokens.ts` + `contrast.ts`, outputs: test results + JSON report.
-- **`docs/spikes/0-9-contrast-report.json`** — *create (generated, committed)* — measurements artefact for AC-2 traceability — inputs: contrast test, outputs: a JSON file readable by humans and `aped-review`.
-- **`docs/spikes/0-9-proto-slice-dark.png`** — *create (committed)* — screenshot evidence for AC-3 visual smoke — inputs: dev server + react-grab-mcp, outputs: a single PNG.
-- **`docs/spikes/0-9-tamagui-decision.md`** — *create* — the decision document referenced by AC-4; sole owner of the green-light vs pivot verdict — inputs: T1–T5 measurements, outputs: a markdown file with table-formatted evidence and the chosen next action.
-
-### Architecture pointers
-
-- **ADR-0007** is the binding architecture decision — re-read `docs/adr/0007-design-system-tamagui-migration-now.md` § "Consequences" before T6.1 to make sure the "Pivot conditions" wording in the decision doc matches the ADR's wording. If the ADR has been edited since this story was drafted, the ADR wins.
-- **Architecture L213–L215** locks Tamagui Core (MIT) as the cross-platform substrate; this spike does NOT re-evaluate the choice of Tamagui Core vs Tamagui Pro — that argument is closed.
-- **Architecture L644–L649** is the migration discipline section. The phrase "Pre-flight spikes (Tamagui ↔ Next 16 RSC ; proto port ; WCAG contrast) MUST land before any feature story resumes" is what makes 0-9 a hard gate to 0-10.
-- **W2 watch item** (`docs/architecture.md` L1143) is the load-bearing pivot trigger; T6.1 must reference W2 by name.
-
-### Dependencies & version pinning
-
-- Tamagui Core is pinned at the **exact** RC tag `2.0.0-rc.41` for all five packages (`tamagui` umbrella, `@tamagui/core` runtime, `@tamagui/next-plugin` build-time, `@tamagui/config` v5 default themes, `@tamagui/next-theme` SSR theme switching). Verified at story-write time via `npm view tamagui dist-tags` → `latest: 2.0.0-rc.41`. RC builds are pinned exact (no caret) because semver ranges over pre-release identifiers behave inconsistently and a silent jump to `rc.42` could ship a new breaking change mid-spike.
-- The architecture's "Tamagui v2 compiler" reference (`docs/architecture.md` L283 etc.) is now **current**, not forward-looking — the v2 RC is the substrate this spike measures. Architecture wording predates the RC roll-out and remains accurate.
-- v2 brings breaking changes from v1 that this story already absorbs: `@tamagui/config/v3` → `@tamagui/config/v5` (animation driver split into `@tamagui/config/v5-css`), `<Stack>` → `<View>` (the layout primitive was renamed; `View` is the only flex container in v2), `animation=` → `transition=` (irrelevant here — no transitions used), `$2xl`/`$2xs` → `$xxl`/`$xxs` (irrelevant here — no responsive breakpoint props used), `themeInverse` → `theme="accent"` (irrelevant here). T6.1's decision doc references this v1→v2 migration list when discussing build-time delta.
-- `react-native-web@^0.19.13` is the peer Tamagui requires for the web target. Adding it does NOT pull React Native into the bundle — `react-native-web` is a stub layer Tamagui statically extracts to CSS at build time.
-- **Pre-flight RC verification.** Before T1.1 stages anything, the dev runs `npm view tamagui dist-tags` and `npm view @tamagui/next-plugin dist-tags`. If `latest` has rolled past `rc.41`, update all five Tamagui pins atomically to the new tag and note the exact RC measured in T6.1. If the `latest` tag has graduated to a stable `2.0.0` (no more `-rc` suffix), switch the pins to `^2.0.0` (caret restored — semver works again on stable releases) and note the graduation in T6.1.
-
-### Testing strategy
-
-- The contrast test uses `bun:test` (Bun's built-in runner), NOT Vitest. Reason: Vitest is not yet wired into `apps/web` (per `docs/project-context.md` § "Test framework"); installing it in this story would balloon scope and conflict with story 0-12's own Vitest wiring choices. `bun test` runs pure TS without ceremony and is sufficient for the AC-2 contract.
-- The visual smoke (T4.2) uses the existing `react-grab-mcp` instance loaded by `apps/web/src/app/layout.tsx` in dev mode. No new tooling.
-- The build-time delta in T6.1 is informational only — not a gate. Capturing it lets 0-10 plan against a known baseline.
-
-### Lessons applied
-
-| Lesson | Application in this story |
-| --- | --- |
-| **L9** (Next.js workspaces — `typescript` per-package) | T1.1 keeps `typescript: "^6.0.3"` declared explicitly in `apps/web/devDependencies`. Tamagui peer deps are added without disturbing this line. T1.2 runs `bun --cwd apps/web run typecheck` to confirm the workspace resolves its own TS. |
-| **L1** (Bun `--frozen-lockfile` workspace coverage) | Documented as non-applicable (Vercel handles `apps/web`, no Docker). Flagged in the lessons-enforced header so a future reviewer doesn't propose unnecessary Dockerfile changes. |
-| **L8** (Prisma 7 `defineConfig` env-load) | Non-applicable — no Prisma changes. The existing CI workflow `DATABASE_URL` stub remains; T1's `bun install` triggers the `apps/api/postinstall: prisma generate`, which the stub already covers. |
-| **L4 / L5** (oxlint quirks) | Non-applicable — no oxlint config changes in this story. Any new lint rules belong in 0-12. |
-| **L7** (`bun --cwd <relative> run <script>` silent fail) | Story originally drafted with `bun --cwd apps/web run …` for typecheck / build / dev. On dev pickup the form was substituted to `bun --filter=web …` (workspace-aware, exit codes propagate) and a `test:contrast` script was added to `apps/web/package.json` so the contrast test runs the same way (`bun --filter=web test:contrast`). Patch logged in Debug Log below. |
-
-### Pivot decision flow (cheat-sheet for T6.1)
-
-```
-AC-1 grep returns >1 match?         → Decision: pivot to A
-                |
-                v no
-AC-2 any pair < threshold?           → Decision: pivot to A
-                |
-                v no
-AC-3 grep returns any match?         → Decision: pivot to A
-                |
-                v no
-T6.2 final smoke fails?              → Decision: HALT (do not commit T6 yet)
-                |
-                v no
-                                     → Decision: green-light story 0-10
-```
-
----
+- `.gitignore` — add `apps/web/.tamagui/` cache directory
+- `apps/api/src/platform/observability/otel-sdk.ts` — gate OTel NodeSDK behind `OTEL_EXPORTER_OTLP_ENDPOINT` (L11 fix landed during this branch)
+- `apps/web/next.config.ts` — Turbopack-native Tamagui wiring (`transpilePackages`, `turbopack.resolveAlias`, `resolveExtensions`)
+- `apps/web/package.json` — pin Tamagui v2-rc.41 packages (`tamagui`, `@tamagui/core`, `@tamagui/config`, `@tamagui/next-theme`, `@tamagui/web`, `@tamagui/cli`), `react-native-web`, `@types/react-native`; add `test:contrast` + `fix:tamagui-css` scripts
+- `apps/web/public/tamagui.generated.css` — static CSS emitted by `@tamagui/cli` (post-process `sed` patches applied for two CLI emit-bugs)
+- `apps/web/src/app/(spike)/tamagui-spike/contrast.ts` — pure WCAG luminance/contrast helpers
+- `apps/web/src/app/(spike)/tamagui-spike/contrast.test.ts` — 16-pair matrix, WCAG 1.4.11 indicator class, per-mode override slot
+- `apps/web/src/app/(spike)/tamagui-spike/layout.tsx` — RSC layout mounting the provider
+- `apps/web/src/app/(spike)/tamagui-spike/page.tsx` — RSC sentinel page
+- `apps/web/src/app/(spike)/tamagui-spike/proto-slice.tsx` — HeroBlock proto-slice (palette discipline: 0 borders, single `$accent`)
+- `apps/web/src/app/(spike)/tamagui-spike/provider.tsx` — single `'use client'` boundary (`TamaguiProvider` + `NextThemeProvider`)
+- `apps/web/src/app/(spike)/tamagui-spike/tokens.ts` — Pekulo tokens ported from SSOT (TR-strict pure-black palette)
+- `apps/web/src/app/layout.tsx` — `import "../../public/tamagui.generated.css"` before providers
+- `apps/web/src/instrumentation.ts` — gate OTel on `NODE_ENV=development` only (L11 fix)
+- `apps/web/src/proxy.ts` — expose `/tamagui-spike` publicly through proxy middleware (W2 reviewer access)
+- `apps/web/tamagui.build.ts` — `outputCSS` config for `tamagui generate-css`
+- `apps/web/tamagui.config.ts` — v2 plain-object themes (no `createTheme` helper in v2-rc.41); `pekulo-light` dropped from `themes` (kept in `tokens.ts` for AC-2 contrast test only — CLI emit-bugs worsen with two custom-named themes)
+- `apps/web/tsconfig.json` — include `tamagui.config.ts` + `tamagui.build.ts` at the root
+- `bun.lock` — lockfile update for Tamagui pins
+- `docs/ci/README.md` — small note touched during the branch
+- `docs/dev/otel-collector-dev.yaml` — minor adjustments
+- `docs/lessons.md` — L11 added (OTel NodeSDK env gate)
+- `docs/spikes/0-9-contrast-report.json` — generated artefact, 16 rows all `pass: true` against the corrected thresholds
+- `docs/spikes/0-9-tamagui-decision.md` — the decision doc (verdict: pivot)
+- `docs/state.yaml` — story state advanced to `review`
+- `docs/stories/0-9-tamagui-spike.md` — this file
+- `docs/ux-preview/src/tokens/colors.ts` — SSOT iso (TR-strict palette aligned with `apps/web/src/app/(spike)/tamagui-spike/tokens.ts`)
+- `skills-lock.json` — locked the 3 Tamagui-related skills installed during W2 finding 6
+- `.agents/skills/tamagui/**` + `.claude/skills/tamagui` — installed Tamagui skills to support finding 6 doc walk-through
 
 ## Dev Agent Record
 
@@ -1040,40 +1083,6 @@ Story 0-10 (`@pekulo/ui` Tamagui DS migration) inherits the spike route as a val
 - `bun --filter=web run typecheck` → exit 0
 - `bun --filter=web run test:contrast` → `16 pass / 0 fail / 16 expect() calls / Ran 16 tests across 1 file. [55.00ms] / Exited with code 0`
 - `bun run build` (root, `dotenv -c -e .env -e .env.local -- turbo run build --filter=web`) → exit 0; `/tamagui-spike` prerendered as static content alongside 11 other routes; 1 task successful; 6.61s wall time.
-
-### File List
-
-Modified or created on `feature/9-0-9-tamagui-spike` (vs `main`):
-
-- `.gitignore` — add `apps/web/.tamagui/` cache directory
-- `apps/api/src/platform/observability/otel-sdk.ts` — gate OTel NodeSDK behind `OTEL_EXPORTER_OTLP_ENDPOINT` (L11 fix landed during this branch)
-- `apps/web/next.config.ts` — Turbopack-native Tamagui wiring (`transpilePackages`, `turbopack.resolveAlias`, `resolveExtensions`)
-- `apps/web/package.json` — pin Tamagui v2-rc.41 packages (`tamagui`, `@tamagui/core`, `@tamagui/config`, `@tamagui/next-theme`, `@tamagui/web`, `@tamagui/cli`), `react-native-web`, `@types/react-native`; add `test:contrast` + `fix:tamagui-css` scripts
-- `apps/web/public/tamagui.generated.css` — static CSS emitted by `@tamagui/cli` (post-process `sed` patches applied for two CLI emit-bugs)
-- `apps/web/src/app/(spike)/tamagui-spike/contrast.ts` — pure WCAG luminance/contrast helpers
-- `apps/web/src/app/(spike)/tamagui-spike/contrast.test.ts` — 16-pair matrix, WCAG 1.4.11 indicator class, per-mode override slot
-- `apps/web/src/app/(spike)/tamagui-spike/layout.tsx` — RSC layout mounting the provider
-- `apps/web/src/app/(spike)/tamagui-spike/page.tsx` — RSC sentinel page
-- `apps/web/src/app/(spike)/tamagui-spike/proto-slice.tsx` — HeroBlock proto-slice (palette discipline: 0 borders, single `$accent`)
-- `apps/web/src/app/(spike)/tamagui-spike/provider.tsx` — single `'use client'` boundary (`TamaguiProvider` + `NextThemeProvider`)
-- `apps/web/src/app/(spike)/tamagui-spike/tokens.ts` — Pekulo tokens ported from SSOT (TR-strict pure-black palette)
-- `apps/web/src/app/layout.tsx` — `import "../../public/tamagui.generated.css"` before providers
-- `apps/web/src/instrumentation.ts` — gate OTel on `NODE_ENV=development` only (L11 fix)
-- `apps/web/src/proxy.ts` — expose `/tamagui-spike` publicly through proxy middleware (W2 reviewer access)
-- `apps/web/tamagui.build.ts` — `outputCSS` config for `tamagui generate-css`
-- `apps/web/tamagui.config.ts` — v2 plain-object themes (no `createTheme` helper in v2-rc.41); `pekulo-light` dropped from `themes` (kept in `tokens.ts` for AC-2 contrast test only — CLI emit-bugs worsen with two custom-named themes)
-- `apps/web/tsconfig.json` — include `tamagui.config.ts` + `tamagui.build.ts` at the root
-- `bun.lock` — lockfile update for Tamagui pins
-- `docs/ci/README.md` — small note touched during the branch
-- `docs/dev/otel-collector-dev.yaml` — minor adjustments
-- `docs/lessons.md` — L11 added (OTel NodeSDK env gate)
-- `docs/spikes/0-9-contrast-report.json` — generated artefact, 16 rows all `pass: true` against the corrected thresholds
-- `docs/spikes/0-9-tamagui-decision.md` — the decision doc (verdict: pivot)
-- `docs/state.yaml` — story state advanced to `review`
-- `docs/stories/0-9-tamagui-spike.md` — this file
-- `docs/ux-preview/src/tokens/colors.ts` — SSOT iso (TR-strict palette aligned with `apps/web/src/app/(spike)/tamagui-spike/tokens.ts`)
-- `skills-lock.json` — locked the 3 Tamagui-related skills installed during W2 finding 6
-- `.agents/skills/tamagui/**` + `.claude/skills/tamagui` — installed Tamagui skills to support finding 6 doc walk-through
 
 ### Deviations from original story plan
 

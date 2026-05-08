@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 
 # APED Receive Review — Receiving Code Review Feedback
 
@@ -196,7 +198,7 @@ State the correction factually and move on.
 
 ### From aped-review (the APED specialist team)
 
-Treat as authoritative for the artefact under review (Eva, Marcus, Rex, Diego, Lucas, Aria, Kai, Sam ran with full context loaded). Still apply the 6-step pattern — verify each finding against the code before implementing — but the EVALUATE step usually short-circuits to "yes, this is correct for this codebase" because the specialists know it.
+Treat as authoritative for the artefact under review (Spec, Code, and Edge & hallucination auditors ran with full context loaded — plus Aria for visual on frontend stories). Still apply the 6-step pattern — verify each finding against the code before implementing — but the EVALUATE step usually short-circuits to "yes, this is correct for this codebase" because the auditors know it.
 
 ### From an external reviewer (PR comment, Slack, email)
 
@@ -241,6 +243,8 @@ Before sending your response back to the reviewer (or back into `aped-dev` for r
 ## GitHub thread replies
 
 When replying to inline review comments on GitHub, reply **in the comment thread** (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment. The reviewer will see top-level comments late or not at all.
+
+> **Writing discipline.** Read `.aped/aped-skills/writing-discipline.md` before posting thread replies or commit messages for the fixes. Reply: state the decision (acted / verified / pushed back) + one short sentence — no "you're absolutely right" preamble, no re-summary of the reviewer's point. Commits: same rules as everywhere else (subject ≤ 70 chars, body only when WHY is non-obvious).
 
 ## Common Mistakes
 

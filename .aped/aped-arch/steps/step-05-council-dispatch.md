@@ -79,7 +79,7 @@ After validation, append a new `### {Decision name}` subsection of `## Phase 2b 
 - Final pick + rationale.
 - Minority view (kept as future-pivot signal).
 
-**Also write an ADR** at `docs/adr/000N-{slug}.md` using `.aped/templates/adr.md` — every Council-dispatched decision passes Pocock's 3 criteria by definition (Council is reserved for hard-to-reverse, surprising, trade-off-laden choices). The ADR captures the verdict in a stable artefact independent of `architecture.md`'s rolling structure.
+**Also write an ADR** at `docs/adr/000N-{slug}.md` using `.aped/templates/adr.md` — every Council-dispatched decision passes the three ADR criteria by definition (Council is reserved for hard-to-reverse, surprising, trade-off-laden choices). The ADR captures the verdict in a stable artefact independent of `architecture.md`'s rolling structure.
 
 Bump `last_updated`. Do **NOT** advance `current_subphase` until *all* major decisions have been dispatched; only then push `council-dispatches` to `completed_subphases` and advance to `implementation-patterns`. Mirror in `state.yaml`.
 

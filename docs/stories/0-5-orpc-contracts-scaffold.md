@@ -29,9 +29,9 @@
 
 - **AC-4 (oRPC mount returns structured 404 for any unknown procedure):** **Given** `apps/api/src/platform/http/orpc-mount.ts` builds an `RPCHandler` from `@orpc/server/fetch` keyed on the empty `pekuloRouter` and `apps/api/src/app.ts` calls `mountOrpc(app)` after `.use(healthModule.router)`, **When** I run `bun --cwd apps/api run dev` (boot in background) and `curl -sS -o /tmp/orpc-smoke.json -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{}' http://127.0.0.1:3001/rpc/v1/compass/noop`, **Then** the HTTP status is `404`, the body is JSON parseable as `{ "error": { "code": "NOT_FOUND", "message": <string>, "requestId": <uuid-string> } }` (UUID v4 today via `crypto.randomUUID()`; v7 once the project helper lands in a follow-up story), and the same curl against `/rpc/v1/auth/noop`, `/rpc/v1/llm/noop`, `/rpc/v1/holdings/noop` all return 404 with the same shape — proving the mount is keyed on `/rpc/v1/*` and dispatches uniformly across the 12 sub-trees (no hard-coded module list at mount time).
 
-> **AC-4 dev preconditions reminder.** No procedures are defined yet on the empty `pekuloRouter`, so every call is expected to 404. The smoke is verifying the **wiring**, not any behaviour. The error-mapper from AC-3 is what shapes the 404 body — `RPCHandler` returns `matched: false`, the Elysia route falls through to the global `.onError(...)` which returns `mapErrorToOrpcResponse(new PekuloError("NOT_FOUND", ...)).body`. Stop the dev server with `kill %1` after the smoke.
+## Tasks
 
----
+- See Dev Notes § Implementation history for the full task breakdown.
 
 ## Dev Notes
 
@@ -290,7 +290,15 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 
 ---
 
-## Tasks
+### AC notes
+
+_Migrated from non-Gherkin lines under the pre-6.3.0 Acceptance Criteria section._
+
+> **AC-4 dev preconditions reminder.** No procedures are defined yet on the empty `pekuloRouter`, so every call is expected to 404. The smoke is verifying the **wiring**, not any behaviour. The error-mapper from AC-3 is what shapes the 404 body — `RPCHandler` returns `matched: false`, the Elysia route falls through to the global `.onError(...)` which returns `mapErrorToOrpcResponse(new PekuloError("NOT_FOUND", ...)).body`. Stop the dev server with `kill %1` after the smoke.
+
+### Implementation history
+
+_Preserved verbatim from the pre-6.3.0 Tasks section._
 
 > Each task is sized for ~2-5 minutes of dev time. Tasks reference the AC they satisfy. The dev agent runs `git status` between tasks to confirm only the expected files changed.
 
@@ -1178,77 +1186,6 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 
 ## File List
 
-### Created
-- `packages/contracts/src/auth.contract.ts`
-- `packages/contracts/src/compass.contract.ts`
-- `packages/contracts/src/milestones.contract.ts`
-- `packages/contracts/src/accounts.contract.ts`
-- `packages/contracts/src/holdings.contract.ts`
-- `packages/contracts/src/realestate.contract.ts`
-- `packages/contracts/src/transactions.contract.ts`
-- `packages/contracts/src/monthly.contract.ts`
-- `packages/contracts/src/dashboard.contract.ts`
-- `packages/contracts/src/settings.contract.ts`
-- `packages/contracts/src/hypothesis.contract.ts`
-- `packages/contracts/src/llm.contract.ts`
-- `packages/contracts/src/__tests__/version-coexistence.fixture.ts`
-- `packages/contracts/VERSIONING.md`
-- `apps/api/src/common/errors/pekulo-error.ts`
-- `apps/api/src/common/errors/index.ts`
-- `apps/api/src/platform/http/error-mapper.ts`
-- `apps/api/src/platform/http/error-mapper.test.ts`
-- `apps/api/src/platform/http/orpc-mount.ts`
-- `apps/web/src/lib/orpc/client.ts`
-- `apps/web/src/lib/orpc/modules.ts`
-- `apps/web/src/lib/orpc/types.ts`
-
-### Modified
-- `packages/contracts/package.json` (Task 1 — add `@orpc/contract`, refresh description)
-- `packages/contracts/src/index.ts` (Task 3 — replace placeholder with aggregate barrel)
-- `apps/api/package.json` (Task 6 — add `@pekulo/contracts` + `@orpc/server`)
-- `apps/api/src/app.ts` (Task 10 — replace inline onError, call mountOrpc, drop the deferred-work comment)
-- `apps/web/package.json` (Task 12 — add `@pekulo/contracts` + `@orpc/client` + `@orpc/contract`)
-- `.env.example` (Task 14 — add `API_BASE_URL`)
-- `bun.lock` (transitive, written by `bun install` in Tasks 1, 6, 12)
-
----
-
-## Dev Agent Record
-
-- **Model:** claude-opus-4-7 (1M context)
-- **Started:** 2026-05-04T16:00:00Z
-- **Completed:** 2026-05-04T17:30:00Z
-
-### Debug Log
-
-- **Task 9 — orpc-mount.ts spec drift on `Record<string, unknown>` router type.** The story instructed `const pekuloRouter: Record<string, unknown> = {}` then `new RPCHandler(pekuloRouter)`. `@orpc/server@1.14.1`'s `RPCHandler` constructor expects `Procedure | { [x: string]: Lazyable<Procedure> }` and rejects `Record<string, unknown>` (TS2345 — `'~orpc'` missing). Fix: pass `{}` directly via `new RPCHandler({})` with a comment that feature stories REPLACE the file rather than extend the literal at runtime, so the empty-object narrowing is safe.
-- **Task 10 — L2 grep guard tripped by the L2 reminder comment itself.** Story Task 10's verbatim comment `// L2 — let Elysia infer the chained type. Do NOT annotate \`const app: Elysia = ...\`` contains the literal substring `: Elysia` and trips the same `grep -nE ': Elysia\b'` gate the comment is documenting. Reworded the comment to drop the substring while preserving the L2 reminder. The Task 15 final guard now returns zero matches.
-- **Task 11 — AC-3 ↔ AC-4 contradiction on requestId.** The error-mapper spec'd in Task 8 omits `requestId` for `PekuloError` (test 1 explicitly asserts `requestId.toBeUndefined()` for UNAUTHORIZED). AC-4 expects the mountOrpc 404 body — produced by throwing `PekuloError("NOT_FOUND", ...)` — to include `requestId: <uuid>`. Surfaced to Alex (option B chosen): every mapped response now carries `crypto.randomUUID()` so logs and the wire body share a stable correlation handle regardless of error class. AC-3 tests for PekuloError flipped from `toBeUndefined()` to `toMatch(UUID_REGEX)`. Smoke confirmed 4 distinct uuids in the 4 module curls.
-- **Task 5 — `Contract,` count drift.** Story expected `36` matches for `Contract,` in index.ts (12 modules × 3 symbols). Actual: `24` (12 export lines × 1 + 12 aggregator lines × 1). Per export line `{ authContract, authContractV1, authContractMeta }` only the FIRST symbol literally ends with `Contract,` — the second is `ContractV1,` (different substring) and the third has `}` after it. Implementation invariant (12 × 3 symbols re-exported + aggregator) is intact; the story arithmetic was off.
-- **Task 11 — `bun --cwd <path> run <script>` silently broken (L1 watch item).** Confirmed — `bun --cwd apps/api run dev` printed bun's help instead of running the script. Switched to `(cd apps/api && bun run dev)` per Epic-0 watch-item guidance. Also had to inline `DATABASE_URL=...` because `apps/api`'s `bun --hot src/main.ts` doesn't load root `.env.local` (project convention is `dotenv -c -e .env -e .env.local --` at the root, but the story's verbatim smoke command bypasses that wrapper).
-- **Task 15 — pre-existing format drift surfaced.** `bun run format:check` flagged 11 files (mostly markdown table padding + `apps/*` → `apps/\*` markdown escapes + apps/api/package.json key reorder). Drift predates 0-5 — story 0-2 introduced oxfmt but per-PR enforcement only kicks in 0-8/0-11. Captured as `chore(#5): apply oxfmt across repo to clear brownfield drift` so Task 15 gate passes; no semantic changes.
-
-### Completion Notes
-
-- **AC-1 (12 typed clients in apps/web):** `bun --cwd apps/web run typecheck` exit 0 ; `grep -nE ': any\b' apps/web/src/lib/orpc/*.ts` empty ; `modules.ts` exports the exact 12 module clients listed in `pekuloContract` (auth, compass, milestones, accounts, holdings, realestate, transactions, monthly, dashboard, settings, hypothesis, llm).
-- **AC-2 (sub-tree versioning):** `bun --cwd packages/contracts run typecheck` exit 0 ; `packages/contracts/src/__tests__/version-coexistence.fixture.ts` runs 3 `satisfies` assertions ((i) default ≡ V1, (ii) V2 lives alongside, (iii) named V1 import resolves) ; `VERSIONING.md` documents the bump procedure.
-- **AC-3 (PekuloError + error-mapper):** `bun --cwd apps/api test src/platform/http/error-mapper.test.ts` reports `4 pass, 0 fail, 16 expect() calls` covering all four branches (UNAUTHORIZED 401, NOT_FOUND 404, native Error 500, non-Error 500) with requestId now uniformly attached per Alex's option-B decision.
-- **AC-4 (oRPC mount returns structured 404):** Smoke captured during Task 11 — 4 modules (compass, auth, llm, holdings) all return `status=404` with `{ error: { code: "NOT_FOUND", message: "no oRPC procedure matched /rpc/v1/<m>/noop", requestId: <distinct-uuid> } }`. Mount is keyed on `/rpc/v1/*` and dispatches uniformly across the 12 sub-trees.
-- **L2 (Elysia type invariance):** Final guard `grep -RnE ': Elysia\b' apps/api/src --include='*.ts' | grep -v 'AnyElysia'` returns zero matches.
-- **Closing the `app.ts:16` deferred-work marker:** Removed; `apps/api/src/app.ts` now calls `mapErrorToOrpcResponse(error)` in `.onError(...)` and `mountOrpc(app)` after `.use(healthModule.router)`. The chained `app` keeps its inferred type (no bare `Elysia` annotation).
-- **Captured test output (step 07 verification):**
-  ```
-  $ bun test src/platform/http/error-mapper.test.ts
-  bun test v1.3.13 (bf2e2cec)
-   4 pass
-   0 fail
-   16 expect() calls
-  Ran 4 tests across 1 file. [8.00ms]
-  ```
-- **Cross-workspace gates:** all green — `bun run lint` exit 0 (14 warnings, 0 errors, pre-existing), `bun run format:check` exit 0, three `tsc --noEmit` exit 0, L2 guard zero matches.
-
-### File List
-
 **Created**
 - `packages/contracts/src/auth.contract.ts`
 - `packages/contracts/src/compass.contract.ts`
@@ -1285,6 +1222,40 @@ The brownfield project ships no test framework (per `docs/project-context.md`). 
 - `apps/api/README.md`, `apps/api/src/bootstrap/runtime-dependencies.ts`, `apps/api/src/database/index.ts`, `apps/api/src/database/prefixed-ids.extension.ts`, `apps/api/src/database/prefixed-ids.extension.test.ts`, `docs/epic-0-context.md`, `docs/lessons.md` (Task 15 — oxfmt cleanup, brownfield drift, no semantic changes)
 
 ---
+
+## Dev Agent Record
+
+- **Model:** claude-opus-4-7 (1M context)
+- **Started:** 2026-05-04T16:00:00Z
+- **Completed:** 2026-05-04T17:30:00Z
+
+### Debug Log
+
+- **Task 9 — orpc-mount.ts spec drift on `Record<string, unknown>` router type.** The story instructed `const pekuloRouter: Record<string, unknown> = {}` then `new RPCHandler(pekuloRouter)`. `@orpc/server@1.14.1`'s `RPCHandler` constructor expects `Procedure | { [x: string]: Lazyable<Procedure> }` and rejects `Record<string, unknown>` (TS2345 — `'~orpc'` missing). Fix: pass `{}` directly via `new RPCHandler({})` with a comment that feature stories REPLACE the file rather than extend the literal at runtime, so the empty-object narrowing is safe.
+- **Task 10 — L2 grep guard tripped by the L2 reminder comment itself.** Story Task 10's verbatim comment `// L2 — let Elysia infer the chained type. Do NOT annotate \`const app: Elysia = ...\`` contains the literal substring `: Elysia` and trips the same `grep -nE ': Elysia\b'` gate the comment is documenting. Reworded the comment to drop the substring while preserving the L2 reminder. The Task 15 final guard now returns zero matches.
+- **Task 11 — AC-3 ↔ AC-4 contradiction on requestId.** The error-mapper spec'd in Task 8 omits `requestId` for `PekuloError` (test 1 explicitly asserts `requestId.toBeUndefined()` for UNAUTHORIZED). AC-4 expects the mountOrpc 404 body — produced by throwing `PekuloError("NOT_FOUND", ...)` — to include `requestId: <uuid>`. Surfaced to Alex (option B chosen): every mapped response now carries `crypto.randomUUID()` so logs and the wire body share a stable correlation handle regardless of error class. AC-3 tests for PekuloError flipped from `toBeUndefined()` to `toMatch(UUID_REGEX)`. Smoke confirmed 4 distinct uuids in the 4 module curls.
+- **Task 5 — `Contract,` count drift.** Story expected `36` matches for `Contract,` in index.ts (12 modules × 3 symbols). Actual: `24` (12 export lines × 1 + 12 aggregator lines × 1). Per export line `{ authContract, authContractV1, authContractMeta }` only the FIRST symbol literally ends with `Contract,` — the second is `ContractV1,` (different substring) and the third has `}` after it. Implementation invariant (12 × 3 symbols re-exported + aggregator) is intact; the story arithmetic was off.
+- **Task 11 — `bun --cwd <path> run <script>` silently broken (L1 watch item).** Confirmed — `bun --cwd apps/api run dev` printed bun's help instead of running the script. Switched to `(cd apps/api && bun run dev)` per Epic-0 watch-item guidance. Also had to inline `DATABASE_URL=...` because `apps/api`'s `bun --hot src/main.ts` doesn't load root `.env.local` (project convention is `dotenv -c -e .env -e .env.local --` at the root, but the story's verbatim smoke command bypasses that wrapper).
+- **Task 15 — pre-existing format drift surfaced.** `bun run format:check` flagged 11 files (mostly markdown table padding + `apps/*` → `apps/\*` markdown escapes + apps/api/package.json key reorder). Drift predates 0-5 — story 0-2 introduced oxfmt but per-PR enforcement only kicks in 0-8/0-11. Captured as `chore(#5): apply oxfmt across repo to clear brownfield drift` so Task 15 gate passes; no semantic changes.
+
+### Completion Notes
+
+- **AC-1 (12 typed clients in apps/web):** `bun --cwd apps/web run typecheck` exit 0 ; `grep -nE ': any\b' apps/web/src/lib/orpc/*.ts` empty ; `modules.ts` exports the exact 12 module clients listed in `pekuloContract` (auth, compass, milestones, accounts, holdings, realestate, transactions, monthly, dashboard, settings, hypothesis, llm).
+- **AC-2 (sub-tree versioning):** `bun --cwd packages/contracts run typecheck` exit 0 ; `packages/contracts/src/__tests__/version-coexistence.fixture.ts` runs 3 `satisfies` assertions ((i) default ≡ V1, (ii) V2 lives alongside, (iii) named V1 import resolves) ; `VERSIONING.md` documents the bump procedure.
+- **AC-3 (PekuloError + error-mapper):** `bun --cwd apps/api test src/platform/http/error-mapper.test.ts` reports `4 pass, 0 fail, 16 expect() calls` covering all four branches (UNAUTHORIZED 401, NOT_FOUND 404, native Error 500, non-Error 500) with requestId now uniformly attached per Alex's option-B decision.
+- **AC-4 (oRPC mount returns structured 404):** Smoke captured during Task 11 — 4 modules (compass, auth, llm, holdings) all return `status=404` with `{ error: { code: "NOT_FOUND", message: "no oRPC procedure matched /rpc/v1/<m>/noop", requestId: <distinct-uuid> } }`. Mount is keyed on `/rpc/v1/*` and dispatches uniformly across the 12 sub-trees.
+- **L2 (Elysia type invariance):** Final guard `grep -RnE ': Elysia\b' apps/api/src --include='*.ts' | grep -v 'AnyElysia'` returns zero matches.
+- **Closing the `app.ts:16` deferred-work marker:** Removed; `apps/api/src/app.ts` now calls `mapErrorToOrpcResponse(error)` in `.onError(...)` and `mountOrpc(app)` after `.use(healthModule.router)`. The chained `app` keeps its inferred type (no bare `Elysia` annotation).
+- **Captured test output (step 07 verification):**
+  ```
+  $ bun test src/platform/http/error-mapper.test.ts
+  bun test v1.3.13 (bf2e2cec)
+   4 pass
+   0 fail
+   16 expect() calls
+  Ran 4 tests across 1 file. [8.00ms]
+  ```
+- **Cross-workspace gates:** all green — `bun run lint` exit 0 (14 warnings, 0 errors, pre-existing), `bun run format:check` exit 0, three `tsc --noEmit` exit 0, L2 guard zero matches.
 
 ## Review Record
 

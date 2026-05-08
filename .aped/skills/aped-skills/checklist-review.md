@@ -1,13 +1,11 @@
 # aped-review — Completion Gate
 
 - [ ] **Fresh context** (not same session as implementation — if same, /clear first)
-- [ ] **Stage 1 (Eva)** completed — AC validation verdict rendered as a synchronous gate
-- [ ] **NACK handled** — Eva NACK led to [F]ix or [O]verride with non-empty reason (override path only)
-- [ ] **Stage 1.5** dispatched in parallel (if review.parallel_reviewers = true in config) — Hannah/Eli/Aaron
-- [ ] **Stage 2** dispatched in a single Agent message — Marcus/Rex + conditionals
-- [ ] **Marcus 5-anti-pattern audit** included in his prompt and findings reflect it
-- [ ] **Rex git-audit** ran via the script (not paraphrased)
-- [ ] **Minimum 3 findings** — re-dispatch a specialist if fewer
+- [ ] **3 auditors dispatched in parallel** — Spec, Code (file-surface aware), Edge & hallucination
+- [ ] **Aria dispatched** when frontend + preview app present (visual review via React Grab MCP)
+- [ ] **5 testing anti-patterns** included in Code auditor's prompt and findings reflect it
+- [ ] **git-audit.sh ran inline** by the Lead (not paraphrased)
+- [ ] **Spec NACK handled** — [F]ix or [O]verride with non-empty reason (override path only)
 - [ ] **Every finding has evidence** — file:line + Evidence + Suggested fix + Source
 - [ ] **Verification re-run captured in this message** (test runner output / diff+output / screenshot)
 - [ ] **No forbidden phrases alone** — "should work" / "looks good" / "probably fine" never present without evidence
@@ -17,4 +15,5 @@
 - [ ] **Review Record appended to the story file** at {{OUTPUT_DIR}}/stories/{story-key}.md
 - [ ] **NO separate review file created** anywhere — the story file is the single canonical home
 - [ ] **state.yaml updated** to match the verdict (story → done OR stays review)
+- [ ] **epic-{N}-context.md updated** with the strict Decisions/Files/Contracts/Deviations entry (only if story → done)
 - [ ] **review-done check-in posted** (worktree/parallel-sprint mode + story → done)

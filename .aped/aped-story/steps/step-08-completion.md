@@ -22,7 +22,7 @@ mutates_state: false
 
 ## YOUR TASK
 
-Walk the completion-gate checklist file. The checklist is the anti-rationalization gate (BMAD pattern, Anthropic context-engineering): every gate criterion is re-injected into context at the moment attention is lowest — right before declaring DONE.
+Walk the completion-gate checklist file. The checklist is the anti-rationalization gate: every gate criterion is re-injected into context at the moment attention is lowest — right before declaring DONE.
 
 ## SEQUENCE
 

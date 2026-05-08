@@ -1,3 +1,5 @@
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
+
 
 # APED Lead — Parallel-Sprint Coordinator
 
@@ -150,43 +152,71 @@ For each approved check-in:
 2. Determine the follow-up action per kind:
    - `story-ready` → push `aped-dev {story-key}` to the Story Leader's worktree.
    - `dev-done`    → push `aped-review {story-key}` to the Story Leader's worktree.
-   - `review-done` → **merge the story PR into the sprint umbrella (au-fil-de-l'eau)**, then teardown the worktree. Sequence:
+   - `review-done` → **merge the story PR into the sprint umbrella (au-fil-de-l'eau)**, then teardown the worktree. The order is **load-bearing** — earlier versions flipped `done` before merging and left state inconsistent on merge failure. Current sequence:
 
-     a. Read the umbrella branch and worktree path BEFORE flipping (`mark-story-done` deletes `worktree` as part of the runtime-fields trim, so capture it first):
+     a. Capture the umbrella branch, worktree path, and PR number BEFORE any mutation:
 
         ```bash
         UMBRELLA=$(yq '.sprint.umbrella_branch' docs/state.yaml)
         WORKTREE=$(yq ".sprint.stories.\\"{key}\\".worktree" docs/state.yaml)
+        PR_NUMBER=$(cd "$WORKTREE" && gh pr view --json number -q .number 2>/dev/null || echo "")
+        if [[ -z "$PR_NUMBER" ]]; then
+          # ESCALATE: aped-review must have opened the PR before review-done
+          # can merge it. Tell the user to re-run aped-review or open
+          # manually, then retry aped-lead. State stays at review.
+          echo "ERROR: no PR found for story branch in $WORKTREE"
+          continue
+        fi
         ```
 
-     b. Flip the story to `done` atomically. `mark-story-done` (4.1.0) sets `status: done`, sets `completed_at` (ISO UTC), and deletes the runtime fields (`worktree`, `started_at`, `dispatched_at`, `ticket_sync_status`) in a single atomic write. Permanent fields (`ticket`, `depends_on`, custom user fields) are preserved.
+        If `$WORKTREE` is empty/null, fall back to the captured worktree path the dispatch step recorded — but the runtime field is the source of truth here. A blank worktree with `status: review` means aped-sprint never recorded the dispatch; that is its own escalation.
+
+     b. **Trigger the merge and wait for actual completion.** `gh pr merge --auto` returns success after *enqueueing* the merge — not after the merge happens — so a fire-and-forget call followed by teardown can destroy the worktree while the merge is still pending review/checks. Use the explicit `--squash` (no `--auto`) and poll until the PR state is `MERGED` or the configured timeout elapses (default `120s`, configurable via `sprint.merge_poll_timeout_seconds` in `config.yaml`).
 
         ```bash
-        bash .aped/scripts/sync-state.sh <<< "mark-story-done {key}"
-        ```
-
-     c. Merge the story PR into the umbrella branch. `aped-review` already opened the PR with `--base $UMBRELLA`; here you trigger the merge.
-
-        ```bash
-        # github — merge with squash or merge commit per project convention
-        gh pr merge --auto --squash $(cd "$WORKTREE" && gh pr view --json number -q .number)
+        # github
+        gh pr merge "$PR_NUMBER" --squash --delete-branch=false
         # gitlab equivalent
-        # glab mr merge ...
+        # glab mr merge "$PR_NUMBER" --squash
+
+        TIMEOUT=$(yq '.sprint.merge_poll_timeout_seconds // 120' .aped/config.yaml 2>/dev/null || echo 120)
+        END=$(( $(date +%s) + TIMEOUT ))
+        STATE=""
+        while (( $(date +%s) < END )); do
+          STATE=$(cd "$WORKTREE" && gh pr view "$PR_NUMBER" --json state -q .state 2>/dev/null || echo "UNKNOWN")
+          [[ "$STATE" == "MERGED" ]] && break
+          if [[ "$STATE" == "CLOSED" ]]; then
+            echo "ERROR: PR $PR_NUMBER closed without merging."
+            break
+          fi
+          sleep 3
+        done
+        if [[ "$STATE" != "MERGED" ]]; then
+          # ESCALATE: do NOT proceed to steps c–e. Surface PR URL.
+          echo "ESCALATE: PR $PR_NUMBER did not reach MERGED within ${TIMEOUT}s (last state: $STATE)."
+          continue
+        fi
         ```
 
-        On merge failure (conflicts, branch protection, missing approval): do NOT proceed to teardown. Surface to the user with the exact PR URL. Treat as ESCALATE: the user resolves on the PR side, then re-runs `aped-lead`.
+        On merge failure or timeout: state.yaml stays at `status: review`, the worktree stays on disk (recovery surface), and the user reconciles on the PR side before re-running `aped-lead`.
 
-     d. Teardown the worktree (the merge succeeded → local copy is no longer needed). Prefer `workmux merge` if available (it cleans up worktree + window + branch in one); else `bash .aped/scripts/worktree-cleanup.sh "$WORKTREE" --delete-branch`. Both are safe-by-default since aped-review left a clean tree.
-
-     e. Record the umbrella merge as a permanent state fact:
+     c. **Only after the merge is confirmed `MERGED`**, record `merged_into_umbrella: true`. Doing this before the merge confirmation would lie to `aped-ship`'s integration check.
 
         ```bash
         bash .aped/scripts/sync-state.sh <<< "set-story-field {key} merged_into_umbrella true"
         ```
 
+     d. Flip the story to `done`. `mark-story-done` (4.1.0) sets `status: done`, sets `completed_at` (ISO UTC), and deletes the runtime fields (`worktree`, `started_at`, `dispatched_at`, `ticket_sync_status`) in a single atomic write. Permanent fields (`ticket`, `depends_on`, `merged_into_umbrella` from step c, custom user fields) are preserved by the blocklist.
+
+        ```bash
+        bash .aped/scripts/sync-state.sh <<< "mark-story-done {key}"
+        ```
+
+     e. Teardown the worktree (the merge is confirmed → local copy is no longer needed). Prefer `workmux merge` if available (it cleans up worktree + window + branch in one); else `bash .aped/scripts/worktree-cleanup.sh "$WORKTREE" --delete-branch`. Both are safe-by-default since aped-review left a clean tree.
+
      f. **Do NOT push `aped-ship` automatically** — even when the last story merges. The user runs `aped-ship` to open the umbrella → base PR with the composite review.
 
-     **Why au-fil-de-l'eau and not batch:** the umbrella is the single integration point. Merging stories into it as they're approved keeps the umbrella always-deployable to a preview environment, gives the team continuous review feedback at the umbrella level, and means `aped-ship` has nothing to do beyond the final composite + PR. Batching merges defers conflict pain to ship time.
+     **Why this exact order:** the previous sequence (mark-done → merge --auto → set-merged) created two inconsistency windows: (1) `--auto` returned success while the merge was still pending checks/review, and (2) on merge failure the story already had `status: done` and a deleted `worktree` field, lying to dashboards and `aped-ship`. Reordering to *capture → merge+poll → set-merged → mark-done → teardown* keeps every observable invariant true at every step: `status: done` always implies `merged_into_umbrella: true`, and the worktree field only disappears from state after disk teardown, not before. **Why au-fil-de-l'eau and not batch:** the umbrella is the single integration point. Merging stories into it as they're approved keeps the umbrella always-deployable to a preview environment, gives the team continuous review feedback at the umbrella level, and means `aped-ship` has nothing to do beyond the final composite + PR. Batching merges defers conflict pain to ship time.
 3. **Clear context before pushing** (story-ready and dev-done only — review-done has no push). Each APED phase should start with a fresh conversation to avoid cross-phase hallucinations (e.g., aped-dev relitigating scope decisions from aped-story, or aped-review being anchored by aped-dev's rationale). Send `/clear` first, then the follow-up command as a separate message — workmux's send API sends sequentially, and `/clear` is a Claude Code built-in that resets the session context while keeping it alive. Preferring workmux when available:
    ```bash
    HANDLE="{basename-or-workmux-list-lookup}"

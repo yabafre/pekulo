@@ -9,8 +9,10 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.0.0
+  version: 6.3.3
 ---
+
+**Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Checkpoint — Human-in-the-Loop Review
 
@@ -33,13 +35,13 @@ Analyze what has changed since the last checkpoint (or since session start):
 3. **State changes**: Read `docs/state.yaml` — what phase/story moved? **If state.yaml is absent** (greenfield mid-flight), report "no state.yaml — pre-pipeline checkpoint" and continue with git-only inputs; do not invent a phase.
 4. **New artifacts**: Check for new files in `docs/` (specs, stories, reports)
 
-## Step 1a: Token visibility (Pocock XS, 5.3.0)
+## Step 1a: Token visibility (5.3.0)
 
 Before summarising, note the session's approximate token usage. If the session has consumed >50% of the context window (visible via the model's self-reported usage or the CC status bar), flag it to the user: "Session at ~N% context — consider `/clear` + fresh invocation if the next phase is heavy." This is advisory, not a gate.
 
 ## Step 1b: Drift triggers — read your own last 5 turns
 
-Before summarising, scan the recent assistant turns above this invocation for **any** of these drift triggers. Each one is a halt-and-re-anchor signal, not an "interesting observation". Pocock's discipline (workshop L1180-1198, L1338-1347): correction happens inline, not by clearing — quote the trigger, name what should have happened, ask the user to confirm before continuing.
+Before summarising, scan the recent assistant turns above this invocation for **any** of these drift triggers. Each one is a halt-and-re-anchor signal, not an "interesting observation". Discipline: correction happens inline, not by clearing — quote the trigger, name what should have happened, ask the user to confirm before continuing.
 
 | Trigger | What it looks like | Re-anchor to |
 |---|---|---|
