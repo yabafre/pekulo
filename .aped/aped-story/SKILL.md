@@ -9,7 +9,7 @@ argument-hint: "[story-key]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.3.2
+  version: 6.3.3
 ---
 
 Follow the instructions in `.aped/aped-story/workflow.md`.

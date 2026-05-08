@@ -5,7 +5,7 @@ communication_language: french
 document_output_language: english
 aped_path: .aped
 output_path: docs
-aped_version: 6.3.2
+aped_version: 6.3.3
 
 # Integrations
 ticket_system: github-issues
@@ -83,15 +83,24 @@ from_ticket:
 placeholder_lint:
   enabled: true
 
-# APED runtime activation (6.2.0). Defense-in-depth knob the activation
-# guard at the top of every skill body reads. When false, the guard
-# prints "APED disabled — run aped-method enable" and HALTs before the
-# skill does any work — even if the user explicitly typed /aped-X.
-# The frontmatter flag (disable-model-invocation: true) is the primary
-# suppression layer; this flag is the belt for that suspender.
-# Toggle via `aped-method disable` / `aped-method enable` — those
-# subcommands also flip the frontmatter flag and write a snapshot, so
-# editing this value by hand is rarely the right move.
+# APED runtime activation (6.2.0). Manual kill switch the activation guard
+# (.aped/scripts/check-enabled.sh) reads at the top of every skill body.
+# When false, the guard exits 1 and the skill HALTs with "APED disabled —
+# run aped-method enable" — even when the user explicitly typed /aped-X.
+#
+# How disable / enable interact with this knob (6.3.3):
+# - `aped-method disable` (full mode) — writes the .aped/.DISABLED marker
+#   + flips disable-model-invocation: true on every SKILL.md + writes a
+#   snapshot. **Does not** flip this value: the marker is the runtime
+#   signal, this value stays as your manual override slot.
+# - `aped-method disable --local` (per-developer) — writes the marker AND
+#   .aped/config.local.yaml (gitignored) with aped.enabled: false. The
+#   guard reads config.local.yaml with precedence over this file, so the
+#   team-shared config.yaml can stay enabled: true while the per-developer
+#   override flips the runtime check.
+# - Hand-flipping this value to false works (the guard reads it as a
+#   third fallback) but propagates to the team on commit. Prefer
+#   `disable --local` if that's not what you want.
 aped:
   enabled: true
 
