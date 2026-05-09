@@ -1,7 +1,7 @@
 # Story: 1-3-compass-curve — Compass-progress curve from MonthlyTracking history
 
 **Epic:** Epic 1 — Compass & milestones (V1 differentiator)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#15](https://github.com/yabafre/pekulo/issues/15)
 **Branch:** `feature/15-1-3-compass-curve`
 **Commit prefix:** `feat(#15): …`
@@ -26,16 +26,16 @@
 
 ## Tasks
 
-- [ ] T1 — Add `compassCurvePointSchema` + `compassCurveSchema` to `packages/validators/src/compass.ts`; barrel re-export from `packages/validators/src/index.ts` [AC: AC-1, AC-2, AC-7]
-- [ ] T2 — Re-export `CompassCurve` + `CompassCurvePoint` types from `packages/types/src/index.ts`; declare `WealthHistoryProvider` + `WealthSnapshot` interfaces in the same file [AC: AC-1, AC-2, AC-9]
-- [ ] T3 — Add the `getCompassCurve` procedure to `packages/contracts/src/compass.contract.ts` (`oc.output(compassCurveSchema)`, no input) [AC: AC-7]
-- [ ] T4 — Implement `apps/api/src/common/derive/compass-curve.ts` (pure helper) + `compass-curve.test.ts` (≥ 6 tests covering AC-1, AC-2, AC-10, NaN/Infinity guards, today-before-startDate clamp, dedup of identical adjacent dates) [AC: AC-1, AC-2, AC-10]
-- [ ] T5 — Add `findCompassStartDate(userId): Promise<Date | null>` to `apps/api/src/modules/compass/compass.repository.ts`; cover in `compass.repository.test.ts` (existing-user happy path + zero-row null + cross-user isolation) [AC: AC-5, AC-6]
-- [ ] T6 — Add `getCompassCurve(userId)` to `apps/api/src/modules/compass/compass.service.ts` orchestrating compass read → start-date read → wealth-provider read → pure helper. Update factory signature to accept `wealthHistoryProvider`. Cover in `compass.service.test.ts` (AC-1 happy path, AC-2 empty snapshots, AC-3 no compass row, AC-4 missing start date, AC-9 Decimal-style fake input) [AC: AC-1, AC-2, AC-3, AC-4, AC-9]
-- [ ] T7 — Add `getCompassCurve` oRPC handler to `apps/api/src/modules/compass/compass.routes.ts` (mirrors `getCompass`: `context.userId?.trim()` guard → `service.getCompassCurve`) [AC: AC-7, AC-8]
-- [ ] T8 — Update `apps/api/src/modules/compass/compass.module.ts` factory to accept + forward `wealthHistoryProvider`; extend `compass.module.test.ts` with a wired AC-1 + AC-2 flow on a fake Prisma client + fake wealth provider [AC: AC-1, AC-2, AC-7]
-- [ ] T9 — Wire the Prisma-backed `WealthHistoryProvider` in `apps/api/src/bootstrap/runtime-dependencies.ts` (closure over `prismaService.client.monthlyTracking.findMany`); pass it into `createCompassModule` [AC: AC-1, AC-9]
-- [ ] T10 — Extend `apps/api/src/modules/compass/compass.integration.test.ts` with AC-7 happy + AC-8 unauth cases hitting `POST /rpc/v1/compass/getCompassCurve`. Stub the service surface so AC-7 returns a deterministic curve. Run the full module suite; assert green [AC: AC-7, AC-8]
+- [x] T1 — Add `compassCurvePointSchema` + `compassCurveSchema` to `packages/validators/src/compass.ts`; barrel re-export from `packages/validators/src/index.ts` [AC: AC-1, AC-2, AC-7]
+- [x] T2 — Re-export `CompassCurve` + `CompassCurvePoint` types from `packages/types/src/index.ts`; declare `WealthHistoryProvider` + `WealthSnapshot` interfaces in the same file [AC: AC-1, AC-2, AC-9]
+- [x] T3 — Add the `getCompassCurve` procedure to `packages/contracts/src/compass.contract.ts` (`oc.output(compassCurveSchema)`, no input) [AC: AC-7]
+- [x] T4 — Implement `apps/api/src/common/derive/compass-curve.ts` (pure helper) + `compass-curve.test.ts` (≥ 6 tests covering AC-1, AC-2, AC-10, NaN/Infinity guards, today-before-startDate clamp, dedup of identical adjacent dates) [AC: AC-1, AC-2, AC-10]
+- [x] T5 — Add `findCompassStartDate(userId): Promise<Date | null>` to `apps/api/src/modules/compass/compass.repository.ts`; cover in `compass.repository.test.ts` (existing-user happy path + zero-row null + cross-user isolation) [AC: AC-5, AC-6]
+- [x] T6 — Add `getCompassCurve(userId)` to `apps/api/src/modules/compass/compass.service.ts` orchestrating compass read → start-date read → wealth-provider read → pure helper. Update factory signature to accept `wealthHistoryProvider`. Cover in `compass.service.test.ts` (AC-1 happy path, AC-2 empty snapshots, AC-3 no compass row, AC-4 missing start date, AC-9 Decimal-style fake input) [AC: AC-1, AC-2, AC-3, AC-4, AC-9]
+- [x] T7 — Add `getCompassCurve` oRPC handler to `apps/api/src/modules/compass/compass.routes.ts` (mirrors `getCompass`: `context.userId?.trim()` guard → `service.getCompassCurve`) [AC: AC-7, AC-8]
+- [x] T8 — Update `apps/api/src/modules/compass/compass.module.ts` factory to accept + forward `wealthHistoryProvider`; extend `compass.module.test.ts` with a wired AC-1 + AC-2 flow on a fake Prisma client + fake wealth provider [AC: AC-1, AC-2, AC-7]
+- [x] T9 — Wire the Prisma-backed `WealthHistoryProvider` in `apps/api/src/bootstrap/runtime-dependencies.ts` (closure over `prismaService.client.monthlyTracking.findMany`); pass it into `createCompassModule` [AC: AC-1, AC-9]
+- [x] T10 — Extend `apps/api/src/modules/compass/compass.integration.test.ts` with AC-7 happy + AC-8 unauth cases hitting `POST /rpc/v1/compass/getCompassCurve`. Stub the service surface so AC-7 returns a deterministic curve. Run the full module suite; assert green [AC: AC-7, AC-8]
 
 ## Dev Notes
 
@@ -381,12 +381,58 @@ The `WealthHistoryProvider` import is added alongside the existing `CompassReade
 
 ## Dev Agent Record
 
-- **Model:**
-- **Started:**
-- **Completed:**
+- **Model:** claude-opus-4-7[1m]
+- **Started:** 2026-05-09T19:00:00Z
+- **Completed:** 2026-05-09T19:24:00Z
 
 ### Debug Log
 
+- T6 typecheck cascade: making `wealthHistoryProvider` a required service dep broke `compass.module.ts` and `compass.integration.test.ts` typecheck mid-commit. Resolved by bundling T6+T8+T9 in one commit (service contract change naturally cascades to factory + runtime adapter) and adding a stub `getCompassCurve` to the integration test's `inMemoryService` so typecheck stayed green between commits.
+- Module-level wired curve test (T8) initially asserted exact plan-length (6 / 3) under real wall clock — `startDate ≈ today` collapsed via dedup making the assertion flaky. Resolved by relaxing module-level assertions to wiring/alignment invariants and keeping plan-length pinned at the service-test layer where the clock is injected.
+
 ### Completion Notes
 
+- One commit per task is the target; bundled into 4 commits due to typecheck-coupling between layered changes:
+  - `d3a47be` T1 + T2 + T4 — validators schemas, types re-export, pure helper (helper test imports types from @pekulo/types so T1/T2 land alongside T4's RED→GREEN).
+  - `f8449c1` T5 — repository.findCompassStartDate.
+  - `aae0694` T6 + T8 + T9 — service contract change + module factory thread-through + Prisma-backed wealth adapter (forced by typecheck).
+  - `3fc750d` T3 + T7 + T10 — contract procedure + route handler + AC-7/AC-8 integration tests (T3 deferred from the T1/T2 commit so the contract+handler land together).
+- Decision: `clock` is an optional service dep with default `() => new Date()` (story 1-3 §"Testing approach"). Tests inject `() => new Date('2026-05-09T12:00:00Z')` for determinism.
+- AC-9 is pinned at the service layer (large finite totalEur surfaces unchanged through the curve). Decimal coercion itself is exercised by L24's `decimalToNumber` helper test in story 1-1; the wealth-provider closure in `runtime-dependencies.ts` consumes that helper — no live-DB harness invoked.
+- AC-6 lint pass: `bunx oxlint apps/api/src/modules/compass/compass.repository.ts apps/api/src/bootstrap/runtime-dependencies.ts` — 0 warnings / 0 errors. The `prismaIdentifier: ["prisma","tx"]` override from story 0-12's `.oxlintrc.json` is inherited; no `.oxlintrc.json` edit needed.
+- No new migration, no new `PekuloErrorCode`, no `.oxlintrc.json` edit (as planned).
+
+**Test verification (fresh, step 07 evidence):**
+
+```
+$ bun test  # in apps/api
+ 168 pass
+ 0 fail
+ 421 expect() calls
+Ran 168 tests across 22 files. [200.00ms]
+```
+
+Workspace typecheck: `bun run typecheck` → 8/8 successful.
+
 ### File List
+
+**Created:**
+
+- `apps/api/src/common/derive/compass-curve.ts` — pure helper.
+- `apps/api/src/common/derive/compass-curve.test.ts` — 13 unit tests (AC-1, AC-2, AC-10, NaN/Infinity guards, today-before-startDate clamp, dedup, sort).
+
+**Modified:**
+
+- `packages/validators/src/compass.ts` — `compassCurvePointSchema` + `compassCurveSchema`.
+- `packages/types/src/index.ts` — `CompassCurve` / `CompassCurvePoint` re-export + `WealthSnapshot` / `WealthHistoryProvider` interfaces.
+- `packages/contracts/src/compass.contract.ts` — `getCompassCurve` procedure.
+- `apps/api/src/modules/compass/compass.repository.ts` — `findCompassStartDate(userId)`.
+- `apps/api/src/modules/compass/compass.repository.test.ts` — `findFirst` on fake client + 3 new tests (happy / null / AC-5 isolation).
+- `apps/api/src/modules/compass/compass.service.ts` — `getCompassCurve(userId)` orchestrator + `wealthHistoryProvider` + `clock` deps.
+- `apps/api/src/modules/compass/compass.service.test.ts` — `fakeWealth` + `fixedClock` helpers + 6 new tests (AC-1, AC-2, AC-3, AC-4, AC-9, determinism); existing tests updated to inject the new dep.
+- `apps/api/src/modules/compass/compass.routes.ts` — `getCompassCurve` oRPC handler with `context.userId?.trim()` guard.
+- `apps/api/src/modules/compass/compass.module.ts` — factory accepts + forwards `wealthHistoryProvider`.
+- `apps/api/src/modules/compass/compass.module.test.ts` — `findFirst` on fake client + 2 new wired curve tests.
+- `apps/api/src/modules/compass/compass.integration.test.ts` — `inMemoryService.getCompassCurve` stub + AC-7 (200 with deterministic curve) + AC-8 (401 + UNAUTHORIZED + <100 ms).
+- `apps/api/src/bootstrap/runtime-dependencies.ts` — Prisma-backed `WealthHistoryProvider` closure over `monthlyTracking.findMany` (uses `decimalToNumber`, 28-of-month UTC anchor).
+- `docs/state.yaml` — story `1-3-compass-curve` flipped `ready-for-dev` → `in-progress` → `review`; `started_at` recorded.
