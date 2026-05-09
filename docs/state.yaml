@@ -184,7 +184,7 @@ sprint:
     1-1-compass-domain: {status: done, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#13", worktree: null, started_at: "2026-05-09T15:00:00Z"}
     1-2-milestones-domain: {status: done, depends_on: [1-1-compass-domain], ticket: "#14", worktree: null, started_at: "2026-05-09T17:00:00Z"}
     1-3-compass-curve: {status: done, depends_on: [1-1-compass-domain], ticket: "#15", worktree: null, started_at: "2026-05-09T19:00:00Z"}
-    1-4-compass-ui-cap: {status: pending, depends_on: [1-1-compass-domain, 1-2-milestones-domain, 1-3-compass-curve, 0-10-pekulo-ui-migration], ticket: "#16", worktree: null}
+    1-4-compass-ui-cap: {status: ready-for-dev, depends_on: [1-1-compass-domain, 1-2-milestones-domain, 1-3-compass-curve, 0-10-pekulo-ui-migration], ticket: "#16", worktree: null}
     # Epic 2 — Accounts (V1 brownfield)
     2-1-accounts-orpc-port: {status: pending, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#17", worktree: null}
     2-2-account-balance-history: {status: pending, depends_on: [2-1-accounts-orpc-port], ticket: "#18", worktree: null}
