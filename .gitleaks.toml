@@ -16,4 +16,9 @@ paths = [
   '''^docs/(adr|stories|spikes|quick-specs|ux|ux-preview)/.*\.md$''',
   '''^docs/(architecture|epics|prd|project-context|lessons|grill-summary|epic-\d+-context)\.md$''',
   '''bun\.lock$''',
+  # Integration tests under apps/api use intentional 32-char fake JWT secrets
+  # (e.g. "integration-secret-at-least-32-chars-long-...") to exercise the
+  # jose HS256 signing path without contacting Supabase. The string is local
+  # to the test file and never leaves the test harness.
+  '''^apps/api/src/modules/[a-z]+/[a-z]+\.integration\.test\.ts$''',
 ]
