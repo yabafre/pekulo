@@ -15,10 +15,7 @@
 // helper is callable from any module (dashboard composition, service tests).
 
 import { MilestoneError } from "../../modules/milestones/milestones.errors";
-import type {
-  MilestoneStatus,
-  MilestoneStatusEntry,
-} from "../../modules/milestones/milestones.types";
+import type { MilestoneStatus, MilestoneStatusEntry } from "@pekulo/types";
 
 export interface ComputeStatusesInput {
   currentWealth: number;

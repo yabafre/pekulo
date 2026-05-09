@@ -7,11 +7,11 @@
 // ReturnType<typeof createMilestonesRouter>; never annotate as `Elysia` or any
 // concrete oRPC implementation type.
 
+import type { CompassReader, MilestonePresenceProbe } from "@pekulo/types";
 import type { PrismaService } from "../../database";
 import { createMilestoneRepository } from "./milestones.repository";
 import { createMilestoneService, type MilestoneService } from "./milestones.service";
 import { createMilestonesRouter } from "./milestones.routes";
-import type { CompassReader, MilestonePresenceProbe } from "./milestones.types";
 
 export interface MilestonesModule {
   service: MilestoneService;

@@ -1,3 +1,4 @@
+import type { CompassReader, MilestonePresenceProbe } from "@pekulo/types";
 import type { Env } from "../config/env";
 import { createPrismaService, type PrismaService } from "../database";
 import { createReadiness, type Readiness } from "./readiness";
@@ -7,8 +8,6 @@ import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module"
 import { createCompassModule } from "../modules/compass/compass.module";
 import { createMilestonesModule } from "../modules/milestones/milestones.module";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
-import type { MilestonePresenceProbe } from "../modules/compass/compass.types";
-import type { CompassReader } from "../modules/milestones/milestones.types";
 
 export interface RuntimeDeps {
   env: Env;

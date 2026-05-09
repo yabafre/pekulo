@@ -14,7 +14,7 @@
 
 import type { ExtendedPrismaClient } from "../../database";
 import { decimalToNumber } from "../../common/derive/decimal-to-number";
-import type { Milestone } from "./milestones.types";
+import type { Milestone } from "@pekulo/types";
 import type { AddMilestoneInput, UpdateMilestoneInput } from "@pekulo/validators";
 
 export interface MilestoneRepository {

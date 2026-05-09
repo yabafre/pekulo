@@ -4,12 +4,12 @@
 // Desktop bento cell — section-framed list of milestones.
 
 import { View } from "tamagui";
-import type { Milestone } from "@pekulo/types";
+import type { MilestoneCardItem } from "@pekulo/types";
 import { Section } from "../primitives/Section";
 import { PekuloMilestoneRow } from "./PekuloMilestoneRow";
 
 export interface PekuloMilestonesCardProps {
-  milestones: Milestone[];
+  milestones: MilestoneCardItem[];
   className?: string;
   title?: string;
   ariaLabel?: string;

@@ -8,14 +8,14 @@
 //   - computeStatuses: thin wrapper around the pure helper, requires compass presence.
 
 import type {
-  AddMilestoneInput,
+  CompassReader,
   Milestone,
+  MilestonePresenceProbe,
   MilestoneStatusEntry,
-  UpdateMilestoneInput,
-} from "@pekulo/validators";
+} from "@pekulo/types";
+import type { AddMilestoneInput, UpdateMilestoneInput } from "@pekulo/validators";
 import { computeStatuses } from "../../common/derive/milestone-status";
 import { MilestoneError } from "./milestones.errors";
-import type { CompassReader, MilestonePresenceProbe } from "./milestones.types";
 import type { MilestoneRepository } from "./milestones.repository";
 
 export const MILESTONES_PER_USER_CAP = 20;

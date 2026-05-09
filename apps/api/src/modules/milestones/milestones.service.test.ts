@@ -5,9 +5,9 @@
 // cases re-asserted via service path).
 
 import { describe, expect, test } from "bun:test";
+import type { CompassReader, Milestone } from "@pekulo/types";
 import { createMilestoneService, MILESTONES_PER_USER_CAP } from "./milestones.service";
 import type { MilestoneRepository } from "./milestones.repository";
-import type { CompassReader, Milestone } from "./milestones.types";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const FIXED_NOW = () => new Date(Date.UTC(2026, 0, 15)); // 2026-01-15

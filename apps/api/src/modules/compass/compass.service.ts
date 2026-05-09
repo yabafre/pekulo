@@ -4,14 +4,14 @@
 //   - getSetupState(userId): 'incomplete' if no compass row OR no milestone
 //   - computeProgress(input): pure wrapper around derive/compass-progress.ts
 
-import type { Compass, CompassSetupState, UpdateCompassInput } from "@pekulo/validators";
+import type { Compass, CompassSetupState, MilestonePresenceProbe } from "@pekulo/types";
+import type { UpdateCompassInput } from "@pekulo/validators";
 import {
   computeProgress,
   type ComputeProgressInput,
   type ComputeProgressOutput,
 } from "../../common/derive/compass-progress";
 import type { CompassRepository } from "./compass.repository";
-import type { MilestonePresenceProbe } from "./compass.types";
 
 export interface CompassService {
   updateCompass(userId: string, input: UpdateCompassInput): Promise<Compass>;

@@ -11,8 +11,7 @@
 
 import type { ExtendedPrismaClient } from "../../database";
 import { decimalToNumber } from "../../common/derive/decimal-to-number";
-import type { Compass } from "@pekulo/validators";
-import type { CompassHistoryEntry } from "./compass.types";
+import type { Compass, CompassHistoryEntry } from "@pekulo/types";
 
 export interface CompassRepository {
   findCompass(userId: string): Promise<Compass | null>;

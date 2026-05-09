@@ -78,10 +78,19 @@ export interface Suggestion {
 }
 
 // ─── Milestones (Compass paliers) ────────────────────────────────────────
+// Canonical shapes (DB row + computed status entry) live in @pekulo/validators
+// and are re-exported below from this barrel — feature modules import from
+// @pekulo/types so the dependency graph stays acyclic and types remain SSOT
+// for downstream consumers (apps/web, apps/api, apps/mobile).
+//
+// `MilestoneCardItem` is the legacy V1 design-system row shape used by
+// PekuloMilestoneRow / PekuloMilestonesCard mockups (label/targetEur/
+// progressPct/deltaEur/status). Story 1-4 will replace these mockups with
+// real data wired from the milestones domain via hooks/server actions.
 export const MILESTONE_STATUSES = ["ahead", "on-track", "behind"] as const;
 export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number];
 
-export interface Milestone {
+export interface MilestoneCardItem {
   label: string;
   targetEur: number;
   targetYear: number;
@@ -120,3 +129,41 @@ export interface CompositionItem {
 // ─── Stat tone (Mensuel / generic value display) ─────────────────────────
 export const STAT_TONES = ["gain", "loss"] as const;
 export type StatTone = (typeof STAT_TONES)[number];
+
+// ─── Domain entities & internal API adapter interfaces ───────────────────
+// Per project invariant: every TS type lives here, never co-located in
+// apps/api/src/modules/**/*.types.ts. Zod-inferred shapes from
+// @pekulo/validators are re-exported from this barrel so feature modules
+// import a single surface (architecture L1039–L1043).
+
+// Compass domain (story 1-1) + Milestones domain (story 1-2).
+export type {
+  Compass,
+  CompassSetupState,
+  Milestone,
+  MilestoneStatusEntry,
+} from "@pekulo/validators";
+
+// Append-only audit row written when the compass is updated (ADR-0001).
+export interface CompassHistoryEntry {
+  id: string;
+  userId: string;
+  objectif: number;
+  horizonYears: number;
+  valuedOn: Date;
+  createdAt: Date;
+}
+
+// Probe consumed by the compass module's getSetupState handler — story 1-2
+// wires the Prisma-backed implementation; the compass module receives it
+// at construction time so it does not import from milestones directly.
+export interface MilestonePresenceProbe {
+  hasAny(userId: string): Promise<boolean>;
+}
+
+// Read-only contract the milestones service needs from the compass aggregate
+// (story 1-2 Q4=A). Implemented in runtime-dependencies.ts as a closure over
+// Prisma (NOT compassService) to keep module instantiation acyclic.
+export interface CompassReader {
+  read(userId: string): Promise<{ objectif: number; horizonYears: number } | null>;
+}
