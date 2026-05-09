@@ -1,7 +1,7 @@
 // apps/api/src/common/errors/pekulo-error.ts
 // Domain error base class — every typed error thrown by apps/api services
-// (CompassError, LlmRoutingError, …) extends PekuloError. The error-mapper
-// matches on `code` to derive the HTTP status.
+// (CompassError, MilestoneError, LlmRoutingError, …) extends PekuloError.
+// The error-mapper matches on `code` to derive the HTTP status.
 
 /**
  * Stable error codes for the V1 (a) personal-use phase. The list will grow
@@ -16,11 +16,16 @@
 export type PekuloErrorCode =
   | "BAD_REQUEST"
   | "COMPASS_NOT_FOUND"
+  | "COMPASS_REQUIRED"
   | "CONFLICT"
   | "FORBIDDEN"
   | "INTERNAL"
   | "INVALID_TARGET"
   | "INVALID_WEALTH"
+  | "MILESTONE_INVALID_CAPITAL"
+  | "MILESTONE_LIMIT_EXCEEDED"
+  | "MILESTONE_NOT_FOUND"
+  | "MILESTONE_YEAR_OUT_OF_RANGE"
   | "NOT_FOUND"
   | "RATE_LIMITED"
   | "TRANSACTION_FAILED"
@@ -29,11 +34,16 @@ export type PekuloErrorCode =
 const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode>([
   "BAD_REQUEST",
   "COMPASS_NOT_FOUND",
+  "COMPASS_REQUIRED",
   "CONFLICT",
   "FORBIDDEN",
   "INTERNAL",
   "INVALID_TARGET",
   "INVALID_WEALTH",
+  "MILESTONE_INVALID_CAPITAL",
+  "MILESTONE_LIMIT_EXCEEDED",
+  "MILESTONE_NOT_FOUND",
+  "MILESTONE_YEAR_OUT_OF_RANGE",
   "NOT_FOUND",
   "RATE_LIMITED",
   "TRANSACTION_FAILED",
