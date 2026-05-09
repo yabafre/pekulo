@@ -255,6 +255,7 @@ export const refreshAllPrices = defineAction<void, RefreshSummary, ActionContext
 
     for (const h of holdings) {
       try {
+        // eslint-disable-next-line no-await-in-loop -- sequential by design: providers rate-limit per host
         await refreshOne(ctx, h);
         updated += 1;
       } catch (err) {
@@ -268,7 +269,7 @@ export const refreshAllPrices = defineAction<void, RefreshSummary, ActionContext
                 : "Erreur inconnue";
         failed.push({ id: h.id, label: h.label, reason });
       }
-      // 200 ms throttle between calls
+      // eslint-disable-next-line no-await-in-loop -- 200 ms throttle between provider calls
       await new Promise((r) => setTimeout(r, 200));
     }
 

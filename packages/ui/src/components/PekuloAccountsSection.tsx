@@ -35,7 +35,7 @@ export function PekuloAccountsSection({
     <Section className={className} title={title} ariaLabel={ariaLabel ?? title}>
       <View flexDirection="column">
         {accounts.map((account, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: accounts lack stable ids
+          // eslint-disable-next-line react/no-array-index-key -- accounts lack stable ids
           <PekuloAccountRow key={`${account.label}-${i}`} {...account} />
         ))}
       </View>
