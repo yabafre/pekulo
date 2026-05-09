@@ -26,6 +26,11 @@ export type Compass = z.infer<typeof compassSchema>;
 export const compassSetupStateSchema = z.enum(["incomplete", "complete"]);
 export type CompassSetupState = z.infer<typeof compassSetupStateSchema>;
 
+// Wrapped output for the getSetupState oRPC procedure — kept here (not in
+// @pekulo/contracts) because @pekulo/contracts intentionally does not depend
+// on zod directly; all schema construction lives in @pekulo/validators.
+export const compassSetupStateOutputSchema = z.object({ state: compassSetupStateSchema });
+
 // Cross-FR sanity: capital target must allow at least one valid milestone year
 // in [currentYear+1, currentYear+horizon-1] (story 1-2 enforces year < compass
 // horizon at the per-milestone level).
