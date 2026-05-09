@@ -1,7 +1,7 @@
 # Story: 1-1-compass-domain — Compass domain module with audit history and progress compute
 
 **Epic:** Epic 1 — Compass & milestones (V1 differentiator)
-**Status:** review-queued
+**Status:** review
 **Ticket:** [#13](https://github.com/yabafre/pekulo/issues/13)
 **Branch:** `feature/13-1-1-compass-domain`
 **Commit prefix:** `feat(#13): …`
