@@ -2,3 +2,4 @@
 // both apps/web (form resolvers) and apps/api (handler validation + DB
 // mapping). New schemas land alongside their feature stories.
 export * from "./hypothesis";
+export * from "./compass";

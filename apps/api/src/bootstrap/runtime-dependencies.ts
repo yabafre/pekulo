@@ -4,6 +4,8 @@ import { createReadiness, type Readiness } from "./readiness";
 import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
+import { createCompassModule } from "../modules/compass/compass.module";
+import type { MilestonePresenceProbe } from "../modules/compass/compass.types";
 
 export interface RuntimeDeps {
   env: Env;
@@ -11,6 +13,7 @@ export interface RuntimeDeps {
   prismaService: PrismaService;
   jwtVerifier: JwtVerifier;
   orpcRouter: PekuloRpcRouter;
+  milestonePresenceProbe: MilestonePresenceProbe;
 }
 
 // F10 (carry-over from 0-3): single transient probe failure should not yank
@@ -47,8 +50,18 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     audience: "authenticated",
   });
   const hypothesisModule = createHypothesisModule({ prismaService });
+  // Story 1-2 swaps this stub for a Prisma-backed probe wired through the
+  // milestones repository. Until then the compass setup is reported
+  // 'incomplete' whenever a milestone presence is required (FR-8).
+  const milestonePresenceProbe: MilestonePresenceProbe = {
+    async hasAny() {
+      return false;
+    },
+  };
+  const compassModule = createCompassModule({ prismaService, milestonePresenceProbe });
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
+    compass: compassModule.router,
   };
 
   return {
@@ -57,5 +70,6 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     prismaService,
     jwtVerifier,
     orpcRouter,
+    milestonePresenceProbe,
   };
 }

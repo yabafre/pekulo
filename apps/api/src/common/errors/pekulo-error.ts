@@ -15,25 +15,37 @@
  */
 export type PekuloErrorCode =
   | "BAD_REQUEST"
+  | "COMPASS_NOT_FOUND"
   | "CONFLICT"
   | "FORBIDDEN"
   | "INTERNAL"
+  | "INVALID_TARGET"
+  | "INVALID_WEALTH"
   | "NOT_FOUND"
   | "RATE_LIMITED"
+  | "TRANSACTION_FAILED"
   | "UNAUTHORIZED";
 
 const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode>([
   "BAD_REQUEST",
+  "COMPASS_NOT_FOUND",
   "CONFLICT",
   "FORBIDDEN",
   "INTERNAL",
+  "INVALID_TARGET",
+  "INVALID_WEALTH",
   "NOT_FOUND",
   "RATE_LIMITED",
+  "TRANSACTION_FAILED",
   "UNAUTHORIZED",
 ]);
 
 export class PekuloError extends Error {
-  override readonly name = "PekuloError";
+  // Typed `string` (not the literal "PekuloError") so subclasses like
+  // CompassError can narrow it to their own literal name without TS2416.
+  // Runtime duck-type in isPekuloError() still demands exact equality, so
+  // cross-realm payloads with mutated names cannot pass through.
+  override readonly name: string = "PekuloError";
   readonly code: PekuloErrorCode;
 
   constructor(code: PekuloErrorCode, message: string, options?: { cause?: unknown }) {

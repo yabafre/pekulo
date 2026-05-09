@@ -26,12 +26,23 @@ export interface MappedErrorResponse {
  */
 export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   BAD_REQUEST: 400,
+  // Compass domain validation (story 1-1, FR-5): both surface as 400 — they
+  // signal invalid client input to computeProgress (capitalTarget <= 0 /
+  // currentWealth < 0). Keep distinct codes so clients can localise messages.
+  INVALID_TARGET: 400,
+  INVALID_WEALTH: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  // Compass-specific 404 (story 1-1) — distinguishes "compass row missing"
+  // from generic NOT_FOUND so dashboard can branch on the setup CTA (FR-8).
+  COMPASS_NOT_FOUND: 404,
   CONFLICT: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
+  // Compass repository $transaction failure surfaces as 500 — the audit
+  // write and the upsert must commit atomically; partial state is unrecoverable.
+  TRANSACTION_FAILED: 500,
 };
 
 /**
