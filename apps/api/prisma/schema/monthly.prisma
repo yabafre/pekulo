@@ -33,5 +33,6 @@ model MonthlyTracking {
   createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
 
   @@unique([userId, monthNum, year], map: "monthly_tracking_user_id_month_num_year_key")
+  @@index([userId, year, monthNum], map: "monthly_tracking_user_id_year_month_num_idx")
   @@map("monthly_tracking")
 }

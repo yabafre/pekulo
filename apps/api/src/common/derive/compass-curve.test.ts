@@ -261,6 +261,72 @@ describe("computeCompassCurve", () => {
     expect(todayPoints).toHaveLength(1);
   });
 
+  // Boundary: today === startDate exactly (ratio = 0 → eur = 0). Closes
+  // aped-review F1 — lower-clamp endpoint was sound but unexercised.
+  test("boundary: today === startDate produces todayPoint.eur = 0", () => {
+    const out = computeCompassCurve({
+      compass: COMPASS,
+      startDate: START,
+      today: START,
+      snapshots: [],
+    });
+    // startDate and today collapse via dedup to a single point at startDate.
+    const startPoints = out.plan.filter((p) => p.at.getTime() === START.getTime());
+    expect(startPoints).toHaveLength(1);
+    expect(startPoints[0]!.eur).toBeCloseTo(0, 6);
+  });
+
+  // Boundary: today === endDate exactly (ratio = 1 → eur = objectif). Closes
+  // aped-review F2 — upper-clamp endpoint was sound but unexercised.
+  test("boundary: today === endDate produces todayPoint.eur ≈ objectif", () => {
+    const endDate = new Date(START.getTime() + 25 * 365.25 * 86_400_000);
+    const out = computeCompassCurve({
+      compass: COMPASS,
+      startDate: START,
+      today: endDate,
+      snapshots: [],
+    });
+    // today and endDate collapse via dedup to a single point at endDate.
+    const endPoints = out.plan.filter((p) => p.at.getTime() === endDate.getTime());
+    expect(endPoints).toHaveLength(1);
+    expect(endPoints[0]!.eur).toBeCloseTo(800_000, 6);
+  });
+
+  // Boundary: today > endDate (clock far in future). Upper clamp min(1, …)
+  // pins planEur(today) at compass.objectif. Closes aped-review F3.
+  test("boundary: today > endDate clamps todayPoint.eur to objectif", () => {
+    const futureToday = new Date(START.getTime() + (25 * 365.25 + 365) * 86_400_000);
+    const out = computeCompassCurve({
+      compass: COMPASS,
+      startDate: START,
+      today: futureToday,
+      snapshots: [],
+    });
+    const todayPoint = out.plan.find((p) => p.at.getTime() === futureToday.getTime());
+    expect(todayPoint).toBeDefined();
+    expect(todayPoint!.eur).toBeCloseTo(800_000, 6);
+  });
+
+  // Dedup edge case: a snapshot dated exactly at endDate collapses with the
+  // end anchor (insertion order: snapshots < endDate → end anchor wins on the
+  // dedup keep-first rule because snapshots are inserted before today/endDate
+  // and re-sorted by time, but the equal-time pair keeps the FIRST occurrence
+  // which is the snapshot's plan point). Closes aped-review F4.
+  test("dedup: snapshot date == endDate → only one point at endDate", () => {
+    const endDate = new Date(START.getTime() + 25 * 365.25 * 86_400_000);
+    const out = computeCompassCurve({
+      compass: COMPASS,
+      startDate: START,
+      today: TODAY,
+      snapshots: [{ at: endDate, totalEur: 500_000 }],
+    });
+    const endPoints = out.plan.filter((p) => p.at.getTime() === endDate.getTime());
+    expect(endPoints).toHaveLength(1);
+    // The kept point is the snapshot-derived plan point — its eur uses the
+    // helper's planEurAt formula which clamps to objectif at endDate.
+    expect(endPoints[0]!.eur).toBeCloseTo(800_000, 6);
+  });
+
   // Sort discipline — actual[] must be ascending by at.getTime() even when
   // snapshots arrive out of order.
   test("actual[] is sorted ascending by at.getTime() regardless of input order", () => {

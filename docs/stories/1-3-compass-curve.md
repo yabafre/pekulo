@@ -360,7 +360,7 @@ The `WealthHistoryProvider` import is added alongside the existing `CompassReade
 - `packages/validators/src/compass.ts` — append `compassCurvePointSchema` + `compassCurveSchema`.
   - **Single responsibility:** Zod source-of-truth for the compass aggregate (extended to include the curve shape).
   - **Inputs:** `zod`. **Outputs:** schema constants + Zod-inferred TS types `CompassCurve` / `CompassCurvePoint`.
-- `packages/validators/src/index.ts` — barrel re-export of the two new schemas + types.
+- `packages/validators/src/index.ts` — *not touched at write time*: the barrel already re-exports via `export * from "./compass"` (wildcard auto-covers the two new schemas + types). Listed here so the contract is explicit; the file itself is unchanged.
 - `packages/types/src/index.ts` — re-export `CompassCurve` + `CompassCurvePoint`; declare `WealthSnapshot` + `WealthHistoryProvider` interfaces.
   - **Single responsibility:** typed import surface for downstream apps. **Inputs:** `@pekulo/validators`. **Outputs:** typed types + provider interfaces (no Zod, no runtime).
 - `packages/contracts/src/compass.contract.ts` — add `getCompassCurve` procedure to `compassContractV1`.
