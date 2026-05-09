@@ -3,3 +3,4 @@
 // mapping). New schemas land alongside their feature stories.
 export * from "./hypothesis";
 export * from "./compass";
+export * from "./milestones";
