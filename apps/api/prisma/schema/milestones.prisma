@@ -1,0 +1,20 @@
+// apps/api/prisma/schema/milestones.prisma
+// Milestone — intermediate checkpoints between today's wealth and the compass.
+// FR-3 / FR-4 / FR-6. Regular CRUD table (NOT audit) — full RLS quartet.
+// `position` ships as forward-compat for V2 drag-and-drop (Q6=B, story 1-2);
+// at V1 the sort order is [targetYear asc, position asc, createdAt asc] and
+// the column is never written from input (defaults to 0 for every row).
+
+model Milestone {
+  id            String   @id
+  userId        String   @map("user_id") @db.Uuid
+  targetCapital Decimal  @map("target_capital") @db.Decimal
+  targetYear    Int      @map("target_year") @db.SmallInt
+  label         String?  @db.VarChar(120)
+  position      Int      @default(0) @db.SmallInt
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([userId, targetYear(sort: Asc)])
+  @@map("milestones")
+}
