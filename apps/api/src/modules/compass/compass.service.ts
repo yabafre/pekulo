@@ -5,15 +5,20 @@
 //   - computeProgress(input): pure wrapper around derive/compass-progress.ts
 //   - getCompassCurve(userId): orchestrates compass + start-date + wealth
 //     snapshots into the FR-7 plan/actual time-series via the pure helper.
+//   - getCurrentProgress(userId): server-side donut payload — reads compass
+//     + last wealth snapshot, runs computeProgress (story 1-4, FR-5).
+//   - listHistory(userId, opts): pass-through to the repository (story 1-4
+//     surfaces this via the oRPC contract; the method existed since 1-1).
 
 import type {
   Compass,
   CompassCurve,
+  CompassHistoryEntry,
   CompassSetupState,
   MilestonePresenceProbe,
   WealthHistoryProvider,
 } from "@pekulo/types";
-import type { UpdateCompassInput } from "@pekulo/validators";
+import type { CompassProgress, UpdateCompassInput } from "@pekulo/validators";
 import {
   computeProgress,
   type ComputeProgressInput,
@@ -29,6 +34,8 @@ export interface CompassService {
   getSetupState(userId: string): Promise<CompassSetupState>;
   computeProgress(input: ComputeProgressInput): ComputeProgressOutput;
   getCompassCurve(userId: string): Promise<CompassCurve>;
+  getCurrentProgress(userId: string): Promise<CompassProgress>;
+  listHistory(userId: string, opts?: { limit?: number }): Promise<CompassHistoryEntry[]>;
 }
 
 export function createCompassService(deps: {
@@ -83,6 +90,36 @@ export function createCompassService(deps: {
         today: clock(),
         snapshots,
       });
+    },
+
+    async getCurrentProgress(userId) {
+      const compass = await deps.repository.findCompass(userId);
+      if (!compass) {
+        throw new CompassError("COMPASS_NOT_FOUND", "compass not set");
+      }
+      const snapshots = await deps.wealthHistoryProvider.read(userId);
+      // Wealth provider returns rows ordered ascending by (year, monthNum).
+      // Last entry is the most recent monthly snapshot — semantic alignment
+      // with the curve's actual[] last point. Empty list → currentWealth = 0
+      // (fresh user, only compass row exists). The pure helper rejects NaN/
+      // Infinity at the boundary; passing 0 is explicitly allowed.
+      const last = snapshots.at(-1);
+      const currentWealth = last ? last.totalEur : 0;
+      const { percent, gap } = computeProgress({
+        currentWealth,
+        capitalTarget: compass.objectif,
+      });
+      return {
+        currentWealth,
+        objectif: compass.objectif,
+        horizonYears: compass.horizonYears,
+        percent,
+        gap,
+      };
+    },
+
+    async listHistory(userId, opts) {
+      return deps.repository.listHistory(userId, opts);
     },
   };
 }
