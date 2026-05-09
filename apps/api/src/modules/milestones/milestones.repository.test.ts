@@ -132,10 +132,16 @@ function fakeClient() {
       findFirst: typeof findFirst;
       count: typeof count;
     };
+    $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
   };
 
   const client: FakeClient = {
     milestone: { create, updateMany, deleteMany, findMany, findFirst, count },
+    // Fake $transaction: same shape as compass.repository.test.ts — the
+    // callback is invoked synchronously with the same client (no rollback
+    // semantics modeled). Sufficient for testing addEnforcingCap's
+    // count→insert atomicity at the API surface level.
+    $transaction: async (callback) => callback(client),
   };
   return { client, rows };
 }
@@ -151,6 +157,11 @@ describe("milestones.repository", () => {
       targetYear: 2030,
       label: "First flat",
     });
+    // Relaxed regex: fake-Prisma mints zero-padded ids ("mst_000…") that don't
+    // match the strict /^mst_[0-9A-Za-z]{21}$/ enforced by the prefixedIds
+    // extension at the live-DB layer. Strict regex is asserted by the
+    // milestoneIdSchema validator and re-asserted in integration tests once a
+    // live-DB harness lands (carry-over from story 1-1).
     expect(m.id).toMatch(/^mst_/);
     expect(m.targetCapital).toBe(100_000);
     expect(m.label).toBe("First flat");
@@ -212,6 +223,40 @@ describe("milestones.repository", () => {
     await repo.add(USER_A, { targetCapital: 100_000, targetYear: 2030 });
     expect(await repo.hasAny(USER_A)).toBe(true);
     expect(await repo.hasAny(USER_B)).toBe(false);
+  });
+
+  test("addEnforcingCap inserts when count < cap (AC-1 path)", async () => {
+    const { client } = fakeClient();
+    const repo = createMilestoneRepository({
+      client: client as unknown as Parameters<typeof createMilestoneRepository>[0]["client"],
+    });
+    const result = await repo.addEnforcingCap(
+      USER_A,
+      { targetCapital: 100_000, targetYear: 2030 },
+      20,
+    );
+    expect("capExceeded" in result).toBe(false);
+    if ("capExceeded" in result) return;
+    expect(result.targetCapital).toBe(100_000);
+    expect(await repo.countByUser(USER_A)).toBe(1);
+  });
+
+  test("addEnforcingCap returns capExceeded sentinel without inserting (AC-2 path)", async () => {
+    const { client } = fakeClient();
+    const repo = createMilestoneRepository({
+      client: client as unknown as Parameters<typeof createMilestoneRepository>[0]["client"],
+    });
+    // Seed 3 rows then enforce a cap of 3.
+    await repo.add(USER_A, { targetCapital: 100_000, targetYear: 2030 });
+    await repo.add(USER_A, { targetCapital: 100_000, targetYear: 2031 });
+    await repo.add(USER_A, { targetCapital: 100_000, targetYear: 2032 });
+    const result = await repo.addEnforcingCap(
+      USER_A,
+      { targetCapital: 999_000, targetYear: 2033 },
+      3,
+    );
+    expect(result).toEqual({ capExceeded: true });
+    expect(await repo.countByUser(USER_A)).toBe(3);
   });
 
   test("countByUser counts only own rows", async () => {

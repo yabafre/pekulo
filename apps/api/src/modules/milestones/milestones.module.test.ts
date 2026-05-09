@@ -58,6 +58,7 @@ function fakePrismaService() {
       }) => Promise<Row | null>;
       count: (args: { where: { userId: string } }) => Promise<number>;
     };
+    $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
   };
 
   const client: FakeClient = {
@@ -116,6 +117,10 @@ function fakePrismaService() {
         return rows.filter((r) => r.userId === args.where.userId).length;
       },
     },
+    // Fake $transaction: same shape as compass.repository.test.ts — invokes
+    // the callback synchronously with the same client (no rollback). The
+    // service's addEnforcingCap relies on this seam to atomically count+create.
+    $transaction: async (callback) => callback(client),
   };
 
   return { client: client as unknown as PrismaService["client"], rows };

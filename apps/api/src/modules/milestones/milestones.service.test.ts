@@ -26,20 +26,31 @@ function stubCompassReader(
 function stubRepo(initial: Milestone[] = []): MilestoneRepository {
   let rows = [...initial];
   let nextId = initial.length;
+  const insert = (
+    userId: string,
+    input: { targetCapital: number; targetYear: number; label?: string },
+  ) => {
+    const m: Milestone = {
+      id: `mst_${String(nextId++).padStart(21, "0")}`,
+      userId,
+      targetCapital: input.targetCapital,
+      targetYear: input.targetYear,
+      label: input.label ?? null,
+      position: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    rows.push(m);
+    return m;
+  };
   return {
     async add(userId, input) {
-      const m: Milestone = {
-        id: `mst_${String(nextId++).padStart(21, "0")}`,
-        userId,
-        targetCapital: input.targetCapital,
-        targetYear: input.targetYear,
-        label: input.label ?? null,
-        position: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      rows.push(m);
-      return m;
+      return insert(userId, input);
+    },
+    async addEnforcingCap(userId, input, cap) {
+      const count = rows.filter((r) => r.userId === userId).length;
+      if (count >= cap) return { capExceeded: true };
+      return insert(userId, input);
     },
     async update(userId, id, input) {
       const idx = rows.findIndex((r) => r.id === id && r.userId === userId);

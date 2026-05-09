@@ -18,6 +18,7 @@ import { mountOrpc, type PekuloRpcRouter } from "../../platform/http/orpc-mount"
 import { createJwtVerifier } from "../../platform/security";
 import { extractRequestId } from "../../common/errors";
 import { createMilestonesRouter } from "./milestones.routes";
+import { MilestoneError } from "./milestones.errors";
 import type { MilestoneService } from "./milestones.service";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
@@ -64,7 +65,10 @@ function inMemoryService(): MilestoneService {
     async update(userId, input) {
       const existing = store.get(input.id);
       if (!existing || existing.userId !== userId) {
-        throw new Error("not found");
+        // Typed MilestoneError so the error mapper can translate to HTTP 404
+        // with the canonical { code: "MILESTONE_NOT_FOUND" } envelope; a
+        // generic Error would surface as 500.
+        throw new MilestoneError("MILESTONE_NOT_FOUND", `milestone ${input.id} not found`);
       }
       const updated: Milestone = {
         ...existing,
@@ -79,7 +83,7 @@ function inMemoryService(): MilestoneService {
     async delete(userId, id) {
       const existing = store.get(id);
       if (!existing || existing.userId !== userId) {
-        throw new Error("not found");
+        throw new MilestoneError("MILESTONE_NOT_FOUND", `milestone ${id} not found`);
       }
       store.delete(id);
       return { id };
@@ -89,8 +93,14 @@ function inMemoryService(): MilestoneService {
         .filter((m) => m.userId === userId)
         .sort((a, b) => a.targetYear - b.targetYear);
     },
-    async computeStatuses(): Promise<MilestoneStatusEntry[]> {
-      return [];
+    async computeStatuses(userId): Promise<MilestoneStatusEntry[]> {
+      // Tiny deterministic stub: returns one entry per milestone with a
+      // synthetic status. The wire-level test only proves the procedure is
+      // routable + the envelope is well-formed; pure-helper math is covered
+      // by milestone-status.test.ts.
+      return [...store.values()]
+        .filter((m) => m.userId === userId)
+        .map((m) => ({ id: m.id, status: "on-track" as const, expectedAt: 0, delta: 0 }));
     },
     presenceProbe(): MilestonePresenceProbe {
       return {
@@ -104,6 +114,7 @@ function inMemoryService(): MilestoneService {
 
 let appHandle: { stop: () => Promise<void> } | undefined;
 let baseUrl = "";
+let validToken = "";
 
 beforeAll(async () => {
   const jwtVerifier = createJwtVerifier({
@@ -113,6 +124,7 @@ beforeAll(async () => {
   });
   const router = createMilestonesRouter({ service: inMemoryService() });
   const orpcRouter: PekuloRpcRouter = { milestones: router };
+  const port = PORT_BASE + Math.floor(Math.random() * 200);
   const app = new Elysia().onError(({ error, set }) => {
     const requestId = extractRequestId(error) ?? crypto.randomUUID();
     const mapped = mapErrorToOrpcResponse(error, requestId);
@@ -120,12 +132,27 @@ beforeAll(async () => {
     return mapped.body;
   });
   mountOrpc(app, { jwtVerifier, orpcRouter });
-  const port = PORT_BASE + Math.floor(Math.random() * 30);
-  app.listen(port);
-  baseUrl = `http://localhost:${port}`;
-  appHandle = app as unknown as { stop: () => Promise<void> };
-  // tiny wait to let the server bind
-  await new Promise((r) => setTimeout(r, 30));
+  // Awaited listen callback (mirrors compass.integration.test.ts) — replaces
+  // the previous fire-and-forget + setTimeout(30ms), which was flaky on CI
+  // under load. Resolves only once the socket is bound.
+  await new Promise<void>((resolve) => {
+    app.listen({ port, hostname: "127.0.0.1" }, () => resolve());
+  });
+  baseUrl = `http://127.0.0.1:${port}`;
+  appHandle = {
+    stop: async () => {
+      await app.stop();
+    },
+  };
+  // Warm-up fetch: AC-13's < 100 ms latency assertion on the UNAUTHORIZED
+  // branch can flake on the very first request because the V8 JIT hasn't
+  // warmed yet. One throwaway fetch primes the JIT + DNS path.
+  validToken = await signValid();
+  await fetch(`${baseUrl}/rpc/v1/milestones/list`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${validToken}` },
+    body: JSON.stringify({ json: {} }),
+  }).catch(() => undefined);
 });
 
 afterAll(async () => {
@@ -145,6 +172,11 @@ describe("milestones HTTP boundary (AC-13)", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { json: Milestone };
+    // See milestones.repository.test.ts:154 — id regex relaxed to /^mst_/
+    // because the in-memory inMemoryService() mints zero-padded ids that
+    // don't match the strict /^mst_[0-9A-Za-z]{21}$/ schema. The live oRPC
+    // egress validation against milestoneSchema would catch a malformed id
+    // at deploy time.
     expect(body.json.id).toMatch(/^mst_/);
     expect(body.json.userId).toBe(USER_ID);
     expect(body.json.targetCapital).toBe(100_000);
@@ -178,5 +210,68 @@ describe("milestones HTTP boundary (AC-13)", () => {
     const body = (await res.json()) as { json: Milestone[] };
     expect(Array.isArray(body.json)).toBe(true);
     expect(body.json[0]?.userId).toBe(USER_ID);
+  });
+
+  test("POST /rpc/v1/milestones/update with valid JWT returns 200 + patched body", async () => {
+    const token = await signValid();
+    // The list above seeded an `add` row owned by USER_ID with id `mst_…000`.
+    const listRes = await fetch(`${baseUrl}/rpc/v1/milestones/list`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    const listBody = (await listRes.json()) as { json: Milestone[] };
+    const target = listBody.json[0];
+    expect(target).toBeDefined();
+    if (!target) return;
+    const res = await fetch(`${baseUrl}/rpc/v1/milestones/update`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: { id: target.id, label: "Updated label" } }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: Milestone };
+    expect(body.json.id).toBe(target.id);
+    expect(body.json.label).toBe("Updated label");
+  });
+
+  test("POST /rpc/v1/milestones/delete happy path returns 200 + { id }", async () => {
+    const token = await signValid();
+    // Add a fresh milestone, then delete it — covers the wire envelope for
+    // mutations on both ends (input { json: { id } }, output { json: { id } }).
+    // Note: PekuloError thrown from inside an oRPC handler is wrapped by
+    // RPCHandler before our error-mapper sees it, so the not-found 404 path
+    // is exercised at the service-test layer (milestones.service.test.ts:188)
+    // rather than here.
+    const addRes = await fetch(`${baseUrl}/rpc/v1/milestones/add`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: { targetCapital: 50_000, targetYear: 2031 } }),
+    });
+    const addBody = (await addRes.json()) as { json: Milestone };
+    const res = await fetch(`${baseUrl}/rpc/v1/milestones/delete`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: { id: addBody.json.id } }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: { id: string } };
+    expect(body.json.id).toBe(addBody.json.id);
+  });
+
+  test("POST /rpc/v1/milestones/getStatuses with valid JWT returns 200 + status array", async () => {
+    const token = await signValid();
+    const res = await fetch(`${baseUrl}/rpc/v1/milestones/getStatuses`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: { currentWealth: 60_000 } }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: MilestoneStatusEntry[] };
+    expect(Array.isArray(body.json)).toBe(true);
+    // The list test added one milestone for USER_ID; getStatuses returns a
+    // synthetic on-track entry per the inMemoryService stub.
+    expect(body.json.length).toBeGreaterThan(0);
+    expect(body.json[0]?.status).toBe("on-track");
   });
 });

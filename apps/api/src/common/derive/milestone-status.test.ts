@@ -20,8 +20,29 @@ describe("computeStatuses (AC-9 fixture)", () => {
       ],
     });
     expect(result.map((r) => r.status)).toEqual(["ahead", "ahead", "ahead"]);
-    expect(result[0]!.expectedAt).toBeCloseTo(178_400, 1);
-    expect(result[0]!.delta).toBeCloseTo(-98_400, 1);
+    // Full numeric assertion against the story Dev Notes' fixture math (linear
+    // plan from 60k @ year=2026 toward 800k @ horizon=25, slope = 29_600 €/yr):
+    //   2030 (offset 4):  expectedAt = 178_400 ; delta = 80_000 - 178_400  = -98_400
+    //   2035 (offset 9):  expectedAt = 326_400 ; delta = 200_000 - 326_400 = -126_400
+    //   2045 (offset 19): expectedAt = 622_400 ; delta = 500_000 - 622_400 = -122_400
+    expect(result.map((r) => r.expectedAt)).toEqual([178_400, 326_400, 622_400]);
+    expect(result.map((r) => r.delta)).toEqual([-98_400, -126_400, -122_400]);
+  });
+
+  test("is deterministic — same inputs produce same outputs across calls", () => {
+    const input = {
+      currentWealth: CURRENT_WEALTH,
+      currentYear: CURRENT_YEAR,
+      compass: COMPASS,
+      milestones: [
+        { id: "mst_a".padEnd(25, "x"), targetCapital: 80_000, targetYear: 2030 },
+        { id: "mst_b".padEnd(25, "x"), targetCapital: 200_000, targetYear: 2035 },
+        { id: "mst_c".padEnd(25, "x"), targetCapital: 500_000, targetYear: 2045 },
+      ],
+    };
+    const a = computeStatuses(input);
+    const b = computeStatuses(input);
+    expect(a).toEqual(b);
   });
 
   test("returns 'on-track' when target sits inside ±5% band", () => {
