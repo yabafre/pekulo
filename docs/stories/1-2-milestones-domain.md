@@ -1,7 +1,7 @@
 # Story: 1-2-milestones-domain — Milestones CRUD + reorder + per-milestone status
 
 **Epic:** Epic 1 — Compass & milestones (V1 differentiator)
-**Status:** review
+**Status:** done
 **Ticket:** [#14](https://github.com/yabafre/pekulo/issues/14)
 **Branch:** `feature/14-1-2-milestones-domain`
 **Commit prefix:** `feat(#14): …`
@@ -2528,3 +2528,90 @@ $ cd apps/api && bun test
  314 expect() calls
 Ran 135 tests across 21 files. [240.00ms]
 ```
+
+## Review Record
+
+**Date:** 2026-05-09
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+
+- **[MAJOR]** TOCTOU on the 20-cap [`apps/api/src/modules/milestones/milestones.service.ts:64-71`]
+  - Source: Code + Edge
+  - Resolution: `3039e7e` — wrap count+insert in `prismaService.client.$transaction` via new `repository.addEnforcingCap(userId, input, cap)` returning `Milestone | { capExceeded: true }`. Service throws `MILESTONE_LIMIT_EXCEEDED` on the sentinel.
+
+- **[MAJOR]** `horizonYears = 1` produces empty milestone year range [`apps/api/src/modules/milestones/milestones.service.ts:36-37`]
+  - Source: Edge
+  - Resolution: `b82582f` — bump compass `horizonYears.min(2)` so the milestones service's `[currentYear+1, currentYear+horizonYears-1]` range is always non-empty.
+
+- **[MINOR]** Decimal write-path imprecision near 1e12 [`apps/api/src/modules/milestones/milestones.repository.ts:65,82`]
+  - Source: Code
+  - Resolution: `b82582f` — tighten `MAX_TARGET_CAPITAL_EUR` 1e12 → 1e9 to keep targetCapital inside JS Number safe-integer range; stays well above Persona Alex's plausible cap (~1.5M).
+
+- **[MINOR]** Unsafe cast around `position` default [`apps/api/src/modules/milestones/milestones.repository.ts:70`]
+  - Source: Code
+  - Resolution: `3039e7e` — write `position: 0` literally inside the create payload (cast retained at narrower scope for prefixedIds extension typing).
+
+- **[MINOR]** `setTimeout(30ms)` server-bind sleep [`apps/api/src/modules/milestones/milestones.integration.test.ts:128`]
+  - Source: Code
+  - Resolution: `a697e18` — replaced with awaited `app.listen({ port, hostname }, callback)` (mirrors compass integration test).
+
+- **[MINOR]** Service `delete` asymmetry [`apps/api/src/modules/milestones/milestones.service.ts:99-105`]
+  - Source: Code
+  - Resolution: `3039e7e` — explicit comment block documenting why `delete` skips compass-presence (orphan-pruning must remain possible).
+
+- **[MINOR]** AC-13 `< 100ms` latency vulnerable to V8 cold-start [`apps/api/src/modules/milestones/milestones.integration.test.ts:163-165`]
+  - Source: Edge
+  - Resolution: `a697e18` — warm-up fetch in `beforeAll` before the timing assertion.
+
+- **[MINOR]** UTC year-rollover not documented [`apps/api/src/modules/milestones/milestones.service.ts:52`]
+  - Source: Edge
+  - Resolution: `3039e7e` — comment block above `currentYear` derivation noting Persona Alex tradeoff.
+
+- **[MINOR]** Missing HTTP integration coverage for `update` / `delete` / `getStatuses` [`apps/api/src/modules/milestones/milestones.integration.test.ts`]
+  - Source: Edge + Code
+  - Resolution: `a697e18` — 3 new round-trip tests (update happy-path, delete happy-path, getStatuses happy-path). Service-test layer continues to cover the not-found 404 path because PekuloError thrown inside an oRPC handler is wrapped by RPCHandler before the Elysia error-mapper sees it; documented in the test file.
+
+- **[MINOR]** AC-9 fixture only asserts `result[0]` numerics [`apps/api/src/common/derive/milestone-status.test.ts:22-24`]
+  - Source: Spec
+  - Resolution: `a697e18` — full numeric assertion against `[178_400, 326_400, 622_400]` and `[-98_400, -126_400, -122_400]` plus a determinism re-run.
+
+- **[MINOR]** Relaxed id regex `/^mst_/` not annotated vs strict spec [`milestones.repository.test.ts:154`, `milestones.integration.test.ts:148`]
+  - Source: Spec
+  - Resolution: `a697e18` — comment in both tests explaining the divergence (fake-Prisma + inMemoryService mint zero-padded ids that don't match the strict `/^mst_[0-9A-Za-z]{21}$/`).
+
+- **[MINOR]** AC-11 cross-module probe substitution lacks e2e proof [`apps/api/src/bootstrap/runtime-dependencies.ts:76`]
+  - Source: Spec
+  - Resolution: `a697e18` — new test in `compass.module.test.ts` flips a probe-presence flag and asserts `getSetupState` transitions `incomplete → complete`.
+
+- **[NIT]** `oxlint-disable-next-line no-useless-constructor` pragma under-explains [`apps/api/src/modules/milestones/milestones.errors.ts:28`]
+  - Source: Code
+  - Resolution: `3039e7e` — same-line annotation `-- narrows code union (see comment above)`.
+
+- **[USER-DRIVEN]** Domain constants must be centralized in `@pekulo/types`, not inlined.
+  - Source: User feedback during the review cycle ("du même constat que les types uniquement dans pekulo/types, il faut centraliser les const").
+  - Resolution: `b82582f` — six domain constants now live as SSOT in `@pekulo/validators` (`MAX_TARGET_CAPITAL_EUR`, `MAX_LABEL_LENGTH`, `MILESTONES_PER_USER_CAP`, `MILESTONE_STATUS_TOLERANCE_RATIO`, `MAX_OBJECTIF_EUR`, `MIN_HORIZON_YEARS`, `MAX_HORIZON_YEARS`) and re-exported from `@pekulo/types` per-domain section. `apps/api/src/modules/milestones/milestones.service.ts` and `apps/api/src/common/derive/milestone-status.ts` now import them from `@pekulo/types`.
+
+#### Dismissed
+
+(none)
+
+#### Unresolved
+
+(none)
+
+### Verification
+
+- Test command: `cd apps/api && bun test`
+- Test output (final pass): `142 pass / 0 fail / 332 expect() calls (was 135 pre-review — 7 new tests added)`
+- Typecheck: `bun run typecheck` — 8/8 workspaces ✓ (FULL TURBO)
+- Lint: `bun x oxlint apps/api/src/modules/{milestones,compass} apps/api/src/common/{derive,errors}` — 0 warnings / 0 errors
+- Visual verification: N/A (backend-only story)
+
+### Ticket sync
+
+- Ticket comment posted: pending step 1 of finalize
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/74 (base = main, story → done)
