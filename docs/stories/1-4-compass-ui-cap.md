@@ -30,7 +30,7 @@
 
 _Phase A — Backend: extend the compass module (T1 → T8)._
 
-- [ ] **T1 — Add validator schemas + types for the new procs** [AC: AC-2, AC-10]
+- [x] **T1 — Add validator schemas + types for the new procs** [AC: AC-2, AC-10]
 
   Edit `packages/validators/src/compass.ts`. Append after the existing `compassCurveSchema` block:
 
@@ -73,7 +73,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
   Expected: `Tests: ≥ 1 passed`, exit 0 (validator package's existing snapshot/derivation tests still pass).
   Commit: `git add packages/validators/src/compass.ts && git commit -m "feat(#16): add compass progress + history schemas"`
 
-- [ ] **T2 — Re-export new types from `@pekulo/types`** [AC: AC-2, AC-10]
+- [x] **T2 — Re-export new types from `@pekulo/types`** [AC: AC-2, AC-10]
 
   Edit `packages/types/src/index.ts`. Find the line `export type { CompassCurve, CompassCurvePoint } from "@pekulo/validators";` and replace it with:
 
@@ -90,7 +90,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
   Expected: `Tests: ≥ 1 passed`, exit 0.
   Commit: `git add packages/types/src/index.ts && git commit -m "feat(#16): re-export CompassProgress from validators"`
 
-- [ ] **T3 — Add the two new procs to the contract** [AC: AC-10]
+- [x] **T3 — Add the two new procs to the contract** [AC: AC-10]
 
   Replace `packages/contracts/src/compass.contract.ts` with:
 
@@ -139,7 +139,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
   Expected: `Tests: ≥ 1 passed`, exit 0.
   Commit: `git add packages/contracts/src/compass.contract.ts && git commit -m "feat(#16): expose getCurrentProgress + listHistory in compass contract"`
 
-- [ ] **T4 — Add `getCurrentProgress` to `CompassService`** [AC: AC-1, AC-10]
+- [x] **T4 — Add `getCurrentProgress` to `CompassService`** [AC: AC-1, AC-10]
 
   Edit `apps/api/src/modules/compass/compass.service.ts`. Replace the file with:
 
@@ -270,7 +270,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
   Expected: existing tests pass (the new method is service-level only — covered in T5).
   Commit: `git add apps/api/src/modules/compass/compass.service.ts && git commit -m "feat(#16): add compass.getCurrentProgress + listHistory to service"`
 
-- [ ] **T5 — Cover `getCurrentProgress` in `compass.service.test.ts`** [AC: AC-1, AC-10]
+- [x] **T5 — Cover `getCurrentProgress` in `compass.service.test.ts`** [AC: AC-1, AC-10]
 
   Append three tests to `apps/api/src/modules/compass/compass.service.test.ts` (inside the existing `describe("compass.service", …)` block):
 
@@ -347,7 +347,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
   Expected: previous tests + 3 new tests all pass. `Tests: ≥ 13 passed`, exit 0.
   Commit: `git add apps/api/src/modules/compass/compass.service.test.ts && git commit -m "test(#16): cover compass.getCurrentProgress (3 cases)"`
 
-- [ ] **T6 — Add the two new oRPC handlers** [AC: AC-10]
+- [x] **T6 — Add the two new oRPC handlers** [AC: AC-10]
 
   Replace `apps/api/src/modules/compass/compass.routes.ts` with:
 
@@ -411,7 +411,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
   Expected: existing module tests pass.
   Commit: `git add apps/api/src/modules/compass/compass.routes.ts && git commit -m "feat(#16): add getCurrentProgress + listHistory oRPC handlers"`
 
-- [ ] **T7 — Extend `compass.module.test.ts` with wired tests for the new handlers** [AC: AC-10]
+- [x] **T7 — Extend `compass.module.test.ts` with wired tests for the new handlers** [AC: AC-10]
 
   Append to `apps/api/src/modules/compass/compass.module.test.ts`, inside the existing module test scope:
 
@@ -477,7 +477,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
   Expected: previous module tests + 2 new tests all pass.
   Commit: `git add apps/api/src/modules/compass/compass.module.test.ts && git commit -m "test(#16): wire compass.getCurrentProgress + listHistory at module level"`
 
-- [ ] **T8 — Extend `compass.integration.test.ts` for the two new endpoints** [AC: AC-10]
+- [x] **T8 — Extend `compass.integration.test.ts` for the two new endpoints** [AC: AC-10]
 
   Append two integration tests covering AC-10 to `apps/api/src/modules/compass/compass.integration.test.ts` (mirror the existing `getCompassCurve` integration shape from story 1-3):
 
@@ -516,7 +516,7 @@ _Phase A — Backend: extend the compass module (T1 → T8)._
 
 _Phase B — Web tier: actions + tag registry + data readers + derive helper (T9 → T14)._
 
-- [ ] **T9 — Update `apps/web/src/lib/zapaction/keys.ts` with compass + milestones** [AC: AC-9]
+- [x] **T9 — Update `apps/web/src/lib/zapaction/keys.ts` with compass + milestones** [AC: AC-9]
 
   Replace the file with:
 
@@ -625,7 +625,7 @@ _Phase B — Web tier: actions + tag registry + data readers + derive helper (T9
   Expected: exit 0.
   Commit: `git add apps/web/src/lib/zapaction/keys.ts && git commit -m "feat(#16): register compass + milestones zapaction keys/tags"`
 
-- [ ] **T10 — Create `apps/web/src/lib/actions/compass-actions.ts`** [AC: AC-2, AC-9, AC-10]
+- [x] **T10 — Create `apps/web/src/lib/actions/compass-actions.ts`** [AC: AC-2, AC-9, AC-10]
 
   Create the file with:
 
@@ -712,7 +712,7 @@ _Phase B — Web tier: actions + tag registry + data readers + derive helper (T9
   Expected: exit 0.
   Commit: `git add apps/web/src/lib/actions/compass-actions.ts && git commit -m "feat(#16): compass server actions (getCurrentProgress, history, update, …)"`
 
-- [ ] **T11 — Create `apps/web/src/lib/actions/milestones-actions.ts`** [AC: AC-3, AC-4, AC-5, AC-9]
+- [x] **T11 — Create `apps/web/src/lib/actions/milestones-actions.ts`** [AC: AC-3, AC-4, AC-5, AC-9]
 
   Create with:
 
@@ -810,7 +810,7 @@ _Phase B — Web tier: actions + tag registry + data readers + derive helper (T9
   Expected: exit 0.
   Commit: `git add apps/web/src/lib/actions/milestones-actions.ts && git commit -m "feat(#16): milestones server actions (list, add, update, delete, getStatuses)"`
 
-- [ ] **T12 — Create `apps/web/src/lib/data/compass.ts` (RSC reader)** [AC: AC-3]
+- [x] **T12 — Create `apps/web/src/lib/data/compass.ts` (RSC reader)** [AC: AC-3]
 
   Create:
 
@@ -878,7 +878,7 @@ _Phase B — Web tier: actions + tag registry + data readers + derive helper (T9
   Expected: exit 0.
   Commit: `git add apps/web/src/lib/data/compass.ts && git commit -m "feat(#16): RSC compass readers (compass / setup-state / progress)"`
 
-- [ ] **T13 — Create `apps/web/src/lib/data/milestones.ts` (RSC reader)** [AC: AC-1]
+- [x] **T13 — Create `apps/web/src/lib/data/milestones.ts` (RSC reader)** [AC: AC-1]
 
   ```ts
   import "server-only";
@@ -907,7 +907,7 @@ _Phase B — Web tier: actions + tag registry + data readers + derive helper (T9
   Expected: exit 0.
   Commit: `git add apps/web/src/lib/data/milestones.ts && git commit -m "feat(#16): RSC milestones reader"`
 
-- [ ] **T14 — Create `apps/web/src/lib/derive-milestone-card-items.ts` + tests** [AC: AC-1]
+- [x] **T14 — Create `apps/web/src/lib/derive-milestone-card-items.ts` + tests** [AC: AC-1]
 
   ```ts
   import type { Milestone, MilestoneStatusEntry } from "@pekulo/validators";
@@ -1029,7 +1029,7 @@ _Phase B — Web tier: actions + tag registry + data readers + derive helper (T9
 
 _Phase C — Route group migration (T15)._
 
-- [ ] **T15 — Move `dashboard/` into `(cap)/dashboard/` + scaffold `(cap)/parametres/`** [AC: AC-1, AC-2, AC-3]
+- [x] **T15 — Move `dashboard/` into `(cap)/dashboard/` + scaffold `(cap)/parametres/`** [AC: AC-1, AC-2, AC-3]
 
   ```bash
   mkdir -p apps/web/src/app/\(cap\)/dashboard
@@ -1105,7 +1105,7 @@ _Phase C — Route group migration (T15)._
 
 _Phase D — Dashboard hooks (route-local, T16 → T20)._
 
-- [ ] **T16 — Create `_hooks/use-dashboard-compass.ts`** [AC: AC-1, AC-3]
+- [x] **T16 — Create `_hooks/use-dashboard-compass.ts`** [AC: AC-1, AC-3]
 
   `apps/web/src/app/(cap)/dashboard/_hooks/use-dashboard-compass.ts`:
 
@@ -1144,7 +1144,7 @@ _Phase D — Dashboard hooks (route-local, T16 → T20)._
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_hooks/use-dashboard-compass.ts && git commit -m "feat(#16): useDashboardCompass query hook (setup + progress)"`
 
-- [ ] **T17 — Create `_hooks/use-compass-curve.ts`** [AC: AC-6]
+- [x] **T17 — Create `_hooks/use-compass-curve.ts`** [AC: AC-6]
 
   ```ts
   "use client";
@@ -1168,7 +1168,7 @@ _Phase D — Dashboard hooks (route-local, T16 → T20)._
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_hooks/use-compass-curve.ts && git commit -m "feat(#16): useCompassCurve query hook"`
 
-- [ ] **T18 — Create `_hooks/use-milestones.ts` + `_hooks/use-milestone-statuses.ts`** [AC: AC-1, AC-3]
+- [x] **T18 — Create `_hooks/use-milestones.ts` + `_hooks/use-milestone-statuses.ts`** [AC: AC-1, AC-3]
 
   `use-milestones.ts`:
 
@@ -1213,7 +1213,7 @@ _Phase D — Dashboard hooks (route-local, T16 → T20)._
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_hooks/use-milestones.ts apps/web/src/app/\(cap\)/dashboard/_hooks/use-milestone-statuses.ts && git commit -m "feat(#16): useMilestones + useMilestoneStatuses query hooks"`
 
-- [ ] **T19 — Create `_hooks/use-add-milestone-form.ts`** [AC: AC-4]
+- [x] **T19 — Create `_hooks/use-add-milestone-form.ts`** [AC: AC-4]
 
   ```ts
   "use client";
@@ -1251,7 +1251,7 @@ _Phase D — Dashboard hooks (route-local, T16 → T20)._
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_hooks/use-add-milestone-form.ts && git commit -m "feat(#16): useAddMilestoneForm mutation orchestrator (cap-aware)"`
 
-- [ ] **T20 — Create `_hooks/use-update-milestone.ts` + `_hooks/use-delete-milestone.ts`** [AC: AC-5, AC-9]
+- [x] **T20 — Create `_hooks/use-update-milestone.ts` + `_hooks/use-delete-milestone.ts`** [AC: AC-5, AC-9]
 
   `use-update-milestone.ts`:
 
@@ -1320,7 +1320,7 @@ _Phase D — Dashboard hooks (route-local, T16 → T20)._
 
 _Phase E — Parametres hooks (T21 → T22)._
 
-- [ ] **T21 — Create `parametres/_hooks/use-update-compass.ts` + `use-edit-compass-form.ts`** [AC: AC-2, AC-9]
+- [x] **T21 — Create `parametres/_hooks/use-update-compass.ts` + `use-edit-compass-form.ts`** [AC: AC-2, AC-9]
 
   `apps/web/src/app/(cap)/parametres/_hooks/use-update-compass.ts`:
 
@@ -1376,7 +1376,7 @@ _Phase E — Parametres hooks (T21 → T22)._
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/parametres/_hooks && git commit -m "feat(#16): useUpdateCompass + useEditCompassForm"`
 
-- [ ] **T22 — Create `parametres/_hooks/use-compass-history.ts`** [AC: AC-2]
+- [x] **T22 — Create `parametres/_hooks/use-compass-history.ts`** [AC: AC-2]
 
   ```ts
   "use client";
@@ -1401,7 +1401,7 @@ _Phase E — Parametres hooks (T21 → T22)._
 
 _Phase F — Components (route-local, T23 → T28)._
 
-- [ ] **T23 — `_components/compass-setup-cta.tsx` + a11y test** [AC: AC-3, AC-8]
+- [x] **T23 — `_components/compass-setup-cta.tsx` + a11y test** [AC: AC-3, AC-8]
 
   `apps/web/src/app/(cap)/dashboard/_components/compass-setup-cta.tsx`:
 
@@ -1454,7 +1454,7 @@ _Phase F — Components (route-local, T23 → T28)._
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_components/compass-setup-cta.tsx apps/web/src/app/\(cap\)/dashboard/_components/compass-setup-cta.a11y.test.tsx && git commit -m "feat(#16): compass-setup-cta + a11y test"`
 
-- [ ] **T24 — `_components/add-milestone-form.tsx` + a11y test** [AC: AC-3, AC-4, AC-8]
+- [x] **T24 — `_components/add-milestone-form.tsx` + a11y test** [AC: AC-3, AC-4, AC-8]
 
   ```tsx
   "use client";
@@ -1665,7 +1665,7 @@ _Phase F — Components (route-local, T23 → T28)._
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_components/add-milestone-form.tsx apps/web/src/app/\(cap\)/dashboard/_components/add-milestone-form.a11y.test.tsx && git commit -m "feat(#16): add-milestone-form (cap-aware) + a11y test"`
 
-- [ ] **T25 — `_components/milestones-section.tsx` + a11y test** [AC: AC-1, AC-5, AC-8]
+- [x] **T25 — `_components/milestones-section.tsx` + a11y test** [AC: AC-1, AC-5, AC-8]
 
   ```tsx
   "use client";
@@ -1774,7 +1774,7 @@ _Phase F — Components (route-local, T23 → T28)._
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_components/milestones-section.tsx apps/web/src/app/\(cap\)/dashboard/_components/milestones-section.a11y.test.tsx && git commit -m "feat(#16): milestones-section orchestrator + a11y test"`
 
-- [ ] **T26 — `_components/compass-section.tsx` (orchestrator) + a11y test** [AC: AC-1, AC-3, AC-6, AC-8]
+- [x] **T26 — `_components/compass-section.tsx` (orchestrator) + a11y test** [AC: AC-1, AC-3, AC-6, AC-8]
 
   ```tsx
   "use client";
@@ -1866,7 +1866,7 @@ _Phase F — Components (route-local, T23 → T28)._
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_components/compass-section.tsx apps/web/src/app/\(cap\)/dashboard/_components/compass-section.a11y.test.tsx && git commit -m "feat(#16): compass-section orchestrator + a11y test"`
 
-- [ ] **T27 — `parametres/_components/compass-edit-form.tsx` + a11y test** [AC: AC-2, AC-8]
+- [x] **T27 — `parametres/_components/compass-edit-form.tsx` + a11y test** [AC: AC-2, AC-8]
 
   ```tsx
   "use client";
@@ -2046,7 +2046,7 @@ _Phase F — Components (route-local, T23 → T28)._
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/parametres/_components/compass-edit-form.tsx apps/web/src/app/\(cap\)/parametres/_components/compass-edit-form.a11y.test.tsx && git commit -m "feat(#16): compass-edit-form + a11y test"`
 
-- [ ] **T28 — `parametres/_components/compass-history-panel.tsx` + a11y test** [AC: AC-2, AC-8]
+- [x] **T28 — `parametres/_components/compass-history-panel.tsx` + a11y test** [AC: AC-2, AC-8]
 
   ```tsx
   "use client";
@@ -2145,7 +2145,7 @@ _Phase F — Components (route-local, T23 → T28)._
 
 _Phase G — Page assembly (T29)._
 
-- [ ] **T29 — Wire `(cap)/dashboard/page.tsx` + `(cap)/parametres/page.tsx`** [AC: AC-1, AC-2, AC-3]
+- [x] **T29 — Wire `(cap)/dashboard/page.tsx` + `(cap)/parametres/page.tsx`** [AC: AC-1, AC-2, AC-3]
 
   Replace `apps/web/src/app/(cap)/dashboard/page.tsx` with:
 
@@ -2198,7 +2198,7 @@ _Phase G — Page assembly (T29)._
 
 _Phase H — Final sweep (T30 → T31)._
 
-- [ ] **T30 — Final lint + typecheck + test sweep** [AC: AC-7, AC-8, AC-9]
+- [x] **T30 — Final lint + typecheck + test sweep** [AC: AC-7, AC-8, AC-9]
 
   Run from the repo root, in order, do NOT proceed if any step is non-zero:
 
@@ -2227,7 +2227,7 @@ _Phase H — Final sweep (T30 → T31)._
 
   No commit — verification only. If any step fails, stop and run aped-debug.
 
-- [ ] **T31 — Update File List + close ticket reference** [AC: all]
+- [x] **T31 — Update File List + close ticket reference** [AC: all]
 
   In the **File List** section below, mark every file `Created` / `Modified` to match the actual diff. The Dev Agent Record's File List must mirror this story's File List exactly (aped-review checks the diff against the stated set).
 
