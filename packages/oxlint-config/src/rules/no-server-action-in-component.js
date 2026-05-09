@@ -21,12 +21,17 @@ function importTargetsActions(source, actionRoot) {
 
 /**
  * Detect whether a file lives under one of the configured component roots.
+ * Files inside conventional non-component sibling folders (`_hooks/`,
+ * `_actions/`, `_components/index.ts`-style barrels) are not components and
+ * are exempt — the layered convention places hooks BETWEEN components and
+ * actions, so hooks importing actions is the design intent.
  *
  * @param {string} filename
  * @param {string[]} roots
  * @returns {boolean}
  */
 function isComponentFile(filename, roots) {
+  if (filename.includes("/_hooks/") || filename.includes("/_actions/")) return false;
   return roots.some((r) => filename.startsWith(r) || filename.includes("/" + r));
 }
 
