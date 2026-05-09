@@ -66,7 +66,10 @@
     {
       "files": ["apps/api/**/*.{ts,tsx}"],
       "rules": {
-        "pekulo/no-prisma-query-without-user-id": "error"
+        "pekulo/no-prisma-query-without-user-id": [
+          "error",
+          { "prismaIdentifier": ["prisma", "tx"] }
+        ]
       }
     },
     {
