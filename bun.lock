@@ -104,6 +104,7 @@
       "devDependencies": {
         "@pekulo/tsconfig": "workspace:*",
         "@types/eslint": "^9.6.1",
+        "@types/estree": "^1.0.8",
         "eslint": "^9.36.0",
       },
     },
