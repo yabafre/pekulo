@@ -44,6 +44,7 @@ const rule = {
           context.report({ node: node.source, messageId: "tailwindImport" });
         }
       },
+      /** @param {any} node */
       JSXAttribute(node) {
         if (!node.name || node.name.type !== "JSXIdentifier") return;
         if (node.name.name !== "className") return;

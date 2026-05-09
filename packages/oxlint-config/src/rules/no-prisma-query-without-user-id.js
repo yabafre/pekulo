@@ -55,6 +55,8 @@ const rule = {
         const segments = dotted.split(".");
         if (segments.length !== 3) return;
         const [root, model, method] = segments;
+        if (typeof root !== "string" || typeof model !== "string" || typeof method !== "string")
+          return;
         if (root !== prismaIdent) return;
         if (!USER_SCOPED_METHODS.has(method)) return;
         if (unscoped.has(model)) return;
