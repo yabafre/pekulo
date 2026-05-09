@@ -1,7 +1,7 @@
 # Story: 1-3-compass-curve — Compass-progress curve from MonthlyTracking history
 
 **Epic:** Epic 1 — Compass & milestones (V1 differentiator)
-**Status:** review
+**Status:** done
 **Ticket:** [#15](https://github.com/yabafre/pekulo/issues/15)
 **Branch:** `feature/15-1-3-compass-curve`
 **Commit prefix:** `feat(#15): …`
@@ -435,4 +435,60 @@ Workspace typecheck: `bun run typecheck` → 8/8 successful.
 - `apps/api/src/modules/compass/compass.module.test.ts` — `findFirst` on fake client + 2 new wired curve tests.
 - `apps/api/src/modules/compass/compass.integration.test.ts` — `inMemoryService.getCompassCurve` stub + AC-7 (200 with deterministic curve) + AC-8 (401 + UNAUTHORIZED + <100 ms).
 - `apps/api/src/bootstrap/runtime-dependencies.ts` — Prisma-backed `WealthHistoryProvider` closure over `monthlyTracking.findMany` (uses `decimalToNumber`, 28-of-month UTC anchor).
-- `docs/state.yaml` — story `1-3-compass-curve` flipped `ready-for-dev` → `in-progress` → `review`; `started_at` recorded.
+- `docs/state.yaml` — story `1-3-compass-curve` flipped `ready-for-dev` → `in-progress` → `review` → `done`; `started_at` recorded.
+
+**Added during aped-review (commit `fcebf70`, F5 in-scope override accepted):**
+
+- `apps/api/prisma/migrations/20260510130000_index_monthly_tracking_curve/migration.sql` — index `(user_id, year, month_num)` on `monthly_tracking` to align with the wealth-provider `orderBy [year asc, monthNum asc]`. RLS policy count unchanged (3); rls-audit untouched.
+- `apps/api/prisma/schema/monthly.prisma` — `@@index([userId, year, monthNum])` declaration.
+
+## Review Record
+
+**Date:** 2026-05-09
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+
+- [MINOR] Untested boundary `today === startDate` exactly [`apps/api/src/common/derive/compass-curve.test.ts`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `fcebf70` — boundary test added; assert dedup-collapse + `eur ≈ 0`.
+- [MINOR] Untested boundary `today === endDate` exactly [`apps/api/src/common/derive/compass-curve.test.ts`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `fcebf70` — boundary test added; assert dedup-collapse + `eur ≈ objectif`.
+- [MINOR] Untested boundary `today > endDate` (clock far in future) [`apps/api/src/common/derive/compass-curve.test.ts`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `fcebf70` — boundary test added; assert upper-clamp `eur ≈ objectif`.
+- [MINOR] Untested dedup edge `snapshot === endDate` [`apps/api/src/common/derive/compass-curve.test.ts`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `fcebf70` — dedup test added; assert single point at endDate, eur ≈ objectif (snapshot-derived plan point clamped at horizon).
+- [NIT] Index column order on `monthly_tracking` not aligned with curve orderBy [`apps/api/prisma/schema/monthly.prisma`]
+  - Source: Code auditor
+  - Resolution: commit `fcebf70` — F5 in-scope override accepted; new migration `20260510130000_index_monthly_tracking_curve` adds `(user_id, year, month_num)` index. Story's "no new migration" rule deliberately overridden after user confirmation. RLS audit policy count unchanged (3).
+- [NIT] File List doc discrepancy on `packages/validators/src/index.ts` [`docs/stories/1-3-compass-curve.md`]
+  - Source: git-audit
+  - Resolution: commit `fcebf70` — File List entry annotated; the barrel re-exports via `export * from "./compass"` wildcard, so the file is unchanged at write time despite being listed.
+
+#### Dismissed
+
+(none)
+
+#### Unresolved
+
+(none)
+
+### Verification
+
+- Test command: `bun test` in `apps/api`
+- Test output (final pass): `172 pass / 0 fail / 429 expect() calls / 22 files [417ms]` (was 168 pre-review; +4 boundary tests from F1–F4)
+- Lint evidence (AC-6 fresh): `bunx oxlint apps/api/src/modules/compass/compass.repository.ts apps/api/src/bootstrap/runtime-dependencies.ts` → `Found 0 warnings and 0 errors. (158 rules, 75ms)`
+- Workspace typecheck: `bun run typecheck` → `8 successful, 8 total` (turbo).
+- Prisma schema validation: `bunx prisma validate` → `The schemas at prisma/schema are valid 🚀`; `bunx prisma generate` → client regenerated.
+- Visual verification: N/A — backend-only story (no preview app surface).
+
+### Ticket sync
+
+- Ticket comment posted: pending push
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/75 (existing — pending push + edit)
