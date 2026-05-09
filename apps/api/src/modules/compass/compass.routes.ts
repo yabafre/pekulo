@@ -36,5 +36,11 @@ export function createCompassRouter(deps: { service: CompassService }) {
       const state = await deps.service.getSetupState(context.userId);
       return { state };
     }),
+    getCompassCurve: impl.getCompassCurve.handler(async ({ context }) => {
+      if (!context.userId?.trim()) {
+        throw new PekuloError("UNAUTHORIZED", "user context missing");
+      }
+      return deps.service.getCompassCurve(context.userId);
+    }),
   });
 }

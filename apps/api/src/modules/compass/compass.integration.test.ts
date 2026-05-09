@@ -219,4 +219,59 @@ describe("compass bridge (integration)", () => {
     const body = (await res.json()) as { json: Compass };
     expect(body.json).toEqual({ objectif: 1_000_000, horizonYears: 30 });
   });
+
+  // ─── Story 1-3: getCompassCurve (FR-7) ────────────────────────────────
+
+  // AC-7 (verbatim from story 1-3 L22): valid Supabase HS256 JWT for user A
+  // whose stub service returns { startedAt: ..., actual: [], plan: [3 points]
+  // }, when the integration test calls POST /rpc/v1/compass/getCompassCurve
+  // with empty body wrapped as { json: {} }, then the response is HTTP 200
+  // with body { json: { startedAt: <ISO>, actual: [], plan: [3 points] } } —
+  // Zod-validated against compassCurveSchema on the egress side.
+  test("AC-7 success: POST getCompassCurve returns 200 with deterministic curve", async () => {
+    const jwt = await signValid();
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/getCompassCurve`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      json: {
+        startedAt: string;
+        actual: { at: string; eur: number }[];
+        plan: { at: string; eur: number }[];
+      };
+    };
+    // Date fields surface as ISO strings on the wire; assert shape + content.
+    expect(typeof body.json.startedAt).toBe("string");
+    expect(new Date(body.json.startedAt).getTime()).toBe(
+      new Date("2024-01-15T00:00:00Z").getTime(),
+    );
+    expect(body.json.actual).toEqual([]);
+    expect(body.json.plan).toHaveLength(3);
+    expect(body.json.plan[2]!.eur).toBe(800_000);
+  });
+
+  // AC-8 (verbatim from story 1-3 L23): no JWT (or mangled Bearer header) →
+  // HTTP 401 within 100 ms with body { error: { code: "UNAUTHORIZED",
+  // requestId: <uuid> } }. Reuses the existing JWT verifier mounting; same
+  // wire shape as story 1-1's AC-7 unauth.
+  test("AC-8 unauthorized: missing JWT returns 401 + UNAUTHORIZED wire body", async () => {
+    const startedAt = Date.now();
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/getCompassCurve`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ json: {} }),
+    });
+    const elapsed = Date.now() - startedAt;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
+    const body = (await res.json()) as { error: { code: string; requestId: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
+    expect(body.error.requestId).toMatch(/^[0-9a-f-]{36}$/);
+  });
 });
