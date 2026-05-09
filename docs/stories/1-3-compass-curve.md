@@ -490,5 +490,5 @@ Workspace typecheck: `bun run typecheck` → 8/8 successful.
 
 ### Ticket sync
 
-- Ticket comment posted: pending push
-- PR opened/updated: https://github.com/yabafre/pekulo/pull/75 (existing — pending push + edit)
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/15#issuecomment-4413191466
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/75 (title + body refreshed post-review)
