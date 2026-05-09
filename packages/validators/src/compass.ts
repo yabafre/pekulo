@@ -5,10 +5,19 @@ import { z } from "zod";
 
 const currentYear = new Date().getUTCFullYear();
 
+// Domain constants — exported as the SSOT for validator bounds AND
+// downstream consumers (apps/api service, apps/web forms, @pekulo/types
+// re-exports). Same centralization rule as the types (2026-05-09 invariant).
+
 // Upper bound on objectif: 1e12 EUR (1 trillion). Persona Alex caps at ~1.5M;
 // anything past 1e12 indicates input error and risks float-precision loss when
 // roundtripped through Decimal (decimal.js is exact, but JS Number isn't).
-const MAX_OBJECTIF_EUR = 1_000_000_000_000;
+export const MAX_OBJECTIF_EUR = 1_000_000_000_000;
+// Compass horizon bounds (story 1-2 review hardening: min bumped 1→2 so the
+// milestones service's [currentYear+1, currentYear+horizon-1] range cannot
+// be empty by construction).
+export const MIN_HORIZON_YEARS = 2;
+export const MAX_HORIZON_YEARS = 60;
 
 export const updateCompassInputSchema = z.object({
   objectif: z
@@ -18,8 +27,12 @@ export const updateCompassInputSchema = z.object({
   horizonYears: z
     .number()
     .int()
-    .min(1, "horizonYears must be >= 1")
-    .max(60, "horizonYears must be <= 60"),
+    // Min 2 (not 1): with horizonYears=1 the milestones service would derive
+    // an empty allowed range [currentYear+1, currentYear] and reject every
+    // input — the compass becomes structurally inert. min(2) guarantees at
+    // least one valid milestone year exists (story 1-2 cross-FR sanity).
+    .min(MIN_HORIZON_YEARS, `horizonYears must be >= ${MIN_HORIZON_YEARS}`)
+    .max(MAX_HORIZON_YEARS, `horizonYears must be <= ${MAX_HORIZON_YEARS}`),
 });
 
 export type UpdateCompassInput = z.infer<typeof updateCompassInputSchema>;
@@ -46,4 +59,4 @@ export const compassHorizonAbsoluteYearSchema = z
   .number()
   .int()
   .min(currentYear + 1)
-  .max(currentYear + 60);
+  .max(currentYear + MAX_HORIZON_YEARS);

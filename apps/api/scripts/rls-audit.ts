@@ -39,6 +39,9 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // compass_history is an audit sister table per ADR-0001 — INSERT + SELECT
   // only, no UPDATE/DELETE policies. AC-6 of story 1-1 asserts this count.
   compass_history: 2,
+  // milestones is a regular CRUD table — full quartet (SELECT/INSERT/UPDATE/DELETE).
+  // AC-12 of story 1-2 asserts this count.
+  milestones: 4,
 };
 
 async function main(): Promise<number> {

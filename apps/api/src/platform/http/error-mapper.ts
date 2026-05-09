@@ -31,13 +31,26 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // currentWealth < 0). Keep distinct codes so clients can localise messages.
   INVALID_TARGET: 400,
   INVALID_WEALTH: 400,
+  // Milestones domain (story 1-2, FR-3 / FR-4): malformed capital and
+  // out-of-range year both surface as 400.
+  MILESTONE_INVALID_CAPITAL: 400,
+  MILESTONE_YEAR_OUT_OF_RANGE: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   // Compass-specific 404 (story 1-1) — distinguishes "compass row missing"
   // from generic NOT_FOUND so dashboard can branch on the setup CTA (FR-8).
   COMPASS_NOT_FOUND: 404,
+  // Milestones 404 — preserved when a cross-user delete probe walks off the
+  // userId guard (AC-8). Distinct from NOT_FOUND so future telemetry can
+  // separate "row missing" from "route missing".
+  MILESTONE_NOT_FOUND: 404,
   CONFLICT: 409,
+  // Milestones cap (FR-3, ≤ 20/user) and missing compass (FR-8 precondition)
+  // both surface as 409 — they signal a state-shape conflict, not malformed
+  // input.
+  MILESTONE_LIMIT_EXCEEDED: 409,
+  COMPASS_REQUIRED: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
   // Compass repository $transaction failure surfaces as 500 — the audit

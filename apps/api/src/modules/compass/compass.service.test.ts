@@ -1,8 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { Compass } from "@pekulo/validators";
+import type { Compass, MilestonePresenceProbe } from "@pekulo/types";
 import { createCompassService } from "./compass.service";
 import type { CompassRepository } from "./compass.repository";
-import type { MilestonePresenceProbe } from "./compass.types";
 
 function fakeRepo(behaviour: { findResult?: Compass | null; upsertResult?: Compass }): {
   repo: CompassRepository;

@@ -77,11 +77,17 @@ export interface Suggestion {
   route: LlmRoute;
 }
 
-// ─── Milestones (Compass paliers) ────────────────────────────────────────
+// ─── Milestones (legacy UI mockup) ───────────────────────────────────────
+// `MilestoneCardItem` is the legacy V1 design-system row shape used by
+// PekuloMilestoneRow / PekuloMilestonesCard mockups (label/targetEur/
+// progressPct/deltaEur/status). Story 1-4 will replace these mockups with
+// real data wired from the milestones domain via hooks/server actions.
+// Domain entity + bounds for the real DB row live in the "Milestones DB row"
+// section below.
 export const MILESTONE_STATUSES = ["ahead", "on-track", "behind"] as const;
 export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number];
 
-export interface Milestone {
+export interface MilestoneCardItem {
   label: string;
   targetEur: number;
   targetYear: number;
@@ -120,3 +126,54 @@ export interface CompositionItem {
 // ─── Stat tone (Mensuel / generic value display) ─────────────────────────
 export const STAT_TONES = ["gain", "loss"] as const;
 export type StatTone = (typeof STAT_TONES)[number];
+
+// ─── Compass (story 1-1) ─────────────────────────────────────────────────
+// Canonical shapes live in @pekulo/validators (Zod inference) and are
+// re-exported here as the single import surface for feature modules.
+export type { Compass, CompassSetupState } from "@pekulo/validators";
+
+// Compass domain bounds — SSOT in @pekulo/validators. min(2) on horizon is
+// load-bearing for milestones (story 1-2): horizonYears=1 would derive the
+// empty year range [currentYear+1, currentYear].
+export { MAX_OBJECTIF_EUR, MIN_HORIZON_YEARS, MAX_HORIZON_YEARS } from "@pekulo/validators";
+
+// Append-only audit row written when the compass is updated (ADR-0001).
+export interface CompassHistoryEntry {
+  id: string;
+  userId: string;
+  objectif: number;
+  horizonYears: number;
+  valuedOn: Date;
+  createdAt: Date;
+}
+
+// Probe consumed by the compass module's getSetupState handler — story 1-2
+// wires the Prisma-backed implementation; the compass module receives it
+// at construction time so it does not import from milestones directly.
+export interface MilestonePresenceProbe {
+  hasAny(userId: string): Promise<boolean>;
+}
+
+// Read-only contract the milestones service needs from the compass aggregate
+// (story 1-2 Q4=A). Implemented in runtime-dependencies.ts as a closure over
+// Prisma (NOT compassService) to keep module instantiation acyclic.
+export interface CompassReader {
+  read(userId: string): Promise<{ objectif: number; horizonYears: number } | null>;
+}
+
+// ─── Milestones — DB row + computed status (story 1-2) ───────────────────
+// Re-exported from @pekulo/validators for the same reason as Compass above:
+// validators is the runtime SSOT, types is the typed import surface.
+export type { Milestone, MilestoneStatusEntry } from "@pekulo/validators";
+
+// Milestones domain bounds — SSOT in @pekulo/validators. `MILESTONES_PER_USER_CAP`
+// gates the FR-3 cap (≤ 20 rows / user); `MAX_TARGET_CAPITAL_EUR` /
+// `MAX_LABEL_LENGTH` bound the row payload. `MILESTONE_STATUS_TOLERANCE_RATIO`
+// is the FR-6 ±5% band used by both the API helper (status classification)
+// and apps/web (tooltip copy).
+export {
+  MAX_TARGET_CAPITAL_EUR,
+  MAX_LABEL_LENGTH,
+  MILESTONES_PER_USER_CAP,
+  MILESTONE_STATUS_TOLERANCE_RATIO,
+} from "@pekulo/validators";

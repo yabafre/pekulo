@@ -8,7 +8,7 @@ import type { PrismaService } from "../../database";
 import { createCompassRepository } from "./compass.repository";
 import { createCompassService, type CompassService } from "./compass.service";
 import { createCompassRouter } from "./compass.routes";
-import type { MilestonePresenceProbe } from "./compass.types";
+import type { MilestonePresenceProbe } from "@pekulo/types";
 
 export interface CompassModule {
   service: CompassService;

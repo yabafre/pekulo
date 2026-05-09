@@ -1,3 +1,4 @@
+import type { CompassReader, MilestonePresenceProbe } from "@pekulo/types";
 import type { Env } from "../config/env";
 import { createPrismaService, type PrismaService } from "../database";
 import { createReadiness, type Readiness } from "./readiness";
@@ -5,7 +6,8 @@ import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
 import { createCompassModule } from "../modules/compass/compass.module";
-import type { MilestonePresenceProbe } from "../modules/compass/compass.types";
+import { createMilestonesModule } from "../modules/milestones/milestones.module";
+import { decimalToNumber } from "../common/derive/decimal-to-number";
 
 export interface RuntimeDeps {
   env: Env;
@@ -50,18 +52,37 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     audience: "authenticated",
   });
   const hypothesisModule = createHypothesisModule({ prismaService });
-  // Story 1-2 swaps this stub for a Prisma-backed probe wired through the
-  // milestones repository. Until then the compass setup is reported
-  // 'incomplete' whenever a milestone presence is required (FR-8).
-  const milestonePresenceProbe: MilestonePresenceProbe = {
-    async hasAny() {
-      return false;
+
+  // Story 1-2 wiring (Q4=A + Q5):
+  //   - milestonesModule is built FIRST with a Prisma-backed CompassReader
+  //     that closes over prismaService (NOT over compassService) — keeps the
+  //     two modules instantiation-acyclic.
+  //   - compassModule receives milestonesModule.presenceProbe (real probe,
+  //     replacing the stub from story 1-1).
+  const compassReader: CompassReader = {
+    async read(userId) {
+      const row = await prismaService.client.hypothesis.findUnique({
+        where: { userId },
+        select: { objectif: true, horizonYears: true },
+      });
+      if (!row) return null;
+      return {
+        objectif: decimalToNumber(row.objectif, 0),
+        horizonYears: row.horizonYears,
+      };
     },
   };
-  const compassModule = createCompassModule({ prismaService, milestonePresenceProbe });
+  const milestonesModule = createMilestonesModule({ prismaService, compassReader });
+  const milestonePresenceProbe: MilestonePresenceProbe = milestonesModule.presenceProbe;
+  const compassModule = createCompassModule({
+    prismaService,
+    milestonePresenceProbe,
+  });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
+    milestones: milestonesModule.router,
   };
 
   return {

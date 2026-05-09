@@ -34,3 +34,16 @@ enum LotType {
 
   @@map("lot_type")
 }
+
+// MilestoneStatus — forward-compat enum (Q2=B, story 1-2). No column references it
+// at V1 — declared so a future story can persist a snapshot status without a
+// schema-level migration. Postgres identifiers do not allow hyphens, hence
+// `on_track` (snake) at the DB layer; the API/UI surface uses kebab `'on-track'`
+// via @pekulo/validators (mapping at write time when a column lands).
+enum MilestoneStatus {
+  ahead
+  on_track
+  behind
+
+  @@map("milestone_status")
+}

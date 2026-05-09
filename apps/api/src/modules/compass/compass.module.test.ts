@@ -123,4 +123,26 @@ describe("compass.module (wired)", () => {
     // FR-8 — stub probe returns false, so setup remains 'incomplete'.
     expect(await mod.service.getSetupState(USER_A)).toBe("incomplete");
   });
+
+  test("AC-11 (story 1-2): getSetupState flips to 'complete' once probe sees a milestone", async () => {
+    // End-to-end proof of the runtime-dependencies.ts:76 wiring: the compass
+    // module's getSetupState handler returns 'complete' when the injected
+    // MilestonePresenceProbe says there's at least one milestone, after the
+    // compass row exists. Story 1-2 swaps the stub probe for a real
+    // Prisma-backed one — this test verifies the integration point.
+    const prismaService = fakePrismaService();
+    let presence = false;
+    const mod = createCompassModule({
+      prismaService,
+      milestonePresenceProbe: {
+        async hasAny() {
+          return presence;
+        },
+      },
+    });
+    await mod.service.updateCompass(USER_A, { objectif: 800_000, horizonYears: 25 });
+    expect(await mod.service.getSetupState(USER_A)).toBe("incomplete");
+    presence = true;
+    expect(await mod.service.getSetupState(USER_A)).toBe("complete");
+  });
 });
