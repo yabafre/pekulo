@@ -5,8 +5,16 @@ import { z } from "zod";
 
 const currentYear = new Date().getUTCFullYear();
 
+// Upper bound on objectif: 1e12 EUR (1 trillion). Persona Alex caps at ~1.5M;
+// anything past 1e12 indicates input error and risks float-precision loss when
+// roundtripped through Decimal (decimal.js is exact, but JS Number isn't).
+const MAX_OBJECTIF_EUR = 1_000_000_000_000;
+
 export const updateCompassInputSchema = z.object({
-  objectif: z.number().positive("objectif must be > 0"),
+  objectif: z
+    .number()
+    .positive("objectif must be > 0")
+    .max(MAX_OBJECTIF_EUR, `objectif must be <= ${MAX_OBJECTIF_EUR}`),
   horizonYears: z
     .number()
     .int()

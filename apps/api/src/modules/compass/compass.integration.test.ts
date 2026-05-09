@@ -37,6 +37,21 @@ async function signValid(): Promise<string> {
     .sign(new TextEncoder().encode(SECRET));
 }
 
+async function signWith(opts: {
+  issuer?: string;
+  audience?: string;
+  expSecondsFromNow?: number;
+}): Promise<string> {
+  return new SignJWT({ email: "alex@pekulo.app" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(USER_ID)
+    .setIssuer(opts.issuer ?? ISSUER)
+    .setAudience(opts.audience ?? AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(Date.now() / 1000) + (opts.expSecondsFromNow ?? 3600))
+    .sign(new TextEncoder().encode(SECRET));
+}
+
 function inMemoryService(): CompassService {
   const store = new Map<string, Compass>();
   return {
@@ -125,6 +140,46 @@ describe("compass bridge (integration)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { json: Compass };
     expect(body.json).toEqual({ objectif: 800_000, horizonYears: 25 });
+  });
+
+  // AC-7 hardening: the verifier must reject expired tokens, foreign issuers,
+  // and foreign audiences. Story-level AC-7 only asserts presence/absence of a
+  // JWT; these branches are hardenings against config drift in the verifier
+  // (createJwtVerifier owns the issuer/audience checks).
+  test("AC-7 expired JWT returns 401 UNAUTHORIZED", async () => {
+    const jwt = await signWith({ expSecondsFromNow: -10 });
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/updateCompass`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ json: { objectif: 800_000, horizonYears: 25 } }),
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
+  });
+
+  test("AC-7 wrong issuer returns 401 UNAUTHORIZED", async () => {
+    const jwt = await signWith({ issuer: "https://attacker.example/auth/v1" });
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/updateCompass`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ json: { objectif: 800_000, horizonYears: 25 } }),
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
+  });
+
+  test("AC-7 wrong audience returns 401 UNAUTHORIZED", async () => {
+    const jwt = await signWith({ audience: "service" });
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/updateCompass`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ json: { objectif: 800_000, horizonYears: 25 } }),
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
   });
 
   test("AC-7 round-trip: getCompass after updateCompass returns the persisted row", async () => {

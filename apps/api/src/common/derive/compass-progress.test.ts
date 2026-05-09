@@ -52,4 +52,55 @@ describe("computeProgress", () => {
       CompassError,
     );
   });
+
+  test("NaN capitalTarget throws INVALID_TARGET", () => {
+    expect(() => computeProgress({ currentWealth: 100, capitalTarget: Number.NaN })).toThrow(
+      CompassError,
+    );
+    try {
+      computeProgress({ currentWealth: 100, capitalTarget: Number.NaN });
+    } catch (err) {
+      expect((err as CompassError).code).toBe("INVALID_TARGET");
+    }
+  });
+
+  test("Infinity capitalTarget throws INVALID_TARGET", () => {
+    expect(() =>
+      computeProgress({ currentWealth: 100, capitalTarget: Number.POSITIVE_INFINITY }),
+    ).toThrow(CompassError);
+  });
+
+  test("NaN currentWealth throws INVALID_WEALTH", () => {
+    expect(() => computeProgress({ currentWealth: Number.NaN, capitalTarget: 800_000 })).toThrow(
+      CompassError,
+    );
+    try {
+      computeProgress({ currentWealth: Number.NaN, capitalTarget: 800_000 });
+    } catch (err) {
+      expect((err as CompassError).code).toBe("INVALID_WEALTH");
+    }
+  });
+
+  test("Infinity currentWealth throws INVALID_WEALTH", () => {
+    expect(() =>
+      computeProgress({ currentWealth: Number.POSITIVE_INFINITY, capitalTarget: 800_000 }),
+    ).toThrow(CompassError);
+  });
+
+  // Rounding boundaries — pin Math.round half-toward-+Infinity so a refactor
+  // to toFixed / banker's rounding would surface as a regression.
+  test("rounding 7.45 surfaces as 7.5 (74.5 → round-up)", () => {
+    const result = computeProgress({ currentWealth: 7.45, capitalTarget: 100 });
+    expect(result.percent).toBe(7.5);
+  });
+
+  test("rounding 2.55 surfaces as 2.6 (25.5 → round-up)", () => {
+    const result = computeProgress({ currentWealth: 2.55, capitalTarget: 100 });
+    expect(result.percent).toBe(2.6);
+  });
+
+  test("rounding 2.45 surfaces as 2.5 (24.5 → round-up)", () => {
+    const result = computeProgress({ currentWealth: 2.45, capitalTarget: 100 });
+    expect(result.percent).toBe(2.5);
+  });
 });

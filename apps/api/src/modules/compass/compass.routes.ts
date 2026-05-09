@@ -18,19 +18,19 @@ const impl = implement(compassContract).$context<{
 export function createCompassRouter(deps: { service: CompassService }) {
   return impl.router({
     updateCompass: impl.updateCompass.handler(async ({ context, input }) => {
-      if (!context.userId) {
+      if (!context.userId?.trim()) {
         throw new PekuloError("UNAUTHORIZED", "user context missing");
       }
       return deps.service.updateCompass(context.userId, input);
     }),
     getCompass: impl.getCompass.handler(async ({ context }) => {
-      if (!context.userId) {
+      if (!context.userId?.trim()) {
         throw new PekuloError("UNAUTHORIZED", "user context missing");
       }
       return deps.service.getCompass(context.userId);
     }),
     getSetupState: impl.getSetupState.handler(async ({ context }) => {
-      if (!context.userId) {
+      if (!context.userId?.trim()) {
         throw new PekuloError("UNAUTHORIZED", "user context missing");
       }
       const state = await deps.service.getSetupState(context.userId);

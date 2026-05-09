@@ -83,17 +83,34 @@ function fakeClient() {
     },
   );
 
+  type OrderClause = { valuedOn?: "asc" | "desc"; createdAt?: "asc" | "desc" };
   const findMany = mock(
     async (args: {
       where: { userId: string };
-      orderBy?: { valuedOn?: "asc" | "desc" };
+      orderBy?: OrderClause | OrderClause[];
       take?: number;
     }) => {
       const filtered = history.filter((r) => r.userId === args.where.userId);
-      const sorted =
-        args.orderBy?.valuedOn === "desc"
-          ? [...filtered].sort((a, b) => b.valuedOn.getTime() - a.valuedOn.getTime())
-          : filtered;
+      const clauses = Array.isArray(args.orderBy)
+        ? args.orderBy
+        : args.orderBy
+          ? [args.orderBy]
+          : [];
+      const sorted = clauses.length
+        ? [...filtered].sort((a, b) => {
+            for (const c of clauses) {
+              if (c.valuedOn) {
+                const d = b.valuedOn.getTime() - a.valuedOn.getTime();
+                if (d !== 0) return c.valuedOn === "desc" ? d : -d;
+              }
+              if (c.createdAt) {
+                const d = b.createdAt.getTime() - a.createdAt.getTime();
+                if (d !== 0) return c.createdAt === "desc" ? d : -d;
+              }
+            }
+            return 0;
+          })
+        : filtered;
       return args.take ? sorted.slice(0, args.take) : sorted;
     },
   );
@@ -111,12 +128,34 @@ function fakeClient() {
     compassHistory: { create, findMany },
     $transaction: mock(),
   };
+  // Real Prisma's $transaction rolls back on callback throw — model that here
+  // by snapshotting the in-memory stores before invoking the callback and
+  // restoring them on rejection. Without this, the fake silently lets a
+  // partial state escape and AC-1's atomicity claim would not be testable.
   const $transaction = mock(
-    async <T>(callback: (tx: typeof clientObj) => Promise<T>): Promise<T> => callback(clientObj),
+    async <T>(callback: (tx: typeof clientObj) => Promise<T>): Promise<T> => {
+      const hypothesesSnapshot = new Map(hypotheses);
+      const historySnapshot = history.slice();
+      const historyIdSnapshot = nextHistoryId;
+      try {
+        return await callback(clientObj);
+      } catch (err) {
+        hypotheses.clear();
+        for (const [k, v] of hypothesesSnapshot) hypotheses.set(k, v);
+        history.length = 0;
+        history.push(...historySnapshot);
+        nextHistoryId = historyIdSnapshot;
+        throw err;
+      }
+    },
   );
   clientObj.$transaction = $transaction;
 
-  return { client: clientObj, mocks: { upsert, findUnique, create, findMany, $transaction } };
+  return {
+    client: clientObj,
+    mocks: { upsert, findUnique, create, findMany, $transaction },
+    stores: { hypotheses, history },
+  };
 }
 
 describe("compass.repository", () => {
@@ -207,5 +246,34 @@ describe("compass.repository", () => {
     const limited = await repo.listHistory(USER_A, { limit: 1 });
     expect(limited).toHaveLength(1);
     expect(limited[0]?.objectif).toBe(300_000);
+  });
+
+  // AC-1 atomicity, rollback branch: when compassHistory.create rejects, the
+  // outer call must reject AND the prior hypothesis.upsert must NOT be visible
+  // (real Prisma's $transaction rolls back automatically; the fake mirrors
+  // that with snapshot/restore). Without this test the "atomic" claim of AC-1
+  // is unprovable — the auditor's HIGH finding from aped-review.
+  test("AC-1 rollback: failure inside $transaction reverts prior writes", async () => {
+    const { client, mocks, stores } = fakeClient();
+    // Force the second write (compassHistory.create) to throw. Bun's mock API
+    // returns a typed mock with mockImplementationOnce — narrow via a cast that
+    // matches the production call shape we replaced above.
+    (
+      mocks.create as unknown as {
+        mockImplementationOnce: (impl: () => Promise<never>) => void;
+      }
+    ).mockImplementationOnce(async () => {
+      throw new Error("compassHistory.create failed (simulated)");
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const repo = createCompassRepository({ client: client as any });
+
+    await expect(
+      repo.upsertCompassWithHistory(USER_A, { objectif: 800_000, horizonYears: 25 }),
+    ).rejects.toThrow("compassHistory.create failed (simulated)");
+
+    // Hypothesis store stayed empty (rollback restored the pre-callback snapshot).
+    expect(stores.hypotheses.has(USER_A)).toBe(false);
+    expect(stores.history).toHaveLength(0);
   });
 });

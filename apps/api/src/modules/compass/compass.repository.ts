@@ -103,10 +103,17 @@ export function createCompassRepository(deps: { client: ExtendedPrismaClient }):
     },
 
     async listHistory(userId, opts) {
+      // Clamp limit to [1, 200]: 0 silently returns []; negative inverts order
+      // via Prisma reverse-pagination — both surprise the caller. Default 50.
+      const requested = opts?.limit ?? 50;
+      const take = Math.min(200, Math.max(1, requested));
       const rows = await deps.client.compassHistory.findMany({
         where: { userId },
-        orderBy: { valuedOn: "desc" },
-        take: opts?.limit ?? 50,
+        // Tie-break on createdAt: two writes within the same ms collide on
+        // valuedOn (clock resolution); createdAt's @default(now()) breaks the
+        // tie at row insertion time and keeps audit ordering deterministic.
+        orderBy: [{ valuedOn: "desc" }, { createdAt: "desc" }],
+        take,
       });
       return rows.map((r) => rowToHistoryEntry(r as unknown as CompassHistoryRow));
     },

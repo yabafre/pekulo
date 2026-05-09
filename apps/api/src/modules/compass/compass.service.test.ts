@@ -62,13 +62,17 @@ describe("compass.service", () => {
 
   // AC-4 (verbatim from story 1-1 L19): with the stub milestonePresenceProbe
   // (always false), getSetupState returns 'incomplete' regardless of compass row.
-  test("AC-4 (no compass): getSetupState returns 'incomplete'", async () => {
+  test("AC-4 (no compass): getSetupState returns 'incomplete' AND skips the probe", async () => {
     const { repo } = fakeRepo({ findResult: null });
+    // Track that the probe is NOT called when no compass row exists — the
+    // early-return contract was previously implicit; this pins it.
+    const probeMock = mock(async (_userId: string) => true);
     const service = createCompassService({
       repository: repo,
-      milestonePresenceProbe: probe(true),
+      milestonePresenceProbe: { hasAny: probeMock },
     });
     expect(await service.getSetupState("user-A")).toBe("incomplete");
+    expect(probeMock).not.toHaveBeenCalled();
   });
 
   test("AC-4 (compass + no milestone, stub probe): getSetupState returns 'incomplete'", async () => {
@@ -93,6 +97,24 @@ describe("compass.service", () => {
       milestonePresenceProbe: probe(true),
     });
     expect(await service.getSetupState("user-A")).toBe("complete");
+  });
+
+  // Probe rejection: getSetupState has no try/catch — pin the propagation
+  // contract so a future refactor doesn't silently swallow the failure (which
+  // would lie about setup state to the dashboard).
+  test("getSetupState propagates probe rejection (mapped to INTERNAL upstream)", async () => {
+    const { repo } = fakeRepo({
+      findResult: { objectif: 800_000, horizonYears: 25 },
+    });
+    const service = createCompassService({
+      repository: repo,
+      milestonePresenceProbe: {
+        hasAny: async () => {
+          throw new Error("probe boom");
+        },
+      },
+    });
+    await expect(service.getSetupState("user-A")).rejects.toThrow("probe boom");
   });
 
   // AC-3 (verbatim): computeProgress({ currentWealth: 60_000, capitalTarget:
