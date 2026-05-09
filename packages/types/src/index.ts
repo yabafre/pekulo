@@ -164,7 +164,7 @@ export interface CompassReader {
 // Compass-progress curve types (story 1-3, FR-7). Re-exported from
 // @pekulo/validators (Zod-inferred runtime SSOT) — kept in lockstep with the
 // Compass / MilestoneStatus pattern above.
-export type { CompassCurve, CompassCurvePoint } from "@pekulo/validators";
+export type { CompassCurve, CompassCurvePoint, CompassProgress } from "@pekulo/validators";
 
 // Wealth-history feed consumed by compass.getCompassCurve. V1 source is the
 // brownfield `monthly_tracking` table via the runtime-dependencies adapter
