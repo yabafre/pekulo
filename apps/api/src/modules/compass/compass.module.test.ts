@@ -50,7 +50,11 @@ function fakePrismaService() {
       }) => Promise<HistoryRow>;
       findMany: (args: {
         where: { userId: string };
-        orderBy?: { valuedOn?: "asc" | "desc" };
+        // Repo passes orderBy as an array (story 1-1 review hardening — tie-break
+        // on createdAt). Single-object form retained for forward-compat.
+        orderBy?:
+          | { valuedOn?: "asc" | "desc" }
+          | Array<{ valuedOn?: "asc" | "desc"; createdAt?: "asc" | "desc" }>;
         take?: number;
       }) => Promise<HistoryRow[]>;
       findFirst: (args: {
@@ -95,10 +99,15 @@ function fakePrismaService() {
       },
       findMany: async (args) => {
         const filtered = history.filter((r) => r.userId === args.where.userId);
+        // Accept both single-object orderBy and the multi-key array form
+        // (repo uses [{valuedOn:'desc'},{createdAt:'desc'}] for tie-break).
+        const head = Array.isArray(args.orderBy) ? args.orderBy[0] : args.orderBy;
         const sorted =
-          args.orderBy?.valuedOn === "desc"
+          head?.valuedOn === "desc"
             ? [...filtered].sort((a, b) => b.valuedOn.getTime() - a.valuedOn.getTime())
-            : filtered;
+            : head?.valuedOn === "asc"
+              ? [...filtered].sort((a, b) => a.valuedOn.getTime() - b.valuedOn.getTime())
+              : filtered;
         return args.take ? sorted.slice(0, args.take) : sorted;
       },
       findFirst: async (args) => {
@@ -222,5 +231,57 @@ describe("compass.module (wired)", () => {
     // First plan point is startDate with eur=0; last is endDate with eur=objectif.
     expect(curve.plan[0]!.eur).toBe(0);
     expect(curve.plan[curve.plan.length - 1]!.eur).toBe(800_000);
+  });
+
+  // Story 1-4: the new getCurrentProgress + listHistory handlers are wired
+  // through createCompassModule. The two tests below pin the wire — service
+  // layer correctness is covered in compass.service.test.ts.
+
+  // AC-1 (verbatim from story 1-4 L16): user A has compass (objectif=800_000,
+  // horizonYears=25) AND ≥1 MonthlyTracking row whose capitalTotal=180_400 →
+  // percent rounded to 22.6 (1 decimal).
+  test("AC-1 wired: getCurrentProgress returns percent computed from last snapshot", async () => {
+    const prismaService = fakePrismaService();
+    const mod = createCompassModule({
+      prismaService,
+      milestonePresenceProbe: {
+        async hasAny() {
+          return true;
+        },
+      },
+      wealthHistoryProvider: fakeWealth([
+        { at: new Date("2026-04-28T00:00:00Z"), totalEur: 180_400 },
+      ]),
+    });
+    await mod.service.updateCompass(USER_A, { objectif: 800_000, horizonYears: 25 });
+
+    const out = await mod.service.getCurrentProgress(USER_A);
+    expect(out.percent).toBe(22.6);
+    expect(out.currentWealth).toBe(180_400);
+    expect(out.objectif).toBe(800_000);
+    expect(out.horizonYears).toBe(25);
+    expect(out.gap).toBe(619_600);
+  });
+
+  // AC-10 (verbatim from story 1-4 L25): listHistory is reachable end-to-end
+  // and returns archived rows ordered desc by valuedOn. Two updateCompass
+  // calls stack two history rows (atomic upsert co-writes the audit row).
+  test("AC-10 wired: listHistory returns archived rows ordered desc", async () => {
+    const prismaService = fakePrismaService();
+    const mod = createCompassModule({
+      prismaService,
+      milestonePresenceProbe: {
+        async hasAny() {
+          return true;
+        },
+      },
+      wealthHistoryProvider: fakeWealth([]),
+    });
+    await mod.service.updateCompass(USER_A, { objectif: 700_000, horizonYears: 20 });
+    await mod.service.updateCompass(USER_A, { objectif: 800_000, horizonYears: 25 });
+
+    const out = await mod.service.listHistory(USER_A);
+    expect(out).toHaveLength(2);
+    expect(out[0]!.valuedOn.getTime()).toBeGreaterThan(out[1]!.valuedOn.getTime());
   });
 });
