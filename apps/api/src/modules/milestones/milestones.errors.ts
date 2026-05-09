@@ -25,7 +25,7 @@ export class MilestoneError extends PekuloError {
   // Forwarding constructor narrows `code` from PekuloErrorCode (parent union)
   // to MilestoneErrorCode. Without it, `new MilestoneError("UNAUTHORIZED", ...)`
   // would type-check.
-  // oxlint-disable-next-line no-useless-constructor
+  // oxlint-disable-next-line no-useless-constructor -- narrows code union (see comment above)
   constructor(code: MilestoneErrorCode, message: string, options?: { cause?: unknown }) {
     super(code, message, options);
   }

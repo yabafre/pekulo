@@ -13,12 +13,14 @@ import type {
   MilestonePresenceProbe,
   MilestoneStatusEntry,
 } from "@pekulo/types";
+import { MILESTONES_PER_USER_CAP } from "@pekulo/types";
 import type { AddMilestoneInput, UpdateMilestoneInput } from "@pekulo/validators";
 import { computeStatuses } from "../../common/derive/milestone-status";
 import { MilestoneError } from "./milestones.errors";
 import type { MilestoneRepository } from "./milestones.repository";
 
-export const MILESTONES_PER_USER_CAP = 20;
+// Re-exported for backwards-compat; new callers should import from @pekulo/types.
+export { MILESTONES_PER_USER_CAP };
 
 export interface MilestoneService {
   add(userId: string, input: AddMilestoneInput): Promise<Milestone>;
@@ -49,6 +51,11 @@ export function createMilestoneService(deps: {
   now?: () => Date;
 }): MilestoneService {
   const now = deps.now ?? (() => new Date());
+  // currentYear is derived from UTC, not the host clock, so the year boundary
+  // flips at 00:00 UTC for every user. A user in UTC+2 making a request at
+  // 23:59 local on Dec 31 sees the service compute year Y+1. Acceptable for
+  // V1 (Persona Alex, France=UTC+1/+2, no NYE midnight workflows). Re-evaluate
+  // when timezone-aware horizon arithmetic lands.
   const currentYear = () => now().getUTCFullYear();
 
   return {
@@ -61,14 +68,17 @@ export function createMilestoneService(deps: {
         );
       }
       assertYearInRange(input.targetYear, currentYear(), compass.horizonYears);
-      const count = await deps.repository.countByUser(userId);
-      if (count >= MILESTONES_PER_USER_CAP) {
+      // Cap + insert atomically in a $transaction (TOCTOU fix). A bare
+      // count→add sequence can race past the cap when two requests arrive at
+      // count = cap-1 (no DB constraint on user_id row count).
+      const result = await deps.repository.addEnforcingCap(userId, input, MILESTONES_PER_USER_CAP);
+      if ("capExceeded" in result) {
         throw new MilestoneError(
           "MILESTONE_LIMIT_EXCEEDED",
           `milestones cap is ${MILESTONES_PER_USER_CAP} per user`,
         );
       }
-      return deps.repository.add(userId, input);
+      return result;
     },
 
     async update(userId, input) {
@@ -97,6 +107,11 @@ export function createMilestoneService(deps: {
     },
 
     async delete(userId, id) {
+      // Asymmetry vs add/update/computeStatuses: no compass-presence check.
+      // A milestone may legitimately outlive its compass (e.g. compass row
+      // wiped but milestone rows orphaned by a partial delete elsewhere) —
+      // pruning must remain possible. Cross-user isolation is still enforced
+      // via the repository's { id, userId } filter.
       const ok = await deps.repository.delete(userId, id);
       if (!ok) {
         throw new MilestoneError("MILESTONE_NOT_FOUND", `milestone ${id} not found`);

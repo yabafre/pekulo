@@ -14,8 +14,9 @@
 // the route boundary's Zod validation but are also asserted here because the
 // helper is callable from any module (dashboard composition, service tests).
 
-import { MilestoneError } from "../../modules/milestones/milestones.errors";
+import { MILESTONE_STATUS_TOLERANCE_RATIO } from "@pekulo/types";
 import type { MilestoneStatus, MilestoneStatusEntry } from "@pekulo/types";
+import { MilestoneError } from "../../modules/milestones/milestones.errors";
 
 export interface ComputeStatusesInput {
   currentWealth: number;
@@ -23,8 +24,6 @@ export interface ComputeStatusesInput {
   compass: { objectif: number; horizonYears: number };
   milestones: ReadonlyArray<{ id: string; targetCapital: number; targetYear: number }>;
 }
-
-const TOLERANCE_RATIO = 0.05;
 
 export function computeStatuses(input: ComputeStatusesInput): MilestoneStatusEntry[] {
   if (!Number.isFinite(input.currentWealth) || input.currentWealth < 0) {
@@ -62,7 +61,7 @@ export function computeStatuses(input: ComputeStatusesInput): MilestoneStatusEnt
     const yearOffset = m.targetYear - input.currentYear;
     const expectedAt = input.currentWealth + slope * yearOffset;
     const delta = m.targetCapital - expectedAt;
-    const tolerance = TOLERANCE_RATIO * m.targetCapital;
+    const tolerance = MILESTONE_STATUS_TOLERANCE_RATIO * m.targetCapital;
     let status: MilestoneStatus;
     if (Math.abs(delta) <= tolerance) status = "on-track";
     else if (delta < 0) status = "ahead";

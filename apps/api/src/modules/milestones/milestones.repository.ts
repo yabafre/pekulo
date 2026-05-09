@@ -1,16 +1,22 @@
-// Prisma layer for the milestones module. Six responsibilities:
+// Prisma layer for the milestones module. Seven responsibilities:
 //   - add(userId, input): insert one row (id auto-injected by prefixedIds extension).
+//   - addEnforcingCap(userId, input, cap): atomic count+insert wrapped in
+//     $transaction — the service-side cap check is NOT race-safe on its own
+//     (TOCTOU between count and add). Returns `{ capExceeded: true }` instead
+//     of inserting when count >= cap. Mirrors compass.repository's $transaction
+//     pattern (audit + upsert).
 //   - update(userId, id, input): patch row, scoped by userId AND id.
 //   - delete(userId, id): delete row, scoped by userId AND id.
 //   - listByUser(userId): read rows ordered by [targetYear asc, position asc, createdAt asc].
 //   - findByIdForUser(userId, id): single-row probe for update/delete preconditions.
-//   - countByUser(userId): for the ≤ 20 cap (FR-3).
+//   - countByUser(userId): for read-only callers (e.g. dashboard cards).
 //   - hasAny(userId): for the MilestonePresenceProbe (FR-8).
 //
 // Every query carries an explicit `where: { userId }` clause (ADR-0013, defense
 // in depth). Single-row finds use `where: { id, userId }`. The lint rule
 // pekulo/no-prisma-query-without-user-id (story 0-12) gates this on every
-// method below.
+// method below — its `prismaIdentifier` accepts `["prisma","tx"]` so the
+// $transaction callback's `tx` is also covered.
 
 import type { ExtendedPrismaClient } from "../../database";
 import { decimalToNumber } from "../../common/derive/decimal-to-number";
@@ -19,6 +25,11 @@ import type { AddMilestoneInput, UpdateMilestoneInput } from "@pekulo/validators
 
 export interface MilestoneRepository {
   add(userId: string, input: AddMilestoneInput): Promise<Milestone>;
+  addEnforcingCap(
+    userId: string,
+    input: AddMilestoneInput,
+    cap: number,
+  ): Promise<Milestone | { capExceeded: true }>;
   update(
     userId: string,
     id: string,
@@ -60,16 +71,41 @@ export function createMilestoneRepository(deps: {
 }): MilestoneRepository {
   return {
     async add(userId, input) {
+      // position written explicitly (default 0) so the data shape stays
+      // type-checkable end-to-end. The `as unknown as ...` cast is narrowed
+      // to bridge the prefixedIds extension's runtime id injection (the
+      // generated type still requires `id`); same pattern as compass.upsert.
       const created = await deps.client.milestone.create({
         data: {
           userId,
           targetCapital: input.targetCapital,
           targetYear: input.targetYear,
           label: input.label ?? null,
-          // position not written from input — Q6=B forward-compat (default 0).
+          position: 0,
         } as unknown as Parameters<typeof deps.client.milestone.create>[0]["data"],
       });
       return rowToMilestone(created as unknown as MilestoneRow);
+    },
+
+    async addEnforcingCap(userId, input, cap) {
+      // Atomic cap enforcement: count + create within a single $transaction
+      // so two concurrent adds at count = cap-1 cannot both insert past the
+      // limit. Returns a `{ capExceeded: true }` sentinel so the service can
+      // raise the typed MilestoneError without leaking transaction concerns.
+      return deps.client.$transaction(async (tx) => {
+        const count = await tx.milestone.count({ where: { userId } });
+        if (count >= cap) return { capExceeded: true } as const;
+        const created = await tx.milestone.create({
+          data: {
+            userId,
+            targetCapital: input.targetCapital,
+            targetYear: input.targetYear,
+            label: input.label ?? null,
+            position: 0,
+          } as unknown as Parameters<typeof tx.milestone.create>[0]["data"],
+        });
+        return rowToMilestone(created as unknown as MilestoneRow);
+      });
     },
 
     async update(userId, id, input) {
