@@ -18,7 +18,9 @@ import { createJwtVerifier } from "../../platform/security";
 import { extractRequestId } from "../../common/errors";
 import { createCompassRouter } from "./compass.routes";
 import type { CompassService } from "./compass.service";
-import type { Compass, CompassCurve, CompassSetupState } from "@pekulo/validators";
+import type { Compass, CompassCurve, CompassProgress, CompassSetupState } from "@pekulo/validators";
+import { compassProgressSchema } from "@pekulo/validators";
+import type { CompassHistoryEntry } from "@pekulo/types";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
 const ISSUER = "https://integration.supabase.co/auth/v1";
@@ -84,6 +86,19 @@ function inMemoryService(): CompassService {
     },
     async getCompassCurve(_userId): Promise<CompassCurve> {
       return STUB_CURVE;
+    },
+    async getCurrentProgress(userId): Promise<CompassProgress> {
+      const c = store.get(userId) ?? { objectif: 800_000, horizonYears: 25 };
+      return {
+        currentWealth: 0,
+        objectif: c.objectif,
+        horizonYears: c.horizonYears,
+        percent: 0,
+        gap: c.objectif,
+      };
+    },
+    async listHistory(_userId, _opts): Promise<CompassHistoryEntry[]> {
+      return [];
     },
   };
 }
@@ -273,5 +288,44 @@ describe("compass bridge (integration)", () => {
     const body = (await res.json()) as { error: { code: string; requestId: string } };
     expect(body.error.code).toBe("UNAUTHORIZED");
     expect(body.error.requestId).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  // ─── Story 1-4: getCurrentProgress + listHistory (FR-2, FR-5) ─────────
+
+  // AC-10 (verbatim from story 1-4 L25): valid HS256 JWT for user A →
+  // HTTP 200, body Zod-validated against compassProgressSchema. The exact
+  // numeric values come from the stub service; the integration test pins the
+  // wire shape, not the math (covered in compass.service.test.ts).
+  test("AC-10 happy: POST getCurrentProgress with valid JWT → 200 + progress payload", async () => {
+    const jwt = await signValid();
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/getCurrentProgress`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: CompassProgress };
+    const parsed = compassProgressSchema.parse(body.json);
+    expect(parsed.objectif).toBeGreaterThan(0);
+    expect(parsed.percent).toBeGreaterThanOrEqual(0);
+  });
+
+  // AC-10 (verbatim from story 1-4 L25): same call without a JWT → HTTP 401
+  // within 100 ms. Mirrors AC-8 unauth shape — no body assertion beyond
+  // status code (the bridge wraps PekuloError("UNAUTHORIZED", ...) the same
+  // way for every compass procedure).
+  test("AC-10 unauth: POST listHistory without JWT → 401", async () => {
+    const startedAt = Date.now();
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/listHistory`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ json: {} }),
+    });
+    const elapsed = Date.now() - startedAt;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
   });
 });
