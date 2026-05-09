@@ -8,7 +8,7 @@ import type { PrismaService } from "../../database";
 import { createCompassRepository } from "./compass.repository";
 import { createCompassService, type CompassService } from "./compass.service";
 import { createCompassRouter } from "./compass.routes";
-import type { MilestonePresenceProbe } from "@pekulo/types";
+import type { MilestonePresenceProbe, WealthHistoryProvider } from "@pekulo/types";
 
 export interface CompassModule {
   service: CompassService;
@@ -18,11 +18,13 @@ export interface CompassModule {
 export function createCompassModule(deps: {
   prismaService: PrismaService;
   milestonePresenceProbe: MilestonePresenceProbe;
+  wealthHistoryProvider: WealthHistoryProvider;
 }): CompassModule {
   const repository = createCompassRepository({ client: deps.prismaService.client });
   const service = createCompassService({
     repository,
     milestonePresenceProbe: deps.milestonePresenceProbe,
+    wealthHistoryProvider: deps.wealthHistoryProvider,
   });
   const router = createCompassRouter({ service });
   return { service, router };

@@ -7,6 +7,11 @@ import { describe, expect, test } from "bun:test";
 import { Prisma } from "@generated/prisma/client";
 import { createCompassModule } from "./compass.module";
 import type { PrismaService } from "../../database";
+import type { WealthHistoryProvider, WealthSnapshot } from "@pekulo/types";
+
+function fakeWealth(snapshots: WealthSnapshot[]): WealthHistoryProvider {
+  return { read: async () => snapshots };
+}
 
 const USER_A = "44444444-4444-4444-4444-444444444444";
 
@@ -48,6 +53,11 @@ function fakePrismaService() {
         orderBy?: { valuedOn?: "asc" | "desc" };
         take?: number;
       }) => Promise<HistoryRow[]>;
+      findFirst: (args: {
+        where: { userId: string };
+        orderBy?: { valuedOn?: "asc" | "desc" };
+        select?: { valuedOn?: boolean };
+      }) => Promise<{ valuedOn: Date } | null>;
     };
     $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
   };
@@ -91,6 +101,18 @@ function fakePrismaService() {
             : filtered;
         return args.take ? sorted.slice(0, args.take) : sorted;
       },
+      findFirst: async (args) => {
+        const filtered = history.filter((r) => r.userId === args.where.userId);
+        const sorted =
+          args.orderBy?.valuedOn === "asc"
+            ? [...filtered].sort((a, b) => a.valuedOn.getTime() - b.valuedOn.getTime())
+            : args.orderBy?.valuedOn === "desc"
+              ? [...filtered].sort((a, b) => b.valuedOn.getTime() - a.valuedOn.getTime())
+              : filtered;
+        const row = sorted[0];
+        if (!row) return null;
+        return args.select?.valuedOn ? { valuedOn: row.valuedOn } : { valuedOn: row.valuedOn };
+      },
     },
     $transaction: async (callback) => callback(client),
   };
@@ -108,6 +130,7 @@ describe("compass.module (wired)", () => {
           return false;
         },
       },
+      wealthHistoryProvider: fakeWealth([]),
     });
 
     // Create.
@@ -139,10 +162,65 @@ describe("compass.module (wired)", () => {
           return presence;
         },
       },
+      wealthHistoryProvider: fakeWealth([]),
     });
     await mod.service.updateCompass(USER_A, { objectif: 800_000, horizonYears: 25 });
     expect(await mod.service.getSetupState(USER_A)).toBe("incomplete");
     presence = true;
     expect(await mod.service.getSetupState(USER_A)).toBe("complete");
+  });
+
+  // Story 1-3 T8: wired AC-1 + AC-2 flow on fake Prisma + fake wealth provider.
+  // Pins that createCompassModule threads wealthHistoryProvider all the way
+  // through to compass-curve.ts — a regression here means the runtime adapter
+  // (T9) is silently disconnected. Plan-length assertions live at the service
+  // layer (compass.service.test.ts) where the clock is injected; here we use
+  // the real wall clock so length-equality would be flaky against startDate ≈
+  // today collapse via dedup.
+  test("AC-1 (curve): wired flow with 3 snapshots forwards them as actual", async () => {
+    const prismaService = fakePrismaService();
+    const snapshots = [
+      { at: new Date("2024-12-28T00:00:00Z"), totalEur: 10_000 },
+      { at: new Date("2025-06-28T00:00:00Z"), totalEur: 20_000 },
+      { at: new Date("2026-04-28T00:00:00Z"), totalEur: 35_000 },
+    ];
+    const mod = createCompassModule({
+      prismaService,
+      milestonePresenceProbe: {
+        async hasAny() {
+          return false;
+        },
+      },
+      wealthHistoryProvider: fakeWealth(snapshots),
+    });
+    await mod.service.updateCompass(USER_A, { objectif: 800_000, horizonYears: 25 });
+
+    const curve = await mod.service.getCompassCurve(USER_A);
+    expect(curve.actual).toHaveLength(3);
+    expect(curve.actual.map((a) => a.eur)).toEqual([10_000, 20_000, 35_000]);
+    // Each actual date is mirrored in plan (alignment invariant from AC-1).
+    for (const a of curve.actual) {
+      expect(curve.plan.some((p) => p.at.getTime() === a.at.getTime())).toBe(true);
+    }
+  });
+
+  test("AC-2 (curve): wired flow with 0 snapshots returns actual=[] + plan with anchors", async () => {
+    const prismaService = fakePrismaService();
+    const mod = createCompassModule({
+      prismaService,
+      milestonePresenceProbe: {
+        async hasAny() {
+          return false;
+        },
+      },
+      wealthHistoryProvider: fakeWealth([]),
+    });
+    await mod.service.updateCompass(USER_A, { objectif: 800_000, horizonYears: 25 });
+
+    const curve = await mod.service.getCompassCurve(USER_A);
+    expect(curve.actual).toEqual([]);
+    // First plan point is startDate with eur=0; last is endDate with eur=objectif.
+    expect(curve.plan[0]!.eur).toBe(0);
+    expect(curve.plan[curve.plan.length - 1]!.eur).toBe(800_000);
   });
 });
