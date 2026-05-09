@@ -116,7 +116,9 @@ pipeline:
       ticket_sync: "synced"
       synced_at: "2026-05-03T19:43:00Z"
     dev:
-      status: "done"
+      status: "in-progress"
+      active_story: "1-1-compass-domain"
+      started_at: "2026-05-09T15:00:00Z"
 # GitHub Issues sync (top-level, written by aped-epics step 8.7)
 ticket_sync:
   provider: "github"
@@ -163,7 +165,7 @@ corrections_count: 0
 #   started_at:   ISO8601 timestamp set when status flips to in-progress
 sprint:
   project: "pekulo-v1"
-  active_epic: 0
+  active_epic: 1
   umbrella_branch: "main"
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
@@ -180,7 +182,7 @@ sprint:
     0-11-precommit-secrets: {status: done, depends_on: [0-2-oxc-toolchain], ticket: "#11", worktree: null, started_at: "2026-05-07T12:00:00Z"}
     0-12-custom-oxlint-rules: {status: done, depends_on: [0-2-oxc-toolchain, 0-10-pekulo-ui-migration], ticket: "#12", worktree: null, started_at: "2026-05-09T00:00:00Z", reviewed_at: "2026-05-09T14:30:00Z"}
     # Epic 1 — Compass & milestones (V1 differentiator)
-    1-1-compass-domain: {status: pending, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#13", worktree: null}
+    1-1-compass-domain: {status: review-queued, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#13", worktree: null, started_at: "2026-05-09T15:00:00Z", dev_completed_at: "2026-05-09T17:30:00Z"}
     1-2-milestones-domain: {status: pending, depends_on: [1-1-compass-domain], ticket: "#14", worktree: null}
     1-3-compass-curve: {status: pending, depends_on: [1-1-compass-domain], ticket: "#15", worktree: null}
     1-4-compass-ui-cap: {status: pending, depends_on: [1-1-compass-domain, 1-2-milestones-domain, 1-3-compass-curve, 0-10-pekulo-ui-migration], ticket: "#16", worktree: null}
