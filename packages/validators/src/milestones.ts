@@ -9,9 +9,29 @@
 
 import { z } from "zod";
 
-// Upper bound on targetCapital matches compass MAX_OBJECTIF_EUR (1e12).
-const MAX_TARGET_CAPITAL_EUR = 1_000_000_000_000;
-const MAX_LABEL_LENGTH = 120;
+// Domain constants — exported as the SSOT for both validator bounds AND
+// downstream consumers (apps/api service caps, apps/web form maxLength,
+// @pekulo/types re-exports). Same centralization rule as the types
+// (project invariant 2026-05-09). Anyone needing these imports from
+// @pekulo/types, never inlines a literal.
+
+// Upper bound on targetCapital: 1e9 EUR (1 billion). Tighter than compass
+// MAX_OBJECTIF_EUR (1e12) because targetCapital flows through the JS Number
+// write path (not coerced via Prisma.Decimal at ingress) — IEEE-754 starts
+// losing integer precision around 9e15 but cents-precision (×100) needs the
+// safe-integer range to round-trip fractional EUR safely. 1e9 EUR is well
+// above Persona Alex's plausible cap (~1.5M) and keeps all values in the
+// fully-safe range. Story 1-2 review hardening.
+export const MAX_TARGET_CAPITAL_EUR = 1_000_000_000;
+export const MAX_LABEL_LENGTH = 120;
+// Per-user cap on milestone rows (FR-3). Centralized here so apps/web
+// can gate the "+" button + apps/api service can throw consistently.
+export const MILESTONES_PER_USER_CAP = 20;
+// FR-6 ±5% band — `|delta| <= ratio × targetCapital` classifies a milestone
+// as 'on-track'; outside the band, sign of delta picks 'ahead' (delta < 0)
+// or 'behind' (delta > 0). Centralized so apps/web can show the same band
+// in tooltips ("ahead by > 5%") without duplicating the magic number.
+export const MILESTONE_STATUS_TOLERANCE_RATIO = 0.05;
 const PREFIXED_ID_RE = /^mst_[0-9A-Za-z]{21}$/;
 
 export const milestoneIdSchema = z
