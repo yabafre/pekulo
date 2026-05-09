@@ -1,0 +1,17 @@
+// apps/api/prisma/schema/compass.prisma
+// CompassHistory — append-only audit sister of `hypotheses`. Each updateCompass
+// inserts one row carrying the post-update (objectif, horizonYears) snapshot.
+// RLS policies (INSERT + SELECT only — audit variant per ADR-0001) are
+// appended manually to the migration SQL — Prisma does not introspect them.
+
+model CompassHistory {
+  id           String   @id
+  userId       String   @map("user_id") @db.Uuid
+  objectif     Decimal  @db.Decimal
+  horizonYears Int      @map("horizon_years") @db.SmallInt
+  valuedOn     DateTime @default(now()) @map("valued_on") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([userId, valuedOn(sort: Desc)])
+  @@map("compass_history")
+}
