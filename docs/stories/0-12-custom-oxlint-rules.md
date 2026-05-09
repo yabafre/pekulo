@@ -1451,3 +1451,82 @@ $ bun --filter='@pekulo/oxlint-config' run typecheck
 **Deleted (1)**
 
 - `packages/oxlint-config/src/index.ts`
+
+## Review Record
+
+**Date:** 2026-05-09
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+Spec auditor approved (7/7 ACs implemented, 16/16 tasks evidenced). Code + Edge converged on 4 MAJOR bypass classes inherent to the heuristic AST-only ruleset; user opted to fix all findings rather than defer. Patches landed in commit `7694fa5`.
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] `no-prisma-query-without-user-id` covered only the exact `prisma.<model>.<method>` 3-segment shape — bypass via optional chaining, computed access, transactional sub-clients, aliased / `this.*` chains, OrThrow methods. [`packages/oxlint-config/src/rules/no-prisma-query-without-user-id.js`]
+  - Source: Code + Edge (converged)
+  - Resolution: `7694fa5` — `unwrapChain` + extended `getDottedMemberName` (optional chains, computed string-literal access, ThisExpression root). Rule does trailing-3-tuple match (`this.prisma.account.findMany` → root="prisma"). `prismaIdentifier` accepts `string | string[]`; opt-in `["prisma","tx"]` covers `$transaction` callbacks. Added `findFirstOrThrow` / `findUniqueOrThrow` to user-scoped methods.
+- [MAJOR] `no-tailwind-outside-ui` only saw raw `className="..."` strings — `cn()` / `clsx()` / template literals slipped past, regex over-matched user-defined classnames sharing TW prefixes. [`packages/oxlint-config/src/rules/no-tailwind-outside-ui.js`]
+  - Source: Code + Edge (converged)
+  - Resolution: `7694fa5` — added `CallExpression` visitor scanning `cn|clsx|tw|twMerge|classNames` arguments (configurable list); recursive descent into `JSXExpressionContainer` covers `Literal`, `TemplateLiteral`, `LogicalExpression`, `ConditionalExpression`, `ArrayExpression`, `ObjectExpression` (clsx-key form). README documents the heuristic trade-off explicitly. Anchored `uiRoot` via `fileUnderDir` (no substring slip).
+- [MAJOR] `no-server-action-in-component` bypass via dynamic `await import()`. [`packages/oxlint-config/src/rules/no-server-action-in-component.js`]
+  - Source: Code + Edge (converged)
+  - Resolution: `7694fa5` — added `ImportExpression` listener delegating to the same `checkSource` as `ImportDeclaration`. RuleTester invalid case added.
+- [MAJOR] `no-cross-feature-action-import` bypass via dynamic import + false-positive on type-only imports. [`packages/oxlint-config/src/rules/no-cross-feature-action-import.js`]
+  - Source: Edge
+  - Resolution: `7694fa5` — added `ImportExpression` listener. New `allowTypeImports` option (default `true`) skips `node.importKind === "type"`. RuleTester invalid case for dynamic import added; type-import path documented and deferred to integration smoke (espree lacks TS syntax).
+- [MAJOR] Re-export laundering bypasses both layering rules (no static import-graph walker). [`README.md`]
+  - Source: Edge
+  - Resolution: `7694fa5` — accepted as documented punt. README "known limitations" sections + Follow-ups list the gap as a candidate for a future rule. Statically unsolvable without whole-program graph analysis.
+- [MINOR] `findObjectProperty` silently ignored `SpreadElement` → false positive on `prisma.account.findMany({ ...args })`. [`packages/oxlint-config/src/utils/ast.js`]
+  - Source: Code + Edge
+  - Resolution: `7694fa5` — added `hasSpreadElement` helper; `hasWhereUserId` now fail-opens on top-level spread, on non-ObjectExpression `where` value, and on spread inside `where`. RuleTester valid cases cover all three shapes.
+- [MINOR] AC-6 smoke driver asserted `exitCode !== 0` instead of `=== 1` literal. [`packages/oxlint-config/tests/integration/oxlint-smoke.test.js`]
+  - Source: Spec
+  - Resolution: `7694fa5` — `expect(r.exitCode).toBe(1)` strict.
+- [MINOR] Smoke driver spawned 8 `bunx oxlint` serially via `spawnSync`. [`packages/oxlint-config/tests/integration/oxlint-smoke.test.js`]
+  - Source: Code
+  - Resolution: `7694fa5` — `Bun.spawn` + `Promise.all` in `beforeAll`; results memoised in a Map. Test runtime 526ms → 342ms.
+- [MINOR] `unscopedModels` was case-sensitive (`["FxRate"]` vs `prisma.fxRate.findMany` foot-gun). [`packages/oxlint-config/src/rules/no-prisma-query-without-user-id.js`]
+  - Source: Edge
+  - Resolution: `7694fa5` — `camelize()` normalises both sides. RuleTester valid case proves both forms.
+- [MINOR] Dev Agent Record `Started 13:43Z > Completed 11:59Z` clerical inversion. [`docs/stories/0-12-custom-oxlint-rules.md`]
+  - Source: Edge
+  - Resolution: `7694fa5` — swapped to `Started 11:43Z`, `Completed 13:59Z`.
+- [NIT] Fixture-config rename (`.oxlintrc.json` → `fixture-oxlintrc.json`) had no in-place comment. [`packages/oxlint-config/tests/integration/fixtures/fixture-oxlintrc.json`]
+  - Source: Spec
+  - Resolution: `7694fa5` — JSONC comment at top of fixture config (oxlint accepts JSONC); annotated rationale in smoke driver next to `configPath`.
+- [NIT] `uiRoot` substring match too loose (`/lib/packages/ui/foo.tsx` would slip). [`packages/oxlint-config/src/rules/no-tailwind-outside-ui.js`]
+  - Source: Code
+  - Resolution: `7694fa5` — replaced with `fileUnderDir` helper (anchored prefix or `/dir` boundary).
+- [NIT] README didn't mention the broader R1 package-layer hierarchy is enforced elsewhere. [`packages/oxlint-config/README.md`]
+  - Source: Code
+  - Resolution: `7694fa5` — Follow-ups section added.
+- [NIT] `getDottedMemberName` rejected `this.prisma.account.findMany`. [`packages/oxlint-config/src/utils/ast.js`]
+  - Source: Edge
+  - Resolution: `7694fa5` — `ThisExpression` root maps to literal `"this"` segment; rule's trailing-3-tuple match handles it. Test covers.
+- [NIT] Global activation of `pekulo/no-cross-feature-action-import` is forward-looking but uncommented. [`.oxlintrc.json`]
+  - Source: Spec
+  - Resolution: `7694fa5` — JSONC comment at root config explains the forward-looking posture.
+
+#### Dismissed
+
+(none — user opted to fix all findings)
+
+#### Unresolved
+
+(none)
+
+### Verification
+
+- Test command: `cd packages/oxlint-config && bun test` (plus `bunx oxlint` from repo root, `bun --filter='@pekulo/oxlint-config' run typecheck`)
+- Test output (final pass): `57 pass / 0 fail / 5 files / 342ms` (was 33 / 0 fail pre-review; +24 cases for new bypass coverage; runtime improved via parallel `Bun.spawn`)
+- `bunx oxlint` (root): `Found 0 warnings and 0 errors. Finished in 535ms on 308 files`
+- `tsc --noEmit`: exit 0
+- Visual verification: N/A — no frontend component delta (the 3 `.tsx` edits in `packages/ui` were `eslint-disable` comment swaps, no rendered output change)
+
+### Ticket sync
+
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/12#issuecomment-4412530700
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/72 (base `main` = sprint umbrella; title + body updated with Review Record link)
