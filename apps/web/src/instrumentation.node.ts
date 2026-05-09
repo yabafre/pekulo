@@ -46,6 +46,7 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic
 // does not silently fall back at runtime.
 function validateUrlOrThrow(name: string, value: string): string {
   try {
+    // eslint-disable-next-line no-new -- URL constructor used purely for parse-validation
     new URL(value);
     return value;
   } catch {

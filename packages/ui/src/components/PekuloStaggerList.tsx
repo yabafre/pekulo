@@ -37,7 +37,7 @@ export function PekuloStaggerList({
     >
       {items.map((child, i) => (
         <View
-          // biome-ignore lint/suspicious/noArrayIndexKey: stable order per render
+          // eslint-disable-next-line react/no-array-index-key -- stable order per render
           key={i}
           render="li"
           style={{ animationDelay: `${delays[i] ?? 0}ms` }}

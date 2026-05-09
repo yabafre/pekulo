@@ -1,0 +1,36 @@
+{
+  // Renamed from `.oxlintrc.json` to escape oxlint's walk-up auto-discovery —
+  // a `.oxlintrc.json` here would trip pekulo/* on the deliberately-violating
+  // fixtures during a normal `bunx oxlint` from the repo root. The smoke
+  // driver passes `--config <this-file>` explicitly.
+  "$schema": "../../../../../node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "off",
+    "suspicious": "off",
+    "perf": "off",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off",
+    "pedantic": "off"
+  },
+  "jsPlugins": ["../../../src/index.js"],
+  "rules": {
+    "pekulo/no-prisma-query-without-user-id": "error",
+    "pekulo/no-tailwind-outside-ui": [
+      "error",
+      { "uiRoot": "tests/integration/fixtures/__never__/" }
+    ],
+    "pekulo/no-server-action-in-component": [
+      "error",
+      {
+        "actionRoot": "lib/actions/",
+        "componentRoots": ["tests/integration/fixtures/server-action/"]
+      }
+    ],
+    "pekulo/no-cross-feature-action-import": [
+      "error",
+      { "featureRoots": ["tests/integration/fixtures/cross-feature/"] }
+    ]
+  }
+}

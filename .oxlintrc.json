@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "import", "jsx-a11y", "nextjs"],
+  "jsPlugins": ["./packages/oxlint-config/src/index.js"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -13,7 +14,13 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/react-in-jsx-scope": "off",
-    "import/no-unassigned-import": "off"
+    "import/no-unassigned-import": "off",
+    // pekulo/* — globally-activated rules self-gate on `context.filename`
+    // (no-tailwind-outside-ui exempts uiRoot; no-cross-feature-action-import
+    // exempts files outside featureRoots). Forward-looking: covers files
+    // that don't exist yet under apps/web/src/features/.
+    "pekulo/no-tailwind-outside-ui": "error",
+    "pekulo/no-cross-feature-action-import": "error"
   },
   "env": {
     "browser": true,
@@ -40,13 +47,38 @@
     "docs/ux-preview/",
     ".aped/",
     ".agents/",
-    "docs/sync-logs/"
+    "docs/sync-logs/",
+    "packages/oxlint-config/tests/integration/fixtures/"
   ],
   "overrides": [
     {
       "files": ["apps/web/src/components/ui/**/*.{ts,tsx}"],
       "rules": {
         "jsx-a11y/label-has-associated-control": "off"
+      }
+    },
+    {
+      "files": ["apps/api/src/platform/observability/otel-sdk.ts"],
+      "rules": {
+        "no-underscore-dangle": "off"
+      }
+    },
+    {
+      "files": ["apps/api/**/*.{ts,tsx}"],
+      "rules": {
+        "pekulo/no-prisma-query-without-user-id": "error"
+      }
+    },
+    {
+      "files": ["apps/web/src/components/**/*.{ts,tsx}", "apps/web/src/app/**/*.{ts,tsx}"],
+      "rules": {
+        "pekulo/no-server-action-in-component": "error"
+      }
+    },
+    {
+      "files": ["packages/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "pekulo/no-tailwind-outside-ui": "off"
       }
     }
   ]

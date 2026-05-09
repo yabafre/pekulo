@@ -25,7 +25,7 @@ export function PekuloRecentActivityCard({
     <Section className={className} title={title} ariaLabel={ariaLabel ?? title}>
       <View flexDirection="column">
         {activities.map((tx, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: activities lack stable ids; order is the caller's contract
+          // eslint-disable-next-line react/no-array-index-key -- activities lack stable ids; order is the caller's contract
           <PekuloActivityRow key={`${tx.label}-${tx.amountEur}-${i}`} tx={tx} />
         ))}
       </View>
