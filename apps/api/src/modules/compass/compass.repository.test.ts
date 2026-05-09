@@ -98,15 +98,23 @@ function fakeClient() {
     },
   );
 
+  // The $transaction mock receives a callback that expects a tx with the same
+  // shape as the outer client. We declare the client first (without the
+  // $transaction key), then attach $transaction in a second pass — that
+  // breaks the circular type reference TS would otherwise flag (TS2502).
+  const clientObj: {
+    hypothesis: { upsert: typeof upsert; findUnique: typeof findUnique };
+    compassHistory: { create: typeof create; findMany: typeof findMany };
+    $transaction: ReturnType<typeof mock>;
+  } = {
+    hypothesis: { upsert, findUnique },
+    compassHistory: { create, findMany },
+    $transaction: mock(),
+  };
   const $transaction = mock(
     async <T>(callback: (tx: typeof clientObj) => Promise<T>): Promise<T> => callback(clientObj),
   );
-
-  const clientObj = {
-    hypothesis: { upsert, findUnique },
-    compassHistory: { create, findMany },
-    $transaction,
-  };
+  clientObj.$transaction = $transaction;
 
   return { client: clientObj, mocks: { upsert, findUnique, create, findMany, $transaction } };
 }

@@ -13,6 +13,12 @@ export type CompassErrorCode =
 export class CompassError extends PekuloError {
   override readonly name = "CompassError";
 
+  // The forwarding constructor exists to narrow `code` from PekuloErrorCode
+  // (the parent's union) to CompassErrorCode (the four compass-specific codes).
+  // Without it, `new CompassError("UNAUTHORIZED", ...)` would type-check.
+  // oxlint's no-useless-constructor doesn't see TS-level narrowing as
+  // meaningful work, hence the disable.
+  // oxlint-disable-next-line no-useless-constructor
   constructor(code: CompassErrorCode, message: string, options?: { cause?: unknown }) {
     super(code, message, options);
   }

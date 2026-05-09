@@ -26,13 +26,35 @@ function fakePrismaService() {
   const nextDate = () => new Date(now++);
   let nextHistoryId = 0;
 
-  const client = {
+  // Same shape-without-$transaction trick as compass.repository.test.ts to
+  // avoid the TS7022 "client implicitly has type 'any'" circular reference.
+  type FakeClient = {
     hypothesis: {
-      upsert: async (args: {
+      upsert: (args: {
         where: { userId: string };
         update: { objectif: number; horizonYears: number };
         create: { userId: string; objectif: number; horizonYears: number };
-      }) => {
+      }) => Promise<{ objectif: Prisma.Decimal; horizonYears: number }>;
+      findUnique: (args: {
+        where: { userId: string };
+      }) => Promise<{ objectif: Prisma.Decimal; horizonYears: number } | null>;
+    };
+    compassHistory: {
+      create: (args: {
+        data: { userId: string; objectif: number; horizonYears: number };
+      }) => Promise<HistoryRow>;
+      findMany: (args: {
+        where: { userId: string };
+        orderBy?: { valuedOn?: "asc" | "desc" };
+        take?: number;
+      }) => Promise<HistoryRow[]>;
+    };
+    $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
+  };
+
+  const client: FakeClient = {
+    hypothesis: {
+      upsert: async (args) => {
         const userId = args.where.userId;
         const next = hypotheses.has(userId)
           ? {
@@ -46,13 +68,10 @@ function fakePrismaService() {
         hypotheses.set(userId, next);
         return next;
       },
-      findUnique: async (args: { where: { userId: string } }) =>
-        hypotheses.get(args.where.userId) ?? null,
+      findUnique: async (args) => hypotheses.get(args.where.userId) ?? null,
     },
     compassHistory: {
-      create: async (args: {
-        data: { userId: string; objectif: number; horizonYears: number };
-      }) => {
+      create: async (args) => {
         const row: HistoryRow = {
           id: `cph_${nextHistoryId++}`,
           userId: args.data.userId,
@@ -64,11 +83,7 @@ function fakePrismaService() {
         history.push(row);
         return row;
       },
-      findMany: async (args: {
-        where: { userId: string };
-        orderBy?: { valuedOn?: "asc" | "desc" };
-        take?: number;
-      }) => {
+      findMany: async (args) => {
         const filtered = history.filter((r) => r.userId === args.where.userId);
         const sorted =
           args.orderBy?.valuedOn === "desc"
@@ -77,8 +92,7 @@ function fakePrismaService() {
         return args.take ? sorted.slice(0, args.take) : sorted;
       },
     },
-    $transaction: async <T>(callback: (tx: typeof client) => Promise<T>): Promise<T> =>
-      callback(client),
+    $transaction: async (callback) => callback(client),
   };
 
   return { client } as unknown as PrismaService;
