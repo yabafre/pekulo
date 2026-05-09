@@ -1,4 +1,4 @@
-import type { CompassReader, MilestonePresenceProbe } from "@pekulo/types";
+import type { CompassReader, MilestonePresenceProbe, WealthHistoryProvider } from "@pekulo/types";
 import type { Env } from "../config/env";
 import { createPrismaService, type PrismaService } from "../database";
 import { createReadiness, type Readiness } from "./readiness";
@@ -74,9 +74,31 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   };
   const milestonesModule = createMilestonesModule({ prismaService, compassReader });
   const milestonePresenceProbe: MilestonePresenceProbe = milestonesModule.presenceProbe;
+
+  // Story 1-3 T9 — Prisma-backed adapter over the brownfield monthly_tracking
+  // table. Closure pattern (mirrors compassReader above) keeps the compass
+  // module decoupled from MonthlyTracking — Epic 5 will swap this for a
+  // proper monthly module wiring without touching compass.
+  // L24 invariant: capitalTotal is Prisma.Decimal — coerce via decimalToNumber,
+  // never `Number(decimal)`. The 28-of-month UTC proxy is a safe last-of-month
+  // anchor (valid in every month, no leap-year edge case).
+  const wealthHistoryProvider: WealthHistoryProvider = {
+    async read(userId) {
+      const rows = await prismaService.client.monthlyTracking.findMany({
+        where: { userId },
+        orderBy: [{ year: "asc" }, { monthNum: "asc" }],
+        select: { year: true, monthNum: true, capitalTotal: true },
+      });
+      return rows.map((row) => ({
+        at: new Date(Date.UTC(row.year, row.monthNum - 1, 28)),
+        totalEur: decimalToNumber(row.capitalTotal, 0),
+      }));
+    },
+  };
   const compassModule = createCompassModule({
     prismaService,
     milestonePresenceProbe,
+    wealthHistoryProvider,
   });
 
   const orpcRouter: PekuloRpcRouter = {

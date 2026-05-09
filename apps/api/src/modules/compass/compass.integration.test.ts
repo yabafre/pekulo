@@ -18,7 +18,7 @@ import { createJwtVerifier } from "../../platform/security";
 import { extractRequestId } from "../../common/errors";
 import { createCompassRouter } from "./compass.routes";
 import type { CompassService } from "./compass.service";
-import type { Compass, CompassSetupState } from "@pekulo/validators";
+import type { Compass, CompassCurve, CompassSetupState } from "@pekulo/validators";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
 const ISSUER = "https://integration.supabase.co/auth/v1";
@@ -52,6 +52,19 @@ async function signWith(opts: {
     .sign(new TextEncoder().encode(SECRET));
 }
 
+// AC-7 stub curve (story 1-3 L22): the integration test pins the wire shape,
+// not the helper math — the helper has its own deterministic unit tests at
+// common/derive/compass-curve.test.ts.
+const STUB_CURVE: CompassCurve = {
+  startedAt: new Date("2024-01-15T00:00:00Z"),
+  actual: [],
+  plan: [
+    { at: new Date("2024-01-15T00:00:00Z"), eur: 0 },
+    { at: new Date("2026-05-09T12:00:00Z"), eur: 74438.36 },
+    { at: new Date("2049-01-15T00:00:00Z"), eur: 800_000 },
+  ],
+};
+
 function inMemoryService(): CompassService {
   const store = new Map<string, Compass>();
   return {
@@ -68,6 +81,9 @@ function inMemoryService(): CompassService {
     },
     computeProgress(input) {
       return { percent: 0, gap: input.capitalTarget - input.currentWealth };
+    },
+    async getCompassCurve(_userId): Promise<CompassCurve> {
+      return STUB_CURVE;
     },
   };
 }
