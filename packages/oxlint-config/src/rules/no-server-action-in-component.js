@@ -67,13 +67,29 @@ const rule = {
     );
     if (!isComponentFile(filename, componentRoots)) return {};
 
+    /**
+     * @param {import("estree").Node} sourceNode
+     * @param {import("estree").Node} reportNode
+     */
+    function checkSource(sourceNode, reportNode) {
+      const src = getStringLiteralValue(sourceNode);
+      if (!src) return;
+      if (importTargetsActions(src, actionRoot)) {
+        context.report({ node: reportNode, messageId: "forbidden" });
+      }
+    }
+
     return {
       ImportDeclaration(node) {
-        const src = getStringLiteralValue(node.source);
-        if (!src) return;
-        if (importTargetsActions(src, actionRoot)) {
-          context.report({ node: node.source, messageId: "forbidden" });
-        }
+        checkSource(node.source, node.source);
+      },
+      // Dynamic `await import("@/lib/actions/...")` — visited as ImportExpression
+      // in modern ESTree. Re-export laundering (`export * from`) and aliased
+      // re-exports of the action module from a non-action path are NOT
+      // covered by this rule; see README "known limitations".
+      /** @param {any} node */
+      ImportExpression(node) {
+        checkSource(node.source, node.source ?? node);
       },
     };
   },

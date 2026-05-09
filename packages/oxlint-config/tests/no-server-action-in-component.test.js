@@ -37,5 +37,11 @@ tester.run("no-server-action-in-component", rule, {
       filename: "apps/web/src/components/monthly/sign-off.tsx",
       errors: [{ messageId: "forbidden" }],
     },
+    // Dynamic import — the M3 bypass closed.
+    {
+      code: `const { recordTx } = await import("@/lib/actions/transactions");`,
+      filename: "apps/web/src/components/transactions-form.tsx",
+      errors: [{ messageId: "forbidden" }],
+    },
   ],
 });

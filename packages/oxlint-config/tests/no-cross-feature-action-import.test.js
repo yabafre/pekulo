@@ -37,5 +37,17 @@ tester.run("no-cross-feature-action-import", rule, {
       filename: "apps/web/src/features/transactions/components/list.tsx",
       errors: [{ messageId: "crossFeature", data: { from: "transactions", to: "monthly" } }],
     },
+    // Dynamic import — M4 bypass closed.
+    {
+      code: `const { listHoldings } = await import("@/features/holdings/server/list");`,
+      filename: "apps/web/src/features/accounts/foo.ts",
+      errors: [{ messageId: "crossFeature", data: { from: "accounts", to: "holdings" } }],
+    },
   ],
 });
+
+// Type-import behaviour is covered by the integration smoke fixture
+// (oxc parser carries `importKind: "type"`); espree does not support
+// the TS `import type` syntax so RuleTester cannot exercise that path
+// without a TS-aware parser dep. The smoke fixture asserts the
+// fail-open default (`allowTypeImports: true`).

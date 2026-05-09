@@ -15,6 +15,10 @@
     "react/rules-of-hooks": "error",
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": "off",
+    // pekulo/* — globally-activated rules self-gate on `context.filename`
+    // (no-tailwind-outside-ui exempts uiRoot; no-cross-feature-action-import
+    // exempts files outside featureRoots). Forward-looking: covers files
+    // that don't exist yet under apps/web/src/features/.
     "pekulo/no-tailwind-outside-ui": "error",
     "pekulo/no-cross-feature-action-import": "error"
   },

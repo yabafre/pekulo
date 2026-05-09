@@ -1,4 +1,8 @@
 {
+  // Renamed from `.oxlintrc.json` to escape oxlint's walk-up auto-discovery —
+  // a `.oxlintrc.json` here would trip pekulo/* on the deliberately-violating
+  // fixtures during a normal `bunx oxlint` from the repo root. The smoke
+  // driver passes `--config <this-file>` explicitly.
   "$schema": "../../../../../node_modules/oxlint/configuration_schema.json",
   "plugins": [],
   "categories": {
