@@ -42,5 +42,17 @@ export function createCompassRouter(deps: { service: CompassService }) {
       }
       return deps.service.getCompassCurve(context.userId);
     }),
+    getCurrentProgress: impl.getCurrentProgress.handler(async ({ context }) => {
+      if (!context.userId?.trim()) {
+        throw new PekuloError("UNAUTHORIZED", "user context missing");
+      }
+      return deps.service.getCurrentProgress(context.userId);
+    }),
+    listHistory: impl.listHistory.handler(async ({ context, input }) => {
+      if (!context.userId?.trim()) {
+        throw new PekuloError("UNAUTHORIZED", "user context missing");
+      }
+      return deps.service.listHistory(context.userId, input);
+    }),
   });
 }
