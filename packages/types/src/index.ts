@@ -161,6 +161,26 @@ export interface CompassReader {
   read(userId: string): Promise<{ objectif: number; horizonYears: number } | null>;
 }
 
+// Compass-progress curve types (story 1-3, FR-7). Re-exported from
+// @pekulo/validators (Zod-inferred runtime SSOT) — kept in lockstep with the
+// Compass / MilestoneStatus pattern above.
+export type { CompassCurve, CompassCurvePoint } from "@pekulo/validators";
+
+// Wealth-history feed consumed by compass.getCompassCurve. V1 source is the
+// brownfield `monthly_tracking` table via the runtime-dependencies adapter
+// (closure over prismaService.client.monthlyTracking.findMany). Mirrors the
+// CompassReader injection pattern (story 1-2): the compass module declares
+// the interface, the runtime wires the Prisma-backed adapter — the module
+// stays decoupled from MonthlyTracking and Epic 5's eventual port.
+export interface WealthSnapshot {
+  at: Date;
+  totalEur: number;
+}
+
+export interface WealthHistoryProvider {
+  read(userId: string): Promise<WealthSnapshot[]>;
+}
+
 // ─── Milestones — DB row + computed status (story 1-2) ───────────────────
 // Re-exported from @pekulo/validators for the same reason as Compass above:
 // validators is the runtime SSOT, types is the typed import surface.

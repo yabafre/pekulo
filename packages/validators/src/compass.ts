@@ -60,3 +60,20 @@ export const compassHorizonAbsoluteYearSchema = z
   .int()
   .min(currentYear + 1)
   .max(currentYear + MAX_HORIZON_YEARS);
+
+// Compass-progress curve (FR-7, story 1-3). Time-series envelope returned by
+// compass.getCompassCurve — paired plan (linear projection from compass start
+// to today, anchored at compass.objectif on horizon end) and actual (wealth
+// snapshots from MonthlyTracking). Both arrays are sorted ascending by at.
+export const compassCurvePointSchema = z.object({
+  at: z.date(),
+  eur: z.number(),
+});
+export type CompassCurvePoint = z.infer<typeof compassCurvePointSchema>;
+
+export const compassCurveSchema = z.object({
+  startedAt: z.date(),
+  actual: z.array(compassCurvePointSchema),
+  plan: z.array(compassCurvePointSchema),
+});
+export type CompassCurve = z.infer<typeof compassCurveSchema>;
