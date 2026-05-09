@@ -115,17 +115,61 @@ function fakeClient() {
     },
   );
 
+  // findFirst: same shape as Prisma — return the first row matching where +
+  // orderBy, projecting `select`. Story 1-3 T5 calls with
+  // { where: { userId }, orderBy: { valuedOn: 'asc' }, select: { valuedOn: true } }.
+  const findFirst = mock(
+    async (args: {
+      where: { userId: string };
+      orderBy?: OrderClause | OrderClause[];
+      select?: { valuedOn?: boolean };
+    }) => {
+      const filtered = history.filter((r) => r.userId === args.where.userId);
+      const clauses = Array.isArray(args.orderBy)
+        ? args.orderBy
+        : args.orderBy
+          ? [args.orderBy]
+          : [];
+      const sorted = clauses.length
+        ? [...filtered].sort((a, b) => {
+            for (const c of clauses) {
+              if (c.valuedOn) {
+                const d = b.valuedOn.getTime() - a.valuedOn.getTime();
+                if (d !== 0) return c.valuedOn === "desc" ? d : -d;
+              }
+              if (c.createdAt) {
+                const d = b.createdAt.getTime() - a.createdAt.getTime();
+                if (d !== 0) return c.createdAt === "desc" ? d : -d;
+              }
+            }
+            return 0;
+          })
+        : filtered;
+      const row = sorted[0];
+      if (!row) return null;
+      // Mirror Prisma's `select` projection — return only the requested keys.
+      if (args.select?.valuedOn) {
+        return { valuedOn: row.valuedOn };
+      }
+      return row;
+    },
+  );
+
   // The $transaction mock receives a callback that expects a tx with the same
   // shape as the outer client. We declare the client first (without the
   // $transaction key), then attach $transaction in a second pass — that
   // breaks the circular type reference TS would otherwise flag (TS2502).
   const clientObj: {
     hypothesis: { upsert: typeof upsert; findUnique: typeof findUnique };
-    compassHistory: { create: typeof create; findMany: typeof findMany };
+    compassHistory: {
+      create: typeof create;
+      findMany: typeof findMany;
+      findFirst: typeof findFirst;
+    };
     $transaction: ReturnType<typeof mock>;
   } = {
     hypothesis: { upsert, findUnique },
-    compassHistory: { create, findMany },
+    compassHistory: { create, findMany, findFirst },
     $transaction: mock(),
   };
   // Real Prisma's $transaction rolls back on callback throw — model that here
@@ -153,7 +197,7 @@ function fakeClient() {
 
   return {
     client: clientObj,
-    mocks: { upsert, findUnique, create, findMany, $transaction },
+    mocks: { upsert, findUnique, create, findMany, findFirst, $transaction },
     stores: { hypotheses, history },
   };
 }
@@ -246,6 +290,57 @@ describe("compass.repository", () => {
     const limited = await repo.listHistory(USER_A, { limit: 1 });
     expect(limited).toHaveLength(1);
     expect(limited[0]?.objectif).toBe(300_000);
+  });
+
+  // Story 1-3 T5: findCompassStartDate returns earliest compass_history.valuedOn
+  // for a user (the curve's anchor). AC-5 (cross-user isolation) is enforced
+  // by the where: { userId } clause; AC-6 (lint) gates the static guarantee.
+  test("findCompassStartDate: returns earliest valuedOn for user (happy path)", async () => {
+    const { client } = fakeClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const repo = createCompassRepository({ client: client as any });
+    // Two writes for USER_A — earliest valuedOn is the first one.
+    await repo.upsertCompassWithHistory(USER_A, { objectif: 500_000, horizonYears: 20 });
+    await repo.upsertCompassWithHistory(USER_A, { objectif: 800_000, horizonYears: 25 });
+
+    const earliest = await repo.findCompassStartDate(USER_A);
+    expect(earliest).toBeInstanceOf(Date);
+    // Two writes; the fake's monotonic nextDate makes the first write earliest.
+    const all = await repo.listHistory(USER_A);
+    expect(earliest!.getTime()).toBe(all[1]!.valuedOn.getTime());
+  });
+
+  test("findCompassStartDate: returns null when user has no history", async () => {
+    const { client } = fakeClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const repo = createCompassRepository({ client: client as any });
+    expect(await repo.findCompassStartDate("99999999-9999-9999-9999-999999999999")).toBeNull();
+  });
+
+  // AC-5 (verbatim from story 1-3 L20): user A has compass + 3 snapshots AND
+  // user B has compass (objectif=200_000, horizonYears=10) + 0 snapshots; when
+  // getCompassCurve("user-B") runs, no row from user A leaks. The where:
+  // { userId } clause on findCompassStartDate is the defense-in-depth proof.
+  test("AC-5: findCompassStartDate isolates users (no cross-user leakage)", async () => {
+    const { client, mocks } = fakeClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const repo = createCompassRepository({ client: client as any });
+    await repo.upsertCompassWithHistory(USER_A, { objectif: 800_000, horizonYears: 25 });
+    await repo.upsertCompassWithHistory(USER_B, { objectif: 200_000, horizonYears: 10 });
+
+    const aStart = await repo.findCompassStartDate(USER_A);
+    const bStart = await repo.findCompassStartDate(USER_B);
+    expect(aStart).not.toBeNull();
+    expect(bStart).not.toBeNull();
+    // Distinct: each user's earliest is their own row, never the other's.
+    expect(aStart!.getTime()).not.toBe(bStart!.getTime());
+
+    // Defense-in-depth: every findFirst call carries where: { userId }.
+    for (const call of mocks.findFirst.mock.calls) {
+      const args = call[0] as { where: { userId: string } };
+      expect(typeof args.where.userId).toBe("string");
+      expect(args.where.userId.length).toBeGreaterThan(0);
+    }
   });
 
   // AC-1 atomicity, rollback branch: when compassHistory.create rejects, the

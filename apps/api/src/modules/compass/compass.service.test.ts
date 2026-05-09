@@ -9,6 +9,7 @@ function fakeRepo(behaviour: { findResult?: Compass | null; upsertResult?: Compa
     find: ReturnType<typeof mock>;
     upsert: ReturnType<typeof mock>;
     list: ReturnType<typeof mock>;
+    findStart: ReturnType<typeof mock>;
   };
 } {
   const find = mock(async (_userId: string) => behaviour.findResult ?? null);
@@ -17,13 +18,15 @@ function fakeRepo(behaviour: { findResult?: Compass | null; upsertResult?: Compa
       behaviour.upsertResult ?? input,
   );
   const list = mock(async (_userId: string) => []);
+  const findStart = mock(async (_userId: string) => null);
   return {
     repo: {
       findCompass: find as CompassRepository["findCompass"],
       upsertCompassWithHistory: upsert as CompassRepository["upsertCompassWithHistory"],
       listHistory: list as CompassRepository["listHistory"],
+      findCompassStartDate: findStart as CompassRepository["findCompassStartDate"],
     },
-    mocks: { find, upsert, list },
+    mocks: { find, upsert, list, findStart },
   };
 }
 

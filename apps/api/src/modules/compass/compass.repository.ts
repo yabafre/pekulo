@@ -20,6 +20,9 @@ export interface CompassRepository {
     input: { objectif: number; horizonYears: number },
   ): Promise<Compass>;
   listHistory(userId: string, opts?: { limit?: number }): Promise<CompassHistoryEntry[]>;
+  // Earliest compass_history.valuedOn for the user — the curve's start anchor
+  // (story 1-3 FR-7). null when the user has never written a compass row.
+  findCompassStartDate(userId: string): Promise<Date | null>;
 }
 
 type HypothesisRow = {
@@ -99,6 +102,15 @@ export function createCompassRepository(deps: { client: ExtendedPrismaClient }):
       });
 
       return rowToCompass(result as unknown as HypothesisRow);
+    },
+
+    async findCompassStartDate(userId) {
+      const row = await deps.client.compassHistory.findFirst({
+        where: { userId },
+        orderBy: { valuedOn: "asc" },
+        select: { valuedOn: true },
+      });
+      return row?.valuedOn ?? null;
     },
 
     async listHistory(userId, opts) {
