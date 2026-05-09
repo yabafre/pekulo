@@ -40,7 +40,8 @@
     "docs/ux-preview/",
     ".aped/",
     ".agents/",
-    "docs/sync-logs/"
+    "docs/sync-logs/",
+    "packages/oxlint-config/tests/integration/fixtures/"
   ],
   "overrides": [
     {
