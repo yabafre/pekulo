@@ -1,7 +1,7 @@
 # Story: 1-1-compass-domain — Compass domain module with audit history and progress compute
 
 **Epic:** Epic 1 — Compass & milestones (V1 differentiator)
-**Status:** review
+**Status:** done
 **Ticket:** [#13](https://github.com/yabafre/pekulo/issues/13)
 **Branch:** `feature/13-1-1-compass-domain`
 **Commit prefix:** `feat(#13): …`
@@ -1593,3 +1593,77 @@ git commit -m "feat(#13): T12 — compass module + integration tests (AC-7)"
 - `apps/api/prisma/schema/hypothesis.prisma`
 - `apps/api/src/database/id-prefixes.config.ts` (`cph` already registered)
 - `apps/api/src/modules/hypothesis/*` (refactor to consume extracted `decimalToNumber` is OUT OF SCOPE)
+
+## Review Record
+
+**Date:** 2026-05-09
+**Auditors:** Spec, Code (backend), Edge & Hallucination
+**Verdict:** done
+
+Spec auditor APPROVED (7/7 ACs IMPLEMENTED, 12/12 tasks EVIDENT, HIGH confidence).
+Code auditor APPROVED (security/performance/reliability/test-quality/architecture all green; 5 testing anti-patterns PASS).
+Edge & Hallucination flagged 11 findings (0 BLOCKER, 5 MAJOR, 6 MINOR) — all RESOLVED in commit `2ba94eb`. Re-audit confirmed 11/11 RESOLVED, 0 regressions.
+
+### Findings
+
+#### Resolved
+
+- **[MAJOR] M1 — `$transaction` rollback unprovable by tests** [`compass.repository.test.ts`]
+  - Source: Edge — fake `$transaction` ran the callback without modelling rollback; AC-1 atomicity claim was untestable.
+  - Resolution (`2ba94eb`): fake snapshots/restores in-memory stores around the callback; new test "AC-1 rollback" injects a `compassHistory.create` failure and asserts both rejection AND empty hypothesis store.
+
+- **[MAJOR] M2 — `computeProgress` accepts `NaN`** [`compass-progress.ts:18-23`]
+  - Source: Edge — `NaN <= 0` is `false`, returns `{percent: NaN, gap: NaN}` downstream.
+  - Resolution (`2ba94eb`): `Number.isFinite()` guard on both `capitalTarget` and `currentWealth`; tests cover both NaN paths.
+
+- **[MAJOR] M3 — `computeProgress` accepts `Infinity`** [`compass-progress.ts:18-28`]
+  - Source: Edge — same root cause as M2.
+  - Resolution (`2ba94eb`): covered by the same `Number.isFinite()` guard; explicit Infinity tests on both params.
+
+- **[MAJOR] M4 — Rounding boundaries not pinned** [`compass-progress.ts:26`]
+  - Source: Edge — only clean fixtures (7.5 / 33.3); no half-up boundary fixtures.
+  - Resolution (`2ba94eb`): added 7.45 / 2.55 / 2.45 fixtures + comment documenting `Math.round` half-toward-+Infinity behaviour.
+
+- **[MAJOR] M5 — Integration test missed JWT verifier branches** [`compass.integration.test.ts`]
+  - Source: Edge — only missing-JWT and valid-JWT covered.
+  - Resolution (`2ba94eb`): `signWith` helper + 3 tests (expired / wrong-issuer / wrong-audience) → all 401 UNAUTHORIZED.
+
+- **[MINOR] m1 — `objectif` lacks upper bound** [`packages/validators/src/compass.ts`]
+  - Resolution (`2ba94eb`): `.max(1e12)` cap (`MAX_OBJECTIF_EUR`); persona Alex caps ~1.5M, 1e12 is the float-precision guardrail.
+
+- **[MINOR] m2 — Same-ms `valuedOn` collision in production** [`compass.repository.ts#listHistory`]
+  - Resolution (`2ba94eb`): `orderBy: [{ valuedOn: "desc" }, { createdAt: "desc" }]` (createdAt has `@default(now())`, deterministic tie-break).
+
+- **[MINOR] m3 — Whitespace `context.userId` slips through truthy guard** [`compass.routes.ts`]
+  - Resolution (`2ba94eb`): `!context.userId?.trim()` on all three handlers (defense at route boundary; JWT verifier upstream produces clean UUIDs).
+
+- **[MINOR] m4 — `listHistory(limit)` accepts 0 and negatives (Prisma reverse-pagination)** [`compass.repository.ts#listHistory`]
+  - Resolution (`2ba94eb`): clamp to `[1, 200]` via `Math.min(200, Math.max(1, requested))`.
+
+- **[MINOR] m5 — `getSetupState` doesn't pin probe-skip when compass is null** [`compass.service.test.ts`]
+  - Resolution (`2ba94eb`): `mock` + `expect(probeMock).not.toHaveBeenCalled()`.
+
+- **[MINOR] m6 — `getSetupState` probe-rejection contract not pinned** [`compass.service.test.ts`]
+  - Resolution (`2ba94eb`): new test asserts probe rejection propagates (mapped to INTERNAL upstream).
+
+#### Dismissed
+
+None.
+
+#### Unresolved
+
+None.
+
+### Verification
+
+- Test command: `bun test` (in `apps/api`)
+- Test output (final pass): **101 pass / 0 fail / 250 expect calls** (was 89 baseline; +12 hardening tests)
+- Typecheck: `bun --filter='@pekulo/api' run typecheck` exit 0; `bun --filter='@pekulo/validators' run typecheck` exit 0
+- Lint: `bunx oxlint apps/api/src/modules/compass/ apps/api/src/common/derive/ packages/validators/src/compass.ts` → 0 warnings, 0 errors (158 rules, 15 files)
+- Lefthook pre-commit: gitleaks ✓, oxlint ✓, oxfmt ✓
+- Visual verification: N/A — backend story (no UI surface).
+
+### Ticket sync
+
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/13#issuecomment-4412690399
+- PR opened: https://github.com/yabafre/pekulo/pull/73 (base `main`)
