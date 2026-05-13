@@ -101,11 +101,16 @@ export function CompassSection() {
 
   // Donut card composition mirrors ux-preview's `<DonutCard>` (App.tsx:749) —
   // Section frame, donut centered, then "Restant" caption + remaining EUR
-  // headline. The perf-delta line ("vs plan") depends on `useCompassCurve`
-  // data and is owned by story 7-1; this story keeps the curve hook wired
-  // for AC-6 but does not assemble the chart UI.
+  // headline. The perf-delta line ("+€ vs plan") depends on the curve data
+  // and is owned by story 7-1; this story keeps `useCompassCurve` wired for
+  // AC-6 but does not assemble the chart UI.
+  //
+  // The outer wrapper is empty on purpose — `apps/web/src/app/(cap)/dashboard/page.tsx`
+  // owns the page-level spacing (mirrors ux-preview `<main>` + `<CapView>` mobile
+  // `gap-10` between sections). Adding a `gap` here would compound with the
+  // page wrapper's gap.
   return (
-    <View flexDirection="column" gap="$5" padding="$4">
+    <>
       <Section ariaLabel={`Cap ${pctLabel}`}>
         <View flexDirection="column" alignItems="center" gap="$5" paddingVertical="$2">
           <PekuloDonut pct={pct} size={208} stroke={6} centered ariaLabel={`Cap ${pctLabel}`} />
@@ -128,7 +133,9 @@ export function CompassSection() {
       <MilestonesSection
         currentWealth={currentWealth}
         horizonAbsoluteYearMax={horizonAbsoluteYearMax}
+        compassObjectif={progress.data?.objectif}
+        compassHorizonYears={progress.data?.horizonYears}
       />
-    </View>
+    </>
   );
 }

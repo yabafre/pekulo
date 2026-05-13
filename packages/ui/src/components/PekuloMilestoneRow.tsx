@@ -65,8 +65,8 @@ export function PekuloMilestoneRow({ milestone, onDelete, isDeleting }: PekuloMi
   const sign = deltaEur >= 0 ? "+" : "−";
   const canDelete = onDelete && id;
   return (
-    <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
-      <PekuloDonut pct={progressPct} size={32} stroke={3} />
+    <View flexDirection="row" alignItems="center" gap="$4" paddingVertical="$3">
+      <PekuloDonut pct={progressPct} size={36} stroke={3} />
       <View flex={1}>
         <Text color="$color" fontSize="$bodySm" fontWeight="500">
           {label}

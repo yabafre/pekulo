@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { PekuloMilestoneRow, Section, useToast } from "@pekulo/ui";
+import { PekuloMilestoneRow, Section, pekuloRadius, useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useMilestones } from "../_hooks/use-milestones";
 import { useMilestoneStatuses } from "../_hooks/use-milestone-statuses";
@@ -13,6 +13,12 @@ import { AddMilestoneForm } from "./add-milestone-form";
 export interface MilestonesSectionProps {
   currentWealth: number;
   horizonAbsoluteYearMax: number;
+  /** Compass objectif + horizonYears feed the linear-plan donut math in
+   *  `deriveMilestoneCardItems` (mirrors ux-preview MilestoneRow's
+   *  `linearPlanForYear` computation). Both optional so a degraded paint
+   *  during the first compass-query resolution still renders rows. */
+  compassObjectif?: number;
+  compassHorizonYears?: number;
 }
 
 // Right-aligned `HeaderAction` pill — mirrors ux-preview's `HeaderAction`
@@ -28,7 +34,7 @@ const headerActionStyle: React.CSSProperties = {
   padding: "0 12px",
   backgroundColor: "var(--backgroundMuted)",
   color: "var(--color)",
-  borderRadius: 999,
+  borderRadius: pekuloRadius.full,
   border: "none",
   cursor: "pointer",
   fontSize: 12,
@@ -38,6 +44,8 @@ const headerActionStyle: React.CSSProperties = {
 export function MilestonesSection({
   currentWealth,
   horizonAbsoluteYearMax,
+  compassObjectif,
+  compassHorizonYears,
 }: MilestonesSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const toast = useToast();
@@ -50,6 +58,8 @@ export function MilestonesSection({
     milestones: milestonesQ.data ?? [],
     statuses: statusesQ.data ?? [],
     currentWealth,
+    compassObjectif,
+    compassHorizonYears,
   });
   const pendingDeleteId =
     deleteMutation.isPending && deleteMutation.variables ? deleteMutation.variables.id : null;
