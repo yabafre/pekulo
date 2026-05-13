@@ -189,8 +189,39 @@
   .bento {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-auto-rows: minmax(112px, auto);
-    gap: 16px; /* gap-4 */
+    /* Row track floor bumped from 112 (ux-preview baseline) to 220 so a
+       row-span-2 cell guarantees 456 px = 220 + 16 (gap) + 220. The
+       baseline of 112 was a relic of the legacy mobile mock that never
+       paired with a 208 px donut. With 220 the donut + "de votre cap"
+       + Restant + delta fits naturally and placeholders fill their cell
+       without dead space. */
+    grid-auto-rows: minmax(220px, auto);
+    gap: 16px; /* $4 */
+  }
+
+  /* Every cell stretches to the row track via the default
+     `align-items: stretch` on the grid; the inner card consumes 100% of
+     the cell height so its content can `justify-content: space-between`
+     instead of sitting at the top of an empty box. */
+  .heroCard,
+  .donutCard,
+  .trajectoryCard,
+  .milestonesCard,
+  .compositionCard,
+  .recentActivityCard,
+  .hypothesisCard {
+    display: flex;
+    flex-direction: column;
+  }
+  .heroCard > *,
+  .donutCard > *,
+  .trajectoryCard > *,
+  .milestonesCard > *,
+  .compositionCard > *,
+  .recentActivityCard > *,
+  .hypothesisCard > * {
+    flex: 1;
+    min-height: 0;
   }
 
   .heroCard {

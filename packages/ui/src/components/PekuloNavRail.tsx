@@ -42,6 +42,10 @@ const NAV_ITEMS: NavItem[] = [
   { key: "realestate", label: "Immobilier", icon: Building2 },
 ];
 
+// View-styled doesn't take a `color` prop (color is a text-style prop), so
+// active-state icon-colorization is applied via the lucide `color` attribute
+// at the call site (see `PekuloNavRail` body — active = `var(--color)`,
+// inactive = `var(--colorTertiary)`).
 const NavButton = styled(View, {
   name: "PekuloNavRailButton",
   render: "button",
@@ -64,6 +68,10 @@ const NavButton = styled(View, {
     },
   } as const,
 });
+
+function iconColor(active: boolean): string {
+  return active ? "var(--color)" : "var(--colorTertiary)";
+}
 
 export interface PekuloNavRailProps {
   activeKey: PekuloNavKey;
@@ -94,7 +102,7 @@ export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
         aria-label="Pekulo — accueil"
         aria-current={activeKey === "cap" ? "page" : undefined}
       >
-        <Compass size={22} color="currentColor" />
+        <Compass size={22} color={iconColor(activeKey === "cap")} />
       </NavButton>
       <View marginVertical="$2" height={1} width={32} backgroundColor="$borderDefault" />
       <View render="nav" flexDirection="column" gap="$1" flex={1}>
@@ -106,7 +114,7 @@ export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
             aria-label={label}
             aria-current={activeKey === key ? "page" : undefined}
           >
-            <Icon size={18} color="currentColor" />
+            <Icon size={18} color={iconColor(activeKey === key)} />
           </NavButton>
         ))}
       </View>
@@ -116,7 +124,7 @@ export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
         aria-label="Paramètres"
         aria-current={activeKey === "settings" ? "page" : undefined}
       >
-        <Settings size={18} color="currentColor" />
+        <Settings size={18} color={iconColor(activeKey === "settings")} />
       </NavButton>
     </View>
   );

@@ -169,17 +169,26 @@ export function PlaceholderCard({ variant, ownerStory, className }: PlaceholderC
     ) : (
       <HypothesisPlaceholder />
     );
+  // The outer wrapper is `flex: 1; justify-content: space-between` so the
+  // body sits at the TOP of the available cell height and the footnote
+  // pins to the BOTTOM. Without this, lighter placeholders stack at the
+  // top of an oversized cell and the rest of the cell reads as empty —
+  // exactly the visual hole the user flagged on Pass 6.
   return (
     <Section
       className={className}
       title={variant === "hero" ? undefined : title}
       ariaLabel={`${title} (bientôt — ${ownerStory})`}
     >
-      {body}
-      <View flexDirection="row" justifyContent="flex-end" marginTop="$4">
-        <Text color="$colorMuted" fontSize="$xs">
-          Bientôt · {ownerStory}
-        </Text>
+      <View flex={1} flexDirection="column" justifyContent="space-between" minHeight={0}>
+        <View flexDirection="column" flex={1}>
+          {body}
+        </View>
+        <View flexDirection="row" justifyContent="flex-end" marginTop="$4">
+          <Text color="$colorMuted" fontSize="$xs">
+            Bientôt · {ownerStory}
+          </Text>
+        </View>
       </View>
     </Section>
   );

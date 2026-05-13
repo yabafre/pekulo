@@ -88,13 +88,15 @@ export function MilestonesSection({
       ) : (
         <View
           render="ul"
+          flex={1}
+          minHeight={0}
           flexDirection="column"
           style={{
             listStyle: "none",
-            // Cap visible rows at ~5 (≈ 5 × 56 px). Beyond that, the list
-            // scrolls inside the bento cell instead of pushing the row
-            // track and breaking adjacent placements.
-            maxHeight: 320,
+            // Flex-fills the cell height (set via `bento.module.css` →
+            // every grid cell stretches to its row track). Beyond visible
+            // rows, the list scrolls INSIDE the cell — the bento row
+            // height stays invariant whatever the milestone count.
             overflowY: "auto",
             paddingInlineStart: 0,
             marginBlock: 0,
