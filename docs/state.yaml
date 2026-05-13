@@ -1,7 +1,7 @@
 # APED Pipeline State
 # Phases: none → analyze → prd → ux → architecture → sprint
 # "sprint" is the final phase — covers story/dev/review cycle
-schema_version: 3
+schema_version: 4
 pipeline:
   current_phase: "sprint"
   phases:
@@ -232,3 +232,5 @@ sprint:
     11-4-axe-and-wcag-gates: {status: pending, depends_on: [0-8-github-actions-pr, 0-10-pekulo-ui-migration], ticket: "#51", worktree: null}
     11-5-ai-transparency-notice: {status: pending, depends_on: [6-3-llm-opt-in, 6-4-llm-suggestion-ui], ticket: "#52", worktree: null}
     11-6-restore-drill-and-glitchtip: {status: pending, depends_on: [0-7-otel-three-runtimes, 0-3-api-scaffold], ticket: "#53", worktree: null}
+  mode: parallel
+  stack_order: []

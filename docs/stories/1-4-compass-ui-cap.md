@@ -1,7 +1,7 @@
 # Story: 1-4-compass-ui-cap — Cap view UI primitives — donut, milestones, compass forms, history
 
 **Epic:** Epic 1 — Compass & milestones (V1 differentiator)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#16](https://github.com/yabafre/pekulo/issues/16)
 **Branch:** `feature/16-1-4-compass-ui-cap`
 **Commit prefix:** `feat(#16): …`
@@ -2458,6 +2458,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 ## File List
 
 > Authoritative set checked by aped-review against the diff. The Dev Agent Record's File List below MUST mirror this list (sub-bullets there carry per-file commit hashes once aped-dev runs).
+>
+> Updated post-aped-review **pass 2** (2026-05-13) — the pass-1 update was aspirational (files lived only in the working tree). The list below now reflects what is actually in HEAD after the 5 fix-cycle commits.
 
 **Modified:**
 
@@ -2468,8 +2470,42 @@ export default async function DashboardLayout({ children }: { children: React.Re
 - `apps/api/src/modules/compass/compass.service.test.ts`
 - `apps/api/src/modules/compass/compass.routes.ts`
 - `apps/api/src/modules/compass/compass.module.test.ts`
-- `apps/api/src/modules/compass/compass.integration.test.ts`
+- `apps/api/src/modules/compass/compass.integration.test.ts` _(pass 2 fix: +listHistory happy-path test, +getCurrentProgress 401 companion)_
+- `apps/api/prisma/schema/hypothesis.prisma` _(pass 2 brownfield: Hypothesis native UUID column)_
+- `apps/api/src/bootstrap/runtime-dependencies.ts` _(pass 2: forward SUPABASE_URL to verifier for ES256)_
+- `apps/api/src/database/id-prefixes.config.ts` + `.test.ts` _(pass 2 brownfield: Hypothesis null opt-out)_
+- `apps/api/src/database/prefixed-ids.injector.ts` + `.test.ts` _(pass 2 brownfield: null-prefix short-circuit)_
+- `apps/api/src/platform/security/jwt-verifier.ts` _(pass 2: HS256 + ES256 via createRemoteJWKSet)_
+- `apps/web/next-env.d.ts`
+- `apps/web/src/lib/orpc/client.ts` _(pass 2: async ensureRequestContext in headers thunk — L25)_
+- `apps/web/src/lib/orpc/modules.ts` _(pass 2: { path: [moduleKey] } on every per-module client)_
+- `apps/web/src/lib/actions/compass-actions.ts` _(pass 2: defensive ensureRequestContext at each handler top)_
+- `apps/web/src/lib/actions/milestones-actions.ts` _(pass 2: same)_
+- `apps/web/src/lib/derive-milestone-card-items.ts` _(pass 2: plumb domain id)_
+- `apps/web/src/lib/derive-milestone-card-items.test.ts` _(pass 2: assert id is plumbed)_
 - `apps/web/src/lib/zapaction/keys.ts`
+- `apps/web/test/setup.tsx` _(pass 2: mount ToastProvider — useToast wired in MilestonesSection)_
+- `apps/web/src/app/(cap)/dashboard/_components/compass-section.tsx` _(pass 2: AC-1 svg label + AC-3 inline form + progress/compass.isError branch)_
+- `apps/web/src/app/(cap)/dashboard/_components/compass-section.a11y.test.tsx` _(pass 2: next/navigation stub)_
+- `apps/web/src/app/(cap)/dashboard/_components/milestones-section.tsx` _(pass 2: AC-5 wire useDeleteMilestone + toast)_
+- `apps/web/src/app/(cap)/dashboard/_components/add-milestone-form.tsx` _(pass 2: consume form-primitives, drop inline styled atoms)_
+- `apps/web/src/app/(cap)/dashboard/_hooks/use-add-milestone-form.ts` _(pass 2: also invalidate compassKeys.setup so AC-3 transitions cleanly)_
+- `apps/web/src/app/(cap)/dashboard/_hooks/use-dashboard-compass.ts` _(pass 2: surface compass query alongside setup + progress)_
+- `apps/web/src/app/(cap)/dashboard/_hooks/use-delete-milestone.ts` _(pass 2: surgical per-id rollback on error)_
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-edit-form.tsx` _(pass 2: primitive useEffect deps, consume form-primitives)_
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-edit-form.a11y.test.tsx` _(pass 2: relative-path bump after relocate)_
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-history-panel.tsx` _(pass 2: padding/margin via Tamagui props)_
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-history-panel.a11y.test.tsx` _(pass 2: relative-path bump)_
+- `apps/web/src/app/(cap)/dashboard/parametres/page.tsx` _(pass 2 fix: gap on inner div for breathing room)_
+- `packages/types/src/index.ts` _(pass 2: MilestoneCardItem.id?)_
+- `packages/ui/src/components/PekuloDonut.tsx` _(pass 2: ariaLabel? → svg role=img)_
+- `packages/ui/src/components/PekuloMilestoneRow.tsx` _(pass 2: onDelete? + isDeleting? affordance)_
+- `packages/ui/src/components/Pekulo*.snapshot.test.tsx` _(pass 2: 11 snapshots regenerated — svg attribute order)_
+- `apps/web/package.json` _(review-disclosed: vitest infra)_
+- `packages/ui/package.json` _(review-disclosed: `./tamagui-config` export)_
+- `packages/oxlint-config/src/rules/no-server-action-in-component.js` _(review-disclosed: `_hooks/_actions/` exemption)_
+- `bun.lock`
+- `docs/state.yaml`
 
 **Created:**
 
@@ -2497,21 +2533,33 @@ export default async function DashboardLayout({ children }: { children: React.Re
 - `apps/web/src/app/(cap)/dashboard/_components/milestones-section.a11y.test.tsx`
 - `apps/web/src/app/(cap)/dashboard/_components/add-milestone-form.tsx`
 - `apps/web/src/app/(cap)/dashboard/_components/add-milestone-form.a11y.test.tsx`
-- `apps/web/src/app/(cap)/parametres/layout.tsx`
-- `apps/web/src/app/(cap)/parametres/page.tsx`
-- `apps/web/src/app/(cap)/parametres/_hooks/use-update-compass.ts`
-- `apps/web/src/app/(cap)/parametres/_hooks/use-edit-compass-form.ts`
-- `apps/web/src/app/(cap)/parametres/_hooks/use-compass-history.ts`
-- `apps/web/src/app/(cap)/parametres/_components/compass-edit-form.tsx`
-- `apps/web/src/app/(cap)/parametres/_components/compass-edit-form.a11y.test.tsx`
-- `apps/web/src/app/(cap)/parametres/_components/compass-history-panel.tsx`
-- `apps/web/src/app/(cap)/parametres/_components/compass-history-panel.a11y.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/parametres/page.tsx` _(review fix: nested under `dashboard/` so `/dashboard/parametres` URL resolves)_
+- `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-update-compass.ts`
+- `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-edit-compass-form.ts`
+- `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-compass-history.ts`
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-edit-form.tsx`
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-edit-form.a11y.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-history-panel.tsx`
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/compass-history-panel.a11y.test.tsx`
+- `apps/web/src/app/(cap)/_components/form-primitives.tsx` _(pass 2 fix: hoisted shared form atoms — committed)_
+- `apps/web/src/app/(cap)/dashboard/_hooks/use-add-milestone-form.test.tsx` _(pass 2 fix: AC-9 mutation hook test — committed)_
+- `apps/web/src/app/(cap)/dashboard/_hooks/use-update-milestone.test.tsx` _(pass 2 fix: AC-9 — committed)_
+- `apps/web/src/app/(cap)/dashboard/_hooks/use-delete-milestone.test.tsx` _(pass 2 fix: AC-5 + AC-9 — committed)_
+- `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-update-compass.test.tsx` _(pass 2 fix: AC-9 — committed)_
+- `apps/web/src/app/(cap)/dashboard/_components/add-milestone-form.spy.test.tsx` _(pass 2 fix: AC-4 spy — committed)_
+- `apps/web/test/setup.tsx` _(disclosed in Deviations: vitest infra)_
+- `apps/web/test/zapaction-core-stub.ts`
+- `apps/web/test/server-only-stub.ts`
+- `apps/web/test/next-script-stub.tsx`
+- `apps/web/test/vitest-axe.d.ts`
+- `apps/web/vitest.config.ts`
 
 **Deleted:**
 
 - `apps/web/src/app/dashboard/layout.tsx` _(moved)_
 - `apps/web/src/app/dashboard/page.tsx` _(moved + replaced)_
 - `apps/web/src/app/dashboard/loading.tsx` _(moved)_
+- `apps/web/src/app/(cap)/parametres/layout.tsx` _(review fix: dashboard layout already auth-guards the nested route)_
 
 ## Dev Agent Record
 
@@ -2603,3 +2651,172 @@ export default async function DashboardLayout({ children }: { children: React.Re
 - `apps/web/src/app/dashboard/layout.tsx` (moved)
 - `apps/web/src/app/dashboard/page.tsx` (moved + replaced)
 - `apps/web/src/app/dashboard/loading.tsx` (moved)
+
+## Review Record
+
+- **Reviewed at:** 2026-05-09T21:45:00Z
+- **Reviewer:** Claude Opus 4.7 (1M context) — aped-review v6.3.3
+- **Branch:** `feature/16-1-4-compass-ui-cap` (20 commits ahead of `main` at review start; review fixes batched on top).
+- **Auditors dispatched:** Spec, Code, Edge & Hallucination, Aria (visual). Plus inline `git-audit.sh`.
+- **Visual Review:** deferred — React Grab MCP unavailable at 2026-05-09T21:45:00Z. Static-only fidelity / a11y / Tamagui-v2 review by Aria (HIGH confidence). Browser pass MUST happen before merge for full visual sign-off.
+
+### Auditor verdicts (pre-fix)
+
+- **Spec:** CHANGES_REQUESTED — AC-9 PARTIAL (zero unit tests for the 4 mutation hooks; story Dev Notes had deferred them, but the AC text mandates them).
+- **Code:** CHANGES_REQUESTED — AC-10 listHistory happy-path integration test missing (only 401 unauth was covered; the proc's success case had no oRPC wire validation).
+- **Edge & Hallucination:** APPROVED with advisory notes (zero hallucinations across 30 production identifiers; oRPC `Date` round-trip verified; rounding direction cross-checked; 2 LOW findings on optimistic-delete race + edit-form re-sync).
+- **Aria (visual, static):** CHANGES_REQUESTED — `/dashboard/parametres` route was a 404 (CRITICAL): the story's documented URL `/dashboard/parametres` did not match the file layout (`(cap)/parametres/` resolves to `/parametres`, not `/dashboard/parametres`). Plus `window.location.assign` regression vs client-side routing; DRY drift between the two forms; flex-gap inert on parametres page wrapper.
+
+### Findings + resolutions
+
+**🔴 CRITICAL — fixed**
+
+- **CRIT-1 — Broken `/dashboard/parametres` route.** `(cap)/parametres/` resolved to `/parametres`, but `compass-section.tsx` and `compass-actions.ts#updateCompass` both targeted `/dashboard/parametres`. Empty-cap CTA would 404.
+  - **Fix:** moved `apps/web/src/app/(cap)/parametres/{page,_hooks,_components}` → `apps/web/src/app/(cap)/dashboard/parametres/`; deleted the redundant `(cap)/parametres/layout.tsx` (the dashboard layout already auth-guards the nested segment). Replaced `window.location.assign` with `useRouter().push` for client-side navigation. Updated story L2455's design intent now matches the actual file layout.
+
+**🟠 HIGH — fixed**
+
+- **HIGH-1 — AC-9 mutation hook unit tests.** Added 4 tests asserting `queryClient.invalidateQueries` is called with the right key on success:
+  - `apps/web/src/app/(cap)/dashboard/_hooks/use-add-milestone-form.test.tsx` (2 tests — invalidation + cap toggle)
+  - `apps/web/src/app/(cap)/dashboard/_hooks/use-update-milestone.test.tsx`
+  - `apps/web/src/app/(cap)/dashboard/_hooks/use-delete-milestone.test.tsx` (2 tests — invalidation + AC-5 rollback assertion)
+  - `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-update-compass.test.tsx` (asserts the full 6-key invalidation graph)
+- **HIGH-2 — AC-10 listHistory happy-path integration test.** Appended to `compass.integration.test.ts` — signs a valid HS256 JWT, POSTs `/rpc/v1/compass/listHistory`, asserts HTTP 200, re-hydrates wire-serialised Date strings, then validates the body against `z.array(compassHistoryEntrySchema)` with the seeded archive row. Stub service updated with one seeded row using a v4-format UUID (the egress validator's `z.string().uuid()` rejected the existing `USER_ID` literal — valid hardening of the stub).
+
+**🟡 MEDIUM — fixed**
+
+- **MED-1 — File List drift.** Story File List updated to mirror the actual diff. The 12 review-disclosed files (vitest infra, test stubs, lint-rule patch, `@pekulo/ui` export, `bun.lock`, `state.yaml`) now appear with explanatory tags.
+- **MED-2 — DRY drift between forms.** Hoisted `Field`, `formInputStyle`, `formSubmitStyle` to `apps/web/src/app/(cap)/_components/form-primitives.tsx`; both forms (`add-milestone-form.tsx`, `compass-edit-form.tsx`) now consume the shared atoms via aliased imports (kept the local names `Field`/`inputStyle`/`submitStyle` to minimise diff churn at the call sites).
+- **MED-3 — Inert `gap` on parametres page wrapper.** Moved `display: flex, flexDirection: column, gap: 24` onto the inner `<div>` so form ↔ history-panel render with breathing room.
+- **MED-4 — Status header drift.** Story header flipped `ready-for-dev` → `review` to match `state.yaml`.
+
+**🟢 LOW — fixed**
+
+- **LOW-1 — `useDeleteMilestone` race on concurrent deletes.** `onError` now does a surgical re-add of only the row this mutation removed (`ctx.previous?.find((mil) => mil.id === input.id)` then `setQueryData((cur) => [...cur, removed])`), rather than overwriting with the snapshot. Two concurrent deletes no longer resurrect each other's deleted rows. New AC-5 test asserts the rollback path.
+- **LOW-2 — `compass-edit-form` re-sync clobbered in-flight edits.** `useEffect` dependency array switched from `[initial]` (referential identity) to `[initialObjectif, initialHorizonYears]` (value identity). Lint-clean (no `exhaustive-deps` violation; the destructured primitives are the only references inside the effect).
+- **LOW-3 — `compass-section` silent zero on `setup.isError`.** Added an explicit `setup.isError` branch that renders an `aria-live` (`role="alert"`) error message (`"Cap indisponible. Réessaie dans un instant."`) instead of falling through to a misleading `Cap 0.0 %`.
+- **LOW-4 — Hard-coded `borderRadius: 12`.** Replaced with `pekuloRadius.lg` (= 12) and `pekuloRadius.full` (= 9999) imports from `@pekulo/ui`. The form atoms now reference tokens, not raw px.
+- **LOW-5 — Mixed Tamagui props + raw style on `<View render="ul">`.** Migrated `padding: 0, margin: 0` from raw `style` to Tamagui props; left `listStyle: "none"` in inline style (no Tamagui prop equivalent).
+
+### Iron Law verification (post-fix)
+
+```
+$ ./node_modules/.bin/oxlint apps/web/src apps/api/src packages
+Found 0 warnings and 0 errors.
+Finished in 204ms on 364 files with 158 rules using 10 threads.
+
+$ bun --filter='@pekulo/api' run test
+180 pass | 0 fail | 449 expect() calls
+Ran 180 tests across 22 files. (was 179 / 444 pre-fix; +1 listHistory happy-path test, +5 expect calls)
+
+$ apps/web vitest run
+Test Files 11 passed (11)
+Tests 18 passed (18)
+(was 7 / 12 pre-fix; +4 mutation hook test files, +6 tests)
+
+$ bun --filter='web|@pekulo/api|@pekulo/contracts|@pekulo/validators|@pekulo/types|@pekulo/ui' run typecheck
+Exited with code 0 (×6)
+```
+
+### Visual review carry-over
+
+- **Required before merge:** browser pass on `/dashboard` and `/dashboard/parametres` to confirm the moved route resolves and the new error-branch (`setup.isError`) renders correctly. React Grab MCP capture of the donut + milestones row + setup CTA is still owed.
+- **Static-only confirmations (HIGH confidence):** TR-strict palette honoured (zero `$accent` in any new chrome — donut paints `var(--donutFill)` = white; status badges stay on `$success`/`$danger`/`$colorSecondary`). Tamagui v2 idiom clean (`render=`, no `tag=`/`animation=` leftovers). a11y: every form field labelled, error messages `role="alert"`, status messages `role="status"`, submit buttons `aria-disabled`, disclosure pill `aria-expanded`/`aria-controls`, donut `aria-label`, history panel uses semantic `<ul>/<li>`.
+
+### Decision
+
+**Pass-1 verdict superseded — see Pass 2 (2026-05-13) below.** The "fixes resolved" above described changes that lived only in the working tree at HEAD `cec9121`; pass 2 caught the drift and committed the real fixes.
+
+---
+
+## Review Record — Pass 2 (2026-05-13)
+
+- **Reviewed at:** 2026-05-13
+- **Reviewer:** Claude Opus 4.7 (1M context) — aped-review v6.7.6
+- **Branch start:** `feature/16-1-4-compass-ui-cap` @ `cec9121` (20 commits ahead of `main`).
+- **Branch end:** 5 fix-cycle commits on top, branch sits at 25 commits ahead of `main`.
+- **Auditors dispatched:** Spec, Code, Edge & Hallucination, Aria (static).
+- **Visual Review:** deferred — React Grab MCP unavailable at 2026-05-13. Aria's static pass HIGH confidence; live browser pass + screenshot still owed before merge.
+
+### Auditor verdicts (pre-fix, HEAD = `cec9121`)
+
+- **Spec — CHANGES_REQUESTED (HIGH).** 3 ACs MISSING and 2 PARTIAL: AC-2 (parametres at `/parametres`, not `/dashboard/parametres`); AC-3 (setup-CTA → 404 + page exposed only edit-form, not `AddMilestoneForm`); AC-5 (`useDeleteMilestone` declared but never invoked); AC-9 (4 mutation hook tests untracked); AC-10 PARTIAL (`listHistory` happy + `getCurrentProgress` 401 both missing).
+- **Code — CHANGES_REQUESTED (HIGH).** Race in `compass-edit-form` useEffect (referential dep on `initial`); silent fallthrough to `Cap 0.0 %` on `progress.isError` / `compass.isError`; `zapaction-core-stub` swallows Zod input validation.
+- **Edge & Hallucination — CHANGES_REQUESTED (HIGH).** 30 production identifiers verified, ZERO hallucinated in runtime code. ONE hallucinated artifact-set: the Pass-1 record's "APPROVED post-fix" cited fixes that `git show HEAD:` returned `fatal: path … exists on disk, but not in 'HEAD'` for. Boundary findings: concurrent-delete rollback ordering, off-by-one `horizonAbsoluteYearMax`, `useMilestoneStatuses` firing with `currentWealth=0` during the progress race.
+- **Aria (static) — CHANGES_REQUESTED (HIGH static / LOW live).** AC-1: donut `<svg>` carried `aria-hidden`; accessible name was on the Section as `"Progression du cap — NN.N %"`, not on the svg as `"Cap NN.N %"`. Token-discipline drift (raw `999` for HeaderAction radius). Otherwise palette / Tamagui v2 / a11y all HIGH confidence.
+
+### Findings + resolutions (committed)
+
+**🔴 CRITICAL — fixed**
+
+- **CRIT-1 — `/dashboard/parametres` route 404 + setup-CTA dead-link.** Committed the working-tree rename so `(cap)/dashboard/parametres/page.tsx` resolves to `/dashboard/parametres`. Removed the redundant `(cap)/parametres/layout.tsx` (dashboard layout inherits the auth guard). `compass-section` setup-CTA now opens `AddMilestoneForm` **inline** when the compass row exists; routes via `useRouter().push` only for truly fresh users. Commit: `fix(#16): brownfield infra + relocate parametres under /dashboard/parametres`.
+- **CRIT-2 — AC-5 delete never wired.** Extended `PekuloMilestoneRow` with optional `onDelete?: (id) => void` + `isDeleting?` → renders a `Trash2` pill with `aria-label="Supprimer le palier <label>"`. Added optional `id` to `MilestoneCardItem` so the derive helper plumbs the domain id through. `MilestonesSection` invokes `useDeleteMilestone.mutate({ id })` and surfaces server-side errors via `@pekulo/ui`'s `useToast().danger("Suppression échouée", err.message)`. Commits: `feat(#16): @pekulo/{types,ui} — donut ariaLabel + milestone delete affordance` + `feat(#16): wire Cap UI fixes`.
+
+**🟠 HIGH — fixed**
+
+- **HIGH-1 — AC-1 donut accessible name.** `PekuloDonut.ariaLabel?` → when provided the svg becomes `role="img" aria-label="…"`. `compass-section` passes `ariaLabel={\`Cap ${pctLabel}\`}` AND aligns the Section's `ariaLabel` to the same literal.
+- **HIGH-2 — `progress.isError` / `compass.isError` silent fallthrough.** Explicit error branch added with `<Text role="alert">Cap indisponible. Réessaie dans un instant.</Text>` before the donut composition. Mirrors the existing `setup.isError` shape.
+- **HIGH-3 — `useDeleteMilestone` concurrent rollback test.** Surgical per-id restore preserved; `use-delete-milestone.test.tsx` now asserts the rollback path explicitly.
+- **HIGH-4 — Mutation hook tests committed (AC-9).** 4 files / 6 tests now in HEAD: `use-add-milestone-form.test.tsx`, `use-update-milestone.test.tsx`, `use-delete-milestone.test.tsx`, `use-update-compass.test.tsx` (full 6-key invalidation graph).
+- **HIGH-5 — AC-10 integration coverage.** `listHistory` happy-path committed (Zod round-trip after rehydrating wire Dates). New `getCurrentProgress` 401 companion added — every story-1-4 proc has happy + 401 coverage.
+
+**🟡 MEDIUM — fixed**
+
+- **MED-1 — `compass-edit-form` revalidation race.** `useEffect` deps switched from `[initial]` to `[initialObjectif, initialHorizonYears]`.
+- **MED-2 — DRY drift between forms.** Atoms hoisted to `(cap)/_components/form-primitives.tsx`; both forms consume them via aliased imports; `pekuloRadius.lg` / `.full` tokens, no raw px.
+- **MED-3 — AC-4 spy test.** `add-milestone-form.spy.test.tsx` clicks the disabled cap-reached button thrice and asserts `addMilestoneSpy.toHaveBeenCalledTimes(0)`.
+- **MED-4 — AC-3 setup-state invalidation.** `useAddMilestoneForm.onSuccess` also invalidates `compassKeys.setup()` — first milestone flips setup → "complete" without refresh.
+
+**🟢 LOW — fixed**
+
+- **LOW-1 — Defensive `ensureRequestContext()` at every action top.** Lesson L25: Next.js 16.2.4 + Turbopack AsyncLocalStorage frame propagation. Idempotent re-seed at the top of every compass / milestones action.
+- **LOW-2 — oRPC `client.ts` headers thunk async via `ensureRequestContext()`.** Same root cause as LOW-1.
+- **LOW-3 — oRPC `modules.ts` per-module clients build `/rpc/v1/<moduleKey>/<proc>` URLs.** Added missing `{ path: [moduleKey] }`.
+- **LOW-4 — Hypothesis brownfield UUID + ES256 JWT support.** Hypothesis registered with `null` in `id-prefixes.config.ts`; ES256 path added to `jwt-verifier.ts` via `createRemoteJWKSet`.
+- **LOW-5 — `compass-section.a11y.test.tsx` `next/navigation` stub.** Required after `useRouter()` was wired.
+- **LOW-6 — `apps/web/test/setup.tsx` mounts `ToastProvider`.** Required by `MilestonesSection` once `useToast` was wired for AC-5's error path.
+- **LOW-7 — Snapshot regen.** 11 `@pekulo/ui` snapshots updated — svg attribute order shifted when `PekuloDonut.ariaLabel` mode-switch landed. Pure attribute order, no semantic drift.
+
+**Carried — not in scope this pass**
+
+- Aria's token-discipline LOW on `MilestonesSection` HeaderAction (raw `999` instead of `pekuloRadius.full`) — pre-existing, logged for the next polish cycle. Form atoms already reference the token so the pattern is in place.
+- Code auditor's flag on `zapaction-core-stub.ts` bypassing Zod input validation — meaningful but bounded; filed for the next vitest infrastructure refresh.
+- Edge auditor's "ASCII space + dot decimal" on `"Cap 22.6 %"` — AC quotes the literal verbatim, so we honour the spec. FR-typography sweep is a separate ticket.
+- Full Cap bento (HeroCard / TrajectoryCard / HypothesisCard / CompositionCard / RecentActivityCard) — explicitly out of story 1-4 scope (owned by 7-1 / later stories).
+
+### Iron Law verification (post-fix, captured 2026-05-13)
+
+```
+$ ./node_modules/.bin/oxlint apps/web/src apps/api/src packages
+Found 0 warnings and 0 errors.
+Finished in 295ms on 365 files with 158 rules using 10 threads.
+
+$ cd apps/api && bun test
+ 183 pass | 0 fail | 453 expect() calls
+Ran 183 tests across 22 files. [298.00ms]
+
+$ cd apps/web && bun run test
+ Test Files  12 passed (12)
+      Tests  19 passed (19)
+   Duration  3.67s
+
+$ cd packages/ui && bun run test
+ Test Files  106 passed (106)
+      Tests  150 passed (150)
+   Duration  16.62s   (11 snapshots regenerated — svg attribute order)
+
+$ (cd apps/web && bun run typecheck) && (cd apps/api && bun run typecheck) \
+  && (cd packages/types && bun run typecheck) && (cd packages/ui && bun run typecheck) \
+  && (cd packages/contracts && bun run typecheck) && (cd packages/validators && bun run typecheck)
+Exited with code 0 (×6)
+```
+
+### Visual review carry-over
+
+- **Required before merge:** browser pass on `/dashboard` (with + without milestones) and `/dashboard/parametres` to confirm (a) the moved route resolves, (b) the donut renders `"Cap NN.N %"` and matches ux-preview's `DonutCard`, (c) the milestone rows show the `Trash2` delete pill and trigger the toast on simulated server error, (d) the error branch (`progress.isError`) renders correctly. React Grab MCP capture of donut + a milestone row + setup CTA still owed.
+- **UX-preview fidelity (in-scope surfaces):** `compass-section` mirrors `App.tsx:749-770` (Section + centered donut + "Restant" caption + EUR remaining); `+€ vs plan` perf line owned by 7-1. `milestones-section` mirrors `App.tsx:925-942` (Section + title + HeaderAction "Ajouter" + `PekuloMilestoneRow` rows).
+- **Static palette / a11y (HIGH confidence):** zero `$accent` chrome, Tamagui v2 idiom clean, every form labelled, errors `role="alert"`, donut `aria-label`, delete pill `aria-label="Supprimer le palier <label>"`.
+
+### Decision
+
+**APPROVED post-fix** — 2 CRITICAL, 5 HIGH, 4 MEDIUM, 7 LOW findings resolved and committed (5 commits on top of `cec9121`). Story status stays `review` until the user confirms the browser-pass smoke on `/dashboard` and `/dashboard/parametres`.
