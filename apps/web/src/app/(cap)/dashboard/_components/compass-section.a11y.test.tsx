@@ -1,7 +1,21 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../test/setup";
+
+// `useRouter()` calls assertContext on App Router under the hood; happy-dom
+// has no router mounted, so we stub the navigation surface for the a11y pass.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
+}));
+
 import { CompassSection } from "./compass-section";
 
 describe("CompassSection a11y", () => {

@@ -1,14 +1,31 @@
 "use client";
 
-import { Section, PekuloDonutCard } from "@pekulo/ui";
-import { View } from "@pekulo/ui/client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { PekuloDonut, Section } from "@pekulo/ui";
+import { Text, View } from "@pekulo/ui/client";
 import { useDashboardCompass } from "../_hooks/use-dashboard-compass";
 import { useCompassCurve } from "../_hooks/use-compass-curve";
+import { AddMilestoneForm } from "./add-milestone-form";
 import { CompassSetupCta } from "./compass-setup-cta";
 import { MilestonesSection } from "./milestones-section";
 
+const eur0 = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+function horizonAbsoluteYearMaxFor(horizonYears: number | undefined): number {
+  const currentYear = new Date().getUTCFullYear();
+  if (horizonYears == null) return currentYear + 1;
+  return currentYear + horizonYears - 1;
+}
+
 export function CompassSection() {
-  const { setup, progress } = useDashboardCompass();
+  const router = useRouter();
+  const [showInlineForm, setShowInlineForm] = useState(false);
+  const { setup, compass, progress } = useDashboardCompass();
   // AC-6: hook is called even on the dashboard's first paint to prove the
   // wire is alive. Disabled until setup is complete to avoid a 404 round-trip.
   useCompassCurve({ enabled: setup.data === "complete" });
@@ -20,33 +37,94 @@ export function CompassSection() {
       </Section>
     );
   }
+  if (setup.isError) {
+    return (
+      <Section ariaLabel="Cap indisponible">
+        <View padding="$4">
+          <Text role="alert" color="$danger" fontSize="$caption">
+            Cap indisponible. Réessaie dans un instant.
+          </Text>
+        </View>
+      </Section>
+    );
+  }
   if (setup.data === "incomplete") {
+    // AC-3: the CTA opens the add-milestone-form. Branching:
+    //   - compass row exists → render the form inline (no compass needed
+    //     to add a milestone since horizonAbsoluteYearMax derives from it).
+    //   - compass row missing (truly fresh user) → route to /parametres so
+    //     they can set the compass first; the milestone year range cannot
+    //     be validated without a horizon.
+    if (showInlineForm && compass.data) {
+      return (
+        <View flexDirection="column" gap="$4" padding="$4">
+          <Section ariaLabel="Ajouter ton premier palier" title="Premier palier">
+            <AddMilestoneForm
+              milestoneCount={0}
+              horizonAbsoluteYearMax={horizonAbsoluteYearMaxFor(compass.data.horizonYears)}
+              onSuccess={() => setShowInlineForm(false)}
+            />
+          </Section>
+        </View>
+      );
+    }
     return (
       <Section ariaLabel="Configuration du cap">
         <CompassSetupCta
           onAddMilestone={() => {
-            window.location.assign("/dashboard/parametres");
+            if (compass.data) {
+              setShowInlineForm(true);
+            } else {
+              router.push("/dashboard/parametres");
+            }
           }}
         />
       </Section>
     );
   }
+  if (progress.isError || compass.isError) {
+    return (
+      <Section ariaLabel="Cap indisponible">
+        <View padding="$4">
+          <Text role="alert" color="$danger" fontSize="$caption">
+            Cap indisponible. Réessaie dans un instant.
+          </Text>
+        </View>
+      </Section>
+    );
+  }
   const pct = progress.data ? progress.data.percent / 100 : 0;
-  const horizonAbsoluteYearMax = progress.data
-    ? new Date().getUTCFullYear() + progress.data.horizonYears - 1
-    : new Date().getUTCFullYear() + 1;
+  const remaining = progress.data?.gap ?? 0;
+  const horizonAbsoluteYearMax = horizonAbsoluteYearMaxFor(progress.data?.horizonYears);
   const currentWealth = progress.data?.currentWealth ?? 0;
+  const pctLabel = `${(pct * 100).toFixed(1)} %`;
 
+  // Donut card composition mirrors ux-preview's `<DonutCard>` (App.tsx:749) —
+  // Section frame, donut centered, then "Restant" caption + remaining EUR
+  // headline. The perf-delta line ("vs plan") depends on `useCompassCurve`
+  // data and is owned by story 7-1; this story keeps the curve hook wired
+  // for AC-6 but does not assemble the chart UI.
   return (
     <View flexDirection="column" gap="$5" padding="$4">
-      <PekuloDonutCard
-        pct={pct}
-        size={208}
-        stroke={12}
-        centered
-        title={`Cap ${(pct * 100).toFixed(1)} %`}
-        ariaLabel={`Cap ${(pct * 100).toFixed(1)} %`}
-      />
+      <Section ariaLabel={`Cap ${pctLabel}`}>
+        <View flexDirection="column" alignItems="center" gap="$5" paddingVertical="$2">
+          <PekuloDonut pct={pct} size={208} stroke={6} centered ariaLabel={`Cap ${pctLabel}`} />
+          <View alignItems="center">
+            <Text color="$colorTertiary" fontSize="$caption">
+              Restant
+            </Text>
+            <Text
+              color="$color"
+              fontSize="$h2"
+              fontWeight="600"
+              marginTop="$1"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {eur0.format(remaining)}
+            </Text>
+          </View>
+        </View>
+      </Section>
       <MilestonesSection
         currentWealth={currentWealth}
         horizonAbsoluteYearMax={horizonAbsoluteYearMax}

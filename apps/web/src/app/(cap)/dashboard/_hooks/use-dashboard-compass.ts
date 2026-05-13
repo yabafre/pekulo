@@ -1,13 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { CompassProgress } from "@pekulo/validators";
+import type { Compass, CompassProgress } from "@pekulo/validators";
 import type { CompassSetupState } from "@pekulo/types";
 import { compassKeys } from "@/lib/zapaction/keys";
-import { getCurrentProgress, getSetupState } from "@/lib/actions/compass-actions";
+import { getCompass, getCurrentProgress, getSetupState } from "@/lib/actions/compass-actions";
 
-// Query hook for the dashboard donut. Returns BOTH the setup state (so the
-// caller can short-circuit to the setup-CTA) and the progress payload.
+// Query hook for the dashboard. Returns three queries:
+//   - setup    — gates the CTA vs full dashboard branch (getSetupState).
+//   - compass  — objectif + horizonYears row (getCompass). Fetched even on
+//                the `incomplete` branch so an inline AddMilestoneForm can
+//                derive its `horizonAbsoluteYearMax` prop without bouncing
+//                through /parametres.
+//   - progress — donut payload (getCurrentProgress). Disabled until setup
+//                is complete (the proc throws COMPASS_NOT_FOUND otherwise).
 // Convention: use<Feature><Resource> per architecture L348.
 export function useDashboardCompass() {
   const setup = useQuery<CompassSetupState>({
@@ -15,14 +21,16 @@ export function useDashboardCompass() {
     queryFn: () => getSetupState(),
     staleTime: 30_000,
   });
+  const compass = useQuery<Compass | null>({
+    queryKey: compassKeys.current(),
+    queryFn: () => getCompass(),
+    staleTime: 30_000,
+  });
   const progress = useQuery<CompassProgress>({
     queryKey: compassKeys.progress(),
     queryFn: () => getCurrentProgress(),
     staleTime: 30_000,
-    // Skip when setup state says incomplete — prevents an unnecessary 404 round
-    // trip on a fresh user (compass.getCurrentProgress throws COMPASS_NOT_FOUND
-    // when no compass row exists).
     enabled: setup.data === "complete",
   });
-  return { setup, progress };
+  return { setup, compass, progress };
 }

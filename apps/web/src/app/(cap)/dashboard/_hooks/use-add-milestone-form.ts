@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AddMilestoneInput, Milestone } from "@pekulo/validators";
 import { MILESTONES_PER_USER_CAP } from "@pekulo/validators";
-import { milestonesKeys, milestonesTags } from "@/lib/zapaction/keys";
+import { compassKeys, milestonesKeys, milestonesTags } from "@/lib/zapaction/keys";
 import { addMilestone } from "@/lib/actions/milestones-actions";
 
 // Mutation orchestrator. Component reads `{ submit, isPending, capReached }`
@@ -11,12 +11,18 @@ import { addMilestone } from "@/lib/actions/milestones-actions";
 // handles its own field state via component-local useState (architecture
 // L192 — boundary rule). When epic 5 lands the import-csv form, we promote
 // the TanStack-Form orchestrator pattern.
+//
+// Invalidates BOTH `milestones.list` AND `compass.setup` on success — adding
+// the first milestone flips the setup state from "incomplete" to "complete",
+// so the dashboard re-renders the donut + milestones-section instead of the
+// setup CTA.
 export function useAddMilestoneForm(args: { milestoneCount: number }) {
   const queryClient = useQueryClient();
   const mutation = useMutation<Milestone, Error, AddMilestoneInput>({
     mutationFn: (input) => addMilestone(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: milestonesKeys.list() });
+      queryClient.invalidateQueries({ queryKey: compassKeys.setup() });
     },
   });
   return {

@@ -19,7 +19,8 @@ import { extractRequestId } from "../../common/errors";
 import { createCompassRouter } from "./compass.routes";
 import type { CompassService } from "./compass.service";
 import type { Compass, CompassCurve, CompassProgress, CompassSetupState } from "@pekulo/validators";
-import { compassProgressSchema } from "@pekulo/validators";
+import { compassHistoryEntrySchema, compassProgressSchema } from "@pekulo/validators";
+import { z } from "zod";
 import type { CompassHistoryEntry } from "@pekulo/types";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
@@ -98,7 +99,19 @@ function inMemoryService(): CompassService {
       };
     },
     async listHistory(_userId, _opts): Promise<CompassHistoryEntry[]> {
-      return [];
+      // Egress validator (`compassHistoryEntrySchema.userId: z.string().uuid()`)
+      // rejects the test's USER_ID literal because it lacks the v4 version
+      // nibble. Use a proper RFC-4122 v4 UUID for the seeded archive row.
+      return [
+        {
+          id: "cph_aaaaaaaaaaaaaaaaaaaaa",
+          userId: "55555555-5555-4555-8555-555555555555",
+          objectif: 700_000,
+          horizonYears: 20,
+          valuedOn: new Date("2025-01-15T00:00:00Z"),
+          createdAt: new Date("2025-01-15T00:00:00Z"),
+        },
+      ];
     },
   };
 }
@@ -313,6 +326,46 @@ describe("compass bridge (integration)", () => {
     expect(parsed.percent).toBeGreaterThanOrEqual(0);
   });
 
+  // AC-10 (verbatim from story 1-4 L25): valid HS256 JWT for user A → HTTP
+  // 200, body shape matches array(compassHistoryEntrySchema). Stub service
+  // returns one seeded archive row so we exercise the cph_-prefixed-id +
+  // numeric branches. Wire round-trip serialises Dates to ISO strings; the
+  // oRPC client deserialises them back to Date in the consumer, but a raw
+  // `fetch` sees the JSON strings. We re-hydrate before Zod-parsing so the
+  // schema (which demands `z.date()`) actually validates the egress shape.
+  test("AC-10 happy: POST listHistory with valid JWT → 200 + history array", async () => {
+    const jwt = await signValid();
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/listHistory`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      json: {
+        id: string;
+        userId: string;
+        objectif: number;
+        horizonYears: number;
+        valuedOn: string;
+        createdAt: string;
+      }[];
+    };
+    expect(Array.isArray(body.json)).toBe(true);
+    expect(body.json).toHaveLength(1);
+    const rehydrated = body.json.map((row) => ({
+      ...row,
+      valuedOn: new Date(row.valuedOn),
+      createdAt: new Date(row.createdAt),
+    }));
+    const parsed = z.array(compassHistoryEntrySchema).parse(rehydrated);
+    expect(parsed[0]?.objectif).toBe(700_000);
+    expect(parsed[0]?.horizonYears).toBe(20);
+  });
+
   // AC-10 (verbatim from story 1-4 L25): same call without a JWT → HTTP 401
   // within 100 ms. Mirrors AC-8 unauth shape — no body assertion beyond
   // status code (the bridge wraps PekuloError("UNAUTHORIZED", ...) the same
@@ -320,6 +373,21 @@ describe("compass bridge (integration)", () => {
   test("AC-10 unauth: POST listHistory without JWT → 401", async () => {
     const startedAt = Date.now();
     const res = await fetch(`${baseUrl}/rpc/v1/compass/listHistory`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ json: {} }),
+    });
+    const elapsed = Date.now() - startedAt;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  // AC-10 (verbatim from story 1-4 L25): the getCurrentProgress companion to
+  // the listHistory 401 — covers the second proc through the unauth path so
+  // both story-1-4 endpoints have happy + 401 coverage end-to-end.
+  test("AC-10 unauth: POST getCurrentProgress without JWT → 401", async () => {
+    const startedAt = Date.now();
+    const res = await fetch(`${baseUrl}/rpc/v1/compass/getCurrentProgress`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ json: {} }),

@@ -79,9 +79,13 @@ setTagRegistry({
     compassKeys.curve(),
     compassKeys.history(),
   ],
-  // Milestones — `list` invalidates list + every statuses key (currentWealth-keyed).
-  [milestonesTags.all()]: [milestonesKeys.list()],
-  [milestonesTags.list()]: [milestonesKeys.list()],
+  // Milestones — `list` invalidates the milestones list + `compass.setup`
+  // (the setup state is derived from "compass row exists AND ≥1 milestone",
+  // so adding/removing a milestone flips it). Without this, the dashboard
+  // stays on the setup CTA for staleTime (30s) after the first milestone
+  // is added, defeating the inline AddMilestoneForm round-trip.
+  [milestonesTags.all()]: [milestonesKeys.list(), compassKeys.setup()],
+  [milestonesTags.list()]: [milestonesKeys.list(), compassKeys.setup()],
   [monthlyTags.all()]: [monthlyKeys.list()],
   [monthlyTags.list()]: [monthlyKeys.list()],
   [transactionsTags.all()]: [transactionsKeys.list()],

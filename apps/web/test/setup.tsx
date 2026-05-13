@@ -14,6 +14,7 @@ import type { ReactElement, ReactNode } from "react";
 import { TamaguiProvider } from "tamagui";
 
 import { config } from "@pekulo/ui/tamagui-config";
+import { ToastProvider } from "@pekulo/ui";
 
 expect.extend(matchers);
 
@@ -25,7 +26,13 @@ function TamaguiTestProvider({ children }: { children: ReactNode }): ReactElemen
       disableInjectCSS
       disableRootThemeClass
     >
-      {children}
+      {/* `ToastProvider` is mounted by `PekuloRootProvider` in production —
+          tests bypass that wrapper for happy-dom compatibility (no
+          next/script), so mount the provider explicitly here. Any component
+          that consumes `useToast` (e.g. MilestonesSection on delete error)
+          would otherwise crash with "useToast must be used inside
+          <ToastProvider>". */}
+      <ToastProvider>{children}</ToastProvider>
     </TamaguiProvider>
   );
 }

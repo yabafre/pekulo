@@ -46,6 +46,13 @@ describe("deriveMilestoneCardItems", () => {
     expect(out.map((x) => x.status)).toEqual(["ahead", "on-track", "behind"]);
     expect(out[0]?.label).toBe("A");
     expect(out[0]?.progressPct).toBeCloseTo(1, 5);
+    // AC-5 plumb: domain id rides the derive helper so the row can route
+    // delete (and future edit) affordances back to the mutation hooks.
+    expect(out.map((x) => x.id)).toEqual([
+      "mst_bbbbbbbbbbbbbbbbbbbbb",
+      "mst_aaaaaaaaaaaaaaaaaaaaa",
+      "mst_ccccccccccccccccccccc",
+    ]);
   });
 
   test("missing status → defaults to on-track + delta 0", () => {

@@ -20,6 +20,7 @@ import {
   type UpdateMilestoneInput,
 } from "@pekulo/validators";
 import { milestonesClient } from "@/lib/orpc/modules";
+import { ensureRequestContext } from "@/lib/orpc/request-context";
 import { milestonesTags } from "@/lib/zapaction/keys";
 import type { ActionContext } from "@/lib/zapaction/context";
 import "@/lib/zapaction/context";
@@ -28,12 +29,18 @@ import "@/lib/zapaction/context";
 // (pekulo/no-cross-feature-action-import). Cross-feature work happens at
 // the hook layer (e.g. useMilestoneStatuses passes currentWealth from
 // useDashboardCompass into milestones.getStatuses).
+//
+// Each handler ensures request context defensively before the oRPC call —
+// see lesson L25 + the comment at the top of compass-actions.ts.
 
 export const listMilestones = defineAction<void, Milestone[], ActionContext>({
   name: "listMilestones",
   input: z.void(),
   output: listMilestonesOutputSchema,
-  handler: async () => milestonesClient.list(),
+  handler: async () => {
+    await ensureRequestContext();
+    return milestonesClient.list();
+  },
 });
 
 export const getMilestoneStatuses = defineAction<
@@ -43,7 +50,10 @@ export const getMilestoneStatuses = defineAction<
 >({
   name: "getMilestoneStatuses",
   input: getStatusesInputSchema,
-  handler: async ({ input }) => milestonesClient.getStatuses(input),
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    return milestonesClient.getStatuses(input);
+  },
 });
 
 export const addMilestone = defineAction<AddMilestoneInput, Milestone, ActionContext>({
@@ -52,6 +62,7 @@ export const addMilestone = defineAction<AddMilestoneInput, Milestone, ActionCon
   output: milestoneSchema,
   tags: [milestonesTags.list()],
   handler: async ({ input }) => {
+    await ensureRequestContext();
     const created = await milestonesClient.add(input);
     revalidatePath("/dashboard");
     return created;
@@ -64,6 +75,7 @@ export const updateMilestone = defineAction<UpdateMilestoneInput, Milestone, Act
   output: milestoneSchema,
   tags: [milestonesTags.list()],
   handler: async ({ input }) => {
+    await ensureRequestContext();
     const updated = await milestonesClient.update(input);
     revalidatePath("/dashboard");
     return updated;
@@ -80,6 +92,7 @@ export const deleteMilestone = defineAction<
   output: deleteMilestoneOutputSchema,
   tags: [milestonesTags.list()],
   handler: async ({ input }) => {
+    await ensureRequestContext();
     const deleted = await milestonesClient.delete(input);
     revalidatePath("/dashboard");
     return deleted;

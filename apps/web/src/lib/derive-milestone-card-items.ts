@@ -18,6 +18,7 @@ export function deriveMilestoneCardItems(args: {
       const progressPct =
         mil.targetCapital > 0 ? Math.min(1, args.currentWealth / mil.targetCapital) : 0;
       return {
+        id: mil.id,
         label: mil.label ?? `Palier ${mil.targetYear}`,
         targetEur: mil.targetCapital,
         targetYear: mil.targetYear,

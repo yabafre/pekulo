@@ -1,44 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Text, View, styled } from "@pekulo/ui/client";
+import { Text, View } from "@pekulo/ui/client";
 import { MAX_LABEL_LENGTH, MAX_TARGET_CAPITAL_EUR } from "@pekulo/validators";
 import { useAddMilestoneForm } from "../_hooks/use-add-milestone-form";
+import {
+  FormField as Field,
+  formInputStyle as inputStyle,
+  formSubmitStyle as submitStyle,
+} from "../../_components/form-primitives";
 
 export interface AddMilestoneFormProps {
   milestoneCount: number;
   horizonAbsoluteYearMax: number;
   onSuccess?: () => void;
 }
-
-const Field = styled(View, {
-  flexDirection: "column",
-  gap: "$2",
-  paddingVertical: "$2",
-});
-
-// Tamagui v2 styled() needs a Tamagui component as the first arg; for raw
-// inputs/buttons we fall back to plain HTML + CSS-var styling so token
-// resolution still tracks the theme without typing acrobatics.
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--backgroundMuted)",
-  color: "var(--color)",
-  borderRadius: 12,
-  padding: "8px 12px",
-  fontSize: 14,
-  border: "none",
-  outline: "none",
-};
-
-const submitStyle = (disabled: boolean): React.CSSProperties => ({
-  backgroundColor: "var(--color)",
-  color: "var(--colorOnAccent)",
-  padding: "8px 16px",
-  borderRadius: 999,
-  border: "none",
-  cursor: disabled ? "not-allowed" : "pointer",
-  opacity: disabled ? 0.5 : 1,
-});
 
 const currentYear = new Date().getUTCFullYear();
 
