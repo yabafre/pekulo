@@ -2949,3 +2949,74 @@ Out-of-scope follow-ups (placeholders annotated in `page.tsx`):
 - **5-x** wires `<CompositionCard>` (asset classes) and `<RecentActivityCard>` (5 last transactions).
 - **6-x** wires `<HypothesisCard>` (projection verdict).
 - A separate story owns the Patrimoine top-tab toggle becoming functional (`?tab=patrimoine` query param + view swap).
+
+---
+
+## Review Record — Passes 5 → 8 (2026-05-13, browser-driven visual refinement)
+
+After Pass 4 went green on every auditor + Iron Law, the user opened `/dashboard` in a browser and screenshotted both `localhost:5173` (ux-preview) and `localhost:3002/dashboard` (apps/web). The layouts looked structurally similar but the apps/web one read as "completely broken" — wrong proportions, oversized donut, sidebar overlap, empty placeholders, etc. Four follow-up passes chased the visual gap by reading the ux-preview source pixel-by-pixel and aligning against it.
+
+### Pass 5 — dimension alignment (`db01aab`)
+
+User screenshot showed sidebar visually colliding with content + bento width wrong. Root cause: Tamagui `$lg` triggers at **1280 px** (defaultConfig v5), while my CSS module triggered the bento at **1024 px** (Tailwind `lg`). Between 1024-1279 px the bento grid was active but the Tamagui-driven padding overrides were not, so `PekuloNavRail` (fixed at `left: 16, width: 64`) overlapped the bento.
+
+Fixes:
+- Whole Cap-view layout (shell wrapper + header + main + bento) collapsed into a SINGLE CSS module behind `@media (min-width: 1020px)` — aligned with `PekuloNavRail`'s `$max-md` threshold (Pekulo Tamagui `md: 1020`). Tamagui `$lg` no longer participates in layout decisions.
+- Shell `padding-left: 96px` (= ux-preview `lg:pl-24`, leaves 16 px gap after the rail's right edge at x=80). Was 80 px.
+- Asymmetric desktop padding: `pl-24 pr-4` mirrors ux-preview L121 verbatim.
+- UserDot navigation switched from `<button onClick={router.push}>` to `<Link href>` (Cmd/Ctrl+click support, Vercel Web Interface Guidelines audit fix).
+- Cap/Patrimoine tabs carry `aria-pressed` + `aria-current="page"` (Vercel Guidelines audit).
+- Date label gets `translate="no"` so auto-translate doesn't mangle `Intl.DateTimeFormat` output.
+
+### Pass 6 — NavRail structure + donut labels + skeleton placeholders (`56aa755`)
+
+User screenshot showed (a) sidebar "P" letter at top + ~500 px gap above the icons, (b) donut card missing "de votre cap" caption + perf-delta line, (c) five identical "Bientôt" boxes for the non-1-4 cells.
+
+Fixes:
+- `packages/ui/src/components/PekuloNavRail.tsx` rewritten to match ux-preview L218-267: Compass icon button at top (Pekulo home / "cap" key, NOT a "P" letter), hairline separator (`h-px w-8 bg-border`), inner `<nav>` with `flex={1}` to push settings to the bottom. The previous `justify-content: space-between` on the outer column was what created the giant gap.
+- `CompassSection` now renders "de votre cap" caption under the donut + a conditional `+€ vs plan` perf-delta line. The actual perf computation stays deferred to story 7-1 (`computeAhead()` returns `null` for V1 so the line collapses cleanly).
+- `PlaceholderCard` switched from a generic "Bientôt" body to five named variants (`hero / trajectory / composition / activity / hypothesis`) — each renders the structural shell of its owning surface (`HeroPlaceholder` with Cap + Plan/an mini-grid, `TrajectoryPlaceholder` with an inline-SVG dashed/solid line pair + Réel/Plan legend, two `ListPlaceholder` rows for Composition / Activity, `HypothesisPlaceholder` two-line verdict shape). Each ends with a discreet "Bientôt · {ownerStory}" footer.
+
+### Pass 7 — AddMilestone dialog + capped scroll list + DS audit (`8e6e30b`)
+
+User flagged: "avec l'ajout des paliers ne peuvent pas être affichés comme ça, de un ça casse le bento, de deux ce n'est pas du tout ui/ux. Et est-tu sûr d'avoir bien utilisé le ds dans nos components ? les tokens etc". The V0 pattern expanded an `AddMilestoneForm` inside the MilestonesCard cell on "+ Ajouter" click — the cell sat on `row-span-2` (~ 240 px), the form added ~400 px, the row track grew, and the donut card was shoved down. With 20 milestones the list itself would overflow.
+
+Fixes:
+- New `_components/add-milestone-dialog.tsx` introduces a `PekuloDialog`-framed wrapper (the DS primitive at `packages/ui/src/primitives/PekuloDialog.tsx`). `<AddMilestoneDialogProvider>` mounts at the page level (single Portal, single focus trap); `useAddMilestoneDialog()` is consumed by both MilestonesSection's "+ Ajouter" pill AND CompassSection's setup CTA so both open the same modal.
+- `MilestonesSection` no longer composes the form inline; the list `<View render="ul">` switched from `maxHeight: 320` to `flex: 1; minHeight: 0; overflowY: auto` — list scrolls inside the cell, row track stays invariant.
+- Token audit:
+  - `headerActionStyle` inline CSS atom (raw px) moved to `bento.module.css` `.headerActionPill` alongside `.newTxPill` — single CSS source for both pill variants.
+  - Comments re-mapped from Tailwind utility names (`gap-3`) to Pekulo spacing tokens (`$3`).
+  - Hover state added on header-action pill (`$backgroundElevated`).
+  - `pekuloRadius` import dropped from `milestones-section.tsx` (CSS module owns the radius literal).
+
+### Pass 8 — bento cell-fixed rows + NavRail active-icon-only + react-grab install (`eae2b9e`)
+
+User flagged (a) all NavRail icons rendered the same color regardless of `activeKey`, (b) "il y a des espaces, le block paliers va forcément s'agrandir et va encore plus casser le dashboard bento". Plus the separate ask to install react-grab properly.
+
+Fixes:
+- `PekuloNavRail`: introduced `iconColor(active)` helper → `var(--color)` for the active key, `var(--colorTertiary)` for everyone else. The previous attempt to put `color` directly on the `NavButton` styled View failed because Tamagui `styled(View, ...)` rejects text-style props — so the color is now applied at the lucide-icon call site. Active state also keeps the `$backgroundElevated` bubble (unchanged). Snapshot regenerated.
+- `bento.module.css`: `grid-auto-rows: minmax(112px, auto)` → `minmax(220px, auto)`. The 112 px floor was a mobile-mock relic that did not pair with a 208 px donut; bumping the floor to 220 means a row-span-2 cell guarantees ≥ 456 px and the placeholders fill their cell instead of stacking at the top of an oversized box. Every cell got `display: flex; flex-direction: column` + `> * { flex: 1; min-height: 0 }` so the inner Section consumes the full cell height. `PlaceholderCard` body switched to `flex: 1; justify-content: space-between` — the variant body sits at the top, the "Bientôt · X" footnote pins to the bottom; no empty stacks.
+- `apps/web/src/app/layout.tsx` guard for the react-grab CDN script tag switched from `process.env.NEXT_PUBLIC_REACT_GRAB === "1"` to `process.env.NODE_ENV === "development"` so the activation is automatic in dev and stays out of prod. `react-grab@0.1.34` added as devDep via `cd apps/web && bun add -d react-grab@latest`.
+
+### Carry-overs after Pass 8
+
+- Heading hierarchy: `<Section title="…">` renders the title as `<Text>` not `<h2>` (DS primitive). No `<h1>` on `/dashboard` either — matches ux-preview parity but worth a sr-only `<h1>Cap</h1>` follow-up. Logged in Pass 5.
+- The `+€ vs plan` perf-delta line on the donut card collapses (no data) until story 7-1 wires `computeAhead()` against the live curve.
+- Patrimoine top-tab toggle is non-functional (toasts "Bientôt") — owned by a future Patrimoine view story.
+- Bottom-nav clearance (`pb-28`) doesn't honor `env(safe-area-inset-bottom)` — notched iOS would clip the last bento cell on a real-device mobile pass. Logged.
+- The five placeholders should swap for their real cards as 7-1 / 5-x / 6-x land. `page.tsx` annotates each owner inline.
+
+### Iron Law (final, captured 2026-05-13 after Pass 8)
+
+```
+oxlint                       0 warnings, 0 errors    (368 files)
+apps/api  bun test            183 pass / 453 expect  (22 files)
+apps/web  bun run test         23 pass               (12 files)
+@pekulo/ui bun run test       150 pass               (106 files)
+typecheck (×6 packages)       exit 0
+```
+
+### Decision (Passes 5 → 8 consolidated)
+
+**APPROVED** — visual delta vs `docs/ux-preview` closed on every Cap-view surface. Browser smoke on `/dashboard` confirmed the bento renders pixel-faithfully on ≥ 1020 px viewports with milestones added (the user's last screenshot was the final gate). Story stays `review` until the user flips it to `done`. The 9-commit fix-cycle is documented commit-by-commit so future readers can replay the visual debugging without re-screenshotting.
