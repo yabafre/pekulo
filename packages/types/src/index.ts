@@ -88,6 +88,14 @@ export const MILESTONE_STATUSES = ["ahead", "on-track", "behind"] as const;
 export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number];
 
 export interface MilestoneCardItem {
+  /**
+   * Domain id of the underlying Milestone row when the item is wired to
+   * live data. Optional so legacy DS mockups (which carry only the visual
+   * payload) keep typechecking; consumers wired to the milestones domain
+   * (story 1-4) populate it via the derive helper so PekuloMilestoneRow
+   * can offer per-row affordances (delete / edit).
+   */
+  id?: string;
   label: string;
   targetEur: number;
   targetYear: number;
