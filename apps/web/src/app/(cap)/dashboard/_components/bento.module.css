@@ -1,38 +1,169 @@
 /*
- * Cap-view bento layout — mirrors ux-preview App.tsx:331-356.
+ * Cap-view layout — mirrors ux-preview `App.tsx:114-203` + `:331-356` verbatim.
  *
- * Mobile (< 1024px): single-column stack with gap-10 (40px) between cells.
- * Desktop (≥ 1024px): 12-col CSS Grid with auto-rows minmax(112px, auto)
- * and gap-4 (16px). Cell col-spans match ux-preview's `lg:col-span-N`
- * and `lg:row-span-N` props.
+ * Single responsive breakpoint: 1020px — matches Pekulo Tamagui `md`
+ * (`@tamagui/config/v5`'s `md: 1020`), which is the threshold at which
+ * `PekuloNavRail` flips from `display: none` (`$max-md`) to visible. Using
+ * 1024px (Tailwind `lg`) here would leave a 4 px window (1021–1023) where
+ * the rail is visible but the shell still uses mobile padding, creating
+ * an overlap. The 4 px deviation from Tailwind `lg` is visually
+ * imperceptible and avoids forking PekuloNavRail's media query.
  *
- * Tamagui props can't switch CSS Grid declarations responsively (grid is
- * not a flex shorthand), so we fall back to a CSS module here. The bento
- * grid is the only piece of the page that needs raw CSS — everything
- * else stays in Tamagui props.
+ * Spacing maps to Tailwind utilities used in ux-preview:
+ *   px-5  → 20px       px-2  →  8px       pt-6  → 24px       pt-4  → 16px
+ *   pb-28 → 112px      pb-8  → 32px       pl-24 → 96px       pr-4  → 16px
+ *   gap-3 → 12px       gap-4 → 16px       gap-6 → 24px       gap-10 → 40px
  */
+
+/* ─── Shell wrapper (replaces ux-preview L121 outer `<div>`) ─────────────── */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background-color: var(--background);
+  color: var(--color);
+}
+
+@media (min-width: 1020px) {
+  .shell {
+    /* lg:pl-24 lg:pr-4 — leaves room for the fixed-left sidebar (left:16
+       width:64 → right-edge 80, so 16 px gap between rail and content). */
+    padding-left: 96px;
+    padding-right: 16px;
+  }
+}
+
+/* ─── Header (ux-preview L138-158) ───────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 20px 8px 20px; /* px-5 pt-6 pb-2 */
+  gap: 12px;
+}
+
+@media (min-width: 1020px) {
+  .header {
+    padding: 24px 8px 8px 8px; /* lg:px-2 lg:pt-6 lg:pb-2 */
+  }
+}
+
+.headerLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 24px; /* gap-6 */
+  flex-wrap: wrap;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* gap-3 */
+}
+
+.dateLabel {
+  color: var(--colorTertiary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.topTab {
+  font-size: 20px; /* text-h2 */
+  font-weight: 600;
+  line-height: 1.25;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color 150ms ease;
+}
+
+.topTabActive {
+  color: var(--color);
+}
+
+.topTabInactive {
+  color: var(--colorMuted);
+}
+
+.topTabInactive:hover {
+  color: var(--colorTertiary);
+}
+
+.newTxPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px; /* gap-2 */
+  height: 40px; /* h-10 */
+  padding: 0 16px; /* px-4 */
+  border-radius: 9999px; /* rounded-full */
+  background-color: var(--color);
+  color: var(--colorOnAccent);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px; /* text-body-sm */
+  font-weight: 500;
+  transition: opacity 150ms ease;
+}
+
+.newTxPill:hover {
+  opacity: 0.9;
+}
+
+.userDot {
+  display: grid;
+  place-items: center;
+  width: 44px; /* mobile h-11 w-11 */
+  height: 44px;
+  border-radius: 9999px;
+  background-color: var(--backgroundMuted);
+  color: var(--color);
+  font-size: 14px;
+  font-weight: 500;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+@media (min-width: 1020px) {
+  .userDot {
+    width: 40px; /* lg:h-10 lg:w-10 */
+    height: 40px;
+  }
+}
+
+/* ─── Main (ux-preview L160) ─────────────────────────────────────────────── */
+
+.main {
+  flex: 1;
+  padding: 24px 20px 112px 20px; /* px-5 pt-6 pb-28 */
+}
+
+@media (min-width: 1020px) {
+  .main {
+    padding: 16px 8px 32px 8px; /* lg:px-2 lg:pt-4 lg:pb-8 */
+  }
+}
+
+/* ─── Bento (ux-preview L335-354) ────────────────────────────────────────── */
 
 .bento {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 40px; /* gap-10 between sections on mobile */
   width: 100%;
 }
 
-.cell {
-  /* Each cell stretches full-width on mobile (single-column stack). */
-  display: block;
-}
-
-@media (min-width: 1024px) {
+@media (min-width: 1020px) {
   .bento {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     grid-auto-rows: minmax(112px, auto);
-    gap: 16px;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+    gap: 16px; /* gap-4 */
   }
 
   .heroCard {
