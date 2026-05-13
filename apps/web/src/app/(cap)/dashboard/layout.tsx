@@ -1,9 +1,13 @@
-// apps/web/src/app/dashboard/layout.tsx
-// Server Component — fetches the supabase user. Uses plain HTML/CSS chrome
-// (no Tamagui imports here) to keep the RSC boundary clean. Inner pages
-// render Tamagui surfaces under "use client" boundaries inside their tree.
+// apps/web/src/app/(cap)/dashboard/layout.tsx
+// Server Component — fetches the supabase user behind the auth guard,
+// then delegates the Cap-view chrome (sidebar + topbar) to a `"use client"`
+// shell (`CapShell`). The chrome is client-only because it consumes
+// `useRouter` (settings navigation), `useToast` (bientôt advisories), and
+// `PekuloNavRail` (Tamagui surfaces). The server boundary stays here so
+// the auth check + email lookup don't ship to the client bundle.
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { CapShell } from "./_components/cap-shell";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -12,30 +16,5 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--background)",
-        color: "var(--color)",
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingLeft: 16,
-          paddingRight: 16,
-          paddingTop: 12,
-          paddingBottom: 12,
-        }}
-      >
-        <span style={{ color: "var(--color)", fontSize: 16, fontWeight: 600 }}>Pekulo</span>
-        <span style={{ color: "var(--colorTertiary)", fontSize: 12 }}>{user.email}</span>
-      </header>
-      <main style={{ flex: 1 }}>{children}</main>
-    </div>
-  );
+  return <CapShell email={user.email ?? null}>{children}</CapShell>;
 }

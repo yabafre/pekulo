@@ -1,0 +1,63 @@
+/*
+ * Cap-view bento layout — mirrors ux-preview App.tsx:331-356.
+ *
+ * Mobile (< 1024px): single-column stack with gap-10 (40px) between cells.
+ * Desktop (≥ 1024px): 12-col CSS Grid with auto-rows minmax(112px, auto)
+ * and gap-4 (16px). Cell col-spans match ux-preview's `lg:col-span-N`
+ * and `lg:row-span-N` props.
+ *
+ * Tamagui props can't switch CSS Grid declarations responsively (grid is
+ * not a flex shorthand), so we fall back to a CSS module here. The bento
+ * grid is the only piece of the page that needs raw CSS — everything
+ * else stays in Tamagui props.
+ */
+
+.bento {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  width: 100%;
+}
+
+.cell {
+  /* Each cell stretches full-width on mobile (single-column stack). */
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: minmax(112px, auto);
+    gap: 16px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .heroCard {
+    grid-column: span 7 / span 7;
+    grid-row: span 2 / span 2;
+  }
+  .donutCard {
+    grid-column: span 5 / span 5;
+    grid-row: span 2 / span 2;
+  }
+  .trajectoryCard {
+    grid-column: span 7 / span 7;
+    grid-row: span 2 / span 2;
+  }
+  .milestonesCard {
+    grid-column: span 5 / span 5;
+    grid-row: span 2 / span 2;
+  }
+  .compositionCard {
+    grid-column: span 5 / span 5;
+  }
+  .recentActivityCard {
+    grid-column: span 7 / span 7;
+  }
+  .hypothesisCard {
+    grid-column: span 12 / span 12;
+  }
+}
