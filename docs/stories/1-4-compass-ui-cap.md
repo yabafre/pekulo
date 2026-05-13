@@ -2880,3 +2880,72 @@ Exited with code 0 (×6)
 ### Decision (Pass 3)
 
 **APPROVED** — UX-preview fidelity restored on every in-scope surface (donut card, milestone row, page wrapper). All 1 MEDIUM and 4 LOW findings resolved and committed. Story stays `review` until the browser smoke on `/dashboard` + `/dashboard/parametres` closes out the visual deferral.
+
+---
+
+## Review Record — Pass 4 (2026-05-13, bento + shell rebuild)
+
+User showed two side-by-side screenshots: **ux-preview** (`localhost:5173`, full bento dashboard with sidebar + topbar + 7 cells) and **what we shipped** (`localhost:3002/dashboard`, single donut at 0 % on a wide column with `Pekulo + email` header). The visual gap was enormous and the prior 3 review passes had MISSED it entirely — they validated AC compliance + token discipline + math + a11y, but accepted the single-column layout as story-1-4 scope when in fact the bento shell + sibling-cell scaffolding was always part of the Cap-view's visual contract per `docs/ux/screen-inventory.md:36-43`.
+
+### Findings + resolutions (committed in `d7bccd2`)
+
+**🔴 CRITICAL — fixed**
+
+- **CRIT-1 — Cap-view chrome diverged from ux-preview.** The header was a plain `Pekulo + email` strip with no sidebar nav, no date, no Cap/Patrimoine toggle, no actions. ux-preview ships a fixed left `PekuloNavRail` (compass / receipt / line-chart / wallet / building + settings at bottom) and a topbar with `date · Cap · Patrimoine · + Nouvelle transaction · Avatar`.
+  - **Fix:** new `_components/cap-shell.tsx` (client) holds the chrome — sidebar via `PekuloNavRail`, header with FR-date, "Cap" (active), "Patrimoine" (tertiary placeholder until that story ships), "Nouvelle transaction" pill (`toast.info("Bientôt", …)`), avatar with email initial. The four non-1-4 NavRail destinations toast "Bientôt — story X-Y" so the user understands why the click is a no-op. `useRouter().push("/dashboard/parametres")` on settings. Server-component `layout.tsx` keeps the auth guard and just wraps `{children}` with `<CapShell>`.
+
+- **CRIT-2 — Page layout was a single-column wide wrapper, not a 12-col bento.** The donut rendered at 208 px inside a Section spanning the full max-width; ux-preview puts the donut inside a 5-col-of-12 cell next to a 7-col HeroCard with a 2-row grid spanning the upper half of the viewport.
+  - **Fix:** new `_components/bento.module.css` declares the responsive grid (mobile `flex-col gap-10`, ≥ lg `grid-template-columns: repeat(12, 1fr)` with `auto-rows: minmax(112px, auto)`, cells with `col-span N`, `row-span N` matching ux-preview verbatim). `page.tsx` slots six cells:
+    - HeroCard `(col-7 row-2)` → `<PlaceholderCard>` (owned by 7-1).
+    - DonutCard `(col-5 row-2)` → `<CompassSection>` (real, story 1-4).
+    - TrajectoryCard `(col-7 row-2)` → `<PlaceholderCard>` (owned by 7-1).
+    - MilestonesCard `(col-5 row-2)` → `<MilestonesSection>` (real, story 1-4).
+    - CompositionCard `(col-5)` + RecentActivityCard `(col-7)` → placeholders (5-x).
+    - HypothesisCard `(col-12)` → placeholder (6-x).
+  - The CSS module is the only piece of raw CSS in the file — Tamagui responsive props can't drive `display: grid` switches.
+
+**🟡 MEDIUM — fixed**
+
+- **MED-1 — `<CompassSection>` composed `<MilestonesSection>` internally.** With the bento splitting them into adjacent cells, the composition is wrong. `<CompassSection>` is now donut-only (donut + Restant + setup-CTA / inline form / loading skeleton / error alert branches). It exports `useCapDashboardState()` so `page.tsx` reads the same dashboard query graph and renders the milestones cell with the right props, without double-fetching.
+
+- **MED-2 — `<PlaceholderCard>` scope-faithful placeholder.** Renders a `<Section title={…}>` with a centered "Bientôt — branché par {ownerStory}" caption. The Section frame reads correct visually so the bento layout looks finished, and the caption documents the deferral for the user, the reviewer, and the next dev.
+
+**🟢 LOW — fixed**
+
+- **LOW-1 — Tamagui media key drift.** Pekulo's Tamagui config exposes `$max-md` (used by `PekuloNavRail`) but NOT `$gtMd`. Switched the responsive prop to `$lg` (mobile-first: applies at ≥ lg breakpoint) everywhere in the new shell + page. Typecheck went from 3 errors to 0.
+
+- **LOW-2 — oxlint `prefer-tag-over-role`.** The "Nouvelle transaction" pill carried `render="button" role="button"` — redundant because `render="button"` already emits a `<button>` element. Dropped the explicit `role`.
+
+### Iron Law verification (post-fix, captured 2026-05-13)
+
+```
+$ ./node_modules/.bin/oxlint apps/web/src apps/api/src packages
+Found 0 warnings and 0 errors.
+Finished in 192ms on 367 files with 158 rules using 10 threads.
+
+$ cd apps/api && bun test
+ 183 pass | 0 fail | 453 expect() calls
+Ran 183 tests across 22 files. [307.00ms]
+
+$ cd apps/web && bun run test
+ Test Files  12 passed (12)
+      Tests  23 passed (23)
+   Duration  3.36s
+
+$ apps/web bun run typecheck
+Exited with code 0
+```
+
+### Decision (Pass 4)
+
+**APPROVED** — Cap-view chrome + bento layout now structurally aligned with ux-preview (`docs/ux-preview/src/App.tsx:331-356`). Browser smoke on `/dashboard` is the final gate before flipping `review → done`. Visual specifics to confirm in-browser:
+1. Sidebar visible on ≥ 1024 px width, compass icon active.
+2. Topbar shows FR-date · Cap (active) · Patrimoine (dim) · + Nouvelle transaction pill · Avatar circle with initial.
+3. Bento on desktop: 6 cells arranged exactly per `bento.module.css`; donut sits in the upper-right 5-col cell.
+4. Mobile (< 1024 px) stacks the cells vertically with 40 px spacing.
+
+Out-of-scope follow-ups (placeholders annotated in `page.tsx`):
+- **7-1** wires `<HeroCard>` (Patrimoine total) and `<TrajectoryCard>` (line chart actual/plan).
+- **5-x** wires `<CompositionCard>` (asset classes) and `<RecentActivityCard>` (5 last transactions).
+- **6-x** wires `<HypothesisCard>` (projection verdict).
+- A separate story owns the Patrimoine top-tab toggle becoming functional (`?tab=patrimoine` query param + view swap).
