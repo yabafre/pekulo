@@ -96,22 +96,49 @@
 .newTxPill {
   display: inline-flex;
   align-items: center;
-  gap: 8px; /* gap-2 */
-  height: 40px; /* h-10 */
-  padding: 0 16px; /* px-4 */
-  border-radius: 9999px; /* rounded-full */
+  gap: 8px; /* $2 */
+  height: 40px; /* $10 */
+  padding: 0 16px; /* $4 */
+  border-radius: 9999px; /* pekuloRadius.full */
   background-color: var(--color);
   color: var(--colorOnAccent);
   border: 0;
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px; /* text-body-sm */
+  font-size: 14px; /* pekuloFontSizes.bodySm */
   font-weight: 500;
   transition: opacity 150ms ease;
 }
 
 .newTxPill:hover {
   opacity: 0.9;
+}
+
+/* ─── HeaderAction pill (ux-preview L901-923) — used inside Section
+       headers for inline actions like "+ Ajouter" on Paliers / Comptes. */
+
+.headerActionPill {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: 32px; /* $8 */
+  padding: 0 12px; /* $3 */
+  border-radius: 9999px; /* pekuloRadius.full */
+  background-color: var(--backgroundMuted);
+  color: var(--color);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px; /* pekuloFontSizes.caption */
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 150ms ease;
+}
+
+.headerActionPill:hover {
+  background-color: var(--backgroundElevated);
 }
 
 .userDot {

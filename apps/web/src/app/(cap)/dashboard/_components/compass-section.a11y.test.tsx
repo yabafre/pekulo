@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+import { AddMilestoneDialogProvider } from "./add-milestone-dialog";
 import { CompassSection } from "./compass-section";
 
 describe("CompassSection a11y", () => {
@@ -23,7 +24,9 @@ describe("CompassSection a11y", () => {
     const qc = new QueryClient();
     const { container } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <CompassSection />
+        <AddMilestoneDialogProvider horizonAbsoluteYearMax={2050}>
+          <CompassSection />
+        </AddMilestoneDialogProvider>
       </QueryClientProvider>,
     );
     const results = await axe(container);

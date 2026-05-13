@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { axe } from "vitest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../test/setup";
+import { AddMilestoneDialogProvider } from "./add-milestone-dialog";
 import { MilestonesSection } from "./milestones-section";
 
 describe("MilestonesSection a11y", () => {
@@ -9,7 +10,9 @@ describe("MilestonesSection a11y", () => {
     const qc = new QueryClient();
     const { container } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <MilestonesSection currentWealth={0} horizonAbsoluteYearMax={2050} />
+        <AddMilestoneDialogProvider horizonAbsoluteYearMax={2050}>
+          <MilestonesSection currentWealth={0} />
+        </AddMilestoneDialogProvider>
       </QueryClientProvider>,
     );
     const results = await axe(container);

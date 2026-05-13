@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PekuloDonut, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useDashboardCompass } from "../_hooks/use-dashboard-compass";
 import { useCompassCurve } from "../_hooks/use-compass-curve";
-import { AddMilestoneForm } from "./add-milestone-form";
+import { useAddMilestoneDialog } from "./add-milestone-dialog";
 import { CompassSetupCta } from "./compass-setup-cta";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -30,7 +29,7 @@ function horizonAbsoluteYearMaxFor(horizonYears: number | undefined): number {
 // desktop where they occupy adjacent 5-col cells.
 export function CompassSection() {
   const router = useRouter();
-  const [showInlineForm, setShowInlineForm] = useState(false);
+  const dialog = useAddMilestoneDialog();
   const { setup, compass, progress } = useDashboardCompass();
   // AC-6: hook is called even on the dashboard's first paint to prove the
   // wire is alive. Disabled until setup is complete to avoid a 404 round-trip.
@@ -55,29 +54,19 @@ export function CompassSection() {
     );
   }
   if (setup.data === "incomplete") {
-    // AC-3: the CTA opens the add-milestone-form. Branching:
-    //   - compass row exists → render the form inline inside the donut cell
-    //     (the donut DOES NOT render in this state, per AC-3).
-    //   - compass row missing (truly fresh user) → route to /parametres so
-    //     they can set the compass first; the milestone year range cannot
+    // AC-3: the CTA opens the add-milestone-form via the shared
+    // PekuloDialog. Branching:
+    //   - compass row exists → open the modal (the donut DOES NOT render
+    //     in this state, per AC-3).
+    //   - compass row missing (truly fresh user) → route to /parametres
+    //     so they set the compass first; the milestone year range cannot
     //     be validated without a horizon.
-    if (showInlineForm && compass.data) {
-      return (
-        <Section ariaLabel="Ajouter ton premier palier" title="Premier palier">
-          <AddMilestoneForm
-            milestoneCount={0}
-            horizonAbsoluteYearMax={horizonAbsoluteYearMaxFor(compass.data.horizonYears)}
-            onSuccess={() => setShowInlineForm(false)}
-          />
-        </Section>
-      );
-    }
     return (
       <Section ariaLabel="Configuration du cap">
         <CompassSetupCta
           onAddMilestone={() => {
             if (compass.data) {
-              setShowInlineForm(true);
+              dialog.open();
             } else {
               router.push("/dashboard/parametres");
             }

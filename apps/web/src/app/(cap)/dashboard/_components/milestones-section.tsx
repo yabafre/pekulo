@@ -1,18 +1,32 @@
 "use client";
 
-import { useState } from "react";
+// apps/web/src/app/(cap)/dashboard/_components/milestones-section.tsx
+//
+// MilestonesCard cell of the Cap-view bento. Mirrors ux-preview
+// MilestonesCard (App.tsx:925-942) — Section frame + title "Paliers" +
+// header-action pill ("+ Ajouter") + ul of `PekuloMilestoneRow`.
+//
+// Bento sizing constraint: the cell sits on `row-span-2` (=~ 240 px).
+// The list is capped via `maxHeight` + `overflow-y: auto` so a user with
+// the full 20-cap doesn't blow the row track. Server-side cap is 20
+// (per `MILESTONES_PER_USER_CAP`); UI matches that bound.
+//
+// The "+ Ajouter" pill opens a shared `PekuloDialog` (mounted at the
+// page level via `AddMilestoneDialogProvider`) — the previous V0 inline
+// reveal expanded the cell and broke the bento row track.
+
 import { Plus } from "lucide-react";
-import { PekuloMilestoneRow, Section, pekuloRadius, useToast } from "@pekulo/ui";
+import { PekuloMilestoneRow, Section, useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useMilestones } from "../_hooks/use-milestones";
 import { useMilestoneStatuses } from "../_hooks/use-milestone-statuses";
 import { useDeleteMilestone } from "../_hooks/use-delete-milestone";
 import { deriveMilestoneCardItems } from "@/lib/derive-milestone-card-items";
-import { AddMilestoneForm } from "./add-milestone-form";
+import { useAddMilestoneDialog } from "./add-milestone-dialog";
+import styles from "./bento.module.css";
 
 export interface MilestonesSectionProps {
   currentWealth: number;
-  horizonAbsoluteYearMax: number;
   /** Compass objectif + horizonYears feed the linear-plan donut math in
    *  `deriveMilestoneCardItems` (mirrors ux-preview MilestoneRow's
    *  `linearPlanForYear` computation). Both optional so a degraded paint
@@ -21,34 +35,13 @@ export interface MilestonesSectionProps {
   compassHorizonYears?: number;
 }
 
-// Right-aligned `HeaderAction` pill — mirrors ux-preview's `HeaderAction`
-// (h-8 / px-3 / bg-muted / text-fg). Lives inside the Section header so the
-// "Ajouter" affordance reads like the rest of the Cap surface, not a
-// separate footer button.
-const headerActionStyle: React.CSSProperties = {
-  display: "inline-flex",
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 6,
-  height: 32,
-  padding: "0 12px",
-  backgroundColor: "var(--backgroundMuted)",
-  color: "var(--color)",
-  borderRadius: pekuloRadius.full,
-  border: "none",
-  cursor: "pointer",
-  fontSize: 12,
-  fontWeight: 500,
-};
-
 export function MilestonesSection({
   currentWealth,
-  horizonAbsoluteYearMax,
   compassObjectif,
   compassHorizonYears,
 }: MilestonesSectionProps) {
-  const [showForm, setShowForm] = useState(false);
   const toast = useToast();
+  const dialog = useAddMilestoneDialog();
   const milestonesQ = useMilestones();
   const statusesQ = useMilestoneStatuses(currentWealth, {
     enabled: (milestonesQ.data?.length ?? 0) > 0,
@@ -68,56 +61,56 @@ export function MilestonesSection({
       { id },
       {
         onError: (err) => {
-          // AC-5: surface server-side delete failures via the @pekulo/ui toast
-          // primitive (the optimistic onMutate already removed the row; on
-          // error use-delete-milestone restores it). The hook's rollback +
-          // the toast together give the user a "row came back + here's why".
           toast.danger("Suppression échouée", err.message);
         },
       },
     );
   };
+
   const headerAction = (
     <button
       type="button"
-      onClick={() => setShowForm((v) => !v)}
-      aria-expanded={showForm}
-      aria-controls="add-milestone-form"
-      style={headerActionStyle}
+      className={styles.headerActionPill}
+      onClick={() => dialog.open()}
+      aria-label="Ajouter un palier"
     >
-      <Plus size={12} strokeWidth={2.25} aria-hidden={true} color="var(--color)" />
-      <span>{showForm ? "Fermer" : "Ajouter"}</span>
+      <Plus size={12} strokeWidth={2.25} aria-hidden={true} />
+      Ajouter
     </button>
   );
+
   return (
-    <View flexDirection="column" gap="$3">
-      <Section ariaLabel={`Paliers (${items.length}/20)`} title="Paliers" action={headerAction}>
-        <View flexDirection="column">
-          {items.length === 0 ? (
-            <Text color="$colorTertiary" fontSize="$caption" paddingVertical="$3">
-              Aucun palier — ajoute le premier pour rythmer le cap.
-            </Text>
-          ) : (
-            items.map((m) => (
+    <Section ariaLabel={`Paliers (${items.length}/20)`} title="Paliers" action={headerAction}>
+      {items.length === 0 ? (
+        <Text color="$colorTertiary" fontSize="$caption" paddingVertical="$3">
+          Aucun palier — ajoute le premier pour rythmer le cap.
+        </Text>
+      ) : (
+        <View
+          render="ul"
+          flexDirection="column"
+          style={{
+            listStyle: "none",
+            // Cap visible rows at ~5 (≈ 5 × 56 px). Beyond that, the list
+            // scrolls inside the bento cell instead of pushing the row
+            // track and breaking adjacent placements.
+            maxHeight: 320,
+            overflowY: "auto",
+            paddingInlineStart: 0,
+            marginBlock: 0,
+          }}
+        >
+          {items.map((m) => (
+            <View key={m.id ?? `${m.label}-${m.targetYear}`} render="li">
               <PekuloMilestoneRow
-                key={m.id ?? `${m.label}-${m.targetYear}`}
                 milestone={m}
                 onDelete={handleDelete}
                 isDeleting={pendingDeleteId === m.id}
               />
-            ))
-          )}
-        </View>
-      </Section>
-      {showForm && (
-        <View id="add-milestone-form" role="region" aria-label="Formulaire d'ajout de palier">
-          <AddMilestoneForm
-            milestoneCount={milestonesQ.data?.length ?? 0}
-            horizonAbsoluteYearMax={horizonAbsoluteYearMax}
-            onSuccess={() => setShowForm(false)}
-          />
+            </View>
+          ))}
         </View>
       )}
-    </View>
+    </Section>
   );
 }
