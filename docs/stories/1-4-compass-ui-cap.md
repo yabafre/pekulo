@@ -2820,3 +2820,63 @@ Exited with code 0 (×6)
 ### Decision
 
 **APPROVED post-fix** — 2 CRITICAL, 5 HIGH, 4 MEDIUM, 7 LOW findings resolved and committed (5 commits on top of `cec9121`). Story status stays `review` until the user confirms the browser-pass smoke on `/dashboard` and `/dashboard/parametres`.
+
+---
+
+## Review Record — Pass 3 (2026-05-13, validation + UX-fidelity sweep)
+
+- **Reviewed at:** 2026-05-13 (same day, after Pass 2 fix-cycle)
+- **Reviewer:** Claude Opus 4.7 (1M context) — aped-review v6.7.6
+- **Branch:** `feature/16-1-4-compass-ui-cap` @ commit `9ca9012` (26 commits ahead of `main`).
+- **Auditors dispatched:** Spec, Code, Edge & Hallucination, Aria (static). All 4 returned **APPROVED HIGH confidence**. Spec validated 10/10 ACs IMPLEMENTED and 18/18 Pass-2 claims reproducible against HEAD. Edge reported 0 hallucinations across 13 new identifiers. Code raised 3 LOW non-blockers. Aria flagged 2 LOW visual deltas vs ux-preview.
+
+### Findings + resolutions (committed in `9ca9012`)
+
+User direction: **"fix tout, mais regarde ux-preview les screens car ce qu'on a ne représente pas la docs ux-preview"** — so the Pass-3 cycle landed not just the 2 Aria LOWs but a deeper alignment to `docs/ux-preview/src/App.tsx`.
+
+**🟡 MEDIUM — fixed**
+
+- **MED-1 — `MilestoneRow` planRatio drift from spec.** ux-preview App.tsx:1005-1007 computes `linearPlanForYear = currentWealth + (targetYear − currentYear) × required12mEur` then `planRatio = min(linearPlanForYear / targetCapital, 1)`. Our derive used `currentWealth / targetCapital` (snapshot ratio), which makes a far-future palier (e.g. 500k @ 2055) render an almost-empty donut even when the user is fully on plan. `deriveMilestoneCardItems` now accepts optional `compassObjectif`, `compassHorizonYears`, `currentYear` and computes `annualPlan = objectif / horizonYears` → `linearPlanForYear`. Fallback to snapshot ratio when compass info is absent (degraded first paint). `MilestonesSection` plumbs the new props from `compass-section` reading `progress.data`. **5 new derive tests** cover the happy path, the far-future visual, the short-fall case, the overdue (past targetYear) clamp, and the snapshot-ratio fallback.
+
+**🟢 LOW — fixed**
+
+- **LOW-1 — `PekuloMilestoneRow` donut size + gap.** Bumped donut from `size={32} stroke={3}` to `size={36} stroke={3}` and the row's `gap` from `$3` (12px) to `$4` (16px) so the layout matches ux-preview App.tsx:1015,1018 verbatim. Aria's HIGH-confidence Pass-3 finding.
+- **LOW-2 — `MilestonesSection.headerActionStyle` raw `borderRadius: 999`.** Replaced with `pekuloRadius.full` (= 9999) import from `@pekulo/ui`. Visual delta is zero at the pill's 32 px height, but the SSOT token discipline (memory `feedback_ssot_ux_preview`) is restored.
+- **LOW-3 — Page wrapper spacing diverged from ux-preview `<main>` + `<CapView>` (App.tsx:160 + 335).** `(cap)/dashboard/page.tsx` now mirrors the spec: mobile `paddingHorizontal $5 / paddingTop $6 / paddingBottom 112` (matching `px-5 pt-6 pb-28` — pb=112 for bottom-nav clearance), desktop overrides `$2 / $4 / $8`, and `gap="$10"` (40px) between Cap-view sections (matching `gap-10`). `compass-section`'s outer wrapper dropped its `padding` + `gap` (page wrapper owns those now); the donut Section + `MilestonesSection` render as direct children of the page-level gap-10. Ready ground for the HeroBlock / TrajectorySection / HypothesisSection siblings owned by 7-1 and later stories.
+- **LOW-4 — Snapshot regen.** 3 `@pekulo/ui` snapshots updated for `PekuloMilestoneRow` + `PekuloMilestonesCard` (size shift) — pure visual data, no semantic drift.
+
+**Carried — non-blocking, logged for the next polish cycle**
+
+- Code auditor's 3 LOW nits: (a) `injectPrefixedId` documentation drift (registry-`null` branch sits below the non-empty `id` short-circuit — invariant holds because brownfield models use `@db.Uuid` constraints, but the helper's header comment overstates the guarantee). (b) `MilestonesSection.handleDelete` closure re-created on every render — V1 is bounded by the 20-cap so the perf hit is imperceptible; `useCallback` + `React.memo` are the move when the list grows. (c) Mock-reset hygiene in `use-delete-milestone.test.tsx` — `mockResolvedValueOnce` + `mockRejectedValueOnce` prevent bleed today, but a future test added without `Once` would silently re-use a stale mock; a `beforeEach(() => deleteSpy.mockReset())` would future-proof.
+- Edge auditor's LOW UX: ~50–200 ms flash of the setup-CTA after `useAddMilestoneForm.onSuccess` invalidates `compass.setup` and before the refetch returns `"complete"`. Mitigation would be `queryClient.setQueryData(compassKeys.setup(), "complete")` synchronously in `onSuccess` — viable, but the flash is bounded by RTT and not a correctness defect.
+- `+€ vs plan` perf-delta line on the donut card stays deferred to 7-1 (curve-chart story owns the chart assembly).
+- Full Cap bento (HeroCard / TrajectoryCard / HypothesisCard / CompositionCard / RecentActivityCard) explicitly out of story 1-4 scope per `docs/ux/screen-inventory.md:36-43`.
+
+### Iron Law verification (post-fix, captured 2026-05-13)
+
+```
+$ ./node_modules/.bin/oxlint apps/web/src apps/api/src packages
+Found 0 warnings and 0 errors.
+Finished in 261ms on 365 files with 158 rules using 10 threads.
+
+$ cd apps/api && bun test
+ 183 pass | 0 fail | 453 expect() calls
+Ran 183 tests across 22 files. [361.00ms]
+
+$ cd apps/web && bun run test
+ Test Files  12 passed (12)
+      Tests  23 passed (23)        # +4 vs Pass 2 (5 new linear-plan derive tests, -1 superseded snapshot-ratio case)
+   Duration  3.32s
+
+$ cd packages/ui && bun run test
+ Test Files  106 passed (106)
+      Tests  150 passed (150)
+   Duration  16.30s                # 3 snapshots regenerated (donut size shift)
+
+$ (web) (api) (types) (ui) (contracts) (validators) typecheck
+Exited with code 0 (×6)
+```
+
+### Decision (Pass 3)
+
+**APPROVED** — UX-preview fidelity restored on every in-scope surface (donut card, milestone row, page wrapper). All 1 MEDIUM and 4 LOW findings resolved and committed. Story stays `review` until the browser smoke on `/dashboard` + `/dashboard/parametres` closes out the visual deferral.
