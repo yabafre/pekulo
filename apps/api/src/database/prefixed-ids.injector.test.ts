@@ -46,4 +46,14 @@ describe("injectPrefixedId", () => {
     const out = injectPrefixedId("Account", input);
     expect((out as unknown as { id: string }).id).toMatch(/^acc_[0-9A-Za-z]{21}$/);
   });
+
+  it("returns data unchanged for brownfield opt-out models (Hypothesis → null prefix)", () => {
+    // 2026-05-10: Hypothesis is registered with null in ID_PREFIXES because
+    // the brownfield `hypotheses.id` column is native UUID — Postgres rejects
+    // `hyp_<base62>`. The schema's `gen_random_uuid()` default supplies the id.
+    const input: { id?: unknown; userId: string } = { userId: "u" };
+    const out = injectPrefixedId("Hypothesis", input);
+    expect(out).toBe(input);
+    expect(out.id).toBeUndefined();
+  });
 });

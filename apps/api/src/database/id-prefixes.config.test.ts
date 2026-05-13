@@ -12,15 +12,23 @@ describe("id-prefixes.config", () => {
     expect(Object.keys(ID_PREFIXES)).toHaveLength(14);
   });
 
-  it("every prefix matches /^[a-z]{2,4}$/", () => {
+  it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
     for (const [model, prefix] of Object.entries(ID_PREFIXES)) {
+      if (prefix === null) {
+        // Brownfield exception (Hypothesis): native UUID column, opt-out.
+        continue;
+      }
       expect(prefix, `prefix for ${model}`).toMatch(/^[a-z]{2,4}$/);
     }
   });
 
-  it("every prefix is unique across the registry", () => {
-    const values = Object.values(ID_PREFIXES);
+  it("every non-null prefix is unique across the registry", () => {
+    const values = Object.values(ID_PREFIXES).filter((v) => v !== null);
     expect(new Set(values).size, "duplicate prefix in ID_PREFIXES").toBe(values.length);
+  });
+
+  it("Hypothesis is registered with null (brownfield UUID, opt-out)", () => {
+    expect(getPrefix("Hypothesis")).toBeNull();
   });
 
   it("contains the expected ADR-0012 keys", () => {
