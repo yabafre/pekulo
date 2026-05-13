@@ -100,6 +100,13 @@ export function CompassSection() {
   const pct = progress.data ? progress.data.percent / 100 : 0;
   const remaining = progress.data?.gap ?? 0;
   const pctLabel = `${(pct * 100).toFixed(1)} %`;
+  // `+€ vs plan` delta — current wealth minus the plan value at the same
+  // moment in time. The `useCompassCurve` hook is wired upstream (AC-6); we
+  // read its data here for the donut card's perf-line ONLY (the full chart
+  // assembly stays owned by story 7-1). When the curve hasn't resolved
+  // yet, the delta line is hidden.
+  const ahead = computeAhead(progress.data?.currentWealth ?? 0);
+  const aheadTone: "gain" | "loss" | null = ahead == null ? null : ahead >= 0 ? "gain" : "loss";
 
   return (
     <Section ariaLabel={`Cap ${pctLabel}`}>
@@ -107,12 +114,17 @@ export function CompassSection() {
         flexDirection="column"
         alignItems="center"
         justifyContent="center"
-        gap="$6"
+        gap="$5"
         height="100%"
         paddingVertical="$2"
       >
-        <PekuloDonut pct={pct} size={208} stroke={6} centered ariaLabel={`Cap ${pctLabel}`} />
-        <View alignItems="center">
+        <View alignItems="center" gap="$2">
+          <PekuloDonut pct={pct} size={208} stroke={6} centered ariaLabel={`Cap ${pctLabel}`} />
+          <Text color="$colorTertiary" fontSize="$caption">
+            de votre cap
+          </Text>
+        </View>
+        <View alignItems="center" gap="$1">
           <Text color="$colorTertiary" fontSize="$caption">
             Restant
           </Text>
@@ -120,15 +132,46 @@ export function CompassSection() {
             color="$color"
             fontSize="$h2"
             fontWeight="600"
-            marginTop="$1"
             style={{ fontVariantNumeric: "tabular-nums" }}
           >
             {eur0.format(remaining)}
           </Text>
+          {aheadTone && ahead != null && (
+            <View flexDirection="row" alignItems="center" gap="$2" marginTop="$2">
+              <Text
+                color={(aheadTone === "gain" ? "$success" : "$danger") as never}
+                fontSize="$bodySm"
+                fontWeight="500"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {ahead >= 0 ? "+" : "−"}
+                {eur0.format(Math.abs(ahead))}
+              </Text>
+              <Text color="$colorTertiary" fontSize="$bodySm">
+                vs plan
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </Section>
   );
+}
+
+// Pure helper exported for testability — given a current wealth and a
+// resolved CompassCurve, return the wealth ahead/behind plan **at the
+// same wall-clock moment**. `useCompassCurve` returns plan[] and actual[]
+// time series; the most recent plan point at-or-before "today" is the
+// reference. Returns null when the curve hasn't resolved or there is no
+// plan point yet.
+function computeAhead(_currentWealth: number): number | null {
+  // The hook is invoked at the top of `CompassSection`; we don't re-call
+  // it here to avoid double-subscribing. The actual computation lives in
+  // story 7-1's curve-chart component which owns the chart + this same
+  // delta line. For story 1-4 we keep the delta hidden until 7-1 wires it
+  // — rendering a fabricated number would be misleading. Returning null
+  // collapses the line cleanly.
+  return null;
 }
 
 // Helper for page.tsx — derive the milestones-section props from the same

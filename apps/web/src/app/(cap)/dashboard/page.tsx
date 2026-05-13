@@ -27,13 +27,13 @@ export default function DashboardPage() {
   return (
     <div className={styles.bento}>
       <div className={styles.heroCard}>
-        <PlaceholderCard title="Patrimoine total" ownerStory="7-1 (Cap dashboard composition)" />
+        <PlaceholderCard variant="hero" ownerStory="7-1" />
       </div>
       <div className={styles.donutCard}>
         <CompassSection />
       </div>
       <div className={styles.trajectoryCard}>
-        <PlaceholderCard title="Trajectoire" ownerStory="7-1 (chart UI)" />
+        <PlaceholderCard variant="trajectory" ownerStory="7-1" />
       </div>
       <div className={styles.milestonesCard}>
         {cap ? (
@@ -44,21 +44,17 @@ export default function DashboardPage() {
             compassHorizonYears={cap.compassHorizonYears}
           />
         ) : (
-          <PlaceholderCard
-            title="Paliers"
-            ownerStory="story 1-4 (en attente du cap)"
-            ariaLabel="Paliers — en attente que le cap soit configuré"
-          />
+          <PlaceholderCard variant="hypothesis" ownerStory="story 1-4 (en attente du cap)" />
         )}
       </div>
       <div className={styles.compositionCard}>
-        <PlaceholderCard title="Composition" ownerStory="story 5-x" />
+        <PlaceholderCard variant="composition" ownerStory="5-x" />
       </div>
       <div className={styles.recentActivityCard}>
-        <PlaceholderCard title="Activité récente" ownerStory="story 5-x" />
+        <PlaceholderCard variant="activity" ownerStory="5-x" />
       </div>
       <div className={styles.hypothesisCard}>
-        <PlaceholderCard title="Hypothèse de projection" ownerStory="story 6-x (hypothèse)" />
+        <PlaceholderCard variant="hypothesis" ownerStory="6-x" />
       </div>
     </div>
   );
