@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { axe } from "vitest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderWithTamagui } from "../../../../../test/setup";
+import { renderWithTamagui } from "../../../../../../test/setup";
 import { CompassEditForm } from "./compass-edit-form";
 
 describe("CompassEditForm a11y", () => {

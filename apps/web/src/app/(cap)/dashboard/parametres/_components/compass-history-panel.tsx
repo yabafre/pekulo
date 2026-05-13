@@ -35,7 +35,7 @@ export function CompassHistoryPanel() {
         </Text>
       )}
       {!isLoading && !error && (data?.length ?? 0) > 0 && (
-        <View render="ul" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        <View render="ul" padding={0} margin={0} style={{ listStyle: "none" }}>
           {data!.map((row) => (
             <View
               key={row.id}

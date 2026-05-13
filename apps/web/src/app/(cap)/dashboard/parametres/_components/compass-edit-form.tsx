@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Text, View, styled } from "@pekulo/ui/client";
+import { Text, View } from "@pekulo/ui/client";
 import {
   MAX_HORIZON_YEARS,
   MAX_OBJECTIF_EUR,
@@ -9,36 +9,15 @@ import {
   type Compass,
 } from "@pekulo/validators";
 import { useEditCompassForm } from "../_hooks/use-edit-compass-form";
+import {
+  FormField as Field,
+  formInputStyle as inputStyle,
+  formSubmitStyle as submitStyle,
+} from "../../../_components/form-primitives";
 
 export interface CompassEditFormProps {
   initial: Compass | null;
 }
-
-const Field = styled(View, {
-  flexDirection: "column",
-  gap: "$2",
-  paddingVertical: "$2",
-});
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--backgroundMuted)",
-  color: "var(--color)",
-  borderRadius: 12,
-  padding: "8px 12px",
-  fontSize: 14,
-  border: "none",
-  outline: "none",
-};
-
-const submitStyle = (disabled: boolean): React.CSSProperties => ({
-  backgroundColor: "var(--color)",
-  color: "var(--colorOnAccent)",
-  padding: "8px 16px",
-  borderRadius: 999,
-  border: "none",
-  cursor: disabled ? "not-allowed" : "pointer",
-  opacity: disabled ? 0.5 : 1,
-});
 
 export function CompassEditForm({ initial }: CompassEditFormProps) {
   const [objectif, setObjectif] = useState<string>(initial ? String(initial.objectif) : "");
@@ -48,12 +27,16 @@ export function CompassEditForm({ initial }: CompassEditFormProps) {
   const [clientError, setClientError] = useState<string | null>(null);
   const { submit, isPending, error, isSuccess } = useEditCompassForm();
 
+  // Re-sync only when the upstream compass row actually changes, never on a
+  // referential-identity flip (RSC re-render with same values). Otherwise
+  // typing into the form would race a parent re-render and stomp.
+  const initialObjectif = initial?.objectif;
+  const initialHorizonYears = initial?.horizonYears;
   useEffect(() => {
-    if (initial) {
-      setObjectif(String(initial.objectif));
-      setHorizonYears(String(initial.horizonYears));
-    }
-  }, [initial]);
+    if (initialObjectif == null || initialHorizonYears == null) return;
+    setObjectif(String(initialObjectif));
+    setHorizonYears(String(initialHorizonYears));
+  }, [initialObjectif, initialHorizonYears]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
