@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun --bun next dev",
+    "dev": "bun --bun next dev --port 3002",
     "build": "bun --bun next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -48,6 +48,7 @@
     "happy-dom": "^15.0.0",
     "react-grab": "^0.1.34",
     "supabase": "^2.95.4",
+    "tamagui": "2.0.0-rc.41",
     "typescript": "^6.0.3",
     "vitest": "^2.0.0",
     "vitest-axe": "^0.1.0"
