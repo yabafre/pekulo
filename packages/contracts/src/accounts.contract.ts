@@ -1,8 +1,28 @@
 // packages/contracts/src/accounts.contract.ts
-// Accounts module oRPC contract — empty scaffold; procedures land with feature
-// stories. See ADR-0009 (mount under /rpc/v1/accounts).
+// Accounts module oRPC contract. Four procedures:
+//   - create: insert an account; returns the new Account row.
+//   - update: patch label/type/currency/cashBalance/notes of an existing account.
+//   - delete: remove an account scoped by id+userId (FK-guarded at service layer).
+//   - list:   read all accounts for the user, ordered by createdAt asc.
+// See ADR-0009 (mount under /rpc/v1/accounts).
 
-export const accountsContractV1 = {} as const;
+import { oc } from "@orpc/contract";
+import {
+  accountSchema,
+  createAccountInputSchema,
+  deleteAccountInputSchema,
+  deleteAccountOutputSchema,
+  listAccountsOutputSchema,
+  updateAccountInputSchema,
+} from "@pekulo/validators";
+
+export const accountsContractV1 = {
+  create: oc.input(createAccountInputSchema).output(accountSchema),
+  update: oc.input(updateAccountInputSchema).output(accountSchema),
+  delete: oc.input(deleteAccountInputSchema).output(deleteAccountOutputSchema),
+  list: oc.output(listAccountsOutputSchema),
+} as const;
+
 export const accountsContract = accountsContractV1;
 export const accountsContractMeta = {
   moduleKey: "accounts",
