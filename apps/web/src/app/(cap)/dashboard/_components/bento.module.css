@@ -1,0 +1,252 @@
+/*
+ * Cap-view layout — mirrors ux-preview `App.tsx:114-203` + `:331-356` verbatim.
+ *
+ * Single responsive breakpoint: 1020px — matches Pekulo Tamagui `md`
+ * (`@tamagui/config/v5`'s `md: 1020`), which is the threshold at which
+ * `PekuloNavRail` flips from `display: none` (`$max-md`) to visible. Using
+ * 1024px (Tailwind `lg`) here would leave a 4 px window (1021–1023) where
+ * the rail is visible but the shell still uses mobile padding, creating
+ * an overlap. The 4 px deviation from Tailwind `lg` is visually
+ * imperceptible and avoids forking PekuloNavRail's media query.
+ *
+ * Spacing maps to Tailwind utilities used in ux-preview:
+ *   px-5  → 20px       px-2  →  8px       pt-6  → 24px       pt-4  → 16px
+ *   pb-28 → 112px      pb-8  → 32px       pl-24 → 96px       pr-4  → 16px
+ *   gap-3 → 12px       gap-4 → 16px       gap-6 → 24px       gap-10 → 40px
+ */
+
+/* ─── Shell wrapper (replaces ux-preview L121 outer `<div>`) ─────────────── */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background-color: var(--background);
+  color: var(--color);
+}
+
+@media (min-width: 1020px) {
+  .shell {
+    /* lg:pl-24 lg:pr-4 — leaves room for the fixed-left sidebar (left:16
+       width:64 → right-edge 80, so 16 px gap between rail and content). */
+    padding-left: 96px;
+    padding-right: 16px;
+  }
+}
+
+/* ─── Header (ux-preview L138-158) ───────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 20px 8px 20px; /* px-5 pt-6 pb-2 */
+  gap: 12px;
+}
+
+@media (min-width: 1020px) {
+  .header {
+    padding: 24px 8px 8px 8px; /* lg:px-2 lg:pt-6 lg:pb-2 */
+  }
+}
+
+.headerLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 24px; /* gap-6 */
+  flex-wrap: wrap;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* gap-3 */
+}
+
+.dateLabel {
+  color: var(--colorTertiary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.topTab {
+  font-size: 20px; /* text-h2 */
+  font-weight: 600;
+  line-height: 1.25;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color 150ms ease;
+}
+
+.topTabActive {
+  color: var(--color);
+}
+
+.topTabInactive {
+  color: var(--colorMuted);
+}
+
+.topTabInactive:hover {
+  color: var(--colorTertiary);
+}
+
+.newTxPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px; /* $2 */
+  height: 40px; /* $10 */
+  padding: 0 16px; /* $4 */
+  border-radius: 9999px; /* pekuloRadius.full */
+  background-color: var(--color);
+  color: var(--colorOnAccent);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px; /* pekuloFontSizes.bodySm */
+  font-weight: 500;
+  transition: opacity 150ms ease;
+}
+
+.newTxPill:hover {
+  opacity: 0.9;
+}
+
+/* ─── HeaderAction pill (ux-preview L901-923) — used inside Section
+       headers for inline actions like "+ Ajouter" on Paliers / Comptes. */
+
+.headerActionPill {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: 32px; /* $8 */
+  padding: 0 12px; /* $3 */
+  border-radius: 9999px; /* pekuloRadius.full */
+  background-color: var(--backgroundMuted);
+  color: var(--color);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px; /* pekuloFontSizes.caption */
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 150ms ease;
+}
+
+.headerActionPill:hover {
+  background-color: var(--backgroundElevated);
+}
+
+.userDot {
+  display: grid;
+  place-items: center;
+  width: 44px; /* mobile h-11 w-11 */
+  height: 44px;
+  border-radius: 9999px;
+  background-color: var(--backgroundMuted);
+  color: var(--color);
+  font-size: 14px;
+  font-weight: 500;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+@media (min-width: 1020px) {
+  .userDot {
+    width: 40px; /* lg:h-10 lg:w-10 */
+    height: 40px;
+  }
+}
+
+/* ─── Main (ux-preview L160) ─────────────────────────────────────────────── */
+
+.main {
+  flex: 1;
+  padding: 24px 20px 112px 20px; /* px-5 pt-6 pb-28 */
+}
+
+@media (min-width: 1020px) {
+  .main {
+    padding: 16px 8px 32px 8px; /* lg:px-2 lg:pt-4 lg:pb-8 */
+  }
+}
+
+/* ─── Bento (ux-preview L335-354) ────────────────────────────────────────── */
+
+.bento {
+  display: flex;
+  flex-direction: column;
+  gap: 40px; /* gap-10 between sections on mobile */
+  width: 100%;
+}
+
+@media (min-width: 1020px) {
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    /* Row track floor bumped from 112 (ux-preview baseline) to 220 so a
+       row-span-2 cell guarantees 456 px = 220 + 16 (gap) + 220. The
+       baseline of 112 was a relic of the legacy mobile mock that never
+       paired with a 208 px donut. With 220 the donut + "de votre cap"
+       + Restant + delta fits naturally and placeholders fill their cell
+       without dead space. */
+    grid-auto-rows: minmax(220px, auto);
+    gap: 16px; /* $4 */
+  }
+
+  /* Every cell stretches to the row track via the default
+     `align-items: stretch` on the grid; the inner card consumes 100% of
+     the cell height so its content can `justify-content: space-between`
+     instead of sitting at the top of an empty box. */
+  .heroCard,
+  .donutCard,
+  .trajectoryCard,
+  .milestonesCard,
+  .compositionCard,
+  .recentActivityCard,
+  .hypothesisCard {
+    display: flex;
+    flex-direction: column;
+  }
+  .heroCard > *,
+  .donutCard > *,
+  .trajectoryCard > *,
+  .milestonesCard > *,
+  .compositionCard > *,
+  .recentActivityCard > *,
+  .hypothesisCard > * {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .heroCard {
+    grid-column: span 7 / span 7;
+    grid-row: span 2 / span 2;
+  }
+  .donutCard {
+    grid-column: span 5 / span 5;
+    grid-row: span 2 / span 2;
+  }
+  .trajectoryCard {
+    grid-column: span 7 / span 7;
+    grid-row: span 2 / span 2;
+  }
+  .milestonesCard {
+    grid-column: span 5 / span 5;
+    grid-row: span 2 / span 2;
+  }
+  .compositionCard {
+    grid-column: span 5 / span 5;
+  }
+  .recentActivityCard {
+    grid-column: span 7 / span 7;
+  }
+  .hypothesisCard {
+    grid-column: span 12 / span 12;
+  }
+}

@@ -299,4 +299,68 @@ describe("compass.service", () => {
     const out2 = await service.getCompassCurve("user-A");
     expect(out1).toEqual(out2);
   });
+
+  // ─── getCurrentProgress (story 1-4, FR-5) ─────────────────────────────
+
+  // AC-1 (verbatim from story 1-4 L16): user A has compass (objectif=800_000,
+  // horizonYears=25), AND ≥1 MonthlyTracking row whose capitalTotal=180_400
+  // → percent = (180_400 / 800_000) × 100 = 22.55 → 22.6 (1 decimal); gap =
+  // 800_000 - 180_400 = 619_600.
+  test("AC-1 happy path: compass + wealth snapshots → percent 22.6 / gap 619_600", async () => {
+    const { repo } = fakeRepo({
+      findResult: { objectif: 800_000, horizonYears: 25 },
+      findStartResult: new Date("2024-01-15T00:00:00Z"),
+    });
+    const service = createCompassService({
+      repository: repo,
+      milestonePresenceProbe: probe(true),
+      wealthHistoryProvider: fakeWealth([
+        { at: new Date("2025-12-28T00:00:00Z"), totalEur: 100_000 },
+        { at: new Date("2026-04-28T00:00:00Z"), totalEur: 180_400 },
+      ]),
+    });
+    const out = await service.getCurrentProgress("user-A");
+    expect(out).toEqual({
+      currentWealth: 180_400,
+      objectif: 800_000,
+      horizonYears: 25,
+      percent: 22.6,
+      gap: 619_600,
+    });
+  });
+
+  // Empty wealth history (fresh user — only the compass row exists). The
+  // pure helper accepts 0 as a valid currentWealth; service surfaces percent=0
+  // and gap=objectif so the donut renders empty rather than throwing.
+  test("zero snapshots → currentWealth=0, percent=0, gap=objectif", async () => {
+    const { repo } = fakeRepo({
+      findResult: { objectif: 500_000, horizonYears: 10 },
+      findStartResult: new Date("2024-01-15T00:00:00Z"),
+    });
+    const service = createCompassService({
+      repository: repo,
+      milestonePresenceProbe: probe(true),
+      wealthHistoryProvider: fakeWealth([]),
+    });
+    const out = await service.getCurrentProgress("user-A");
+    expect(out).toEqual({
+      currentWealth: 0,
+      objectif: 500_000,
+      horizonYears: 10,
+      percent: 0,
+      gap: 500_000,
+    });
+  });
+
+  // AC-3 mirror at the service layer: no compass row → COMPASS_NOT_FOUND.
+  // HTTP 404 mapping is the error-mapper's job.
+  test("no compass row → CompassError COMPASS_NOT_FOUND", async () => {
+    const { repo } = fakeRepo({ findResult: null });
+    const service = createCompassService({
+      repository: repo,
+      milestonePresenceProbe: probe(false),
+      wealthHistoryProvider: fakeWealth([]),
+    });
+    await expect(service.getCurrentProgress("user-A")).rejects.toThrow(/compass not set/);
+  });
 });

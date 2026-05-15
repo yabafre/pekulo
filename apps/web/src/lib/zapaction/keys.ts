@@ -4,16 +4,33 @@ import { setTagRegistry } from "@zapaction/query";
 export const hypothesesKeys = createFeatureKeys("hypotheses", {
   current: () => ["current"] as const,
 });
-
 export const hypothesesTags = createFeatureTags("hypotheses", {
   current: () => ["current"] as const,
+});
+
+export const compassKeys = createFeatureKeys("compass", {
+  current: () => ["current"] as const,
+  setup: () => ["setup"] as const,
+  progress: () => ["progress"] as const,
+  curve: () => ["curve"] as const,
+  history: (limit?: number) => ["history", limit ?? 50] as const,
+});
+export const compassTags = createFeatureTags("compass", {
+  current: () => ["current"] as const,
+});
+
+export const milestonesKeys = createFeatureKeys("milestones", {
+  list: () => ["list"] as const,
+  statuses: (currentWealth: number) => ["statuses", currentWealth] as const,
+});
+export const milestonesTags = createFeatureTags("milestones", {
+  list: () => ["list"] as const,
 });
 
 export const monthlyKeys = createFeatureKeys("monthly", {
   list: () => ["list"] as const,
   byYear: (year: number) => ["year", year] as const,
 });
-
 export const monthlyTags = createFeatureTags("monthly", {
   list: () => ["list"] as const,
 });
@@ -21,7 +38,6 @@ export const monthlyTags = createFeatureTags("monthly", {
 export const transactionsKeys = createFeatureKeys("transactions", {
   list: () => ["list"] as const,
 });
-
 export const transactionsTags = createFeatureTags("transactions", {
   list: () => ["list"] as const,
 });
@@ -31,7 +47,6 @@ export const portfolioKeys = createFeatureKeys("portfolio", {
   holdings: () => ["holdings"] as const,
   snapshot: () => ["snapshot"] as const,
 });
-
 export const portfolioTags = createFeatureTags("portfolio", {
   accounts: () => ["accounts"] as const,
   holdings: () => ["holdings"] as const,
@@ -41,7 +56,6 @@ export const portfolioTags = createFeatureTags("portfolio", {
 export const lotsKeys = createFeatureKeys("lots", {
   byHolding: (holdingId: string) => ["holding", holdingId] as const,
 });
-
 export const lotsTags = createFeatureTags("lots", {
   byHolding: (holdingId: string) => ["holding", holdingId] as const,
 });
@@ -49,6 +63,29 @@ export const lotsTags = createFeatureTags("lots", {
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
+  // Compass — `current` invalidates every read of the compass aggregate
+  // AND the milestones list (status badges depend on objectif).
+  [compassTags.all()]: [
+    compassKeys.current(),
+    compassKeys.setup(),
+    compassKeys.progress(),
+    compassKeys.curve(),
+    compassKeys.history(),
+  ],
+  [compassTags.current()]: [
+    compassKeys.current(),
+    compassKeys.setup(),
+    compassKeys.progress(),
+    compassKeys.curve(),
+    compassKeys.history(),
+  ],
+  // Milestones — `list` invalidates the milestones list + `compass.setup`
+  // (the setup state is derived from "compass row exists AND ≥1 milestone",
+  // so adding/removing a milestone flips it). Without this, the dashboard
+  // stays on the setup CTA for staleTime (30s) after the first milestone
+  // is added, defeating the inline AddMilestoneForm round-trip.
+  [milestonesTags.all()]: [milestonesKeys.list(), compassKeys.setup()],
+  [milestonesTags.list()]: [milestonesKeys.list(), compassKeys.setup()],
   [monthlyTags.all()]: [monthlyKeys.list()],
   [monthlyTags.list()]: [monthlyKeys.list()],
   [transactionsTags.all()]: [transactionsKeys.list()],
@@ -61,6 +98,5 @@ setTagRegistry({
   [portfolioTags.accounts()]: [portfolioKeys.accounts(), portfolioKeys.snapshot()],
   [portfolioTags.holdings()]: [portfolioKeys.holdings(), portfolioKeys.snapshot()],
   [portfolioTags.snapshot()]: [portfolioKeys.snapshot()],
-  // lots: invalidated by holdingId; we keep generic "all" for cross-cutting refresh too.
   [lotsTags.all()]: [],
 });

@@ -1,7 +1,22 @@
 "use client";
 
+// packages/ui/src/components/PekuloNavRail.tsx
+//
+// Mirrors ux-preview `NavRail` (App.tsx:211-269) verbatim:
+//   - Compass icon button at top (Pekulo home / "cap" key) — NOT a "P"
+//     letter; ux-preview never shipped a letter affordance and the letter
+//     created a large vertical gap when paired with `justify-content:
+//     space-between`.
+//   - Hairline separator below the home button.
+//   - Inner `<nav>` packs the 5 nav buttons with `gap-1` and grows
+//     (`flex-1`) so the settings button sits at the bottom without
+//     needing `space-between` on the outer column.
+//
+// Visual envelope unchanged: fixed left bubble, `$backgroundCard` fill,
+// `$xl` radius, vertical paddingVertical $4.
+
 import type { ComponentType } from "react";
-import { View, Text, styled } from "tamagui";
+import { View, styled } from "tamagui";
 import { Compass, Receipt, LineChart, Wallet, Building2, Settings } from "lucide-react";
 
 export type PekuloNavKey =
@@ -21,19 +36,22 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "cap", label: "Cap", icon: Compass },
   { key: "transactions", label: "Transactions", icon: Receipt },
   { key: "monthly", label: "Mensuel", icon: LineChart },
   { key: "portfolio", label: "Portefeuille", icon: Wallet },
   { key: "realestate", label: "Immobilier", icon: Building2 },
 ];
 
+// View-styled doesn't take a `color` prop (color is a text-style prop), so
+// active-state icon-colorization is applied via the lucide `color` attribute
+// at the call site (see `PekuloNavRail` body — active = `var(--color)`,
+// inactive = `var(--colorTertiary)`).
 const NavButton = styled(View, {
   name: "PekuloNavRailButton",
   render: "button",
   role: "button",
-  width: 44,
-  height: 44,
+  width: 40,
+  height: 40,
   borderRadius: "$lg",
   alignItems: "center",
   justifyContent: "center",
@@ -46,10 +64,14 @@ const NavButton = styled(View, {
   },
   variants: {
     active: {
-      true: { backgroundColor: "$backgroundMuted" },
+      true: { backgroundColor: "$backgroundElevated" },
     },
   } as const,
 });
+
+function iconColor(active: boolean): string {
+  return active ? "var(--color)" : "var(--colorTertiary)";
+}
 
 export interface PekuloNavRailProps {
   activeKey: PekuloNavKey;
@@ -59,7 +81,7 @@ export interface PekuloNavRailProps {
 export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
   return (
     <View
-      render="nav"
+      render="aside"
       aria-label="Navigation principale"
       position="fixed"
       left="$4"
@@ -71,13 +93,19 @@ export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
       paddingVertical="$4"
       flexDirection="column"
       alignItems="center"
-      justifyContent="space-between"
+      gap="$1"
       $max-md={{ display: "none" }}
     >
-      <Text color="$color" fontSize={18} fontWeight="600">
-        P
-      </Text>
-      <View flexDirection="column" gap="$2">
+      <NavButton
+        active={activeKey === "cap"}
+        onPress={() => onSelect("cap")}
+        aria-label="Pekulo — accueil"
+        aria-current={activeKey === "cap" ? "page" : undefined}
+      >
+        <Compass size={22} color={iconColor(activeKey === "cap")} />
+      </NavButton>
+      <View marginVertical="$2" height={1} width={32} backgroundColor="$borderDefault" />
+      <View render="nav" flexDirection="column" gap="$1" flex={1}>
         {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
           <NavButton
             key={key}
@@ -86,7 +114,7 @@ export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
             aria-label={label}
             aria-current={activeKey === key ? "page" : undefined}
           >
-            <Icon size={20} color="currentColor" />
+            <Icon size={18} color={iconColor(activeKey === key)} />
           </NavButton>
         ))}
       </View>
@@ -96,7 +124,7 @@ export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
         aria-label="Paramètres"
         aria-current={activeKey === "settings" ? "page" : undefined}
       >
-        <Settings size={20} color="currentColor" />
+        <Settings size={18} color={iconColor(activeKey === "settings")} />
       </NavButton>
     </View>
   );

@@ -15,6 +15,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
+    "./tamagui-config": "./src/config/tamagui.ts",
     "./reset.css": "./public/reset.css",
     "./generated.css": "./public/tamagui.generated.css"
   },

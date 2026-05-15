@@ -50,6 +50,10 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     secret: input.env.SUPABASE_JWT_SECRET,
     issuer: `${input.env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1`,
     audience: "authenticated",
+    // Modern Supabase projects sign access tokens with ES256 — passing the
+    // project URL makes the verifier ALSO accept asymmetric tokens via the
+    // JWKS endpoint. HS256 path remains live for legacy / Docker-local.
+    supabaseUrl: input.env.SUPABASE_URL,
   });
   const hypothesisModule = createHypothesisModule({ prismaService });
 

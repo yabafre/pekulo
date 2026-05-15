@@ -2,7 +2,10 @@
 // columns are reused as-is by the V1 compass per ADR-0012 + grill-summary.
 
 model Hypothesis {
-  id                  String    @id
+  // Brownfield native UUID column. The `gen_random_uuid()` default keeps
+  // creates working without the prefixed-ids extension (which is configured
+  // to skip Hypothesis — see id-prefixes.config.ts).
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId              String    @unique @map("user_id") @db.Uuid
   salaireNet          Decimal?  @default(3700) @map("salaire_net") @db.Decimal
   ticketRestoJour     Decimal?  @default(14) @map("ticket_resto_jour") @db.Decimal

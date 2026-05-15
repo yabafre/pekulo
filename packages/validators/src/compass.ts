@@ -77,3 +77,36 @@ export const compassCurveSchema = z.object({
   plan: z.array(compassCurvePointSchema),
 });
 export type CompassCurve = z.infer<typeof compassCurveSchema>;
+
+// Compass progress (FR-5, story 1-4) — server-side computation surfaces the
+// donut-ready payload so the web tier does not aggregate wealth itself.
+export const compassProgressSchema = z.object({
+  currentWealth: z.number(),
+  objectif: z.number(),
+  horizonYears: z.number().int(),
+  percent: z.number(),
+  gap: z.number(),
+});
+export type CompassProgress = z.infer<typeof compassProgressSchema>;
+
+// Compass history entry (story 1-4 — exposes the existing repository.listHistory
+// method through the contract). Mirrors the @pekulo/types CompassHistoryEntry
+// interface 1:1 — kept here as the runtime SSOT so the contract egress validates.
+export const compassHistoryEntrySchema = z.object({
+  id: z.string().regex(/^cph_[0-9A-Za-z]{21}$/),
+  userId: z.string().uuid(),
+  objectif: z.number(),
+  horizonYears: z.number().int(),
+  valuedOn: z.date(),
+  createdAt: z.date(),
+});
+export type CompassHistoryEntryRuntime = z.infer<typeof compassHistoryEntrySchema>;
+
+export const listHistoryInputSchema = z
+  .object({
+    limit: z.number().int().min(1).max(200).optional(),
+  })
+  .optional();
+export type ListHistoryInput = z.infer<typeof listHistoryInputSchema>;
+
+export const listHistoryOutputSchema = z.array(compassHistoryEntrySchema);

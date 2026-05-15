@@ -17,15 +17,27 @@ export interface PekuloDonutProps {
   stroke?: number;
   /** Render the percentage label centered. */
   centered?: boolean;
+  /**
+   * Accessible name for the donut SVG. When provided, the donut becomes
+   * `role="img"` with this label; otherwise it stays decorative
+   * (`aria-hidden`) and the surrounding section is expected to carry the
+   * accessible name (small donuts inside list rows). Story 1-4 AC-1
+   * requires the dashboard donut to expose `"Cap NN.N %"` on the svg
+   * itself, so consumers MUST pass `ariaLabel` for the hero donut.
+   */
+  ariaLabel?: string;
 }
 
-export function PekuloDonut({ pct, size = 96, stroke = 8, centered }: PekuloDonutProps) {
+export function PekuloDonut({ pct, size = 96, stroke = 8, centered, ariaLabel }: PekuloDonutProps) {
   const clamped = Math.max(0, Math.min(1, pct));
   const animated = useCountUp(clamped, { durationMs: 900 });
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - animated);
   const labelPct = Math.round(animated * 100);
+  const svgProps = ariaLabel
+    ? { role: "img" as const, "aria-label": ariaLabel }
+    : { "aria-hidden": true as const };
 
   return (
     <View
@@ -35,7 +47,13 @@ export function PekuloDonut({ pct, size = 96, stroke = 8, centered }: PekuloDonu
       justifyContent="center"
       position="relative"
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden focusable={false}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        focusable={false}
+        {...svgProps}
+      >
         <circle
           cx={size / 2}
           cy={size / 2}
