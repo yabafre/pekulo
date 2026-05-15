@@ -21,15 +21,22 @@
 export type Id<TBrand extends string> = string & { __brand: TBrand };
 
 // ─── Account (Comptes / Patrimoine) ──────────────────────────────────────
+// Domain TS contract lives in @pekulo/validators (z.infer<typeof accountSchema>)
+// and is re-exported below. The legacy DS UI prop shape stays here under the
+// rename `AccountCardItem` (story 1-2 precedent — Milestone → MilestoneCardItem).
 export const ACCOUNT_TYPES = ["livret", "pea", "cto", "av", "autre"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
-export interface Account {
+/** UI prop shape consumed by PekuloAccountRow / PekuloAccountsSection. */
+export interface AccountCardItem {
   label: string;
   type: AccountType;
   institution?: string;
   balanceEur: number;
 }
+
+/** Canonical domain entity (z.infer from @pekulo/validators#accountSchema). */
+export type { Account } from "@pekulo/validators";
 
 // ─── Holding (Portfolio) ─────────────────────────────────────────────────
 export const HOLDING_KINDS = ["etf", "action", "crypto", "autre"] as const;
