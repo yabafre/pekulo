@@ -4,6 +4,7 @@ reads:
   - "docs/architecture.md"
   - "docs/prd.md"
   - ".aped/scripts/lint-placeholders.sh"
+  - ".aped/scripts/validate-architecture.sh"
   - ".aped/aped-arch/scripts/oracle-arch.sh"
   - "mcp/aped_validate.phase"
 writes: []
@@ -39,6 +40,7 @@ Present validation results. Flag any gaps.
 
 ## SELF-REVIEW
 
+- [ ] **Structural drift** — `bash .aped/scripts/validate-architecture.sh docs/architecture.md`. **WARN-only** — surface stderr if non-zero, do **not** HALT. The oracle below remains the HALT-bearing gate.
 - [ ] **Placeholder lint** — `bash .aped/scripts/lint-placeholders.sh docs/architecture.md`.
 - [ ] **Oracle pass** — `aped_validate.phase(phase: "arch")` returns `{ok}`. MCP fallback: `bash .aped/aped-arch/scripts/oracle-arch.sh docs/architecture.md docs/prd.md`. Surface any `ERROR Eddd: ...` line verbatim and HALT.
 - [ ] **FR implementation paths** — every PRD FR is mentioned in `architecture.md` with a clear implementation surface.

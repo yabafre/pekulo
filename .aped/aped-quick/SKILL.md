@@ -9,7 +9,7 @@ argument-hint: "<title> [fix|feature|refactor]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.8.0
+  version: 6.12.0
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 

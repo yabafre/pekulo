@@ -5,6 +5,7 @@ reads:
   - ".aped/scripts/lint-placeholders.sh"
   - ".aped/aped-prd/scripts/validate-prd.sh"
   - ".aped/aped-prd/scripts/oracle-prd.sh"
+  - ".aped/scripts/validate-prd.sh"
   - "mcp/aped_validate.phase"
 writes:
   - "subagent/spec-reviewer"
@@ -44,6 +45,14 @@ bash .aped/aped-prd/scripts/oracle-prd.sh docs/prd.md
 ```
 
 If violations are non-empty (or oracle exits non-zero), surface each `ERROR Eddd: ...` verbatim. Offer one final A/P/C round. Do NOT ship the PRD until oracle passes — every error code (E001–E007) maps to a deterministic fix.
+
+**Structural schema (6.10.0+, WARN-only):**
+
+```bash
+bash .aped/scripts/validate-prd.sh docs/prd.md
+```
+
+Cohort-3 walker checks the 7 required level-2 sections, forbids invented top-level / sub-headings, and validates FR / NFR bullet shape. Stderr surfaces `path:LN — ...` lines. **WARN-only — never HALT here.** Oracle remains the HALT-bearing gate; this validator is structural complement (escalates to ERROR in 7.0.0 like the rest of the schema cohorts).
 
 ## SPEC-REVIEWER DISPATCH
 

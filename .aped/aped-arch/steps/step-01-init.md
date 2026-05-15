@@ -57,6 +57,9 @@ phases_planned:
   - implementation-patterns
   - structure-mapping
   - validation
+  - watch-items
+  - residual-gaps
+  - epic-zero
 ---
 
 # Architecture — {{project_name}}
@@ -104,6 +107,18 @@ phases_planned:
 ### Shared Code Inventory
 
 ## Phase 5 — Validation
+
+## Phase 6 — Watch Items
+
+<!-- W-items: assumptions, risks, monitoring obligations surfaced during arch. Counted into state.yaml `watch_items` by step-09. -->
+
+## Phase 7 — Residual Gaps
+
+<!-- G-items: open questions blocking nothing but needing follow-up. Counted into state.yaml `residual_gaps` by step-09. -->
+
+## Phase 8 — Epic Zero
+
+<!-- E0.x stories: foundation work surfaced by the arch process. Counted into state.yaml `epic_zero_stories` by step-09. -->
 ```
 
 ### 2. Advance state

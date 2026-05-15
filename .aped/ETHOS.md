@@ -26,6 +26,12 @@ This file is the canonical home of APED's Iron Laws. Each skill that has an Iron
 2. **Design B must be structurally different.** Not "same thing with a different name" — different trade-off axis (e.g. Design A optimises for read speed, Design B for write simplicity).
 3. **Decision is explicit.** The user picks. The agent does not default to Design A.
 
+### aped-discuss-epic
+
+1. **Decisions are concrete, not aspirational.** Each bullet names a path, type, shape, error class, or invariant — never a goal ("we will be consistent", "errors will be handled properly"). If a story re-reading this can pick a different answer, the decision isn't concrete.
+2. **SPIDR walks all five axes.** Spike, Paths, Interfaces, Data, Rules. An empty axis is `N/A — <reason>`, never omitted. The discipline matters because the absence of a decision is itself a decision — make it explicit.
+3. **Runs BEFORE `aped-story` for the target epic.** If stories of the epic are already in flight, decisions retro-fitted here drift from what was actually built. Lock decisions first; write stories second.
+
 ### aped-dev
 
 **NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST.** Code written before its test must be deleted, not adapted — sunk cost is the strongest force pulling toward "tests after". Watching the test fail is irreplaceable: if you didn't see RED, you don't know the test exercises the right path.

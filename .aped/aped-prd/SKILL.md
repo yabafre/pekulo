@@ -9,7 +9,7 @@ argument-hint: "[--headless]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.8.0
+  version: 6.12.0
 ---
 
 Follow the instructions in `.aped/aped-prd/workflow.md`.

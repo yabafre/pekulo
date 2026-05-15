@@ -30,11 +30,27 @@ Update the story file with the Dev Agent Record, advance state, sync to the tick
 
 ## STORY UPDATE
 
-1. Update story file: mark all tasks `[x]`, fill **Dev Agent Record** with:
-   - Brief implementation summary.
-   - Files changed (paste from `git diff --name-only ^{base-branch}`).
-   - Any deviations from the original plan (and why).
-   - Test command output (the captured verification from step 07).
+1. Update story file: mark all tasks `[x]`, then append `## Dev Agent Record` with the four required sub-sections (cohort-2 contract — `validate-story.sh` warns if any of the four is missing):
+
+   ```markdown
+   ## Dev Agent Record
+
+   ### Summary
+
+   {1-3 sentences. What shipped, scope honoured, surprises if any.}
+
+   ### Files changed
+
+   {Paste from `git diff --name-only ^{base-branch}`. One file per bullet.}
+
+   ### Deviations
+
+   {Plan vs reality. Bullet list of deviations + reason. Write "None." if the plan held.}
+
+   ### Test output
+
+   {Paste the verified test command + final pass line + key counts from step 07.}
+   ```
 
 2. Do NOT add a `Review Record` section — that's `aped-review`'s job.
 
