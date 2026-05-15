@@ -12,8 +12,20 @@
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { Account } from "@pekulo/validators";
+import { AccountError } from "./accounts.errors";
 import type { AccountRepository } from "./accounts.repository";
 import { createAccountService } from "./accounts.service";
+
+async function expectRejection(promise: Promise<unknown>): Promise<AccountError> {
+  let err: unknown;
+  try {
+    await promise;
+  } catch (e) {
+    err = e;
+  }
+  expect(err).toBeInstanceOf(AccountError);
+  return err as AccountError;
+}
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const USER_B = "22222222-2222-2222-2222-222222222222";
@@ -22,7 +34,9 @@ function stubRepo(seed?: {
   accounts?: Account[];
   holdingCountByAccount?: Record<string, number>;
 }): AccountRepository {
-  const accounts: Account[] = [...(seed?.accounts ?? [])];
+  // Hold the seeded arrays by reference so the test can `push` to them and
+  // observe the change inside repository methods.
+  const accounts: Account[] = seed?.accounts ?? [];
   const countMap = seed?.holdingCountByAccount ?? {};
   let nextId = accounts.length;
   return {
@@ -120,9 +134,10 @@ describe("accounts.service", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    await expect(
+    const err = await expectRejection(
       service.update(USER_A, { id: "acc_xxxxxxxxxxxxxxxxxxxxx", label: "stolen" }),
-    ).rejects.toMatchObject({ code: "ACCOUNT_NOT_FOUND" });
+    );
+    expect(err.code).toBe("ACCOUNT_NOT_FOUND");
   });
 
   test("delete throws ACCOUNT_REFERENCED_FK when holdings count > 0 (AC-2)", async () => {
@@ -138,12 +153,9 @@ describe("accounts.service", () => {
       updatedAt: new Date(),
     });
     countMap["acc_yyyyyyyyyyyyyyyyyyyyy"] = 2;
-    await expect(service.delete(USER_A, { id: "acc_yyyyyyyyyyyyyyyyyyyyy" })).rejects.toMatchObject(
-      {
-        code: "ACCOUNT_REFERENCED_FK",
-        message: /referenced by 2 holdings/,
-      },
-    );
+    const err = await expectRejection(service.delete(USER_A, { id: "acc_yyyyyyyyyyyyyyyyyyyyy" }));
+    expect(err.code).toBe("ACCOUNT_REFERENCED_FK");
+    expect(err.message).toMatch(/referenced by 2 holdings/);
     // Row remains.
     expect(accounts).toHaveLength(1);
   });
@@ -179,9 +191,8 @@ describe("accounts.service", () => {
     });
     // Holdings count for user-a's namespace stays 0; delete returns false
     // because the row belongs to user-b → service translates to NOT_FOUND.
-    await expect(service.delete(USER_A, { id: "acc_xxxxxxxxxxxxxxxxxxxxx" })).rejects.toMatchObject(
-      { code: "ACCOUNT_NOT_FOUND" },
-    );
+    const err = await expectRejection(service.delete(USER_A, { id: "acc_xxxxxxxxxxxxxxxxxxxxx" }));
+    expect(err.code).toBe("ACCOUNT_NOT_FOUND");
   });
 
   test("delete singular message for count=1", async () => {
@@ -197,10 +208,9 @@ describe("accounts.service", () => {
       updatedAt: new Date(),
     });
     countMap["acc_singular0000000000"] = 1;
-    await expect(service.delete(USER_A, { id: "acc_singular0000000000" })).rejects.toMatchObject({
-      code: "ACCOUNT_REFERENCED_FK",
-      message: /referenced by 1 holding$/,
-    });
+    const err = await expectRejection(service.delete(USER_A, { id: "acc_singular0000000000" }));
+    expect(err.code).toBe("ACCOUNT_REFERENCED_FK");
+    expect(err.message).toMatch(/referenced by 1 holding$/);
   });
 
   test("list returns only the user's accounts (AC-4)", async () => {
