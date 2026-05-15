@@ -1,7 +1,7 @@
 # Story: 1-4-compass-ui-cap — Cap view UI primitives — donut, milestones, compass forms, history
 
 **Epic:** Epic 1 — Compass & milestones (V1 differentiator)
-**Status:** review
+**Status:** done
 **Ticket:** [#16](https://github.com/yabafre/pekulo/issues/16)
 **Branch:** `feature/16-1-4-compass-ui-cap`
 **Commit prefix:** `feat(#16): …`
