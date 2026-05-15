@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from workflow.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
+
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 
@@ -6,6 +8,8 @@
 The end-of-sprint counterpart to `aped-sprint`. The umbrella branch (`sprint/epic-{N}`, created by aped-sprint at sprint start) has been accumulating story merges from aped-lead's au-fil-de-l'eau approvals. `aped-ship`'s job is the **final PR**: verify the umbrella is integration-complete, run the composite pre-push review on it, push, and print the `gh pr create --base <base> --head sprint/epic-N` command for the user.
 
 `aped-ship` does NOT merge stories. Per-story merges into the umbrella are owned by `aped-lead` (au-fil-de-l'eau, see aped-lead.md). If a story isn't merged into the umbrella by ship time, that's a workflow gap the user fixes (re-run aped-lead, or merge manually) — not something aped-ship works around.
+
+**Sprint mode is transparent here.** The umbrella → base topology is identical whether the sprint ran in parallel (N worktrees) or sequential (one shared worktree, branches stacked via git-spice): every story is its own branch merged into `sprint/epic-{N}` before ship. The Integration Check, Composite Review, and final PR command all operate on git refs only — they do not care which mode produced them. If `sprint.mode: sequential` is set, no special handling is needed in this skill.
 
 ## On Activation
 

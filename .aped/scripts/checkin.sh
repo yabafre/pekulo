@@ -96,8 +96,8 @@ field_for_story() {
   local key="$1" field="$2"
   [[ -f "$STATE_FILE" ]] || return 1
   awk -v k="$key" -v f="$field" '
-    $0 ~ "^    " k ":" { in_story=1; next }
-    in_story && /^    [a-zA-Z0-9_-]+:/ { in_story=0 }
+    $0 ~ "^    \"?" k "\"?:" { in_story=1; next }
+    in_story && /^    "?[a-zA-Z0-9_-]+"?:/ { in_story=0 }
     in_story && $1 == f ":" {
       gsub(/"/, "", $2); print $2; exit
     }

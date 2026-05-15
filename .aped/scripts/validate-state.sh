@@ -52,7 +52,7 @@ fi
 # runtime state). Skill readers fall back to state.yaml for v2 scaffolds.
 # Schema versions beyond KNOWN_SCHEMA_VERSIONS — refuse with a clear hint
 # instead of silently best-effort-parsing a future shape.
-KNOWN_SCHEMA_VERSIONS="1 2 3"
+KNOWN_SCHEMA_VERSIONS="1 2 3 4"
 schema_version="1"
 if command -v yq >/dev/null 2>&1; then
   schema_version=$(yq eval '.schema_version // 1' "$STATE_FILE" 2>/dev/null || echo "1")
@@ -77,7 +77,9 @@ fi
 KNOWN_TOP_LEVEL_BLOCKS_V1="schema_version pipeline sprint ticket_sync backlog_future_scope corrections"
 KNOWN_TOP_LEVEL_BLOCKS_V2="schema_version pipeline sprint ticket_sync backlog_future_scope corrections_pointer corrections_count"
 KNOWN_TOP_LEVEL_BLOCKS_V3="$KNOWN_TOP_LEVEL_BLOCKS_V2"
+KNOWN_TOP_LEVEL_BLOCKS_V4="$KNOWN_TOP_LEVEL_BLOCKS_V3"
 case "$schema_version" in
+  4) KNOWN_TOP_LEVEL_BLOCKS="$KNOWN_TOP_LEVEL_BLOCKS_V4" ;;
   3) KNOWN_TOP_LEVEL_BLOCKS="$KNOWN_TOP_LEVEL_BLOCKS_V3" ;;
   2) KNOWN_TOP_LEVEL_BLOCKS="$KNOWN_TOP_LEVEL_BLOCKS_V2" ;;
   *) KNOWN_TOP_LEVEL_BLOCKS="$KNOWN_TOP_LEVEL_BLOCKS_V1" ;;
@@ -89,7 +91,7 @@ esac
 # top-level `corrections:` after migration means manual editing or a botched
 # migration; either way the audit invariant ("one source of truth for
 # corrections") is broken. Surface it loudly.
-if [[ "$schema_version" == "2" || "$schema_version" == "3" ]] && grep -qE '^corrections:' "$STATE_FILE" 2>/dev/null; then
+if [[ "$schema_version" == "2" || "$schema_version" == "3" || "$schema_version" == "4" ]] && grep -qE '^corrections:' "$STATE_FILE" 2>/dev/null; then
   echo "ERROR: state.yaml schema_version=$schema_version but a top-level \`corrections:\` block is still present. In v2+ corrections live in the file pointed to by \`corrections_pointer\`. Run \`bash .aped/scripts/migrate-state.sh\` to migrate, or remove the residual top-level block manually." >&2
   exit 4
 fi
@@ -98,7 +100,7 @@ fi
 # config.yaml, not state.yaml. A residual mention here points at an
 # incomplete v2→v3 migration; the migration tool moves them to config.yaml
 # and deletes them from state.yaml in lock-step.
-if [[ "$schema_version" == "3" ]] && command -v yq >/dev/null 2>&1; then
+if [[ "$schema_version" == "3" || "$schema_version" == "4" ]] && command -v yq >/dev/null 2>&1; then
   for runtime_pref in parallel_limit review_limit; do
     val=$(yq eval ".sprint.$runtime_pref // \"\"" "$STATE_FILE" 2>/dev/null || echo "")
     if [[ -n "$val" && "$val" != "null" ]]; then
@@ -114,7 +116,7 @@ fi
 # while active_epic is set means the sprint was started before the
 # umbrella convention or someone hand-edited state.yaml. Surface it
 # rather than letting aped-ship blow up later with a cryptic null.
-if [[ "$schema_version" == "3" ]] && command -v yq >/dev/null 2>&1; then
+if [[ "$schema_version" == "3" || "$schema_version" == "4" ]] && command -v yq >/dev/null 2>&1; then
   active_epic=$(yq eval '.sprint.active_epic // ""' "$STATE_FILE" 2>/dev/null || echo "")
   if [[ -n "$active_epic" && "$active_epic" != "null" ]]; then
     umbrella=$(yq eval '.sprint.umbrella_branch // ""' "$STATE_FILE" 2>/dev/null || echo "")

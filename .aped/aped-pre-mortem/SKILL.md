@@ -7,6 +7,7 @@ allowed-paths:
   write: ["docs/**", ".aped/**"]
   read-only: ["src/**", "tests/**", "package.json"]
 ---
+<!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
@@ -18,9 +19,7 @@ Before implementation begins, assume the project HAS ALREADY FAILED. Work backwa
 
 ## Iron Laws
 
-1. **The project has failed.** This is not a question — it's the premise. Start from failure, not from "what might go wrong."
-2. **Every risk must have a mitigation or an explicit acceptance.** "We'll deal with it" is not a mitigation.
-3. **Pre-mortem runs BEFORE implementation, not during.** If you're already coding, use `aped-checkpoint` instead.
+See [`ETHOS.md` § aped-pre-mortem](../ETHOS.md#aped-pre-mortem) — three laws: the project has failed (premise); every risk has a mitigation or explicit acceptance; pre-mortem runs BEFORE implementation.
 
 ## Pre-Mortem Pipeline
 

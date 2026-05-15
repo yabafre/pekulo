@@ -145,11 +145,23 @@ for (const sec of sections) {
       process.stderr.write(`schema: invalid lines_match regex for '${sec.heading}': ${err.message}\n`);
       process.exit(2);
     }
+    // 6.8.0 — only validate TOP-LEVEL list-item-starting lines. Continuation
+    // prose, fenced code blocks, sub-bullets, blockquotes, tables — all exempt.
+    // The schema's lines_match describes what an item header looks like, not
+    // every line of body content under it. Pre-6.8.0 the walker validated
+    // every non-empty / non-heading line, which produced hundreds of false
+    // positives on stories that explained ACs with prose or code examples.
+    let inFence = false;
     for (let j = startLine; j < endLine - 1; j++) {
       const ln = lines[j];
       if (ln === undefined) continue;
+      if (/^\s*```/.test(ln)) { inFence = !inFence; continue; }
+      if (inFence) continue;
       if (ln.trim() === '') continue;
       if (HEADING.test(ln)) continue;
+      // Only enforce lines_match on bullets that start at column 0 (top-level
+      // list items). Anything indented or prose-shaped is allowed body content.
+      if (!/^[-*]\s/.test(ln)) continue;
       if (!rx.test(ln)) {
         fail(`${targetPath}:${j + 1} — line does not match expected pattern under '${sec.heading}'`);
       }

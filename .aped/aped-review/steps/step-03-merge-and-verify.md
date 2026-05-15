@@ -42,9 +42,9 @@ Include the `git-audit.sh` output in the input — out-of-scope changes and miss
 
 ## Iron Law — verification gate (run BEFORE step 04 presents anything)
 
-**NO PASS WITHOUT FRESH EVIDENCE IN THIS MESSAGE.**
+**NO PASS WITHOUT FRESH EVIDENCE IN THIS MESSAGE.** See [`ETHOS.md` § aped-review](../../ETHOS.md#aped-review) for full rationale.
 
-The merged report claims X passes / Y is correct. For every claim, this message must show fresh tool output captured in this conversation. *"Should work"*, *"looks good"*, *"probably fine"*, *"tests should pass"* are not evidence — they are the words of someone who didn't run the verification.
+The merged report claims X passes / Y is correct. For every claim, this message must show fresh tool output captured in this conversation — re-run the verification, capture the output, paste it.
 
 ### Forbidden phrases
 

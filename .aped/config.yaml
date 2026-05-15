@@ -5,7 +5,7 @@ communication_language: french
 document_output_language: english
 aped_path: .aped
 output_path: docs
-aped_version: 6.3.3
+aped_version: 6.8.0
 
 # Integrations
 ticket_system: github-issues
@@ -38,6 +38,18 @@ sprint:
   # polls `gh pr view --json state` until MERGED or this timeout elapses.
   # Surfaces a clear error instead of fire-and-forget teardown.
   merge_poll_timeout_seconds: 120
+  # Post-dispatch bootstrap (6.7.5). When empty, sprint-dispatch.sh runs
+  # smart defaults: detect package-runner (pnpm/yarn/bun/npm), run install,
+  # and copy .env from project root if `.env.example` exists in the worktree.
+  # Set to a non-empty array to override — each entry runs in the worktree
+  # via `bash -c`, smart defaults are skipped entirely. Best-effort: failures
+  # log but never block dispatch.
+  post_dispatch_hook: []
+  # Sprint mode (6.7.5). `parallel` (default) creates one worktree per story
+  # under the umbrella. `sequential` creates ONE shared worktree at sprint
+  # start and stacks stories on top via git-spice — requires `gs --version`
+  # at dispatch time, HALTs with install link if missing.
+  mode: parallel
 
 # Review-stage knobs.
 # `parallel_reviewers` (6.1.0) — flag for the Stage 1.5 opt-in trio

@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from workflow.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
+
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 
@@ -26,7 +28,7 @@ Before any other action, read `.aped/config.yaml` and resolve:
 
 ### Iron Law
 
-**SURFACE CANDIDATES, NEVER AUTO-REFACTOR.** The skill's job is identification + grilling. Implementation belongs to the user's downstream choice — typically a story drafted via `aped-story` and built via `aped-dev`. Never write code in this skill, never modify the modules under audit, never open files outside the report path.
+**SURFACE CANDIDATES, NEVER AUTO-REFACTOR.** See [`ETHOS.md` § aped-arch-audit](../ETHOS.md#aped-arch-audit) for full rationale.
 
 ### Red Flags
 

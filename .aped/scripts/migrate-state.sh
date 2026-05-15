@@ -296,6 +296,46 @@ migrate_v2_to_v3() {
   return 0
 }
 
+migrate_v3_to_v4() {
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "ERROR: v3 → v4 migration requires \`yq\` to manipulate YAML structurally. Install yq (\`brew install yq\` or \`npm i -g yq\`) and re-run." >&2
+    return 3
+  fi
+
+  local backup="$PROJECT_ROOT/docs/state.yaml.pre-v4-migration.bak"
+  echo "Migrating state.yaml schema 3 → 4 (seeding sprint.mode, sprint.stack_order)..." >&2
+
+  if ! cp -f "$STATE_FILE" "$backup"; then
+    echo "ERROR: failed to write backup at $backup — aborting migration." >&2
+    return 1
+  fi
+
+  local state_tmp
+  state_tmp=$(mktemp "$(dirname "$STATE_FILE")/.state.XXXXXX")
+  cp -f "$STATE_FILE" "$state_tmp"
+
+  # Seed defaults — only when absent so a hand-edited preview value survives.
+  local cur_mode cur_stack
+  cur_mode=$(yq eval '.sprint.mode // ""' "$state_tmp" 2>/dev/null || echo "")
+  cur_stack=$(yq eval '.sprint.stack_order // ""' "$state_tmp" 2>/dev/null || echo "")
+  if [[ -z "$cur_mode" || "$cur_mode" == "null" ]]; then
+    yq eval -i '.sprint.mode = "parallel"' "$state_tmp"
+  fi
+  if [[ -z "$cur_stack" || "$cur_stack" == "null" ]]; then
+    yq eval -i '.sprint.stack_order = []' "$state_tmp"
+  fi
+  yq eval -i '.schema_version = 4' "$state_tmp"
+
+  if ! yq eval 'true' "$state_tmp" >/dev/null 2>&1; then
+    echo "ERROR: produced state.yaml is not valid YAML. State unchanged. Backup at $backup; produced file at $state_tmp." >&2
+    return 1
+  fi
+  mv -f "$state_tmp" "$STATE_FILE"
+
+  echo "Migration complete. sprint.mode=parallel, sprint.stack_order=[] seeded. Backup at $backup." >&2
+  return 0
+}
+
 # Chain migrations so a single run brings legacy 3.x scaffolds all the way
 # up to the latest schema. Avoid bash-4-only `;;&` fall-through: we use a
 # while loop that re-reads schema_version after each step. Each migrator is
@@ -311,6 +351,10 @@ while true; do
       schema_version=3
       ;;
     3)
+      migrate_v3_to_v4 || exit $?
+      schema_version=4
+      ;;
+    4)
       # Reached the head of the migration chain.
       exit 0
       ;;

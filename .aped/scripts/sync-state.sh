@@ -173,13 +173,13 @@ set_story_field() {
   key_re=$(printf '%s' "$key" | sed 's/[][\\/.^$*+?(){}|]/\\&/g')
   awk -v k_re="$key_re" -v f="$field" -v v="$value" '
     function is_story_header(s) {
-      # "<indent>WORD:" with optional trailing whitespace and nothing else
-      return match(s, "^[[:space:]]+[A-Za-z0-9_-]+:[[:space:]]*$")
+      # "<indent>WORD:" or "<indent>"WORD":" with optional trailing space.
+      return match(s, "^[[:space:]]+\"?[A-Za-z0-9_-]+\"?:[[:space:]]*$")
     }
     BEGIN { in_story = 0 }
     {
       line = $0
-      if (match(line, "^([[:space:]]+)" k_re ":[[:space:]]*$")) {
+      if (match(line, "^([[:space:]]+)\"?" k_re "\"?:[[:space:]]*$")) {
         in_story = 1
         print line
         next
