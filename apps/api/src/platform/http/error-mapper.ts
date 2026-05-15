@@ -45,12 +45,21 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // userId guard (AC-8). Distinct from NOT_FOUND so future telemetry can
   // separate "row missing" from "route missing".
   MILESTONE_NOT_FOUND: 404,
+  // Accounts 404 (story 2-1, FR-10): fires when an update or delete probe
+  // walks off the userId guard (cross-user attempt or stale id). Distinct
+  // code so telemetry can separate it from generic NOT_FOUND and from
+  // compass/milestone-specific 404s.
+  ACCOUNT_NOT_FOUND: 404,
   CONFLICT: 409,
   // Milestones cap (FR-3, ≤ 20/user) and missing compass (FR-8 precondition)
   // both surface as 409 — they signal a state-shape conflict, not malformed
   // input.
   MILESTONE_LIMIT_EXCEEDED: 409,
   COMPASS_REQUIRED: 409,
+  // Accounts FK guard (story 2-1, AC-2): an account with at least one
+  // referencing holding cannot be deleted — the API surfaces this as 409
+  // (state-shape conflict), not as 400 (the request itself is well-formed).
+  ACCOUNT_REFERENCED_FK: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
   // Compass repository $transaction failure surfaces as 500 — the audit

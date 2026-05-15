@@ -14,6 +14,8 @@
  * type on `ORPC_HTTP_STATUS_BY_CODE` is the compile-time guard.
  */
 export type PekuloErrorCode =
+  | "ACCOUNT_NOT_FOUND"
+  | "ACCOUNT_REFERENCED_FK"
   | "BAD_REQUEST"
   | "COMPASS_NOT_FOUND"
   | "COMPASS_REQUIRED"
@@ -32,6 +34,8 @@ export type PekuloErrorCode =
   | "UNAUTHORIZED";
 
 const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode>([
+  "ACCOUNT_NOT_FOUND",
+  "ACCOUNT_REFERENCED_FK",
   "BAD_REQUEST",
   "COMPASS_NOT_FOUND",
   "COMPASS_REQUIRED",
