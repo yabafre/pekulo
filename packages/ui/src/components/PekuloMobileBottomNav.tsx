@@ -2,10 +2,14 @@
 
 // packages/ui/src/components/PekuloMobileBottomNav.tsx
 //
-// Mobile + tablet bottom nav — visible below Pekulo Tamagui md (= 1020 px),
+// Mobile + tablet bottom nav — visible below Pekulo Tamagui lg (= 1024 px),
 // hidden on lg+ where `PekuloNavRail` takes over. Mirrors ux-preview
 // `App.tsx:180-202`: fixed bottom, 5 icons (Cap/Transactions/Mensuel/
 // Portefeuille/Immobilier), max-w md centred, no top border (TR-strict).
+//
+// 5 equal columns via CSS grid — flex with flex=1 rounded unevenly and
+// pushed the 12-char labels ("Transactions", "Portefeuille") over the
+// button edge.
 
 import type { ComponentType } from "react";
 import { View, Text } from "tamagui";
@@ -53,10 +57,14 @@ export function PekuloMobileBottomNav({ activeKey, onSelect }: PekuloMobileBotto
       <View
         maxWidth={448}
         marginHorizontal="auto"
-        flexDirection="row"
-        paddingHorizontal="$2"
-        paddingTop="$2"
-        paddingBottom="$5"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, 1fr)",
+          paddingTop: 8,
+          paddingBottom: 20,
+          paddingLeft: 8,
+          paddingRight: 8,
+        }}
       >
         {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
           const active = activeKey === key;
@@ -67,23 +75,28 @@ export function PekuloMobileBottomNav({ activeKey, onSelect }: PekuloMobileBotto
               onPress={() => onSelect(key)}
               aria-label={label}
               aria-current={active ? "page" : undefined}
-              flex={1}
               flexDirection="column"
               alignItems="center"
               justifyContent="center"
-              gap="$1"
+              gap={4}
               paddingVertical="$2"
               borderRadius="$md"
               backgroundColor="transparent"
               borderWidth={0}
               cursor="pointer"
+              width="100%"
             >
               <Icon size={20} strokeWidth={1.75} color={iconColor(active)} />
               <Text
-                fontSize={11}
-                lineHeight={11}
+                fontSize={10}
+                lineHeight={12}
                 color={active ? "$color" : "$colorTertiary"}
                 fontWeight="500"
+                style={{
+                  whiteSpace: "nowrap",
+                  letterSpacing: -0.1,
+                  textAlign: "center",
+                }}
               >
                 {label}
               </Text>
