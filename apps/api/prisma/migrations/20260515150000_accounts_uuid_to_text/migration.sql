@@ -60,21 +60,36 @@ ALTER TABLE public.holdings
   ALTER COLUMN account_id TYPE TEXT USING account_id::text;
 
 -- Step 5 — re-id all existing accounts in-place to acc_<base62-21>, cascading
--- the mapping to holdings.account_id. Loop iterates one row at a time so each
--- old id maps to exactly one new id (no double-mint per account row).
+-- the mapping to holdings.account_id.
+--
+-- Two safeguards:
+--   1. WHERE filter — only re-id rows whose id does NOT already match the
+--      acc_<base62-21> shape. Makes the loop a no-op if an operator copies
+--      this SQL into the Supabase SQL editor on an already-migrated DB,
+--      preventing destructive re-mints of every reference.
+--   2. Snapshot via array_agg — materialise the id list BEFORE any UPDATE
+--      fires, so HOT updates moving tuples cannot cause the implicit cursor
+--      to revisit a re-id'd row under its new id.
 DO $$
 DECLARE
-  rec RECORD;
+  old_ids TEXT[];
+  old_id TEXT;
   new_id TEXT;
 BEGIN
-  FOR rec IN SELECT id FROM public.accounts LOOP
+  SELECT array_agg(id) INTO old_ids
+    FROM public.accounts
+    WHERE id !~ '^acc_[0-9A-Za-z]{21}$';
+  IF old_ids IS NULL THEN
+    RETURN;
+  END IF;
+  FOREACH old_id IN ARRAY old_ids LOOP
     new_id := pekulo_migration_acc_id();
     -- Cascade FIRST (holdings.account_id) then update accounts.id so a
     -- transient state where a holding points at a non-existent account
     -- never occurs (the FK is currently dropped so this ordering is purely
     -- defensive — re-add at the end re-enforces).
-    UPDATE public.holdings SET account_id = new_id WHERE account_id = rec.id;
-    UPDATE public.accounts SET id = new_id WHERE id = rec.id;
+    UPDATE public.holdings SET account_id = new_id WHERE account_id = old_id;
+    UPDATE public.accounts SET id = new_id WHERE id = old_id;
   END LOOP;
 END $$;
 
