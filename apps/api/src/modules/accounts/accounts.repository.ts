@@ -44,6 +44,19 @@ export type DeleteWithFkProbeOutcome =
   | { outcome: "fk-blocked"; holdingCount: number }
   | { outcome: "not-found" };
 
+// Pre-flight findFirst lives OUTSIDE the $transaction so a cross-user / unknown
+// id short-circuits without opening a tx; the update + log create live inside
+// the tx for atomicity (DR-5 — failure of either rolls both back).
+export type RecordBalanceChangeOutcome =
+  | { outcome: "updated"; account: Account }
+  | { outcome: "not-found" };
+
+export interface RecordBalanceChangeRepoInput {
+  id: string;
+  valuedOn: Date;
+  cashBalance: number;
+}
+
 export interface AccountRepository {
   create(userId: string, input: CreateAccountInput): Promise<Account>;
   update(userId: string, id: string, patch: UpdateAccountRepoInput): Promise<Account | null>;
@@ -52,6 +65,10 @@ export interface AccountRepository {
   listByUser(userId: string): Promise<Account[]>;
   findByIdForUser(userId: string, id: string): Promise<Account | null>;
   countHoldingsReferencing(userId: string, accountId: string): Promise<number>;
+  recordBalanceChange(
+    userId: string,
+    input: RecordBalanceChangeRepoInput,
+  ): Promise<RecordBalanceChangeOutcome>;
 }
 
 type AccountRow = {
@@ -188,6 +205,55 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
       return deps.client.holding.count({
         where: { accountId, userId },
       });
+    },
+
+    async recordBalanceChange(userId, input) {
+      // Pre-flight check OUTSIDE the transaction — cross-user / unknown id
+      // returns not-found without opening a tx. Mirrors deleteWithFkProbe's
+      // discriminated outcome shape but with a single pre-flight (existence)
+      // rather than two (existence + FK probe). Inside the tx we update the
+      // parent AND insert the audit row atomically; failure of either rolls
+      // both back (DR-5).
+      const exists = await deps.client.account.findFirst({
+        where: { id: input.id, userId },
+        select: { id: true },
+      });
+      if (!exists) {
+        return { outcome: "not-found" } as const;
+      }
+      const updated = await deps.client.$transaction(async (tx) => {
+        // updateMany scoped by { id, userId } so a stale id between the
+        // pre-flight and the tx body still surfaces null safely (count=0).
+        // Defense in depth: RLS would block it too, but the explicit guard
+        // is mandated by ADR-0013 + lint rule 0-12.
+        const result = await tx.account.updateMany({
+          where: { id: input.id, userId },
+          data: {
+            cashBalance: input.cashBalance,
+            updatedAt: new Date(),
+          },
+        });
+        if (result.count === 0) return null;
+        // Audit insert — id is injected by the prefixedIds extension when
+        // data.id is undefined (ADR-0012). The `as unknown as …` bridge
+        // matches the create() branch above; the generated type still demands
+        // `id` because account_balance_log.id has no @default in the schema.
+        await tx.accountBalanceLog.create({
+          data: {
+            userId,
+            accountId: input.id,
+            cashBalance: input.cashBalance,
+            valuedOn: input.valuedOn,
+          } as unknown as Parameters<typeof tx.accountBalanceLog.create>[0]["data"],
+        });
+        const row = await tx.account.findFirst({ where: { id: input.id, userId } });
+        return row;
+      });
+      if (!updated) return { outcome: "not-found" } as const;
+      return {
+        outcome: "updated",
+        account: rowToAccount(updated as unknown as AccountRow),
+      } as const;
     },
   };
 }
