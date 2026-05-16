@@ -16,7 +16,7 @@
 import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PekuloNavRail, type PekuloNavKey, useToast } from "@pekulo/ui";
 import styles from "./bento.module.css";
 
@@ -33,6 +33,8 @@ export interface CapShellProps {
 
 export function CapShell({ email, children }: CapShellProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
   const toast = useToast();
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
@@ -68,17 +70,19 @@ export function CapShell({ email, children }: CapShellProps) {
           </p>
           <button
             type="button"
-            className={`${styles.topTab} ${styles.topTabActive}`}
-            aria-pressed={true}
-            aria-current="page"
+            className={`${styles.topTab} ${activeTab === "cap" ? styles.topTabActive : styles.topTabInactive}`}
+            aria-pressed={activeTab === "cap"}
+            aria-current={activeTab === "cap" ? "page" : undefined}
+            onClick={() => router.push("/dashboard")}
           >
             Cap
           </button>
           <button
             type="button"
-            className={`${styles.topTab} ${styles.topTabInactive}`}
-            aria-pressed={false}
-            onClick={() => toast.info("Bientôt", "La vue Patrimoine arrive plus tard.")}
+            className={`${styles.topTab} ${activeTab === "patrimoine" ? styles.topTabActive : styles.topTabInactive}`}
+            aria-pressed={activeTab === "patrimoine"}
+            aria-current={activeTab === "patrimoine" ? "page" : undefined}
+            onClick={() => router.push("/dashboard?tab=patrimoine")}
           >
             Patrimoine
           </button>
