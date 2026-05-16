@@ -60,6 +60,13 @@ export const lotsTags = createFeatureTags("lots", {
   byHolding: (holdingId: string) => ["holding", holdingId] as const,
 });
 
+export const accountsKeys = createFeatureKeys("accounts", {
+  list: () => ["list"] as const,
+});
+export const accountsTags = createFeatureTags("accounts", {
+  list: () => ["list"] as const,
+});
+
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
@@ -95,8 +102,14 @@ setTagRegistry({
     portfolioKeys.holdings(),
     portfolioKeys.snapshot(),
   ],
-  [portfolioTags.accounts()]: [portfolioKeys.accounts(), portfolioKeys.snapshot()],
+  [portfolioTags.accounts()]: [
+    portfolioKeys.accounts(),
+    portfolioKeys.snapshot(),
+    accountsKeys.list(),
+  ],
   [portfolioTags.holdings()]: [portfolioKeys.holdings(), portfolioKeys.snapshot()],
   [portfolioTags.snapshot()]: [portfolioKeys.snapshot()],
   [lotsTags.all()]: [],
+  [accountsTags.all()]: [accountsKeys.list()],
+  [accountsTags.list()]: [accountsKeys.list()],
 });
