@@ -114,6 +114,18 @@
   opacity: 0.9;
 }
 
+/* Mobile header trim — mirrors ux-preview L122-135. Below 1020 px the
+   date label and the "Nouvelle transaction" pill drop out so only the
+   Cap/Patrimoine tabs + UserDot remain. */
+@media (max-width: 1019px) {
+  .dateLabel {
+    display: none;
+  }
+  .newTxPill {
+    display: none;
+  }
+}
+
 /* ─── HeaderAction pill (ux-preview L901-923) — used inside Section
        headers for inline actions like "+ Ajouter" on Paliers / Comptes. */
 

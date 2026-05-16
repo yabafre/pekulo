@@ -2,8 +2,8 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, pekuloRadius } from "@pekulo/ui";
-import { Plus } from "lucide-react";
+import { PekuloDialog, PekuloPopover, pekuloRadius } from "@pekulo/ui";
+import { MoreHorizontal, Plus } from "lucide-react";
 import type { Account, AccountCurrency } from "@pekulo/validators";
 import type { AccountType } from "@pekulo/types";
 import { useAccounts } from "../_hooks/use-accounts";
@@ -65,6 +65,34 @@ const rowActionBtn: CSSProperties = {
 };
 
 const dangerRowActionBtn: CSSProperties = { ...rowActionBtn, color: "var(--danger)" };
+
+const kebabBtn: CSSProperties = {
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  color: "var(--colorTertiary)",
+  width: 32,
+  height: 32,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: pekuloRadius.full,
+};
+
+const popoverActionBtn = (danger?: boolean): CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  width: "100%",
+  padding: "8px 12px",
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  color: danger ? "var(--danger)" : "var(--color)",
+  fontSize: 14,
+  fontWeight: 500,
+  borderRadius: pekuloRadius.md,
+  textAlign: "left",
+});
 
 type DialogKind = "create" | "edit" | "balance" | "delete" | null;
 
@@ -153,7 +181,13 @@ export function AccountsSection() {
               <Text color="$color" fontSize="$bodySm" fontWeight="500">
                 {formatBalance(acc.cashBalance, acc.currency)}
               </Text>
-              <View flexDirection="row" gap="$2" marginLeft="$2">
+              <View
+                flexDirection="row"
+                gap="$2"
+                marginLeft="$2"
+                display="none"
+                $lg={{ display: "flex" }}
+              >
                 <button
                   type="button"
                   onClick={() => openFor("balance", acc)}
@@ -178,6 +212,37 @@ export function AccountsSection() {
                 >
                   Supprimer
                 </button>
+              </View>
+
+              <View marginLeft="$2" $lg={{ display: "none" }}>
+                <PekuloPopover>
+                  <PekuloPopover.Trigger style={kebabBtn} aria-label={`Actions ${acc.label}`}>
+                    <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
+                  </PekuloPopover.Trigger>
+                  <PekuloPopover.Content minWidth={180}>
+                    <button
+                      type="button"
+                      onClick={() => openFor("balance", acc)}
+                      style={popoverActionBtn()}
+                    >
+                      Modifier le solde
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openFor("edit", acc)}
+                      style={popoverActionBtn()}
+                    >
+                      Modifier le compte
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openFor("delete", acc)}
+                      style={popoverActionBtn(true)}
+                    >
+                      Supprimer
+                    </button>
+                  </PekuloPopover.Content>
+                </PekuloPopover>
               </View>
             </View>
           ))}
