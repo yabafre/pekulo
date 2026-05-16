@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloRadius } from "@pekulo/ui";
+import { Plus } from "lucide-react";
 import type { Account, AccountCurrency } from "@pekulo/validators";
 import type { AccountType } from "@pekulo/types";
 import { useAccounts } from "../_hooks/use-accounts";
@@ -10,6 +11,11 @@ import { AccountCreateForm } from "./account-create-form";
 import { AccountEditForm } from "./account-edit-form";
 import { AccountBalanceForm } from "./account-balance-form";
 import { AccountDeleteConfirm } from "./account-delete-confirm";
+
+// Flat layout — mirrors ux-preview AccountsSection (App.tsx:558-581). No
+// card wrapper; the parent Patrimoine view supplies the page-level gap-10
+// rhythm. Per-row trailing actions open dialogs (Solde · Modifier ·
+// Supprimer). The header "+ Ajouter" button opens the create dialog.
 
 const TYPE_LABEL: Record<AccountType, string> = {
   livret: "Livret",
@@ -34,7 +40,10 @@ function formatBalance(amount: number, currency: AccountCurrency): string {
   }).format(amount);
 }
 
-const addBtn: CSSProperties = {
+const addPill: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
   height: 32,
   padding: "0 12px",
   borderRadius: pekuloRadius.full,
@@ -74,25 +83,35 @@ export function AccountsSection() {
     setOpenDialog(kind);
   };
 
+  const accounts = data ?? [];
+  const totalLiquide = accounts.reduce((sum, acc) => sum + acc.cashBalance, 0);
+
   return (
-    <View
-      flexDirection="column"
-      gap="$3"
-      padding="$4"
-      backgroundColor="$backgroundCard"
-      borderRadius="$xl"
-    >
-      <View flexDirection="row" alignItems="center" justifyContent="space-between">
-        <Text color="$color" fontSize="$h3" fontWeight="600">
+    <View render="section" aria-labelledby="acc-h" flexDirection="column">
+      <View
+        flexDirection="row"
+        alignItems="center"
+        justifyContent="space-between"
+        marginBottom="$3"
+      >
+        <Text
+          id="acc-h"
+          render="h2"
+          color="$color"
+          fontSize="$h3"
+          fontWeight="600"
+          $md={{ fontSize: "$h2" }}
+        >
           Comptes
         </Text>
         <button
           type="button"
           onClick={() => setOpenDialog("create")}
-          style={addBtn}
+          style={addPill}
           aria-label="Ajouter un compte"
         >
-          + Ajouter un compte
+          <Plus size={12} strokeWidth={2.25} aria-hidden />
+          Ajouter
         </button>
       </View>
 
@@ -106,35 +125,35 @@ export function AccountsSection() {
           {error.message}
         </Text>
       )}
-      {!isLoading && !error && data && data.length === 0 && (
+      {!isLoading && !error && accounts.length === 0 && (
         <Text color="$colorTertiary" fontSize="$caption">
           Aucun compte. Ajoute ton premier compte pour démarrer.
         </Text>
       )}
 
-      {data && data.length > 0 && (
+      {accounts.length > 0 && (
         <View flexDirection="column" role="list" aria-label="Liste des comptes">
-          {data.map((acc) => (
+          {accounts.map((acc) => (
             <View
               key={acc.id}
               role="listitem"
               flexDirection="row"
               alignItems="center"
-              justifyContent="space-between"
+              gap="$3"
               paddingVertical="$3"
             >
-              <View flex={1}>
+              <View flex={1} minWidth={0}>
                 <Text color="$color" fontSize="$bodySm" fontWeight="500">
                   {acc.label}
                 </Text>
-                <Text color="$colorTertiary" fontSize="$xs">
+                <Text color="$colorTertiary" fontSize="$caption">
                   {TYPE_LABEL[acc.type]} · {acc.currency}
                 </Text>
               </View>
               <Text color="$color" fontSize="$bodySm" fontWeight="500">
                 {formatBalance(acc.cashBalance, acc.currency)}
               </Text>
-              <View flexDirection="row" gap="$2" marginLeft="$3">
+              <View flexDirection="row" gap="$2" marginLeft="$2">
                 <button
                   type="button"
                   onClick={() => openFor("balance", acc)}
@@ -162,6 +181,30 @@ export function AccountsSection() {
               </View>
             </View>
           ))}
+        </View>
+      )}
+
+      {accounts.length > 0 && (
+        <View
+          flexDirection="row"
+          alignItems="center"
+          justifyContent="space-between"
+          paddingTop="$3"
+          marginTop="$2"
+          borderTopWidth={1}
+          borderColor="$borderDefault"
+        >
+          <Text
+            color="$colorTertiary"
+            fontSize="$caption"
+            letterSpacing={0.5}
+            textTransform="uppercase"
+          >
+            Total liquide
+          </Text>
+          <Text color="$color" fontSize="$bodySm" fontWeight="500">
+            {eur0.format(totalLiquide)}
+          </Text>
         </View>
       )}
 

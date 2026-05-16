@@ -1,48 +1,57 @@
 "use client";
 
-// Patrimoine view — `?tab=patrimoine` on /dashboard. Hero = total liquide
-// (delta arrives with story 7-1). Composition + Recent activity stay
-// placeheld pending stories 3-x / 5-x — mirrors story 1-4's Cap view.
+// Patrimoine view — `?tab=patrimoine` on /dashboard. Mirrors ux-preview
+// PatrimoineView (App.tsx:359-377): flat single-column with gap-10,
+// centred max-w-3xl on lg+. Hero + accounts + composition + activity.
+// Holdings/real-estate breakdown lands with stories 3-x / 4-x.
 
-import { View } from "@pekulo/ui/client";
-import { PekuloHero, PekuloAccountsSection } from "@pekulo/ui";
-import type { AccountCardItem, AccountType } from "@pekulo/types";
-import type { Account } from "@pekulo/validators";
+import { View, Text } from "@pekulo/ui/client";
 import { useAccounts } from "../parametres/_hooks/use-accounts";
+import { AccountsSection } from "../parametres/_components/accounts-section";
 import { PlaceholderCard } from "./placeholder-card";
 
-function toCardItem(acc: Account): AccountCardItem {
-  return {
-    label: acc.label,
-    type: acc.type as AccountType,
-    // institution intentionally omitted — not part of the live Account schema.
-    balanceEur: acc.cashBalance,
-  };
-}
+const eur0 = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+const eurCompact = new Intl.NumberFormat("fr-FR", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 export function PatrimoineView() {
-  const { data, isLoading, error } = useAccounts();
+  const { data } = useAccounts();
   const accounts = data ?? [];
   const totalLiquide = accounts.reduce((sum, acc) => sum + acc.cashBalance, 0);
-  const items = accounts.map(toCardItem);
 
   return (
-    <View flexDirection="column" gap="$6" width="100%" maxWidth={920} marginHorizontal="auto">
-      <View padding="$5" backgroundColor="$backgroundCard" borderRadius="$xl">
-        <PekuloHero variant="mobile" totalEur={totalLiquide} aheadEur={0} label="Liquide" />
+    <View
+      flexDirection="column"
+      gap={40}
+      width="100%"
+      $md={{ maxWidth: 768, marginHorizontal: "auto" }}
+    >
+      <View render="section" aria-label="Patrimoine total">
+        <Text color="$colorTertiary" fontSize="$caption">
+          Total
+        </Text>
+        <Text
+          color="$color"
+          fontSize="$h1"
+          fontWeight="600"
+          letterSpacing={-0.5}
+          marginTop="$2"
+          $md={{ fontSize: "$hero" }}
+        >
+          {eur0.format(totalLiquide)}
+        </Text>
+        <Text color="$colorTertiary" fontSize="$bodySm" marginTop="$2">
+          {`${eurCompact.format(totalLiquide)} € liquide · — placé · — immobilier`}
+        </Text>
       </View>
 
-      {isLoading && (
-        <View padding="$4">
-          <PlaceholderCard variant="composition" ownerStory="chargement comptes…" />
-        </View>
-      )}
-      {error && !isLoading && (
-        <View padding="$4">
-          <PlaceholderCard variant="composition" ownerStory={`Erreur — ${error.message}`} />
-        </View>
-      )}
-      {!isLoading && !error && <PekuloAccountsSection accounts={items} />}
+      <AccountsSection />
 
       <PlaceholderCard variant="composition" ownerStory="5-x" />
       <PlaceholderCard variant="activity" ownerStory="5-x" />
