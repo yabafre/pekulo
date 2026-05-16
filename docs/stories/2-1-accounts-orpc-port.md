@@ -1,7 +1,7 @@
 # Story: 2-1-accounts-orpc-port — Port accounts module to oRPC + Prisma
 
 **Epic:** Epic 2 — Accounts (extended brownfield)
-**Status:** ready-for-dev
+**Status:** done
 **Ticket:** [#17](https://github.com/yabafre/pekulo/issues/17)
 **Branch:** `feature/17-2-1-accounts-orpc-port`
 **Commit prefix:** `feat(#17): …`
@@ -2046,3 +2046,96 @@ All must exit 0. The integration test's `.todo` markers must be replaced by actu
 - `apps/api/prisma/schema/accounts.prisma` — already declares `id String @id`.
 - `apps/api/src/database/id-prefixes.config.ts` — `Account: "acc"` stays.
 - `apps/api/scripts/rls-audit.ts` — `accounts: 4` policy count preserved post-migration.
+
+**Amended retroactively (T1-enablement sidecars, judged legitimate at review)**
+- `apps/api/prisma.config.ts` — DIRECT_URL preference for `prisma migrate deploy` (Supabase pooler hang workaround; commit `0d85b12`).
+- `apps/api/package.json` — `dotenv` devDep used by `prisma.config.ts`.
+- `package.json` (root) — `prisma:*` + `db:rls-audit` scripts wrapped in `dotenv -c -e .env -e .env.local -- bun --filter='@pekulo/api' …` so they load `.env` from the repo root (commit `78539ad`).
+
+## Review Record
+
+**Date:** 2026-05-16
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+Story shipped clean: 25 tests pass / 0 fail / 67 expect calls; typecheck and lint both green over 390 files. Three review-driven hardening fixes landed on top of the dev branch, plus the existing implementation cleared 8/10 ACs IMPLEMENTED + 1 PARTIAL (AC-8 lint coverage now full after M4 fix) + 0 MISSING; tasks 1/13 evidence at file:line; out-of-scope sidecar files judged legitimate T1 enablement.
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] M1 — Migration re-id loop destructive on manual re-run [`apps/api/prisma/migrations/20260515150000_accounts_uuid_to_text/migration.sql:62-79`]
+  - Source: Edge & Hallucination
+  - Resolution: commit `c5ba17c` — `SELECT array_agg(id) … WHERE id !~ '^acc_[0-9A-Za-z]{21}$'` guards against re-mint on already-migrated rows.
+
+- [MAJOR] M2 — PL/pgSQL cursor-during-UPDATE ordering hazard [`migration.sql:62-79`]
+  - Source: Edge & Hallucination
+  - Resolution: commit `c5ba17c` — materialise id list before any UPDATE fires; loop iterates over the snapshot array via `FOREACH … IN ARRAY`.
+
+- [MAJOR] M3 — `runTx` rebuild loses type fidelity via `as unknown as` [`apps/api/src/modules/accounts/accounts.module.ts:27-35` (pre-fix)]
+  - Source: Edge & Hallucination
+  - Resolution: commit `0102d4a` — TOCTOU atomicity moved into `accounts.repository.ts#deleteWithFkProbe` which wraps the FK probe + delete in a direct `deps.client.$transaction((tx) => …)`. Service consumes a discriminated `{ outcome: "deleted" | "fk-blocked" | "not-found" }` outcome and translates to typed `AccountError`. Module factory no longer holds a runTx indirection; `AccountServiceDeps` drops its `runTx<T>` member. Mirrors `milestones.repository#addEnforcingCap` precedent exactly.
+
+- [MAJOR] M4 — Lint rule `pekulo/no-prisma-query-without-user-id` blind to `deps.client.X.Y` [`packages/oxlint-config/src/rules/no-prisma-query-without-user-id.js:84-97`]
+  - Source: Spec + Code (same finding from two angles)
+  - Resolution: commit `09a8e60` — `.oxlintrc.json` extends `prismaIdentifier` from `["prisma","tx"]` to `["prisma","tx","client"]`. Lint now scans every `deps.client.account.*`, `deps.client.holding.*`, `deps.client.milestone.*` callsite across compass / milestones / accounts. Zero new warnings — every query already carried the manual `where:{userId}` guard, but the safety-net is now load-bearing rather than illusory.
+
+- [MINOR] N4 — `update` empty-patch issues a no-op write that bumps `updatedAt` [`accounts.repository.ts:90-108` (pre-fix)]
+  - Source: Edge & Hallucination
+  - Resolution: commit `0102d4a` — empty-patch short-circuits to `findFirst({ where: { id, userId } })`; validator's `.refine()` was the only guard at the API boundary, this hardens the service-call path (cron, worker).
+
+- [NIT] `rowToAccount` falls back to `new Date(0)` on null timestamps [`accounts.repository.ts:65-66` (pre-fix)]
+  - Source: Code
+  - Resolution: commit `0102d4a` — `if (!row.createdAt || !row.updatedAt) throw new PekuloError("INTERNAL", "account row missing timestamp")`. Prisma-written rows always carry both (the schema's nullable annotation is a brownfield legacy, the `@default(now())` is the load-bearing invariant); a NULL now fails fast instead of silently surfacing 1970-01-01.
+
+#### Dismissed (with rationale)
+
+- [MINOR] N1 — HTTP-boundary FK 409 + cross-user 404 not covered at integration test [`accounts.integration.test.ts:12-15`]
+  - Source: Spec
+  - Rationale: RPCHandler wraps handler-thrown errors before the Elysia error-mapper sees them — same precedent the milestones integration test ships with. Service-layer + module-layer tests cover both paths with the correct `AccountError.code`; the HTTP status mapping is asserted statically via `error-mapper.ts`'s `Record<PekuloErrorCode, number>` exhaustive type. Track as cross-module debt; do not block 2-1.
+
+- [MINOR] N2 — `update` does `updateMany` + `findFirst` round-trip [`accounts.repository.ts:104-107`]
+  - Source: Code
+  - Rationale: matches `milestones.repository#update` shape exactly. Switching to Prisma's `update({ where: { id, userId } })` halves the round-trips but changes error-translation semantics (P2025 instead of count=0). Cross-module change, not 2-1 scope.
+
+- [MINOR] N3 — `isPekuloError` cross-realm name guard rejects `AccountError` payloads [`pekulo-error.ts:91`]
+  - Source: Code
+  - Rationale: same shape applies to `MilestoneError` and `CompassError`. In-realm `instanceof` branch (which production traffic hits) matches correctly. Cross-realm payloads (Bun workers, queue redelivery) are not in scope for V1.
+
+- [MINOR] N5 — `decimalToNumber` silent precision loss above MAX_SAFE_INTEGER [`decimal-to-number.ts:13-18`]
+  - Source: Edge & Hallucination
+  - Rationale: V1 personal-finance scope (NFR-16 caps single-user volume at 50k tx / 500 holdings / 50 properties; cashBalance values stay deep below 2^53). The Decimal column has no upper bound, but no realistic V1 user surfaces > 9 quadrillion EUR. Track for V2 when public users land.
+
+- [MINOR] N6 — `requireUserId` whitespace-trim is dead code in the wired stack [`accounts.routes.ts:21-25`]
+  - Source: Edge & Hallucination
+  - Rationale: belt-and-braces — `mountOrpc`'s pre-check guards the happy path today, but the route-layer guard protects against a future refactor that surfaces optional `userId` in the context. Defensive coding is cheap; tightening the comment to clarify "unreachable in current mount" would be NIT-level churn.
+
+- [NIT] AC-1 integration test uses relaxed `^acc_` regex [`accounts.integration.test.ts:170`]
+  - Source: Spec
+  - Rationale: fake-Prisma in-memory mint produces zero-padded ids that fail the strict `^acc_[0-9A-Za-z]{21}$` regex; the strict pattern is enforced by `accountIdSchema` in `@pekulo/validators` (contract ingress + egress) and by the prefixed-ids extension live. Documented in the test's own header comments.
+
+- [NIT] Migration helper `pekulo_migration_acc_id` modulo bias [`migration.sql:35`]
+  - Source: Code
+  - Rationale: acknowledged in the migration's own header comment ("Same modulo-bias trade-off as the TS helper"). Negligible at the migration's row scale.
+
+- [NIT] Migration `ON DELETE CASCADE` preserved on re-added FK [`migration.sql:85`]
+  - Source: Edge & Hallucination
+  - Rationale: brownfield consistency. The cascade is exactly what AC-2's service-layer FK guard exists to protect against; changing the SQL-side default would break the brownfield contract holdings carry.
+
+- [NIT] Error messages English in a French-communication project [`accounts.errors.ts:33`]
+  - Source: Edge & Hallucination
+  - Rationale: API error messages are operator-facing logs / dev-tooling, not user-facing UI. UI i18n lands in story 2-3.
+
+### Verification
+
+- Test command: `bun --filter=api test src/modules/accounts/`
+- Test output (final pass): `25 pass / 0 fail / 67 expect() calls` across 4 files in 73 ms.
+- Typecheck: `cd apps/api && bun run typecheck` → `tsc --noEmit` exit 0.
+- Lint: `bun run lint` (repo root) → `Found 0 warnings and 0 errors` across 390 files / 158 rules.
+- Fix commits in HEAD: `09a8e60` (M4 lint widen), `c5ba17c` (M1+M2 migration), `0102d4a` (M3 + N4 + NIT).
+- Out-of-scope sidecar diff: judged legitimate T1 enablement (Supabase pooler workaround for `prisma migrate deploy`); File List amended retroactively above.
+
+### Ticket sync
+
+- Ticket comment posted on `#17`: YES (this turn).
+- PR opened/updated: see commit `0102d4a` for the final HEAD; PR base = `main` per `state.yaml.sprint.umbrella_branch`.
