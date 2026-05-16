@@ -102,6 +102,36 @@ function stubRepo(seed?: {
     async countHoldingsReferencing(_userId, accountId) {
       return countMap[accountId] ?? 0;
     },
+    async recordBalanceChange() {
+      // Not exercised through stubRepo's in-memory path — the dedicated
+      // describe block below uses stubAccountRepository() + spread override
+      // instead. Throw loudly if a future test reaches this branch.
+      throw new Error("stubRepo.recordBalanceChange not implemented — use stubAccountRepository()");
+    },
+  };
+}
+
+// Throw-everywhere stub for per-method override via spread. Mirrors
+// milestones.service.test.ts's stubMilestonesRepository pattern.
+function stubAccountRepository(): AccountRepository {
+  const fail = (name: string) => async (): Promise<never> => {
+    throw new Error(`stubAccountRepository.${name} not overridden`);
+  };
+  return {
+    create: fail("create") as unknown as AccountRepository["create"],
+    update: fail("update") as unknown as AccountRepository["update"],
+    delete: fail("delete") as unknown as AccountRepository["delete"],
+    deleteWithFkProbe: fail(
+      "deleteWithFkProbe",
+    ) as unknown as AccountRepository["deleteWithFkProbe"],
+    listByUser: fail("listByUser") as unknown as AccountRepository["listByUser"],
+    findByIdForUser: fail("findByIdForUser") as unknown as AccountRepository["findByIdForUser"],
+    countHoldingsReferencing: fail(
+      "countHoldingsReferencing",
+    ) as unknown as AccountRepository["countHoldingsReferencing"],
+    recordBalanceChange: fail(
+      "recordBalanceChange",
+    ) as unknown as AccountRepository["recordBalanceChange"],
   };
 }
 
@@ -250,5 +280,60 @@ describe("accounts.service", () => {
     const list = await service.list(USER_A);
     expect(list).toHaveLength(1);
     expect(list[0]!.id).toBe("acc_a");
+  });
+});
+
+// AC-1 (verbatim from story 2-2-account-balance-history:17):
+//   the response Account.cashBalance equals 1500, both writes happen
+//   inside a single Prisma $transaction.
+// AC-3 (verbatim from story 2-2-account-balance-history:19):
+//   the service throws AccountError("ACCOUNT_NOT_FOUND", "account not
+//   found") → HTTP 404.
+describe("recordBalanceChange", () => {
+  test("delegates to repo on 'updated' outcome and returns the Account DTO", async () => {
+    const fakeAccount: Account = {
+      id: "acc_seed00000000000000000",
+      userId: USER_A,
+      label: "Livret A",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: 1500,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const repo: AccountRepository = {
+      ...stubAccountRepository(),
+      recordBalanceChange: async () => ({ outcome: "updated", account: fakeAccount }),
+    };
+    const service = createAccountService({ repository: repo });
+    const result = await service.recordBalanceChange(USER_A, {
+      id: "acc_seed00000000000000000",
+      valuedOn: new Date("2026-05-01T00:00:00Z"),
+      cashBalance: 1500,
+    });
+    expect(result).toEqual(fakeAccount);
+  });
+
+  test("throws AccountError(ACCOUNT_NOT_FOUND) on 'not-found' outcome (AC-3)", async () => {
+    const repo: AccountRepository = {
+      ...stubAccountRepository(),
+      recordBalanceChange: async () => ({ outcome: "not-found" }),
+    };
+    const service = createAccountService({ repository: repo });
+    let caught: unknown = null;
+    try {
+      await service.recordBalanceChange(USER_A, {
+        id: "acc_seed00000000000000001",
+        valuedOn: new Date("2026-05-01T00:00:00Z"),
+        cashBalance: 1500,
+      });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(AccountError);
+    if (!(caught instanceof AccountError)) throw new Error("type narrowing");
+    expect(caught.code).toBe("ACCOUNT_NOT_FOUND");
+    expect(caught.message).toBe("account not found");
   });
 });
