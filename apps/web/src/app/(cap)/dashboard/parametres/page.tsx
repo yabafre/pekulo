@@ -1,6 +1,7 @@
 import { readCompass } from "@/lib/data/compass";
 import { CompassEditForm } from "./_components/compass-edit-form";
 import { CompassHistoryPanel } from "./_components/compass-history-panel";
+import { AccountsSection } from "./_components/accounts-section";
 
 export default async function ParametresPage() {
   const { compass } = await readCompass();
@@ -17,6 +18,7 @@ export default async function ParametresPage() {
       >
         <CompassEditForm initial={compass} />
         <CompassHistoryPanel />
+        <AccountsSection />
       </div>
     </div>
   );
