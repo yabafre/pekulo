@@ -181,7 +181,26 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
     account: { create, updateMany, deleteMany, findFirst, findMany },
     holding: { count: holdingCount },
     accountBalanceLog: { create: accountBalanceLogCreate },
-    $transaction: async (callback) => callback(client),
+    // Mirrors Prisma's interactive-tx rollback: snapshot the mutable stores
+    // before the callback, restore on throw. Without this the happy-path
+    // tests pass but a mid-flight failure (T8 below) would silently retain
+    // partial writes.
+    $transaction: async (callback) => {
+      const accountsSnap = accounts.map((r) => ({ ...r }));
+      const holdingsSnap = holdings.map((r) => ({ ...r }));
+      const balanceLogSnap = balanceLog.map((r) => ({ ...r }));
+      try {
+        return await callback(client);
+      } catch (err) {
+        accounts.length = 0;
+        accounts.push(...accountsSnap);
+        holdings.length = 0;
+        holdings.push(...holdingsSnap);
+        balanceLog.length = 0;
+        balanceLog.push(...balanceLogSnap);
+        throw err;
+      }
+    },
   };
   return { client, accounts, holdings, balanceLog };
 }
@@ -513,5 +532,42 @@ describe("recordBalanceChange", () => {
     if (outcome.outcome !== "updated") throw new Error("expected updated");
     expect(typeof outcome.account.cashBalance).toBe("number");
     expect(outcome.account.cashBalance).toBe(1_500_000.5);
+  });
+
+  test("$transaction rolls back parent update if audit insert throws (AC-1 failure branch)", async () => {
+    const { client, accounts, balanceLog } = fakeClient({
+      accounts: [
+        {
+          id: "acc_seed00000000000000003",
+          userId: USER_A,
+          label: "Livret A",
+          type: "livret",
+          currency: "EUR",
+          cashBalance: new Prisma.Decimal(1000),
+          notes: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    });
+    // Force the audit insert to throw mid-tx — simulates a NUMERIC overflow,
+    // a NOT-NULL constraint hit, or a transient DB error landing on the
+    // second statement inside the callback. The atomic-write claim of AC-1
+    // holds only if the prior account.updateMany is rolled back too.
+    client.accountBalanceLog.create = (async () => {
+      throw new Error("simulated audit-insert failure");
+    }) as unknown as typeof client.accountBalanceLog.create;
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    await expect(
+      repo.recordBalanceChange(USER_A, {
+        id: "acc_seed00000000000000003",
+        valuedOn: new Date("2026-05-01T00:00:00Z"),
+        cashBalance: 1500,
+      }),
+    ).rejects.toThrow("simulated audit-insert failure");
+    expect(Number(accounts[0]?.cashBalance)).toBe(1000);
+    expect(balanceLog).toHaveLength(0);
   });
 });

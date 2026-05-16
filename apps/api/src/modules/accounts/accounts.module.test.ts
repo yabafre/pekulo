@@ -162,10 +162,27 @@ function fakePrismaService(seed?: { holdings?: HoldingRow[] }) {
         return row;
       },
     },
-    // Fake $transaction: invoke the callback synchronously with the same
-    // client (no rollback). The service's delete and recordBalanceChange
-    // both rely on this seam to keep their multi-step writes atomic.
-    $transaction: async (callback) => callback(client),
+    // Fake $transaction mirrors Prisma's interactive-tx rollback: snapshot
+    // the mutable stores before the callback, restore on throw. Plain
+    // pass-through would let a mid-flight failure (e.g. accountBalanceLog
+    // create throwing after account.updateMany succeeded) silently retain
+    // partial writes — anti-pattern #3 (mock-without-understanding).
+    $transaction: async (callback) => {
+      const accountsSnap = accounts.map((r) => ({ ...r }));
+      const holdingsSnap = holdings.map((r) => ({ ...r }));
+      const balanceLogSnap = balanceLog.map((r) => ({ ...r }));
+      try {
+        return await callback(client);
+      } catch (err) {
+        accounts.length = 0;
+        accounts.push(...accountsSnap);
+        holdings.length = 0;
+        holdings.push(...holdingsSnap);
+        balanceLog.length = 0;
+        balanceLog.push(...balanceLogSnap);
+        throw err;
+      }
+    },
   };
 
   const prismaService = {
