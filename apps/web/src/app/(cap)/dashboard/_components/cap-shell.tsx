@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PekuloNavRail, type PekuloNavKey, useToast } from "@pekulo/ui";
+import { PekuloMobileBottomNav, PekuloNavRail, type PekuloNavKey, useToast } from "@pekulo/ui";
 import styles from "./bento.module.css";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", {
@@ -107,6 +107,7 @@ export function CapShell({ email, children }: CapShellProps) {
         </div>
       </header>
       <main className={styles.main}>{children}</main>
+      <PekuloMobileBottomNav activeKey="cap" onSelect={handleNav} />
     </div>
   );
 }
