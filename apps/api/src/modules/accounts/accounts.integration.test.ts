@@ -95,6 +95,19 @@ function inMemoryService(): AccountService {
         .filter((a) => a.userId === userId)
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     },
+    async recordBalanceChange(userId, input) {
+      const existing = store.get(input.id);
+      if (!existing || existing.userId !== userId) {
+        throw new AccountError("ACCOUNT_NOT_FOUND", "account not found");
+      }
+      const updated: Account = {
+        ...existing,
+        cashBalance: input.cashBalance,
+        updatedAt: new Date(),
+      };
+      store.set(updated.id, updated);
+      return updated;
+    },
   };
 }
 
