@@ -42,5 +42,9 @@ export function createAccountsRouter(deps: { service: AccountService }) {
       requireUserId(context.userId);
       return deps.service.list(context.userId);
     }),
+    recordBalanceChange: impl.recordBalanceChange.handler(async ({ context, input }) => {
+      requireUserId(context.userId);
+      return deps.service.recordBalanceChange(context.userId, input);
+    }),
   });
 }

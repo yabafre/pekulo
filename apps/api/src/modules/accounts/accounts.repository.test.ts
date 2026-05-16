@@ -32,12 +32,24 @@ interface HoldingRow {
   accountId: string;
 }
 
+interface BalanceLogRow {
+  id: string;
+  userId: string;
+  accountId: string;
+  cashBalance: Prisma.Decimal;
+  valuedOn: Date;
+  createdAt: Date;
+}
+
 function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] }) {
   const accounts: AccountRow[] = [...(seed?.accounts ?? [])];
   const holdings: HoldingRow[] = [...(seed?.holdings ?? [])];
+  const balanceLog: BalanceLogRow[] = [];
   let now = Date.now();
   let nextId = 0;
+  let nextLogId = 0;
   const ts = () => new Date(now++);
+  const mintLogId = () => `abl_${String(nextLogId++).padStart(21, "0")}`;
   // Fake-Prisma mints zero-padded acc_ ids; the strict
   // /^acc_[0-9A-Za-z]{21}$/ pattern is enforced by the prefixedIds extension
   // at the live-DB layer (re-asserted by accountIdSchema in @pekulo/validators).
@@ -135,6 +147,23 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
     ).length;
   });
 
+  const accountBalanceLogCreate = mock(
+    async (args: {
+      data: { userId: string; accountId: string; cashBalance: number; valuedOn: Date };
+    }) => {
+      const row: BalanceLogRow = {
+        id: mintLogId(),
+        userId: args.data.userId,
+        accountId: args.data.accountId,
+        cashBalance: new Prisma.Decimal(args.data.cashBalance),
+        valuedOn: args.data.valuedOn,
+        createdAt: ts(),
+      };
+      balanceLog.push(row);
+      return row;
+    },
+  );
+
   type FakeClient = {
     account: {
       create: typeof create;
@@ -144,15 +173,36 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
       findMany: typeof findMany;
     };
     holding: { count: typeof holdingCount };
+    accountBalanceLog: { create: typeof accountBalanceLogCreate };
     $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
   };
 
   const client: FakeClient = {
     account: { create, updateMany, deleteMany, findFirst, findMany },
     holding: { count: holdingCount },
-    $transaction: async (callback) => callback(client),
+    accountBalanceLog: { create: accountBalanceLogCreate },
+    // Mirrors Prisma's interactive-tx rollback: snapshot the mutable stores
+    // before the callback, restore on throw. Without this the happy-path
+    // tests pass but a mid-flight failure (T8 below) would silently retain
+    // partial writes.
+    $transaction: async (callback) => {
+      const accountsSnap = accounts.map((r) => ({ ...r }));
+      const holdingsSnap = holdings.map((r) => ({ ...r }));
+      const balanceLogSnap = balanceLog.map((r) => ({ ...r }));
+      try {
+        return await callback(client);
+      } catch (err) {
+        accounts.length = 0;
+        accounts.push(...accountsSnap);
+        holdings.length = 0;
+        holdings.push(...holdingsSnap);
+        balanceLog.length = 0;
+        balanceLog.push(...balanceLogSnap);
+        throw err;
+      }
+    },
   };
-  return { client, accounts, holdings };
+  return { client, accounts, holdings, balanceLog };
 }
 
 describe("accounts.repository", () => {
@@ -370,5 +420,154 @@ describe("accounts.repository", () => {
     expect(out).toEqual({ outcome: "not-found" });
     // Row remains (belongs to USER_B).
     expect(accounts).toHaveLength(1);
+  });
+});
+
+// AC-1 (verbatim from story 2-2-account-balance-history:17):
+//   Given an account acc_<base62-21> owned by user A with cashBalance = 1_000,
+//   When accounts.recordBalanceChange({ id, valuedOn: "2026-05-01T00:00:00Z",
+//   cashBalance: 1_500 }) is called for user A, Then the response
+//   Account.cashBalance equals 1500, the accounts row's cash_balance column
+//   is 1500, and a new account_balance_log row exists with (user_id=userA,
+//   account_id=acc_…, cash_balance=1500, valued_on=2026-05-01T00:00:00Z).
+//   Both writes happen inside a single Prisma $transaction.
+// AC-3 (verbatim from story 2-2-account-balance-history:19):
+//   Given user B owns account acc_xyz…, When user A calls recordBalanceChange,
+//   Then the service throws AccountError("ACCOUNT_NOT_FOUND", …) → HTTP 404,
+//   no account_balance_log row is created, and user B's accounts.cash_balance
+//   is unchanged.
+// AC-5 (verbatim from story 2-2-account-balance-history:21):
+//   Given the migration writes cash_balance as NUMERIC and Prisma surfaces it
+//   as Decimal, When recordBalanceChange returns the updated Account DTO,
+//   Then the surfaced Account.cashBalance is a JS number — never a
+//   Prisma.Decimal.
+describe("recordBalanceChange", () => {
+  test("happy path — account.cashBalance updated AND log row inserted in one $transaction", async () => {
+    const { client, balanceLog } = fakeClient({
+      accounts: [
+        {
+          id: "acc_seed00000000000000000",
+          userId: USER_A,
+          label: "Livret A",
+          type: "livret",
+          currency: "EUR",
+          cashBalance: new Prisma.Decimal(1000),
+          notes: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    const outcome = await repo.recordBalanceChange(USER_A, {
+      id: "acc_seed00000000000000000",
+      valuedOn: new Date("2026-05-01T00:00:00Z"),
+      cashBalance: 1500,
+    });
+    expect(outcome.outcome).toBe("updated");
+    if (outcome.outcome !== "updated") throw new Error("type narrowing");
+    expect(outcome.account.cashBalance).toBe(1500);
+    expect(balanceLog).toHaveLength(1);
+    expect(balanceLog[0]?.userId).toBe(USER_A);
+    expect(balanceLog[0]?.accountId).toBe("acc_seed00000000000000000");
+    expect(balanceLog[0]?.valuedOn.toISOString()).toBe("2026-05-01T00:00:00.000Z");
+    expect(Number(balanceLog[0]?.cashBalance)).toBe(1500);
+  });
+
+  test("cross-user attempt returns outcome:'not-found' and writes nothing (AC-3)", async () => {
+    const { client, accounts, balanceLog } = fakeClient({
+      accounts: [
+        {
+          id: "acc_seed00000000000000001",
+          userId: USER_B,
+          label: "PEA",
+          type: "pea",
+          currency: "EUR",
+          cashBalance: new Prisma.Decimal(2000),
+          notes: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    const outcome = await repo.recordBalanceChange(USER_A, {
+      id: "acc_seed00000000000000001",
+      valuedOn: new Date("2026-05-01T00:00:00Z"),
+      cashBalance: 9999,
+    });
+    expect(outcome.outcome).toBe("not-found");
+    expect(balanceLog).toHaveLength(0);
+    expect(Number(accounts[0]?.cashBalance)).toBe(2000);
+  });
+
+  test("Decimal cashBalance returned on the parent DTO is a JS number (AC-5)", async () => {
+    const { client } = fakeClient({
+      accounts: [
+        {
+          id: "acc_seed00000000000000002",
+          userId: USER_A,
+          label: "CTO",
+          type: "cto",
+          currency: "EUR",
+          cashBalance: new Prisma.Decimal("1500000.5"),
+          notes: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    const outcome = await repo.recordBalanceChange(USER_A, {
+      id: "acc_seed00000000000000002",
+      valuedOn: new Date("2026-05-01T00:00:00Z"),
+      cashBalance: 1_500_000.5,
+    });
+    if (outcome.outcome !== "updated") throw new Error("expected updated");
+    expect(typeof outcome.account.cashBalance).toBe("number");
+    expect(outcome.account.cashBalance).toBe(1_500_000.5);
+  });
+
+  test("$transaction rolls back parent update if audit insert throws (AC-1 failure branch)", async () => {
+    const { client, accounts, balanceLog } = fakeClient({
+      accounts: [
+        {
+          id: "acc_seed00000000000000003",
+          userId: USER_A,
+          label: "Livret A",
+          type: "livret",
+          currency: "EUR",
+          cashBalance: new Prisma.Decimal(1000),
+          notes: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    });
+    // Force the audit insert to throw mid-tx — simulates a NUMERIC overflow,
+    // a NOT-NULL constraint hit, or a transient DB error landing on the
+    // second statement inside the callback. The atomic-write claim of AC-1
+    // holds only if the prior account.updateMany is rolled back too.
+    client.accountBalanceLog.create = (async () => {
+      throw new Error("simulated audit-insert failure");
+    }) as unknown as typeof client.accountBalanceLog.create;
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    await expect(
+      repo.recordBalanceChange(USER_A, {
+        id: "acc_seed00000000000000003",
+        valuedOn: new Date("2026-05-01T00:00:00Z"),
+        cashBalance: 1500,
+      }),
+    ).rejects.toThrow("simulated audit-insert failure");
+    expect(Number(accounts[0]?.cashBalance)).toBe(1000);
+    expect(balanceLog).toHaveLength(0);
   });
 });

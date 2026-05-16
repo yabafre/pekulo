@@ -30,13 +30,25 @@ interface HoldingRow {
   accountId: string;
 }
 
+interface BalanceLogRow {
+  id: string;
+  userId: string;
+  accountId: string;
+  cashBalance: Prisma.Decimal;
+  valuedOn: Date;
+  createdAt: Date;
+}
+
 function fakePrismaService(seed?: { holdings?: HoldingRow[] }) {
   const accounts: AccountRow[] = [];
   const holdings: HoldingRow[] = [...(seed?.holdings ?? [])];
+  const balanceLog: BalanceLogRow[] = [];
   let nextId = 0;
+  let nextLogId = 0;
   let now = Date.now();
   const ts = () => new Date(now++);
   const mintId = () => `acc_${String(nextId++).padStart(21, "0")}`;
+  const mintLogId = () => `abl_${String(nextLogId++).padStart(21, "0")}`;
 
   type FakeClient = {
     account: {
@@ -70,6 +82,11 @@ function fakePrismaService(seed?: { holdings?: HoldingRow[] }) {
     };
     holding: {
       count: (args: { where: { accountId: string; userId: string } }) => Promise<number>;
+    };
+    accountBalanceLog: {
+      create: (args: {
+        data: { userId: string; accountId: string; cashBalance: number; valuedOn: Date };
+      }) => Promise<BalanceLogRow>;
     };
     $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
   };
@@ -131,16 +148,55 @@ function fakePrismaService(seed?: { holdings?: HoldingRow[] }) {
         ).length;
       },
     },
-    // Fake $transaction: invoke the callback synchronously with the same
-    // client (no rollback). The service's delete relies on this seam to
-    // atomically run the FK probe + delete.
-    $transaction: async (callback) => callback(client),
+    accountBalanceLog: {
+      async create(args) {
+        const row: BalanceLogRow = {
+          id: mintLogId(),
+          userId: args.data.userId,
+          accountId: args.data.accountId,
+          cashBalance: new Prisma.Decimal(args.data.cashBalance),
+          valuedOn: args.data.valuedOn,
+          createdAt: ts(),
+        };
+        balanceLog.push(row);
+        return row;
+      },
+    },
+    // Fake $transaction mirrors Prisma's interactive-tx rollback: snapshot
+    // the mutable stores before the callback, restore on throw. Plain
+    // pass-through would let a mid-flight failure (e.g. accountBalanceLog
+    // create throwing after account.updateMany succeeded) silently retain
+    // partial writes — anti-pattern #3 (mock-without-understanding).
+    $transaction: async (callback) => {
+      const accountsSnap = accounts.map((r) => ({ ...r }));
+      const holdingsSnap = holdings.map((r) => ({ ...r }));
+      const balanceLogSnap = balanceLog.map((r) => ({ ...r }));
+      try {
+        return await callback(client);
+      } catch (err) {
+        accounts.length = 0;
+        accounts.push(...accountsSnap);
+        holdings.length = 0;
+        holdings.push(...holdingsSnap);
+        balanceLog.length = 0;
+        balanceLog.push(...balanceLogSnap);
+        throw err;
+      }
+    },
+  };
+
+  const prismaService = {
+    client,
+    __seenBalanceLogRows: () => balanceLog as readonly BalanceLogRow[],
   };
 
   return {
-    prismaService: { client } as unknown as PrismaService,
+    prismaService: prismaService as unknown as PrismaService & {
+      __seenBalanceLogRows(): readonly BalanceLogRow[];
+    },
     accounts,
     holdings,
+    balanceLog,
   };
 }
 
@@ -212,5 +268,35 @@ describe("accounts.module — wired flow", () => {
     }
     expect(err).toBeInstanceOf(AccountError);
     expect((err as AccountError).code).toBe("ACCOUNT_NOT_FOUND");
+  });
+
+  // AC-1 (verbatim from story 2-2-account-balance-history:17):
+  //   Then the response Account.cashBalance equals 1500, the accounts row's
+  //   cash_balance column is 1500, and a new account_balance_log row exists
+  //   with (user_id=userA, account_id=acc_…, cash_balance=1500,
+  //   valued_on=2026-05-01T00:00:00Z).
+  test("AC-1 — recordBalanceChange updates parent + inserts audit row in one flow", async () => {
+    const { prismaService } = fakePrismaService({ holdings: [] });
+    const { service } = createAccountsModule({ prismaService });
+    const created = await service.create(USER_A, {
+      label: "Livret A",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: 1000,
+      notes: null,
+    });
+    const updated = await service.recordBalanceChange(USER_A, {
+      id: created.id,
+      valuedOn: new Date("2026-05-01T00:00:00Z"),
+      cashBalance: 1500,
+    });
+    expect(updated.cashBalance).toBe(1500);
+    const listed = await service.list(USER_A);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.cashBalance).toBe(1500);
+    const logRows = prismaService.__seenBalanceLogRows();
+    expect(logRows).toHaveLength(1);
+    expect(logRows[0]?.accountId).toBe(created.id);
+    expect(logRows[0]?.valuedOn.toISOString()).toBe("2026-05-01T00:00:00.000Z");
   });
 });

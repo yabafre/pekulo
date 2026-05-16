@@ -13,6 +13,8 @@ import {
   deleteAccountInputSchema,
   deleteAccountOutputSchema,
   listAccountsOutputSchema,
+  recordBalanceChangeInputSchema,
+  recordBalanceChangeOutputSchema,
   updateAccountInputSchema,
 } from "@pekulo/validators";
 
@@ -21,6 +23,9 @@ export const accountsContractV1 = {
   update: oc.input(updateAccountInputSchema).output(accountSchema),
   delete: oc.input(deleteAccountInputSchema).output(deleteAccountOutputSchema),
   list: oc.output(listAccountsOutputSchema),
+  recordBalanceChange: oc
+    .input(recordBalanceChangeInputSchema)
+    .output(recordBalanceChangeOutputSchema),
 } as const;
 
 export const accountsContract = accountsContractV1;

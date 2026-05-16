@@ -12,7 +12,8 @@ model Account {
   createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
 
-  holdings Holding[]
+  holdings   Holding[]
+  balanceLog AccountBalanceLog[]
 
   @@map("accounts")
 }
@@ -58,4 +59,22 @@ model HoldingLot {
 
   @@index([userId, holdingId, occurredOn], map: "holding_lots_user_holding_idx")
   @@map("holding_lots")
+}
+
+// AccountBalanceLog — append-only audit sister of `accounts` (ADR-0001).
+// RLS policies (INSERT + SELECT only — audit variant) are appended manually
+// to the migration SQL (Prisma does not introspect them). One row per
+// recorded balance change. Cascade-deletes with the parent account row.
+model AccountBalanceLog {
+  id          String   @id
+  userId      String   @map("user_id") @db.Uuid
+  accountId   String   @map("account_id")
+  cashBalance Decimal  @map("cash_balance") @db.Decimal
+  valuedOn    DateTime @map("valued_on") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId, accountId, valuedOn(sort: Desc)], map: "account_balance_log_user_account_valued_idx")
+  @@map("account_balance_log")
 }

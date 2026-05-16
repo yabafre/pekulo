@@ -16,6 +16,7 @@
 export const ID_PREFIXES = {
   // Account aggregate (story 0-4 — this story)
   Account: "acc",
+  AccountBalanceLog: "abl",
   Holding: "hld",
   HoldingLot: "lot",
 

@@ -1,6 +1,8 @@
 // AC-2 + AC-6 (verbatim from story 0-4-prisma-setup):
-//   AC-2: every prefix matches /^[a-z]{2,4}$/, prefixes are unique, exactly 14
-//         entries from ADR-0012, getPrefix returns/throws as expected.
+//   AC-2: every prefix matches /^[a-z]{2,4}$/, prefixes are unique, the
+//         registry tracks every model from ADR-0012, getPrefix returns/throws
+//         as expected. Story 2-2 widens the count to 15 by registering
+//         AccountBalanceLog → "abl".
 //   AC-6: registry is unique and well-formed; the test computes
 //         Object.values(ID_PREFIXES).length === new Set(Object.values(ID_PREFIXES)).size.
 
@@ -8,8 +10,8 @@ import { describe, expect, it } from "bun:test";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 14 model entries (ADR-0012)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(14);
+  it("exposes exactly 15 model entries (ADR-0012 + story 2-2 AccountBalanceLog)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(15);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -34,6 +36,7 @@ describe("id-prefixes.config", () => {
   it("contains the expected ADR-0012 keys", () => {
     const expected = [
       "Account",
+      "AccountBalanceLog",
       "Holding",
       "HoldingLot",
       "Transaction",

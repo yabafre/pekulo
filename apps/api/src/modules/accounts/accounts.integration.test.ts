@@ -95,6 +95,19 @@ function inMemoryService(): AccountService {
         .filter((a) => a.userId === userId)
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     },
+    async recordBalanceChange(userId, input) {
+      const existing = store.get(input.id);
+      if (!existing || existing.userId !== userId) {
+        throw new AccountError("ACCOUNT_NOT_FOUND", "account not found");
+      }
+      const updated: Account = {
+        ...existing,
+        cashBalance: input.cashBalance,
+        updatedAt: new Date(),
+      };
+      store.set(updated.id, updated);
+      return updated;
+    },
   };
 }
 
@@ -249,5 +262,83 @@ describe("accounts HTTP boundary (AC-7)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { json: { ok: true } };
     expect(body.json).toEqual({ ok: true });
+  });
+
+  // AC-1 (verbatim from story 2-2-account-balance-history:17):
+  //   the response Account.cashBalance equals 1500.
+  test("POST /rpc/v1/accounts/recordBalanceChange happy returns 200 + updated body (AC-1)", async () => {
+    const token = await signValid();
+    const addRes = await fetch(`${baseUrl}/rpc/v1/accounts/create`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        json: {
+          label: "Livret balanceLog",
+          type: "livret",
+          currency: "EUR",
+          cashBalance: 1000,
+          notes: null,
+        },
+      }),
+    });
+    const addBody = (await addRes.json()) as { json: Account };
+    const res = await fetch(`${baseUrl}/rpc/v1/accounts/recordBalanceChange`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        json: {
+          id: addBody.json.id,
+          valuedOn: "2026-05-01T00:00:00.000Z",
+          cashBalance: 1500,
+        },
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: Account };
+    expect(body.json.id).toBe(addBody.json.id);
+    expect(body.json.cashBalance).toBe(1500);
+  });
+
+  // AC-4 (verbatim from story 2-2-account-balance-history:20):
+  //   Given the Zod recordBalanceChangeInputSchema is invoked with
+  //   cashBalance: -1, When parsing runs, Then parsing rejects with
+  //   ZodError. The contract Zod runs at the request boundary; oRPC
+  //   surfaces validation failures as a non-2xx wire status.
+  test("POST /rpc/v1/accounts/recordBalanceChange with cashBalance:-1 is rejected (AC-4)", async () => {
+    const token = await signValid();
+    const res = await fetch(`${baseUrl}/rpc/v1/accounts/recordBalanceChange`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        json: {
+          id: "acc_anyvalueofcorrectshape00",
+          valuedOn: "2026-05-01T00:00:00.000Z",
+          cashBalance: -1,
+        },
+      }),
+    });
+    expect(res.status).not.toBe(200);
+  });
+
+  // AC-6 (verbatim from story 2-2-account-balance-history:22):
+  //   the Elysia error mapper translates it to HTTP 401 within 100 ms (NFR-9).
+  test("POST /rpc/v1/accounts/recordBalanceChange unauthenticated returns 401 < 100 ms (AC-6, NFR-9)", async () => {
+    const t0 = performance.now();
+    const res = await fetch(`${baseUrl}/rpc/v1/accounts/recordBalanceChange`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        json: {
+          id: "acc_anyvalueofcorrectshape00",
+          valuedOn: "2026-05-01T00:00:00.000Z",
+          cashBalance: 1500,
+        },
+      }),
+    });
+    const elapsed = performance.now() - t0;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
   });
 });

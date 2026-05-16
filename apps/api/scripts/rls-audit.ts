@@ -42,6 +42,9 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // milestones is a regular CRUD table — full quartet (SELECT/INSERT/UPDATE/DELETE).
   // AC-12 of story 1-2 asserts this count.
   milestones: 4,
+  // account_balance_log is an audit sister table per ADR-0001 — INSERT + SELECT
+  // only. AC-2 of story 2-2 asserts this count.
+  account_balance_log: 2,
 };
 
 async function main(): Promise<number> {

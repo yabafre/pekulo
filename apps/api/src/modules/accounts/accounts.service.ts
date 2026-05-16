@@ -13,6 +13,7 @@ import type {
   CreateAccountInput,
   DeleteAccountInput,
   DeleteAccountOutput,
+  RecordBalanceChangeInput,
   UpdateAccountInput,
 } from "@pekulo/validators";
 import { accountNotFound, accountReferencedFk } from "./accounts.errors";
@@ -23,6 +24,7 @@ export interface AccountService {
   update(userId: string, input: UpdateAccountInput): Promise<Account>;
   delete(userId: string, input: DeleteAccountInput): Promise<DeleteAccountOutput>;
   list(userId: string): Promise<Account[]>;
+  recordBalanceChange(userId: string, input: RecordBalanceChangeInput): Promise<Account>;
 }
 
 export interface AccountServiceDeps {
@@ -57,6 +59,16 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
 
     async list(userId) {
       return deps.repository.listByUser(userId);
+    },
+
+    async recordBalanceChange(userId, input) {
+      const out = await deps.repository.recordBalanceChange(userId, {
+        id: input.id,
+        valuedOn: input.valuedOn,
+        cashBalance: input.cashBalance,
+      });
+      if (out.outcome === "not-found") throw accountNotFound();
+      return out.account;
     },
   };
 }

@@ -92,3 +92,38 @@ export const deleteAccountOutputSchema = z.object({ ok: z.literal(true) });
 export type DeleteAccountOutput = z.infer<typeof deleteAccountOutputSchema>;
 
 export const listAccountsOutputSchema = z.array(accountSchema);
+
+export const ACCOUNT_BALANCE_LOG_ID_PREFIX_RE = /^abl_[0-9A-Za-z]{21}$/;
+
+export const accountBalanceLogIdSchema = z
+  .string()
+  .regex(ACCOUNT_BALANCE_LOG_ID_PREFIX_RE, "id must match /^abl_[0-9A-Za-z]{21}$/");
+
+// Row / DTO shape for a single audit row. Read APIs are NOT shipped in this
+// story (YAGNI — first consumer is story 7-1's compass curve); the schema is
+// declared now so the inferred TS type stays a single source of truth.
+export const accountBalanceLogSchema = z.object({
+  id: accountBalanceLogIdSchema,
+  userId: z.string().uuid(),
+  accountId: accountIdSchema,
+  cashBalance: z.number().min(0),
+  valuedOn: z.date(),
+  createdAt: z.date(),
+});
+export type AccountBalanceLog = z.infer<typeof accountBalanceLogSchema>;
+
+// Input for accounts.recordBalanceChange.
+//   - id     — account being amended.
+//   - valuedOn — user-supplied date. No upper bound (future dates allowed
+//                so users can pre-record an anticipated transfer).
+//   - cashBalance — new value, must be >= 0 (mirrors createAccount + DB CHECK).
+export const recordBalanceChangeInputSchema = z.object({
+  id: accountIdSchema,
+  valuedOn: z.coerce.date(),
+  cashBalance: z.number().min(0, "cashBalance must be >= 0"),
+});
+export type RecordBalanceChangeInput = z.infer<typeof recordBalanceChangeInputSchema>;
+
+// Output mirrors `update` — the freshly-updated Account row.
+export const recordBalanceChangeOutputSchema = accountSchema;
+export type RecordBalanceChangeOutput = z.infer<typeof recordBalanceChangeOutputSchema>;
