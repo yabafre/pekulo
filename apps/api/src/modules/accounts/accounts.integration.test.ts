@@ -299,6 +299,27 @@ describe("accounts HTTP boundary (AC-7)", () => {
     expect(body.json.cashBalance).toBe(1500);
   });
 
+  // AC-4 (verbatim from story 2-2-account-balance-history:20):
+  //   Given the Zod recordBalanceChangeInputSchema is invoked with
+  //   cashBalance: -1, When parsing runs, Then parsing rejects with
+  //   ZodError. The contract Zod runs at the request boundary; oRPC
+  //   surfaces validation failures as a non-2xx wire status.
+  test("POST /rpc/v1/accounts/recordBalanceChange with cashBalance:-1 is rejected (AC-4)", async () => {
+    const token = await signValid();
+    const res = await fetch(`${baseUrl}/rpc/v1/accounts/recordBalanceChange`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        json: {
+          id: "acc_anyvalueofcorrectshape00",
+          valuedOn: "2026-05-01T00:00:00.000Z",
+          cashBalance: -1,
+        },
+      }),
+    });
+    expect(res.status).not.toBe(200);
+  });
+
   // AC-6 (verbatim from story 2-2-account-balance-history:22):
   //   the Elysia error mapper translates it to HTTP 401 within 100 ms (NFR-9).
   test("POST /rpc/v1/accounts/recordBalanceChange unauthenticated returns 401 < 100 ms (AC-6, NFR-9)", async () => {
