@@ -2,8 +2,11 @@
 //
 // Conventions (story 1-1 / 1-2 precedent):
 //   - camelCase schema names + `Schema` suffix.
-//   - Closed enum literal (ACCOUNT_TYPES) imported from @pekulo/types — never
-//     duplicate the const array.
+//   - Closed enum literal (ACCOUNT_TYPES) lives HERE because Zod consumes it
+//     as a value; @pekulo/types re-exports it for UI consumers (one direction
+//     only — `validators → types`, never the reverse, to keep the workspace
+//     graph acyclic. The reverse import broke CI strict typecheck at story
+//     2-1 review).
 //   - The DOMAIN `Account` shape is z.infer<typeof accountSchema>; the UI
 //     shape lives at @pekulo/types#AccountCardItem (renamed in story 2-1).
 //
@@ -14,7 +17,10 @@
 //   - notes optional, max 500.
 
 import { z } from "zod";
-import { ACCOUNT_TYPES } from "@pekulo/types";
+
+/** Closed enum of account types (FR-9). Source of truth for Zod + @pekulo/types re-export. */
+export const ACCOUNT_TYPES = ["livret", "pea", "cto", "av", "autre"] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 export const ACCOUNT_ID_PREFIX_RE = /^acc_[0-9A-Za-z]{21}$/;
 export const MAX_ACCOUNT_LABEL_LENGTH = 120;
