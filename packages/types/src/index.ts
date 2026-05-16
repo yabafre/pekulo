@@ -21,14 +21,14 @@
 export type Id<TBrand extends string> = string & { __brand: TBrand };
 
 // ─── Account (Comptes / Patrimoine) ──────────────────────────────────────
-// Domain TS contract lives in @pekulo/validators (z.infer<typeof accountSchema>)
-// and is re-exported below. The legacy DS UI prop shape stays here under the
-// rename `AccountCardItem` (story 1-2 precedent — Milestone → MilestoneCardItem).
+// Domain TS contract + closed enum literal live in @pekulo/validators
+// (Zod is the schema source; tsc-erased re-exports here are the cross-app
+// facade). The legacy DS UI prop shape stays here under the rename
+// `AccountCardItem` (story 1-2 precedent — Milestone → MilestoneCardItem).
 //
-// ACCOUNT_TYPES + AccountType live in @pekulo/validators (Zod consumes them as
-// values) and are re-exported here so UI consumers can keep their existing
-// `import type { AccountType } from "@pekulo/types"` line. One direction only
-// to keep the workspace graph acyclic: validators → types, never the reverse.
+// Public surface for apps/web + apps/api + @pekulo/ui: stay on `from
+// "@pekulo/types"`. Same shape as `Compass` / `Milestone` / `MAX_OBJECTIF_EUR`
+// re-exports below.
 export { ACCOUNT_TYPES } from "@pekulo/validators";
 export type { AccountType } from "@pekulo/validators";
 

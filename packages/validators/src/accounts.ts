@@ -2,11 +2,11 @@
 //
 // Conventions (story 1-1 / 1-2 precedent):
 //   - camelCase schema names + `Schema` suffix.
-//   - Closed enum literal (ACCOUNT_TYPES) lives HERE because Zod consumes it
-//     as a value; @pekulo/types re-exports it for UI consumers (one direction
-//     only — `validators → types`, never the reverse, to keep the workspace
-//     graph acyclic. The reverse import broke CI strict typecheck at story
-//     2-1 review).
+//   - Closed enum literal (ACCOUNT_TYPES) lives HERE as the Zod-consumed
+//     source; @pekulo/types re-exports it for the cross-app facade. Same
+//     direction as `Compass` / `Milestone` / `MAX_OBJECTIF_EUR` already in
+//     this package. Workspace edges flow validators → types only — the
+//     reverse would create a Turbo task cycle (verified at story 2-1 review).
 //   - The DOMAIN `Account` shape is z.infer<typeof accountSchema>; the UI
 //     shape lives at @pekulo/types#AccountCardItem (renamed in story 2-1).
 //
@@ -18,7 +18,7 @@
 
 import { z } from "zod";
 
-/** Closed enum of account types (FR-9). Source of truth for Zod + @pekulo/types re-export. */
+/** Closed enum of account types (FR-9). Source for Zod schemas + @pekulo/types re-export. */
 export const ACCOUNT_TYPES = ["livret", "pea", "cto", "av", "autre"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
