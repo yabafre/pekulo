@@ -1,7 +1,7 @@
 # Story: 2-2-account-balance-history — Manual cash-balance change with date
 
 **Epic:** Epic 2 — Accounts (extended brownfield)
-**Status:** ready-for-dev
+**Status:** done
 **Ticket:** [#18](https://github.com/yabafre/pekulo/issues/18)
 **Branch:** `feature/18-2-2-account-balance-history`
 **Commit prefix:** `feat(#18): …`
@@ -1036,3 +1036,51 @@ $ bun run lint
 Found 1 warning and 0 errors.   # expected: no-underscore-dangle on __seenBalanceLogRows
 EXIT=0
 ```
+
+## Review Record
+
+**Date:** 2026-05-16
+**HEAD reviewed:** `d41a8bf`
+**Auditors:** Spec, Code, Edge & Hallucination (no Aria — backend story, no preview app touched)
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+
+- **[MINOR] Fake `$transaction` lacked rollback fidelity** — `apps/api/src/modules/accounts/accounts.repository.test.ts:184` + `apps/api/src/modules/accounts/accounts.module.test.ts:168`. Both fakes passed the outer in-memory `client` straight through `(callback) => callback(client)`, so a mid-flight throw (e.g. `accountBalanceLog.create` failing after `account.updateMany` had already mutated the in-memory parent row) left `accounts[]` / `balanceLog[]` partially mutated. AC-1's atomic-write claim was structurally guaranteed by Prisma in production but **not behaviourally exercised** in tests — anti-pattern #3 (mock-without-understanding) + #1 (mock-the-behaviour). Spec auditor and Edge auditor were both APPROVED; only the Code auditor flagged this.
+  - Source: Code auditor
+  - Resolution: commit `d41a8bf` — both fakes' `$transaction` now snapshot `accounts[]` / `holdings[]` / `balanceLog[]` before invoking the callback and restore on throw, mirroring Prisma's interactive-tx semantics. Added a focused test in `accounts.repository.test.ts` (the 4th `recordBalanceChange` case) that mocks `accountBalanceLog.create` to throw, asserts `repo.recordBalanceChange()` rejects, and verifies the parent `accounts[0].cashBalance` reverted to `1000` and `balanceLog` stayed empty. The TS cast on the throwing-mock override required `as unknown as typeof client.accountBalanceLog.create` because `mock()`'s return type didn't overlap with a plain `() => Promise<never>` — fixed in the same commit.
+
+#### Dismissed
+
+- **[NIT] `recordBalanceChangeInputSchema.valuedOn` has no upper bound** — `packages/validators/src/accounts.ts:200`. Allows future dates.
+  - Source: Code auditor
+  - Rationale: by design — the story spec explicitly documents "No upper bound (future dates allowed so users can pre-record an anticipated transfer)". The downstream consumers (story 7-1 compass curve, story 2-3 history UI) are expected to handle future-dated rows. Adding a bound would silently contradict the story's documented contract.
+
+### Verification (fresh, captured at HEAD `d41a8bf`)
+
+- `cd apps/api && bun test` → **218 pass / 0 fail / 553 expect / 26 files / 255 ms** (up from 217 / 550 at story-ship time — the new failure-branch test adds 3 expects)
+- `bun --filter='@pekulo/api' run typecheck` → exit 0
+- `bun run lint` (root) → **0 errors / 1 expected warning** on the test-only `__seenBalanceLogRows()` accessor
+- `bun --filter='@pekulo/api' run db:rls-audit` → 10 tables OK incl. `account_balance_log (2 policies)` ← AC-2
+- `git-audit.sh` → 0 HIGH (no story-listed-file missing from git), MEDIUM = `docs/state.yaml` + `docs/stories/2-2-account-balance-history.md` (expected Dev Agent Record + state advance)
+
+### AC coverage at HEAD
+
+| AC | Status | Anchor |
+|---|---|---|
+| AC-1 atomic write | ✓ + failure-branch now tested | `accounts.repository.ts:447-490`, `accounts.repository.test.ts:537-579`, `accounts.module.test.ts:288` |
+| AC-2 RLS = SELECT+INSERT only | ✓ | migration `:77-80`, `rls-audit.ts:161-163` |
+| AC-3 cross-user → 404 | ✓ | `accounts.repository.ts:453-459`, `service.ts:64-66`, repo test `:460-487` |
+| AC-4 Zod rejects `cashBalance: -1` | ✓ | `validators/accounts.ts:201`, `accounts.integration.test.ts` AC-4 trace |
+| AC-5 Decimal → number | ✓ | `accounts.repository.ts:92` (`decimalToNumber`), repo test `:489-535` |
+| AC-6 unauthorized → 401 < 100 ms | ✓ | `accounts.routes.ts:40-42`, integration test `:741-756` |
+| AC-7 lint `no-prisma-query-without-user-id` | ✓ | live `bun run lint` — 0 errors |
+| AC-8 no `*.types.ts` in accounts module | ✓ | `RecordBalanceChangeOutcome` co-located in `accounts.repository.ts:419-421` |
+| AC-9 5th procedure mounted | ✓ | `contracts/accounts.contract.ts:26`, `routes.ts:40-42` |
+
+### Ticket sync
+
+- Issue #18 comment: <https://github.com/yabafre/pekulo/issues/18#issuecomment-4467628491>
+- PR #78 (base `main`): <https://github.com/yabafre/pekulo/pull/78> — body updated with Review Record reference
