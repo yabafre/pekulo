@@ -1,19 +1,25 @@
-// Prisma layer for the accounts module. Six responsibilities:
+// Prisma layer for the accounts module. Seven responsibilities:
 //   - create(userId, input): insert one row (id auto-injected by prefixedIds
 //     extension post-migration; UUID column was flipped to TEXT in story 2-1 T1).
-//   - update(userId, id, patch): updateMany scoped by { id, userId } → null on count=0.
+//   - update(userId, id, patch): updateMany scoped by { id, userId } → null on
+//     count=0. Empty patches short-circuit to a no-op findFirst.
 //   - delete(userId, id): deleteMany scoped by { id, userId } → false on count=0.
+//   - deleteWithFkProbe(userId, id): atomic FK-probe + delete wrapped in a
+//     single $transaction (TOCTOU avoidance, mirrors milestones#addEnforcingCap).
+//     Returns a discriminated outcome so the service can translate to typed errors
+//     without taking a transaction-runner dep.
 //   - listByUser(userId): rows ordered by createdAt asc (matches brownfield
 //     apps/web/src/lib/actions/portfolio.ts#getAccounts).
 //   - findByIdForUser(userId, id): single-row probe for service preconditions.
-//   - countHoldingsReferencing(userId, accountId): FK-guard probe consumed by
-//     the service-side $transaction-wrapped delete.
+//   - countHoldingsReferencing(userId, accountId): FK-guard probe (kept for
+//     fine-grained callers; the service-side delete uses deleteWithFkProbe).
 //
 // Every query carries an explicit `where: { userId }` clause (ADR-0013, defense
 // in depth). Single-row finds use `where: { id, userId }`. The lint rule
 // pekulo/no-prisma-query-without-user-id (story 0-12) gates this on every
-// method below — its `prismaIdentifier` accepts `["prisma","tx"]` so a
-// transaction callback's `tx` is also covered.
+// method below — its `prismaIdentifier` accepts `["prisma","tx","client"]` so
+// a transaction callback's `tx` and the `deps.client.X.Y` callshape are both
+// covered.
 //
 // L24 (2026-05-04, story 2-1 explicit) — cashBalance is Prisma.Decimal at the
 // row layer; coerce via decimalToNumber() at the row → DTO boundary. The
@@ -21,6 +27,7 @@
 // extract). Inlining `Number(decimal)` or duplicating the helper = review fail.
 
 import type { Account, CreateAccountInput } from "@pekulo/validators";
+import { PekuloError } from "../../common/errors";
 import type { ExtendedPrismaClient } from "../../database";
 import { decimalToNumber } from "../../common/derive/decimal-to-number";
 
@@ -32,10 +39,16 @@ export interface UpdateAccountRepoInput {
   notes?: string | null;
 }
 
+export type DeleteWithFkProbeOutcome =
+  | { outcome: "deleted" }
+  | { outcome: "fk-blocked"; holdingCount: number }
+  | { outcome: "not-found" };
+
 export interface AccountRepository {
   create(userId: string, input: CreateAccountInput): Promise<Account>;
   update(userId: string, id: string, patch: UpdateAccountRepoInput): Promise<Account | null>;
   delete(userId: string, id: string): Promise<boolean>;
+  deleteWithFkProbe(userId: string, id: string): Promise<DeleteWithFkProbeOutcome>;
   listByUser(userId: string): Promise<Account[]>;
   findByIdForUser(userId: string, id: string): Promise<Account | null>;
   countHoldingsReferencing(userId: string, accountId: string): Promise<number>;
@@ -54,6 +67,14 @@ type AccountRow = {
 };
 
 function rowToAccount(row: AccountRow): Account {
+  // The Prisma model declares createdAt/updatedAt as nullable but with
+  // @default(now()), so a Prisma-written row always carries both. A NULL here
+  // signals direct SQL manipulation that bypassed the default — fail fast
+  // rather than masking with new Date(0) (which would silently pass Zod's
+  // accountSchema and surface as 1970-01-01 to the UI).
+  if (!row.createdAt || !row.updatedAt) {
+    throw new PekuloError("INTERNAL", "account row missing timestamp");
+  }
   return {
     id: row.id,
     userId: row.userId,
@@ -62,8 +83,8 @@ function rowToAccount(row: AccountRow): Account {
     currency: row.currency as Account["currency"],
     cashBalance: decimalToNumber(row.cashBalance, 0),
     notes: row.notes,
-    createdAt: row.createdAt ?? new Date(0),
-    updatedAt: row.updatedAt ?? new Date(0),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 
@@ -88,6 +109,19 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
     },
 
     async update(userId, id, patch) {
+      // Short-circuit on empty patch: validator's .refine() rejects no-field
+      // patches at the API boundary, but service callers (cron, worker, test)
+      // can bypass that. Avoid a no-op write that would still bump updatedAt.
+      const isEmptyPatch =
+        patch.label === undefined &&
+        patch.type === undefined &&
+        patch.currency === undefined &&
+        patch.cashBalance === undefined &&
+        patch.notes === undefined;
+      if (isEmptyPatch) {
+        const row = await deps.client.account.findFirst({ where: { id, userId } });
+        return row ? rowToAccount(row as unknown as AccountRow) : null;
+      }
       // updateMany scoped by { id, userId } so a cross-user attempt yields
       // count=0 (defense in depth on top of RLS). Returning null lets the
       // service raise ACCOUNT_NOT_FOUND uniformly.
@@ -110,6 +144,27 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
     async delete(userId, id) {
       const result = await deps.client.account.deleteMany({ where: { id, userId } });
       return result.count > 0;
+    },
+
+    async deleteWithFkProbe(userId, id) {
+      // Atomic FK probe + delete inside a single $transaction so a concurrent
+      // holdings insert between the count and the delete cannot slip past the
+      // guard. Mirrors milestones.repository.ts#addEnforcingCap (count + create
+      // wrapped in $transaction). The tx-scoped client carries both calls so
+      // no rebuild / type cast is needed at the module-factory layer.
+      return deps.client.$transaction(async (tx) => {
+        const holdingCount = await tx.holding.count({
+          where: { accountId: id, userId },
+        });
+        if (holdingCount > 0) {
+          return { outcome: "fk-blocked", holdingCount } as const;
+        }
+        const result = await tx.account.deleteMany({ where: { id, userId } });
+        if (result.count === 0) {
+          return { outcome: "not-found" } as const;
+        }
+        return { outcome: "deleted" } as const;
+      });
     },
 
     async listByUser(userId) {

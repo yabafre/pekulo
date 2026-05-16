@@ -1,14 +1,13 @@
-// Service unit tests with stubbed repository + fake $transaction runner.
-// AC coverage:
+// Service unit tests with a stubbed repository. AC coverage:
 //   - AC-1 / AC-3 (create + delete happy paths)
 //   - AC-2 (delete throws ACCOUNT_REFERENCED_FK when holdings count > 0)
 //   - AC-4 (cross-user update / delete throws ACCOUNT_NOT_FOUND)
 //   - AC-7 (service layer rejection paths)
 //
-// The $transaction runner is faked: it just invokes the callback with the
-// same stub repo. The real composition (accounts.module.ts T12) injects a
-// runTx that calls prismaService.client.$transaction with a tx-scoped repo,
-// covered by the module test in T12.
+// The FK-probe + delete atomicity is exercised at the repository test
+// (deleteWithFkProbe wraps both in a single $transaction). The service stub
+// just returns a discriminated outcome that the service translates to an
+// AccountError or a `{ ok: true }` payload.
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { Account } from "@pekulo/validators";
@@ -79,6 +78,21 @@ function stubRepo(seed?: {
       }
       return accounts.length < before;
     },
+    async deleteWithFkProbe(userId, id) {
+      const holdingCount = countMap[id] ?? 0;
+      if (holdingCount > 0) {
+        return { outcome: "fk-blocked", holdingCount };
+      }
+      const before = accounts.length;
+      for (let i = accounts.length - 1; i >= 0; i--) {
+        const a = accounts[i]!;
+        if (a.id === id && a.userId === userId) accounts.splice(i, 1);
+      }
+      if (accounts.length === before) {
+        return { outcome: "not-found" };
+      }
+      return { outcome: "deleted" };
+    },
     async listByUser(userId) {
       return accounts.filter((a) => a.userId === userId);
     },
@@ -101,12 +115,7 @@ describe("accounts.service", () => {
     accounts = [];
     countMap = {};
     repo = stubRepo({ accounts, holdingCountByAccount: countMap });
-    // Fake $transaction: invoke the callback with the same repo — the real
-    // composition root (T12) builds a tx-scoped repository per callback.
-    service = createAccountService({
-      repository: repo,
-      runTx: (fn) => fn(repo),
-    });
+    service = createAccountService({ repository: repo });
   });
 
   test("create delegates to repo and returns the new row (AC-1)", async () => {

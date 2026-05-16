@@ -1,16 +1,12 @@
-// Business logic for the accounts domain. The service is the boundary that
-// (a) raises AccountError("ACCOUNT_NOT_FOUND") when the repository returns
-// null (cross-user attempt or stale id) and (b) wraps the FK probe + delete
-// in a single $transaction so a concurrent holdings insert cannot land
-// between the probe and the delete (TOCTOU). Mirrors the count-then-act
-// pattern from milestones.repository.ts#addEnforcingCap.
+// Business logic for the accounts domain. The service translates repository
+// outcomes (null returns, FK-probe sentinels) into typed AccountError
+// instances; the error-mapper maps each code to its HTTP status.
 //
-// The runTx dep is the composition-root-provided transaction runner. In
-// production accounts.module.ts injects it as
-//   (fn) => prismaService.client.$transaction((tx) =>
-//             fn(createAccountRepository({ client: tx })))
-// so the FK probe + delete both run against the same tx-scoped repository.
-// Tests pass `(fn) => fn(repo)` for direct invocation against the stub.
+// The FK-probe + delete is atomic at the repository layer
+// (accounts.repository.ts#deleteWithFkProbe wraps both in a single $transaction
+// — TOCTOU avoidance, mirrors milestones.repository#addEnforcingCap). The
+// service consumes the discriminated outcome and never holds a transaction
+// runner itself, so the composition root (accounts.module.ts) stays trivial.
 
 import type {
   Account,
@@ -31,13 +27,6 @@ export interface AccountService {
 
 export interface AccountServiceDeps {
   repository: AccountRepository;
-  /**
-   * Transaction runner. The service uses it to wrap the FK probe and the
-   * delete in a single $transaction so a concurrent holdings insert cannot
-   * slip past the guard. The injected `tx` is a repository scoped to the
-   * transaction context.
-   */
-  runTx<T>(fn: (tx: AccountRepository) => Promise<T>): Promise<T>;
 }
 
 export function createAccountService(deps: AccountServiceDeps): AccountService {
@@ -60,15 +49,10 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
     },
 
     async delete(userId, input) {
-      // FK guard wrapped in a single $transaction (TOCTOU avoidance) —
-      // mirrors milestones.repository.ts#addEnforcingCap (count + create).
-      return deps.runTx(async (tx) => {
-        const count = await tx.countHoldingsReferencing(userId, input.id);
-        if (count > 0) throw accountReferencedFk(count);
-        const ok = await tx.delete(userId, input.id);
-        if (!ok) throw accountNotFound();
-        return { ok: true as const };
-      });
+      const out = await deps.repository.deleteWithFkProbe(userId, input.id);
+      if (out.outcome === "fk-blocked") throw accountReferencedFk(out.holdingCount);
+      if (out.outcome === "not-found") throw accountNotFound();
+      return { ok: true };
     },
 
     async list(userId) {

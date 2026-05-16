@@ -296,4 +296,79 @@ describe("accounts.repository", () => {
     const count = await repo.countHoldingsReferencing(USER_A, accountId);
     expect(count).toBe(2);
   });
+
+  test("deleteWithFkProbe returns fk-blocked when holdings reference the account (AC-2)", async () => {
+    const accountId = "acc_blocked0000000000";
+    const seedAccount: AccountRow = {
+      id: accountId,
+      userId: USER_A,
+      label: "A-1",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: new Prisma.Decimal(0),
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const holdingsSeed: HoldingRow[] = [
+      { id: "hld_1", userId: USER_A, accountId },
+      { id: "hld_2", userId: USER_A, accountId },
+    ];
+    const { client, accounts } = fakeClient({
+      accounts: [seedAccount],
+      holdings: holdingsSeed,
+    });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    const out = await repo.deleteWithFkProbe(USER_A, accountId);
+    expect(out).toEqual({ outcome: "fk-blocked", holdingCount: 2 });
+    // Row remains — the FK guard short-circuited before deleteMany.
+    expect(accounts).toHaveLength(1);
+  });
+
+  test("deleteWithFkProbe returns deleted when no referencing holdings (AC-3)", async () => {
+    const accountId = "acc_deletable000000000";
+    const seedAccount: AccountRow = {
+      id: accountId,
+      userId: USER_A,
+      label: "A-1",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: new Prisma.Decimal(0),
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const { client, accounts } = fakeClient({ accounts: [seedAccount] });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    const out = await repo.deleteWithFkProbe(USER_A, accountId);
+    expect(out).toEqual({ outcome: "deleted" });
+    expect(accounts).toHaveLength(0);
+  });
+
+  test("deleteWithFkProbe returns not-found on cross-user attempt (AC-4)", async () => {
+    const accountId = "acc_otheruser000000000";
+    const seedAccount: AccountRow = {
+      id: accountId,
+      userId: USER_B,
+      label: "B-1",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: new Prisma.Decimal(0),
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const { client, accounts } = fakeClient({ accounts: [seedAccount] });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+    const out = await repo.deleteWithFkProbe(USER_A, accountId);
+    expect(out).toEqual({ outcome: "not-found" });
+    // Row remains (belongs to USER_B).
+    expect(accounts).toHaveLength(1);
+  });
 });
