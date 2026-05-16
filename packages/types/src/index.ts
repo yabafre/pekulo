@@ -21,18 +21,17 @@
 export type Id<TBrand extends string> = string & { __brand: TBrand };
 
 // ─── Account (Comptes / Patrimoine) ──────────────────────────────────────
-// Domain TS contract + closed enum literal live in @pekulo/validators
-// (Zod is the schema source; tsc-erased re-exports here are the cross-app
-// facade). The legacy DS UI prop shape stays here under the rename
-// `AccountCardItem` (story 1-2 precedent — Milestone → MilestoneCardItem).
+// Closed enum literal + derived type live HERE as the cross-app source of
+// truth (L1 — domain types/closed enum literals belong in @pekulo/types
+// since both apps/web and apps/api consume them).
 //
-// Public surface for apps/web + apps/api + @pekulo/ui: stay on `from
-// "@pekulo/types"`. Same shape as `Compass` / `Milestone` / `MAX_OBJECTIF_EUR`
-// re-exports below.
-export { ACCOUNT_TYPES } from "@pekulo/validators";
-export type { AccountType } from "@pekulo/validators";
-
-import type { AccountType } from "@pekulo/validators";
+// @pekulo/validators/src/accounts.ts mirrors the literal inline in z.enum
+// (it can't import from here — @pekulo/types already declares
+// @pekulo/validators for downstream re-exports like Account / Compass /
+// Milestone, and Turbo refuses the reverse edge). Keep both sides in sync;
+// drift caught at code review.
+export const ACCOUNT_TYPES = ["livret", "pea", "cto", "av", "autre"] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 /** UI prop shape consumed by PekuloAccountRow / PekuloAccountsSection. */
 export interface AccountCardItem {

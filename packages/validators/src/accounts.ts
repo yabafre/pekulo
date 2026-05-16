@@ -2,11 +2,12 @@
 //
 // Conventions (story 1-1 / 1-2 precedent):
 //   - camelCase schema names + `Schema` suffix.
-//   - Closed enum literal (ACCOUNT_TYPES) lives HERE as the Zod-consumed
-//     source; @pekulo/types re-exports it for the cross-app facade. Same
-//     direction as `Compass` / `Milestone` / `MAX_OBJECTIF_EUR` already in
-//     this package. Workspace edges flow validators → types only — the
-//     reverse would create a Turbo task cycle (verified at story 2-1 review).
+//   - Closed enum literal source-of-truth lives in @pekulo/types#ACCOUNT_TYPES
+//     (L1 — cross-app domain literals belong in types). Inlined below in
+//     z.enum because @pekulo/validators cannot import from @pekulo/types
+//     (types → validators edge already exists for Account / Compass /
+//     Milestone re-exports; Turbo refuses the reverse). Keep the inlined
+//     literal in sync with @pekulo/types#ACCOUNT_TYPES.
 //   - The DOMAIN `Account` shape is z.infer<typeof accountSchema>; the UI
 //     shape lives at @pekulo/types#AccountCardItem (renamed in story 2-1).
 //
@@ -18,15 +19,16 @@
 
 import { z } from "zod";
 
-/** Closed enum of account types (FR-9). Source for Zod schemas + @pekulo/types re-export. */
-export const ACCOUNT_TYPES = ["livret", "pea", "cto", "av", "autre"] as const;
-export type AccountType = (typeof ACCOUNT_TYPES)[number];
-
 export const ACCOUNT_ID_PREFIX_RE = /^acc_[0-9A-Za-z]{21}$/;
 export const MAX_ACCOUNT_LABEL_LENGTH = 120;
 export const MAX_ACCOUNT_NOTES_LENGTH = 500;
 export const ACCOUNT_CURRENCIES = ["EUR", "USD", "GBP", "CHF"] as const;
 export type AccountCurrency = (typeof ACCOUNT_CURRENCIES)[number];
+
+// MIRROR of @pekulo/types#ACCOUNT_TYPES — kept inline because validators cannot
+// import from types (would create a Turbo workspace cycle). Reviewer-enforced
+// invariant: this literal MUST equal @pekulo/types#ACCOUNT_TYPES exactly.
+const ACCOUNT_TYPES_MIRROR = ["livret", "pea", "cto", "av", "autre"] as const;
 
 export const accountIdSchema = z
   .string()
@@ -39,7 +41,7 @@ export const accountSchema = z.object({
   id: accountIdSchema,
   userId: z.string().uuid(),
   label: z.string().min(1).max(MAX_ACCOUNT_LABEL_LENGTH),
-  type: z.enum(ACCOUNT_TYPES),
+  type: z.enum(ACCOUNT_TYPES_MIRROR),
   currency: z.enum(ACCOUNT_CURRENCIES),
   cashBalance: z.number().min(0),
   notes: z.string().max(MAX_ACCOUNT_NOTES_LENGTH).nullable(),
@@ -54,7 +56,7 @@ export const createAccountInputSchema = z.object({
     .trim()
     .min(1, "label cannot be empty whitespace")
     .max(MAX_ACCOUNT_LABEL_LENGTH, `label must be <= ${MAX_ACCOUNT_LABEL_LENGTH} chars`),
-  type: z.enum(ACCOUNT_TYPES),
+  type: z.enum(ACCOUNT_TYPES_MIRROR),
   currency: z.enum(ACCOUNT_CURRENCIES),
   cashBalance: z.number().min(0, "cashBalance must be >= 0"),
   notes: z.string().max(MAX_ACCOUNT_NOTES_LENGTH).nullable().optional(),
@@ -65,7 +67,7 @@ export const updateAccountInputSchema = z
   .object({
     id: accountIdSchema,
     label: z.string().trim().min(1).max(MAX_ACCOUNT_LABEL_LENGTH).optional(),
-    type: z.enum(ACCOUNT_TYPES).optional(),
+    type: z.enum(ACCOUNT_TYPES_MIRROR).optional(),
     currency: z.enum(ACCOUNT_CURRENCIES).optional(),
     cashBalance: z.number().min(0).optional(),
     notes: z.string().max(MAX_ACCOUNT_NOTES_LENGTH).nullable().optional(),
