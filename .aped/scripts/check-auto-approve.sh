@@ -40,8 +40,8 @@ fail() { REASONS+=("- $1"); }
 field_for_story() {
   local key="$1" field="$2"
   awk -v k="$key" -v f="$field" '
-    $0 ~ "^    " k ":" { in_story=1; next }
-    in_story && /^    [a-zA-Z0-9_-]+:/ { in_story=0 }
+    $0 ~ "^    \"?" k "\"?:" { in_story=1; next }
+    in_story && /^    "?[a-zA-Z0-9_-]+"?:/ { in_story=0 }
     in_story && $1 == f ":" { gsub(/"/, "", $2); print $2; exit }
   ' "$STATE_FILE"
 }
@@ -62,7 +62,13 @@ check_story_ready() {
   [[ -f "$STORY_FILE" ]] || { fail "story file missing at $STORY_FILE"; return; }
 
   # ACs use Given/When/Then, either numbered ("1. Given …") or bulleted ("- Given …").
-  if ! grep -qE '^[[:space:]]*([0-9]+\.|-)[[:space:]]+(Given|GIVEN)' "$STORY_FILE"; then
+  # APED 6.x canonical AC formats:
+  #   - Given <state> when ...                         (minimal)
+  #   - **Given** <state> when ...                     (bold-only)
+  #   - **AC1.** **Given** <state> when ...            (numbered + bold)
+  #   - **AC1 (label)** — **Given** <state> when ...   (labelled, em-dash sep)
+  # The pre-6.7.6 regex only accepted the minimal form and rejected the rest.
+  if ! grep -qE '^[[:space:]]*([0-9]+\.|-)[[:space:]]+(\*\*[^*]+\*\*[[:space:]]+(—|-)?[[:space:]]*)?\*?\*?(Given|GIVEN)' "$STORY_FILE"; then
     fail "no Given/When/Then-formatted Acceptance Criteria in story file"
   fi
 
@@ -74,8 +80,8 @@ check_story_ready() {
   # depends_on all done.
   local deps
   deps=$(awk -v k="$KEY" '
-    $0 ~ "^    " k ":" { in_story=1; next }
-    in_story && /^    [a-zA-Z0-9_-]+:/ && !/depends_on:/ { if (!in_deps) in_story=0 }
+    $0 ~ "^    \"?" k "\"?:" { in_story=1; next }
+    in_story && /^    "?[a-zA-Z0-9_-]+"?:/ && !/depends_on:/ { if (!in_deps) in_story=0 }
     in_story && /^[[:space:]]+depends_on:/ { in_deps=1; next }
     in_deps && /^[[:space:]]+-[[:space:]]/ { gsub(/^[[:space:]]+-[[:space:]]+/, ""); gsub(/"/, ""); print }
     in_deps && /^[[:space:]]+[a-zA-Z]/ { in_deps=0 }

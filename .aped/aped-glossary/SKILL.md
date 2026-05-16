@@ -10,8 +10,9 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.3.3
+  version: 6.12.0
 ---
+<!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
@@ -33,7 +34,7 @@ Read `.aped/config.yaml` and resolve `{user_name}` / `{communication_language}` 
 
 ## Iron Law
 
-**ONE WORD, ONE MEANING, ONE PLACE.** If two skills use different words for the same thing, the glossary picks the winner and lists the loser as `_Avoid:_`. Drift compounds; clarity is cheap to sustain, expensive to retrofit.
+**ONE WORD, ONE MEANING, ONE PLACE.** See [`ETHOS.md` § aped-glossary](../ETHOS.md#aped-glossary) for full rationale.
 
 ## Inputs (consumed in this order)
 

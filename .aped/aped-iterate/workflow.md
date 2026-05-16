@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from workflow.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
+
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 
@@ -26,7 +28,7 @@ Before any other action, read `.aped/config.yaml` and resolve:
 
 ### Iron Law
 
-**Classify FIRST, route SECOND.** Never skip the classification interview, even when the delta description seems to point at one specific skill. The user came here because they weren't sure — guessing past the question is exactly the failure mode this skill exists to prevent.
+**Classify FIRST, route SECOND.** See [`ETHOS.md` § aped-iterate](../ETHOS.md#aped-iterate) for full rationale.
 
 ### Red Flags
 

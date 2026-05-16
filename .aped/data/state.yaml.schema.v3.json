@@ -43,7 +43,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "status":              { "type": "string", "enum": ["in-progress", "done"] },
+        "status":              { "type": "string", "enum": ["not-started", "in-progress", "ready-for-dev", "review", "complete", "done", "blocked"] },
         "output":              { "type": "string", "minLength": 1 },
         "started_at":          { "type": "string" },
         "last_updated":        { "type": "string" },

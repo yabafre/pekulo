@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from workflow.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
+
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 
@@ -57,7 +59,32 @@ Before any other action, read `.aped/config.yaml` and resolve:
 
 ## Sprint Umbrella Branch
 
-Every parallel sprint runs under a **sprint umbrella branch** that is the parent of every story feature branch and the only thing that ever PRs into the base branch. The umbrella is the unit of review for prod: stories PR into it (reviewed individually), and `aped-ship` opens one final PR from umbrella to the base branch.
+Every sprint runs under a **sprint umbrella branch** that is the parent of every story feature branch and the only thing that ever PRs into the base branch. The umbrella is the unit of review for prod: stories PR into it (reviewed individually), and `aped-ship` opens one final PR from umbrella to the base branch. This holds in both parallel and sequential mode — only the assembly differs.
+
+## Sprint Mode (6.7.5+)
+
+Read `sprint.mode` from `.aped/config.yaml` (or `docs/state.yaml`). Two modes:
+
+- **`parallel`** (default) — one git worktree per story, branches cut from the umbrella, dispatched in parallel via `workmux` or hand-launched terminals.
+- **`sequential`** — ONE shared worktree at sprint start (created by you below). Each story is a branch stacked on top of the previous via `git-spice` (`gs branch create`). The user works one story at a time, `gs branch checkout` switches between them. Requires `gs --version` to surface a git-spice signature (the dispatch script verifies this); HALT here at sprint start with the install link (`https://github.com/abhinav/git-spice`) if missing — don't wait until per-story dispatch to surface the gap.
+
+In sequential mode, after creating the umbrella (block below), also create the shared worktree, run `gs init` inside it, and record the path in state.yaml:
+
+```bash
+SPRINT_MODE=$(yq '.sprint.mode // "parallel"' .aped/config.yaml)
+if [[ "$SPRINT_MODE" == "sequential" ]]; then
+  if ! gs --version 2>&1 | grep -qiE 'git[ -]spice'; then
+    echo "Sequential mode requires git-spice. Install: https://github.com/abhinav/git-spice"
+    exit 5
+  fi
+  SHARED_WT="$(dirname "$PWD")/$(basename "$PWD")-stack-epic-${EPIC_N}"
+  git worktree add "$SHARED_WT" "$UMBRELLA"
+  (cd "$SHARED_WT" && gs init --trunk "$UMBRELLA")
+  bash .aped/scripts/sync-state.sh <<< "set-sprint-field shared_worktree \"$SHARED_WT\""
+fi
+```
+
+Per-story dispatch then calls `sprint-dispatch.sh` as usual — the script reads `sprint.mode` itself and routes to the stack-creation branch in sequential. You don't need to branch your dispatch loop based on mode; the script handles it.
 
 After `sprint.active_epic` is set:
 
@@ -245,6 +272,17 @@ WORKTREE=$(bash .aped/scripts/sprint-dispatch.sh <story-key> <ticket-id> "$UMBRE
 The helper creates the worktree, the branch (cut from `$UMBRELLA`), and the `.aped/WORKTREE` marker. The user will open a terminal per worktree manually.
 
 If you omit the umbrella arg, sprint-dispatch.sh falls back to HEAD — only acceptable in solo/non-sprint mode where there is no umbrella.
+
+### Path C — sequential mode (6.7.5+)
+
+Sequential dispatch **reuses Path B's loop** — the same `sprint-dispatch.sh <story> <ticket> "$UMBRELLA"` call. The script reads `sprint.mode` from state.yaml, overrides `WORKTREE_PATH` to the recorded `sprint.shared_worktree`, and replaces `git worktree add` with `gs branch create "$BRANCH" >&2` inside the shared worktree (stacking on top of whichever branch is currently checked out there).
+
+Two consequences for the Lead:
+
+1. **Stack order is dispatch order.** The branch checked out in the shared worktree when you call `sprint-dispatch.sh` becomes the parent of the new branch. For story 1, that's the umbrella (`gs init` did the right `--trunk`). For story 2+, it's the previous story's branch — `gs branch checkout {{prev-branch}}` inside the shared worktree before invoking dispatch.
+2. **Per-story marker file (6.8.0+).** Each successful sequential dispatch writes `.aped/WORKTREE.{story-key}.yaml` inside the shared worktree (parallel mode keeps the legacy single `.aped/WORKTREE`). `worktree-cleanup.sh` globs both shapes when iterating branches to delete; you don't need to track markers manually.
+
+You still only need to do the setup steps from "Sprint Mode" above (`gs --version` + `git worktree add` + `gs init`) once per sprint. After that, the dispatch loop is identical between modes — the conditional logic lives inside `sprint-dispatch.sh`, not here.
 
 ### Shared post-dispatch
 

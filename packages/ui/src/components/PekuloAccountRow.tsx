@@ -1,11 +1,13 @@
 "use client";
 
 import { Text, View } from "tamagui";
-import type { Account, AccountType } from "@pekulo/types";
+import type { AccountCardItem, AccountType } from "@pekulo/types";
 
-// Component props — re-export the domain shape (architecture L366: domain
-// types live in @pekulo/types, not inlined per component).
-export type PekuloAccountRowProps = Account;
+// Component props — re-export the UI shape (architecture L366: domain
+// types live in @pekulo/types, not inlined per component). `Account` is the
+// canonical domain entity (z.infer); `AccountCardItem` is the legacy DS prop
+// shape used by V1 mockups before the live wiring lands.
+export type PekuloAccountRowProps = AccountCardItem;
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",

@@ -4,7 +4,7 @@
 // Comptes section — N rows + hairline footer with `Total liquide`.
 
 import { Text, View } from "tamagui";
-import type { Account } from "@pekulo/types";
+import type { AccountCardItem } from "@pekulo/types";
 import { Section } from "../primitives/Section";
 import { PekuloAccountRow } from "./PekuloAccountRow";
 
@@ -15,7 +15,7 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 });
 
 export interface PekuloAccountsSectionProps {
-  accounts: Account[];
+  accounts: AccountCardItem[];
   className?: string;
   title?: string;
   ariaLabel?: string;

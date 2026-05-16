@@ -56,9 +56,9 @@ else
     in_sprint && /^[a-zA-Z]/ { in_sprint=0 }
     in_sprint && /^  stories:/ { in_stories=1; next }
     in_stories && /^  [a-zA-Z]/ { in_stories=0 }
-    in_stories && /^    [a-zA-Z0-9_-]+:[[:space:]]*$/ {
+    in_stories && /^    "?[a-zA-Z0-9_-]+"?:[[:space:]]*$/ {
       if (key != "") print key "|" status "|" worktree
-      k=$0; sub(/:[[:space:]]*$/, "", k); sub(/^[[:space:]]+/, "", k)
+      k=$0; sub(/:[[:space:]]*$/, "", k); sub(/^[[:space:]]+/, "", k); gsub(/"/, "", k)
       key=k; status=""; worktree="null"
       next
     }

@@ -8,7 +8,7 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.3.3
+  version: 6.12.0
 ---
 
 Follow the instructions in `.aped/aped-analyze/workflow.md`.

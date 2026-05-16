@@ -43,9 +43,20 @@ if [[ ! -d "$WORKTREE_PATH" ]]; then
   exit 0
 fi
 
-BRANCH_NAME=""
+BRANCH_NAMES=()
+# Sequential mode (6.8.0+) writes per-story markers WORKTREE.<key>.yaml.
+# Parallel mode writes a single WORKTREE file. We read BOTH unconditionally:
+# a worktree migrated mid-flight may carry one legacy WORKTREE alongside the
+# new per-story markers; without reading both, the legacy branch leaks.
+shopt -s nullglob
+for marker in "$WORKTREE_PATH/.aped"/WORKTREE.*.yaml; do
+  b=$(grep '^branch:' "$marker" 2>/dev/null | sed 's/.*:[[:space:]]*//')
+  [[ -n "$b" ]] && BRANCH_NAMES+=("$b")
+done
+shopt -u nullglob
 if [[ -f "$WORKTREE_PATH/.aped/WORKTREE" ]]; then
-  BRANCH_NAME=$(grep '^branch:' "$WORKTREE_PATH/.aped/WORKTREE" | sed 's/.*:[[:space:]]*//')
+  b=$(grep '^branch:' "$WORKTREE_PATH/.aped/WORKTREE" | sed 's/.*:[[:space:]]*//')
+  [[ -n "$b" ]] && BRANCH_NAMES+=("$b")
 fi
 
 # Try a clean remove first.
@@ -73,8 +84,10 @@ else
   git worktree remove --force "$WORKTREE_PATH"
 fi
 
-if [[ "$DELETE_BRANCH" == "true" && -n "$BRANCH_NAME" ]]; then
-  git branch -D "$BRANCH_NAME" 2>&1 || echo "Branch $BRANCH_NAME already gone or not fully merged"
+if [[ "$DELETE_BRANCH" == "true" && ${#BRANCH_NAMES[@]} -gt 0 ]]; then
+  for b in "${BRANCH_NAMES[@]}"; do
+    git branch -D "$b" 2>&1 || echo "Branch $b already gone or not fully merged"
+  done
 fi
 
 git worktree prune

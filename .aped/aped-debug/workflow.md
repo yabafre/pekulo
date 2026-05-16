@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from workflow.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
+
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Debug — Disciplined Diagnosis Loop
@@ -23,7 +25,7 @@ This skill uses **micro-file architecture**:
 
 ### Iron Law
 
-**THE FEEDBACK LOOP IS THE SKILL.** Everything else is mechanical. If you have a fast, deterministic, agent-runnable pass/fail signal for the bug, you will find the cause — bisection, hypothesis-testing, and instrumentation all just consume that signal. Spend disproportionate effort on step 03.
+**THE FEEDBACK LOOP IS THE SKILL.** See [`ETHOS.md` § aped-debug](../ETHOS.md#aped-debug) for full rationale.
 
 ### 3-failed-fixes rule (cross-skill)
 
@@ -33,7 +35,15 @@ The same rule fires in `aped-dev` (HALT condition) and `aped-review` (Step 6 rou
 
 ## Activation
 
-Read `.aped/config.yaml` and resolve `{user_name}`, `{communication_language}`, `{document_output_language}`, `{ticket_system}`. Speak `{communication_language}`. HALT if config missing.
+Before any other action, read `.aped/config.yaml` and resolve:
+- `{user_name}` — for greeting and direct address
+- `{communication_language}` — for ALL conversation with the user
+- `{document_output_language}` — for artefacts written under `docs/`
+- `{ticket_system}` / `{git_provider}` — routing for ticket / PR I/O (skip if `none`)
+
+✅ YOU MUST speak `{communication_language}` in every message to the user.
+✅ YOU MUST write artefact content in `{document_output_language}`.
+✅ If `.aped/config.yaml` is missing or unreadable, HALT and tell the user to run `npx aped-method`.
 
 ## Execution
 

@@ -1,0 +1,63 @@
+{
+  "artefact_name": "prd",
+  "description": "APED prd.md — produced by aped-prd (step-03 + step-04 + step-06), consumed by aped-ux/aped-arch/aped-epics. Cohort-3 (6.10.0). WARN-only producer-side; ERROR escalation locked for 7.0.0.",
+  "version": 1,
+  "top_level": [
+    "Executive Summary",
+    "Success Criteria",
+    "Product Scope",
+    "Out of Scope",
+    "User Journeys",
+    "Functional Requirements",
+    "Non-Functional Requirements"
+  ],
+  "sections": [
+    {
+      "heading": "Executive Summary",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Success Criteria",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Product Scope",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Out of Scope",
+      "level": 2,
+      "required": true,
+      "_note": "step-03 marks this 'Required — prevents scope creep in epics/arch downstream'. Cohort-3 enforces it structurally.",
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "User Journeys",
+      "level": 2,
+      "required": true,
+      "_note": "Body is free-form prose/bullets — journeys vary widely by product. No lines_match here; over-locking on per-project shape variation (audit 08 §22).",
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Functional Requirements",
+      "level": 2,
+      "required": true,
+      "_note": "FR bullets accept legacy `FR1:`, canonical `FR-1:`, and bold-wrapped `**FR-1:**` forms (mirrors oracle-prd.sh regex).",
+      "forbid_invented_sub_headings": true,
+      "lines_match": "^[\\s]*-.*\\*{0,2}FR-?[0-9]+\\*{0,2}[\\s]*:"
+    },
+    {
+      "heading": "Non-Functional Requirements",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true,
+      "lines_match": "^[\\s]*-.*\\*{0,2}NFR-?[0-9]+\\*{0,2}[\\s]*:"
+    }
+  ]
+}

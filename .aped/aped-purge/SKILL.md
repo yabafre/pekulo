@@ -10,8 +10,9 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.3.3
+  version: 6.12.0
 ---
+<!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
@@ -21,7 +22,7 @@ Walk the APED output directory. For each entry: canonical / unknown / archived. 
 
 ## Activation
 
-Read `.aped/config.yaml` and resolve `{user_name}` / `{communication_language}` / `{document_output_language}`. Speak `{communication_language}`; write artefacts in `{document_output_language}`. HALT if config is missing.
+Read `.aped/config.yaml` and resolve `{user_name}` / `{communication_language}` / `{document_output_language}`. ✅ YOU MUST speak in `{communication_language}` and write `INDEX.md` in `{document_output_language}`. HALT if config is missing.
 
 ## The canon
 

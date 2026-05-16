@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from workflow.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
+
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 # APED Review — Adversarial Code Review
@@ -19,7 +21,7 @@ Dispatched in a SINGLE Agent message, all parallel. The Lead inlines `git-audit.
 
 ## Iron Law
 
-**NO PASS WITHOUT FRESH EVIDENCE IN THIS MESSAGE.** *"Should work"*, *"looks good"*, *"probably fine"*, *"tests should pass"* are not evidence — they are the words of a reviewer who didn't run the verification. Re-run, capture the output, paste it.
+**NO PASS WITHOUT FRESH EVIDENCE IN THIS MESSAGE.** See [`ETHOS.md` § aped-review](../ETHOS.md#aped-review) for full rationale.
 
 ## Critical rules
 
@@ -31,7 +33,15 @@ Dispatched in a SINGLE Agent message, all parallel. The Lead inlines `git-audit.
 
 ## Activation
 
-Read `.aped/config.yaml` and resolve `{user_name}` / `{communication_language}` / `{document_output_language}` / `{ticket_system}` / `{git_provider}`. Speak `{communication_language}`; write artefacts in `{document_output_language}`. HALT if config is missing.
+Before any other action, read `.aped/config.yaml` and resolve:
+- `{user_name}` — for greeting and direct address
+- `{communication_language}` — for ALL conversation with the user
+- `{document_output_language}` — for artefacts written under `docs/`
+- `{ticket_system}` / `{git_provider}` — routing for ticket / PR I/O (skip if `none`)
+
+✅ YOU MUST speak `{communication_language}` in every message to the user.
+✅ YOU MUST write artefact content in `{document_output_language}`.
+✅ If `.aped/config.yaml` is missing or unreadable, HALT and tell the user to run `npx aped-method`.
 
 ## Execution
 

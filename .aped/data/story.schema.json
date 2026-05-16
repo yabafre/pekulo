@@ -1,7 +1,7 @@
 {
   "artefact_name": "story",
   "description": "APED story spec consumed by aped-dev (TDD) and aped-review.",
-  "version": 1,
+  "version": 2,
   "top_level": [
     "User Story",
     "Acceptance Criteria",
@@ -48,13 +48,79 @@
       "heading": "Dev Agent Record",
       "level": 2,
       "required": false,
-      "forbid_invented_sub_headings": false
+      "_note": "6.9.0 cohort-2 — Dev Agent Record emits four required sub-sections via aped-dev/step-08. forbid:true at L2 means any non-declared L3 fails; forbid:false on each leaf so prose body content is tolerated.",
+      "sub_sections": [
+        {
+          "heading": "Summary",
+          "level": 3,
+          "required": true,
+          "forbid_invented_sub_headings": false
+        },
+        {
+          "heading": "Files changed",
+          "level": 3,
+          "required": true,
+          "forbid_invented_sub_headings": false
+        },
+        {
+          "heading": "Deviations",
+          "level": 3,
+          "required": true,
+          "forbid_invented_sub_headings": false
+        },
+        {
+          "heading": "Test output",
+          "level": 3,
+          "required": true,
+          "forbid_invented_sub_headings": false
+        }
+      ]
     },
     {
       "heading": "Review Record",
       "level": 2,
       "required": false,
-      "forbid_invented_sub_headings": false
+      "_note": "6.9.0 cohort-2 — Review Record emitted by aped-review/step-05. Findings + Verification required; Ticket sync optional (omitted when ticket_system:none + no PR). L4 Resolved/Dismissed/Unresolved are all optional — an empty Findings block is valid.",
+      "sub_sections": [
+        {
+          "heading": "Findings",
+          "level": 3,
+          "required": true,
+          "forbid_invented_sub_headings": true,
+          "sub_sections": [
+            {
+              "heading": "Resolved",
+              "level": 4,
+              "required": false,
+              "forbid_invented_sub_headings": false
+            },
+            {
+              "heading": "Dismissed",
+              "level": 4,
+              "required": false,
+              "forbid_invented_sub_headings": false
+            },
+            {
+              "heading": "Unresolved (story stays in `review`)",
+              "level": 4,
+              "required": false,
+              "forbid_invented_sub_headings": false
+            }
+          ]
+        },
+        {
+          "heading": "Verification",
+          "level": 3,
+          "required": true,
+          "forbid_invented_sub_headings": false
+        },
+        {
+          "heading": "Ticket sync",
+          "level": 3,
+          "required": false,
+          "forbid_invented_sub_headings": false
+        }
+      ]
     }
   ]
 }

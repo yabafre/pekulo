@@ -4,8 +4,9 @@ import { createPrismaService, type PrismaService } from "../database";
 import { createReadiness, type Readiness } from "./readiness";
 import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
-import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
+import { createAccountsModule } from "../modules/accounts/accounts.module";
 import { createCompassModule } from "../modules/compass/compass.module";
+import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
 import { createMilestonesModule } from "../modules/milestones/milestones.module";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
 
@@ -105,10 +106,17 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     wealthHistoryProvider,
   });
 
+  // Story 2-1 — accounts oRPC port. The module is independent of compass /
+  // milestones (no cross-aggregate reader needed) so wiring stays trivial.
+  // The FK guard against `holdings` lives inside the service via a
+  // $transaction-scoped repository (TOCTOU avoidance).
+  const accountsModule = createAccountsModule({ prismaService });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
     milestones: milestonesModule.router,
+    accounts: accountsModule.router,
   };
 
   return {

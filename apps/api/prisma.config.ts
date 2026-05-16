@@ -32,9 +32,28 @@ function loadDotenv(filename: string): void {
 loadDotenv(".env.local");
 loadDotenv(".env");
 
+// Migration / CLI datasource resolution (story 2-1 deviation):
+//   - DATABASE_URL points to the Supabase TRANSACTION pooler (port 6543) —
+//     fine for the app runtime's connection pool but HANGS indefinitely on
+//     long-running CLI commands like `prisma migrate deploy` (story 1-1's
+//     `migrate dev` hang precedent extended).
+//   - DIRECT_URL points to the session pooler (port 5432) or a direct
+//     connection — safe for migrations / introspection.
+//
+// Prisma 7's defineConfig datasource block only accepts `url` (no separate
+// `directUrl` field like the schema-block syntax), so we resolve here: prefer
+// DIRECT_URL when set, fall back to DATABASE_URL otherwise. The runtime
+// PrismaClient (apps/api/src/database/prisma.service.ts) still reads
+// DATABASE_URL directly — this swap only affects CLI commands that read
+// prisma.config.ts.
 type Env = {
   DATABASE_URL: string;
+  DIRECT_URL?: string;
 };
+
+const migrationDatasourceUrl = process.env.DIRECT_URL
+  ? env<Required<Env>>("DIRECT_URL")
+  : env<Env>("DATABASE_URL");
 
 export default defineConfig({
   schema: "prisma/schema",
@@ -42,6 +61,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env<Env>("DATABASE_URL"),
+    url: migrationDatasourceUrl,
   },
 });

@@ -1,7 +1,7 @@
 ---
 name: aped-context
 keep-coding-instructions: true
-description: 'Use when user says "document codebase", "project context", "existing project", "aped context", or invokes aped-context. Runs alongside aped-analyze — both can apply on hybrid projects (new feature in legacy system).'
+description: 'Brownfield entry-point — use when user says "document codebase", "project context", "existing project", "existing codebase", "legacy project", "onboarding to a codebase", "aped context", or invokes aped-context. The default first step for any brownfield project before aped-analyze; runs alongside aped-analyze on hybrid projects (new feature in a legacy system).'
 allowed-tools: "Read Grep Glob Bash"
 allowed-paths:
   write: ["docs/**", ".aped/**"]
@@ -9,14 +9,17 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.3.3
+  version: 6.12.0
 ---
+<!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
-# APED Context — Brownfield Project Analysis
+# APED Context — Brownfield Entry-Point
 
-Use on existing codebases to generate `project-context.md`. Other APED skills (`aped-analyze`, `aped-prd`, `aped-ux`, `aped-arch`, etc.) discover this file automatically at entry and bias their behaviour accordingly. You can run this skill before, after, or instead of `aped-analyze` — they are no longer mutually exclusive. Hybrid projects (a new feature in a legacy system) benefit from running both.
+**The default first step for any project that already has code.** Walks the existing codebase to generate `project-context.md` — language, framework, directory layout, entry points, conventions, integration boundaries, and a brownfield/greenfield/hybrid verdict. Downstream APED skills (`aped-analyze`, `aped-prd`, `aped-ux`, `aped-arch`, etc.) discover this file at entry and bias their behaviour accordingly: a brownfield verdict steers them away from greenfield assumptions like "pick a stack" or "design from scratch".
+
+Run this before `aped-analyze` on any existing codebase. On hybrid projects (a new feature in a legacy system) both apply — they are no longer mutually exclusive. Skip only when scaffolding a true greenfield (empty directory or freshly initialised repo): the skill emits a "produces no useful output" advice in that case.
 
 ## On Activation
 

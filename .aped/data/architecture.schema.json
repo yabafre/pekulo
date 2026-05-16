@@ -1,0 +1,100 @@
+{
+  "artefact_name": "architecture",
+  "description": "APED architecture.md — produced by aped-arch (steps 01-09), consumed by aped-epics/aped-story/aped-dev. Cohort-3b (6.11.0). Validates the 9 Phase L2 headings, the fixed L3 sub-sections under Phase 2/3/4, the open L3 under Phase 2b (Council Dispatches), the ^Component: pattern under Phase 4, and the ^ADR-\\d+: pattern at L2. ADR field-content (Status/Context/Decision/Consequences) and Component Owner/Tech-stack remain oracle-arch.sh's domain (semantic checks). WARN-only producer-side; ERROR escalation locked for 7.0.0.",
+  "version": 1,
+  "top_level": [
+    "Phase 1 — Context Analysis",
+    "Phase 2 — Technology Decisions",
+    "Phase 2b — Council Dispatches",
+    "Phase 3 — Implementation Patterns",
+    "Phase 4 — Structure & Mapping",
+    "Phase 5 — Validation",
+    "Phase 6 — Watch Items",
+    "Phase 7 — Residual Gaps",
+    "Phase 8 — Epic Zero"
+  ],
+  "top_level_patterns": [
+    "^ADR-\\d+:\\s+.+$"
+  ],
+  "sections": [
+    {
+      "heading": "Phase 1 — Context Analysis",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Phase 2 — Technology Decisions",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true,
+      "sub_sections": [
+        { "heading": "Data Layer", "level": 3, "required": true },
+        { "heading": "Authentication & Security", "level": 3, "required": true },
+        { "heading": "API Design", "level": 3, "required": true },
+        { "heading": "Frontend", "level": 3, "required": true },
+        { "heading": "Infrastructure", "level": 3, "required": true }
+      ]
+    },
+    {
+      "heading": "Phase 2b — Council Dispatches",
+      "level": 2,
+      "required": false,
+      "_note": "Council Dispatches are emitted only when Phase 2 needs adversarial input. Body is one L3 per dispatched decision; names are project-specific so we allow invented sub-headings. The skill emits the heading but may leave the body empty.",
+      "forbid_invented_sub_headings": false
+    },
+    {
+      "heading": "Phase 3 — Implementation Patterns",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true,
+      "sub_sections": [
+        { "heading": "Naming Conventions", "level": 3, "required": true },
+        { "heading": "Code Structure", "level": 3, "required": true },
+        { "heading": "Communication Patterns", "level": 3, "required": true },
+        { "heading": "Process Rules", "level": 3, "required": true }
+      ]
+    },
+    {
+      "heading": "Phase 4 — Structure & Mapping",
+      "level": 2,
+      "required": true,
+      "_note": "Phase 4 mixes 4 fixed L3 sub-sections with a variable number of `### Component: <name>` entries (oracle-arch.sh greps `^### Component:` for Owner + Tech stack within 20 lines). The pattern allows Component entries without listing them.",
+      "forbid_invented_sub_headings": true,
+      "sub_sections_heading_pattern": "^Component:\\s+.+$",
+      "sub_sections": [
+        { "heading": "Directory Tree", "level": 3, "required": true },
+        { "heading": "FR → File Mapping", "level": 3, "required": true },
+        { "heading": "Integration Boundaries", "level": 3, "required": true },
+        { "heading": "Shared Code Inventory", "level": 3, "required": true }
+      ]
+    },
+    {
+      "heading": "Phase 5 — Validation",
+      "level": 2,
+      "required": true,
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Phase 6 — Watch Items",
+      "level": 2,
+      "required": true,
+      "_note": "W-items: assumptions, risks, monitoring obligations. Counted by aped-arch/step-09-finalize.md into state.yaml watch_items.",
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Phase 7 — Residual Gaps",
+      "level": 2,
+      "required": true,
+      "_note": "G-items: open questions blocking nothing but needing follow-up. Counted by aped-arch/step-09-finalize.md into state.yaml residual_gaps.",
+      "forbid_invented_sub_headings": true
+    },
+    {
+      "heading": "Phase 8 — Epic Zero",
+      "level": 2,
+      "required": true,
+      "_note": "E0.x stories: foundation work surfaced by the arch process. Counted by aped-arch/step-09-finalize.md into state.yaml epic_zero_stories.",
+      "forbid_invented_sub_headings": true
+    }
+  ]
+}

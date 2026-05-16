@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED from workflow.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
+
 **Activation guard (6.2.0):** Before any other action, run `bash .aped/scripts/check-enabled.sh`. If it exits non-zero, print "APED disabled — run aped-method enable" and HALT.
 
 
@@ -28,7 +30,7 @@ Before any other action, read `.aped/config.yaml` and resolve:
 
 ### Iron Law
 
-**NO PERFORMATIVE AGREEMENT — TECHNICAL VERIFICATION FIRST.** "You're absolutely right!" / "Great point!" / "Let me implement that now" before checking the codebase is the failure mode this skill exists to prevent. The reviewer wants their finding addressed, not their ego stroked. Verify the claim, restate the technical requirement, then either acknowledge factually ("Fixed in `src/auth/jwt.ts:42`") or push back with evidence (the command you ran + its output).
+**NO PERFORMATIVE AGREEMENT — TECHNICAL VERIFICATION FIRST.** See [`ETHOS.md` § aped-receive-review](../ETHOS.md#aped-receive-review) for full rationale.
 
 > **Setup pointer.** Integrates with `ticket_system` in `.aped/config.yaml` to read PR / ticket review comments and post the response trail. With `ticket_system: none`, the skill consumes review feedback pasted into the conversation by the user instead. Hard-dep matrix: `docs/skills-classification.md`.
 
