@@ -48,7 +48,7 @@ export function PekuloMobileBottomNav({ activeKey, onSelect }: PekuloMobileBotto
       right={0}
       zIndex={50}
       backgroundColor="$background"
-      $md={{ display: "none" }}
+      $lg={{ display: "none" }}
     >
       <View
         maxWidth={448}

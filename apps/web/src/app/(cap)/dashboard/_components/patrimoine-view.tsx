@@ -30,7 +30,7 @@ export function PatrimoineView() {
       flexDirection="column"
       gap={40}
       width="100%"
-      $md={{ maxWidth: 768, marginHorizontal: "auto" }}
+      $lg={{ maxWidth: 768, marginHorizontal: "auto" }}
     >
       <View render="section" aria-label="Patrimoine total">
         <Text color="$colorTertiary" fontSize="$caption">
@@ -42,7 +42,7 @@ export function PatrimoineView() {
           fontWeight="600"
           letterSpacing={-0.5}
           marginTop="$2"
-          $md={{ fontSize: "$hero" }}
+          $lg={{ fontSize: "$hero" }}
         >
           {eur0.format(totalLiquide)}
         </Text>

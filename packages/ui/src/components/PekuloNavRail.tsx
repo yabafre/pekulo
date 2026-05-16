@@ -94,7 +94,7 @@ export function PekuloNavRail({ activeKey, onSelect }: PekuloNavRailProps) {
       flexDirection="column"
       alignItems="center"
       gap="$1"
-      $max-md={{ display: "none" }}
+      $max-lg={{ display: "none" }}
     >
       <NavButton
         active={activeKey === "cap"}

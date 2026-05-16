@@ -100,7 +100,7 @@ export function AccountsSection() {
           color="$color"
           fontSize="$h3"
           fontWeight="600"
-          $md={{ fontSize: "$h2" }}
+          $lg={{ fontSize: "$h2" }}
         >
           Comptes
         </Text>
