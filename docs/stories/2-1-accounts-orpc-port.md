@@ -2007,6 +2007,26 @@ All must exit 0. The integration test's `.todo` markers must be replaced by actu
 - Post-deploy RLS audit (`bun run scripts/rls-audit.ts` against DIRECT_URL): drift list does NOT include `accounts` or `holdings` — both retain `rowsecurity=true` AND `policy count = 4` post-migration (AC-10 satisfied). Pre-existing drift on `kpis` / `monthly_tracking` / `hypotheses` (RLS disabled on those tables) is unrelated to this story — to be triaged separately.
 - Pre-existing 22 test failures in `bun test` from `apps/api` (compass + milestones modules) are NOT introduced by this story. Confirmed by `git stash` baseline: same 22 fail / 5 errors / 143 pass / 165 total before and after my changes. Looks like a test-ordering bug (`Cannot access 'impl' before initialization` in compass.routes.ts + milestones.routes.ts when run AFTER certain other suites). All 4 new accounts test files pass cleanly in isolation AND together (22/22).
 - Lint script note: the story references `bun --filter=api run lint`, but `apps/api/package.json` has no `lint` script — `oxlint` runs from repo root. Confirmed scoped `oxlint apps/api/src/modules/accounts …` exits 0 with zero warnings/errors.
+- **2026-05-16 — Checksum refresh for migration 20260515150000_accounts_uuid_to_text** (aped-review pass added defensive guards M1+M2 to the migration body via commit `c5ba17c`, changing the file's SHA-256 while the DB had already converged). Prisma 7.8's CLI cannot refresh a checksum on a successfully-applied migration: `migrate resolve --applied` returns **P3008** ("already recorded as applied"), `migrate resolve --rolled-back` returns **P3012** ("cannot be rolled back because it is not in a failed state"). Resolved via direct UPDATE on `_prisma_migrations.checksum`:
+  ```bash
+  # Compute new checksum
+  shasum -a 256 apps/api/prisma/migrations/20260515150000_accounts_uuid_to_text/migration.sql
+  # → 62dd3f0782c09fedacc82a5f4498c6ce9016d93db6a3a3a7df3a6f2e60b4ede6
+
+  # Write refresh script + run via prisma db execute (NB: --config required, db execute does NOT auto-load prisma.config.ts the way migrate commands do)
+  cat > /tmp/refresh_checksum.sql <<'EOF'
+  UPDATE _prisma_migrations
+  SET checksum = '62dd3f0782c09fedacc82a5f4498c6ce9016d93db6a3a3a7df3a6f2e60b4ede6'
+  WHERE migration_name = '20260515150000_accounts_uuid_to_text';
+  EOF
+  cd apps/api && bunx dotenv -c -e ../../.env -e ../../.env.local -- \
+    bunx prisma db execute --config=./prisma.config.ts --file=/tmp/refresh_checksum.sql
+  # → "Script executed successfully."
+
+  # Verify
+  bun run prisma:migrate:status  # → "Database schema is up to date!"
+  ```
+  Note: `prisma db execute` requires `--config=./prisma.config.ts` explicitly — unlike `prisma migrate *` commands, it does NOT auto-discover `prisma.config.ts` in cwd. The DIRECT_URL preference for `apps/api/prisma.config.ts` (commit `0d85b12`) is what makes this work against the Supabase session pooler. Future stories editing already-applied migrations (rare) should follow this workflow.
 
 ### Completion Notes
 
