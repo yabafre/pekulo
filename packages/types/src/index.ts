@@ -8,7 +8,9 @@
 //   - SCREAMING_SNAKE_CASE `as const` arrays for closed enumerations
 //     (ACCOUNT_TYPES, HOLDING_KINDS, LLM_ROUTES, …) — string-literal
 //     unions are derived via `(typeof X)[number]`.
-//   - Branded primitives for prefixed IDs (`AccountId`, `HoldingId`, …).
+//   - Branded primitives for prefixed IDs via the shared `Id<TBrand>`
+//     helper (see `HoldingId` / `HoldingLotId` below). Per-aggregate brand
+//     aliases (`AccountId`, etc.) are added on demand by feature stories.
 //
 // V1 (a) scope: UI-visible row entities consumed by `@pekulo/ui` components.
 // As feature epics 1–9 land, repository layer + Prisma-derived types are
