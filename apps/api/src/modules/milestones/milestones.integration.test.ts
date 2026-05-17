@@ -30,7 +30,10 @@ const AUDIENCE = "authenticated";
 // compass.integration.test.ts works there because compass outputs don't
 // include userId; here the milestone schema validates it on every response.
 const USER_ID = "55555555-5555-4555-8555-555555555555";
-const PORT_BASE = 13960;
+// PORT_BASE picked to avoid overlap with sibling integration tests under
+// bun:test's interleaved scheduling on CI: hypothesis 13900-14099,
+// compass 14700-14899, accounts 14160-14359, holdings 14500-14699.
+const PORT_BASE = 14900;
 
 async function signValid(): Promise<string> {
   return new SignJWT({ email: "alex@pekulo.app" })
