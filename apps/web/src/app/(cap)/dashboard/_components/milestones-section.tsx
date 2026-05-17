@@ -33,12 +33,15 @@ export interface MilestonesSectionProps {
    *  during the first compass-query resolution still renders rows. */
   compassObjectif?: number;
   compassHorizonYears?: number;
+  /** Strip the card frame — used by cap-view mobile (ux-preview L334-343). */
+  flat?: boolean;
 }
 
 export function MilestonesSection({
   currentWealth,
   compassObjectif,
   compassHorizonYears,
+  flat,
 }: MilestonesSectionProps) {
   const toast = useToast();
   const dialog = useAddMilestoneDialog();
@@ -80,7 +83,12 @@ export function MilestonesSection({
   );
 
   return (
-    <Section ariaLabel={`Paliers (${items.length}/20)`} title="Paliers" action={headerAction}>
+    <Section
+      ariaLabel={`Paliers (${items.length}/20)`}
+      title="Paliers"
+      action={headerAction}
+      flat={flat}
+    >
       {items.length === 0 ? (
         <Text color="$colorTertiary" fontSize="$caption" paddingVertical="$3">
           Aucun palier — ajoute le premier pour rythmer le cap.
