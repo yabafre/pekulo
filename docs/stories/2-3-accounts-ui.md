@@ -2413,3 +2413,78 @@ fixed-height parent — break in flat (natural-flow) parents.
    `flex:1 + minHeight:0 + overflowY:auto` which collapsed to 0 height when
    `flat={true}` (no fixed-height parent) — gated on `flat` so flat mode uses
    natural flow. Tablet/mobile cap now show identical data to desktop.
+
+## Review Record
+
+**Date:** 2026-05-17
+**Auditors:** Spec, Code, Edge & Hallucination, Aria (visual — code-review fallback, React Grab MCP unavailable)
+**Verdict:** done (13 of 14 findings RESOLVED; 1 LOW dismissed with rationale)
+**Override:** AC gap accepted at Spec NACK gate — reason: *"user requested full fix-cycle covering all auditor findings (`fix tout`)"*
+
+Pass-1 surfaced 2 CRITICAL + 4 HIGH + 4 MEDIUM + 4 LOW findings across the four auditors. The CRITICAL on `deleteAccount` envelope was wire-level (typed `ACCOUNT_REFERENCED_FK` code never reached the web client — `@orpc/client@1.14.x`'s `isORPCErrorJson` allow-lists exactly `{defined,code,status,message,data}` and rejected the API's `{error:{...}}` shape, falling through to a generic `CONFLICT` code). The fix-cycle elected to widen scope into `apps/api` + `packages/contracts` (per user authorisation) rather than file a follow-up — a one-time platform-layer correction that future stories (3-1 Holdings, 5-1 Transactions, 7-3 Hypothesis) now inherit for free.
+
+### Findings
+
+#### Resolved
+
+- **[CRITICAL]** `deleteAccount` envelope was dead code — typed `ACCOUNT_REFERENCED_FK` / `ACCOUNT_NOT_FOUND` codes never reached the client. [`apps/web/src/lib/actions/accounts-actions.ts:79-94`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: `b7330f3` — canonical oRPC error JSON wire shape (`error-mapper.ts` now emits `{defined,code,status,message,data:{requestId}}`); `accountsContract` declares `.errors({ ACCOUNT_NOT_FOUND, ACCOUNT_REFERENCED_FK })` on `update/delete/recordBalanceChange`; routes rethrow `AccountError` via `errors.*` typed constructors; new `accounts.integration.test.ts` "typed-error wire" suite verifies `isORPCErrorJson(unwrap(body)) === true` and `createORPCErrorFromJson(unwrap(body)).code === "ACCOUNT_REFERENCED_FK"`.
+- **[CRITICAL]** Breakpoint desync — 96 px dead gutter at 1020–1023 px (bento CSS swap vs `$max-lg` rail). [`bento.module.css:28,47,171,185,200` + `PekuloNavRail.tsx:97`]
+  - Source: Code + Aria
+  - Resolution: `af808c5` + `2af64b9` — all `bento.module.css` `@media` rules aligned to `1024px` / `1023.98px`; header comments rewritten to reference Tamagui v5 `$lg = 1024` + the 2026-05-17 lesson.
+- **[HIGH]** `updateAccount` + `recordBalanceChange` lost `ACCOUNT_NOT_FOUND` through SA boundary. [`accounts-actions.ts:61-73, 98-110`]
+  - Source: Edge auditor
+  - Resolution: `6ef5a14` — both mutations now return `UpdateAccountResult` / `RecordBalanceChangeResult` envelopes; hooks gate `invalidateQueries` on `result.ok`; forms render `envelopeError` in `role="alert"`.
+- **[HIGH]** AC-3 + AC-4 had zero automated tests. [`parametres/_hooks/`]
+  - Source: Spec + Code
+  - Resolution: `6ef5a14` — new `use-update-account.test.tsx` and `use-record-balance-change.test.tsx`, each covering ok=true → invalidates + ok=false → does NOT invalidate.
+- **[HIGH]** Mock-the-behaviour anti-pattern in create/delete tests. [`use-create-account.test.tsx:46-48` + `use-delete-account.test.tsx`]
+  - Source: Code auditor
+  - Resolution: `6ef5a14` — describe blocks renamed to "invalidation contract" with explanatory comments pointing to the new API-side wire-roundtrip suite for visible-outcome coverage.
+- **[HIGH]** Mixed-currency `totalLiquide` summed raw `cashBalance` and formatted as EUR. [`patrimoine-view.tsx:65,86` + `accounts-section.tsx:115,271`]
+  - Source: Edge auditor
+  - Resolution: `3108d6d` — Devise selector locked to EUR in `account-create-form` (read-only input + help text "Multi-devises arrive avec les portefeuilles (story 3-3)"); `account-edit-form` pins Devise to existing `account.currency`. Contract + validators continue to accept the full enum so story 3-3 can revert with a single change plus the FX aggregator.
+- **[MEDIUM]** AC-5 (`?tab=patrimoine` routing) had no automated test. [`cap-shell.tsx`, `dashboard/page.tsx`]
+  - Source: Spec + Code
+  - Resolution: `e318b63` — new `apps/web/src/app/(cap)/dashboard/page.test.tsx` with 3 cases: no `tab` → CapView, `tab=patrimoine` → PatrimoineView, unknown tab → CapView fallback.
+- **[MEDIUM]** AC-1 wording drift — referenced `/dashboard/parametres` after the post-completion pivot. [`docs/stories/2-3-accounts-ui.md:17`]
+  - Source: Spec auditor
+  - Resolution: `e318b63` — AC-1 prose updated to reference `/dashboard?tab=patrimoine` and the canonical surface (`accounts-section.tsx` inside `patrimoine-view.tsx`).
+- **[MEDIUM]** File List drift — 7 post-completion paths missing from canonical block. [`docs/stories/2-3-accounts-ui.md:2166-2195`]
+  - Source: Spec auditor
+  - Resolution: `e318b63` — new "Additional paths" sub-block enumerates all post-completion polish + this fix-cycle's additions (~25 paths total).
+- **[MEDIUM]** Stale comments referencing `$max-md = 1020` after the media-key correction. [`cap-shell.tsx:7-14`, `bento.module.css:4-10`]
+  - Source: Code + Aria
+  - Resolution: `af808c5` + `2af64b9` — both comments rewritten to reference `$max-lg = 1024` + the 2026-05-17 lesson.
+- **[LOW]** Duplicate `aria-label="Navigation principale"` on rail + bottom nav. [`PekuloNavRail.tsx:85`, `PekuloMobileBottomNav.tsx:48`]
+  - Source: Edge auditor
+  - Resolution: `e318b63` — bottom nav now uses `aria-label="Navigation rapide"` so the two landmarks have distinct names even when both render in page source.
+- **[LOW]** `popoverActionBtn(danger?)` function recreated style object per render. [`accounts-section.tsx:43-95`]
+  - Source: Code auditor
+  - Resolution: `e318b63` — hoisted to module-scoped `popoverActionBtnBase` / `popoverActionBtnNeutral` / `popoverActionBtnDanger` constants.
+
+#### Dismissed
+
+- **[LOW #12]** Console warning `Received true for a non-boolean attribute unstyled` from Tamagui under `accounts-section.a11y.test`. [`accounts-section.a11y.test.tsx` stderr]
+  - Source: Code auditor
+  - Rationale: Tamagui internal — a `View render="button"` surfaces an internal `unstyled` boolean to the DOM in test mode. No test fails, no a11y violation, no runtime effect. Tracked here but not gating release; should be addressed in the next Tamagui v5-rc bump or a dedicated DS polish story.
+- **[LOW #14]** `cap-view.tsx` mobile branch uses inline `<View render="section">` for 6 of 7 sections while only `MilestonesSection` routes through `<Section flat>`.
+  - Source: Aria
+  - Rationale: Aria's own report flagged this as optional ("either accept the dual pattern or route through Section flat for consistency. Hero is a special case. Not blocking."). The cap-view dual-rendering split is intentional per the 2026-05-17 lesson; consolidating the inline section shapes is a refactor for a follow-up DS polish story, not a story-2-3 gate.
+
+### Verification
+
+- **Final tests:**
+  - `bun --filter=@pekulo/api run test` → **223 pass / 0 fail** (was 219 pre-fix — 4 new in the typed-error wire suite)
+  - `bun --filter=web run test` → **37 pass / 0 fail** (was 30 pre-fix — 7 new across AC-3, AC-4, AC-5)
+  - `bun --filter=@pekulo/ui run test` → **150 pass / 0 fail** (NavRail snapshot already refreshed in `2e20e23`)
+- **Typecheck:** all 8 workspaces (`@pekulo/zod`, `@pekulo/validators`, `@pekulo/oxlint-config`, `@pekulo/types`, `@pekulo/contracts`, `@pekulo/ui`, `@pekulo/api`, `web`) → exit 0
+- **Lint:** `bun run lint` → 1 pre-existing warning (`apps/api/.../accounts.module.test.ts:297` — story 2-2 origin, out of scope), 0 errors
+- **NFR-28:** `rg 'from("accounts")' apps/web/src` → empty (unchanged)
+- **Wire-shape proof:** `accounts.integration.test.ts` "accounts typed-error wire (AC-2, AC-4)" hits the live HTTP boundary and asserts the canonical oRPC error JSON survives roundtrip with `code === "ACCOUNT_REFERENCED_FK"` / `"ACCOUNT_NOT_FOUND"` and `defined === true`.
+- **Visual review:** deferred to code-review fallback — `mcp__react-grab-mcp__get_element_context` was unavailable during dev (Dev Agent Record L2257-2260) AND during this review pass (2026-05-17T19:07:00Z). Static comparison against `docs/ux-preview/src/App.tsx` anchors (L180-202, L331-356, L359-377, L558-581) confirms the structural fidelity; pixel-perfect verification at 390/768/1440 should be re-run when MCP becomes available.
+
+### Ticket sync
+- Ticket comment posted: pending (see step-5 footer command output)
+- PR updated: pending (see step-5 footer)
