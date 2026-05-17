@@ -116,7 +116,9 @@ export type CreateHoldingInput = z.infer<typeof createHoldingInputSchema>;
 export const recordLotInputSchema = z.object({
   holdingId: holdingIdSchema,
   type: z.enum(LOT_TYPES),
-  occurredOn: z.date(),
+  // Coerce — clients send ISO strings over the oRPC wire envelope; matches
+  // recordBalanceChangeInputSchema.valuedOn precedent (story 2-2).
+  occurredOn: z.coerce.date(),
   quantity: z.number().positive("quantity must be > 0"),
   priceUnit: z.number().min(0, "priceUnit must be >= 0"),
   fees: z.number().min(0, "fees must be >= 0").default(0),
