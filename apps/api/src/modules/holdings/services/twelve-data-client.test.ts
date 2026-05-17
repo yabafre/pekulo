@@ -61,6 +61,21 @@ describe("TwelveDataClient", () => {
     });
   });
 
+  test("falls back to `price` field when `close` is absent (pins close ?? price branch)", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({ price: "192.55", currency: "USD", datetime: "2026-05-17 16:00:00" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      )) as unknown as FetchFn;
+    const q = await createTwelveDataClient({ apiKey: "k" }).fetchQuote("AAPL");
+    expect(q).toEqual({
+      symbol: "AAPL",
+      price: 192.55,
+      currency: "USD",
+      marketTime: "2026-05-17",
+    });
+  });
+
   test("price <= 0 → no-price", async () => {
     globalThis.fetch = (async () =>
       new Response(JSON.stringify({ close: "0", currency: "USD" }), {

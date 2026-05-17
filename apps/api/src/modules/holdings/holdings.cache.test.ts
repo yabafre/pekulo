@@ -38,6 +38,16 @@ describe("PricesCache", () => {
     expect(cache.get(KEY)).toBeUndefined();
   });
 
+  test("at exactly ttlMs (delta === 60_000) entry is still usable (pin > vs >= contract)", () => {
+    let now = 1_000_000;
+    const cache = createPricesCache({ ttlMs: 60_000, now: () => now });
+    cache.set(KEY, quote());
+    now += 60_000; // exactly at boundary; cache uses strict > so this is a HIT
+    expect(cache.get(KEY)).toBeDefined();
+    now += 1; // 60_001 ms after set → now a MISS
+    expect(cache.get(KEY)).toBeUndefined();
+  });
+
   test("key shape is ticker|kind|currency — kind change isolates", () => {
     const cache = createPricesCache({ ttlMs: 60_000 });
     cache.set({ ticker: "AAPL", kind: "action", currency: "USD" }, quote({ provider: "yahoo" }));
