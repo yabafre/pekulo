@@ -6,9 +6,9 @@
 // concrete oRPC implementation type.
 
 import type { PrismaService } from "../../database";
-import { createHoldingRepository } from "./holdings.repository";
+import { createHoldingsRepository } from "./holdings.repository";
 import { createHoldingsRouter } from "./holdings.routes";
-import { createHoldingService, type HoldingService } from "./holdings.service";
+import { createHoldingsService, type HoldingService } from "./holdings.service";
 
 export interface HoldingsModule {
   service: HoldingService;
@@ -16,8 +16,8 @@ export interface HoldingsModule {
 }
 
 export function createHoldingsModule(deps: { prismaService: PrismaService }): HoldingsModule {
-  const repository = createHoldingRepository({ client: deps.prismaService.client });
-  const service = createHoldingService({ repository });
+  const repository = createHoldingsRepository({ client: deps.prismaService.client });
+  const service = createHoldingsService({ repository });
   const router = createHoldingsRouter({ service });
   return { service, router };
 }

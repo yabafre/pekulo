@@ -96,7 +96,12 @@ function makeFakePrismaService(): PrismaService {
       },
     },
   };
-  return { client } as unknown as PrismaService;
+  // $transaction shim — invokes the callback with the same in-memory client.
+  // Repository.recordLot uses $transaction to keep parent-probe + lot-insert atomic.
+  const withTx = Object.assign(client, {
+    $transaction: async <T>(fn: (tx: typeof client) => Promise<T>): Promise<T> => fn(client),
+  });
+  return { client: withTx } as unknown as PrismaService;
 }
 
 describe("holdings.module", () => {

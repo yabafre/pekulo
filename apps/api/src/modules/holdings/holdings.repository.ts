@@ -34,12 +34,17 @@ export type CloseHoldingOutcome =
   | { outcome: "already-closed" }
   | { outcome: "not-found" };
 
+export type RecordLotOutcome =
+  | { outcome: "ok"; lot: HoldingLot }
+  | { outcome: "not-found" }
+  | { outcome: "closed" };
+
 export interface HoldingRepository {
   create(userId: string, input: CreateHoldingInput): Promise<Holding>;
   findByIdForUser(userId: string, id: string): Promise<Holding | null>;
   listByUser(userId: string, opts: { includeClosed: boolean }): Promise<Holding[]>;
   close(userId: string, id: string): Promise<CloseHoldingOutcome>;
-  recordLot(userId: string, input: RecordLotInput): Promise<HoldingLot>;
+  recordLot(userId: string, input: RecordLotInput): Promise<RecordLotOutcome>;
   findLotsByHoldingForUser(userId: string, holdingId: string): Promise<HoldingLot[]>;
   findAccountForUser(userId: string, accountId: string): Promise<{ id: string } | null>;
 }
@@ -120,7 +125,9 @@ function rowToLot(row: LotRow): HoldingLot {
   };
 }
 
-export function createHoldingRepository(deps: { client: ExtendedPrismaClient }): HoldingRepository {
+export function createHoldingsRepository(deps: {
+  client: ExtendedPrismaClient;
+}): HoldingRepository {
   return {
     async create(userId, input) {
       // Bridge — the prefixedIds extension injects the id at runtime; the
@@ -174,19 +181,29 @@ export function createHoldingRepository(deps: { client: ExtendedPrismaClient }):
     },
 
     async recordLot(userId, input) {
-      const created = await deps.client.holdingLot.create({
-        data: {
-          userId,
-          holdingId: input.holdingId,
-          type: input.type,
-          occurredOn: input.occurredOn,
-          quantity: input.quantity,
-          priceUnit: input.priceUnit,
-          fees: input.fees ?? 0,
-          notes: input.notes ?? null,
-        } as unknown as Parameters<typeof deps.client.holdingLot.create>[0]["data"],
+      // Probe + insert inside a single transaction so a concurrent close() can't
+      // land a lot on a holding that was active at probe time but closed before insert.
+      return deps.client.$transaction(async (tx) => {
+        const parent = await tx.holding.findFirst({
+          where: { id: input.holdingId, userId },
+          select: { id: true, closedAt: true },
+        });
+        if (!parent) return { outcome: "not-found" } as const;
+        if (parent.closedAt !== null) return { outcome: "closed" } as const;
+        const created = await tx.holdingLot.create({
+          data: {
+            userId,
+            holdingId: input.holdingId,
+            type: input.type,
+            occurredOn: input.occurredOn,
+            quantity: input.quantity,
+            priceUnit: input.priceUnit,
+            fees: input.fees ?? 0,
+            notes: input.notes ?? null,
+          } as unknown as Parameters<typeof tx.holdingLot.create>[0]["data"],
+        });
+        return { outcome: "ok", lot: rowToLot(created as unknown as LotRow) } as const;
       });
-      return rowToLot(created as unknown as LotRow);
     },
 
     async findLotsByHoldingForUser(userId, holdingId) {

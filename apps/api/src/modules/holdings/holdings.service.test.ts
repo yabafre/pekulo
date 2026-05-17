@@ -5,7 +5,8 @@ import type { Holding, HoldingLot } from "@pekulo/validators";
 import { AccountError } from "../accounts/accounts.errors";
 import { HoldingError } from "./holdings.errors";
 import type { CloseHoldingOutcome, HoldingRepository } from "./holdings.repository";
-import { createHoldingService } from "./holdings.service";
+import type { RecordLotOutcome } from "./holdings.repository";
+import { createHoldingsService } from "./holdings.service";
 
 const userA = "00000000-0000-0000-0000-00000000000a";
 const accA = "acc_aaaaaaaaaaaaaaaaaaaaa";
@@ -72,7 +73,10 @@ function makeFakeRepo(): HoldingRepository & {
       holdings.set(id, { ...row, closedAt });
       return { outcome: "closed", closedAt } as const;
     },
-    async recordLot(userId, input) {
+    async recordLot(userId, input): Promise<RecordLotOutcome> {
+      const parent = holdings.get(input.holdingId);
+      if (!parent || parent.userId !== userId) return { outcome: "not-found" } as const;
+      if (parent.closedAt !== null) return { outcome: "closed" } as const;
       const id = "lot_" + Math.random().toString(36).slice(2).padStart(21, "x");
       const row: HoldingLot = {
         id,
@@ -90,7 +94,7 @@ function makeFakeRepo(): HoldingRepository & {
       const arr = lots.get(input.holdingId) ?? [];
       arr.push(row);
       lots.set(input.holdingId, arr);
-      return row;
+      return { outcome: "ok", lot: row } as const;
     },
     async findLotsByHoldingForUser(userId, holdingId) {
       const arr = lots.get(holdingId) ?? [];
@@ -105,7 +109,7 @@ function makeFakeRepo(): HoldingRepository & {
 describe("holdings.service", () => {
   test("create: rejects with ACCOUNT_NOT_FOUND when account does not belong to user", async () => {
     const repo = makeFakeRepo();
-    const svc = createHoldingService({ repository: repo });
+    const svc = createHoldingsService({ repository: repo });
     await expect(
       svc.create(userA, {
         accountId: "acc_unknown",
@@ -122,7 +126,7 @@ describe("holdings.service", () => {
     const repo = makeFakeRepo();
     const closedAt = new Date("2026-05-01");
     repo.state.holdings.set("hld_already", holding({ id: "hld_already", closedAt }));
-    const svc = createHoldingService({ repository: repo });
+    const svc = createHoldingsService({ repository: repo });
     const out = await svc.close(userA, { id: "hld_already" });
     expect(out).toEqual({ ok: true });
     expect(repo.state.holdings.get("hld_already")!.closedAt).toEqual(closedAt);
@@ -134,7 +138,7 @@ describe("holdings.service", () => {
       "hld_userB",
       holding({ id: "hld_userB", userId: "00000000-0000-0000-0000-00000000000b" }),
     );
-    const svc = createHoldingService({ repository: repo });
+    const svc = createHoldingsService({ repository: repo });
     await expect(svc.close(userA, { id: "hld_userB" })).rejects.toMatchObject({
       name: "HoldingError",
       code: "HOLDING_NOT_FOUND",
@@ -144,7 +148,7 @@ describe("holdings.service", () => {
   test("recordLot on closed holding → HoldingError(HOLDING_CLOSED)", async () => {
     const repo = makeFakeRepo();
     repo.state.holdings.set("hld_closed", holding({ id: "hld_closed", closedAt: new Date() }));
-    const svc = createHoldingService({ repository: repo });
+    const svc = createHoldingsService({ repository: repo });
     await expect(
       svc.recordLot(userA, {
         holdingId: "hld_closed",
@@ -160,7 +164,7 @@ describe("holdings.service", () => {
   test("getDerived: zero-lot back-compat returns row's quantity + avgCost", async () => {
     const repo = makeFakeRepo();
     repo.state.holdings.set("hld_manual", holding({ id: "hld_manual", quantity: 7, avgCost: 42 }));
-    const svc = createHoldingService({ repository: repo });
+    const svc = createHoldingsService({ repository: repo });
     const out = await svc.getDerived(userA, { id: "hld_manual" });
     expect(out).toMatchObject({
       holdingId: "hld_manual",
@@ -188,7 +192,7 @@ describe("holdings.service", () => {
         updatedAt: new Date(),
       },
     ]);
-    const svc = createHoldingService({ repository: repo });
+    const svc = createHoldingsService({ repository: repo });
     const out = await svc.getDerived(userA, { id: "hld_lots" });
     expect(out).toMatchObject({
       holdingId: "hld_lots",
@@ -202,7 +206,7 @@ describe("holdings.service", () => {
     const repo = makeFakeRepo();
     repo.state.holdings.set("hld_active", holding({ id: "hld_active" }));
     repo.state.holdings.set("hld_closed", holding({ id: "hld_closed", closedAt: new Date() }));
-    const svc = createHoldingService({ repository: repo });
+    const svc = createHoldingsService({ repository: repo });
     const activeOnly = await svc.list(userA, { includeClosed: false });
     expect(activeOnly.map((r) => r.id).sort()).toEqual(["hld_active"]);
     const all = await svc.list(userA, { includeClosed: true });

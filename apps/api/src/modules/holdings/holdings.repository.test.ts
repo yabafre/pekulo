@@ -6,7 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import type { ExtendedPrismaClient } from "../../database";
-import { createHoldingRepository } from "./holdings.repository";
+import { createHoldingsRepository } from "./holdings.repository";
 
 type HoldingRow = {
   id: string;
@@ -108,11 +108,18 @@ function makeFakeClient() {
       },
       findMany: async ({
         where,
+        orderBy,
       }: {
         where: { userId: string; closedAt?: null | { not: null } };
+        orderBy?: { createdAt?: "asc" | "desc" };
       }) => {
-        const rows = Array.from(holdings.values()).filter((r) => r.userId === where.userId);
-        if (where.closedAt === null) return rows.filter((r) => r.closedAt === null);
+        let rows = Array.from(holdings.values()).filter((r) => r.userId === where.userId);
+        if (where.closedAt === null) rows = rows.filter((r) => r.closedAt === null);
+        if (orderBy?.createdAt === "asc") {
+          rows = [...rows].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        } else if (orderBy?.createdAt === "desc") {
+          rows = [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        }
         return rows;
       },
       updateMany: async ({
@@ -148,20 +155,51 @@ function makeFakeClient() {
         lots.set(id, row);
         return row;
       },
-      findMany: async ({ where }: { where: { holdingId: string; userId: string } }) => {
-        return Array.from(lots.values()).filter(
+      findMany: async ({
+        where,
+        orderBy,
+      }: {
+        where: { holdingId: string; userId: string };
+        orderBy?: Array<{ occurredOn?: "asc" | "desc"; createdAt?: "asc" | "desc" }>;
+      }) => {
+        let rows = Array.from(lots.values()).filter(
           (r) => r.holdingId === where.holdingId && r.userId === where.userId,
         );
+        if (orderBy && orderBy.length > 0) {
+          rows = [...rows].sort((a, b) => {
+            for (const key of orderBy) {
+              if (key.occurredOn) {
+                const d = a.occurredOn.getTime() - b.occurredOn.getTime();
+                if (d !== 0) return key.occurredOn === "asc" ? d : -d;
+              }
+              if (key.createdAt) {
+                const d = a.createdAt.getTime() - b.createdAt.getTime();
+                if (d !== 0) return key.createdAt === "asc" ? d : -d;
+              }
+            }
+            return 0;
+          });
+        }
+        return rows;
       },
     },
   };
-  return { client: client as unknown as ExtendedPrismaClient, raw: { accounts, holdings, lots } };
+  // Minimal $transaction shim — no isolation, no rollback. The repository's
+  // recordLot calls $transaction(fn) and we just invoke fn with the same client.
+  // Fidelity is enough for the in-memory probe + insert semantics this test exercises.
+  const withTx = Object.assign(client, {
+    $transaction: async <T>(fn: (tx: typeof client) => Promise<T>): Promise<T> => fn(client),
+  });
+  return {
+    client: withTx as unknown as ExtendedPrismaClient,
+    raw: { accounts, holdings, lots },
+  };
 }
 
 describe("holdings.repository", () => {
   test("create: inserts a row and surfaces a prefixed hld_ id", async () => {
     const { client } = makeFakeClient();
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const created = await repo.create(userA, {
       accountId: accA,
       ticker: "BTC-USD",
@@ -180,8 +218,27 @@ describe("holdings.repository", () => {
     expect(created.closedAt).toBeNull();
   });
 
-  test("listByUser: returns only matching userId rows", async () => {
+  test("listByUser: returns only matching userId rows, ordered by createdAt asc", async () => {
     const { client, raw } = makeFakeClient();
+    // Inserted in non-chronological order to exercise the repository's orderBy.
+    raw.holdings.set("hld_userA_2", {
+      id: "hld_userA_2",
+      userId: userA,
+      accountId: accA,
+      kind: "etf",
+      ticker: "PE500",
+      isin: null,
+      label: "BNP Paribas S&P 500",
+      currency: "EUR",
+      quantity: dec(20),
+      avgCost: dec(15),
+      lastPrice: dec(0),
+      lastPriceAt: null,
+      notes: null,
+      createdAt: new Date("2026-03-15"),
+      updatedAt: new Date("2026-03-15"),
+      closedAt: null,
+    });
     raw.holdings.set("hld_userA_1", {
       id: "hld_userA_1",
       userId: userA,
@@ -218,10 +275,11 @@ describe("holdings.repository", () => {
       updatedAt: new Date("2026-01-02"),
       closedAt: null,
     });
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const result = await repo.listByUser(userA, { includeClosed: true });
-    expect(result.length).toBe(1);
-    expect(result[0]!.id).toBe("hld_userA_1");
+    expect(result.length).toBe(2);
+    // userB row excluded + userA rows ordered by createdAt asc, regardless of Map insertion order.
+    expect(result.map((r) => r.id)).toEqual(["hld_userA_1", "hld_userA_2"]);
   });
 
   test("listByUser: excludes rows with non-null closedAt when includeClosed=false", async () => {
@@ -262,7 +320,7 @@ describe("holdings.repository", () => {
       updatedAt: new Date("2026-01-02"),
       closedAt: new Date("2026-05-15"),
     });
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const result = await repo.listByUser(userA, { includeClosed: false });
     expect(result.length).toBe(1);
     expect(result[0]!.id).toBe("hld_active");
@@ -289,7 +347,7 @@ describe("holdings.repository", () => {
       updatedAt: new Date("2026-01-01"),
       closedAt: originalClose,
     });
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const out = await repo.close(userA, "hld_already");
     expect(out.outcome).toBe("already-closed");
     expect(raw.holdings.get("hld_already")!.closedAt).toEqual(originalClose);
@@ -315,7 +373,7 @@ describe("holdings.repository", () => {
       updatedAt: new Date(),
       closedAt: null,
     });
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const out = await repo.close(userA, "hld_userB");
     expect(out.outcome).toBe("not-found");
   });
@@ -340,8 +398,8 @@ describe("holdings.repository", () => {
       updatedAt: new Date(),
       closedAt: null,
     });
-    const repo = createHoldingRepository({ client });
-    const lot = await repo.recordLot(userA, {
+    const repo = createHoldingsRepository({ client });
+    const out = await repo.recordLot(userA, {
       holdingId: "hld_p",
       type: "buy",
       occurredOn: new Date("2026-04-01"),
@@ -350,10 +408,80 @@ describe("holdings.repository", () => {
       fees: 0.5,
       notes: null,
     });
-    expect(lot.id).toMatch(/^lot_/);
-    expect(lot.quantity).toBe(5);
-    expect(lot.priceUnit).toBe(90);
-    expect(lot.fees).toBe(0.5);
+    expect(out.outcome).toBe("ok");
+    if (out.outcome !== "ok") throw new Error("expected outcome ok");
+    expect(out.lot.id).toMatch(/^lot_/);
+    expect(out.lot.quantity).toBe(5);
+    expect(out.lot.priceUnit).toBe(90);
+    expect(out.lot.fees).toBe(0.5);
+  });
+
+  test("recordLot: cross-user / unknown holding → outcome 'not-found' (no lot inserted)", async () => {
+    const { client, raw } = makeFakeClient();
+    raw.holdings.set("hld_userB", {
+      id: "hld_userB",
+      userId: userB,
+      accountId: accB,
+      kind: "etf",
+      ticker: "CW8",
+      isin: null,
+      label: "B",
+      currency: "EUR",
+      quantity: dec(1),
+      avgCost: dec(1),
+      lastPrice: dec(0),
+      lastPriceAt: null,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      closedAt: null,
+    });
+    const repo = createHoldingsRepository({ client });
+    const out = await repo.recordLot(userA, {
+      holdingId: "hld_userB",
+      type: "buy",
+      occurredOn: new Date("2026-04-01"),
+      quantity: 1,
+      priceUnit: 100,
+      fees: 0,
+      notes: null,
+    });
+    expect(out.outcome).toBe("not-found");
+    expect(raw.lots.size).toBe(0);
+  });
+
+  test("recordLot: closed holding → outcome 'closed' (no lot inserted, atomic check)", async () => {
+    const { client, raw } = makeFakeClient();
+    raw.holdings.set("hld_closed", {
+      id: "hld_closed",
+      userId: userA,
+      accountId: accA,
+      kind: "etf",
+      ticker: "CW8",
+      isin: null,
+      label: "Closed",
+      currency: "EUR",
+      quantity: dec(10),
+      avgCost: dec(80),
+      lastPrice: dec(0),
+      lastPriceAt: null,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      closedAt: new Date("2026-04-01"),
+    });
+    const repo = createHoldingsRepository({ client });
+    const out = await repo.recordLot(userA, {
+      holdingId: "hld_closed",
+      type: "buy",
+      occurredOn: new Date("2026-05-01"),
+      quantity: 1,
+      priceUnit: 100,
+      fees: 0,
+      notes: null,
+    });
+    expect(out.outcome).toBe("closed");
+    expect(raw.lots.size).toBe(0);
   });
 
   test("findLotsByHoldingForUser: cross-user returns empty", async () => {
@@ -389,14 +517,14 @@ describe("holdings.repository", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const result = await repo.findLotsByHoldingForUser(userA, "hld_b");
     expect(result.length).toBe(0);
   });
 
   test("findAccountForUser: cross-user returns null", async () => {
     const { client } = makeFakeClient();
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const result = await repo.findAccountForUser(userA, accB);
     expect(result).toBeNull();
   });
@@ -423,7 +551,7 @@ describe("holdings.repository", () => {
       updatedAt: new Date(),
       closedAt: null,
     });
-    const repo = createHoldingRepository({ client });
+    const repo = createHoldingsRepository({ client });
     const out = await repo.findByIdForUser(userA, "hld_big");
     expect(out).not.toBeNull();
     expect(out!.quantity).toBe(big);

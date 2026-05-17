@@ -6,9 +6,10 @@
 //   - close: returns { ok: true } whether the repository reports 'closed' or
 //     'already-closed' (idempotent close — no error on second call). On
 //     'not-found', throw HoldingError("HOLDING_NOT_FOUND").
-//   - recordLot: probe findByIdForUser → throw HoldingError("HOLDING_NOT_FOUND")
-//     on missing/cross-user, then HoldingError("HOLDING_CLOSED") if closedAt
-//     is non-null, then delegate to repository.
+//   - recordLot: delegate to repository.recordLot (probe + insert in a single
+//     transaction); translate { outcome: "not-found" } → HoldingError(HOLDING_NOT_FOUND)
+//     and { outcome: "closed" } → HoldingError(HOLDING_CLOSED). The atomic
+//     check happens inside the tx so a concurrent close() can't race the insert.
 //   - getDerived: probe findByIdForUser → throw HoldingError("HOLDING_NOT_FOUND")
 //     on missing/cross-user, fetch lots via findLotsByHoldingForUser, run
 //     deriveFromLots; if the result is { 0, 0 } AND lots.length === 0, fall
@@ -44,7 +45,7 @@ export interface HoldingServiceDeps {
   repository: HoldingRepository;
 }
 
-export function createHoldingService(deps: HoldingServiceDeps): HoldingService {
+export function createHoldingsService(deps: HoldingServiceDeps): HoldingService {
   return {
     async create(userId, input) {
       const account = await deps.repository.findAccountForUser(userId, input.accountId);
@@ -53,10 +54,10 @@ export function createHoldingService(deps: HoldingServiceDeps): HoldingService {
     },
 
     async recordLot(userId, input) {
-      const parent = await deps.repository.findByIdForUser(userId, input.holdingId);
-      if (!parent) throw holdingNotFound();
-      if (parent.closedAt !== null) throw holdingClosed();
-      return deps.repository.recordLot(userId, input);
+      const out = await deps.repository.recordLot(userId, input);
+      if (out.outcome === "not-found") throw holdingNotFound();
+      if (out.outcome === "closed") throw holdingClosed();
+      return out.lot;
     },
 
     async close(userId, input) {
