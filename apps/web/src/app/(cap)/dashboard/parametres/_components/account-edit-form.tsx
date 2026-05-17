@@ -35,9 +35,14 @@ export interface AccountEditFormProps {
 export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
   const [label, setLabel] = useState(account.label);
   const [type, setType] = useState<AccountType>(account.type);
-  const [currency, setCurrency] = useState<(typeof ACCOUNT_CURRENCIES)[number]>(account.currency);
+  // Devise stays locked to the account's existing currency until FX ships
+  // in story 3-3 (Story 2-3 review HIGH #6). The legacy multi-currency
+  // selector let users switch USD→EUR while the Patrimoine total still
+  // summed raw cashBalance under a "€" glyph.
+  const currency = account.currency;
   const [cashBalance, setCashBalance] = useState(String(account.cashBalance));
   const [notes, setNotes] = useState(account.notes ?? "");
+  void ACCOUNT_CURRENCIES;
   const [clientError, setClientError] = useState<string | null>(null);
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
   const { mutate, isPending, error, isSuccess, reset, data } = useUpdateAccount();
@@ -138,20 +143,17 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
           >
             Devise
           </Text>
-          <select
+          <input
             id="acc-edit-currency"
+            type="text"
             value={currency}
-            onChange={(e) =>
-              setCurrency(e.currentTarget.value as (typeof ACCOUNT_CURRENCIES)[number])
-            }
-            style={selectStyle}
-          >
-            {ACCOUNT_CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            readOnly
+            aria-readonly="true"
+            style={{ ...inputStyle, opacity: 0.6, cursor: "not-allowed" }}
+          />
+          <Text color="$colorTertiary" fontSize="$caption">
+            Multi-devises arrive avec les portefeuilles (story 3-3).
+          </Text>
         </Field>
         <Field>
           <Text

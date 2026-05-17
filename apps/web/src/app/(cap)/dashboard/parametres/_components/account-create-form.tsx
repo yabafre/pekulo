@@ -9,6 +9,13 @@ import {
 } from "@pekulo/validators";
 import { ACCOUNT_TYPES, type AccountType } from "@pekulo/types";
 import { useCreateAccount } from "../_hooks/use-create-account";
+// Devise lives behind the FX work in story 3-3; until that ships, every new
+// account is created in EUR. The Patrimoine total sums raw `cashBalance`
+// values and formats them as EUR — exposing the multi-currency selector
+// would let the user enter a USD balance that then displays under a "€"
+// glyph. Lock to EUR for the V1 perso window. (Story 2-3 review HIGH #6.)
+const FORCED_CURRENCY: (typeof ACCOUNT_CURRENCIES)[number] = "EUR";
+void ACCOUNT_CURRENCIES;
 import {
   FormField as Field,
   formInputStyle as inputStyle,
@@ -35,7 +42,6 @@ export interface AccountCreateFormProps {
 export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
   const [label, setLabel] = useState("");
   const [type, setType] = useState<AccountType>("livret");
-  const [currency, setCurrency] = useState<(typeof ACCOUNT_CURRENCIES)[number]>("EUR");
   const [cashBalance, setCashBalance] = useState("0");
   const [notes, setNotes] = useState("");
   const [clientError, setClientError] = useState<string | null>(null);
@@ -67,7 +73,7 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
       {
         label: trimmed,
         type,
-        currency,
+        currency: FORCED_CURRENCY,
         cashBalance: balance,
         notes: trimmedNotes.length > 0 ? trimmedNotes : null,
       },
@@ -75,7 +81,6 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
         onSuccess: () => {
           setLabel("");
           setType("livret");
-          setCurrency("EUR");
           setCashBalance("0");
           setNotes("");
           reset();
@@ -123,20 +128,17 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
           <Text render="label" htmlFor="acc-currency" color="$colorSecondary" fontSize="$caption">
             Devise
           </Text>
-          <select
+          <input
             id="acc-currency"
-            value={currency}
-            onChange={(e) =>
-              setCurrency(e.currentTarget.value as (typeof ACCOUNT_CURRENCIES)[number])
-            }
-            style={selectStyle}
-          >
-            {ACCOUNT_CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            type="text"
+            value={FORCED_CURRENCY}
+            readOnly
+            aria-readonly="true"
+            style={{ ...inputStyle, opacity: 0.6, cursor: "not-allowed" }}
+          />
+          <Text color="$colorTertiary" fontSize="$caption">
+            Multi-devises arrive avec les portefeuilles (story 3-3).
+          </Text>
         </Field>
         <Field>
           <Text render="label" htmlFor="acc-balance" color="$colorSecondary" fontSize="$caption">
