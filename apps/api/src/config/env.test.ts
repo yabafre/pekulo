@@ -30,4 +30,16 @@ describe("loadEnv", () => {
   test("rejects malformed PRICES_SERVICE_URL", () => {
     expect(() => loadEnv({ ...BASE, PRICES_SERVICE_URL: "not-a-url" })).toThrow(ConfigError);
   });
+
+  test("treats empty-string env vars as absent (KEY= in .env)", () => {
+    const env = loadEnv({
+      ...BASE,
+      PRICES_SERVICE_URL: "",
+      PRICES_SERVICE_TOKEN: "",
+      TWELVE_DATA_API_KEY: "",
+    });
+    expect(env.PRICES_SERVICE_URL).toBeUndefined();
+    expect(env.PRICES_SERVICE_TOKEN).toBeUndefined();
+    expect(env.TWELVE_DATA_API_KEY).toBeUndefined();
+  });
 });

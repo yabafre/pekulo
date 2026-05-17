@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+// Treat `KEY=` in .env as absent — brownfield reads process.env directly and
+// `""` is falsy. Without this, optional URL / non-empty schemas reject the
+// shell-truthy-but-content-empty pattern with a confusing validation error.
+const optionalString = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().int().positive().max(65535).default(3001),
@@ -17,13 +23,13 @@ const envSchema = z.object({
   // Price-chain providers (story 3-2). All optional — when unset, the
   // corresponding tier throws a typed `not-configured` / `missing-key`
   // error and the orchestrator falls back to the next tier.
-  PRICES_SERVICE_URL: z.string().url().optional(),
-  PRICES_SERVICE_TOKEN: z.string().min(1).optional(),
-  TWELVE_DATA_API_KEY: z.string().min(1).optional(),
+  PRICES_SERVICE_URL: optionalString(z.string().url()),
+  PRICES_SERVICE_TOKEN: optionalString(z.string().min(1)),
+  TWELVE_DATA_API_KEY: optionalString(z.string().min(1)),
   // OTel SDK config (story 0-7 — ADR-0005). All three are optional with
   // safe defaults so brownfield .env files keep working.
   OTEL_SERVICE_NAME: z.string().min(1).default("pekulo-api"),
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_ENDPOINT: optionalString(z.string().url()),
   OTEL_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("error"),
 });
 
