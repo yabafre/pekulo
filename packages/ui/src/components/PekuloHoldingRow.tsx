@@ -1,7 +1,7 @@
 "use client";
 
 import { Text, View } from "tamagui";
-import type { Holding, HoldingKind } from "@pekulo/types";
+import type { HoldingCardItem, HoldingKind } from "@pekulo/types";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -21,7 +21,7 @@ const KIND_LABEL: Record<HoldingKind, string> = {
 };
 
 export interface PekuloHoldingRowProps {
-  holding: Holding;
+  holding: HoldingCardItem;
 }
 
 export function PekuloHoldingRow({ holding }: PekuloHoldingRowProps) {

@@ -67,6 +67,20 @@ export const accountsTags = createFeatureTags("accounts", {
   list: () => ["list"] as const,
 });
 
+// Story 3-1 forward-pointer — standalone holdings feature key set + tag
+// registry. Stories 3-2 / 3-3 / 3-4 declare their invalidation edges against
+// `holdingsTags.list()` so the cache graph stays decoupled from
+// `portfolioTags` (the portfolio aggregate carries cross-feature edges).
+export const HOLDINGS_KEY = "holdings" as const;
+export const holdingsKeys = createFeatureKeys(HOLDINGS_KEY, {
+  list: () => ["list"] as const,
+  byId: (id: string) => ["byId", id] as const,
+  derived: (id: string) => ["derived", id] as const,
+});
+export const holdingsTags = createFeatureTags(HOLDINGS_KEY, {
+  list: () => ["list"] as const,
+});
+
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
@@ -112,4 +126,10 @@ setTagRegistry({
   [lotsTags.all()]: [],
   [accountsTags.all()]: [accountsKeys.list()],
   [accountsTags.list()]: [accountsKeys.list()],
+  // Holdings — `list` invalidates the holdings list + the portfolio
+  // aggregate's `holdings` slot (downstream stories 3-2/3-3/3-4 share the
+  // snapshot read path). The cross-feature edge mirrors accountsTags →
+  // portfolioKeys.accounts.
+  [holdingsTags.all()]: [holdingsKeys.list(), portfolioKeys.holdings(), portfolioKeys.snapshot()],
+  [holdingsTags.list()]: [holdingsKeys.list(), portfolioKeys.holdings(), portfolioKeys.snapshot()],
 });
