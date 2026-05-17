@@ -27,11 +27,14 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
   const [valuedOn, setValuedOn] = useState(isoToday());
   const [cashBalance, setCashBalance] = useState(String(account.cashBalance));
   const [clientError, setClientError] = useState<string | null>(null);
-  const { mutate, isPending, error, isSuccess, reset } = useRecordBalanceChange();
+  const [envelopeError, setEnvelopeError] = useState<string | null>(null);
+  const { mutate, isPending, error, isSuccess, reset, data } = useRecordBalanceChange();
+  const envelopeRejected = data?.ok === false ? data : null;
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setClientError(null);
+    setEnvelopeError(null);
     if (!valuedOn || valuedOn.length === 0) {
       setClientError("Date requise");
       return;
@@ -50,7 +53,11 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
     mutate(
       { id: account.id, valuedOn: valued, cashBalance: balance },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
+          if (!result.ok) {
+            setEnvelopeError("Compte introuvable — il a peut-être été supprimé.");
+            return;
+          }
           reset();
           onSuccess?.();
         },
@@ -94,12 +101,17 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
             {clientError}
           </Text>
         )}
-        {error && !clientError && (
+        {envelopeError && !clientError && (
+          <Text role="alert" color="$danger" fontSize="$caption">
+            {envelopeError}
+          </Text>
+        )}
+        {error && !clientError && !envelopeError && (
           <Text role="alert" color="$danger" fontSize="$caption">
             {error.message}
           </Text>
         )}
-        {isSuccess && !clientError && !error && (
+        {isSuccess && !envelopeRejected && !clientError && !error && (
           <Text role="status" color="$success" fontSize="$caption">
             Solde enregistré.
           </Text>

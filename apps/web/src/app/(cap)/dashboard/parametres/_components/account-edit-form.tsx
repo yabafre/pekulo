@@ -39,7 +39,9 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
   const [cashBalance, setCashBalance] = useState(String(account.cashBalance));
   const [notes, setNotes] = useState(account.notes ?? "");
   const [clientError, setClientError] = useState<string | null>(null);
-  const { mutate, isPending, error, isSuccess, reset } = useUpdateAccount();
+  const [envelopeError, setEnvelopeError] = useState<string | null>(null);
+  const { mutate, isPending, error, isSuccess, reset, data } = useUpdateAccount();
+  const envelopeRejected = data?.ok === false ? data : null;
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +78,17 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
       return;
     }
 
+    setEnvelopeError(null);
     mutate(patch, {
-      onSuccess: () => {
+      onSuccess: (result) => {
+        if (!result.ok) {
+          setEnvelopeError(
+            result.code === "ACCOUNT_NOT_FOUND"
+              ? "Compte introuvable — il a peut-être été supprimé."
+              : result.message,
+          );
+          return;
+        }
         reset();
         onSuccess?.();
       },
@@ -180,12 +191,17 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
             {clientError}
           </Text>
         )}
-        {error && !clientError && (
+        {envelopeError && !clientError && (
+          <Text role="alert" color="$danger" fontSize="$caption">
+            {envelopeError}
+          </Text>
+        )}
+        {error && !clientError && !envelopeError && (
           <Text role="alert" color="$danger" fontSize="$caption">
             {error.message}
           </Text>
         )}
-        {isSuccess && !clientError && !error && (
+        {isSuccess && !envelopeRejected && !clientError && !error && (
           <Text role="status" color="$success" fontSize="$caption">
             Compte mis à jour.
           </Text>

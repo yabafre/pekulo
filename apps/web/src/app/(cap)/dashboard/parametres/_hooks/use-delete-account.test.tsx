@@ -32,7 +32,12 @@ function makeAcc(id: string) {
 //   message: <api> } (NOT throws — see T2) AND the dialog renders the
 //   localised message ... The account row stays in the list (no optimistic
 //   remove on ok: false).
-describe("useDeleteAccount (AC-2)", () => {
+//
+// These tests assert the cache invalidation + optimistic restore behaviour.
+// The wire-roundtrip side of AC-2 (typed FK code surviving the SA boundary)
+// is covered by apps/api/src/modules/accounts/accounts.integration.test.ts
+// "accounts typed-error wire (AC-2, AC-4)" — Story 2-3 review remediation.
+describe("useDeleteAccount — invalidation + optimistic restore (AC-2 wiring)", () => {
   test("ok=true → invalidates accountsKeys.list()", async () => {
     deleteMock.mockReset().mockResolvedValueOnce({ ok: true });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

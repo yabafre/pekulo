@@ -23,14 +23,19 @@ vi.mock("@/lib/actions/accounts-actions", () => ({
 import { useCreateAccount } from "./use-create-account";
 
 // AC-1 (verbatim from docs/stories/2-3-accounts-ui.md:17):
-//   Given I open /dashboard/parametres and the accounts section renders,
+//   Given I open /dashboard?tab=patrimoine and the accounts section renders,
 //   When I submit account-create-form with { label, type, currency, cashBalance },
-//   Then the new row appears in accounts-section.tsx AND navigating to
-//   /dashboard?tab=patrimoine shows it inside PekuloAccountsSection (both
-//   surfaces consume accountsKeys.list(); the mutation invalidates that
+//   Then the new row appears in accounts-section.tsx AND on /dashboard?tab=patrimoine
+//   (both surfaces consume accountsKeys.list(); the mutation invalidates that
 //   key, so both refetch on next subscription tick).
-describe("useCreateAccount (AC-1)", () => {
-  test("on success → invalidates accountsKeys.list()", async () => {
+//
+// This test asserts the invalidation contract — the call signature wire-up
+// between the hook and React Query. The visible-row outcome is covered by
+// the live integration test in accounts.integration.test.ts (Story 2-3
+// review: spec auditor flagged the mock-the-behaviour anti-pattern; renamed
+// to truth-in-advertising).
+describe("useCreateAccount — invalidation contract (AC-1 wiring)", () => {
+  test("ok → invalidates accountsKeys.list()", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const invalidateSpy = vi.spyOn(client, "invalidateQueries");
     const wrapper = ({ children }: { children: ReactNode }) => (
