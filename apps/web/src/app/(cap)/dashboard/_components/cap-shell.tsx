@@ -4,14 +4,16 @@
 //
 // Client wrapper that holds the Cap-view chrome (sidebar nav + topbar)
 // around the bento page content. Mirrors ux-preview App.tsx:114-203
-// verbatim. The responsive switch lives in `bento.module.css` behind a
-// single `@media (min-width: 1024px)` rule because Tamagui's media keys
-// (md=1020, lg=1280) are NOT aligned with Tailwind's `lg: 1024` and would
-// otherwise create a 256 px window where the sidebar overlaps content.
+// verbatim.
 //
-// `PekuloNavRail` hides itself below Pekulo Tamagui `md` (= 1020 px) via
-// `$max-md`. That's a 4 px gap vs ux-preview's `lg: 1024` switch — visually
-// imperceptible, and avoids forking the DS component for this story.
+// Responsive switch is shared between `bento.module.css`
+// (`@media (min-width: 1024px)`) and the DS components:
+// `PekuloNavRail` hides via `$max-lg = { display: "none" }` (i.e. < 1024)
+// and `PekuloMobileBottomNav` hides via `$lg = { display: "none" }` (≥
+// 1024). All three pivot at 1024 px = Tamagui v5 `lg`, so the rail / bottom-
+// nav / shell-padding flip atomically. (Pre-2026-05-17 the rail used
+// `$max-md` claiming Tamagui `md = 1020`; see lesson 2026-05-17 "Tamagui
+// v5 media keys" — the real `md` is 768 and the right cutover is 1024.)
 
 import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
