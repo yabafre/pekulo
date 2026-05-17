@@ -2418,10 +2418,12 @@ fixed-height parent — break in flat (natural-flow) parents.
 
 **Date:** 2026-05-17
 **Auditors:** Spec, Code, Edge & Hallucination, Aria (visual — code-review fallback, React Grab MCP unavailable)
-**Verdict:** done (13 of 14 findings RESOLVED; 1 LOW dismissed with rationale)
+**Verdict:** done (14 of 14 findings RESOLVED; 1 LOW #14 dismissed with rationale — Aria-flagged optional refactor explicitly out of story 2-3 scope)
 **Override:** AC gap accepted at Spec NACK gate — reason: *"user requested full fix-cycle covering all auditor findings (`fix tout`)"*
 
 Pass-1 surfaced 2 CRITICAL + 4 HIGH + 4 MEDIUM + 4 LOW findings across the four auditors. The CRITICAL on `deleteAccount` envelope was wire-level (typed `ACCOUNT_REFERENCED_FK` code never reached the web client — `@orpc/client@1.14.x`'s `isORPCErrorJson` allow-lists exactly `{defined,code,status,message,data}` and rejected the API's `{error:{...}}` shape, falling through to a generic `CONFLICT` code). The fix-cycle elected to widen scope into `apps/api` + `packages/contracts` (per user authorisation) rather than file a follow-up — a one-time platform-layer correction that future stories (3-1 Holdings, 5-1 Transactions, 7-3 Hypothesis) now inherit for free.
+
+LOW #12 (`unstyled` DOM-attribute warning on `PekuloPopover.Trigger`) was initially Dismissed as a tracked Tamagui-internal nuisance. The user surfaced it as a live Console Error post-review; it was promptly resolved in `5a2a276` via the canonical `asChild` slot pattern, closing the residual.
 
 ### Findings
 
@@ -2463,12 +2465,12 @@ Pass-1 surfaced 2 CRITICAL + 4 HIGH + 4 MEDIUM + 4 LOW findings across the four 
 - **[LOW]** `popoverActionBtn(danger?)` function recreated style object per render. [`accounts-section.tsx:43-95`]
   - Source: Code auditor
   - Resolution: `e318b63` — hoisted to module-scoped `popoverActionBtnBase` / `popoverActionBtnNeutral` / `popoverActionBtnDanger` constants.
+- **[LOW #12]** Console warning `Received true for a non-boolean attribute unstyled` from Tamagui under `accounts-section.a11y.test` and at runtime on every kebab render. [`packages/ui/src/primitives/PekuloPopover.tsx:18`]
+  - Source: Code auditor (initially Dismissed; user surfaced it live post-review)
+  - Resolution: `5a2a276` — replaced Tamagui's `render="button" unstyled` render-prop with the canonical `asChild` slot pattern. `PekuloPopover.Trigger` now renders a real `<button type="button">` as asChild of `TamaPopover.Trigger`; Tamagui's slot machinery forwards Popover bookkeeping (aria-expanded / aria-haspopup / aria-controls / data-state / onClick) via `cloneElement` without injecting a styled View. The boolean `unstyled` prop no longer exists in the rendered tree. Snapshot diff: single `type="button"` attribute added; everything else (classes, aria, data-state) byte-identical.
 
 #### Dismissed
 
-- **[LOW #12]** Console warning `Received true for a non-boolean attribute unstyled` from Tamagui under `accounts-section.a11y.test`. [`accounts-section.a11y.test.tsx` stderr]
-  - Source: Code auditor
-  - Rationale: Tamagui internal — a `View render="button"` surfaces an internal `unstyled` boolean to the DOM in test mode. No test fails, no a11y violation, no runtime effect. Tracked here but not gating release; should be addressed in the next Tamagui v5-rc bump or a dedicated DS polish story.
 - **[LOW #14]** `cap-view.tsx` mobile branch uses inline `<View render="section">` for 6 of 7 sections while only `MilestonesSection` routes through `<Section flat>`.
   - Source: Aria
   - Rationale: Aria's own report flagged this as optional ("either accept the dual pattern or route through Section flat for consistency. Hero is a special case. Not blocking."). The cap-view dual-rendering split is intentional per the 2026-05-17 lesson; consolidating the inline section shapes is a refactor for a follow-up DS polish story, not a story-2-3 gate.
