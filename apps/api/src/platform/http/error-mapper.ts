@@ -61,6 +61,10 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // code so telemetry can separate it from generic NOT_FOUND and from
   // compass/milestone-specific 404s.
   ACCOUNT_NOT_FOUND: 404,
+  // Holdings 404 (story 3-1): cross-user probe or stale id on getDerived /
+  // close / recordLot. Defense-in-depth shape: the explicit { id, userId }
+  // guard surfaces this rather than letting RLS produce a P2025.
+  HOLDING_NOT_FOUND: 404,
   CONFLICT: 409,
   // Milestones cap (FR-3, ≤ 20/user) and missing compass (FR-8 precondition)
   // both surface as 409 — they signal a state-shape conflict, not malformed
@@ -71,6 +75,10 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // referencing holding cannot be deleted — the API surfaces this as 409
   // (state-shape conflict), not as 400 (the request itself is well-formed).
   ACCOUNT_REFERENCED_FK: 409,
+  // Holdings closed (story 3-1, AC-6): recordLot on a closed holding rejects
+  // 409. Same shape-conflict rationale as ACCOUNT_REFERENCED_FK — request is
+  // well-formed but contradicts the row state.
+  HOLDING_CLOSED: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
   // Compass repository $transaction failure surfaces as 500 — the audit

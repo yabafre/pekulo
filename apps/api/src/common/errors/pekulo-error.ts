@@ -21,6 +21,8 @@ export type PekuloErrorCode =
   | "COMPASS_REQUIRED"
   | "CONFLICT"
   | "FORBIDDEN"
+  | "HOLDING_CLOSED"
+  | "HOLDING_NOT_FOUND"
   | "INTERNAL"
   | "INVALID_TARGET"
   | "INVALID_WEALTH"
@@ -41,6 +43,8 @@ const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode
   "COMPASS_REQUIRED",
   "CONFLICT",
   "FORBIDDEN",
+  "HOLDING_CLOSED",
+  "HOLDING_NOT_FOUND",
   "INTERNAL",
   "INVALID_TARGET",
   "INVALID_WEALTH",
