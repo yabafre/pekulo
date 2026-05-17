@@ -1,7 +1,7 @@
 "use client";
 
 import { Popover as TamaPopover, type PopoverProps } from "@tamagui/popover";
-import type { ComponentProps, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
 
 function Root({ placement = "bottom", ...props }: PopoverProps & { children: ReactNode }) {
   return <TamaPopover placement={placement} {...props} />;
@@ -10,13 +10,24 @@ function Root({ placement = "bottom", ...props }: PopoverProps & { children: Rea
 function Trigger({
   children,
   ...props
-}: ComponentProps<typeof TamaPopover.Trigger> & { children: ReactNode }) {
-  // Force the trigger to render as <button> so aria-expanded/-controls/-haspopup
-  // (set automatically by @tamagui/popover) are valid attrs (axe-core 4.x flags
-  // them on <div>). v2 default would render <div>.
+}: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
+  // Trigger renders as a native <button> via Tamagui's `asChild` slot so
+  // aria-expanded / -controls / -haspopup (set automatically by
+  // @tamagui/popover) are valid HTML attrs (axe-core 4.x flags them on
+  // <div>; the v2 default Trigger element is a div).
+  //
+  // We pass a real <button> as the child instead of `render="button" unstyled`
+  // because Tamagui 2.0.0-rc.41 leaks `unstyled={true}` to the rendered DOM
+  // (React warns: "Received `true` for a non-boolean attribute `unstyled`").
+  // The `asChild` slot bypasses Tamagui's styled-View pipeline entirely —
+  // Popover.Trigger forwards aria-expanded / data-state / onPress (→ onClick)
+  // onto our <button> without injecting its own DOM element. Caller-supplied
+  // `style`, `aria-label`, `onClick`, etc. spread directly onto the button.
   return (
-    <TamaPopover.Trigger render="button" unstyled {...props}>
-      {children}
+    <TamaPopover.Trigger asChild>
+      <button type="button" {...props}>
+        {children}
+      </button>
     </TamaPopover.Trigger>
   );
 }
