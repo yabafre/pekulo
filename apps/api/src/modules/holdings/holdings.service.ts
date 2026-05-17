@@ -108,6 +108,8 @@ function shortYahoo(code: YahooError["code"]): string {
       return "ticker invalide";
     case "missing-ticker":
       return "ticker manquant";
+    case "timeout":
+      return "timeout";
   }
 }
 function shortBourso(code: BoursoramaError["code"]): string {

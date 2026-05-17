@@ -24,6 +24,7 @@ const PRICES_CACHE_TTL_MS = 60_000;
 const PRICES_TIER1_TIMEOUT_MS = 500;
 const TWELVE_DATA_TIMEOUT_MS = 2_000;
 const BOURSORAMA_TIMEOUT_MS = 1_500;
+const YAHOO_TIMEOUT_MS = 2_000;
 
 export interface HoldingsModule {
   service: HoldingService;
@@ -42,7 +43,7 @@ export function createHoldingsModule(deps: CreateHoldingsModuleDeps): HoldingsMo
     token: deps.env.PRICES_SERVICE_TOKEN,
     timeoutMs: PRICES_TIER1_TIMEOUT_MS,
   });
-  const yahooClient = createYahooClient();
+  const yahooClient = createYahooClient({ timeoutMs: YAHOO_TIMEOUT_MS });
   const boursoramaScraper = createBoursoramaScraper({ timeoutMs: BOURSORAMA_TIMEOUT_MS });
   const twelveDataClient = createTwelveDataClient({
     apiKey: deps.env.TWELVE_DATA_API_KEY,

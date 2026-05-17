@@ -72,4 +72,20 @@ describe("YahooClient.fetchQuote", () => {
     });
     await expect(createYahooClient().fetchQuote("X")).rejects.toMatchObject({ code: "no-price" });
   });
+
+  test("hanging yahoo-finance2 call aborts at timeoutMs → YahooError('timeout')", async () => {
+    // Brownfield had no backstop — a hanging yahoo-finance2 call blocked the
+    // whole orchestrator past NFR-18. Strict-superset fix: Promise.race
+    // against a hard deadline.
+    quoteMock.mockImplementationOnce(() => new Promise(() => {}));
+    const client = createYahooClient({ timeoutMs: 50 });
+    const t0 = performance.now();
+    await expect(client.fetchQuote("HANGS")).rejects.toMatchObject({
+      name: "YahooError",
+      code: "timeout",
+    });
+    const elapsed = performance.now() - t0;
+    expect(elapsed).toBeGreaterThanOrEqual(40);
+    expect(elapsed).toBeLessThan(200);
+  });
 });

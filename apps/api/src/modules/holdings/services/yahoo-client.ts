@@ -2,11 +2,13 @@
 // apps/web/src/lib/services/yahoo-finance.ts.
 //
 // Diffs vs brownfield:
-//   - Factory pattern (createYahooClient() — currently no deps but the
-//     shape stays consistent with the other 3 clients).
+//   - Factory pattern (createYahooClient({ timeoutMs }) — strict superset of
+//     brownfield which had zero timeout backstop).
 //   - Imports HoldingCurrency from @pekulo/validators (instead of legacy
 //     @/lib/types#Currency from the web tier).
 //   - The returned quote omits the `provider` field; the orchestrator stamps.
+//   - Promise.race against a hard timeoutMs guards NFR-18: a hanging
+//     yahoo-finance2 call no longer blocks the orchestrator past the budget.
 
 import yahooFinance from "yahoo-finance2";
 import type { HoldingCurrency } from "@pekulo/validators";
@@ -24,7 +26,8 @@ export type YahooErrorCode =
   | "network"
   | "format"
   | "no-price"
-  | "rate-limited";
+  | "rate-limited"
+  | "timeout";
 
 export class YahooError extends Error {
   override readonly name = "YahooError";
@@ -52,13 +55,28 @@ export interface YahooClient {
   fetchQuote(symbol: string): Promise<YahooQuote>;
 }
 
-export function createYahooClient(): YahooClient {
+export interface CreateYahooClientDeps {
+  /** Hard ceiling on yahoo-finance2 call. Default 2_000 ms. */
+  timeoutMs?: number;
+}
+
+export function createYahooClient(deps: CreateYahooClientDeps = {}): YahooClient {
+  const timeoutMs = deps.timeoutMs ?? 2_000;
   return {
     async fetchQuote(symbol) {
       let result: Awaited<ReturnType<typeof yahooFinance.quote>>;
       try {
-        result = await yahooFinance.quote(symbol, {}, { validateResult: false });
+        result = await Promise.race([
+          yahooFinance.quote(symbol, {}, { validateResult: false }),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new YahooError("timeout", `Yahoo: timeout ${timeoutMs}ms`)),
+              timeoutMs,
+            ),
+          ),
+        ]);
       } catch (err) {
+        if (err instanceof YahooError) throw err; // timeout already typed
         const msg = err instanceof Error ? err.message : String(err);
         if (/not found|invalid|empty result/i.test(msg)) {
           throw new YahooError("invalid-ticker", `Ticker introuvable: ${symbol}`);
