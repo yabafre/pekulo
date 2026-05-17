@@ -71,6 +71,13 @@ export interface HoldingServiceDeps {
 
 // Short French reason labels — mirror brownfield shortPs / shortYahoo /
 // shortBourso / shortTd so AC-3 sees identical attempts entries.
+//
+// SSOT cross-refs (drift guard — when the brownfield is deleted in story 3-3,
+// promote this block to the canonical source):
+//   - shortPs    ← apps/web/src/lib/services/prices.ts:123
+//   - shortYahoo ← apps/web/src/lib/services/prices.ts:140
+//   - shortBourso← apps/web/src/lib/services/prices.ts:157
+//   - shortTd    ← apps/web/src/lib/services/prices.ts:172
 function shortPs(code: PricesServiceError["code"]): string {
   switch (code) {
     case "not-configured":
