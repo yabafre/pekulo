@@ -1,7 +1,7 @@
 # Story: 3-1-holdings-orpc-port — Port holdings + lots module to oRPC + Prisma with crypto enum extension
 
 **Epic:** Epic 3 — Holdings & portfolio (extended brownfield + crypto)
-**Status:** review
+**Status:** done
 **Ticket:** [#20](https://github.com/yabafre/pekulo/issues/20)
 **Branch:** `feature/20-3-1-holdings-orpc-port`
 **Commit prefix:** `feat(#20): …`
@@ -3326,3 +3326,57 @@ $ find apps/api/src/modules/holdings -name '*.types.ts'
 $ grep -rEn ':\s*Elysia\b|as\s+Elysia\b|<Elysia\b' apps/api/src/modules/holdings
 (empty — zero bare Elysia annotations)
 ```
+
+## Review Record
+
+**Date:** 2026-05-17
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+- [MAJOR] TOCTOU window on `recordLot` — parent probe + lot insert not transactional [`apps/api/src/modules/holdings/holdings.service.ts:55-60`, `holdings.repository.ts:176-190`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `1fb67cb` — repository.recordLot wraps probe+insert in `deps.client.$transaction(...)`, returns `RecordLotOutcome` (`ok | not-found | closed`); service translates to typed `HoldingError`. Mirrors the existing `close()/CloseHoldingOutcome` pattern.
+- [MAJOR] Story header `Status:` desynced from `state.yaml` (`ready-for-dev` vs `review`) [`docs/stories/3-1-holdings-orpc-port.md:4`, `docs/state.yaml:193`]
+  - Source: setup
+  - Resolution: commit `fdc17f9` — story header flipped to `review`; final flip to `done` lives in this Review Record's matching commit.
+- [MINOR] AC-1 narrative typo (`101.075` vs the formula-evaluated `100.075`) [`docs/stories/3-1-holdings-orpc-port.md:17`]
+  - Source: Spec auditor
+  - Resolution: commit `fdc17f9` — AC-1 text corrected to `100.075` (matches the test assertion and the inline formula `2001.5 / 20`).
+- [MINOR] AC-9 grep wording flaw — naive `grep -rn 'Elysia'` returns 9 (JSDoc + imports) so the AC's literal `returns 0` is unsatisfiable [`docs/stories/3-1-holdings-orpc-port.md:25`]
+  - Source: Spec auditor
+  - Resolution: commit `fdc17f9` — AC-9 grep tightened to `:\s*Elysia\b|as\s+Elysia\b|<Elysia\b`; reflects the real "no bare type annotation" invariant.
+- [MINOR] Fake Prisma `findMany` silently drops the `orderBy` directive — production contract not exercised [`apps/api/src/modules/holdings/holdings.repository.test.ts`, `holdings.module.test.ts`]
+  - Source: Code auditor
+  - Resolution: commit `1fb67cb` — fake `findMany` now honors `{ createdAt }` and `[{ occurredOn }, { createdAt }]` orderBy; `listByUser` test asserts the ordering.
+- [MINOR] `@pekulo/types` header comment references `AccountId` as a precedent that is never declared in source [`packages/types/src/index.ts:11`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `fdc17f9` — comment rewritten to point at the actual `Id<TBrand>` precedent.
+- [MINOR] Naming drift `createHolding{Repository,Service}` (singular) vs `createHoldings{Router,Module}` (plural) [`apps/api/src/modules/holdings/`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `1fb67cb` — all four factories standardised on the plural `createHoldings*`.
+- [MINOR] `packages/ui/src/components/PekuloHoldingRow.tsx` modified by the story but absent from the canonical `## File List` [`docs/stories/3-1-holdings-orpc-port.md:3214-3240`]
+  - Source: git-audit (inline)
+  - Resolution: commit `fdc17f9` — added under MODIFIED.
+
+#### Dismissed
+- [MINOR] `docs/architecture.md` lines 487/495 list `<name>.handler.ts` + `<name>.types.ts` but the live codebase uses `<name>.routes.ts` and zero `*.types.ts` (L1 invariant) [`docs/architecture.md:487,495`]
+  - Source: Code auditor
+  - Rationale: `docs/architecture.md` is upstream-locked while sprint stories are in flight (write attempt blocked by the APED upstream-doc gate). Fixing requires the `aped-course` coordinated scope-change workflow. Tracking for the next doc-sweep cycle — not a story-3-1 blocker.
+
+### Verification
+
+- Test command: `bun test` (from `apps/api/`)
+- Test output (final pass): `252 pass / 0 fail / 663 expect() calls — 31 files`
+- Typecheck: `@pekulo/api typecheck: Exited with code 0`
+- Lint: `oxlint apps/api/src/modules/holdings apps/api/src/common/derive/holding-quantity.ts` → `Found 0 warnings and 0 errors. 10 files / 158 rules`
+- RLS audit: `holdings (4 policies), holding_lots (4 policies)` — unchanged post-migration
+- Invariant greps (final): `Number(.*Decimal)` = 0 · `: Elysia | as Elysia | <Elysia` = 0 · `*.types.ts` = empty
+- Visual verification: N/A (API-only — UI surfaces belong to story 3-4)
+
+### Ticket sync
+
+- Ticket comment posted: pending step-05 GitHub call
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/80
