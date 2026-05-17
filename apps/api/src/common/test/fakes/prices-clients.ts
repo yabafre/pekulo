@@ -26,12 +26,20 @@ export interface FakeClient<C extends { fetchQuote: (arg: never) => Promise<unkn
   setBehavior(impl: C["fetchQuote"]): void;
 }
 
-export function fakePricesClient(): FakeClient<PricesClient> {
+export function fakePricesClient(): FakeClient<PricesClient> & {
+  setConfigured(value: boolean): void;
+} {
   const calls: string[] = [];
   let impl: PricesClient["fetchQuote"] = async () => {
     throw new PricesServiceError("not-configured", "fake: not configured");
   };
+  // Default false — matches the "not-configured" default impl. When a test
+  // calls setBehavior() with a real-quote handler, flip via setConfigured(true).
+  const state = { isConfigured: false };
   const client: PricesClient = {
+    get isConfigured() {
+      return state.isConfigured;
+    },
     async fetchQuote(symbol) {
       calls.push(symbol);
       return impl(symbol);
@@ -42,6 +50,10 @@ export function fakePricesClient(): FakeClient<PricesClient> {
     calls,
     setBehavior: (next) => {
       impl = next;
+      state.isConfigured = true;
+    },
+    setConfigured: (value) => {
+      state.isConfigured = value;
     },
   };
 }

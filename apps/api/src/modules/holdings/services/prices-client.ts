@@ -35,6 +35,12 @@ export class PricesServiceError extends Error {
 }
 
 export interface PricesClient {
+  /**
+   * True when PRICES_SERVICE_URL is set. The orchestrator short-circuits
+   * tier-1 when false, matching brownfield `isPricesServiceConfigured()`
+   * behaviour — saves a wasted attempt entry and a fake-call increment.
+   */
+  isConfigured: boolean;
   fetchQuote(symbol: string): Promise<PricesServiceQuote>;
 }
 
@@ -47,6 +53,7 @@ export interface CreatePricesClientDeps {
 export function createPricesClient(deps: CreatePricesClientDeps): PricesClient {
   const timeoutMs = deps.timeoutMs ?? 500;
   return {
+    isConfigured: Boolean(deps.baseUrl),
     async fetchQuote(symbol) {
       const base = deps.baseUrl;
       if (!base) {
@@ -61,7 +68,6 @@ export function createPricesClient(deps: CreatePricesClientDeps): PricesClient {
       try {
         res = await fetch(url, {
           headers,
-          cache: "no-store",
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (err) {

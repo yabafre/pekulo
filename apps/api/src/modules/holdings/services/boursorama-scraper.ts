@@ -74,7 +74,6 @@ export function createBoursoramaScraper(deps: CreateBoursoramaScraperDeps = {}):
         res = await fetch(searchUrl, {
           headers: HEADERS,
           redirect: "follow",
-          cache: "no-store",
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (err) {

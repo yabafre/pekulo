@@ -20,7 +20,8 @@ describe("TwelveDataClient", () => {
   });
 
   test("HTTP 429 → rate-limited", async () => {
-    globalThis.fetch = (async () => new Response("Too many", { status: 429 })) as FetchFn;
+    globalThis.fetch = (async () =>
+      new Response("Too many", { status: 429 })) as unknown as FetchFn;
     const client = createTwelveDataClient({ apiKey: "k" });
     await expect(client.fetchQuote("X")).rejects.toMatchObject({ code: "rate-limited" });
   });
@@ -30,7 +31,7 @@ describe("TwelveDataClient", () => {
       new Response(JSON.stringify({ code: 404, message: "symbol not found" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      })) as FetchFn;
+      })) as unknown as FetchFn;
     const client = createTwelveDataClient({ apiKey: "k" });
     await expect(client.fetchQuote("ZZZZ")).rejects.toMatchObject({ code: "invalid-symbol" });
   });
@@ -40,7 +41,7 @@ describe("TwelveDataClient", () => {
       new Response(JSON.stringify({ code: 401, message: "Invalid api key" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      })) as FetchFn;
+      })) as unknown as FetchFn;
     const client = createTwelveDataClient({ apiKey: "k" });
     await expect(client.fetchQuote("X")).rejects.toMatchObject({ code: "missing-key" });
   });
@@ -50,7 +51,7 @@ describe("TwelveDataClient", () => {
       new Response(
         JSON.stringify({ close: "192.55", currency: "USD", datetime: "2026-05-17 16:00:00" }),
         { status: 200, headers: { "Content-Type": "application/json" } },
-      )) as FetchFn;
+      )) as unknown as FetchFn;
     const q = await createTwelveDataClient({ apiKey: "k" }).fetchQuote("AAPL");
     expect(q).toEqual({
       symbol: "AAPL",
@@ -65,7 +66,7 @@ describe("TwelveDataClient", () => {
       new Response(JSON.stringify({ close: "0", currency: "USD" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      })) as FetchFn;
+      })) as unknown as FetchFn;
     await expect(createTwelveDataClient({ apiKey: "k" }).fetchQuote("X")).rejects.toMatchObject({
       code: "no-price",
     });

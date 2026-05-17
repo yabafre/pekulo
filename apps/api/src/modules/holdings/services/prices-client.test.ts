@@ -12,11 +12,19 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-function mockFetch(impl: FetchFn): void {
-  globalThis.fetch = impl as FetchFn;
+function mockFetch(
+  impl: (url: string | URL | Request, init?: RequestInit) => Promise<Response>,
+): void {
+  globalThis.fetch = impl as unknown as FetchFn;
 }
 
 describe("PricesClient", () => {
+  test("isConfigured reflects baseUrl presence (false when undefined, true otherwise)", () => {
+    expect(createPricesClient({ baseUrl: undefined, token: undefined }).isConfigured).toBe(false);
+    expect(createPricesClient({ baseUrl: "", token: undefined }).isConfigured).toBe(false);
+    expect(createPricesClient({ baseUrl: "https://x", token: undefined }).isConfigured).toBe(true);
+  });
+
   test("throws not-configured when baseUrl is undefined", async () => {
     const client = createPricesClient({ baseUrl: undefined, token: undefined });
     await expect(client.fetchQuote("CW8.PA")).rejects.toMatchObject({
@@ -26,9 +34,9 @@ describe("PricesClient", () => {
   });
 
   test("sends Bearer header when token is set", async () => {
-    let capturedHeaders: HeadersInit | undefined;
+    let capturedHeaders: Record<string, string> | undefined;
     mockFetch(async (_url, init) => {
-      capturedHeaders = init?.headers;
+      capturedHeaders = init?.headers as Record<string, string> | undefined;
       return new Response(
         JSON.stringify({
           symbol: "CW8.PA",
@@ -44,8 +52,7 @@ describe("PricesClient", () => {
       token: "tok-abc",
     });
     await client.fetchQuote("CW8.PA");
-    const headers = capturedHeaders as Record<string, string>;
-    expect(headers.Authorization).toBe("Bearer tok-abc");
+    expect(capturedHeaders?.Authorization).toBe("Bearer tok-abc");
   });
 
   test("passes AbortSignal.timeout(timeoutMs) to fetch (tier-1 NFR-18)", async () => {

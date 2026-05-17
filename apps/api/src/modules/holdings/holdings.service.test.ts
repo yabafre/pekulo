@@ -1,12 +1,36 @@
-// Service unit tests (TDD RED → GREEN in T12). Fake repository, in-memory.
+// Service unit tests (TDD RED → GREEN in T12 / 3-1, T15 / 3-2). Fake
+// repository, in-memory.
 
 import { describe, expect, test } from "bun:test";
 import type { Holding, HoldingLot } from "@pekulo/validators";
+import {
+  fakeBoursoramaScraper,
+  fakePricesClient,
+  fakeTwelveDataClient,
+  fakeYahooClient,
+} from "../../common/test/fakes/prices-clients";
 import { AccountError } from "../accounts/accounts.errors";
-import { HoldingError } from "./holdings.errors";
-import type { CloseHoldingOutcome, HoldingRepository } from "./holdings.repository";
-import type { RecordLotOutcome } from "./holdings.repository";
-import { createHoldingsService } from "./holdings.service";
+import { createPricesCache } from "./holdings.cache";
+import { HoldingError, PriceProviderError } from "./holdings.errors";
+import type {
+  CloseHoldingOutcome,
+  HoldingRepository,
+  RecordLotOutcome,
+} from "./holdings.repository";
+import { createHoldingsService, type HoldingServiceDeps } from "./holdings.service";
+
+// Minimal dep wiring for the 3-1 tests (resolveQuote not exercised; defaults
+// fine).
+function serviceDeps(repo: HoldingRepository): HoldingServiceDeps {
+  return {
+    repository: repo,
+    pricesClient: fakePricesClient().client,
+    yahooClient: fakeYahooClient().client,
+    boursoramaScraper: fakeBoursoramaScraper().client,
+    twelveDataClient: fakeTwelveDataClient().client,
+    pricesCache: createPricesCache({ ttlMs: 60_000 }),
+  };
+}
 
 const userA = "00000000-0000-0000-0000-00000000000a";
 const accA = "acc_aaaaaaaaaaaaaaaaaaaaa";
@@ -109,7 +133,7 @@ function makeFakeRepo(): HoldingRepository & {
 describe("holdings.service", () => {
   test("create: rejects with ACCOUNT_NOT_FOUND when account does not belong to user", async () => {
     const repo = makeFakeRepo();
-    const svc = createHoldingsService({ repository: repo });
+    const svc = createHoldingsService(serviceDeps(repo));
     await expect(
       svc.create(userA, {
         accountId: "acc_unknown",
@@ -126,7 +150,7 @@ describe("holdings.service", () => {
     const repo = makeFakeRepo();
     const closedAt = new Date("2026-05-01");
     repo.state.holdings.set("hld_already", holding({ id: "hld_already", closedAt }));
-    const svc = createHoldingsService({ repository: repo });
+    const svc = createHoldingsService(serviceDeps(repo));
     const out = await svc.close(userA, { id: "hld_already" });
     expect(out).toEqual({ ok: true });
     expect(repo.state.holdings.get("hld_already")!.closedAt).toEqual(closedAt);
@@ -138,7 +162,7 @@ describe("holdings.service", () => {
       "hld_userB",
       holding({ id: "hld_userB", userId: "00000000-0000-0000-0000-00000000000b" }),
     );
-    const svc = createHoldingsService({ repository: repo });
+    const svc = createHoldingsService(serviceDeps(repo));
     await expect(svc.close(userA, { id: "hld_userB" })).rejects.toMatchObject({
       name: "HoldingError",
       code: "HOLDING_NOT_FOUND",
@@ -148,7 +172,7 @@ describe("holdings.service", () => {
   test("recordLot on closed holding → HoldingError(HOLDING_CLOSED)", async () => {
     const repo = makeFakeRepo();
     repo.state.holdings.set("hld_closed", holding({ id: "hld_closed", closedAt: new Date() }));
-    const svc = createHoldingsService({ repository: repo });
+    const svc = createHoldingsService(serviceDeps(repo));
     await expect(
       svc.recordLot(userA, {
         holdingId: "hld_closed",
@@ -164,7 +188,7 @@ describe("holdings.service", () => {
   test("getDerived: zero-lot back-compat returns row's quantity + avgCost", async () => {
     const repo = makeFakeRepo();
     repo.state.holdings.set("hld_manual", holding({ id: "hld_manual", quantity: 7, avgCost: 42 }));
-    const svc = createHoldingsService({ repository: repo });
+    const svc = createHoldingsService(serviceDeps(repo));
     const out = await svc.getDerived(userA, { id: "hld_manual" });
     expect(out).toMatchObject({
       holdingId: "hld_manual",
@@ -192,7 +216,7 @@ describe("holdings.service", () => {
         updatedAt: new Date(),
       },
     ]);
-    const svc = createHoldingsService({ repository: repo });
+    const svc = createHoldingsService(serviceDeps(repo));
     const out = await svc.getDerived(userA, { id: "hld_lots" });
     expect(out).toMatchObject({
       holdingId: "hld_lots",
@@ -206,7 +230,7 @@ describe("holdings.service", () => {
     const repo = makeFakeRepo();
     repo.state.holdings.set("hld_active", holding({ id: "hld_active" }));
     repo.state.holdings.set("hld_closed", holding({ id: "hld_closed", closedAt: new Date() }));
-    const svc = createHoldingsService({ repository: repo });
+    const svc = createHoldingsService(serviceDeps(repo));
     const activeOnly = await svc.list(userA, { includeClosed: false });
     expect(activeOnly.map((r) => r.id).sort()).toEqual(["hld_active"]);
     const all = await svc.list(userA, { includeClosed: true });
@@ -217,15 +241,6 @@ describe("holdings.service", () => {
 // ─── resolveQuote (story 3-2) ────────────────────────────────────────────
 // The service-internal price orchestrator. Tested with fake clients so the
 // suite stays offline and deterministic.
-
-import {
-  fakeBoursoramaScraper,
-  fakePricesClient,
-  fakeTwelveDataClient,
-  fakeYahooClient,
-} from "../../common/test/fakes/prices-clients";
-import { createPricesCache } from "./holdings.cache";
-import { PriceProviderError } from "./holdings.errors";
 
 function buildService(
   opts: {

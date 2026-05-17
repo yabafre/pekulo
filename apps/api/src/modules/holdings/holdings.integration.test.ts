@@ -143,6 +143,11 @@ function inMemoryService(opts?: {
         source: "lots",
       };
     },
+    // Story 3-2 — resolveQuote is not exercised by the integration suite
+    // (no oRPC surface) but the type must satisfy HoldingService.
+    async resolveQuote() {
+      throw new Error("resolveQuote not stubbed in integration test");
+    },
   };
 }
 

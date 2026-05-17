@@ -30,7 +30,7 @@ describe("BoursoramaScraper", () => {
         value: "https://www.boursorama.com/recherche/?query=ZZZZ",
       });
       return res;
-    }) as FetchFn;
+    }) as unknown as FetchFn;
     const scraper = createBoursoramaScraper();
     await expect(scraper.fetchQuote("ZZZZ")).rejects.toMatchObject({ code: "invalid-symbol" });
   });
@@ -42,7 +42,7 @@ describe("BoursoramaScraper", () => {
         value: "https://www.boursorama.com/bourse/trackers/cours/1rTPE500/",
       });
       return res;
-    }) as FetchFn;
+    }) as unknown as FetchFn;
     const q = await createBoursoramaScraper().fetchQuote("PE500");
     expect(q.price).toBe(50.2);
     expect(q.currency).toBe("EUR");
@@ -54,19 +54,19 @@ describe("BoursoramaScraper", () => {
       const res = new Response(htmlWithPrice("8 166,47"), { status: 200 });
       Object.defineProperty(res, "url", { value: "https://www.boursorama.com/cours/1rPABCD/" });
       return res;
-    }) as FetchFn;
+    }) as unknown as FetchFn;
     const q = await createBoursoramaScraper().fetchQuote("ABCD");
     expect(q.price).toBe(8166.47);
   });
 
   test("ticker with .PA suffix is stripped to bare symbol before scrape", async () => {
     let capturedUrl = "";
-    globalThis.fetch = (async (url) => {
+    globalThis.fetch = (async (url: string | URL | Request) => {
       capturedUrl = String(url);
       const res = new Response(htmlWithPrice("100,00"), { status: 200 });
       Object.defineProperty(res, "url", { value: "https://www.boursorama.com/cours/x/" });
       return res;
-    }) as FetchFn;
+    }) as unknown as FetchFn;
     await createBoursoramaScraper().fetchQuote("PE500.PA");
     expect(capturedUrl).toContain("query=PE500");
     expect(capturedUrl).not.toContain("PE500.PA");
@@ -77,7 +77,7 @@ describe("BoursoramaScraper", () => {
       const res = new Response("<html></html>", { status: 200 });
       Object.defineProperty(res, "url", { value: "https://www.boursorama.com/cours/x/" });
       return res;
-    }) as FetchFn;
+    }) as unknown as FetchFn;
     await expect(createBoursoramaScraper().fetchQuote("X")).rejects.toMatchObject({
       code: "format",
     });

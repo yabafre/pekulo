@@ -52,7 +52,6 @@ export function createTwelveDataClient(deps: CreateTwelveDataClientDeps): Twelve
       let res: Response;
       try {
         res = await fetch(url, {
-          cache: "no-store",
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (err) {
