@@ -2560,6 +2560,7 @@ T2 inserts the 4 price-type re-exports immediately after the `export type { Hold
 - `apps/api/src/modules/holdings/holdings.service.ts` — extend `HoldingService` + `HoldingServiceDeps` with `resolveQuote` and 5 new deps; add `runTier` helper.
 - `apps/api/src/modules/holdings/holdings.module.ts` — accept `env: Pick<Env, …>` dep; wire 4 clients + cache.
 - `apps/api/src/modules/holdings/holdings.module.test.ts` — adapt to new `{ prismaService, env }` signature.
+- `apps/api/src/modules/holdings/holdings.integration.test.ts` — stub `resolveQuote` on the in-memory service to satisfy the extended `HoldingService` interface (T15 ; deviation surfaced in aped-review pass).
 - `apps/api/src/bootstrap/runtime-dependencies.ts` — pass `env: input.env` into `createHoldingsModule`.
 - `apps/api/src/modules/holdings/holdings.service.test.ts` — append `describe("resolveQuote", …)` block + import `buildService` helper.
 - `packages/validators/src/holdings.ts` — append `priceQuoteSchema` / `priceQuoteInputSchema` / `priceProviderSchema` / `priceProviderAttemptSchema` + `PRICE_PROVIDERS` constant.
