@@ -116,7 +116,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // Story 3-1 — holdings oRPC port. Independent of compass / accounts (the
   // cross-aggregate account FK probe lives inside the repository — no
   // separate accounts dep needed at the module-factory layer).
-  const holdingsModule = createHoldingsModule({ prismaService });
+  const holdingsModule = createHoldingsModule({ prismaService, env: input.env });
 
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,

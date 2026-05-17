@@ -104,10 +104,20 @@ function makeFakePrismaService(): PrismaService {
   return { client: withTx } as unknown as PrismaService;
 }
 
+// Story 3-2 — env stub for the price-chain deps. All three vars are
+// optional; setting them undefined exercises the "not-configured" / fallback
+// paths at the client factories without forcing the module to construct
+// against real provider HTTP endpoints.
+const env = {
+  PRICES_SERVICE_URL: undefined,
+  PRICES_SERVICE_TOKEN: undefined,
+  TWELVE_DATA_API_KEY: undefined,
+};
+
 describe("holdings.module", () => {
   test("create → recordLot → getDerived → close → list", async () => {
     const prismaService = makeFakePrismaService();
-    const mod = createHoldingsModule({ prismaService });
+    const mod = createHoldingsModule({ prismaService, env });
 
     const created = await mod.service.create(userA, {
       accountId: accA,
