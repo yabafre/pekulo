@@ -148,3 +148,36 @@ export const getDerivedHoldingInputSchema = z.object({
   id: holdingIdSchema,
 });
 export type GetDerivedHoldingInput = z.infer<typeof getDerivedHoldingInputSchema>;
+
+// ─── Price chain (story 3-2) ─────────────────────────────────────────────
+// The 4-tier orchestrator in apps/api/src/modules/holdings/holdings.service.ts
+// (#resolveQuote) consumes `priceQuoteInputSchema` and returns
+// `priceQuoteSchema`. NO oRPC contract surface — these schemas are
+// service-internal DTOs, but they live here because @pekulo/types re-exports
+// the inferred types (L1 invariant: zero `*.types.ts` under apps/api/src/modules).
+
+export const PRICE_PROVIDERS = ["prices-service", "yahoo", "boursorama", "twelve-data"] as const;
+export const priceProviderSchema = z.enum(PRICE_PROVIDERS);
+export type PriceProvider = z.infer<typeof priceProviderSchema>;
+
+export const priceProviderAttemptSchema = z.object({
+  provider: z.string().min(1),
+  reason: z.string().min(1),
+});
+export type PriceProviderAttempt = z.infer<typeof priceProviderAttemptSchema>;
+
+export const priceQuoteSchema = z.object({
+  symbol: z.string().min(1),
+  price: z.number().positive(),
+  currency: z.string(),
+  marketTime: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "marketTime must be YYYY-MM-DD"),
+  provider: priceProviderSchema,
+});
+export type PriceQuote = z.infer<typeof priceQuoteSchema>;
+
+export const priceQuoteInputSchema = z.object({
+  ticker: z.string().nullable(),
+  kind: z.enum(HOLDING_KINDS_MIRROR),
+  currency: z.enum(HOLDING_CURRENCIES),
+});
+export type PriceQuoteInput = z.infer<typeof priceQuoteInputSchema>;
