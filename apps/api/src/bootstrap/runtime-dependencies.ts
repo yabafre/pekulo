@@ -6,6 +6,7 @@ import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
 import { createAccountsModule } from "../modules/accounts/accounts.module";
 import { createCompassModule } from "../modules/compass/compass.module";
+import { createHoldingsModule } from "../modules/holdings/holdings.module";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
 import { createMilestonesModule } from "../modules/milestones/milestones.module";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
@@ -112,11 +113,17 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // $transaction-scoped repository (TOCTOU avoidance).
   const accountsModule = createAccountsModule({ prismaService });
 
+  // Story 3-1 — holdings oRPC port. Independent of compass / accounts (the
+  // cross-aggregate account FK probe lives inside the repository — no
+  // separate accounts dep needed at the module-factory layer).
+  const holdingsModule = createHoldingsModule({ prismaService });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
     milestones: milestonesModule.router,
     accounts: accountsModule.router,
+    holdings: holdingsModule.router,
   };
 
   return {
