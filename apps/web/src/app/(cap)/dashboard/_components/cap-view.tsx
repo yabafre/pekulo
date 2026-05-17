@@ -6,11 +6,23 @@
 // or inline flat placeholders); desktop keeps the bento card cells.
 
 import { View, Text } from "@pekulo/ui/client";
+import { PekuloDonut } from "@pekulo/ui";
 import { AddMilestoneDialogProvider } from "./add-milestone-dialog";
 import { CompassSection, useCapDashboardState } from "./compass-section";
 import { MilestonesSection } from "./milestones-section";
 import { PlaceholderCard } from "./placeholder-card";
+import { useDashboardCompass } from "../_hooks/use-dashboard-compass";
 import styles from "./bento.module.css";
+
+const eur0 = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+const eurCompact = new Intl.NumberFormat("fr-FR", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 function SkeletonLine({ width, height = 14 }: { width: number | `${number}%`; height?: number }) {
   if (typeof width === "string") {
@@ -52,37 +64,117 @@ function FlatListPlaceholder({ rows, ownerStory }: { rows: number; ownerStory: s
 
 function MobileFlatCapView() {
   const cap = useCapDashboardState();
+  const { progress } = useDashboardCompass();
+  const data = progress.data;
+  const currentYear = new Date().getUTCFullYear();
+  const targetYear = data ? currentYear + data.horizonYears - 1 : null;
+  const yearsLeft = targetYear ? targetYear - currentYear : null;
+  // Linear plan / year — gap divided over remaining years.
+  const requiredYearly = data && yearsLeft && yearsLeft > 0 ? data.gap / yearsLeft : null;
+  const pct = data ? data.percent / 100 : 0;
+
   return (
     <View flexDirection="column" gap={40} width="100%">
-      {/* Hero — Patrimoine total + delta vs plan (story 7-1) */}
+      {/* Hero — Aujourd'hui + current wealth. Delta vs plan needs story 7-1
+          curve data, hidden until then per the desktop CompassSection
+          precedent ("delta hidden when curve unresolved"). */}
       <View render="section" aria-label="Patrimoine total">
         <Text color="$colorTertiary" fontSize="$caption">
           Aujourd'hui
         </Text>
-        <SkeletonLine width={200} height={36} />
-        <View marginTop="$2">
-          <SkeletonLine width={160} height={14} />
-        </View>
-        <View flexDirection="row" justifyContent="flex-end" marginTop="$2">
-          <Text color="$colorMuted" fontSize="$xs">
-            Bientôt · 7-1
+        {data ? (
+          <Text color="$color" fontSize="$h1" fontWeight="600" letterSpacing={-0.5} marginTop="$2">
+            {eur0.format(data.currentWealth)}
           </Text>
-        </View>
+        ) : (
+          <View marginTop="$2">
+            <SkeletonLine width={200} height={36} />
+          </View>
+        )}
+        {data ? (
+          <Text color="$colorTertiary" fontSize="$bodySm" marginTop="$2">
+            Cap {eur0.format(data.objectif)} · {targetYear}
+          </Text>
+        ) : (
+          <View marginTop="$2">
+            <SkeletonLine width={160} height={14} />
+          </View>
+        )}
       </View>
 
-      {/* MiniKpis — Cap pct / Horizon / Plan an (3-col flat). Story 7-1
-          ships the real version; for now a flat skeleton triplet. */}
+      {/* MiniKpis — Cap pct + Horizon + Plan / an (3-col flat). Mirrors
+          ux-preview MiniKpis (App.tsx:419-443). Real data from
+          `useDashboardCompass`. */}
       <View render="section" aria-label="Indicateurs">
         <View flexDirection="row" gap="$3">
-          {["Cap", "Horizon", "Plan / an"].map((label) => (
-            <View key={label} flex={1} flexDirection="column" gap="$2" paddingVertical="$2">
+          {/* Cap tile — donut + percent + remaining */}
+          <View flex={1} flexDirection="column" gap="$2" paddingVertical="$2">
+            <View flexDirection="row" alignItems="center" justifyContent="space-between">
               <Text color="$colorTertiary" fontSize="$caption">
-                {label}
+                Cap
               </Text>
-              <SkeletonLine width="80%" height={18} />
-              <SkeletonLine width="60%" height={10} />
+              {data && <PekuloDonut pct={pct} size={22} stroke={2.5} />}
             </View>
-          ))}
+            {data ? (
+              <>
+                <Text color="$color" fontSize="$h3" fontWeight="600">
+                  {(pct * 100).toFixed(1)} %
+                </Text>
+                <Text color="$colorTertiary" fontSize="$caption">
+                  {eurCompact.format(data.gap)} € restants
+                </Text>
+              </>
+            ) : (
+              <>
+                <SkeletonLine width="80%" height={18} />
+                <SkeletonLine width="60%" height={10} />
+              </>
+            )}
+          </View>
+
+          {/* Horizon tile — target year + years left */}
+          <View flex={1} flexDirection="column" gap="$2" paddingVertical="$2">
+            <Text color="$colorTertiary" fontSize="$caption">
+              Horizon
+            </Text>
+            {data && targetYear && yearsLeft != null ? (
+              <>
+                <Text color="$color" fontSize="$h3" fontWeight="600">
+                  {targetYear}
+                </Text>
+                <Text color="$colorTertiary" fontSize="$caption">
+                  {yearsLeft} ans
+                </Text>
+              </>
+            ) : (
+              <>
+                <SkeletonLine width="80%" height={18} />
+                <SkeletonLine width="60%" height={10} />
+              </>
+            )}
+          </View>
+
+          {/* Plan / an tile — linear required yearly */}
+          <View flex={1} flexDirection="column" gap="$2" paddingVertical="$2">
+            <Text color="$colorTertiary" fontSize="$caption">
+              Plan / an
+            </Text>
+            {requiredYearly != null ? (
+              <>
+                <Text color="$color" fontSize="$h3" fontWeight="600">
+                  {eurCompact.format(requiredYearly)} €
+                </Text>
+                <Text color="$colorTertiary" fontSize="$caption">
+                  linéaire
+                </Text>
+              </>
+            ) : (
+              <>
+                <SkeletonLine width="80%" height={18} />
+                <SkeletonLine width="60%" height={10} />
+              </>
+            )}
+          </View>
         </View>
       </View>
 

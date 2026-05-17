@@ -96,16 +96,15 @@ export function MilestonesSection({
       ) : (
         <View
           render="ul"
-          flex={1}
-          minHeight={0}
+          flex={flat ? undefined : 1}
+          minHeight={flat ? undefined : 0}
           flexDirection="column"
           style={{
             listStyle: "none",
-            // Flex-fills the cell height (set via `bento.module.css` →
-            // every grid cell stretches to its row track). Beyond visible
-            // rows, the list scrolls INSIDE the cell — the bento row
-            // height stays invariant whatever the milestone count.
-            overflowY: "auto",
+            // Desktop bento: flex-fills the cell height + scrolls inside.
+            // Flat mode (cap-view mobile): natural-height list, no scroll —
+            // the parent column flow handles overflow.
+            overflowY: flat ? "visible" : "auto",
             paddingInlineStart: 0,
             marginBlock: 0,
           }}
