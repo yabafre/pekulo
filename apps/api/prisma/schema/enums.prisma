@@ -13,10 +13,11 @@ enum AccountType {
 }
 
 enum HoldingKind {
-  // V1 brownfield only — the 'crypto' extension is owned by story 3-1.
+  // V1 brownfield {etf, action, autre} + the crypto extension (story 3-1).
   etf
   action
   autre
+  crypto
 
   @@map("holding_kind")
 }

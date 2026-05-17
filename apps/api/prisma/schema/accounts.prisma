@@ -34,6 +34,7 @@ model Holding {
   notes       String?
   createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
+  closedAt    DateTime?   @map("closed_at") @db.Timestamptz
 
   account Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   lots    HoldingLot[]
