@@ -13,6 +13,86 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-17 — A list/grid using `flex:1 + minHeight:0 + overflowY:auto` to fill a fixed-height parent collapses to 0 height when reparented to a natural-flow column (e.g. a flat mobile stack) ; gate these styles on the `flat` prop OR on a `bento` prop so flat mode uses natural flow (Scope: aped-arch, aped-dev — every Pekulo\* DS component that ships a fill-the-cell list AND will also render flat on mobile)
+
+- **Date:** 2026-05-17
+- **Mistake:** Story 1-4's `MilestonesSection` inner `<ul>` was styled with `flex={1} minHeight={0} style={{ overflowY: "auto", ... }}` so it would fill the bento cell's row track on desktop and scroll the milestones list inside the cell when count > 6. This shape depends on a parent with a fixed height (the bento cell, sized by `grid-auto-rows: minmax(220px, auto)`). When story 2-3 added the cap-view mobile flat branch and rendered `<MilestonesSection flat />` inside a natural-flow column (`<View flexDirection="column" gap={40}>`), the `<ul>`'s `flex:1` had no fixed reference height to fill → CSS resolved it to 0 px → the milestone rows were rendered in the DOM but invisible (the section header showed `+ Ajouter` but no rows underneath). The Paliers data quality regression was invisible to typecheck, lint, and snapshot tests — only caught by the user's visual side-by-side at viewport 768 vs the desktop bento at 1440.
+- **Correction:** Gate the fill-the-cell styles on the `flat` prop. When `flat={true}`, drop `flex:1 + minHeight:0` and switch `overflowY: "auto"` → `"visible"` so the list flows naturally and lets the page-level column scroll handle overflow. When `flat={false}` (the default — bento mode), keep the original fill-the-cell shape. Same pattern needed for `<View render="ul" flex={...} ...>` in any other DS component (future `CompositionList`, `RecentActivityList`, `HoldingsList`, `TransactionsList`).
+- **Rule:** When a Pekulo\* DS component renders a list/grid that's designed to fill a fixed-height parent (bento cell), AND that component might also render in a flat-flow context (mobile single-column stack), the fill styles MUST be conditional on `flat`. Concretely:
+  - `flex: {flat ? undefined : 1}`
+  - `minHeight: {flat ? undefined : 0}`
+  - `overflowY: {flat ? "visible" : "auto"}`
+    Verification step at GREEN: screenshot the component at viewport ≤ 1023 (in flat mode) AND at viewport ≥ 1024 (in bento mode); confirm rows are visible in both. A typecheck-only signal is insufficient — visual confirmation via `next-browser` is the only catch.
+
+### 2026-05-17 — Tamagui v5 media keys: `$max-md` / `$gtSm` / `$gtMd` DO NOT EXIST in `@tamagui/config/v5` ; breakpoints are sm:640 md:768 lg:1024 xl:1280 (supersedes the 2026-05-13 claim that "Pekulo Tamagui `md: 1020`") (Scope: aped-dev, aped-arch, aped-review — every Pekulo\* DS component and every apps/web responsive layout)
+
+- **Date:** 2026-05-17
+- **Mistake:** Story 2-3 added `PekuloMobileBottomNav` with `$md={{ display: "none" }}` thinking `$md` was max-width-1020 (per the previous 2026-05-13 lesson's comment). Result: the bottom nav was hidden at every viewport ≤ 1280 — i.e. literally always invisible on mobile/tablet/most desktops. Worse, the pre-existing `PekuloNavRail` `$max-md={{ display: "none" }}` had been a no-op since story 0-9/0-10 — `$max-md` IS a valid key in `@tamagui/config/v5` but it means `maxWidth: 767.98` (NOT 1020 as the previous lesson incorrectly claimed). The NavRail had been rendering on every viewport down to 768 px since shipping, leaving the rail visible on tablet (768–1023 px) overlapping the content. Bug invisible until story 2-3 forced a tablet screenshot via next-browser.
+- **Correction:** Read `node_modules/.bun/@tamagui+config@2.0.0-rc.41+.../node_modules/@tamagui/config/src/v5-media.ts`. Actual keys exposed by `@tamagui/config/v5`:
+  - **Min-width (mobile-first):** `$xxxs`(260) `$xxs`(340) `$xs`(460) `$sm`(640) `$md`(768) `$lg`(1024) `$xl`(1280) `$xxl`(1536)
+  - **Max-width (desktop-first):** `$max-xxxs` `$max-xxs` `$max-xs` `$max-sm` `$max-md`(767.98) `$max-lg`(1023.98) `$max-xl`(1279.98) `$max-xxl`(1535.98)
+  - **No `$gt*` keys exist.** No `$max-md` at 1020.
+  - Pekulo's `tamagui.ts` extends `defaultConfig` and does NOT override `media`, so every Pekulo Tamagui component inherits these exact thresholds.
+    Fixes applied across story 2-3:
+  - `PekuloNavRail` `$max-md` → `$max-lg` (hide rail below 1024 px = mobile + tablet).
+  - `PekuloMobileBottomNav` `$md` → `$lg` (hide bottom nav at ≥ 1024 px = desktop).
+  - `patrimoine-view.tsx` + `accounts-section.tsx` `$md` (max-width centering, hero font bump, h2 title) → `$lg`.
+- **Rule:** Before writing ANY Tamagui media-prop in Pekulo (`$<key>={{ ... }}`), verify the key against `@tamagui/config/v5-media.ts`. The available keys are EXACTLY those above. Bento CSS module at `apps/web/.../bento.module.css` uses `@media (min-width: 1020px)` (mid-way between Tamagui md:768 and lg:1024) — that 4-pixel deviation from Tailwind `lg:1024` is invisible in practice and is the chosen Pekulo desktop threshold for THAT one CSS file. Every Tamagui media prop in the codebase should use `$lg` / `$max-lg` (= 1024 px) — NOT `$md` / `$max-md` (which is 768) unless you specifically want a tablet-vs-mobile distinction. The 2026-05-13 lesson's claim that "Pekulo Tamagui `md: 1020`" referenced an older Tamagui v4 config that no longer applies. Apply to every future apps/web story that touches responsive layouts.
+
+### 2026-05-17 — `Section` primitive `flat` prop + dual mobile/desktop rendering pattern for Cap-view-style surfaces ; mobile uses flat sections (no card), desktop uses cards in a bento grid (Scope: aped-arch, aped-dev — every apps/web dashboard surface that ports a ux-preview "Mobile single-column / Desktop bento" pair)
+
+- **Date:** 2026-05-17
+- **Mistake:** Story 1-4 had built `cap-view.tsx` as a single tree using `PlaceholderCard` (which wraps in `Section` = `bg-card rounded-xl padding-$5`) for every bento cell. The bento CSS module flexed to column on mobile, so the cells DID stack — but each remained a CARD. Ux-preview's mobile cap view (App.tsx:334-343) renders 7 FLAT sections (HeroBlock, MiniKpis, TrajectorySection, MilestonesSection, etc. — none using the `<Section>` (card) wrapper), only switching to card-wrapped variants (HeroCard, DonutCard, etc.) on lg+ in the bento. Pekulo's mobile cap view therefore read as "card-heavy" / "broken" vs ux-preview. Same root issue applied to patrimoine-view (initially used `PekuloAccountsSection` which also wraps in `Section`).
+- **Correction:** Two-part fix:
+  1. **DS — `Section` primitive (`packages/ui/src/primitives/Section.tsx`) accepts `flat?: boolean`.** When true, the View renders with `backgroundColor: "transparent"` + `padding: 0` + no border-radius, while keeping the title/action header layout intact. Default stays the card frame so existing consumers (Settings page, desktop bento cells) are unchanged. Consumers that need responsive flat/card behavior plumb the prop through their own `flat?: boolean` (story 2-3 added it to `MilestonesSection`; same pattern carries forward to `PekuloCompositionCard` / `PekuloHeroCard` / etc. as they get ported to mobile).
+  2. **Consumer — dual mobile/desktop rendering in `cap-view.tsx`.** Two sibling branches:
+     ```tsx
+     <View $lg={{ display: "none" }}>{/* mobile: 7 flat sections */}</View>
+     <View display="none" $lg={{ display: "block" }}>{/* desktop: bento with cards */}</View>
+     ```
+     The mobile branch renders inline flat placeholders for unshipped stories (hero/MiniKpis/Trajectoire/Hypothèse/Composition/Activité = stories 5-x / 6-x / 7-1) and calls `<MilestonesSection flat />` for the shipped one. The desktop branch is unchanged from the original bento.
+     Patrimoine view doesn't need dual rendering — it's flat on ALL viewports per ux-preview L361 (`flex flex-col gap-10 lg:max-w-3xl lg:mx-auto` — only the max-width centering switches on lg). So patrimoine-view uses inline flat structure throughout with `$lg`-gated max-width.
+- **Rule:** When porting a ux-preview dashboard surface to apps/web:
+  1. Open `docs/ux-preview/src/App.tsx` and find the surface. Note whether it has `lg:hidden`/`hidden lg:grid` dual branches (= "mobile single-column / desktop bento" pattern) or a single tree (= flat-everywhere or card-everywhere).
+  2. If the source uses dual branches with mobile flat sections AND desktop card cells, port BOTH branches. Don't render the card variants on mobile via `flex-direction: column` — that gives stacked cards, NOT flat sections.
+  3. Use `<View $lg={{display:"none"}}>` for mobile and `<View display="none" $lg={{display:"block"}}>` for desktop. (`$lg` = min-width 1024 — see media keys lesson above.)
+  4. For shared inner components (MilestonesSection in 1-2/1-4, CompositionSection in 5-x, HypothesisSection in 6-x, HeroBlock in 7-1, etc.), add `flat?: boolean` and forward to `Section`. Mobile branch passes `flat`; desktop branch passes the default (card).
+  5. For sections backed by unshipped stories, build inline flat placeholders directly in the page-level component (don't use `PlaceholderCard` — it wraps in `Section` card). Stories 3-x (portfolio mobile), 4-x (real-estate mobile), 5-x (transactions/monthly mobile) need this same dual-rendering pattern.
+
+### 2026-05-17 — Mobile bottom nav (or any equal-column row with 12-char labels) MUST use CSS Grid `gridTemplateColumns: repeat(N, 1fr)` ; flex with `flex: 1` rounds unevenly and truncates labels (Scope: aped-dev — every Pekulo\* DS row with N equal cells and inline text)
+
+- **Date:** 2026-05-17
+- **Mistake:** `PekuloMobileBottomNav` first impl used `<View flexDirection="row">` with each child `flex={1}`. At 390 px viewport (minus paddingHorizontal=$2=16px = 374 px inner), 5 buttons / 5 = 74.8 px each. Labels "Transactions" (12 chars) and "Portefeuille" (12 chars) at fontSize=11 measured ~ 72–76 px depending on glyph kerning. Flex rounded button widths to 74 / 75 / 74 / 75 / 74 unevenly, and any kerning variance pushed labels over the button edge. Result on mobile screenshot: "Cap Transactio[truncated] [Mensuel covered] [P]ortefeuill[e] [I]mmobilier". The flex algorithm doesn't guarantee equal pixel widths — it distributes leftover space.
+- **Correction:** Switched the container's `flexDirection: "row"` to `style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)" }}`. Grid `1fr` columns ARE exactly equal (CSS spec). Removed `flex={1}` from each button (no longer needed). Also dropped font from 11 → 10 px with `letterSpacing: -0.1` and `whiteSpace: "nowrap" + textAlign: "center"` on the Text for clean tight fit. Verified via `eval` that all 5 buttons render at 62 px and labels are intact.
+- **Rule:** When a layout requires N equal columns AND the content is text that might be longer than width / N (any label over ~6 chars), use CSS Grid `gridTemplateColumns: repeat(N, 1fr)`, NOT flex with `flex: 1`. Flex distributes leftover space (not equal widths). Apply to every Pekulo\* DS row with equal columns: future kpi rows (3-col), filter rows, segment toggles with > 2 segments, mobile tab bars, etc. If using Tamagui View, set `style={{ display: "grid", gridTemplateColumns: ... }}` — Tamagui's `display` prop doesn't accept `"grid"` as a typed value, so inline style is the escape hatch.
+
+### 2026-05-17 — Per-row CRUD actions on a card-stack mobile layout MUST hide the inline buttons behind a kebab menu ; 3 inline buttons + label + value overflow at 390 px and wrap the label (Scope: aped-dev — every apps/web list surface with per-row CRUD that ships on Patrimoine / Portefeuille / Real-estate)
+
+- **Date:** 2026-05-17
+- **Mistake:** Story 2-3 `accounts-section.tsx` rendered every row as `<label + sub-label> + <amount> + [Solde] [Modifier] [Supprimer]` inline buttons. At 390 px viewport, the 3 action buttons (each `padding: 4px 8px` + ~50px text) took ~ 180 px combined. With the label column (`flex: 1`) and amount (~ 50 px), the row overflowed and the label "PEA Trade Republic" wrapped to 2 lines. User flagged the layout as broken.
+- **Correction:** Dual-render pattern using Tamagui media keys:
+  1. **Desktop inline (default):** wrap the 3 buttons in a View with `display: "none"` + `$lg={{ display: "flex" }}` — shows inline only at ≥ 1024 px.
+  2. **Mobile kebab:** add a sibling View with `$lg={{ display: "none" }}` (visible at < 1024). It contains a `PekuloPopover` triggered by a `MoreHorizontal` icon button. The Popover content has 3 vertical buttons (Modifier le solde / Modifier le compte / Supprimer) with the same `openFor(...)` handlers as inline buttons.
+- **Rule:** For future per-row CRUD lists shipping a similar shape (`use-X-row` for holdings 3-1, transactions 5-1, hypotheses 7-3, properties 4-x):
+  1. If the row has > 1 action AND ships on mobile, plan for a kebab menu from the start — don't ship inline-only and back-fill later.
+  2. Use `PekuloPopover` with `MoreHorizontal` (lucide) as the trigger.
+  3. Action buttons inside the popover go vertical with `width: 100%` + `padding: 8px 12px` + `borderRadius: $md`. Destructive actions get `color: var(--danger)`.
+  4. Toggle via Tamagui `$lg` (`$lg={{display:"none"}}` on mobile-only, `display:"none" $lg={{display:"flex"}}` on desktop-only).
+  5. Same dialog mounts work for both — only the trigger ergonomics change.
+
+### 2026-05-17 — Story-spec UX placement MUST be cross-checked against `docs/ux-preview/src/App.tsx` before implementing ; ux-preview's `SettingsScreen` is the source of truth for `/paramètres`, not story prose (Scope: aped-story, aped-arch, aped-dev — every story that pins a CRUD surface or section placement)
+
+- **Date:** 2026-05-17
+- **Mistake:** Story 2-3 spec (epic-context cache and T13) placed account CRUD (`<AccountsSection/>`) inside `/dashboard/parametres`. The story author derived this from `docs/ux/screen-inventory.md:7` ("Paramètres (`/dashboard/parametres`) — `accounts-section.tsx` (forms surface, story 2-3)"). But `docs/ux-preview/src/App.tsx` is the AUTHORITATIVE design intent — and its `SettingsScreen` (line 1730) ships zero account management: just Compte (email/display name), Apparence, Intelligence artificielle, Vos données, Session, Hypothèse de projection. Account CRUD in ux-preview lives EXCLUSIVELY on the Patrimoine view's `AccountsSection` (line 558). Pekulo shipped story 2-3 (commit `4ba4d88`) with accounts in /paramètres anyway. User caught it during visual review ("pourquoi les comptes serai la bas?"). Pivot required 2 commits (`ae42436` + post-fix flat rewrite) to relocate.
+- **Correction:** Before implementing any UI placement decision:
+  1. Open `docs/ux-preview/src/App.tsx` and grep for the screen / section.
+  2. Read the actual JSX. If ux-preview's design says feature X lives on screen Y, that's the source of truth — overrides `docs/ux/screen-inventory.md` if they disagree.
+  3. If story spec contradicts ux-preview, surface the discrepancy to the user BEFORE writing code. Story spec is a re-derivation; ux-preview is the rendered design.
+- **Rule:** `docs/ux-preview/src/App.tsx` is the iso-fidelity reference for every apps/web frontend surface. `docs/ux/screen-inventory.md` and individual story specs are derivations — they MAY drift. When validating an implementation against story ACs, the visual side-by-side against ux-preview (via `next-browser` at viewports 390 / 768 / 1440) is the FINAL acceptance gate, not just AC text matching. Apply to every future apps/web story:
+  - At aped-story time: cross-check the story's "Screen X — where the feature lives" claim against ux-preview JSX. Flag mismatches in the story's "Pre-Implementation Checklist".
+  - At aped-dev time (GREEN): before committing a placement-related task, screenshot the implementation alongside ux-preview at the same viewport.
+  - At aped-review time: every visual finding cites the ux-preview line range (App.tsx:NNN-NNN) that's the reference.
+
 ### 2026-05-13 — Pekulo Tamagui media keys ≠ Tailwind ; never mix Tamagui `$lg / $md` responsive props with a CSS module driven by Tailwind breakpoints in the same surface (Scope: aped-dev, aped-review, aped-arch — every apps/web responsive layout that ports a Tailwind-driven ux-preview mockup)
 
 - **Date:** 2026-05-13

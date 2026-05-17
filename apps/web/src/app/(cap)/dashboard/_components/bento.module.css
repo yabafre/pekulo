@@ -1,13 +1,14 @@
 /*
  * Cap-view layout — mirrors ux-preview `App.tsx:114-203` + `:331-356` verbatim.
  *
- * Single responsive breakpoint: 1020px — matches Pekulo Tamagui `md`
- * (`@tamagui/config/v5`'s `md: 1020`), which is the threshold at which
- * `PekuloNavRail` flips from `display: none` (`$max-md`) to visible. Using
- * 1024px (Tailwind `lg`) here would leave a 4 px window (1021–1023) where
- * the rail is visible but the shell still uses mobile padding, creating
- * an overlap. The 4 px deviation from Tailwind `lg` is visually
- * imperceptible and avoids forking PekuloNavRail's media query.
+ * Single responsive breakpoint: 1024px — matches Tamagui v5 `lg` exactly
+ * (`@tamagui/config/v5`: sm:640, md:768, lg:1024, xl:1280, xxl:1536). Both
+ * `PekuloNavRail` (`$max-lg = { display: "none" }`) and
+ * `PekuloMobileBottomNav` (`$lg = { display: "none" }`) pivot at the same
+ * threshold so this CSS module never gets out of sync with the rail / bottom-
+ * nav visibility windows. (Pre-2026-05-17 this file used 1020 px against
+ * an old `$max-md = 1020` claim — see lesson 2026-05-17 "Tamagui v5 media
+ * keys" for the correction.)
  *
  * Spacing maps to Tailwind utilities used in ux-preview:
  *   px-5  → 20px       px-2  →  8px       pt-6  → 24px       pt-4  → 16px
@@ -25,7 +26,7 @@
   color: var(--color);
 }
 
-@media (min-width: 1020px) {
+@media (min-width: 1024px) {
   .shell {
     /* lg:pl-24 lg:pr-4 — leaves room for the fixed-left sidebar (left:16
        width:64 → right-edge 80, so 16 px gap between rail and content). */
@@ -44,7 +45,7 @@
   gap: 12px;
 }
 
-@media (min-width: 1020px) {
+@media (min-width: 1024px) {
   .header {
     padding: 24px 8px 8px 8px; /* lg:px-2 lg:pt-6 lg:pb-2 */
   }
@@ -114,6 +115,18 @@
   opacity: 0.9;
 }
 
+/* Mobile header trim — mirrors ux-preview L122-135. Below the Tamagui
+   `$lg` cutover (= 1024 px) the date label and the "Nouvelle transaction"
+   pill drop out so only the Cap/Patrimoine tabs + UserDot remain. */
+@media (max-width: 1023.98px) {
+  .dateLabel {
+    display: none;
+  }
+  .newTxPill {
+    display: none;
+  }
+}
+
 /* ─── HeaderAction pill (ux-preview L901-923) — used inside Section
        headers for inline actions like "+ Ajouter" on Paliers / Comptes. */
 
@@ -156,7 +169,7 @@
   font-family: inherit;
 }
 
-@media (min-width: 1020px) {
+@media (min-width: 1024px) {
   .userDot {
     width: 40px; /* lg:h-10 lg:w-10 */
     height: 40px;
@@ -170,7 +183,7 @@
   padding: 24px 20px 112px 20px; /* px-5 pt-6 pb-28 */
 }
 
-@media (min-width: 1020px) {
+@media (min-width: 1024px) {
   .main {
     padding: 16px 8px 32px 8px; /* lg:px-2 lg:pt-4 lg:pb-8 */
   }
@@ -185,7 +198,7 @@
   width: 100%;
 }
 
-@media (min-width: 1020px) {
+@media (min-width: 1024px) {
   .bento {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));

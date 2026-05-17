@@ -3,30 +3,13 @@
 import { defineAction } from "@zapaction/core";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { accountSchema, holdingSchema, idSchema, updatePriceSchema } from "@/lib/schemas/portfolio";
+import { holdingSchema, idSchema, updatePriceSchema } from "@/lib/schemas/portfolio";
 import { portfolioTags } from "@/lib/zapaction/keys";
 import type { ActionContext } from "@/lib/zapaction/context";
 import "@/lib/zapaction/context";
-import type {
-  Account,
-  AccountType,
-  Currency,
-  Holding,
-  HoldingKind,
-  RefreshSummary,
-} from "@/lib/types";
+import type { Currency, Holding, HoldingKind, RefreshSummary } from "@/lib/types";
 import { fetchPriceQuote, PriceError } from "@/lib/services/prices";
 import { YahooError } from "@/lib/services/yahoo-finance";
-
-const accountRow = (row: Record<string, unknown>): Account => ({
-  id: String(row.id),
-  label: String(row.label),
-  type: row.type as AccountType,
-  currency: (row.currency as Currency) ?? "EUR",
-  cashBalance: Number(row.cash_balance),
-  notes: row.notes != null ? String(row.notes) : null,
-  createdAt: String(row.created_at),
-});
 
 const holdingRow = (row: Record<string, unknown>): Holding => ({
   id: String(row.id),
@@ -49,20 +32,6 @@ function bumpPaths() {
   revalidatePath("/dashboard");
 }
 
-export const getAccounts = defineAction<void, Account[], ActionContext>({
-  name: "getAccounts",
-  input: z.void(),
-  handler: async ({ ctx }) => {
-    const { data, error } = await ctx.supabase
-      .from("accounts")
-      .select("*")
-      .eq("user_id", ctx.userId)
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return (data ?? []).map(accountRow);
-  },
-});
-
 export const getHoldings = defineAction<void, Holding[], ActionContext>({
   name: "getHoldings",
   input: z.void(),
@@ -74,51 +43,6 @@ export const getHoldings = defineAction<void, Holding[], ActionContext>({
       .order("created_at", { ascending: true });
     if (error) throw error;
     return (data ?? []).map(holdingRow);
-  },
-});
-
-export const saveAccount = defineAction<z.infer<typeof accountSchema>, Account, ActionContext>({
-  name: "saveAccount",
-  input: accountSchema,
-  tags: [portfolioTags.accounts()],
-  handler: async ({ input, ctx }) => {
-    const payload = {
-      user_id: ctx.userId,
-      label: input.label,
-      type: input.type,
-      currency: input.currency,
-      cash_balance: input.cashBalance,
-      notes: input.notes ?? null,
-      updated_at: new Date().toISOString(),
-    };
-    const { data, error } = input.id
-      ? await ctx.supabase
-          .from("accounts")
-          .update(payload)
-          .eq("id", input.id)
-          .eq("user_id", ctx.userId)
-          .select("*")
-          .single()
-      : await ctx.supabase.from("accounts").insert(payload).select("*").single();
-    if (error) throw error;
-    bumpPaths();
-    return accountRow(data);
-  },
-});
-
-export const deleteAccount = defineAction<z.infer<typeof idSchema>, { ok: true }, ActionContext>({
-  name: "deleteAccount",
-  input: idSchema,
-  tags: [portfolioTags.accounts(), portfolioTags.holdings()],
-  handler: async ({ input, ctx }) => {
-    const { error } = await ctx.supabase
-      .from("accounts")
-      .delete()
-      .eq("id", input.id)
-      .eq("user_id", ctx.userId);
-    if (error) throw error;
-    bumpPaths();
-    return { ok: true as const };
   },
 });
 

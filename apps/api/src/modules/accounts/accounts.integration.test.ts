@@ -9,10 +9,12 @@
 //   - Round-trip type-safety: contract Zod runs on both ingress and egress
 //   - oRPC RPC envelope: mutation inputs / outputs both wrap in { json: ... }
 //
-// What's covered at the service layer instead (not here): ACCOUNT_NOT_FOUND
-// (AC-4) and ACCOUNT_REFERENCED_FK (AC-2) — RPCHandler wraps handler-thrown
-// errors before our error-mapper sees them (precedent: milestones integration
-// test's update/delete path notes the same constraint).
+// Story 2-3 review extension: ACCOUNT_NOT_FOUND (AC-4) and
+// ACCOUNT_REFERENCED_FK (AC-2) wire roundtrips are now covered here. The
+// routes re-throw service-side AccountError as typed contract errors via
+// the handler's `errors.*` constructors, so the wire JSON parses back into
+// a `defined` ORPCError on the client. Verified inline using
+// `isORPCErrorJson` + `createORPCErrorFromJson` from @orpc/client.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
@@ -45,8 +47,9 @@ async function signValid(): Promise<string> {
     .sign(new TextEncoder().encode(SECRET));
 }
 
-function inMemoryService(): AccountService {
+function inMemoryService(opts?: { fkLockedIds?: ReadonlySet<string> }): AccountService {
   const store = new Map<string, Account>();
+  const fkLockedIds = opts?.fkLockedIds ?? new Set<string>();
   let nextId = 0;
   const mintId = () => `acc_${String(nextId++).padStart(21, "0")}`;
   return {
@@ -83,6 +86,11 @@ function inMemoryService(): AccountService {
       return updated;
     },
     async delete(userId, input) {
+      // FK gate fires first (matches production DB semantics: the FK probe
+      // catches conflicts independent of row visibility).
+      if (fkLockedIds.has(input.id)) {
+        throw new AccountError("ACCOUNT_REFERENCED_FK", "account is referenced by 1 holding");
+      }
       const existing = store.get(input.id);
       if (!existing || existing.userId !== userId) {
         throw new AccountError("ACCOUNT_NOT_FOUND", "account not found");
@@ -210,8 +218,8 @@ describe("accounts HTTP boundary (AC-7)", () => {
     const elapsed = performance.now() - t0;
     expect(res.status).toBe(401);
     expect(elapsed).toBeLessThan(100);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
   });
 
   test("POST /rpc/v1/accounts/update with valid JWT returns 200 + patched body", async () => {
@@ -338,7 +346,157 @@ describe("accounts HTTP boundary (AC-7)", () => {
     const elapsed = performance.now() - t0;
     expect(res.status).toBe(401);
     expect(elapsed).toBeLessThan(100);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
+  });
+});
+
+// Story 2-3 review — typed error wire roundtrip. Standalone app + service
+// because we need a deterministic FK-locked id. Boots on its own port so the
+// FK lock doesn't poison the happy-path suite above.
+describe("accounts typed-error wire (AC-2, AC-4)", () => {
+  let fkAppHandle: { stop: () => Promise<void> } | undefined;
+  let fkBaseUrl = "";
+  let fkValidToken = "";
+  const fkLockedId = "acc_FKLOCKED0000000000000";
+
+  beforeAll(async () => {
+    const jwtVerifier = createJwtVerifier({
+      secret: SECRET,
+      issuer: ISSUER,
+      audience: AUDIENCE,
+    });
+    // Pre-seed the FK-locked id by minting a service whose store starts
+    // empty, then in the test we'll create one and force-promote it to
+    // locked. Simpler: lock by id literal — the service does not validate
+    // id format on the FK gate, only on delete-exists.
+    const lockedSet = new Set([fkLockedId]);
+    const svc = inMemoryService({ fkLockedIds: lockedSet });
+    const router = createAccountsRouter({ service: svc });
+    const orpcRouter: PekuloRpcRouter = { accounts: router };
+    const port = 14400 + Math.floor(Math.random() * 200);
+    const app = new Elysia().onError(({ error, set }) => {
+      const requestId = extractRequestId(error) ?? crypto.randomUUID();
+      const mapped = mapErrorToOrpcResponse(error, requestId);
+      set.status = mapped.status;
+      return mapped.body;
+    });
+    mountOrpc(app, { jwtVerifier, orpcRouter });
+    await new Promise<void>((resolve) => {
+      app.listen({ port, hostname: "127.0.0.1" }, () => resolve());
+    });
+    fkBaseUrl = `http://127.0.0.1:${port}`;
+    fkAppHandle = {
+      stop: async () => {
+        await app.stop();
+      },
+    };
+    fkValidToken = await signValid();
+    // Seed the locked account so delete reaches the FK gate. The service
+    // mints sequential ids; we cannot inject `acc_FKLOCKED0000000000000`
+    // via create. Instead we add a synthetic row via a direct second-
+    // service-call — but the existing service has no admin API, so we
+    // simply test delete against the locked-id directly: the gate fires
+    // before the existence check would have run. The route remap then
+    // surfaces ACCOUNT_REFERENCED_FK on the wire.
+    void fkLockedId; // referenced in tests below
+  });
+
+  afterAll(async () => {
+    await fkAppHandle?.stop();
+    fkAppHandle = undefined;
+  });
+
+  // The wire body for an oRPC error is wrapped in the standard RPC envelope
+  // `{ json: { defined, code, status, message, data }, meta? }` — same shape
+  // as success responses. The client's StandardRPCLink.decode unwraps `json`
+  // before passing the inner object to `isORPCErrorJson`. We replicate the
+  // unwrap here to assert the wire really matches what the client expects.
+  type WireEnvelope = { json: unknown; meta?: unknown };
+  const unwrap = (envelope: WireEnvelope): unknown =>
+    envelope && typeof envelope === "object" && "json" in envelope ? envelope.json : envelope;
+
+  test("delete of FK-locked id returns canonical oRPC error JSON parseable by @orpc/client", async () => {
+    const { isORPCErrorJson, createORPCErrorFromJson, isORPCErrorStatus } =
+      await import("@orpc/client");
+    const res = await fetch(`${fkBaseUrl}/rpc/v1/accounts/delete`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${fkValidToken}`,
+      },
+      body: JSON.stringify({ json: { id: fkLockedId } }),
+    });
+    expect(isORPCErrorStatus(res.status)).toBe(true);
+    expect(res.status).toBe(409);
+    const inner = unwrap((await res.json()) as WireEnvelope);
+    expect(isORPCErrorJson(inner)).toBe(true);
+    const reconstructed = createORPCErrorFromJson(inner as never);
+    expect(reconstructed.code).toBe("ACCOUNT_REFERENCED_FK");
+    expect(reconstructed.status).toBe(409);
+    expect(reconstructed.defined).toBe(true);
+    expect(typeof reconstructed.message).toBe("string");
+  });
+
+  test("delete of unknown id returns canonical oRPC error JSON with ACCOUNT_NOT_FOUND", async () => {
+    const { isORPCErrorJson, createORPCErrorFromJson } = await import("@orpc/client");
+    const res = await fetch(`${fkBaseUrl}/rpc/v1/accounts/delete`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${fkValidToken}`,
+      },
+      body: JSON.stringify({ json: { id: "acc_UNKNOWNGHOST000000000" } }),
+    });
+    expect(res.status).toBe(404);
+    const inner = unwrap((await res.json()) as WireEnvelope);
+    expect(isORPCErrorJson(inner)).toBe(true);
+    const reconstructed = createORPCErrorFromJson(inner as never);
+    expect(reconstructed.code).toBe("ACCOUNT_NOT_FOUND");
+    expect(reconstructed.status).toBe(404);
+    expect(reconstructed.defined).toBe(true);
+  });
+
+  test("update of unknown id returns canonical ACCOUNT_NOT_FOUND wire body", async () => {
+    const { isORPCErrorJson, createORPCErrorFromJson } = await import("@orpc/client");
+    const res = await fetch(`${fkBaseUrl}/rpc/v1/accounts/update`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${fkValidToken}`,
+      },
+      body: JSON.stringify({
+        json: { id: "acc_UNKNOWNGHOST000000000", label: "renamed" },
+      }),
+    });
+    expect(res.status).toBe(404);
+    const inner = unwrap((await res.json()) as WireEnvelope);
+    expect(isORPCErrorJson(inner)).toBe(true);
+    const reconstructed = createORPCErrorFromJson(inner as never);
+    expect(reconstructed.code).toBe("ACCOUNT_NOT_FOUND");
+    expect(reconstructed.defined).toBe(true);
+  });
+
+  test("recordBalanceChange of unknown id returns canonical ACCOUNT_NOT_FOUND wire body", async () => {
+    const { isORPCErrorJson, createORPCErrorFromJson } = await import("@orpc/client");
+    const res = await fetch(`${fkBaseUrl}/rpc/v1/accounts/recordBalanceChange`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${fkValidToken}`,
+      },
+      body: JSON.stringify({
+        json: {
+          id: "acc_UNKNOWNGHOST000000000",
+          valuedOn: "2026-05-01T00:00:00.000Z",
+          cashBalance: 9999,
+        },
+      }),
+    });
+    expect(res.status).toBe(404);
+    const inner = unwrap((await res.json()) as WireEnvelope);
+    expect(isORPCErrorJson(inner)).toBe(true);
+    const reconstructed = createORPCErrorFromJson(inner as never);
+    expect(reconstructed.code).toBe("ACCOUNT_NOT_FOUND");
   });
 });

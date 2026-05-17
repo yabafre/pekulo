@@ -112,9 +112,9 @@ describe("hypothesis bridge (integration)", () => {
     stdoutCapture.lines.length = 0;
     const res = await fetch(`${baseUrl}/rpc/v1/hypothesis/get`, { method: "POST" });
     expect(res.status).toBe(401);
-    const body = (await res.json()) as { error: { code: string; requestId: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
-    expect(body.error.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    const body = (await res.json()) as { code: string; data: { requestId: string } };
+    expect(body.code).toBe("UNAUTHORIZED");
+    expect(body.data.requestId).toMatch(/^[0-9a-f-]{36}$/);
     // Mount-side log captured the same requestId that hits the wire.
     const log = stdoutCapture.lines
       .map((l) => {
@@ -126,7 +126,7 @@ describe("hypothesis bridge (integration)", () => {
       })
       .find((p) => p && p.event === "rpc.request");
     expect(log).toBeDefined();
-    expect(log.requestId).toBe(body.error.requestId);
+    expect(log.requestId).toBe(body.data.requestId);
     expect(log.status).toBe(401);
     expect(log.errorCode).toBe("UNAUTHORIZED");
     expect(log.userId).toBe("anonymous");

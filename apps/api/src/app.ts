@@ -76,7 +76,7 @@ export async function startServer(): Promise<ServerHandle> {
       if (status >= 500) {
         console.error("[api] error", {
           requestId,
-          code: mapped.body.error.code,
+          code: mapped.body.code,
           name: error instanceof Error ? error.name : typeof error,
           message: error instanceof Error ? error.message : String(error),
         });

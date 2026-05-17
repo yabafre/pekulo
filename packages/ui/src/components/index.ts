@@ -23,6 +23,7 @@ export * from "./PekuloHypothesisVerdict";
 export * from "./PekuloKpiTile";
 export * from "./PekuloMilestoneRow";
 export * from "./PekuloMilestonesCard";
+export * from "./PekuloMobileBottomNav";
 export * from "./PekuloMonthlyRow";
 export * from "./PekuloNavRail";
 export * from "./PekuloProjectionChart";

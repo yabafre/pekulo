@@ -33,12 +33,15 @@ export interface MilestonesSectionProps {
    *  during the first compass-query resolution still renders rows. */
   compassObjectif?: number;
   compassHorizonYears?: number;
+  /** Strip the card frame — used by cap-view mobile (ux-preview L334-343). */
+  flat?: boolean;
 }
 
 export function MilestonesSection({
   currentWealth,
   compassObjectif,
   compassHorizonYears,
+  flat,
 }: MilestonesSectionProps) {
   const toast = useToast();
   const dialog = useAddMilestoneDialog();
@@ -80,7 +83,12 @@ export function MilestonesSection({
   );
 
   return (
-    <Section ariaLabel={`Paliers (${items.length}/20)`} title="Paliers" action={headerAction}>
+    <Section
+      ariaLabel={`Paliers (${items.length}/20)`}
+      title="Paliers"
+      action={headerAction}
+      flat={flat}
+    >
       {items.length === 0 ? (
         <Text color="$colorTertiary" fontSize="$caption" paddingVertical="$3">
           Aucun palier — ajoute le premier pour rythmer le cap.
@@ -88,16 +96,15 @@ export function MilestonesSection({
       ) : (
         <View
           render="ul"
-          flex={1}
-          minHeight={0}
+          flex={flat ? undefined : 1}
+          minHeight={flat ? undefined : 0}
           flexDirection="column"
           style={{
             listStyle: "none",
-            // Flex-fills the cell height (set via `bento.module.css` →
-            // every grid cell stretches to its row track). Beyond visible
-            // rows, the list scrolls INSIDE the cell — the bento row
-            // height stays invariant whatever the milestone count.
-            overflowY: "auto",
+            // Desktop bento: flex-fills the cell height + scrolls inside.
+            // Flat mode (cap-view mobile): natural-height list, no scroll —
+            // the parent column flow handles overflow.
+            overflowY: flat ? "visible" : "auto",
             paddingInlineStart: 0,
             marginBlock: 0,
           }}

@@ -3,15 +3,26 @@
 // Consumed by Elysia's .onError(...) in src/app.ts and by the orpc-mount
 // fall-through path. Pure: no I/O, no logger — logging happens at the
 // call site so test fakes can capture it.
+//
+// Wire shape MUST be the canonical oRPC error JSON expected by
+// @orpc/client's `isORPCErrorJson` guard: a flat object with the keys
+// `{ defined, code, status, message, data }`. The client rejects bodies
+// with any extra top-level key (e.g. an `error:` wrapper or a sibling
+// `requestId`) — when the guard fails, the client throws a generic
+// `ORPCError(getMalformedResponseErrorCode(status))` and the typed code
+// (`ACCOUNT_REFERENCED_FK`, `MILESTONE_LIMIT_EXCEEDED`, etc.) is lost.
+// Story 2-3 review surfaced this on the delete-account FK flow.
+// `requestId` lives inside `data` so the cross-realm correlation handle
+// survives without breaking the guard.
 
 import { isPekuloError, type PekuloErrorCode } from "../../common/errors";
 
 export interface OrpcErrorBody {
-  error: {
-    code: string;
-    message: string;
-    requestId?: string;
-  };
+  defined: boolean;
+  code: string;
+  status: number;
+  message: string;
+  data: { requestId: string };
 }
 
 export interface MappedErrorResponse {
@@ -113,14 +124,15 @@ function isElysiaNotFoundError(err: unknown): err is { code: "NOT_FOUND" } {
  */
 export function mapErrorToOrpcResponse(err: unknown, requestId: string): MappedErrorResponse {
   if (isPekuloError(err)) {
+    const status = ORPC_HTTP_STATUS_BY_CODE[err.code] ?? 500;
     return {
-      status: ORPC_HTTP_STATUS_BY_CODE[err.code] ?? 500,
+      status,
       body: {
-        error: {
-          code: err.code,
-          message: err.message,
-          requestId,
-        },
+        defined: false,
+        code: err.code,
+        status,
+        message: err.message,
+        data: { requestId },
       },
     };
   }
@@ -128,22 +140,22 @@ export function mapErrorToOrpcResponse(err: unknown, requestId: string): MappedE
     return {
       status: 404,
       body: {
-        error: {
-          code: "NOT_FOUND",
-          message: "route not found",
-          requestId,
-        },
+        defined: false,
+        code: "NOT_FOUND",
+        status: 404,
+        message: "route not found",
+        data: { requestId },
       },
     };
   }
   return {
     status: 500,
     body: {
-      error: {
-        code: "INTERNAL",
-        message: "internal server error",
-        requestId,
-      },
+      defined: false,
+      code: "INTERNAL",
+      status: 500,
+      message: "internal server error",
+      data: { requestId },
     },
   };
 }
