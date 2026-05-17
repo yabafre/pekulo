@@ -64,6 +64,15 @@ export type HoldingLotId = Id<"HoldingLotId">;
 /** Canonical domain entities — z.infer from @pekulo/validators. */
 export type { Holding, HoldingLot, DerivedHolding } from "@pekulo/validators";
 
+/** Price chain (story 3-2) — service-internal DTOs, no oRPC surface. */
+export type {
+  PriceQuote,
+  PriceQuoteInput,
+  PriceProvider,
+  PriceProviderAttempt,
+} from "@pekulo/validators";
+export { PRICE_PROVIDERS } from "@pekulo/validators";
+
 /** UI prop shape consumed by PekuloHoldingRow / PekuloPortfolioSection. */
 export interface HoldingCardItem {
   ticker: string;

@@ -29,3 +29,26 @@ export function holdingNotFound(): HoldingError {
 export function holdingClosed(): HoldingError {
   return new HoldingError("HOLDING_CLOSED", "holding is closed");
 }
+
+// ─── Price chain (story 3-2) ─────────────────────────────────────────────
+// PriceProviderError is a plain Error subclass — NOT a PekuloError. The
+// orchestrator throws it when all 4 tiers fail; the caller (story 3-3's
+// snapshot logic) translates it to a typed oRPC error of its choosing.
+// Wrapping it in PekuloError now would force a contract error code that no
+// procedure declares.
+
+import type { PriceProviderAttempt } from "@pekulo/types";
+
+export class PriceProviderError extends Error {
+  override readonly name = "PriceProviderError";
+  readonly attempts: readonly PriceProviderAttempt[];
+
+  constructor(attempts: readonly PriceProviderAttempt[]) {
+    const summary =
+      attempts.length === 0
+        ? "Aucun provider disponible."
+        : attempts.map((a) => `${a.provider}: ${a.reason}`).join(" · ");
+    super(summary);
+    this.attempts = attempts;
+  }
+}
