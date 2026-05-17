@@ -2486,5 +2486,5 @@ Pass-1 surfaced 2 CRITICAL + 4 HIGH + 4 MEDIUM + 4 LOW findings across the four 
 - **Visual review:** deferred to code-review fallback — `mcp__react-grab-mcp__get_element_context` was unavailable during dev (Dev Agent Record L2257-2260) AND during this review pass (2026-05-17T19:07:00Z). Static comparison against `docs/ux-preview/src/App.tsx` anchors (L180-202, L331-356, L359-377, L558-581) confirms the structural fidelity; pixel-perfect verification at 390/768/1440 should be re-run when MCP becomes available.
 
 ### Ticket sync
-- Ticket comment posted: pending (see step-5 footer command output)
-- PR updated: pending (see step-5 footer)
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/19#issuecomment-4471672661
+- PR updated: https://github.com/yabafre/pekulo/pull/79
