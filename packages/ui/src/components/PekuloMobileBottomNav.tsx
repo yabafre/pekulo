@@ -45,7 +45,7 @@ export function PekuloMobileBottomNav({ activeKey, onSelect }: PekuloMobileBotto
   return (
     <View
       render="nav"
-      aria-label="Navigation principale"
+      aria-label="Navigation rapide"
       position="fixed"
       bottom={0}
       left={0}

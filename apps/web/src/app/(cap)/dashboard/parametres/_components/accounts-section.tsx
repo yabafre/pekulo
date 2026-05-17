@@ -79,7 +79,10 @@ const kebabBtn: CSSProperties = {
   borderRadius: pekuloRadius.full,
 };
 
-const popoverActionBtn = (danger?: boolean): CSSProperties => ({
+// Module-scoped constants — avoid re-allocating per row render (the
+// `accounts-section.tsx` map iterates 2-3 popover buttons per account).
+// Story 2-3 review LOW #13.
+const popoverActionBtnBase: CSSProperties = {
   display: "flex",
   alignItems: "center",
   width: "100%",
@@ -87,12 +90,19 @@ const popoverActionBtn = (danger?: boolean): CSSProperties => ({
   background: "none",
   border: "none",
   cursor: "pointer",
-  color: danger ? "var(--danger)" : "var(--color)",
   fontSize: 14,
   fontWeight: 500,
   borderRadius: pekuloRadius.md,
   textAlign: "left",
-});
+};
+const popoverActionBtnNeutral: CSSProperties = {
+  ...popoverActionBtnBase,
+  color: "var(--color)",
+};
+const popoverActionBtnDanger: CSSProperties = {
+  ...popoverActionBtnBase,
+  color: "var(--danger)",
+};
 
 type DialogKind = "create" | "edit" | "balance" | "delete" | null;
 
@@ -223,21 +233,21 @@ export function AccountsSection() {
                     <button
                       type="button"
                       onClick={() => openFor("balance", acc)}
-                      style={popoverActionBtn()}
+                      style={popoverActionBtnNeutral}
                     >
                       Modifier le solde
                     </button>
                     <button
                       type="button"
                       onClick={() => openFor("edit", acc)}
-                      style={popoverActionBtn()}
+                      style={popoverActionBtnNeutral}
                     >
                       Modifier le compte
                     </button>
                     <button
                       type="button"
                       onClick={() => openFor("delete", acc)}
-                      style={popoverActionBtn(true)}
+                      style={popoverActionBtnDanger}
                     >
                       Supprimer
                     </button>

@@ -14,7 +14,7 @@
 
 ## Acceptance Criteria
 
-- **AC-1 (create → list + Patrimoine refresh):** **Given** I open `/dashboard/parametres` and the accounts section renders, **When** I submit `account-create-form` with `{ label: "Livret A", type: "livret", currency: "EUR", cashBalance: 5_000 }`, **Then** the new row appears in `accounts-section.tsx` AND navigating to `/dashboard?tab=patrimoine` shows the new row inside `PekuloAccountsSection` (both surfaces consume `accountsKeys.list()`; the mutation invalidates that key, so both refetch on next subscription tick).
+- **AC-1 (create → Patrimoine refresh):** **Given** I open `/dashboard?tab=patrimoine` and the accounts section renders, **When** I submit `account-create-form` with `{ label: "Livret A", type: "livret", currency: "EUR", cashBalance: 5_000 }`, **Then** the new row appears in `accounts-section.tsx` (which mounts inside `patrimoine-view.tsx` after the post-completion pivot — `parametres/page.tsx` no longer mounts `<AccountsSection/>`). The mutation invalidates `accountsKeys.list()` so the next subscription tick refetches.
 - **AC-2 (FK-guarded delete surfaces the error):** **Given** an account referenced by ≥ 1 holding (existing FK from `holdings.account_id`), **When** I confirm deletion in `account-delete-confirm.tsx`, **Then** the server action returns `{ ok: false, code: "ACCOUNT_REFERENCED_FK", message: <api> }` (NOT throws — see T2) AND the dialog renders the localised message _"Ce compte est référencé par des positions — supprimez-les d'abord."_ inside a `role="alert"` Text node. The account row stays in the list (no optimistic remove on `ok: false`).
 - **AC-3 (edit → optimistic-free invalidate):** **Given** the list shows an account, **When** I save changes in `account-edit-form.tsx` (`updateAccount({ id, label: "Nouveau" })`), **Then** the response Account is returned, `accountsKeys.list()` is invalidated, the list refetches, and the row reflects `label: "Nouveau"`.
 - **AC-4 (record balance change):** **Given** an account with `cashBalance: 1_000`, **When** I submit `account-balance-form` with `{ valuedOn: <date>, cashBalance: 1_500 }` (calls `recordBalanceChange`), **Then** the response Account has `cashBalance: 1_500`, `accountsKeys.list()` is invalidated, and the row updates to show `1 500 €`. The audit row in `account_balance_log` is the API's responsibility (story 2-2) — this story only verifies the UI invalidation.
@@ -2193,6 +2193,37 @@ Already wired by story 2-1. `recordBalanceChange` arrived with story 2-2's contr
 - `apps/web/src/app/(cap)/dashboard/_components/cap-shell.tsx` (Patrimoine tab routing)
 - `apps/web/src/app/(cap)/dashboard/parametres/page.tsx` (mount `<AccountsSection/>`)
 - `apps/web/src/lib/actions/portfolio.ts` (remove `accountRow`/`getAccounts`/`saveAccount`/`deleteAccount` — NFR-28)
+
+### Additional paths landed during post-completion polish + `aped-review` fix-cycle
+
+> Documented for downstream-story discoverability — they were not in the
+> original T1-T17 plan but are part of the shipped story scope. See
+> "Post-completion polish" and "aped-review fix-cycle" in the Dev Agent
+> Record for context.
+
+- Created: `packages/ui/src/components/PekuloMobileBottomNav.tsx`
+- Created: `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-update-account.test.tsx`
+- Created: `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-record-balance-change.test.tsx`
+- Created: `apps/web/src/app/(cap)/dashboard/page.test.tsx`
+- Modified: `packages/ui/src/components/PekuloNavRail.tsx` (`$max-md` → `$max-lg`)
+- Modified: `packages/ui/src/components/PekuloNavRail.snapshot.test.tsx`
+- Modified: `packages/ui/src/components/index.ts` (export `PekuloMobileBottomNav`)
+- Modified: `packages/ui/src/primitives/Section.tsx` (+ `flat` prop)
+- Modified: `apps/web/src/app/(cap)/dashboard/_components/bento.module.css` (1020 → 1024 px breakpoint)
+- Modified: `apps/web/src/app/(cap)/dashboard/_components/cap-view.tsx` (dual mobile/desktop)
+- Modified: `apps/web/src/app/(cap)/dashboard/_components/milestones-section.tsx` (+ `flat` prop forward)
+- Modified: `apps/web/src/lib/data/portfolio.ts` (drop dead `readAccounts`/`readPortfolioSnapshot` — NFR-28 closure)
+- Modified: `apps/api/src/platform/http/error-mapper.ts` (canonical oRPC error JSON shape)
+- Modified: `apps/api/src/platform/http/error-mapper.test.ts`
+- Modified: `apps/api/src/platform/http/orpc-mount.ts` (consume new body.code)
+- Modified: `apps/api/src/app.ts` (log mapped.body.code)
+- Modified: `apps/api/src/modules/accounts/accounts.routes.ts` (typed error rethrow)
+- Modified: `apps/api/src/modules/accounts/accounts.integration.test.ts` (typed-error wire suite)
+- Modified: `apps/api/src/modules/compass/compass.integration.test.ts` (body shape update)
+- Modified: `apps/api/src/modules/hypothesis/hypothesis.integration.test.ts` (body shape update)
+- Modified: `apps/api/src/modules/milestones/milestones.integration.test.ts` (body shape update)
+- Modified: `apps/api/package.json` (+ `@orpc/client` dep for wire-shape test)
+- Modified: `packages/contracts/src/accounts.contract.ts` (+ `.errors({...})` declarations)
 
 ## Dev Agent Record
 
