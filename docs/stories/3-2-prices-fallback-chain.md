@@ -2624,3 +2624,64 @@ Final run: `bun --filter='@pekulo/api' run test` — **295 pass / 0 fail / 739 e
 Targeted module run: `bun --filter='@pekulo/api' run test src/modules/holdings` — **64 pass / 0 fail / 136 expect() calls / 9 files**.
 
 `bun run typecheck` (monorepo): **8 successful / 8 total**. `bun run lint`: **1 warning** (pre-existing `accounts.module.test.ts:297` dangling-underscore unrelated to 3-2), **0 errors**.
+
+## Review Record
+
+**Date:** 2026-05-17
+**Auditors:** Spec, Code, Edge & Hallucination (no Aria — backend surface, no preview app)
+**Verdict:** done
+**Override:** AC gap accepted — reason: *"Inline fix pass — pas de retour à aped-dev pour ce cycle."*
+
+### Findings
+
+#### Resolved
+
+- **[CRITICAL] F1 — AC-7 OTel spans émis sans test d'assertion** [`apps/api/src/modules/holdings/holdings.service.ts:303-324` + `…/holdings.service.test.ts:270-395` (original gap)]
+  - Source: Spec auditor
+  - Resolution: `26db742` — created `apps/api/src/modules/holdings/holdings.otel.test.ts` (3 tests) wiring `NodeTracerProvider` + `InMemorySpanExporter` + `BatchSpanProcessor`. Asserts: (a) yahoo-wins path emits parent `prices.resolveQuote` (cache_hit=false) + single child `prices.tier_2` with all 5 canonical attributes (`prices.provider="yahoo"`, `prices.ticker="CW8"`, `prices.currency="EUR"`, `prices.kind="etf"`, `prices.outcome="ok"`, `prices.duration_ms` numeric); (b) crypto all-fail emits exactly 3 child spans (`tier_1`, `tier_2`, `tier_4`) — NO `prices.tier_3` (boursorama short-circuit proven via OTel); (c) cache hit emits parent with `prices.cache_hit=true` and ZERO child tier spans. Pattern lifted from `apps/api/src/platform/observability/otel-sdk.test.ts:142-260`.
+
+- **[MAJOR] F2 — AC-3 mappings FR sans cross-ref brownfield** [`apps/api/src/modules/holdings/holdings.service.ts:72-80`]
+  - Source: Spec auditor
+  - Resolution: `2a10bee` — comment block added above `shortPs` listing brownfield SSOT line refs (`apps/web/src/lib/services/prices.ts:123/140/157/172` for `shortPs/shortYahoo/shortBourso/shortTd`). Drift guard: when the brownfield is deleted in story 3-3, this block promotes to canonical.
+
+- **[MAJOR] F4 — AC-1 timing test « mock-the-behaviour » (synchronous throw didn't prove timeout enforcement)** [`apps/api/src/modules/holdings/holdings.service.test.ts:271-292` (original)]
+  - Source: Code auditor (anti-pattern #1)
+  - Resolution: `d2c963f` — added second AC-1 test at `holdings.service.test.ts:291-341` that wires the REAL `createPricesClient` (timeoutMs=500) against a globally-mocked `fetch` returning `new Promise` that only rejects when `AbortSignal.abort` fires. Asserts `elapsed >= 450 && elapsed < 800 ms` — proves the 500 ms `AbortSignal.timeout` actually enforces, not just that the orchestrator catches synchronous errors. Original sync-error test kept and renamed `"AC-1 (sync error): tier-1 returns immediately on PricesServiceError → tier-2 wins"` (still valid coverage of the catch path).
+
+- **[MINOR] F5 — Yahoo client sans timeout (NFR-18 backstop manquant)** [`apps/api/src/modules/holdings/services/yahoo-client.ts`]
+  - Source: Code auditor
+  - Resolution: `423d868` — extended `YahooErrorCode` with `"timeout"`; `createYahooClient(deps?: { timeoutMs?: number })` now wraps `yahooFinance.quote(...)` in `Promise.race` against a hard deadline (default 2_000 ms). Wired `YAHOO_TIMEOUT_MS = 2_000` in `holdings.module.ts`. Added `case "timeout": return "timeout";` to `shortYahoo`. New test at `yahoo-client.test.ts:76-90` asserts hanging mock + `timeoutMs: 50` → `YahooError("timeout")` thrown within 40–200 ms. Strict superset vs brownfield (which had no backstop).
+
+- **[MINOR] F6 — TwelveData fallback `price` field non testé** [`apps/api/src/modules/holdings/services/twelve-data-client.test.ts`]
+  - Source: Edge auditor
+  - Resolution: `a20d0f3` — new test "falls back to `price` field when `close` is absent" pins the `obj.close ?? obj.price` branch with `{ price: "192.55", currency: "USD", datetime: "..." }` (no `close` field).
+
+- **[MINOR] F7 — Cache boundary à exactement 60_000 ms non testé** [`apps/api/src/modules/holdings/holdings.cache.test.ts`]
+  - Source: Edge auditor
+  - Resolution: `a20d0f3` — new test "at exactly ttlMs (delta === 60_000) entry is still usable" pins the strict `>` operator (entry usable up to AND including 60_000 ms after `set`). Future refactor to `>=` (broken) now fails this test.
+
+- **[MINOR] F8 — File List drift (`holdings.integration.test.ts` absent)** [`docs/stories/3-2-prices-fallback-chain.md:2607`]
+  - Source: git-audit (manual — `.aped/aped-review/scripts/git-audit.sh` looks for `### File List` h3 but story uses `## File List` h2, script bug to file separately)
+  - Resolution: `b403304` — added `apps/api/src/modules/holdings/holdings.integration.test.ts` entry under Modified files with rationale (stub `resolveQuote` to satisfy extended interface, deviation surfaced in this review).
+
+#### Dismissed
+
+(none)
+
+#### Unresolved
+
+(none)
+
+### Verification
+
+- Iron Law test: `bun --filter='@pekulo/api' run test` — **303 pass / 0 fail / 784 expect() / 38 files / 943 ms** (exit 0, captured live in this review session post-F1 commit).
+- Iron Law typecheck: `bun --filter='@pekulo/api' run typecheck` — exit 0.
+- Iron Law lint: `bun lint` — 1 pre-existing warning (`accounts.module.test.ts:297` dangling-underscore, unrelated to 3-2), 0 errors.
+- Working tree: clean.
+- HEAD: `26db742 test(#21): F1 AC-7 InMemorySpanExporter test pins prices.tier_* spans + attrs [aped-review]`
+- Visual verification: N/A (backend story, no UI surface).
+
+### Ticket sync
+
+- Ticket comment posted: pending user confirmation.
+- PR opened/updated: PR #81 (https://github.com/yabafre/pekulo/pull/81) base=main, pending user confirmation for title/body refresh + remote push.

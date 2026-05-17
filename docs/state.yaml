@@ -191,7 +191,7 @@ sprint:
     2-3-accounts-ui: {status: done, depends_on: [2-1-accounts-orpc-port, 2-2-account-balance-history, 0-10-pekulo-ui-migration], ticket: "#19", worktree: null, started_at: "2026-05-16T18:00:00Z", completed_at: "2026-05-17T19:10:00Z"}
     # Epic 3 — Holdings & portfolio (V1 brownfield + crypto)
     3-1-holdings-orpc-port: {status: done, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#20", worktree: null, started_at: "2026-05-17T19:30:00Z", completed_at: "2026-05-17T20:55:00Z"}
-    3-2-prices-fallback-chain: {status: review-queued, depends_on: [3-1-holdings-orpc-port], ticket: "#21", worktree: null, started_at: "2026-05-17T22:00:00Z", completed_at: "2026-05-17T23:30:00Z"}
+    3-2-prices-fallback-chain: {status: done, depends_on: [3-1-holdings-orpc-port], ticket: "#21", worktree: null, started_at: "2026-05-17T22:00:00Z", completed_at: "2026-05-17T23:30:00Z"}
     3-3-portfolio-fx: {status: pending, depends_on: [3-1-holdings-orpc-port, 3-2-prices-fallback-chain], ticket: "#22", worktree: null}
     3-4-portfolio-ui: {status: pending, depends_on: [3-1-holdings-orpc-port, 3-2-prices-fallback-chain, 3-3-portfolio-fx, 0-10-pekulo-ui-migration], ticket: "#23", worktree: null}
     # Epic 4 — Real-estate (V1 new)
