@@ -2279,3 +2279,106 @@ Including the 4 new test files: `use-create-account.test.tsx` (1),
 Final guards: `bun --filter=web run typecheck` exit 0 · `bun run lint` exit 0
 (1 pre-existing warning, no errors) · AC-6 grep
 `rg 'from\("accounts"\)' apps/web/src` exit 1 (no matches).
+
+### Post-completion polish — 2026-05-17 (user-driven visual fidelity)
+
+After the initial Dev Agent Record landed at `76e50a2`, side-by-side visual
+verification against `docs/ux-preview/src/App.tsx` via `next-browser` (headed
+mode on viewports 390 / 768 / 1440) surfaced layout regressions the spec did
+not anticipate. The user explicitly broadened story 2-3's scope to cover the
+whole front (cap-shell + cap-view + patrimoine-view + mobile bottom nav)
+rather than spin a follow-up story. Six additional commits landed on the
+feature branch.
+
+**Architectural pivot — accounts CRUD relocated**
+
+- Story T13 had wired `<AccountsSection/>` into `parametres/page.tsx`. The
+  user pushed back: ux-preview Settings (`SettingsScreen` at App.tsx:1730)
+  has zero account CRUD — accounts management lives on the Patrimoine view
+  per ux-preview's design intent. Pivoted: removed `<AccountsSection/>` from
+  `parametres/page.tsx` (reverts to compass-only) and mounted it inside
+  `patrimoine-view.tsx` instead. AC-1 / AC-3 / AC-4 verification surface
+  shifts from `/dashboard/parametres` to `/dashboard?tab=patrimoine`.
+
+**Visual fixes shipped (6 commits)**
+
+1. `a83e500` — `PekuloMobileBottomNav` added to `@pekulo/ui` (5 icons,
+   `lg:hidden` equivalent). Wired into `cap-shell.tsx`. Mirrors ux-preview
+   App.tsx:180-202.
+2. `ae42436` — pivot: drop accounts from `/paramètres`, mount in patrimoine
+   view. Rewrite `accounts-section.tsx` as a flat section (no card wrapper).
+   Rewrite `patrimoine-view.tsx` to use the same flat hero + flat
+   AccountsSection pattern as ux-preview L359-377. `$lg`-gated max-w-3xl
+   centering on desktop.
+3. `b72bfa0` — fix Tamagui media keys. `$max-md` / `$gtSm` / `$gtMd` do NOT
+   exist in `@tamagui/config/v5`; the actual keys are `$sm` (min-width:640),
+   `$md` (min-width:768), `$lg` (min-width:1024), and `$max-sm` / `$max-md`
+   / `$max-lg` for max-width. Pre-existing `PekuloNavRail` `$max-md` was a
+   no-op — replaced with `$max-lg` so the rail correctly hides below 1024.
+4. `f8ecd00` — mobile header trim: `dateLabel` + `newTxPill` hidden at
+   `<1020 px` via `bento.module.css`. Kebab menu (`PekuloPopover` with
+   `MoreHorizontal` icon) for account row actions on mobile/tablet; inline
+   Solde·Modifier·Supprimer buttons on desktop only — via Tamagui `$lg`.
+5. `89afd66` — replace `PlaceholderCard` (which wraps in `Section` =
+   card) usage on `patrimoine-view.tsx` with inline flat
+   `FlatListPlaceholder` for Composition + Activité. Avoids changing the DS
+   primitive globally (Settings still wants cards from `Section`).
+6. `018cabb` — fix `PekuloMobileBottomNav` truncation. Initial impl used
+   `flex: 1` per button which rounded unevenly at 390 px and cut "Transactions"
+   / "Portefeuille" labels. Switched to `display: grid;
+   gridTemplateColumns: repeat(5, 1fr)` for true equal columns. Reduced font
+   to 10 px with `letterSpacing: -0.1` for clean fit.
+7. `e067a66` — Cap view mobile fidelity: added `flat?: boolean` to
+   `Section` primitive (`packages/ui/src/primitives/Section.tsx`) +
+   forwarded through `MilestonesSection`. Rewrote `cap-view.tsx` with
+   dual mobile/desktop rendering: mobile branch (`$lg={{display:"none"}}`)
+   renders 7 flat sections (Hero + MiniKpis + Trajectoire + Paliers flat +
+   Hypothèse + Composition + Activité); desktop branch
+   (`display:"none" $lg={{display:"block"}}`) keeps the existing bento.
+   Mirrors ux-preview App.tsx:331-356 (`lg:hidden flex flex-col` /
+   `hidden lg:grid`).
+
+**Additional files changed (post-completion)**
+
+- Created: `packages/ui/src/components/PekuloMobileBottomNav.tsx`
+- Modified: `packages/ui/src/components/index.ts` (export barrel),
+  `packages/ui/src/components/PekuloNavRail.tsx` (`$max-md` → `$max-lg`),
+  `packages/ui/src/primitives/Section.tsx` (+ `flat` prop),
+  `apps/web/src/app/(cap)/dashboard/_components/bento.module.css` (mobile
+  header hide rules), `apps/web/src/app/(cap)/dashboard/_components/cap-shell.tsx`
+  (mount mobile bottom nav), `apps/web/src/app/(cap)/dashboard/_components/cap-view.tsx`
+  (dual rendering), `apps/web/src/app/(cap)/dashboard/_components/milestones-section.tsx`
+  (+ `flat` prop), `apps/web/src/app/(cap)/dashboard/_components/patrimoine-view.tsx`
+  (flat placeholders), `apps/web/src/app/(cap)/dashboard/parametres/page.tsx`
+  (drop `<AccountsSection/>`), `apps/web/src/app/(cap)/dashboard/parametres/_components/accounts-section.tsx`
+  (flat layout + kebab menu).
+
+**Final visual state — 3 viewports verified via next-browser**
+
+| Viewport | Patrimoine | Cap | Nav |
+|---|---|---|---|
+| 1440 desktop | Hero flat + Comptes flat with inline actions + flat Composition/Activité + max-w-3xl centred | 12-col bento (cards) | `PekuloNavRail` left |
+| 768 tablet | Hero flat + Comptes flat with kebab + flat Composition/Activité | Flat single-column | `PekuloMobileBottomNav` |
+| 390 mobile | Idem tablet | Idem tablet | Idem tablet |
+
+**Tests:** still 17 files / 30 pass. Typecheck 0. Lint 0 (same pre-existing
+warning as before).
+
+**Lessons captured in `docs/lessons.md`** (6 new entries dated 2026-05-17 — see
+file for full Mistake/Correction/Rule blocks): Tamagui v5 media keys; Section
+`flat` prop pattern + dual mobile/desktop rendering; mobile bottom nav grid
+layout; per-row CRUD kebab on mobile / inline on desktop; cross-check ux-preview
+UX placement against story-spec; `flex:1 + minHeight:0 + overflowY:auto` requires
+fixed-height parent — break in flat (natural-flow) parents.
+
+**Final commit (post-Pass-2 visual review)**
+
+8. `dda0f46` — fix: mobile/tablet Cap KPIs were rendering skeletons even
+   after compass data resolved. Root cause: the mobile branch placeholders
+   were not wired to `useDashboardCompass()`. Wired live data into the hero
+   ("Aujourd'hui" + currentWealth + objectif/targetYear) and the 3 MiniKpis
+   tiles (Cap pct + remaining + mini-donut · Horizon targetYear + yearsLeft ·
+   Plan/an linear required). Also fixed `MilestonesSection`'s inner `<ul>`
+   `flex:1 + minHeight:0 + overflowY:auto` which collapsed to 0 height when
+   `flat={true}` (no fixed-height parent) — gated on `flat` so flat mode uses
+   natural flow. Tablet/mobile cap now show identical data to desktop.
