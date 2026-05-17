@@ -115,9 +115,9 @@
   opacity: 0.9;
 }
 
-/* Mobile header trim — mirrors ux-preview L122-135. Below 1020 px the
-   date label and the "Nouvelle transaction" pill drop out so only the
-   Cap/Patrimoine tabs + UserDot remain. */
+/* Mobile header trim — mirrors ux-preview L122-135. Below the Tamagui
+   `$lg` cutover (= 1024 px) the date label and the "Nouvelle transaction"
+   pill drop out so only the Cap/Patrimoine tabs + UserDot remain. */
 @media (max-width: 1023.98px) {
   .dateLabel {
     display: none;
