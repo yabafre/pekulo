@@ -45,10 +45,25 @@ export interface AccountCardItem {
 export type { Account } from "@pekulo/validators";
 
 // ─── Holding (Portfolio) ─────────────────────────────────────────────────
+// Closed enum literal + derived type. The 'crypto' value is part of the V1
+// surface (story 3-1 extended the brownfield holding_kind enum).
+//
+// @pekulo/validators/src/holdings.ts mirrors the literal inline in z.enum
+// (Turbo cycle constraint — same shape as ACCOUNT_TYPES / HOLDING_KINDS_MIRROR
+// pair). Reviewer-enforced invariant: this literal MUST equal the validator's
+// HOLDING_KINDS_MIRROR exactly.
 export const HOLDING_KINDS = ["etf", "action", "crypto", "autre"] as const;
 export type HoldingKind = (typeof HOLDING_KINDS)[number];
 
-export interface Holding {
+/** Branded id primitives — opaque strings until the wire shape is parsed. */
+export type HoldingId = Id<"HoldingId">;
+export type HoldingLotId = Id<"HoldingLotId">;
+
+/** Canonical domain entities — z.infer from @pekulo/validators. */
+export type { Holding, HoldingLot, DerivedHolding } from "@pekulo/validators";
+
+/** UI prop shape consumed by PekuloHoldingRow / PekuloPortfolioSection. */
+export interface HoldingCardItem {
   ticker: string;
   label: string;
   account: string;
