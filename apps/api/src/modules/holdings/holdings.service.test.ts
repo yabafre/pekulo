@@ -213,3 +213,168 @@ describe("holdings.service", () => {
     expect(all.map((r) => r.id).sort()).toEqual(["hld_active", "hld_closed"]);
   });
 });
+
+// ─── resolveQuote (story 3-2) ────────────────────────────────────────────
+// The service-internal price orchestrator. Tested with fake clients so the
+// suite stays offline and deterministic.
+
+import {
+  fakeBoursoramaScraper,
+  fakePricesClient,
+  fakeTwelveDataClient,
+  fakeYahooClient,
+} from "../../common/test/fakes/prices-clients";
+import { createPricesCache } from "./holdings.cache";
+import { PriceProviderError } from "./holdings.errors";
+
+function buildService(
+  opts: {
+    prices?: ReturnType<typeof fakePricesClient>;
+    yahoo?: ReturnType<typeof fakeYahooClient>;
+    boursorama?: ReturnType<typeof fakeBoursoramaScraper>;
+    twelveData?: ReturnType<typeof fakeTwelveDataClient>;
+    now?: () => number;
+  } = {},
+) {
+  const prices = opts.prices ?? fakePricesClient();
+  const yahoo = opts.yahoo ?? fakeYahooClient();
+  const boursorama = opts.boursorama ?? fakeBoursoramaScraper();
+  const twelveData = opts.twelveData ?? fakeTwelveDataClient();
+  const cache = createPricesCache({ ttlMs: 60_000, now: opts.now });
+  const service = createHoldingsService({
+    repository: makeFakeRepo(),
+    pricesClient: prices.client,
+    yahooClient: yahoo.client,
+    boursoramaScraper: boursorama.client,
+    twelveDataClient: twelveData.client,
+    pricesCache: cache,
+  });
+  return { service, prices, yahoo, boursorama, twelveData };
+}
+
+describe("resolveQuote", () => {
+  test("AC-1: tier-1 timeout falls back to tier-2 within wall-clock ceiling", async () => {
+    const { service, prices, yahoo } = buildService();
+    prices.setBehavior(async () => {
+      throw new (await import("./services/prices-client")).PricesServiceError(
+        "network",
+        "fake: timeout",
+      );
+    });
+    yahoo.setBehavior(async (symbol) => ({
+      symbol,
+      price: 482.13,
+      currency: "EUR",
+      marketTime: "2026-05-17",
+    }));
+    const t0 = performance.now();
+    const q = await service.resolveQuote({ ticker: "CW8", kind: "etf", currency: "EUR" });
+    const elapsed = performance.now() - t0;
+    expect(elapsed).toBeLessThan(600);
+    expect(q.provider).toBe("yahoo");
+    expect(q.symbol).toBe("CW8.PA");
+    expect(yahoo.calls).toEqual(["CW8.PA"]);
+  });
+
+  test("AC-2: second call within 60 s returns cached quote with zero provider calls", async () => {
+    let now = 1_000_000;
+    const { service, prices, yahoo, boursorama, twelveData } = buildService({ now: () => now });
+    yahoo.setBehavior(async (symbol) => ({
+      symbol,
+      price: 192.55,
+      currency: "USD",
+      marketTime: "2026-05-17",
+    }));
+    const input = { ticker: "AAPL", kind: "action" as const, currency: "USD" as const };
+    const q1 = await service.resolveQuote(input);
+    expect(yahoo.calls.length).toBe(1);
+    now += 59_000;
+    const q2 = await service.resolveQuote(input);
+    expect(yahoo.calls.length).toBe(1); // no new call
+    expect(prices.calls.length + boursorama.calls.length + twelveData.calls.length).toBe(0);
+    expect(q2).toBe(q1); // reference equality
+    now += 2_000; // crosses 60s
+    await service.resolveQuote(input);
+    expect(yahoo.calls.length).toBe(2);
+  });
+
+  test("AC-3: all four tiers fail → PriceProviderError with 4 attempts in order", async () => {
+    const { service, prices, yahoo, boursorama, twelveData } = buildService();
+    const { PricesServiceError } = await import("./services/prices-client");
+    const { YahooError } = await import("./services/yahoo-client");
+    const { BoursoramaError } = await import("./services/boursorama-scraper");
+    const { TwelveDataError } = await import("./services/twelve-data-client");
+    prices.setBehavior(async () => {
+      throw new PricesServiceError("network", "x");
+    });
+    yahoo.setBehavior(async () => {
+      throw new YahooError("rate-limited", "x");
+    });
+    boursorama.setBehavior(async () => {
+      throw new BoursoramaError("invalid-symbol", "x");
+    });
+    twelveData.setBehavior(async () => {
+      throw new TwelveDataError("missing-key", "x");
+    });
+
+    let caught: unknown;
+    try {
+      await service.resolveQuote({ ticker: "ZZZZ", kind: "etf", currency: "EUR" });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(PriceProviderError);
+    const ppe = caught as PriceProviderError;
+    expect(ppe.attempts).toEqual([
+      { provider: "prices-service", reason: "réseau" },
+      { provider: "yahoo", reason: "rate-limited" },
+      { provider: "boursorama", reason: "ticker non listé" },
+      { provider: "twelve-data", reason: "clé manquante" },
+    ]);
+  });
+
+  test("AC-4: BTC-USD resolves via yahoo; boursorama tier is SKIPPED for crypto", async () => {
+    const { service, prices, yahoo, boursorama } = buildService();
+    const { PricesServiceError } = await import("./services/prices-client");
+    prices.setBehavior(async () => {
+      throw new PricesServiceError("not-configured", "x");
+    });
+    yahoo.setBehavior(async (symbol) => ({
+      symbol,
+      price: 95000,
+      currency: "USD",
+      marketTime: "2026-05-17",
+    }));
+    const q = await service.resolveQuote({ ticker: "BTC-USD", kind: "crypto", currency: "USD" });
+    expect(q.provider).toBe("yahoo");
+    expect(q.symbol).toBe("BTC-USD"); // dot passthrough — no .PA append
+    expect(boursorama.calls.length).toBe(0); // SHORT-CIRCUITED for crypto
+  });
+
+  test("AC-4b: BTC-USD all-fail collects only 3 attempts (boursorama skipped)", async () => {
+    const { service, prices, yahoo, twelveData } = buildService();
+    const { PricesServiceError } = await import("./services/prices-client");
+    const { YahooError } = await import("./services/yahoo-client");
+    const { TwelveDataError } = await import("./services/twelve-data-client");
+    prices.setBehavior(async () => {
+      throw new PricesServiceError("network", "x");
+    });
+    yahoo.setBehavior(async () => {
+      throw new YahooError("rate-limited", "x");
+    });
+    twelveData.setBehavior(async () => {
+      throw new TwelveDataError("missing-key", "x");
+    });
+
+    let caught: unknown;
+    try {
+      await service.resolveQuote({ ticker: "BTC-USD", kind: "crypto", currency: "USD" });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(PriceProviderError);
+    const ppe = caught as PriceProviderError;
+    expect(ppe.attempts.length).toBe(3);
+    expect(ppe.attempts.map((a) => a.provider)).toEqual(["prices-service", "yahoo", "twelve-data"]);
+  });
+});
