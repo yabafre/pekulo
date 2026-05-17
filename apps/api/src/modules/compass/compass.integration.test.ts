@@ -27,7 +27,11 @@ const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
 const ISSUER = "https://integration.supabase.co/auth/v1";
 const AUDIENCE = "authenticated";
 const USER_ID = "55555555-5555-5555-5555-555555555555";
-const PORT_BASE = 13950;
+// PORT_BASE picked to avoid overlap with sibling integration tests under
+// bun:test's interleaved scheduling on CI: hypothesis 13900-14099,
+// milestones 14900-15099, accounts 14160-14359, holdings 14500-14699.
+// 200-port window leaves room for the Math.random() jitter.
+const PORT_BASE = 14700;
 
 async function signValid(): Promise<string> {
   return new SignJWT({ email: "alex@pekulo.app" })
