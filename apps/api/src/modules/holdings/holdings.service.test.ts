@@ -268,7 +268,7 @@ function buildService(
 }
 
 describe("resolveQuote", () => {
-  test("AC-1: tier-1 timeout falls back to tier-2 within wall-clock ceiling", async () => {
+  test("AC-1 (sync error): tier-1 returns immediately on PricesServiceError → tier-2 wins", async () => {
     const { service, prices, yahoo } = buildService();
     prices.setBehavior(async () => {
       throw new (await import("./services/prices-client")).PricesServiceError(
@@ -282,13 +282,62 @@ describe("resolveQuote", () => {
       currency: "EUR",
       marketTime: "2026-05-17",
     }));
-    const t0 = performance.now();
     const q = await service.resolveQuote({ ticker: "CW8", kind: "etf", currency: "EUR" });
-    const elapsed = performance.now() - t0;
-    expect(elapsed).toBeLessThan(600);
     expect(q.provider).toBe("yahoo");
     expect(q.symbol).toBe("CW8.PA");
     expect(yahoo.calls).toEqual(["CW8.PA"]);
+  });
+
+  test("AC-1 (real timeout): tier-1 hanging fetch is aborted at ~500 ms → tier-2 wins", async () => {
+    // Wires the REAL createPricesClient (so AbortSignal.timeout(500) must fire)
+    // against a globally-mocked fetch that hangs until abort. This is the
+    // rigorous AC-1: proves timeout ENFORCEMENT, not just sync-error fallback.
+    const { createPricesClient } = await import("./services/prices-client");
+    const realPricesClient = createPricesClient({
+      baseUrl: "https://prices.fake.internal:8000",
+      token: "tok",
+      timeoutMs: 500,
+    });
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = ((_url: unknown, init?: { signal?: AbortSignal }) => {
+      const signal = init?.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      });
+    }) as typeof globalThis.fetch;
+
+    try {
+      const yahoo = fakeYahooClient();
+      yahoo.setBehavior(async (symbol) => ({
+        symbol,
+        price: 482.13,
+        currency: "EUR",
+        marketTime: "2026-05-17",
+      }));
+      const service = createHoldingsService({
+        repository: makeFakeRepo(),
+        pricesClient: realPricesClient,
+        yahooClient: yahoo.client,
+        boursoramaScraper: fakeBoursoramaScraper().client,
+        twelveDataClient: fakeTwelveDataClient().client,
+        pricesCache: createPricesCache({ ttlMs: 60_000 }),
+      });
+
+      const t0 = performance.now();
+      const q = await service.resolveQuote({ ticker: "CW8", kind: "etf", currency: "EUR" });
+      const elapsed = performance.now() - t0;
+
+      // AbortSignal.timeout(500) MUST fire — elapsed clusters around 500 ms.
+      // Allow 50 ms slack on each side for setup + scheduler jitter.
+      expect(elapsed).toBeGreaterThanOrEqual(450);
+      expect(elapsed).toBeLessThan(800);
+      expect(q.provider).toBe("yahoo");
+      expect(q.symbol).toBe("CW8.PA");
+      expect(yahoo.calls).toEqual(["CW8.PA"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   test("AC-2: second call within 60 s returns cached quote with zero provider calls", async () => {
