@@ -162,9 +162,9 @@ describe("compass bridge (integration)", () => {
       body: JSON.stringify({ objectif: 800_000, horizonYears: 25 }),
     });
     expect(res.status).toBe(401);
-    const body = (await res.json()) as { error: { code: string; requestId: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
-    expect(body.error.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    const body = (await res.json()) as { code: string; data: { requestId: string } };
+    expect(body.code).toBe("UNAUTHORIZED");
+    expect(body.data.requestId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   // AC-7 (verbatim): valid Supabase HS256 JWT for user A, POST
@@ -198,8 +198,8 @@ describe("compass bridge (integration)", () => {
       body: JSON.stringify({ json: { objectif: 800_000, horizonYears: 25 } }),
     });
     expect(res.status).toBe(401);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
   });
 
   test("AC-7 wrong issuer returns 401 UNAUTHORIZED", async () => {
@@ -210,8 +210,8 @@ describe("compass bridge (integration)", () => {
       body: JSON.stringify({ json: { objectif: 800_000, horizonYears: 25 } }),
     });
     expect(res.status).toBe(401);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
   });
 
   test("AC-7 wrong audience returns 401 UNAUTHORIZED", async () => {
@@ -222,8 +222,8 @@ describe("compass bridge (integration)", () => {
       body: JSON.stringify({ json: { objectif: 800_000, horizonYears: 25 } }),
     });
     expect(res.status).toBe(401);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
   });
 
   test("AC-7 round-trip: getCompass after updateCompass returns the persisted row", async () => {
@@ -298,9 +298,9 @@ describe("compass bridge (integration)", () => {
     const elapsed = Date.now() - startedAt;
     expect(res.status).toBe(401);
     expect(elapsed).toBeLessThan(100);
-    const body = (await res.json()) as { error: { code: string; requestId: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
-    expect(body.error.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    const body = (await res.json()) as { code: string; data: { requestId: string } };
+    expect(body.code).toBe("UNAUTHORIZED");
+    expect(body.data.requestId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   // ─── Story 1-4: getCurrentProgress + listHistory (FR-2, FR-5) ─────────

@@ -26,6 +26,7 @@
         "@opentelemetry/sdk-trace-base": "2.1.0",
         "@opentelemetry/sdk-trace-node": "2.1.0",
         "@opentelemetry/semantic-conventions": "1.40.0",
+        "@orpc/client": "1.14.1",
         "@orpc/server": "1.14.1",
         "@pekulo/contracts": "workspace:*",
         "@pekulo/types": "workspace:*",

@@ -195,8 +195,8 @@ describe("milestones HTTP boundary (AC-13)", () => {
     const elapsed = performance.now() - t0;
     expect(res.status).toBe(401);
     expect(elapsed).toBeLessThan(100);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
   });
 
   test("POST /rpc/v1/milestones/list with valid JWT returns 200 + array", async () => {

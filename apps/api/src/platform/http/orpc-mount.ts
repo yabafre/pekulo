@@ -82,7 +82,7 @@ export function mountOrpc(app: AnyElysia, deps: MountOrpcDeps) {
       // For UNAUTHORIZED the user is unknown (auth failed), so log
       // "anonymous". Otherwise prefer the resolved userId; fall back to
       // "anonymous" if the error fired before requireUserContext returned.
-      const errorCode = mapped.body.error.code;
+      const errorCode = mapped.body.code;
       const userId =
         errorCode === "UNAUTHORIZED" ? "anonymous" : (userContext?.userId ?? "anonymous");
       // Surface the underlying cause class for ops debugging (e.g.
