@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AddMilestoneInput, Milestone } from "@pekulo/validators";
 import { MILESTONES_PER_USER_CAP } from "@pekulo/validators";
 import { compassKeys, milestonesKeys, milestonesTags } from "@/lib/zapaction/keys";
-import { addMilestone } from "@/lib/actions/milestones-actions";
+import { addMilestone } from "../_actions/milestones-actions";
 
 // Mutation orchestrator. Component reads `{ submit, isPending, capReached }`
 // directly — no separate useForm hook in this V1 pass; the form component

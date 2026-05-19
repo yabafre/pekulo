@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { milestonesKeys } from "@/lib/zapaction/keys";
 
-vi.mock("@/lib/actions/milestones-actions", () => ({
+vi.mock("../_actions/milestones-actions", () => ({
   updateMilestone: vi.fn(
     async (input: { id: string; targetCapital?: number; targetYear?: number; label?: string }) => ({
       id: input.id,
