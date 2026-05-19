@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-19 — `bun --filter=<short-name>` needs the workspace package name, not the folder name ; in Pekulo the apps live under `@pekulo/*`, so `bun --filter=api …` exits `No packages matched the filter` ; use `bun --filter=@pekulo/api …` (or `bun --filter='@pekulo/*'` to fan out) (Scope: aped-story, aped-dev, aped-review — every story script that surfaces `bun --filter=<name>` in T-task commands)
+
+- **Date:** 2026-05-19
+- **Mistake:** Story 3-3 (`docs/stories/3-3-portfolio-fx.md`) T1/T4/T6/T8/T9/T10 prescribed `bun --filter=api run …`, inherited verbatim from earlier stories that used the same shorthand. The dev tried to run the commands literally and got `error: No packages matched the filter`. The Bun docs state that `--filter` matches against the `package.json#name`, not the folder under `apps/`. In Pekulo every workspace is namespaced `@pekulo/<short>`, so `--filter=api` matches nothing. The dev worked around in-session (`bun --filter='@pekulo/api' …`) but the story prose was not corrected and aped-review caught it as a [NIT] process finding.
+- **Correction:** Story commands MUST use the fully-qualified workspace name — `bun --filter='@pekulo/api' run …`, `bun --filter='@pekulo/validators' run …`, `bun --filter='@pekulo/types' run …`. For fan-out across every workspace under the namespace, use `bun --filter='@pekulo/*' run <script>`.
+- **Rule:** When aped-story drafts T-task commands that delegate to a workspace, the command MUST use the workspace's `package.json#name` (quoted so the shell does not glob `@pekulo/*` on disk). Reviewers reject `bun --filter=<short>` for any apps/_ or packages/_ under a namespaced monorepo. Apply forward to every Pekulo story 3-4 → 11-X and to any future story-spec audit. Belongs alongside the 2026-05-05 lesson that bans `bun --cwd <relative>`.
+
 ### 2026-05-17 — A list/grid using `flex:1 + minHeight:0 + overflowY:auto` to fill a fixed-height parent collapses to 0 height when reparented to a natural-flow column (e.g. a flat mobile stack) ; gate these styles on the `flat` prop OR on a `bento` prop so flat mode uses natural flow (Scope: aped-arch, aped-dev — every Pekulo\* DS component that ships a fill-the-cell list AND will also render flat on mobile)
 
 - **Date:** 2026-05-17
