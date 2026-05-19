@@ -18,7 +18,6 @@ describe("computeHoldingPnl", () => {
     const out = computeHoldingPnl(
       { quantity: 10, avgCost: 90, lastPrice: 100, currency: "USD" },
       RATES_EUR,
-      "EUR",
     );
     expect(out.native.pnl).toBe(100); // 10 × (100 − 90)
     expect(Math.abs(out.native.pnlPct - 0.1111111111)).toBeLessThan(1e-6);
@@ -33,7 +32,6 @@ describe("computeHoldingPnl", () => {
     const out = computeHoldingPnl(
       { quantity: 10, avgCost: 100, lastPrice: 80, currency: "USD" },
       RATES_EUR,
-      "EUR",
     );
     expect(out.native.pnl).toBe(-200);
     expect(out.eur.pnl).toBeLessThan(0);
@@ -49,7 +47,6 @@ describe("computeHoldingPnl", () => {
     const out = computeHoldingPnl(
       { quantity: 10, avgCost: 90, lastPrice: 100, currency: "USD" },
       null,
-      "EUR",
     );
     expect(out.native.pnl).toBe(100);
     expect(out.eur.pnl).toBe(100);
@@ -63,7 +60,6 @@ describe("computeHoldingPnl", () => {
     const out = computeHoldingPnl(
       { quantity: 5, avgCost: 0, lastPrice: 12, currency: "EUR" },
       null,
-      "EUR",
     );
     expect(out.native.pnl).toBe(60); // 5 × (12 − 0)
     expect(out.native.pnlPct).toBe(0);
@@ -74,7 +70,6 @@ describe("computeHoldingPnl", () => {
     const out = computeHoldingPnl(
       { quantity: 10, avgCost: 5, lastPrice: 7, currency: "EUR" },
       RATES_EUR,
-      "EUR",
     );
     expect(out.native.pnl).toBe(20);
     expect(out.eur.pnl).toBe(20);
@@ -89,7 +84,6 @@ describe("computeHoldingPnl", () => {
     const out = computeHoldingPnl(
       { quantity: 10, avgCost: 90, lastPrice: 100, currency: "USD" },
       partial,
-      "EUR",
     );
     expect(out.native.pnl).toBe(100);
     expect(out.eur.pnl).toBe(100); // missing rate → identity (best-effort)
@@ -99,7 +93,6 @@ describe("computeHoldingPnl", () => {
     const out = computeHoldingPnl(
       { quantity: 0, avgCost: 100, lastPrice: 120, currency: "USD" },
       RATES_EUR,
-      "EUR",
     );
     expect(out.native.pnl).toBe(0);
     expect(out.native.pnlPct).toBeCloseTo(0.2); // pct depends on price, not quantity
