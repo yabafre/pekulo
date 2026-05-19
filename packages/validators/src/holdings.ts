@@ -24,6 +24,7 @@
 //   - notes optional, max 500.
 
 import { z } from "zod";
+import { accountSchema } from "./accounts";
 
 export const HOLDING_ID_PREFIX_RE = /^hld_[0-9A-Za-z]{21}$/;
 export const HOLDING_LOT_ID_PREFIX_RE = /^lot_[0-9A-Za-z]{21}$/;
@@ -181,3 +182,77 @@ export const priceQuoteInputSchema = z.object({
   currency: z.enum(HOLDING_CURRENCIES),
 });
 export type PriceQuoteInput = z.infer<typeof priceQuoteInputSchema>;
+
+// ─── FX + portfolio snapshot (story 3-3) ─────────────────────────────────
+// Pure helpers under apps/api/src/common/derive/ produce these shapes from
+// Account[] + Holding[] + FxRates. NO oRPC contract surface — these are
+// service-internal DTOs, but they live here because @pekulo/types re-exports
+// the inferred types (L1 invariant: zero `*.types.ts` under apps/api/src/modules
+// AND apps/api/src/common/derive).
+//
+// Currency union here is `HOLDING_CURRENCIES` (EUR | USD | GBP | CHF) — the
+// same closed set used by Account.currency and Holding.currency, so the FX
+// matrix has 4×4 = 16 cells but only 3 non-identity foreign rates per base.
+
+export const FX_SOURCES = ["live", "fallback"] as const;
+export const fxSourceSchema = z.enum(FX_SOURCES);
+export type FxSource = z.infer<typeof fxSourceSchema>;
+
+// FxRates: 1 unit of `base` = X units of foreign. `base` is always present
+// with value 1 (computeSnapshotFx asserts via lookup; clients stamp on read).
+// `date` is the rate as-of date returned by Frankfurter ("amount=1&base=EUR"
+// endpoint).
+export const fxRatesSchema = z.object({
+  base: z.enum(HOLDING_CURRENCIES),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
+  rates: z.record(z.enum(HOLDING_CURRENCIES), z.number().positive()),
+});
+export type FxRates = z.infer<typeof fxRatesSchema>;
+
+// PortfolioSnapshotFx — pure aggregation. byAccount[].total is in `fxBase`
+// (the snapshot is normalised to one base). `fxAvailable` is kept for
+// back-compat with the brownfield (deprecated mirror of `fxSource === "live"`);
+// 3-4/7-1 may migrate to `fxSource` and drop `fxAvailable` in a later story.
+// `fxAsOf` is null in fallback mode (rates were unavailable).
+export const portfolioSnapshotFxSchema = z.object({
+  accounts: z.array(accountSchema),
+  holdings: z.array(holdingSchema),
+  kpi: z.object({
+    capitalTotal: z.number(),
+    cash: z.number(),
+    invested: z.number(),
+    marketValue: z.number(),
+    pnl: z.number(),
+  }),
+  byAccount: z.array(
+    z.object({
+      accountId: z.string().min(1),
+      label: z.string().min(1),
+      total: z.number(),
+    }),
+  ),
+  fxBase: z.enum(HOLDING_CURRENCIES),
+  fxAsOf: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "fxAsOf must be YYYY-MM-DD")
+    .nullable(),
+  fxAvailable: z.boolean(),
+  fxSource: fxSourceSchema,
+});
+export type PortfolioSnapshotFx = z.infer<typeof portfolioSnapshotFxSchema>;
+
+// HoldingPnl — per-holding unrealised PnL in both holding-native currency
+// and the snapshot base. `pnlPct` is currency-invariant (it is the ratio
+// (lastPrice - avgCost) / avgCost — division-by-zero guard returns 0 when
+// avgCost === 0, e.g. manual zero-cost lot).
+export const holdingPnlSchema = z.object({
+  native: z.object({
+    pnl: z.number(),
+    pnlPct: z.number(),
+  }),
+  eur: z.object({
+    pnl: z.number(),
+    pnlPct: z.number(),
+  }),
+});
+export type HoldingPnl = z.infer<typeof holdingPnlSchema>;

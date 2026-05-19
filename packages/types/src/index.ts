@@ -73,6 +73,10 @@ export type {
 } from "@pekulo/validators";
 export { PRICE_PROVIDERS } from "@pekulo/validators";
 
+/** FX + portfolio snapshot (story 3-3) — pure helper outputs, no oRPC surface. */
+export type { FxSource, FxRates, PortfolioSnapshotFx, HoldingPnl } from "@pekulo/validators";
+export { FX_SOURCES } from "@pekulo/validators";
+
 /** UI prop shape consumed by PekuloHoldingRow / PekuloPortfolioSection. */
 export interface HoldingCardItem {
   ticker: string;
