@@ -10,6 +10,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
+import submitPill from "./submit-pill.module.css";
 
 const HOLDING_NOT_FOUND_MSG = "Ce placement est introuvable. Recharge la page.";
 const HOLDING_CLOSED_MSG = "Ce placement est clôturé — les lots ne peuvent plus être modifiés.";
@@ -262,14 +263,21 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 form="lot-form-submit"
                 disabled={isPending}
                 aria-disabled={isPending}
+                className={submitPill.pill}
                 style={{
                   ...submitStyle(isPending),
                   alignSelf: "stretch",
                   width: "100%",
-                  height: 48,
+                  height: 44,
                   padding: "0 24px",
                   marginTop: 0,
-                  fontSize: 15,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: 0.01,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textAlign: "center",
                 }}
               >
                 {isPending ? "Enregistrement…" : "Enregistrer le lot"}

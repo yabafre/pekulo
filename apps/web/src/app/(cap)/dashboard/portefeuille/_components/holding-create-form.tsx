@@ -17,6 +17,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
+import submitPill from "./submit-pill.module.css";
 
 const KIND_LABEL: Record<HoldingKind, string> = {
   etf: "ETF",
@@ -285,14 +286,21 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           type="submit"
           disabled={submitDisabled}
           aria-disabled={submitDisabled}
+          className={submitPill.pill}
           style={{
             ...submitStyle(submitDisabled),
             alignSelf: "stretch",
             width: "100%",
-            height: 48,
+            height: 44,
             padding: "0 24px",
             marginTop: 0,
-            fontSize: 15,
+            fontSize: 14,
+            fontWeight: 600,
+            letterSpacing: 0.01,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
           }}
         >
           {isPending ? "Ajout…" : "Ajouter le placement"}
