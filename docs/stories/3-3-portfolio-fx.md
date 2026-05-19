@@ -1659,6 +1659,7 @@ Suite: 8 frankfurter-client + 7 portfolio-fx + 7 holding-pnl + 6 env (4 pre-exis
 - Created: `apps/api/src/common/derive/portfolio-fx.test.ts`
 - Created: `apps/api/src/common/derive/holding-pnl.ts`
 - Created: `apps/api/src/common/derive/holding-pnl.test.ts`
+- Created: `apps/api/src/types/globals.d.ts`
 - Modified: `apps/api/src/config/env.ts`
 - Modified: `apps/api/src/config/env.test.ts`
 - Modified: `apps/api/src/modules/holdings/holdings.module.ts`
@@ -1670,8 +1671,8 @@ Suite: 8 frankfurter-client + 7 portfolio-fx + 7 holding-pnl + 6 env (4 pre-exis
 ### Deviations
 
 - **Bun workspace filter** — story prose used `bun --filter=api …` but the workspace package name is `@pekulo/api`; substring match failed in this monorepo. All commands ran with `bun --filter='@pekulo/api' …` (and `@pekulo/validators` / `@pekulo/types`). No behavioural impact; surface to the spec sweep when story 3-4 is drafted.
-- **`RequestInfo` type** — the spec's `frankfurter-client.test.ts` referenced `RequestInfo | URL` in the fetch-stub signature, but `apps/api/tsconfig.json` declares `types: ["bun"]` (no DOM lib). Replaced with `Parameters<typeof fetch>[0]` aliased as `FetchInput`. Tests + types both green.
-- **No oxlint / oxfmt CLI on `PATH`** — the lefthook pre-commit hooks invoke them directly, so each commit ran the gates in-band; root-level `npm run lint` / `npm run format:check` were used for the final sanity sweep instead of the bare commands listed in T10.
+- **`RequestInfo` ambient added** — `@types/bun@1.3.0` declares the modern fetch family but omits the DOM-canonical `RequestInfo` alias (`Request | string`). Added `apps/api/src/types/globals.d.ts` with a one-line ambient mirror of the DOM definition so the story's verbatim `(input: RequestInfo | URL, init?: RequestInit)` signature compiles. Pulling `lib: ["DOM"]` was rejected — it would inject every browser global into the api project.
+- **Quality gate commands** — ran via root `bun run typecheck` / `bun run lint` / `bun run format:check` (which delegate to turbo / `oxlint` / `oxfmt` as defined in the root `package.json`). Story T10 listed per-package commands; same gates, just composed through bun + turbo at the root.
 
 ### Test output
 
@@ -1685,9 +1686,9 @@ Exited with code 0
 ```
 
 ```
-$ bun --filter='@pekulo/api' run typecheck    →  exit 0
-$ bun --filter='@pekulo/types' run typecheck  →  exit 0
-$ bun --filter='@pekulo/validators' run typecheck → exit 0
+$ bun run typecheck       →  Tasks: 8 successful, 8 total (turbo)
+$ bun run lint            →  Found 1 warning and 0 errors (warning is pre-existing __seenBalanceLogRows from story 2-2)
+$ bun run format:check    →  clean on every tracked file (.claude/settings.local.json is gitignored)
 ```
 
 AC-6 invariant probes:

@@ -6,18 +6,13 @@ import {
 } from "./frankfurter-client";
 
 type FetchCall = { url: string; init?: RequestInit };
-type FetchInput = Parameters<typeof fetch>[0];
 
 function installFetchStub(stub: (call: FetchCall) => Promise<Response>): () => void {
   const original = globalThis.fetch;
-  const calls: FetchCall[] = [];
-  globalThis.fetch = (async (input: FetchInput, init?: RequestInit) => {
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input.toString();
-    const call: FetchCall = { url, init };
-    calls.push(call);
-    return stub(call);
+    return stub({ url, init });
   }) as typeof fetch;
-  (globalThis.fetch as unknown as { __calls: FetchCall[] }).__calls = calls;
   return () => {
     globalThis.fetch = original;
   };
