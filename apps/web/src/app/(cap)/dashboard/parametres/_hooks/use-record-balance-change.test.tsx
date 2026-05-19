@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { accountsKeys } from "@/lib/zapaction/keys";
 
 const balanceMock = vi.fn();
-vi.mock("@/lib/actions/accounts-actions", () => ({
+vi.mock("../_actions/accounts-actions", () => ({
   recordBalanceChange: (input: { id: string; valuedOn: Date; cashBalance: number }) =>
     balanceMock(input),
 }));

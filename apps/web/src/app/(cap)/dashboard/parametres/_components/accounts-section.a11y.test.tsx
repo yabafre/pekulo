@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../../test/setup";
 import { accountsKeys } from "@/lib/zapaction/keys";
 
-vi.mock("@/lib/actions/accounts-actions", () => ({
+vi.mock("../_actions/accounts-actions", () => ({
   listAccounts: vi.fn(),
   createAccount: vi.fn(),
   updateAccount: vi.fn(),

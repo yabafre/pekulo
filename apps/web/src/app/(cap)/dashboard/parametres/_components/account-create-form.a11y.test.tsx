@@ -3,7 +3,7 @@ import { axe } from "vitest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../../test/setup";
 
-vi.mock("@/lib/actions/accounts-actions", () => ({
+vi.mock("../_actions/accounts-actions", () => ({
   createAccount: vi.fn(),
 }));
 
