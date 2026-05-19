@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { compassKeys, milestonesKeys } from "@/lib/zapaction/keys";
 
-vi.mock("@/lib/actions/compass-actions", () => ({
+vi.mock("../../_actions/compass-actions", () => ({
   updateCompass: vi.fn(async (input: { objectif: number; horizonYears: number }) => ({
     objectif: input.objectif,
     horizonYears: input.horizonYears,

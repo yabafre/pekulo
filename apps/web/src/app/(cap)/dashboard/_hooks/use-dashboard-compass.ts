@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Compass, CompassProgress } from "@pekulo/validators";
 import type { CompassSetupState } from "@pekulo/types";
 import { compassKeys } from "@/lib/zapaction/keys";
-import { getCompass, getCurrentProgress, getSetupState } from "@/lib/actions/compass-actions";
+import { getCompass, getCurrentProgress, getSetupState } from "../_actions/compass-actions";
 
 // Query hook for the dashboard. Returns three queries:
 //   - setup    — gates the CTA vs full dashboard branch (getSetupState).
