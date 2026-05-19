@@ -47,14 +47,12 @@ export function CapShell({ email, children }: CapShellProps) {
       router.push("/dashboard/parametres");
       return;
     }
+    if (key === "portfolio") {
+      router.push("/dashboard/portefeuille");
+      return;
+    }
     const label =
-      key === "transactions"
-        ? "Transactions"
-        : key === "monthly"
-          ? "Mensuel"
-          : key === "portfolio"
-            ? "Portefeuille"
-            : "Immobilier";
+      key === "transactions" ? "Transactions" : key === "monthly" ? "Mensuel" : "Immobilier";
     toast.info("Bientôt", `${label} arrive plus tard.`);
   };
 
