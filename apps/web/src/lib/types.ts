@@ -103,7 +103,6 @@ export interface Transaction {
 
 export type Currency = "EUR" | "USD" | "GBP" | "CHF";
 export type AccountType = "livret" | "pea" | "cto" | "av" | "autre";
-export type HoldingKind = "etf" | "action" | "autre";
 
 export interface Account {
   id: string;
@@ -111,60 +110,6 @@ export interface Account {
   type: AccountType;
   currency: Currency;
   cashBalance: number;
-  notes: string | null;
-  createdAt: string;
-}
-
-export interface Holding {
-  id: string;
-  accountId: string;
-  kind: HoldingKind;
-  ticker: string | null;
-  isin: string | null;
-  label: string;
-  currency: Currency;
-  quantity: number;
-  avgCost: number;
-  lastPrice: number;
-  lastPriceAt: string | null;
-  notes: string | null;
-  createdAt: string;
-}
-
-export interface PortfolioSnapshot {
-  accounts: Account[];
-  holdings: Holding[];
-  kpi: {
-    capitalTotal: number;
-    cash: number;
-    invested: number;
-    marketValue: number;
-    pnl: number;
-  };
-  byAccount: Array<{ accountId: string; label: string; total: number }>;
-}
-
-export interface RefreshFailure {
-  id: string;
-  label: string;
-  reason: string;
-}
-
-export interface RefreshSummary {
-  updated: number;
-  failed: RefreshFailure[];
-}
-
-export type LotType = "buy" | "sell";
-
-export interface HoldingLot {
-  id: string;
-  holdingId: string;
-  type: LotType;
-  occurredOn: string; // YYYY-MM-DD
-  quantity: number;
-  priceUnit: number;
-  fees: number;
   notes: string | null;
   createdAt: string;
 }
