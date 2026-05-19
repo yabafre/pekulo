@@ -21,6 +21,7 @@ import type {
   PortfolioSnapshotFx,
 } from "@pekulo/validators";
 
+// INVARIANT: mirror of common/derive/holding-pnl.ts#convertToBase — keep in sync.
 function convertToBase(amount: number, from: HoldingCurrency, rates: FxRates): number {
   if (from === rates.base) return amount;
   const r = rates.rates[from];
@@ -53,19 +54,29 @@ export function computeSnapshotFx(
     (acc, a) => acc + conv(a.cashBalance, a.currency as HoldingCurrency),
     0,
   );
-  const invested = holdings.reduce((acc, h) => acc + conv(h.quantity * h.avgCost, h.currency), 0);
-  const marketValue = holdings.reduce(
-    (acc, h) => acc + conv(h.quantity * h.lastPrice, h.currency),
-    0,
-  );
+
+  // Pre-group holdings by accountId in O(H) so byAccount totals stay O(A + H)
+  // instead of O(A × H). Same pass also feeds the invested + marketValue
+  // reduces below (single iteration over holdings).
+  const holdingsByAccount = new Map<string, Holding[]>();
+  let invested = 0;
+  let marketValue = 0;
+  for (const h of holdings) {
+    invested += conv(h.quantity * h.avgCost, h.currency);
+    marketValue += conv(h.quantity * h.lastPrice, h.currency);
+    const bucket = holdingsByAccount.get(h.accountId);
+    if (bucket) bucket.push(h);
+    else holdingsByAccount.set(h.accountId, [h]);
+  }
   const capitalTotal = cash + marketValue;
   const pnl = marketValue - invested;
 
   const byAccount = accounts.map((a) => {
     const cashBase = conv(a.cashBalance, a.currency as HoldingCurrency);
-    const holdingValueBase = holdings
-      .filter((h) => h.accountId === a.id)
-      .reduce((sum, h) => sum + conv(h.quantity * h.lastPrice, h.currency), 0);
+    const holdingValueBase = (holdingsByAccount.get(a.id) ?? []).reduce(
+      (sum, h) => sum + conv(h.quantity * h.lastPrice, h.currency),
+      0,
+    );
     return {
       accountId: a.id,
       label: a.label,
