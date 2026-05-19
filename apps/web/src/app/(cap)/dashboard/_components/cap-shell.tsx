@@ -18,7 +18,7 @@
 import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PekuloMobileBottomNav, PekuloNavRail, type PekuloNavKey, useToast } from "@pekulo/ui";
 import styles from "./bento.module.css";
 
@@ -35,14 +35,24 @@ export interface CapShellProps {
 
 export function CapShell({ email, children }: CapShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isDashboardRoot = pathname === "/dashboard";
   const activeTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
+  const navActiveKey: PekuloNavKey = pathname.startsWith("/dashboard/portefeuille")
+    ? "portfolio"
+    : pathname.startsWith("/dashboard/parametres")
+      ? "settings"
+      : "cap";
   const toast = useToast();
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
 
   const handleNav = (key: PekuloNavKey) => {
-    if (key === "cap") return;
+    if (key === "cap") {
+      router.push("/dashboard");
+      return;
+    }
     if (key === "settings") {
       router.push("/dashboard/parametres");
       return;
@@ -62,30 +72,34 @@ export function CapShell({ email, children }: CapShellProps) {
 
   return (
     <div className={styles.shell}>
-      <PekuloNavRail activeKey="cap" onSelect={handleNav} />
+      <PekuloNavRail activeKey={navActiveKey} onSelect={handleNav} />
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <p className={styles.dateLabel} translate="no">
             {today}
           </p>
-          <button
-            type="button"
-            className={`${styles.topTab} ${activeTab === "cap" ? styles.topTabActive : styles.topTabInactive}`}
-            aria-pressed={activeTab === "cap"}
-            aria-current={activeTab === "cap" ? "page" : undefined}
-            onClick={() => router.push("/dashboard")}
-          >
-            Cap
-          </button>
-          <button
-            type="button"
-            className={`${styles.topTab} ${activeTab === "patrimoine" ? styles.topTabActive : styles.topTabInactive}`}
-            aria-pressed={activeTab === "patrimoine"}
-            aria-current={activeTab === "patrimoine" ? "page" : undefined}
-            onClick={() => router.push("/dashboard?tab=patrimoine")}
-          >
-            Patrimoine
-          </button>
+          {isDashboardRoot && (
+            <>
+              <button
+                type="button"
+                className={`${styles.topTab} ${activeTab === "cap" ? styles.topTabActive : styles.topTabInactive}`}
+                aria-pressed={activeTab === "cap"}
+                aria-current={activeTab === "cap" ? "page" : undefined}
+                onClick={() => router.push("/dashboard")}
+              >
+                Cap
+              </button>
+              <button
+                type="button"
+                className={`${styles.topTab} ${activeTab === "patrimoine" ? styles.topTabActive : styles.topTabInactive}`}
+                aria-pressed={activeTab === "patrimoine"}
+                aria-current={activeTab === "patrimoine" ? "page" : undefined}
+                onClick={() => router.push("/dashboard?tab=patrimoine")}
+              >
+                Patrimoine
+              </button>
+            </>
+          )}
         </div>
         <div className={styles.headerRight}>
           <button
@@ -107,7 +121,7 @@ export function CapShell({ email, children }: CapShellProps) {
         </div>
       </header>
       <main className={styles.main}>{children}</main>
-      <PekuloMobileBottomNav activeKey="cap" onSelect={handleNav} />
+      <PekuloMobileBottomNav activeKey={navActiveKey} onSelect={handleNav} />
     </div>
   );
 }
