@@ -119,14 +119,19 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
     );
   };
 
+  const submitDisabled = isPending || accounts.length === 0;
   return (
-    <form onSubmit={onSubmit} aria-label="Ajouter un placement">
+    <form
+      onSubmit={onSubmit}
+      aria-label="Ajouter un placement"
+      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+    >
       <View
         flexDirection="column"
         gap="$2"
         paddingHorizontal="$1"
         paddingVertical="$2"
-        maxHeight="70vh"
+        maxHeight="60vh"
         overflowY="auto"
       >
         <Field>
@@ -274,11 +279,21 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
             Placement ajouté.
           </Text>
         )}
+      </View>
+      <View paddingTop="$2">
         <button
           type="submit"
-          disabled={isPending || accounts.length === 0}
-          aria-disabled={isPending || accounts.length === 0}
-          style={submitStyle(isPending || accounts.length === 0)}
+          disabled={submitDisabled}
+          aria-disabled={submitDisabled}
+          style={{
+            ...submitStyle(submitDisabled),
+            alignSelf: "stretch",
+            width: "100%",
+            height: 48,
+            padding: "0 24px",
+            marginTop: 0,
+            fontSize: 15,
+          }}
         >
           {isPending ? "Ajout…" : "Ajouter le placement"}
         </button>

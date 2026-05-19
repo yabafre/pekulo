@@ -117,13 +117,14 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
               Achat ou vente. Le WAC se recalcule automatiquement.
             </PekuloDialog.Description>
             <form
+              id="lot-form-submit"
               onSubmit={onSubmit}
               aria-label="Enregistrer un lot"
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: 8,
-                maxHeight: "65vh",
+                maxHeight: "55vh",
                 overflowY: "auto",
               }}
             >
@@ -254,15 +255,26 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                   Lot enregistré.
                 </Text>
               )}
+            </form>
+            <View paddingTop="$2">
               <button
                 type="submit"
+                form="lot-form-submit"
                 disabled={isPending}
                 aria-disabled={isPending}
-                style={submitStyle(isPending)}
+                style={{
+                  ...submitStyle(isPending),
+                  alignSelf: "stretch",
+                  width: "100%",
+                  height: 48,
+                  padding: "0 24px",
+                  marginTop: 0,
+                  fontSize: 15,
+                }}
               >
                 {isPending ? "Enregistrement…" : "Enregistrer le lot"}
               </button>
-            </form>
+            </View>
           </View>
         </PekuloDialog.Content>
       </PekuloDialog.Portal>
