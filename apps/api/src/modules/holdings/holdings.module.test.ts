@@ -104,20 +104,30 @@ function makeFakePrismaService(): PrismaService {
   return { client: withTx } as unknown as PrismaService;
 }
 
-// Story 3-2 — env stub for the price-chain deps. All three vars are
-// optional; setting them undefined exercises the "not-configured" / fallback
-// paths at the client factories without forcing the module to construct
-// against real provider HTTP endpoints.
-const env = {
-  PRICES_SERVICE_URL: undefined,
-  PRICES_SERVICE_TOKEN: undefined,
-  TWELVE_DATA_API_KEY: undefined,
-};
+// Story 3-2/3-3 — env stub for the provider deps. All vars are optional;
+// setting them undefined exercises the "not-configured" / fallback paths at
+// the client factories without forcing the module to construct against real
+// provider HTTP endpoints.
+type ModuleEnv = Parameters<typeof createHoldingsModule>[0]["env"];
+
+function makeDeps(
+  envOverride: Partial<ModuleEnv> = {},
+): Parameters<typeof createHoldingsModule>[0] {
+  return {
+    prismaService: makeFakePrismaService(),
+    env: {
+      PRICES_SERVICE_URL: undefined,
+      PRICES_SERVICE_TOKEN: undefined,
+      TWELVE_DATA_API_KEY: undefined,
+      FRANKFURTER_BASE_URL: undefined,
+      ...envOverride,
+    },
+  };
+}
 
 describe("holdings.module", () => {
   test("create → recordLot → getDerived → close → list", async () => {
-    const prismaService = makeFakePrismaService();
-    const mod = createHoldingsModule({ prismaService, env });
+    const mod = createHoldingsModule(makeDeps());
 
     const created = await mod.service.create(userA, {
       accountId: accA,
@@ -153,5 +163,23 @@ describe("holdings.module", () => {
     const all = await mod.service.list(userA, { includeClosed: true });
     expect(all.length).toBe(1);
     expect(all[0]!.closedAt).not.toBeNull();
+  });
+});
+
+// AC-7 (verbatim from docs/stories/3-3-portfolio-fx.md):
+//   loadEnv() succeeds with env.FRANKFURTER_BASE_URL === undefined AND
+//   frankfurterClient.isConfigured === false. When FRANKFURTER_BASE_URL is set,
+//   frankfurterClient.isConfigured === true.
+describe("frankfurterClient wiring", () => {
+  test("isConfigured=false when FRANKFURTER_BASE_URL is undefined", () => {
+    const { frankfurterClient } = createHoldingsModule(makeDeps());
+    expect(frankfurterClient.isConfigured).toBe(false);
+  });
+
+  test("isConfigured=true when FRANKFURTER_BASE_URL is set", () => {
+    const { frankfurterClient } = createHoldingsModule(
+      makeDeps({ FRANKFURTER_BASE_URL: "https://api.frankfurter.app" }),
+    );
+    expect(frankfurterClient.isConfigured).toBe(true);
   });
 });
