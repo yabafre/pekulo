@@ -26,6 +26,10 @@ const envSchema = z.object({
   PRICES_SERVICE_URL: optionalString(z.string().url()),
   PRICES_SERVICE_TOKEN: optionalString(z.string().min(1)),
   TWELVE_DATA_API_KEY: optionalString(z.string().min(1)),
+  // FX provider (story 3-3, FR-18). Best-effort: when unset, the snapshot
+  // computes with `fxSource: 'fallback'` (1:1 identity, per NFR-19). No
+  // default URL — explicit opt-in mirrors PRICES_SERVICE_URL.
+  FRANKFURTER_BASE_URL: optionalString(z.string().url()),
   // OTel SDK config (story 0-7 — ADR-0005). All three are optional with
   // safe defaults so brownfield .env files keep working.
   OTEL_SERVICE_NAME: z.string().min(1).default("pekulo-api"),
