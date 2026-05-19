@@ -1705,10 +1705,51 @@ $ grep -rnE "(fetch\(|prisma|new Date\(|Date\.now\(|import .* from '@opentelemet
 
 ## Review Record
 
-_(Filled by aped-review.)_
+**Date:** 2026-05-19
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
 
 ### Findings
 
+#### Resolved
+
+- [MINOR] `computeHoldingPnl` accepted unused `_base: HoldingCurrency = "EUR"` — doc-only knob that lied (helper actually converted to `rates.base`). Removing it before story 7-1 inherits the contract trap. [`apps/api/src/common/derive/holding-pnl.ts:32`]
+  - Source: Code + Edge (converged)
+  - Resolution: `3f88704 fix(#22): holding-pnl drops misleading unused _base param [aped-review]` — signature now `computeHoldingPnl(input, rates)`; 7 tests updated to drop the third arg, suite stays green.
+
+- [NIT] `convertToBase` duplicated between `portfolio-fx.ts` and `holding-pnl.ts` with no drift guard. [`apps/api/src/common/derive/portfolio-fx.ts:24` + `holding-pnl.ts:23`]
+  - Source: Code
+  - Resolution: `4a9851f refactor(#22): portfolio-fx pre-groups holdings by accountId + INVARIANT marker [aped-review]` — both copies now carry `// INVARIANT: mirror of …` markers (precedent: `HOLDING_KINDS_MIRROR` in validators).
+
+- [NIT] `computeSnapshotFx` was O(A × H) — per-account `holdings.filter((h) => h.accountId === a.id)`. [`apps/api/src/common/derive/portfolio-fx.ts:71`]
+  - Source: Code (forward-looking — within budget today but ground for the 500-holding NFR-15/16 budget once 7-1 composes the snapshot read)
+  - Resolution: same commit `4a9851f` — pre-groups via `Map<string, Holding[]>` in a single pass over holdings; same loop feeds `invested + marketValue` reduces. New shape is O(A + H). Behaviour identical, all 7 portfolio-fx tests stay green.
+
+- [NIT] Story-prescribed `bun --filter=api …` commands cannot be run literally — the workspace package name is `@pekulo/api`. [`docs/stories/3-3-portfolio-fx.md` T1/T4/T6/T8/T9/T10]
+  - Source: Spec (process-only; the dev already worked around in-session per Dev Notes deviation)
+  - Resolution: `7eee4e3 docs(#22): lessons — bun --filter needs the workspace name [aped-review]` — adds a 2026-05-19 lessons entry tying back to the 2026-05-05 `--cwd` ban so 3-4 onward inherits the correct filter syntax.
+
+#### Dismissed
+
+_(none)_
+
+#### Unresolved
+
+_(none)_
+
 ### Verification
 
+- Test command: `cd apps/api && bun test`
+- Test output (final pass): `329 pass / 0 fail / 859 expect() calls / 41 files / 1126 ms`
+- Scope tests (5 files): `31 pass / 0 fail / 93 expect() calls / 262 ms`
+- AC-6 invariant probe: `find apps/api/src/modules/holdings/services apps/api/src/common/derive -name '*.types.ts'` → empty
+- AC-8 purity probe: only the 2 purity-contract `//` comment lines match — zero code-level violations
+- Typecheck: `turbo run typecheck` → 8/8 successful
+- Lint: `oxlint` → 1 warning + 0 errors (warning is pre-existing `__seenBalanceLogRows` from story 2-2, out of scope)
+- Format: `oxfmt --check` → clean for every tracked file
+- Visual verification: N/A (backend-only surface — Aria not dispatched)
+
 ### Ticket sync
+
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/22#issuecomment-4486477882
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/83 (base `main`)
