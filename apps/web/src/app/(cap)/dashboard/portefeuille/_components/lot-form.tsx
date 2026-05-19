@@ -109,14 +109,24 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
       <PekuloDialog.Portal>
         <PekuloDialog.Overlay />
         <PekuloDialog.Content>
-          <View flexDirection="column" gap="$3" padding="$4">
+          <View flexDirection="column" gap="$2">
             <PekuloDialog.Title>
               Enregistrer un lot — {holding.ticker ?? holding.label}
             </PekuloDialog.Title>
             <PekuloDialog.Description>
               Achat ou vente. Le WAC se recalcule automatiquement.
             </PekuloDialog.Description>
-            <form onSubmit={onSubmit} aria-label="Enregistrer un lot">
+            <form
+              onSubmit={onSubmit}
+              aria-label="Enregistrer un lot"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                maxHeight: "65vh",
+                overflowY: "auto",
+              }}
+            >
               <Field>
                 <Text color="$colorSecondary" fontSize="$caption">
                   Type

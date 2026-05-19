@@ -121,7 +121,14 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
 
   return (
     <form onSubmit={onSubmit} aria-label="Ajouter un placement">
-      <View flexDirection="column" gap="$3" padding="$4">
+      <View
+        flexDirection="column"
+        gap="$2"
+        paddingHorizontal="$1"
+        paddingVertical="$2"
+        maxHeight="70vh"
+        overflowY="auto"
+      >
         <Field>
           <Text render="label" htmlFor="hld-account" color="$colorSecondary" fontSize="$caption">
             Compte
