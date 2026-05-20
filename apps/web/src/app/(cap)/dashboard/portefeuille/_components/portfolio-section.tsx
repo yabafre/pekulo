@@ -152,10 +152,16 @@ export function PortfolioSection() {
 
   return (
     <View flexDirection="column" gap="$6" width="100%" $lg={{ gap: 16 }}>
-      {/* Hero + Répartition — stacked on mobile, 7/5 split on lg+ (ux-preview parity) */}
-      <View flexDirection="column" gap="$6" $lg={{ flexDirection: "row", gap: "$4" }}>
+      {/* Hero + Répartition — stacked on mobile, 7/5 split on lg+ (ux-preview parity).
+          flexBasis:0 + minWidth:0 force proportional sizing — without them
+          Tamagui's `flex: N` only sets `flex-grow` and content width wins. */}
+      <View
+        flexDirection="column"
+        gap="$6"
+        $lg={{ flexDirection: "row", gap: "$4", alignItems: "stretch" }}
+      >
         {/* Hero — Valeur totale (card-wrapped via Section primitive) */}
-        <View $lg={{ flex: 7 }}>
+        <View width="100%" $lg={{ flex: 7, flexBasis: 0, minWidth: 0 }}>
           <Section ariaLabel="Valeur totale du portefeuille">
             <Text color="$colorTertiary" fontSize="$caption">
               Valeur portefeuille · EUR
@@ -189,7 +195,7 @@ export function PortfolioSection() {
         </View>
 
         {/* Répartition par classe (card-wrapped via Section primitive) */}
-        <View $lg={{ flex: 5 }}>
+        <View width="100%" $lg={{ flex: 5, flexBasis: 0, minWidth: 0 }}>
           <Section ariaLabel="Répartition par classe">
             <Text color="$colorTertiary" fontSize="$caption" marginBottom="$3">
               Répartition
