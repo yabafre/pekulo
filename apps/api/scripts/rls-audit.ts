@@ -45,6 +45,12 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // account_balance_log is an audit sister table per ADR-0001 — INSERT + SELECT
   // only. AC-2 of story 2-2 asserts this count.
   account_balance_log: 2,
+  // real_estate aggregate — 3 CRUD tables (full quartet) + 1 audit sister
+  // (INSERT + SELECT only per ADR-0001). AC-6 of story 4-1 asserts these counts.
+  real_estate: 4,
+  real_estate_mortgage: 4,
+  real_estate_rental: 4,
+  real_estate_valuations: 2,
 };
 
 async function main(): Promise<number> {
