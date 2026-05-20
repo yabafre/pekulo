@@ -44,6 +44,16 @@ export function CapShell({ email, children }: CapShellProps) {
     : pathname.startsWith("/dashboard/parametres")
       ? "settings"
       : "cap";
+  // Off-root screens replace the Cap/Patrimoine tabs with a page-title h1
+  // (ux-preview L144-146). Mirrors the SCREEN_TITLE map; covers every nav
+  // key the cap-shell can route to.
+  const screenTitle: string | null = isDashboardRoot
+    ? null
+    : navActiveKey === "portfolio"
+      ? "Portefeuille"
+      : navActiveKey === "settings"
+        ? "Paramètres"
+        : null;
   const toast = useToast();
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
@@ -100,6 +110,7 @@ export function CapShell({ email, children }: CapShellProps) {
               </button>
             </>
           )}
+          {screenTitle && <h1 className={styles.screenTitle}>{screenTitle}</h1>}
         </div>
         <div className={styles.headerRight}>
           <button

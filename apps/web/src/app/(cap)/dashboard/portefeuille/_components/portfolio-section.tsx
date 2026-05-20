@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloPopover, pekuloRadius } from "@pekulo/ui";
+import { PekuloDialog, PekuloPopover, Section, pekuloRadius } from "@pekulo/ui";
 import { MoreHorizontal, Plus } from "lucide-react";
 import type { Holding } from "@pekulo/validators";
 import { useHoldings } from "../_hooks/use-holdings";
@@ -159,85 +159,68 @@ export function PortfolioSection() {
     >
       {/* Hero + Répartition — stacked on mobile, 7/5 split on lg+ (ux-preview parity) */}
       <View flexDirection="column" gap="$6" $lg={{ flexDirection: "row", gap: "$4" }}>
-        {/* Hero — Valeur totale */}
-        <View render="section" aria-label="Valeur totale du portefeuille" $lg={{ flex: 7 }}>
-          <Text color="$colorTertiary" fontSize="$caption">
-            Valeur portefeuille · EUR
-          </Text>
-          <Text
-            color="$color"
-            fontSize="$h1"
-            fontWeight="600"
-            letterSpacing={-0.5}
-            marginTop="$2"
-            fontVariant={["tabular-nums"]}
-            $lg={{ fontSize: "$hero" }}
-          >
-            {eur0.format(total)}
-          </Text>
-          <View flexDirection="row" alignItems="center" gap={6} marginTop="$2">
+        {/* Hero — Valeur totale (card-wrapped via Section primitive) */}
+        <View $lg={{ flex: 7 }}>
+          <Section ariaLabel="Valeur totale du portefeuille">
+            <Text color="$colorTertiary" fontSize="$caption">
+              Valeur portefeuille · EUR
+            </Text>
             <Text
-              color={totalPnl >= 0 ? "$accent" : "$danger"}
-              fontSize="$bodySm"
-              fontWeight="500"
+              color="$color"
+              fontSize="$h1"
+              fontWeight="600"
+              letterSpacing={-0.5}
+              marginTop="$2"
               fontVariant={["tabular-nums"]}
+              $lg={{ fontSize: "$hero" }}
             >
-              {signed(totalPnl)}
+              {eur0.format(total)}
             </Text>
-            <Text color="$colorTertiary" fontSize="$bodySm" fontVariant={["tabular-nums"]}>
-              ({totalPnl >= 0 ? "+" : ""}
-              {(totalPnlPct * 100).toFixed(2)} %) plus-value latente
-            </Text>
-          </View>
+            <View flexDirection="row" alignItems="center" gap={6} marginTop="$2">
+              <Text
+                color={totalPnl >= 0 ? "$accent" : "$danger"}
+                fontSize="$bodySm"
+                fontWeight="500"
+                fontVariant={["tabular-nums"]}
+              >
+                {signed(totalPnl)}
+              </Text>
+              <Text color="$colorTertiary" fontSize="$bodySm" fontVariant={["tabular-nums"]}>
+                ({totalPnl >= 0 ? "+" : ""}
+                {(totalPnlPct * 100).toFixed(2)} %) plus-value latente
+              </Text>
+            </View>
+          </Section>
         </View>
 
-        {/* Répartition par classe */}
-        <View render="section" aria-labelledby="rep-h" flexDirection="column" $lg={{ flex: 5 }}>
-          <Text
-            id="rep-h"
-            render="h2"
-            color="$color"
-            fontSize="$h3"
-            fontWeight="600"
-            marginBottom="$3"
-            $lg={{ fontSize: "$h2" }}
-          >
-            Répartition
-          </Text>
-          <View render="ul" flexDirection="column" margin={0} padding={0}>
-            <ClassRow label="ETF" amount={byKind.etf} pct={total > 0 ? byKind.etf / total : 0} />
-            <ClassRow
-              label="Actions"
-              amount={byKind.action}
-              pct={total > 0 ? byKind.action / total : 0}
-            />
-            <ClassRow
-              label="Crypto"
-              amount={byKind.crypto}
-              pct={total > 0 ? byKind.crypto / total : 0}
-            />
-          </View>
+        {/* Répartition par classe (card-wrapped via Section primitive) */}
+        <View $lg={{ flex: 5 }}>
+          <Section ariaLabel="Répartition par classe">
+            <Text color="$colorTertiary" fontSize="$caption" marginBottom="$3">
+              Répartition
+            </Text>
+            <View render="ul" flexDirection="column" margin={0} padding={0}>
+              <ClassRow label="ETF" amount={byKind.etf} pct={total > 0 ? byKind.etf / total : 0} />
+              <ClassRow
+                label="Actions"
+                amount={byKind.action}
+                pct={total > 0 ? byKind.action / total : 0}
+              />
+              <ClassRow
+                label="Crypto"
+                amount={byKind.crypto}
+                pct={total > 0 ? byKind.crypto / total : 0}
+              />
+            </View>
+          </Section>
         </View>
       </View>
 
-      {/* Lignes */}
-      <View render="section" aria-labelledby="lig-h" flexDirection="column">
-        <View
-          flexDirection="row"
-          alignItems="center"
-          justifyContent="space-between"
-          marginBottom="$3"
-        >
-          <Text
-            id="lig-h"
-            render="h2"
-            color="$color"
-            fontSize="$h3"
-            fontWeight="600"
-            $lg={{ fontSize: "$h2" }}
-          >
-            Lignes
-          </Text>
+      {/* Lignes (card-wrapped via Section primitive with title + action header) */}
+      <Section
+        ariaLabel="Lignes"
+        title="Lignes"
+        action={
           <button
             type="button"
             onClick={() => setDialog({ kind: "create" })}
@@ -247,7 +230,8 @@ export function PortfolioSection() {
             <Plus size={14} strokeWidth={2.25} aria-hidden={true} />
             Ajouter
           </button>
-        </View>
+        }
+      >
         {rows.length === 0 ? (
           <Text color="$colorTertiary" fontSize="$bodySm">
             Aucun placement pour le moment. Clique « Ajouter » pour créer le premier.
@@ -295,7 +279,7 @@ export function PortfolioSection() {
             ))}
           </View>
         )}
-      </View>
+      </Section>
 
       {/* Create dialog */}
       <PekuloDialog

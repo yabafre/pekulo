@@ -70,6 +70,24 @@
   font-weight: 500;
 }
 
+/* Page-title h1 used on non-root sub-routes (Portefeuille / Paramètres).
+   Mirrors ux-preview L144-146: text-body-lg mobile / text-h1 lg+. Replaces
+   the Cap/Patrimoine top-tabs when navActiveKey !== "cap". */
+.screenTitle {
+  font-size: 17px; /* text-body-lg */
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+@media (min-width: 1024px) {
+  .screenTitle {
+    font-size: 26px; /* text-h1 */
+  }
+}
+
 .topTab {
   font-size: 20px; /* text-h2 */
   font-weight: 600;
