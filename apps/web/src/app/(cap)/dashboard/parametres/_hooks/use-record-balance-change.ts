@@ -1,21 +1,14 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { RecordBalanceChangeInput } from "@pekulo/validators";
-import { accountsKeys } from "@/lib/zapaction/keys";
-import { recordBalanceChange, type RecordBalanceChangeResult } from "../_actions/accounts-actions";
+import { useActionMutation } from "@zapaction/query";
+import { recordBalanceChange } from "../_actions/accounts-actions";
 
+// `recordBalanceChange` returns `{ ok: false, code: "ACCOUNT_NOT_FOUND" }`
+// as data on the not-found path. The tag registry still invalidates on this
+// successful (non-throwing) call — the cache then re-fetches and matches
+// what the server has (the row is unchanged, so this is a no-op extra
+// round-trip — acceptable; surfacing the error remains the form's job via
+// `result.code`).
 export function useRecordBalanceChange() {
-  const queryClient = useQueryClient();
-  return useMutation<RecordBalanceChangeResult, Error, RecordBalanceChangeInput>({
-    mutationFn: (input) => recordBalanceChange(input),
-    onSuccess: (result) => {
-      // Envelope `{ ok: false }` is data, not a thrown error — only invalidate
-      // when the mutation succeeded server-side. ACCOUNT_NOT_FOUND surfaces
-      // through `result.code` for the form to render.
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: accountsKeys.list() });
-      }
-    },
-  });
+  return useActionMutation(recordBalanceChange);
 }

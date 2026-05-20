@@ -1,8 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import type { Compass, CompassProgress } from "@pekulo/validators";
-import type { CompassSetupState } from "@pekulo/types";
+import { useActionQuery } from "@zapaction/query";
 import { compassKeys } from "@/lib/zapaction/keys";
 import { getCompass, getCurrentProgress, getSetupState } from "../_actions/compass-actions";
 
@@ -16,19 +14,22 @@ import { getCompass, getCurrentProgress, getSetupState } from "../_actions/compa
 //                is complete (the proc throws COMPASS_NOT_FOUND otherwise).
 // Convention: use<Feature><Resource> per architecture L348.
 export function useDashboardCompass() {
-  const setup = useQuery<CompassSetupState>({
+  const setup = useActionQuery(getSetupState, {
+    input: undefined,
     queryKey: compassKeys.setup(),
-    queryFn: () => getSetupState(),
+    readPolicy: "read-only",
     staleTime: 30_000,
   });
-  const compass = useQuery<Compass | null>({
+  const compass = useActionQuery(getCompass, {
+    input: undefined,
     queryKey: compassKeys.current(),
-    queryFn: () => getCompass(),
+    readPolicy: "read-only",
     staleTime: 30_000,
   });
-  const progress = useQuery<CompassProgress>({
+  const progress = useActionQuery(getCurrentProgress, {
+    input: undefined,
     queryKey: compassKeys.progress(),
-    queryFn: () => getCurrentProgress(),
+    readPolicy: "read-only",
     staleTime: 30_000,
     enabled: setup.data === "complete",
   });

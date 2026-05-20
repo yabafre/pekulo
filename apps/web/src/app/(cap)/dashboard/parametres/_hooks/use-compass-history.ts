@@ -1,14 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import type { CompassHistoryEntry } from "@pekulo/types";
+import { useActionQuery } from "@zapaction/query";
 import { compassKeys } from "@/lib/zapaction/keys";
 import { listHistory } from "../../_actions/compass-actions";
 
 export function useCompassHistory(opts?: { limit?: number }) {
-  return useQuery<CompassHistoryEntry[]>({
+  return useActionQuery(listHistory, {
+    input: opts ? { limit: opts.limit } : undefined,
     queryKey: compassKeys.history(opts?.limit),
-    queryFn: () => listHistory(opts ? { limit: opts.limit } : undefined),
+    readPolicy: "read-only",
     staleTime: 60_000,
   });
 }

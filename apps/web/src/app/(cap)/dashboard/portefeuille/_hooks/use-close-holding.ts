@@ -1,18 +1,10 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { CloseHoldingInput } from "@pekulo/validators";
-import { holdingsKeys } from "@/lib/zapaction/keys";
-import { closeHolding, type CloseHoldingResult } from "../_actions/holdings-actions";
+import { useActionMutation } from "@zapaction/query";
+import { closeHolding } from "../_actions/holdings-actions";
 
+// Envelope `{ ok: false }` surfaced to the form. Tag registry handles
+// invalidation of holdingsKeys.list() + portfolio aggregate.
 export function useCloseHolding() {
-  const queryClient = useQueryClient();
-  return useMutation<CloseHoldingResult, Error, CloseHoldingInput>({
-    mutationFn: (input) => closeHolding(input),
-    onSuccess: (result) => {
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
-      }
-    },
-  });
+  return useActionMutation(closeHolding);
 }
