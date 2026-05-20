@@ -1923,7 +1923,7 @@ Beyond the UI scope, this story closes the brownfield circuit opened by 3-1/3-2/
   Run: `bun --filter=@pekulo/web run typecheck && bun --filter=@pekulo/web run lint`. Expected: exit 0; lint shows zero errors. Then `rg --no-heading -n 'from\("holdings"\)|from\("holding_lots"\)' apps/web/src` — expected: no matches (AC-6).
   Commit: `git add -A && git commit -m "chore(#23): T14 — retire lib/actions/ + delete 14 brownfield files + clean lib/types.ts holding entries (AC-6, AC-7)"`. [AC: AC-6, AC-7, AC-9]
 
-- [x] **T15 — Visual verification via react-grab-mcp.** Per `CLAUDE.md` rule "Frontend = visual verification", spin the dev server and inspect the rendered portfolio screen.
+- [ ] **T15 — Visual verification via react-grab-mcp.** Deferred at dev time (MCP server failed to connect) and re-attempted during `aped-review`; the MCP server remained unavailable across both sessions. Static palette + dimension checks performed via code grep + ux-preview cross-reference (see Review Record Verification block). Live multi-viewport verification owed when the MCP comes back online. Per `CLAUDE.md` rule "Frontend = visual verification", spin the dev server and inspect the rendered portfolio screen.
 
   Step 1 — Start dev server (background):
 
@@ -2500,12 +2500,89 @@ T15 visual verification deferred to `aped-review` (react-grab MCP server never c
 
 ## Review Record
 
-(filled by aped-review)
+**Date:** 2026-05-20
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done (post-fix)
 
 ### Findings
 
-(filled by aped-review)
+#### Resolved
+
+- [BLOCKER] `closeHolding` SA — output schema rejected error envelope (`{ok:false}` failed `output.parse()` against `closeHoldingOutputSchema = z.object({ ok: z.literal(true) })`) [`apps/web/src/app/(cap)/dashboard/portefeuille/_actions/holdings-actions.ts:126`]
+  - Source: Edge & Hallucination
+  - Resolution: commit `64c621c` — `output: closeHoldingOutputSchema` dropped; mirrors the `deleteAccount` precedent so envelope errors survive the SA boundary. Verified via fresh read of `node_modules/.bun/@zapaction+core@0.2.2.../dist/index.js:138-139` (only runs `output.parse(result)` when `output` is declared) and via the new `holding-close-confirm.envelope.test.tsx` asserting the `HOLDING_NOT_FOUND` `role="alert"` text appears.
+
+- [MAJOR] Hero + Répartition diverged from ux-preview `lg:grid-cols-12` 7/5 split [`portfolio-section.tsx:151-215` vs `docs/ux-preview/src/App.tsx:1461`]
+  - Source: Aria
+  - Resolution: commit `64c621c` — wrapped Hero + Répartition in a `$lg={{ flexDirection: "row", gap: "$4" }}` View with `flex={7}` / `flex={5}` children. Mobile keeps the stacked column.
+
+- [MAJOR] `submit-pill.module.css` `:focus-visible` ring only attached on the 2 portefeuille forms — 5 sibling forms had no focus ring after the 40→44 px form-primitives bump (WCAG 2.4.7 regression on dark theme) [`apps/web/src/app/(cap)/_components/form-primitives.tsx:28`]
+  - Source: Aria
+  - Resolution: commit `64c621c` — `submit-pill.module.css` promoted to `apps/web/src/app/(cap)/_components/`; `className={submitPill.pill}` applied across `add-milestone-form`, `account-create-form`, `account-edit-form`, `account-balance-form`, `compass-edit-form`, `holding-close-confirm` (the 5 sibling forms + the danger CTA).
+
+- [MAJOR] Envelope narrowing (`if (!result.ok)`) was not exercised by any test [4 `.a11y.test.tsx` files]
+  - Source: Spec + Code
+  - Resolution: commit `64c621c` — 3 new `*.envelope.test.tsx` suites (`holding-create-form`, `lot-form`, `holding-close-confirm`) `mockResolvedValueOnce` the failure envelopes and assert `role="alert"` localised text appears for `ACCOUNT_NOT_FOUND`, `HOLDING_NOT_FOUND`, `HOLDING_CLOSED`. Test suite expanded from 24/41 to 27/45 (+3 files, +4 tests).
+
+- [MINOR] `HoldingCloseConfirm` `dangerBtn` still at pre-`dd3d5f0` dims (40 px / 16 px) [`holding-close-confirm.tsx:11-23`]
+  - Source: Code
+  - Resolution: commit `64c621c` — bumped to 44 px height / 24 px padding / marginTop 8; submit-pill className applied for focus parity.
+
+- [MINOR] `lot-form` `priceUnit` defaulted to `"0"` on freshly created holdings (silent WAC corruption on autopilot) [`lot-form.tsx:43`]
+  - Source: Edge
+  - Resolution: commit `64c621c` — added `initialPriceUnit(h)` helper: falls back to avgCost when lastPrice ≤ 0, leaves empty when both are 0. Client guard tightened from `>= 0` to `> 0` with error copy adjusted.
+
+- [MINOR] `holding-create-form` envelope-error ternary had an unreachable fallback (the `CreateHoldingResult` union narrows to a single literal) [`holding-create-form.tsx:107`]
+  - Source: Edge
+  - Resolution: commit `64c621c` — collapsed to `setEnvelopeError(ACCOUNT_NOT_FOUND_MSG)`.
+
+- [MINOR] `class-row` + `holding-row` missing `flexShrink={0}` on right-aligned numeric cells; class-row padding 8 px vs ux-preview 10 px [`class-row.tsx`, `holding-row.tsx`]
+  - Source: Aria
+  - Resolution: commit `64c621c` — `flexShrink={0}` on amount + percent cells in class-row, on right column in holding-row; class-row padding bumped to 10 px.
+
+- [MINOR] Task T15 marked `[x]` while explicitly deferred [story T15]
+  - Source: Spec
+  - Resolution: commit `64c621c` — flipped to `[ ]` with annotation pointing at the residual M4 disposition below.
+
+- [NIT] All 3 mutation hooks invalidated on every settle, including envelope-error paths
+  - Source: Edge
+  - Resolution: commit `64c621c` — switched `onSettled` to `onSuccess` + `if (result.ok)` guard on `use-create-holding`, `use-record-lot`, `use-close-holding`.
+
+- [NIT] Native radio focus ring near-invisible on `#000` background (lot-form Type field) [`lot-form.tsx:136-157`]
+  - Source: Aria
+  - Resolution: commit `64c621c` — new `form-controls.module.css` adds a TR-strict `outline: 2px solid var(--color)` on `:focus-visible` for `input[type="radio"]` inside the radio group.
+
+- [MAJOR] `pekulo/no-cross-feature-action-import` was a structural no-op against the App-Router tree (`featureRoots` default `apps/web/src/features/` doesn't exist) [`packages/oxlint-config/src/rules/no-cross-feature-action-import.js:78`]
+  - Source: Edge
+  - Resolution: commit `64c621c` (partial). Documented the scope gap inline (rule file header TODO + portfolio-section.tsx comment). Two follow-up work items recorded in the rule TODO: (a) teach the resolver to handle relative paths against `filename`, (b) filter by import-source basename `*-actions(.tsx?)?` so hook imports stay free. The boundary on the live `portfolio-section.tsx:18` cross-route hook import is now correctly labelled as convention-enforced; AC-9 lint claim no longer overstated.
+
+#### Dismissed
+
+- [NIT] `cap-shell.tsx:11-15` comment about `$max-md` (Aria flagged it as misleading)
+  - Source: Aria
+  - Rationale: false-positive. The existing comment is already accurate — it documents the 2026-05-17 lesson correctly (the bug was the *value* mapping `md=1020` vs the real `md=768`, not the existence of `max-*` keys). No edit needed.
+
+#### Unresolved (none — story flips to `done`)
+
+- [MAJOR] AC-12 visual fidelity — T15 React Grab MCP verification deferred
+  - Source: Spec + Aria
+  - Status: **partially resolved, residual gap acknowledged.** Static palette + dimension audit passed via code grep + ux-preview cross-reference. The MCP server (`react-grab-mcp`) was unavailable in both dev and review sessions ("still connecting" then no tools surfaced). Live multi-viewport sanity (390 / 768 / 1440 px) is owed when the MCP comes back online; layout-grid fix (M2) and focus-ring promotion (M3) reduce the visual risk surface considerably. Recommend re-inspecting after merge in a follow-up session — not gating done.
 
 ### Verification
 
-(filled by aped-review)
+- Test command: `bun --filter=web run test`
+- Test output (final pass, captured 2026-05-20 14:41:00):
+  ```
+  Test Files  27 passed (27)
+       Tests  45 passed (45)
+   Duration  6.33s
+  ```
+- Lint: `npm run lint` — 5 warnings (all `no-await-in-loop` in `apps/api/scripts/seed-portfolio-demo.ts` dev-only seeder, pre-existing scope), 0 errors.
+- Cross-workspace typecheck: `bun --filter='@pekulo/*' run typecheck` — all 7 workspaces exit 0 (`@pekulo/zod`, `@pekulo/validators`, `@pekulo/oxlint-config`, `@pekulo/types`, `@pekulo/contracts`, `@pekulo/ui`, `@pekulo/api`).
+- AC-sealing greps (re-run post-fix):
+  - AC-6 `rg --no-heading -n 'from\("holdings"\)|from\("holding_lots"\)' apps/web/src` → no matches → PASS
+  - AC-7 `ls apps/web/src/lib/actions` → "No such file or directory" → PASS
+  - AC-10 `find apps/web/src/app/(cap)/dashboard/portefeuille -name "*.types.ts"` → no matches → PASS
+- Visual verification: deferred — React Grab MCP unavailable 2026-05-20T14:41:00Z (and prior dev session). Static review only; recommend re-check on MCP availability.
+- Iron Law evidence: every test count, grep output, and exit code in this block was captured by tool calls in this review session — no claims rely on prior dev-record figures.
+
