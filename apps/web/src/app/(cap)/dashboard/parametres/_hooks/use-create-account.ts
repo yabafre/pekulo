@@ -1,16 +1,11 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Account, CreateAccountInput } from "@pekulo/validators";
-import { accountsKeys } from "@/lib/zapaction/keys";
+import { useActionMutation } from "@zapaction/query";
 import { createAccount } from "../_actions/accounts-actions";
 
+// Tag registry handles invalidation: `createAccount.tags` includes
+// `accountsTags.list()`, mapped by setTagRegistry to `accountsKeys.list()`
+// + the portfolio aggregate keys downstream.
 export function useCreateAccount() {
-  const queryClient = useQueryClient();
-  return useMutation<Account, Error, CreateAccountInput>({
-    mutationFn: (input) => createAccount(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: accountsKeys.list() });
-    },
-  });
+  return useActionMutation(createAccount);
 }

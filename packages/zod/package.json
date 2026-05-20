@@ -2,7 +2,7 @@
   "name": "@pekulo/zod",
   "version": "0.0.0",
   "private": true,
-  "description": "Pekulo Zod helpers — placeholder; real surface lands in a follow-up story (see ADR-0011).",
+  "description": "Pekulo Zod surface — single source of zod for the monorepo. Re-exports zod v4 and (incrementally) Pekulo helpers (Money, EuroAmount, IsoDate, Percent, tabularNum) per ADR-0011.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -11,6 +11,9 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*"

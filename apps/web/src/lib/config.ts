@@ -1,3 +1,11 @@
+// apps/web/src/lib/config.ts
+// Display data for the 4-phase financial plan (Persona #1 — Alex). The shape
+// + data are the SSOT for the eventual `/dashboard/cap/plan` Phase view
+// (architecture FR-2-x family) ; lifted out of a page component to keep the
+// route file thin once the view ships.
+//
+// Removed in PR #86 audit then restored — product content, not orphan code.
+
 export interface Phase {
   num: string;
   name: string;

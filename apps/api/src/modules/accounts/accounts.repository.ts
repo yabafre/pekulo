@@ -31,7 +31,7 @@ import { PekuloError } from "../../common/errors";
 import type { ExtendedPrismaClient } from "../../database";
 import { decimalToNumber } from "../../common/derive/decimal-to-number";
 
-export interface UpdateAccountRepoInput {
+interface UpdateAccountRepoInput {
   label?: string;
   type?: Account["type"];
   currency?: Account["currency"];
@@ -39,7 +39,7 @@ export interface UpdateAccountRepoInput {
   notes?: string | null;
 }
 
-export type DeleteWithFkProbeOutcome =
+type DeleteWithFkProbeOutcome =
   | { outcome: "deleted" }
   | { outcome: "fk-blocked"; holdingCount: number }
   | { outcome: "not-found" };
@@ -47,11 +47,11 @@ export type DeleteWithFkProbeOutcome =
 // Pre-flight findFirst lives OUTSIDE the $transaction so a cross-user / unknown
 // id short-circuits without opening a tx; the update + log create live inside
 // the tx for atomicity (DR-5 — failure of either rolls both back).
-export type RecordBalanceChangeOutcome =
+type RecordBalanceChangeOutcome =
   | { outcome: "updated"; account: Account }
   | { outcome: "not-found" };
 
-export interface RecordBalanceChangeRepoInput {
+interface RecordBalanceChangeRepoInput {
   id: string;
   valuedOn: Date;
   cashBalance: number;

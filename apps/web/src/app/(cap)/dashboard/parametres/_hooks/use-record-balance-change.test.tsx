@@ -2,12 +2,15 @@ import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { accountsKeys } from "@/lib/zapaction/keys";
+import { accountsKeys, accountsTags } from "@/lib/zapaction/keys";
 
 const balanceMock = vi.fn();
+// Post-ZAP-1: attach `.tags` so useActionMutation's tag-registry path fires.
 vi.mock("../_actions/accounts-actions", () => ({
-  recordBalanceChange: (input: { id: string; valuedOn: Date; cashBalance: number }) =>
-    balanceMock(input),
+  recordBalanceChange: Object.assign(
+    (input: { id: string; valuedOn: Date; cashBalance: number }) => balanceMock(input),
+    { tags: [accountsTags.list()] },
+  ),
 }));
 
 import { useRecordBalanceChange } from "./use-record-balance-change";
@@ -54,12 +57,14 @@ describe("useRecordBalanceChange (AC-4)", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: accountsKeys.list() });
   });
 
-  test("ok=false ACCOUNT_NOT_FOUND → does NOT invalidate", async () => {
+  // Post-ZAP-1 + R9: the tag registry fires on every success (envelope-false
+  // is data, not error). The refetch is a no-op (server didn't change) so the
+  // mutation.data alert still surfaces correctly.
+  test("ok=false ACCOUNT_NOT_FOUND → mutation.data carries the envelope (R9 invalidate-anyway)", async () => {
     balanceMock
       .mockReset()
       .mockResolvedValueOnce({ ok: false, code: "ACCOUNT_NOT_FOUND", message: "not found" });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const invalidateSpy = vi.spyOn(client, "invalidateQueries");
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
@@ -70,6 +75,10 @@ describe("useRecordBalanceChange (AC-4)", () => {
       cashBalance: 9_999,
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(result.current.data).toEqual({
+      ok: false,
+      code: "ACCOUNT_NOT_FOUND",
+      message: "not found",
+    });
   });
 });

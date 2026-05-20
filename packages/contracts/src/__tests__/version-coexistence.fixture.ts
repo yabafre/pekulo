@@ -6,7 +6,7 @@
 //
 // Wording matches AC-2 verbatim — three `satisfies` assertions (review F7).
 
-import { compassContract, compassContractV1 } from "../compass.contract";
+import { compassContract, compassContractV1 } from "../compass";
 
 // Shadow a hypothetical V2 alongside V1. In a real bump, V2 would land
 // inside `compass.contract.ts` next to V1. Here it lives in the fixture

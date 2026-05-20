@@ -36,3 +36,11 @@ Migrate `apps/web` to Tamagui Core **before V1 feature work resumes**. Pekulo De
   - V1 feature freeze creates external business pressure (early (b) interest) — fall back to option C adapter shim as fastest unblock.
 - **Animation strategy locked**: Tamagui's `animations` prop on web AND mobile, removing Framer Motion 12 from the web stack. Skia reservation for the donut hot-path on mobile (V1.5+) carried forward.
 - **`oxlint` rule added in Phase 3 process rules**: forbid `tailwindcss` imports outside `packages/ui` once the migration completes ; forbid app-local Tailwind utility classes in `apps/web/src/app/**`.
+
+## Amendments
+
+### 2026-05-20 — PR #86 (archi-deadcode audit)
+
+- **R7** — `@pekulo/ui` barrel discipline. The provider/ folder is the single client boundary and MUST NOT import from `components/`. If the provider needs a UI piece (toast, modal root, error boundary mount point), that piece lives in its own sibling top-level dir under `packages/ui/src/` — never under `components/`. Current sibling layout : `provider/`, `toast/`, `components/`, `primitives/`, `tokens/`, `themes/`, `animations/`, `config/`. Toast was extracted from `components/` in commit 6491f4f to defuse a latent provider↔components barrel cycle. R11 (folder-by-domain) also applies inside `components/` — each PekuloX lives in its own folder with tests + index. Codified in PR #86 commits 6491f4f + ec8115e.
+
+See `docs/architecture.md` Phase 3 — Audit-derived conventions (2026-05-20 — PR #86) for the canonical statement.

@@ -1,22 +1,11 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { UpdateAccountInput } from "@pekulo/validators";
-import { accountsKeys } from "@/lib/zapaction/keys";
-import { updateAccount, type UpdateAccountResult } from "../_actions/accounts-actions";
+import { useActionMutation } from "@zapaction/query";
+import { updateAccount } from "../_actions/accounts-actions";
 
+// Envelope `{ ok: false }` is data; the form renders `result.message` in
+// role=alert. The tag registry invalidates regardless (no-op refetch on the
+// not-found path — acceptable cost for one consistent pattern).
 export function useUpdateAccount() {
-  const queryClient = useQueryClient();
-  return useMutation<UpdateAccountResult, Error, UpdateAccountInput>({
-    mutationFn: (input) => updateAccount(input),
-    onSuccess: (result) => {
-      // Envelope `{ ok: false }` is data, not a thrown error — only
-      // invalidate when the mutation succeeded server-side (matches the
-      // delete-account precedent). Surfacing the ACCOUNT_NOT_FOUND case to
-      // the form is the caller's job (renders `result.message` in role=alert).
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: accountsKeys.list() });
-      }
-    },
-  });
+  return useActionMutation(updateAccount);
 }

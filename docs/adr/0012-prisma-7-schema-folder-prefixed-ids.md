@@ -51,3 +51,13 @@ The Phase 2 Data Layer originally locked "Supabase JS SDK v2 + Zod, no ORM". Ale
 - **Prefixed IDs propagate to every wire surface** — oRPC responses, audit log rows, log lines, error messages all carry `{prefix}_{base62}` IDs. No schema-versioning concern for the prefix scheme until V2+.
 - **Connection-string secret management** — `DATABASE_URL` (direct 5432) lives in Dokploy env on the VPS only ; never in `apps/web` env. Pre-commit `gitleaks` enforces.
 - **NFR-28 amended** — see ADR-0009. Web tier still opens zero direct DB connections ; `apps/api` is the only Postgres consumer aside from Supabase Auth's internal access.
+
+## Amendments
+
+### 2026-05-20 — PR #86 (archi-deadcode audit)
+
+- **R10** — Aggregate-root layout exception. The "one .prisma file per Elysia domain module" rule is enforced module-by-module, BUT carves an exception for aggregates that share a root entity. Concrete example : `apps/api/prisma/schema/accounts.prisma` declares `Account`, `Holding`, and `HoldingLot` together because `Account` is the aggregate root for the holdings sub-aggregate. There is intentionally no `holdings.prisma` even though `apps/api/src/modules/holdings/` exists. New aggregate clusters that share a root MUST be co-located in a single .prisma file — splitting across files creates Prisma cross-file `@relation` resolution pain. Reviewers MUST NOT flag a missing `<module>.prisma` if the module's tables live in an aggregate-root file under a different name.
+
+This was a sub-agent false-positive trigger during the audit pass — the first Explore agent flagged "missing holdings.prisma" as CRITICAL despite the models living in `accounts.prisma`. Documenting the exception so future audits don't re-trigger.
+
+See `docs/architecture.md` Phase 3 — Audit-derived conventions (2026-05-20 — PR #86) for the canonical statement.

@@ -50,3 +50,14 @@ Import hierarchy is enforced (R1):
 - **Bun workspace resolution** — `packages/*` glob in root `package.json` workspaces array (already present) ; package names follow `@pekulo/<name>` in each `package.json`.
 - **Publish surface** — packages stay private (`"private": true`) ; never published to npm at V1 / V1.5.
 - **Lint custom rules in `@pekulo/oxlint-config`** — implemented as JS rules (oxlint's plugin model) ; CI lint is the gating mechanism.
+
+## Amendments
+
+### 2026-05-20 — PR #86 (archi-deadcode audit)
+
+Two refinements ratified in `architecture.md` Phase 3 (Audit-derived conventions):
+
+- **R1** — `@pekulo/zod` is the SOLE zod entry point. No file under `packages/*` or `apps/*` is allowed to `import { z } from "zod"` directly. The `@pekulo/zod` package was the placeholder mentioned in the original Decision — promotion to real surface lands the `z` re-export today ; Money/EuroAmount/IsoDate/Percent/tabularNum helpers ship in a follow-up story without forcing consumers to re-migrate. Direct `zod` dependency removed from `apps/web`, `apps/api`, `packages/validators` package.json files. Codified in PR #86 commit 29202bb.
+- **R11** — Folder-by-domain layout inside every `packages/<pkg>/src/`. The original decision was silent on internal layout ; flat files at the package root were the implicit pattern. R11 mandates `src/index.ts` (aggregate barrel) + `<domain>/<domain>.<suffix>.ts` + `<domain>/index.ts` (domain barrel) so cross-domain navigation is uniform with the apps/api module shape. Codified in PR #86 commits dfaa280 + ec8115e.
+
+See `docs/architecture.md` Phase 3 — Audit-derived conventions (2026-05-20 — PR #86) for the canonical statement and consumer rules.

@@ -1,14 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import type { Milestone } from "@pekulo/validators";
+import { useActionQuery } from "@zapaction/query";
 import { milestonesKeys } from "@/lib/zapaction/keys";
 import { listMilestones } from "../_actions/milestones-actions";
 
 export function useMilestones() {
-  return useQuery<Milestone[]>({
+  return useActionQuery(listMilestones, {
+    input: undefined,
     queryKey: milestonesKeys.list(),
-    queryFn: () => listMilestones(),
+    readPolicy: "read-only",
     staleTime: 30_000,
   });
 }

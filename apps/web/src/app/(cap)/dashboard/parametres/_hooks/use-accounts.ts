@@ -1,14 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import type { Account } from "@pekulo/validators";
+import { useActionQuery } from "@zapaction/query";
 import { accountsKeys } from "@/lib/zapaction/keys";
 import { listAccounts } from "../_actions/accounts-actions";
 
 export function useAccounts() {
-  return useQuery<Account[]>({
+  return useActionQuery(listAccounts, {
+    input: undefined,
     queryKey: accountsKeys.list(),
-    queryFn: () => listAccounts(),
+    readPolicy: "read-only",
     staleTime: 30_000,
   });
 }

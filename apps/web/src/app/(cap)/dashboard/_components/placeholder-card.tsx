@@ -15,7 +15,7 @@
 import { Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 
-export type PlaceholderVariant = "hero" | "trajectory" | "composition" | "activity" | "hypothesis";
+type PlaceholderVariant = "hero" | "trajectory" | "composition" | "activity" | "hypothesis";
 
 export interface PlaceholderCardProps {
   variant: PlaceholderVariant;

@@ -3,12 +3,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Milestone } from "@pekulo/validators";
-import { milestonesKeys } from "@/lib/zapaction/keys";
+import { milestonesKeys, milestonesTags } from "@/lib/zapaction/keys";
 
 const deleteSpy = vi.fn();
 
+// Post-ZAP-1: attach `.tags` so useActionMutation's tag-registry path fires.
 vi.mock("../_actions/milestones-actions", () => ({
-  deleteMilestone: (input: { id: string }) => deleteSpy(input),
+  deleteMilestone: Object.assign((input: { id: string }) => deleteSpy(input), {
+    tags: [milestonesTags.list()],
+  }),
 }));
 
 import { useDeleteMilestone } from "./use-delete-milestone";

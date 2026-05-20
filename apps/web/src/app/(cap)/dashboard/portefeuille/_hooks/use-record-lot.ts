@@ -1,18 +1,10 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { RecordLotInput } from "@pekulo/validators";
-import { holdingsKeys } from "@/lib/zapaction/keys";
-import { recordLot, type RecordLotResult } from "../_actions/holdings-actions";
+import { useActionMutation } from "@zapaction/query";
+import { recordLot } from "../_actions/holdings-actions";
 
+// Envelope `{ ok: false }` surfaced to the form. Tag registry handles
+// invalidation of holdingsKeys.list() + portfolio aggregate.
 export function useRecordLot() {
-  const queryClient = useQueryClient();
-  return useMutation<RecordLotResult, Error, RecordLotInput>({
-    mutationFn: (input) => recordLot(input),
-    onSuccess: (result) => {
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
-      }
-    },
-  });
+  return useActionMutation(recordLot);
 }

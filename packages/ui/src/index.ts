@@ -14,6 +14,11 @@
 // Provider (single client boundary)
 export * from "./provider";
 
+// Toast (hook + viewport — consumed by ./provider; kept as a sibling so the
+// provider doesn't have to import from ./components, avoiding a latent
+// provider ↔ components barrel cycle)
+export * from "./toast";
+
 // Tokens (raw data — for build tooling, contrast tests, charts that need
 // typed access to colors)
 export * from "./tokens";

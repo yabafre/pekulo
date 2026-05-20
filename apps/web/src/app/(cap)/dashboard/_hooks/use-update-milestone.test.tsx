@@ -2,20 +2,29 @@ import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { milestonesKeys } from "@/lib/zapaction/keys";
+import { milestonesKeys, milestonesTags } from "@/lib/zapaction/keys";
 
+// Post-ZAP-1: attach `.tags` so useActionMutation's tag-registry path fires.
 vi.mock("../_actions/milestones-actions", () => ({
-  updateMilestone: vi.fn(
-    async (input: { id: string; targetCapital?: number; targetYear?: number; label?: string }) => ({
-      id: input.id,
-      userId: "user-A",
-      targetCapital: input.targetCapital ?? 100_000,
-      targetYear: input.targetYear ?? 2030,
-      label: input.label ?? null,
-      position: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
+  updateMilestone: Object.assign(
+    vi.fn(
+      async (input: {
+        id: string;
+        targetCapital?: number;
+        targetYear?: number;
+        label?: string;
+      }) => ({
+        id: input.id,
+        userId: "user-A",
+        targetCapital: input.targetCapital ?? 100_000,
+        targetYear: input.targetYear ?? 2030,
+        label: input.label ?? null,
+        position: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    ),
+    { tags: [milestonesTags.list()] },
   ),
 }));
 
