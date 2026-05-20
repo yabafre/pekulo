@@ -156,8 +156,29 @@ export interface MonthlyRecord {
   closed?: boolean;
 }
 
-// ─── Real-estate ─────────────────────────────────────────────────────────
-export interface Property {
+// ─── Real-estate (story 4-1) ─────────────────────────────────────────────
+// `PropertyCardItem` is the legacy V1 design-system row shape consumed by
+// `PekuloPropertyCard.tsx` mockups. The canonical domain entities live in
+// `@pekulo/validators` (Zod inference) and are re-exported here as the single
+// import surface for feature modules.
+export const PROPERTY_TYPES = ["residence-principale", "locatif", "autre"] as const;
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+
+export type RealEstateId = Id<"RealEstateId">;
+export type RealEstateMortgageId = Id<"RealEstateMortgageId">;
+export type RealEstateRentalId = Id<"RealEstateRentalId">;
+export type RealEstateValuationId = Id<"RealEstateValuationId">;
+
+export type {
+  RealEstate,
+  RealEstateMortgage,
+  RealEstateRental,
+  RealEstateValuation,
+  PropertyWithChildren,
+} from "@pekulo/validators";
+
+/** UI prop shape consumed by PekuloPropertyCard. */
+export interface PropertyCardItem {
   label: string;
   valuationEur: number;
   debtRemainingEur: number;
