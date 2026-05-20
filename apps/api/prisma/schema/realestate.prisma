@@ -1,0 +1,80 @@
+// apps/api/prisma/schema/realestate.prisma
+// Real-estate aggregate (story 4-1). 4 models:
+//   RealEstate              — property root (CRUD)
+//   RealEstateMortgage      — 1:1 child via UNIQUE on realEstateId
+//   RealEstateRental        — 1:1 child via UNIQUE on realEstateId
+//   RealEstateValuation     — append-only audit sister (RLS INSERT+SELECT only)
+//
+// All children cascade-delete when the parent property is removed. All tables
+// cascade-delete when the parent auth.users row is removed (story 11-2).
+//
+// Note: `propertyType` is a TEXT column with a CHECK constraint (NOT a Postgres
+// enum) to keep schema changes additive in V2+ (adding a 4th type is a single
+// ALTER TABLE … DROP CONSTRAINT + ADD CONSTRAINT). Validator + Zod enforce the
+// 3-value union at the application boundary.
+
+model RealEstate {
+  id               String   @id
+  userId           String   @map("user_id") @db.Uuid
+  label            String
+  propertyType     String   @map("property_type")
+  currentValuation Decimal  @map("current_valuation") @db.Decimal
+  lastValuedOn     DateTime @map("last_valued_on") @db.Date
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  mortgage   RealEstateMortgage?
+  rental     RealEstateRental?
+  valuations RealEstateValuation[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "real_estate_user_created_idx")
+  @@map("real_estate")
+}
+
+model RealEstateMortgage {
+  id                   String   @id
+  userId               String   @map("user_id") @db.Uuid
+  realEstateId         String   @unique @map("real_estate_id")
+  outstandingPrincipal Decimal  @map("outstanding_principal") @db.Decimal
+  annualRate           Decimal  @map("annual_rate") @db.Decimal
+  monthlyPayment       Decimal  @map("monthly_payment") @db.Decimal
+  termMonths           Int      @map("term_months") @db.Integer
+  startDate            DateTime @map("start_date") @db.Date
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  realEstate RealEstate @relation(fields: [realEstateId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "real_estate_mortgage_user_idx")
+  @@map("real_estate_mortgage")
+}
+
+model RealEstateRental {
+  id             String   @id
+  userId         String   @map("user_id") @db.Uuid
+  realEstateId   String   @unique @map("real_estate_id")
+  monthlyRent    Decimal  @map("monthly_rent") @db.Decimal
+  monthlyCharges Decimal  @map("monthly_charges") @db.Decimal
+  furnished      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  realEstate RealEstate @relation(fields: [realEstateId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "real_estate_rental_user_idx")
+  @@map("real_estate_rental")
+}
+
+model RealEstateValuation {
+  id           String   @id
+  userId       String   @map("user_id") @db.Uuid
+  realEstateId String   @map("real_estate_id")
+  amount       Decimal  @db.Decimal
+  valuedOn     DateTime @map("valued_on") @db.Date
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  realEstate RealEstate @relation(fields: [realEstateId], references: [id], onDelete: Cascade)
+
+  @@index([userId, realEstateId, valuedOn(sort: Desc)], map: "real_estate_valuations_user_property_valued_idx")
+  @@map("real_estate_valuations")
+}
