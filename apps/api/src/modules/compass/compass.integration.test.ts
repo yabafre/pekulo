@@ -20,7 +20,7 @@ import { createCompassRouter } from "./compass.routes";
 import type { CompassService } from "./compass.service";
 import type { Compass, CompassCurve, CompassProgress, CompassSetupState } from "@pekulo/validators";
 import { compassHistoryEntrySchema, compassProgressSchema } from "@pekulo/validators";
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 import type { CompassHistoryEntry } from "@pekulo/types";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";

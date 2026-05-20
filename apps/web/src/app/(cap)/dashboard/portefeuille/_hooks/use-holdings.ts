@@ -1,14 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import type { Holding } from "@pekulo/validators";
+import { useActionQuery } from "@zapaction/query";
 import { holdingsKeys } from "@/lib/zapaction/keys";
 import { listHoldings } from "../_actions/holdings-actions";
 
 export function useHoldings() {
-  return useQuery<Holding[]>({
+  return useActionQuery(listHoldings, {
+    input: undefined,
     queryKey: holdingsKeys.list(),
-    queryFn: () => listHoldings(),
+    readPolicy: "read-only",
     staleTime: 30_000,
   });
 }

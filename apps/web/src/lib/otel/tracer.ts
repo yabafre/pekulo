@@ -31,6 +31,10 @@
 // allocates a fresh ProxyTracer wrapper. The cache is correctness-neutral
 // (the underlying TracerProvider is the global singleton) and saves a
 // small allocation per span site. Story 0-7 review L1.
+//
+// Removed in PR #86 audit then restored — explicit forward-pointer scaffold
+// per the docstring above. Re-deletion without an observability ADR
+// amendment is a review fail.
 
 import "server-only";
 

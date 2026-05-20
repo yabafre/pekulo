@@ -5,7 +5,7 @@
 //   - AbortSignal.timeout(timeoutMs) — default 2 s (free tier is slow).
 //   - `provider` field stripped from output.
 
-export interface TwelveDataQuote {
+interface TwelveDataQuote {
   symbol: string;
   price: number;
   currency: string;

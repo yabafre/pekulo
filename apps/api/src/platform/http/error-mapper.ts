@@ -17,7 +17,7 @@
 
 import { isPekuloError, type PekuloErrorCode } from "../../common/errors";
 
-export interface OrpcErrorBody {
+interface OrpcErrorBody {
   defined: boolean;
   code: string;
   status: number;
@@ -35,7 +35,7 @@ export interface MappedErrorResponse {
  * UNAUTHORIZED → 401, FORBIDDEN → 403, NOT_FOUND → 404, BAD_REQUEST → 400,
  * CONFLICT → 409, RATE_LIMITED → 429, INTERNAL → 500.
  */
-export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
+const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   BAD_REQUEST: 400,
   // Compass domain validation (story 1-1, FR-5): both surface as 400 — they
   // signal invalid client input to computeProgress (capitalTarget <= 0 /

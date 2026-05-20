@@ -1,7 +1,7 @@
+import type { Hypotheses } from "@pekulo/validators";
 import type {
   AnnualSummary,
   BudgetItem,
-  Hypotheses,
   KpiData,
   MonthlyRecord,
   RevenueItem,
@@ -52,6 +52,10 @@ function resolveRange(h: Hypotheses, opts: ProjectionOpts) {
   };
 }
 
+// Re-exported (was made file-local in PR #86 D3 part 2 — restored here
+// because `apps/web/src/lib/derive-monthly.ts` was restored in the same PR
+// after the audit's premature deletion, and projectMonth() consumes both
+// helpers).
 export function deriveAvantages(h: Hypotheses): number {
   const ticketResto = h.ticketRestoJour * h.partEmployeurTr * h.joursTravailles;
   const navigo = h.navigoCout * h.partEmployeurNavigo;

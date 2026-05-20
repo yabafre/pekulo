@@ -3,9 +3,9 @@ export interface ProbeResult {
   reason?: string;
 }
 
-export type ReadinessProbe = () => Promise<ProbeResult>;
+type ReadinessProbe = () => Promise<ProbeResult>;
 
-export interface ReadinessReport {
+interface ReadinessReport {
   ready: boolean;
   probes: Record<string, ProbeResult>;
 }

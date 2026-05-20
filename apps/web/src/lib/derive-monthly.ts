@@ -1,6 +1,21 @@
-import type { Hypotheses, MonthlyEntry } from "./types";
+// apps/web/src/lib/derive-monthly.ts
+// Single-month projection helper — `projectMonth(h, year, monthNum)` returns
+// one MonthlyEntry from the hypotheses. Used by the dashboard's "projected vs
+// actual" merge once Epic 5 ports monthly tracking to oRPC and the merge
+// step needs to fill gaps between actual-row entries and the projection
+// curve.
+//
+// Removed in PR #86 audit then restored — forward-pointer logic that depends
+// on schemas / types relocated during the same pass:
+//   - `Hypotheses` now lives in @pekulo/validators (story 0-6)
+//   - `MonthlyEntry` now lives in @pekulo/types (re-relocated in PR #86)
+//   - `formatMonthLabel` now lives in @pekulo/validators (re-relocated in
+//     PR #86 — was apps/web/src/lib/schemas/monthly.ts before)
+
+import type { Hypotheses } from "@pekulo/validators";
+import { formatMonthLabel } from "@pekulo/validators";
+import type { MonthlyEntry } from "@pekulo/types";
 import { deriveAvantages, deriveDepensesTotales } from "./derive";
-import { formatMonthLabel } from "./schemas/monthly";
 
 const BASE_YEAR = 2026;
 

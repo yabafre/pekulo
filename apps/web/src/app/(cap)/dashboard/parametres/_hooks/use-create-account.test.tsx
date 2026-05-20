@@ -2,21 +2,25 @@ import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { accountsKeys } from "@/lib/zapaction/keys";
+import { accountsKeys, accountsTags } from "@/lib/zapaction/keys";
 
+// Post-ZAP-1: attach `.tags` so useActionMutation's tag-registry path fires.
 vi.mock("../_actions/accounts-actions", () => ({
-  createAccount: vi.fn(
-    async (input: { label: string; type: string; currency: string; cashBalance: number }) => ({
-      id: "acc_aaaaaaaaaaaaaaaaaaaaa",
-      userId: "00000000-0000-0000-0000-000000000001",
-      label: input.label,
-      type: input.type,
-      currency: input.currency,
-      cashBalance: input.cashBalance,
-      notes: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
+  createAccount: Object.assign(
+    vi.fn(
+      async (input: { label: string; type: string; currency: string; cashBalance: number }) => ({
+        id: "acc_aaaaaaaaaaaaaaaaaaaaa",
+        userId: "00000000-0000-0000-0000-000000000001",
+        label: input.label,
+        type: input.type,
+        currency: input.currency,
+        cashBalance: input.cashBalance,
+        notes: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    ),
+    { tags: [accountsTags.list()] },
   ),
 }));
 

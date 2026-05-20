@@ -1,19 +1,20 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { DeleteMilestoneInput, DeleteMilestoneOutput, Milestone } from "@pekulo/validators";
-import { compassKeys, milestonesKeys } from "@/lib/zapaction/keys";
+import { useQueryClient } from "@tanstack/react-query";
+import { useActionMutation } from "@zapaction/query";
+import type { Milestone } from "@pekulo/validators";
+import { milestonesKeys } from "@/lib/zapaction/keys";
 import { deleteMilestone } from "../_actions/milestones-actions";
 
+// Optimistic delete. Pattern: cancel → snapshot → optimistic apply → rollback
+// on thrown error → registry invalidates the milestones list + compass.setup
+// on success (no manual onSettled needed; the tag registry covers both keys).
+//
+// `useQueryClient` is retained for cache-direct manipulation inside the
+// optimistic hooks per the ZapAction optimistic-update recipe.
 export function useDeleteMilestone() {
   const queryClient = useQueryClient();
-  return useMutation<
-    DeleteMilestoneOutput,
-    Error,
-    DeleteMilestoneInput,
-    { previous: Milestone[] | undefined }
-  >({
-    mutationFn: (input) => deleteMilestone(input),
+  return useActionMutation(deleteMilestone, {
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: milestonesKeys.list() });
       const previous = queryClient.getQueryData<Milestone[]>(milestonesKeys.list());
@@ -26,8 +27,7 @@ export function useDeleteMilestone() {
     onError: (_err, input, ctx) => {
       // Surgical restore: only re-add the row this mutation removed. Two
       // concurrent deletes each capture independent `previous` snapshots; a
-      // blanket overwrite would resurrect the other mutation's deleted row
-      // until onSettled invalidate landed.
+      // blanket overwrite would resurrect the other mutation's deleted row.
       const removed = ctx?.previous?.find((mil) => mil.id === input.id);
       if (!removed) return;
       queryClient.setQueryData<Milestone[]>(milestonesKeys.list(), (cur) => {
@@ -35,11 +35,6 @@ export function useDeleteMilestone() {
         if (cur.some((mil) => mil.id === removed.id)) return cur;
         return [...cur, removed];
       });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: milestonesKeys.list() });
-      // Removing the last milestone flips compass.setup back to "incomplete".
-      queryClient.invalidateQueries({ queryKey: compassKeys.setup() });
     },
   });
 }

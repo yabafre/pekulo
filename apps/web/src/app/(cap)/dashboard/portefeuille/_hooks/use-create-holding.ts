@@ -1,18 +1,11 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { CreateHoldingInput } from "@pekulo/validators";
-import { holdingsKeys } from "@/lib/zapaction/keys";
-import { createHolding, type CreateHoldingResult } from "../_actions/holdings-actions";
+import { useActionMutation } from "@zapaction/query";
+import { createHolding } from "../_actions/holdings-actions";
 
+// Envelope `{ ok: false }` is data, surfaced to the form. The tag registry
+// invalidates `holdingsKeys.list()` + portfolio aggregate on success — no
+// manual orchestration needed.
 export function useCreateHolding() {
-  const queryClient = useQueryClient();
-  return useMutation<CreateHoldingResult, Error, CreateHoldingInput>({
-    mutationFn: (input) => createHolding(input),
-    onSuccess: (result) => {
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
-      }
-    },
-  });
+  return useActionMutation(createHolding);
 }

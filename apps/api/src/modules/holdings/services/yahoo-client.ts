@@ -13,7 +13,7 @@
 import yahooFinance from "yahoo-finance2";
 import type { HoldingCurrency } from "@pekulo/validators";
 
-export interface YahooQuote {
+interface YahooQuote {
   symbol: string;
   price: number;
   currency: string;

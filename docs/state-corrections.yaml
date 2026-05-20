@@ -1,1 +1,22 @@
-corrections: []
+corrections:
+  - date: "2026-05-20"
+    type: "minor"
+    reason: >-
+      Archi-audit pass PR #86 codified 9 implicit patterns into architecture.md Phase 3
+      (R1-R10). New conventions section "Audit-derived conventions (2026-05-20 — PR #86)":
+      R1 = @pekulo/zod is the sole zod entry point ; R2 = @pekulo/types ↔ @pekulo/validators
+      layering is correct ; R3 = ZapAction is the only React-Query consumer in hooks ;
+      R4 = tag registry centralises invalidation ; R5 = oRPC client export policy
+      (only clients backed by mounted api routes) ; R6 = tag registry forward-pointer
+      policy ; R7 = @pekulo/ui barrel discipline ; R8 = visibility default is
+      unexported ; R9 = optimistic mutation recipe with ZapAction ; R10 = aggregate-root
+      Prisma layout exception to ADR-0012. Lessons.md gained 2 entries (systemic
+      raw-TanStack bypass + branch-aware audit reading).
+    artifacts_updated:
+      - "docs/architecture.md"
+      - "docs/lessons.md"
+    affected_stories: []
+    trigger: "aped-course"
+    upstream_changes:
+      - "yabafre/zapaction v0.2.3 (TError default to Error)"
+      - "Pekulo branch worktree-archi-deadcode-audit — 9 commits (D1, H3, ZAP-1, zapaction bump, lockfile sync, ZOD-1, D2, D3, D3 part 2)"

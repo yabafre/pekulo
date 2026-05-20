@@ -2,11 +2,14 @@ import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { accountsKeys } from "@/lib/zapaction/keys";
+import { accountsKeys, accountsTags } from "@/lib/zapaction/keys";
 
 const deleteMock = vi.fn();
+// Post-ZAP-1: attach `.tags` so useActionMutation's tag-registry path fires.
 vi.mock("../_actions/accounts-actions", () => ({
-  deleteAccount: (input: { id: string }) => deleteMock(input),
+  deleteAccount: Object.assign((input: { id: string }) => deleteMock(input), {
+    tags: [accountsTags.list()],
+  }),
 }));
 
 import { useDeleteAccount } from "./use-delete-account";

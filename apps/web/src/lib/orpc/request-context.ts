@@ -60,18 +60,3 @@ export async function ensureRequestContext(): Promise<RequestContext> {
 export function seedRequestContext(ctx: RequestContext): void {
   requestContextStore.enterWith(ctx);
 }
-
-/**
- * Synchronous getter — used by the RPCLink.headers thunk. Throws if called
- * outside an ensured request context (e.g. from a route handler that
- * forgot to call ensureRequestContext first).
- */
-export function getRequestContext(): RequestContext {
-  const store = requestContextStore.getStore();
-  if (!store) {
-    throw new Error(
-      "Request context not set. Call ensureRequestContext() first or invoke from inside a server action.",
-    );
-  }
-  return store;
-}

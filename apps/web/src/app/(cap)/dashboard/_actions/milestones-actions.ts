@@ -2,7 +2,7 @@
 
 import { defineAction } from "@zapaction/core";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 import {
   addMilestoneInputSchema,
   deleteMilestoneInputSchema,
