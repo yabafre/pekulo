@@ -111,4 +111,23 @@ Main shipped the R1-R11 codification + folder-by-domain restructure (commit 08c9
 
 ## Previous stories — outcomes
 
-_(Empty — story 4-1 is the first story in Epic 4. Appended by aped-review when stories flip to done.)_
+### Story 4-1-realestate-domain — done 2026-05-21T00:42:00Z
+
+- **Decisions:**
+  - Module shape mirrors holdings 3-1 (factory `createRealestateModule({prismaService}) → {service, router}`, oRPC contract-first at `/rpc/v1/realestate`). 4-2 / 4-3 build on this — do not re-design.
+  - `recordValuation` uses `tx.realEstate.updateMany` inside `$transaction` (not `update`) — eliminates Prisma 5+ relaxed `WhereUniqueInput` dependency and naturally races concurrent deletes to a 404 instead of leaking P2025. **Apply same pattern in 4-2 derive writes if they touch `RealEstate`.**
+  - `RealestateError` factory pattern (constructor narrows `code` from `PekuloErrorCode` to `RealestateErrorCode`) is the canonical shape — 4-2/4-3 errors inherit it.
+  - Cross-aggregate guard `requireOwnedProperty(userId, propertyId)` in service runs BEFORE every mutation ; the repo's `findByIdForUser` is the load-bearing primitive (mirrors 3-1 `findAccountForUser`).
+- **Files:** see story 4-1 File List (14 NEW + 13 MODIFIED, post-review-supp).
+- **Contracts:**
+  - 12-procedure oRPC `realestateContract` mounted at `/rpc/v1/realestate` (T13).
+  - 5 new `PekuloErrorCode`s: `REALESTATE_NOT_FOUND` (404), `MORTGAGE_NOT_FOUND` (404), `RENTAL_NOT_FOUND` (404), `MORTGAGE_ALREADY_ATTACHED` (409), `RENTAL_ALREADY_ATTACHED` (409).
+  - 4 new Prisma models: `RealEstate` (prefix `res`), `RealEstateMortgage` (`resm`, UNIQUE on `real_estate_id`), `RealEstateRental` (`resr`, UNIQUE on `real_estate_id`), `RealEstateValuation` (`resv`, append-only sister with INSERT+SELECT-only RLS).
+  - `RecordValuationOutcome` / `MortgageUpdateOutcome` / `RentalUpdateOutcome` discriminated unions surface "not-found" cleanly — 4-2 derive layer reads `RealEstate` so the type signature stays stable.
+  - `apps/web/src/lib/zapaction/keys.ts` declares `REALESTATE_KEY` + `realestateKeys` (`list` / `byId` / `valuations`) + `realestateTags`. **4-2 / 4-3 consumers reuse this set ; don't re-declare.**
+- **Deviations from plan:**
+  - `listPropertiesOutputSchema` / `listValuationsOutputSchema` / `realestateOkSchema` live in `@pekulo/validators` (not inlined in contract) — keeps `@pekulo/contracts` zod-free.
+  - Integration UUIDs use RFC-4122 v4 fixtures (`aaaaaaaa-aaaa-4aaa-…`), not the relaxed `00000000-…-a` shape. Schema's `z.string().uuid()` enforces this strictly.
+  - `recordValuation` discriminated outcome shape (`{ok | not-found}`) added during aped-review-supp ; service contract unchanged externally (still throws `realestateNotFound()`).
+  - Integration test binds `port: 0` (Bun OS-assigned), not `PORT_BASE + Math.random()`. Other sibling integration tests still use the legacy pattern.
+  - Story Dev Notes claim `.partial()` on `updateMortgage/Rental` schemas ; actual implementation is `.optional()` + `.refine()` rejecting empty payloads (stricter — caller must supply ≥1 field).
