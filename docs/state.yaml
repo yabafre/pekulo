@@ -116,8 +116,10 @@ pipeline:
       ticket_sync: "synced"
       synced_at: "2026-05-03T19:43:00Z"
     dev:
-      status: "in-progress"
+      status: "complete"
       started_at: "2026-05-09T15:00:00Z"
+      last_completed_at: "2026-05-21T00:42:00Z"
+      last_completed_story: "4-1-realestate-domain"
 # GitHub Issues sync (top-level, written by aped-epics step 8.7)
 ticket_sync:
   provider: "github"
@@ -164,7 +166,7 @@ corrections_count: 1
 #   started_at:   ISO8601 timestamp set when status flips to in-progress
 sprint:
   project: "pekulo-v1"
-  active_epic: 2
+  active_epic: 4
   umbrella_branch: "main"
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
@@ -195,7 +197,7 @@ sprint:
     3-3-portfolio-fx: {status: done, depends_on: [3-1-holdings-orpc-port, 3-2-prices-fallback-chain], ticket: "#22", worktree: null, started_at: "2026-05-19T08:30:00Z", completed_at: "2026-05-19T08:57:26Z"}
     3-4-portfolio-ui: {status: done, depends_on: [3-1-holdings-orpc-port, 3-2-prices-fallback-chain, 3-3-portfolio-fx, 0-10-pekulo-ui-migration], ticket: "#23", worktree: null, started_at: "2026-05-19T10:00:00Z", completed_at: "2026-05-20T14:45:00Z"}
     # Epic 4 — Real-estate (V1 new)
-    4-1-realestate-domain: {status: pending, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold], ticket: "#24", worktree: null}
+    4-1-realestate-domain: {status: done, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold], ticket: "#24", worktree: null, started_at: "2026-05-20T16:00:00Z", completed_at: "2026-05-21T00:42:00Z"}
     4-2-realestate-derives: {status: pending, depends_on: [4-1-realestate-domain], ticket: "#25", worktree: null}
     4-3-realestate-ui: {status: pending, depends_on: [4-1-realestate-domain, 4-2-realestate-derives, 0-10-pekulo-ui-migration], ticket: "#26", worktree: null}
     # Epic 5 — Transactions & monthly (V1 brownfield + new flows)

@@ -1,7 +1,7 @@
 "use client";
 
 import { Text, View } from "tamagui";
-import type { Property } from "@pekulo/types";
+import type { PropertyCardItem } from "@pekulo/types";
 import { PekuloDonut } from "../PekuloDonut";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -11,7 +11,7 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 });
 
 export interface PekuloPropertyCardProps {
-  property: Property;
+  property: PropertyCardItem;
 }
 
 export function PekuloPropertyCard({ property }: PekuloPropertyCardProps) {

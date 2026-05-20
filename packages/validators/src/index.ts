@@ -7,4 +7,5 @@ export * from "./holdings";
 export * from "./hypothesis";
 export * from "./milestones";
 export * from "./monthly";
+export * from "./realestate";
 export * from "./transactions";

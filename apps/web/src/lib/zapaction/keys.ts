@@ -52,6 +52,25 @@ export const holdingsTags = createFeatureTags(HOLDINGS_KEY, {
   list: () => ["list"] as const,
 });
 
+// Story 4-1 forward-pointer — realestate feature key set + tag registry.
+// Stories 4-2 (derives) / 4-3 (UI) / 7-1 (dashboard) declare their
+// invalidation edges against `realestateTags.list()` so the cache graph
+// stays decoupled at the aggregate level.
+export const REALESTATE_KEY = "realestate" as const;
+export const realestateKeys = createFeatureKeys(REALESTATE_KEY, {
+  list: () => ["list"] as const,
+  // TODO(4-2/4-3): `byId` consumed by `useProperty(id)` in 4-3 ; `valuations`
+  // consumed by the cap-history panel in 4-3. Until those stories land, the
+  // factories are declared here so adding the consuming hooks doesn't require
+  // touching this file again (review-supp L5 — keep forward-pointer scope
+  // explicit so the audit doesn't flag them as dead code).
+  byId: (propertyId: string) => ["byId", propertyId] as const,
+  valuations: (propertyId: string) => ["valuations", propertyId] as const,
+});
+export const realestateTags = createFeatureTags(REALESTATE_KEY, {
+  list: () => ["list"] as const,
+});
+
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
@@ -90,4 +109,11 @@ setTagRegistry({
   // portfolioKeys.holdings + portfolioKeys.snapshot lands back here.
   [holdingsTags.all()]: [holdingsKeys.list()],
   [holdingsTags.list()]: [holdingsKeys.list()],
+  // Realestate (story 4-1) — `list` invalidates the realestate aggregate.
+  // Stories 4-2 (derives) / 4-3 (UI) / 7-1 (dashboard) add cross-feature
+  // edges (e.g. realestateTags.list → dashboardKeys.cap) when they land;
+  // the registry entry exists now because the realestate oRPC module is
+  // mounted (T16) and consumers can subscribe immediately.
+  [realestateTags.all()]: [realestateKeys.list()],
+  [realestateTags.list()]: [realestateKeys.list()],
 });
