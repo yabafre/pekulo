@@ -70,28 +70,22 @@
   font-weight: 500;
 }
 
-.topTab {
-  font-size: 20px; /* text-h2 */
+/* Page-title h1 used on non-root sub-routes (Portefeuille / Paramètres).
+   Mirrors ux-preview L144-146: text-body-lg mobile / text-h1 lg+. Replaces
+   the Cap/Patrimoine top-tabs when navActiveKey !== "cap". */
+.screenTitle {
+  font-size: 17px; /* text-body-lg */
   font-weight: 600;
-  line-height: 1.25;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-  transition: color 150ms ease;
-}
-
-.topTabActive {
+  line-height: 1;
   color: var(--color);
+  margin: 0;
+  letter-spacing: -0.015em;
 }
 
-.topTabInactive {
-  color: var(--colorMuted);
-}
-
-.topTabInactive:hover {
-  color: var(--colorTertiary);
+@media (min-width: 1024px) {
+  .screenTitle {
+    font-size: 26px; /* text-h1 */
+  }
 }
 
 .newTxPill {
@@ -117,7 +111,9 @@
 
 /* Mobile header trim — mirrors ux-preview L122-135. Below the Tamagui
    `$lg` cutover (= 1024 px) the date label and the "Nouvelle transaction"
-   pill drop out so only the Cap/Patrimoine tabs + UserDot remain. */
+   pill drop out so only the Cap/Patrimoine tabs (or screen title) +
+   PekuloContextualAddButton + UserDot remain. The contextual + button
+   itself gates visibility internally via `$lg: { display: "none" }`. */
 @media (max-width: 1023.98px) {
   .dateLabel {
     display: none;
@@ -152,28 +148,6 @@
 
 .headerActionPill:hover {
   background-color: var(--backgroundElevated);
-}
-
-.userDot {
-  display: grid;
-  place-items: center;
-  width: 44px; /* mobile h-11 w-11 */
-  height: 44px;
-  border-radius: 9999px;
-  background-color: var(--backgroundMuted);
-  color: var(--color);
-  font-size: 14px;
-  font-weight: 500;
-  border: 0;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-@media (min-width: 1024px) {
-  .userDot {
-    width: 40px; /* lg:h-10 lg:w-10 */
-    height: 40px;
-  }
 }
 
 /* ─── Main (ux-preview L160) ─────────────────────────────────────────────── */

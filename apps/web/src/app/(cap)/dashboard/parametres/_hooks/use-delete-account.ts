@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Account, DeleteAccountInput } from "@pekulo/validators";
 import { accountsKeys } from "@/lib/zapaction/keys";
-import { deleteAccount, type DeleteAccountResult } from "@/lib/actions/accounts-actions";
+import { deleteAccount, type DeleteAccountResult } from "../_actions/accounts-actions";
 
 export function useDeleteAccount() {
   const queryClient = useQueryClient();

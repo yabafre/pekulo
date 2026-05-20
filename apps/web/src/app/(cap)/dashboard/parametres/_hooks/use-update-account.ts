@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { UpdateAccountInput } from "@pekulo/validators";
 import { accountsKeys } from "@/lib/zapaction/keys";
-import { updateAccount, type UpdateAccountResult } from "@/lib/actions/accounts-actions";
+import { updateAccount, type UpdateAccountResult } from "../_actions/accounts-actions";
 
 export function useUpdateAccount() {
   const queryClient = useQueryClient();

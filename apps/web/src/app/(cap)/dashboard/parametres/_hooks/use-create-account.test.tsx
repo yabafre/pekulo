@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { accountsKeys } from "@/lib/zapaction/keys";
 
-vi.mock("@/lib/actions/accounts-actions", () => ({
+vi.mock("../_actions/accounts-actions", () => ({
   createAccount: vi.fn(
     async (input: { label: string; type: string; currency: string; cashBalance: number }) => ({
       id: "acc_aaaaaaaaaaaaaaaaaaaaa",

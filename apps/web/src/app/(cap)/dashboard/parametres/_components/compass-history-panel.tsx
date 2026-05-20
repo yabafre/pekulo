@@ -1,7 +1,7 @@
 "use client";
 
 import { Text, View } from "@pekulo/ui/client";
-import { Section } from "@pekulo/ui";
+import { PekuloSkeleton, Section } from "@pekulo/ui";
 import { useCompassHistory } from "../_hooks/use-compass-history";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -20,9 +20,19 @@ export function CompassHistoryPanel() {
   return (
     <Section title="Historique du cap" ariaLabel="Historique du cap">
       {isLoading && (
-        <Text color="$colorTertiary" fontSize="$caption">
-          Chargement…
-        </Text>
+        <View role="status" aria-live="polite">
+          <Text
+            color="$colorTertiary"
+            fontSize="$caption"
+            position="absolute"
+            width={1}
+            height={1}
+            overflow="hidden"
+          >
+            Chargement…
+          </Text>
+          <PekuloSkeleton lines={3} height={36} />
+        </View>
       )}
       {error && (
         <Text role="alert" color="$danger" fontSize="$caption">

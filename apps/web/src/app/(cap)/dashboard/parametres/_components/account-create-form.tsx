@@ -21,6 +21,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
+import submitPill from "../../../_components/submit-pill.module.css";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   livret: "Livret",
@@ -187,6 +188,7 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
           type="submit"
           disabled={isPending}
           aria-disabled={isPending}
+          className={submitPill.pill}
           style={submitStyle(isPending)}
         >
           {isPending ? "Ajout…" : "Ajouter le compte"}

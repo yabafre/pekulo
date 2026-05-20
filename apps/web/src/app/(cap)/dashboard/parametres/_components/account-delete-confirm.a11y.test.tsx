@@ -4,7 +4,7 @@ import { axe } from "vitest-axe";
 import { renderWithTamagui } from "../../../../../../test/setup";
 
 const deleteMock = vi.fn();
-vi.mock("@/lib/actions/accounts-actions", () => ({
+vi.mock("../_actions/accounts-actions", () => ({
   deleteAccount: (input: { id: string }) => deleteMock(input),
 }));
 

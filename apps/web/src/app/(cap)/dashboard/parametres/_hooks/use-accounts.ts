@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Account } from "@pekulo/validators";
 import { accountsKeys } from "@/lib/zapaction/keys";
-import { listAccounts } from "@/lib/actions/accounts-actions";
+import { listAccounts } from "../_actions/accounts-actions";
 
 export function useAccounts() {
   return useQuery<Account[]>({

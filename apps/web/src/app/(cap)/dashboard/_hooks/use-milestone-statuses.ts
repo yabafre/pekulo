@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { MilestoneStatusEntry } from "@pekulo/validators";
 import { milestonesKeys } from "@/lib/zapaction/keys";
-import { getMilestoneStatuses } from "@/lib/actions/milestones-actions";
+import { getMilestoneStatuses } from "../_actions/milestones-actions";
 
 export function useMilestoneStatuses(currentWealth: number, opts?: { enabled?: boolean }) {
   return useQuery<MilestoneStatusEntry[]>({

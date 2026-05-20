@@ -9,7 +9,7 @@ import { renderWithTamagui } from "../../../../../test/setup";
 // any click that slips past the cap-reached gate calls the spy, otherwise
 // it stays at 0.
 const addSpy = vi.fn();
-vi.mock("@/lib/actions/milestones-actions", () => ({
+vi.mock("../_actions/milestones-actions", () => ({
   addMilestone: (input: unknown) => addSpy(input),
 }));
 

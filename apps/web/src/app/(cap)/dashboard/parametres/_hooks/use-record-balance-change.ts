@@ -3,10 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { RecordBalanceChangeInput } from "@pekulo/validators";
 import { accountsKeys } from "@/lib/zapaction/keys";
-import {
-  recordBalanceChange,
-  type RecordBalanceChangeResult,
-} from "@/lib/actions/accounts-actions";
+import { recordBalanceChange, type RecordBalanceChangeResult } from "../_actions/accounts-actions";
 
 export function useRecordBalanceChange() {
   const queryClient = useQueryClient();

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CompassHistoryEntry } from "@pekulo/types";
 import { compassKeys } from "@/lib/zapaction/keys";
-import { listHistory } from "@/lib/actions/compass-actions";
+import { listHistory } from "../../_actions/compass-actions";
 
 export function useCompassHistory(opts?: { limit?: number }) {
   return useQuery<CompassHistoryEntry[]>({

@@ -7,7 +7,7 @@ import { milestonesKeys } from "@/lib/zapaction/keys";
 
 const deleteSpy = vi.fn();
 
-vi.mock("@/lib/actions/milestones-actions", () => ({
+vi.mock("../_actions/milestones-actions", () => ({
   deleteMilestone: (input: { id: string }) => deleteSpy(input),
 }));
 

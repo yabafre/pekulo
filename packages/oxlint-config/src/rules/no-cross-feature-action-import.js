@@ -1,4 +1,14 @@
 // @ts-check
+// TODO(3-4-review): scope is currently limited to `@/features/*` and
+// absolute paths containing one of `featureRoots`. Relative imports under
+// the App-Router tree (e.g. `../../parametres/_hooks/use-accounts` from a
+// file inside `apps/web/src/app/(cap)/dashboard/portefeuille/`) are NOT
+// resolved by `resolveImportFeature` and silently pass. Story 3-4's web
+// tree therefore depends on convention for the cross-feature hook-import
+// boundary documented in ADR-0010. Two follow-ups close the gap: (a)
+// teach the rule to resolve relative paths against `filename`, (b) gate
+// the check on import-source basename matching `*-actions(.tsx?)?` so
+// hook imports stay free per the rule's intent.
 import { getStringLiteralValue, normaliseFilename } from "../utils/ast.js";
 
 /**

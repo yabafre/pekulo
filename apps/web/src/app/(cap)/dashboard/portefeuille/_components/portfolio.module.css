@@ -1,0 +1,10 @@
+/* Force the Section primitive's outer View to fill its flex wrapper.
+ * Without this, Hero + Répartition cards end up at content-height even
+ * when their parent row uses alignItems:stretch — Tamagui's View ships
+ * no height/flex defaults and Section accepts no flex prop. CSS module
+ * specificity wins over Tamagui's inline styles for `height`. */
+.cardStretch {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

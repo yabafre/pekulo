@@ -6,7 +6,7 @@ import { PekuloContextualAddButton } from "./PekuloContextualAddButton";
 describe("PekuloContextualAddButton a11y", () => {
   it("has no serious/critical violations", async () => {
     const { container } = renderWithTamagui(
-      <PekuloContextualAddButton activeNav="transactions" label="Ajouter" onPress={vi.fn()} />,
+      <PekuloContextualAddButton label="Ajouter" onPress={vi.fn()} />,
     );
     const r = await axe(container);
     expect(
@@ -16,7 +16,7 @@ describe("PekuloContextualAddButton a11y", () => {
   it("activates on click", () => {
     const onPress = vi.fn();
     const { getByRole } = renderWithTamagui(
-      <PekuloContextualAddButton activeNav="portfolio" label="Ajouter" onPress={onPress} />,
+      <PekuloContextualAddButton label="Ajouter" onPress={onPress} />,
     );
     fireEvent.click(getByRole("button"));
     expect(onPress).toHaveBeenCalledTimes(1);

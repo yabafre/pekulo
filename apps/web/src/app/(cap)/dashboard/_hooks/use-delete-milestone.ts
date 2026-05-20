@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { DeleteMilestoneInput, DeleteMilestoneOutput, Milestone } from "@pekulo/validators";
 import { compassKeys, milestonesKeys } from "@/lib/zapaction/keys";
-import { deleteMilestone } from "@/lib/actions/milestones-actions";
+import { deleteMilestone } from "../_actions/milestones-actions";
 
 export function useDeleteMilestone() {
   const queryClient = useQueryClient();

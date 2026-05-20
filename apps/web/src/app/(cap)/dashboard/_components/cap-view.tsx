@@ -6,7 +6,7 @@
 // or inline flat placeholders); desktop keeps the bento card cells.
 
 import { View, Text } from "@pekulo/ui/client";
-import { PekuloDonut } from "@pekulo/ui";
+import { PekuloDonut, PekuloSkeleton } from "@pekulo/ui";
 import { AddMilestoneDialogProvider } from "./add-milestone-dialog";
 import { CompassSection, useCapDashboardState } from "./compass-section";
 import { MilestonesSection } from "./milestones-section";
@@ -24,13 +24,11 @@ const eurCompact = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 1,
 });
 
+// Thin wrapper kept for the FlatListPlaceholder rows (multiple fixed-width
+// PekuloSkeleton calls per row). Could inline-call PekuloSkeleton directly
+// at each callsite but the local alias keeps the JSX readable.
 function SkeletonLine({ width, height = 14 }: { width: number | `${number}%`; height?: number }) {
-  if (typeof width === "string") {
-    return <View style={{ width, height }} backgroundColor="$backgroundMuted" borderRadius="$sm" />;
-  }
-  return (
-    <View width={width} height={height} backgroundColor="$backgroundMuted" borderRadius="$sm" />
-  );
+  return <PekuloSkeleton block width={width} height={height} />;
 }
 
 function FlatListPlaceholder({ rows, ownerStory }: { rows: number; ownerStory: string }) {

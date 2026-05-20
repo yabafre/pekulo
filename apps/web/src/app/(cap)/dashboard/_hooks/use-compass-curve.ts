@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CompassCurve } from "@pekulo/types";
 import { compassKeys } from "@/lib/zapaction/keys";
-import { getCompassCurve } from "@/lib/actions/compass-actions";
+import { getCompassCurve } from "../_actions/compass-actions";
 
 export function useCompassCurve(opts?: { enabled?: boolean }) {
   return useQuery<CompassCurve>({

@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Compass, UpdateCompassInput } from "@pekulo/validators";
 import { compassKeys, milestonesKeys } from "@/lib/zapaction/keys";
-import { updateCompass } from "@/lib/actions/compass-actions";
+import { updateCompass } from "../../_actions/compass-actions";
 
 export function useUpdateCompass() {
   const queryClient = useQueryClient();
