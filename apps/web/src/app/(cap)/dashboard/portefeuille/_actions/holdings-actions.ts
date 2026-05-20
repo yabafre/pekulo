@@ -7,19 +7,15 @@ import { ORPCError } from "@orpc/client";
 import {
   holdingSchema,
   holdingLotSchema,
-  derivedHoldingSchema,
   listHoldingsOutputSchema,
   createHoldingInputSchema,
   recordLotInputSchema,
   closeHoldingInputSchema,
-  getDerivedHoldingInputSchema,
   type Holding,
   type HoldingLot,
-  type DerivedHolding,
   type CreateHoldingInput,
   type RecordLotInput,
   type CloseHoldingInput,
-  type GetDerivedHoldingInput,
 } from "@pekulo/validators";
 import { holdingsClient } from "@/lib/orpc/modules";
 import { ensureRequestContext } from "@/lib/orpc/request-context";
@@ -59,20 +55,6 @@ export const listHoldings = defineAction<void, Holding[], ActionContext>({
   handler: async () => {
     await ensureRequestContext();
     return holdingsClient.list({ includeClosed: false });
-  },
-});
-
-export const getDerivedHolding = defineAction<
-  GetDerivedHoldingInput,
-  DerivedHolding,
-  ActionContext
->({
-  name: "getDerivedHolding",
-  input: getDerivedHoldingInputSchema,
-  output: derivedHoldingSchema,
-  handler: async ({ input }) => {
-    await ensureRequestContext();
-    return holdingsClient.getDerived(input);
   },
 });
 

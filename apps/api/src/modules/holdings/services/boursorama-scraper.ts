@@ -5,7 +5,7 @@
 //   - AbortSignal.timeout(timeoutMs) — default 1500 (scrape is slower than tier-1).
 //   - The returned quote omits the `provider` field; the orchestrator stamps.
 
-export interface BoursoramaQuote {
+interface BoursoramaQuote {
   symbol: string;
   price: number;
   currency: string;
