@@ -9,8 +9,10 @@ export function useCloseHolding() {
   const queryClient = useQueryClient();
   return useMutation<CloseHoldingResult, Error, CloseHoldingInput>({
     mutationFn: (input) => closeHolding(input),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
+    onSuccess: (result) => {
+      if (result.ok) {
+        queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
+      }
     },
   });
 }

@@ -9,7 +9,6 @@ import {
   holdingLotSchema,
   derivedHoldingSchema,
   listHoldingsOutputSchema,
-  closeHoldingOutputSchema,
   createHoldingInputSchema,
   recordLotInputSchema,
   closeHoldingInputSchema,
@@ -120,10 +119,13 @@ export const recordLot = defineAction<RecordLotInput, RecordLotResult, ActionCon
   },
 });
 
+// `output:` intentionally omitted — zapaction validates returns against the
+// declared schema, and `closeHoldingOutputSchema` only accepts `{ok: true}`.
+// Mirrors the deleteAccount precedent (accounts-actions.ts) so envelope errors
+// survive the SA boundary.
 export const closeHolding = defineAction<CloseHoldingInput, CloseHoldingResult, ActionContext>({
   name: "closeHolding",
   input: closeHoldingInputSchema,
-  output: closeHoldingOutputSchema,
   tags: [holdingsTags.list()],
   handler: async ({ input }) => {
     await ensureRequestContext();

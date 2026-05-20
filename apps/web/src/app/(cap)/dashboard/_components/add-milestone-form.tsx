@@ -9,6 +9,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../_components/form-primitives";
+import submitPill from "../../_components/submit-pill.module.css";
 
 export interface AddMilestoneFormProps {
   milestoneCount: number;
@@ -143,6 +144,7 @@ export function AddMilestoneForm({
           type="submit"
           disabled={submitDisabled}
           aria-disabled={submitDisabled}
+          className={submitPill.pill}
           style={submitStyle(submitDisabled)}
         >
           {isPending ? "Ajout…" : "Ajouter le palier"}

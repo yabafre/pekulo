@@ -9,8 +9,10 @@ export function useRecordLot() {
   const queryClient = useQueryClient();
   return useMutation<RecordLotResult, Error, RecordLotInput>({
     mutationFn: (input) => recordLot(input),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
+    onSuccess: (result) => {
+      if (result.ok) {
+        queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
+      }
     },
   });
 }

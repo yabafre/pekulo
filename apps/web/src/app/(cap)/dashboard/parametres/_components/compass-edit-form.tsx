@@ -14,6 +14,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
+import submitPill from "../../../_components/submit-pill.module.css";
 
 export interface CompassEditFormProps {
   initial: Compass | null;
@@ -118,6 +119,7 @@ export function CompassEditForm({ initial }: CompassEditFormProps) {
           type="submit"
           disabled={isPending}
           aria-disabled={isPending}
+          className={submitPill.pill}
           style={submitStyle(isPending)}
         >
           {isPending ? "Enregistrement…" : "Enregistrer"}

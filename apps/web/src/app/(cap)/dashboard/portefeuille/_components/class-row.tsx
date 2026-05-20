@@ -17,7 +17,7 @@ export interface ClassRowProps {
 
 export function ClassRow({ label, amount, pct }: ClassRowProps) {
   return (
-    <View render="li" flexDirection="row" alignItems="center" gap="$4" paddingVertical="$2">
+    <View render="li" flexDirection="row" alignItems="center" gap="$4" paddingVertical={10}>
       <PekuloDonut
         pct={pct}
         size={24}
@@ -27,7 +27,7 @@ export function ClassRow({ label, amount, pct }: ClassRowProps) {
       <Text flex={1} color="$color" fontSize="$bodySm">
         {label}
       </Text>
-      <Text color="$color" fontSize="$bodySm" fontVariant={["tabular-nums"]}>
+      <Text color="$color" fontSize="$bodySm" fontVariant={["tabular-nums"]} flexShrink={0}>
         {eur0.format(amount)}
       </Text>
       <Text
@@ -36,6 +36,7 @@ export function ClassRow({ label, amount, pct }: ClassRowProps) {
         fontVariant={["tabular-nums"]}
         width={40}
         textAlign="right"
+        flexShrink={0}
       >
         {(pct * 100).toFixed(0)} %
       </Text>

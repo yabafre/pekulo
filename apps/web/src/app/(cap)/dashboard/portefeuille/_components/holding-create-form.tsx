@@ -17,7 +17,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
-import submitPill from "./submit-pill.module.css";
+import submitPill from "../../../_components/submit-pill.module.css";
 
 const KIND_LABEL: Record<HoldingKind, string> = {
   etf: "ETF",
@@ -103,9 +103,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
       {
         onSuccess: (result) => {
           if (!result.ok) {
-            setEnvelopeError(
-              result.code === "ACCOUNT_NOT_FOUND" ? ACCOUNT_NOT_FOUND_MSG : result.message,
-            );
+            setEnvelopeError(ACCOUNT_NOT_FOUND_MSG);
             return;
           }
           setLabel("");

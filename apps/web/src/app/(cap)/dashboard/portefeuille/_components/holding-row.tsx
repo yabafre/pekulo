@@ -66,7 +66,7 @@ export function HoldingRow({
           {holding.quantity} × {eur2.format(holding.lastPrice)}
         </Text>
       </View>
-      <View flexDirection="column" alignItems="flex-end">
+      <View flexDirection="column" alignItems="flex-end" flexShrink={0}>
         <Text color="$color" fontSize="$bodySm" fontWeight="500" fontVariant={["tabular-nums"]}>
           {eur0.format(marketValueEur)}
         </Text>

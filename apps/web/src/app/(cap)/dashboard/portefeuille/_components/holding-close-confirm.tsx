@@ -5,6 +5,7 @@ import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloRadius } from "@pekulo/ui";
 import type { Holding } from "@pekulo/validators";
 import { useCloseHolding } from "../_hooks/use-close-holding";
+import submitPill from "../../../_components/submit-pill.module.css";
 
 const NOT_FOUND_MSG = "Ce placement est introuvable (déjà supprimé ?). Recharge la page.";
 
@@ -12,14 +13,15 @@ const dangerBtn = (disabled: boolean): CSSProperties => ({
   alignSelf: "flex-start",
   backgroundColor: "var(--danger)",
   color: "var(--colorOnAccent)",
-  height: 40,
-  padding: "0 16px",
+  height: 44,
+  padding: "0 24px",
   borderRadius: pekuloRadius.full,
   border: "none",
   cursor: disabled ? "not-allowed" : "pointer",
   opacity: disabled ? 0.5 : 1,
   fontSize: 14,
   fontWeight: 500,
+  marginTop: 8,
 });
 
 export interface HoldingCloseConfirmProps {
@@ -85,6 +87,7 @@ export function HoldingCloseConfirm({ holding, open, onOpenChange }: HoldingClos
                 onClick={handleConfirm}
                 disabled={isPending}
                 aria-disabled={isPending}
+                className={submitPill.pill}
                 style={dangerBtn(isPending)}
               >
                 {isPending ? "Clôture…" : "Marquer comme clôturé"}

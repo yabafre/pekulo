@@ -9,6 +9,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
+import submitPill from "../../../_components/submit-pill.module.css";
 
 function isoToday(): string {
   const d = new Date();
@@ -120,6 +121,7 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
           type="submit"
           disabled={isPending}
           aria-disabled={isPending}
+          className={submitPill.pill}
           style={submitStyle(isPending)}
         >
           {isPending ? "Enregistrement…" : "Enregistrer le solde"}

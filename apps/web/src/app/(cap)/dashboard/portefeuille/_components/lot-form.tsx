@@ -10,7 +10,8 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
-import submitPill from "./submit-pill.module.css";
+import submitPill from "../../../_components/submit-pill.module.css";
+import formControls from "../../../_components/form-controls.module.css";
 
 const HOLDING_NOT_FOUND_MSG = "Ce placement est introuvable. Recharge la page.";
 const HOLDING_CLOSED_MSG = "Ce placement est clôturé — les lots ne peuvent plus être modifiés.";
@@ -36,11 +37,21 @@ export interface LotFormProps {
   onOpenChange: (next: boolean) => void;
 }
 
+// When the holding has no quote yet (lastPrice === 0), prefilling the form
+// with "0" risks recording a buy lot at zero — silent WAC corruption on a
+// fast-click. Fall back to the holding's avgCost; if that is also 0 leave
+// the field empty so the > 0 client-side guard fires.
+function initialPriceUnit(h: Holding): string {
+  if (h.lastPrice > 0) return String(h.lastPrice);
+  if (h.avgCost > 0) return String(h.avgCost);
+  return "";
+}
+
 export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
   const [type, setType] = useState<"buy" | "sell">("buy");
   const [occurredOn, setOccurredOn] = useState(todayIso());
   const [quantity, setQuantity] = useState("0");
-  const [priceUnit, setPriceUnit] = useState(String(holding.lastPrice));
+  const [priceUnit, setPriceUnit] = useState(initialPriceUnit(holding));
   const [fees, setFees] = useState("0");
   const [notes, setNotes] = useState("");
   const [clientError, setClientError] = useState<string | null>(null);
@@ -66,8 +77,8 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
       return;
     }
     const pNum = Number(priceUnit);
-    if (!Number.isFinite(pNum) || pNum < 0) {
-      setClientError("Prix unitaire invalide (>= 0)");
+    if (!Number.isFinite(pNum) || pNum <= 0) {
+      setClientError("Prix unitaire invalide (> 0)");
       return;
     }
     const fNum = Number(fees);
@@ -133,7 +144,12 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 <Text color="$colorSecondary" fontSize="$caption">
                   Type
                 </Text>
-                <div role="radiogroup" aria-label="Type de lot" style={radioRow}>
+                <div
+                  role="radiogroup"
+                  aria-label="Type de lot"
+                  style={radioRow}
+                  className={formControls.radioGroup}
+                >
                   <label>
                     <input
                       type="radio"

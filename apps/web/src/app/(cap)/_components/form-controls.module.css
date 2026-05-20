@@ -1,0 +1,10 @@
+/* Form-controls — keyboard-visible focus rings for native controls that
+ * render with UA defaults too faint to perceive against pure #000. Used
+ * by radio-groups in portefeuille/lot-form. Same TR-strict palette as
+ * submit-pill: outline uses `var(--color)` (white), no accent. */
+
+.radioGroup input[type="radio"]:focus-visible {
+  outline: 2px solid var(--color);
+  outline-offset: 2px;
+  border-radius: 50%;
+}

@@ -9,8 +9,10 @@ export function useCreateHolding() {
   const queryClient = useQueryClient();
   return useMutation<CreateHoldingResult, Error, CreateHoldingInput>({
     mutationFn: (input) => createHolding(input),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
+    onSuccess: (result) => {
+      if (result.ok) {
+        queryClient.invalidateQueries({ queryKey: holdingsKeys.list() });
+      }
     },
   });
 }

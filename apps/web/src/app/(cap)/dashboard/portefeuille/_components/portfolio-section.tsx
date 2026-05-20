@@ -7,11 +7,14 @@ import { MoreHorizontal, Plus } from "lucide-react";
 import type { Holding } from "@pekulo/validators";
 import { useHoldings } from "../_hooks/use-holdings";
 // Cross-route hook import is intentional — accounts list is required for
-// the holding-create-form `accountId` selector. The lint rule
-// `pekulo/no-cross-feature-action-import` checks for cross-feature
-// *action* imports (the SA layer); cross-feature *hook* imports are
-// explicitly allowed because the hook is the orchestration boundary
-// (ADR-0010). Documented here as the first such precedent in Pekulo.
+// the holding-create-form `accountId` selector. The hook is the
+// orchestration boundary (ADR-0010), so cross-feature hook reads are
+// allowed by convention. NOTE: `pekulo/no-cross-feature-action-import`
+// currently only resolves `@/features/*` imports — relative paths under
+// the App-Router tree fall outside its scope (see the rule file's TODO
+// header). The boundary on this line is convention-enforced; the lint
+// gate will catch a future `*-actions.ts` cross-import once the rule's
+// resolver is extended to App-Router paths.
 import { useAccounts } from "../../parametres/_hooks/use-accounts";
 import { HoldingCreateForm } from "./holding-create-form";
 import { LotForm } from "./lot-form";
@@ -150,67 +153,70 @@ export function PortfolioSection() {
   return (
     <View
       flexDirection="column"
-      gap={40}
+      gap="$6"
       width="100%"
-      $lg={{ maxWidth: 1024, marginHorizontal: "auto" }}
+      $lg={{ maxWidth: 1024, marginHorizontal: "auto", gap: 40 }}
     >
-      {/* Hero — Valeur totale */}
-      <View render="section" aria-label="Valeur totale du portefeuille">
-        <Text color="$colorTertiary" fontSize="$caption">
-          Valeur portefeuille · EUR
-        </Text>
-        <Text
-          color="$color"
-          fontSize="$h1"
-          fontWeight="600"
-          letterSpacing={-0.5}
-          marginTop="$2"
-          fontVariant={["tabular-nums"]}
-          $lg={{ fontSize: "$hero" }}
-        >
-          {eur0.format(total)}
-        </Text>
-        <View flexDirection="row" alignItems="center" gap="$2" marginTop="$2">
+      {/* Hero + Répartition — stacked on mobile, 7/5 split on lg+ (ux-preview parity) */}
+      <View flexDirection="column" gap="$6" $lg={{ flexDirection: "row", gap: "$4" }}>
+        {/* Hero — Valeur totale */}
+        <View render="section" aria-label="Valeur totale du portefeuille" $lg={{ flex: 7 }}>
+          <Text color="$colorTertiary" fontSize="$caption">
+            Valeur portefeuille · EUR
+          </Text>
           <Text
-            color={totalPnl >= 0 ? "$accent" : "$danger"}
-            fontSize="$bodySm"
-            fontWeight="500"
+            color="$color"
+            fontSize="$h1"
+            fontWeight="600"
+            letterSpacing={-0.5}
+            marginTop="$2"
             fontVariant={["tabular-nums"]}
+            $lg={{ fontSize: "$hero" }}
           >
-            {signed(totalPnl)}
+            {eur0.format(total)}
           </Text>
-          <Text color="$colorTertiary" fontSize="$bodySm" fontVariant={["tabular-nums"]}>
-            ({totalPnl >= 0 ? "+" : ""}
-            {(totalPnlPct * 100).toFixed(2)} %) plus-value latente
-          </Text>
+          <View flexDirection="row" alignItems="center" gap={6} marginTop="$2">
+            <Text
+              color={totalPnl >= 0 ? "$accent" : "$danger"}
+              fontSize="$bodySm"
+              fontWeight="500"
+              fontVariant={["tabular-nums"]}
+            >
+              {signed(totalPnl)}
+            </Text>
+            <Text color="$colorTertiary" fontSize="$bodySm" fontVariant={["tabular-nums"]}>
+              ({totalPnl >= 0 ? "+" : ""}
+              {(totalPnlPct * 100).toFixed(2)} %) plus-value latente
+            </Text>
+          </View>
         </View>
-      </View>
 
-      {/* Répartition par classe */}
-      <View render="section" aria-labelledby="rep-h" flexDirection="column">
-        <Text
-          id="rep-h"
-          render="h2"
-          color="$color"
-          fontSize="$h3"
-          fontWeight="600"
-          marginBottom="$3"
-          $lg={{ fontSize: "$h2" }}
-        >
-          Répartition
-        </Text>
-        <View render="ul" flexDirection="column" margin={0} padding={0}>
-          <ClassRow label="ETF" amount={byKind.etf} pct={total > 0 ? byKind.etf / total : 0} />
-          <ClassRow
-            label="Actions"
-            amount={byKind.action}
-            pct={total > 0 ? byKind.action / total : 0}
-          />
-          <ClassRow
-            label="Crypto"
-            amount={byKind.crypto}
-            pct={total > 0 ? byKind.crypto / total : 0}
-          />
+        {/* Répartition par classe */}
+        <View render="section" aria-labelledby="rep-h" flexDirection="column" $lg={{ flex: 5 }}>
+          <Text
+            id="rep-h"
+            render="h2"
+            color="$color"
+            fontSize="$h3"
+            fontWeight="600"
+            marginBottom="$3"
+            $lg={{ fontSize: "$h2" }}
+          >
+            Répartition
+          </Text>
+          <View render="ul" flexDirection="column" margin={0} padding={0}>
+            <ClassRow label="ETF" amount={byKind.etf} pct={total > 0 ? byKind.etf / total : 0} />
+            <ClassRow
+              label="Actions"
+              amount={byKind.action}
+              pct={total > 0 ? byKind.action / total : 0}
+            />
+            <ClassRow
+              label="Crypto"
+              amount={byKind.crypto}
+              pct={total > 0 ? byKind.crypto / total : 0}
+            />
+          </View>
         </View>
       </View>
 

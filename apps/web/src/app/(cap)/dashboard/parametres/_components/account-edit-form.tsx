@@ -16,6 +16,7 @@ import {
   formInputStyle as inputStyle,
   formSubmitStyle as submitStyle,
 } from "../../../_components/form-primitives";
+import submitPill from "../../../_components/submit-pill.module.css";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   livret: "Livret",
@@ -212,6 +213,7 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
           type="submit"
           disabled={isPending}
           aria-disabled={isPending}
+          className={submitPill.pill}
           style={submitStyle(isPending)}
         >
           {isPending ? "Enregistrement…" : "Enregistrer"}
