@@ -56,13 +56,17 @@ setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
   // Compass — `current` invalidates every read of the compass aggregate
-  // AND the milestones list (status badges depend on objectif).
+  // AND the milestones list (status badges + linear-plan derive depend on
+  // the compass objectif / horizonYears ; a compass change ripples through
+  // every status row). The edge was carried by manual onSuccess calls in
+  // the pre-ZAP-1 hook ; codified here so the registry is the SSOT.
   [compassTags.all()]: [
     compassKeys.current(),
     compassKeys.setup(),
     compassKeys.progress(),
     compassKeys.curve(),
     compassKeys.history(),
+    milestonesKeys.list(),
   ],
   [compassTags.current()]: [
     compassKeys.current(),
@@ -70,6 +74,7 @@ setTagRegistry({
     compassKeys.progress(),
     compassKeys.curve(),
     compassKeys.history(),
+    milestonesKeys.list(),
   ],
   // Milestones — `list` invalidates the milestones list + `compass.setup`
   // (the setup state is derived from "compass row exists AND ≥1 milestone",
