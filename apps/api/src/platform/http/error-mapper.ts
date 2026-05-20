@@ -65,6 +65,13 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // close / recordLot. Defense-in-depth shape: the explicit { id, userId }
   // guard surfaces this rather than letting RLS produce a P2025.
   HOLDING_NOT_FOUND: 404,
+  // Real-estate 404 cluster (story 4-1): cross-user probe / stale id on the
+  // realestate aggregate surfaces as 404. MORTGAGE_NOT_FOUND / RENTAL_NOT_FOUND
+  // are emitted by update* verbs (NOT idempotent — missing child is an error);
+  // detach* verbs return { ok: true } regardless.
+  REALESTATE_NOT_FOUND: 404,
+  MORTGAGE_NOT_FOUND: 404,
+  RENTAL_NOT_FOUND: 404,
   CONFLICT: 409,
   // Milestones cap (FR-3, ≤ 20/user) and missing compass (FR-8 precondition)
   // both surface as 409 — they signal a state-shape conflict, not malformed
@@ -79,6 +86,11 @@ export const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // 409. Same shape-conflict rationale as ACCOUNT_REFERENCED_FK — request is
   // well-formed but contradicts the row state.
   HOLDING_CLOSED: 409,
+  // Real-estate 409 (story 4-1, AC-2/AC-3): attachMortgage / attachRental on a
+  // property that already has a mortgage / rental fails the UNIQUE constraint;
+  // mapper raises 409 instead of letting Prisma P2002 leak through.
+  MORTGAGE_ALREADY_ATTACHED: 409,
+  RENTAL_ALREADY_ATTACHED: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
   // Compass repository $transaction failure surfaces as 500 — the audit
