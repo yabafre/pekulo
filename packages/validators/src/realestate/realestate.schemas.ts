@@ -3,7 +3,7 @@
 // @pekulo/contracts (oRPC procedure I/O) and apps/api realestate
 // service/handler/repository.
 
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 // ─── ID regexes ──────────────────────────────────────────────────────────
 export const REAL_ESTATE_ID_PREFIX_RE = /^res_[0-9A-Za-z]{21}$/;

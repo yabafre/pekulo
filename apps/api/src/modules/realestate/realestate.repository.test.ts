@@ -17,7 +17,7 @@ import {
   attachRentalInputSchema,
   createPropertyInputSchema,
 } from "@pekulo/validators";
-import { ZodError } from "zod";
+import { ZodError } from "@pekulo/zod";
 import { createRealestateRepository } from "./realestate.repository";
 import { makeFakePrisma } from "../../test/fakes/fake-realestate";
 
