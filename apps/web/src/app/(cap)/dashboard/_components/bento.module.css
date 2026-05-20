@@ -133,9 +133,41 @@
   opacity: 0.9;
 }
 
+/* Contextual add button (ux-preview L284-300) — mobile-only round
+   44 × 44 fg→bg button that replaces the long "Nouvelle transaction"
+   pill below the lg cutover. aria-label changes per active screen
+   ("Nouvelle transaction" / "Nouvelle ligne" / "Nouveau bien") so
+   screen-reader users get the right context without a visible text. */
+.contextualAdd {
+  display: none;
+}
+
+@media (max-width: 1023.98px) {
+  .contextualAdd {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+    background-color: var(--color);
+    color: var(--colorOnAccent);
+    border: 0;
+    cursor: pointer;
+    transition: opacity 150ms ease;
+  }
+  .contextualAdd:hover {
+    opacity: 0.9;
+  }
+  .contextualAdd:focus-visible {
+    outline: 2px solid var(--color);
+    outline-offset: 2px;
+  }
+}
+
 /* Mobile header trim — mirrors ux-preview L122-135. Below the Tamagui
    `$lg` cutover (= 1024 px) the date label and the "Nouvelle transaction"
-   pill drop out so only the Cap/Patrimoine tabs + UserDot remain. */
+   pill drop out so only the Cap/Patrimoine tabs (or screen title) +
+   contextual add + UserDot remain. */
 @media (max-width: 1023.98px) {
   .dateLabel {
     display: none;

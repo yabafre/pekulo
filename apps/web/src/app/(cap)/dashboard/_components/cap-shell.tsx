@@ -54,6 +54,11 @@ export function CapShell({ email, children }: CapShellProps) {
       : navActiveKey === "settings"
         ? "Paramètres"
         : null;
+  // Contextual mobile add button (ux-preview L284-300). Shown only on
+  // screens that own a primary write action; null hides the button.
+  // Transactions / realestate aren't wired yet — those handlers reuse
+  // the toast placeholder below the same as desktop.
+  const contextualAddLabel: string | null = navActiveKey === "portfolio" ? "Nouvelle ligne" : null;
   const toast = useToast();
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
@@ -113,6 +118,16 @@ export function CapShell({ email, children }: CapShellProps) {
           {screenTitle && <h1 className={styles.screenTitle}>{screenTitle}</h1>}
         </div>
         <div className={styles.headerRight}>
+          {contextualAddLabel && (
+            <button
+              type="button"
+              className={styles.contextualAdd}
+              onClick={handleNewTx}
+              aria-label={contextualAddLabel}
+            >
+              <Plus size={18} strokeWidth={2.5} aria-hidden={true} />
+            </button>
+          )}
           <button
             type="button"
             className={styles.newTxPill}
