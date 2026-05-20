@@ -40,7 +40,6 @@
         "jose": "5.9.6",
         "pg": "^8.13.1",
         "yahoo-finance2": "^3.14.0",
-        "zod": "4.3.6",
       },
       "devDependencies": {
         "@pekulo/tsconfig": "workspace:*",
@@ -80,7 +79,6 @@
         "react-dom": "19.2.4",
         "recharts": "^3.8.0",
         "yahoo-finance2": "^3.14.0",
-        "zod": "4.3.6",
       },
       "devDependencies": {
         "@pekulo/tsconfig": "workspace:*",

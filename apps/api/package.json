@@ -46,8 +46,7 @@
     "elysia": "1.4.4",
     "jose": "5.9.6",
     "pg": "^8.13.1",
-    "yahoo-finance2": "^3.14.0",
-    "zod": "4.3.6"
+    "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*",

@@ -9,13 +9,3 @@ export {
   type PrismaService,
   type ExtendedPrismaClient,
 } from "./prisma.service";
-export {
-  ID_PREFIXES,
-  getPrefix,
-  MissingPrefixError,
-  type ModelName,
-  type Prefix,
-} from "./id-prefixes.config";
-export { generateBase62Id } from "./base62";
-export { injectPrefixedId } from "./prefixed-ids.injector";
-export { prefixedIdsExtension } from "./prefixed-ids.extension";

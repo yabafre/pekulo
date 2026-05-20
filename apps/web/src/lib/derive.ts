@@ -1,7 +1,7 @@
+import type { Hypotheses } from "@pekulo/validators";
 import type {
   AnnualSummary,
   BudgetItem,
-  Hypotheses,
   KpiData,
   MonthlyRecord,
   RevenueItem,
@@ -52,13 +52,13 @@ function resolveRange(h: Hypotheses, opts: ProjectionOpts) {
   };
 }
 
-export function deriveAvantages(h: Hypotheses): number {
+function deriveAvantages(h: Hypotheses): number {
   const ticketResto = h.ticketRestoJour * h.partEmployeurTr * h.joursTravailles;
   const navigo = h.navigoCout * h.partEmployeurNavigo;
   return round(ticketResto + navigo + h.mutuelleEconomie);
 }
 
-export function deriveDepensesTotales(h: Hypotheses): number {
+function deriveDepensesTotales(h: Hypotheses): number {
   const chargesFixes = h.loyer + h.courses + h.transport + h.autresCharges;
   const lifestyle = h.sorties + h.divers;
   return round(chargesFixes + lifestyle + h.voyageMois);
