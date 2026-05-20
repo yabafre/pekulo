@@ -88,30 +88,6 @@
   }
 }
 
-.topTab {
-  font-size: 20px; /* text-h2 */
-  font-weight: 600;
-  line-height: 1.25;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-  transition: color 150ms ease;
-}
-
-.topTabActive {
-  color: var(--color);
-}
-
-.topTabInactive {
-  color: var(--colorMuted);
-}
-
-.topTabInactive:hover {
-  color: var(--colorTertiary);
-}
-
 .newTxPill {
   display: inline-flex;
   align-items: center;
@@ -172,28 +148,6 @@
 
 .headerActionPill:hover {
   background-color: var(--backgroundElevated);
-}
-
-.userDot {
-  display: grid;
-  place-items: center;
-  width: 44px; /* mobile h-11 w-11 */
-  height: 44px;
-  border-radius: 9999px;
-  background-color: var(--backgroundMuted);
-  color: var(--color);
-  font-size: 14px;
-  font-weight: 500;
-  border: 0;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-@media (min-width: 1024px) {
-  .userDot {
-    width: 40px; /* lg:h-10 lg:w-10 */
-    height: 40px;
-  }
 }
 
 /* ─── Main (ux-preview L160) ─────────────────────────────────────────────── */

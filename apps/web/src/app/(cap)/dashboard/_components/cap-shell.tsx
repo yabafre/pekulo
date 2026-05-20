@@ -17,13 +17,15 @@
 
 import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   PekuloContextualAddButton,
   PekuloMobileBottomNav,
   PekuloNavRail,
+  PekuloTopTabToggle,
+  PekuloUserDot,
   type PekuloNavKey,
+  type PekuloTopTab,
   useToast,
 } from "@pekulo/ui";
 import styles from "./bento.module.css";
@@ -44,7 +46,7 @@ export function CapShell({ email, children }: CapShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isDashboardRoot = pathname === "/dashboard";
-  const activeTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
+  const activeTab: PekuloTopTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
   const navActiveKey: PekuloNavKey = pathname.startsWith("/dashboard/portefeuille")
     ? "portfolio"
     : pathname.startsWith("/dashboard/parametres")
@@ -61,17 +63,18 @@ export function CapShell({ email, children }: CapShellProps) {
         ? "Paramètres"
         : null;
   // Contextual mobile add button label per active screen. The primitive
-  // (PekuloContextualAddButton) gates visibility internally — only renders
-  // for transactions / portfolio / realestate AND only below `$lg`. We
-  // just provide the right aria-label per screen. Map covers all of
-  // SHOW_FOR even though navActiveKey only resolves to portfolio today
-  // (transactions / realestate routes ship later).
+  // is a pure styled FAB (`$lg: display:none` keeps it mobile-only); the
+  // shell owns the gating so the global "Nouvelle transaction" shortcut
+  // also surfaces on cap (diverges intentionally from ux-preview L284-300
+  // which only includes transactions / portfolio / realestate). Settings
+  // has no primary write action, so it's excluded.
   const CONTEXTUAL_LABEL: Partial<Record<PekuloNavKey, string>> = {
+    cap: "Nouvelle transaction",
     portfolio: "Nouvelle ligne",
     transactions: "Nouvelle transaction",
     realestate: "Nouveau bien",
   };
-  const contextualAddLabel = CONTEXTUAL_LABEL[navActiveKey] ?? "Ajouter";
+  const contextualAddLabel = CONTEXTUAL_LABEL[navActiveKey];
   const toast = useToast();
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
@@ -107,35 +110,19 @@ export function CapShell({ email, children }: CapShellProps) {
             {today}
           </p>
           {isDashboardRoot && (
-            <>
-              <button
-                type="button"
-                className={`${styles.topTab} ${activeTab === "cap" ? styles.topTabActive : styles.topTabInactive}`}
-                aria-pressed={activeTab === "cap"}
-                aria-current={activeTab === "cap" ? "page" : undefined}
-                onClick={() => router.push("/dashboard")}
-              >
-                Cap
-              </button>
-              <button
-                type="button"
-                className={`${styles.topTab} ${activeTab === "patrimoine" ? styles.topTabActive : styles.topTabInactive}`}
-                aria-pressed={activeTab === "patrimoine"}
-                aria-current={activeTab === "patrimoine" ? "page" : undefined}
-                onClick={() => router.push("/dashboard?tab=patrimoine")}
-              >
-                Patrimoine
-              </button>
-            </>
+            <PekuloTopTabToggle
+              topTab={activeTab}
+              onChange={(t) =>
+                router.push(t === "patrimoine" ? "/dashboard?tab=patrimoine" : "/dashboard")
+              }
+            />
           )}
           {screenTitle && <h1 className={styles.screenTitle}>{screenTitle}</h1>}
         </div>
         <div className={styles.headerRight}>
-          <PekuloContextualAddButton
-            activeNav={navActiveKey}
-            label={contextualAddLabel}
-            onPress={handleNewTx}
-          />
+          {contextualAddLabel && (
+            <PekuloContextualAddButton label={contextualAddLabel} onPress={handleNewTx} />
+          )}
           <button
             type="button"
             className={styles.newTxPill}
@@ -145,13 +132,7 @@ export function CapShell({ email, children }: CapShellProps) {
             <Plus size={16} strokeWidth={2.25} aria-hidden={true} />
             Nouvelle transaction
           </button>
-          <Link
-            href="/dashboard/parametres"
-            className={styles.userDot}
-            aria-label={email ?? "Compte"}
-          >
-            {initial}
-          </Link>
+          <PekuloUserDot initial={initial} onPress={() => router.push("/dashboard/parametres")} />
         </div>
       </header>
       <main className={styles.main}>{children}</main>
