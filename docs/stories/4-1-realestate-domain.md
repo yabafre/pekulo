@@ -88,7 +88,7 @@ Post-sync verification: `bun --filter='@pekulo/*' run typecheck` → 0 ; `cd app
 - **oRPC handler shape** — mirror `apps/api/src/modules/holdings/holdings.routes.ts`. Use `implement(realestateContract).$context<{ userId: string; email: string | null }>().router({ … })`. Each handler verifies `context.userId?.trim()` and throws `new PekuloError("UNAUTHORIZED", "user context missing")` when absent.
 - **1:1 enforcement** — `real_estate_mortgage.real_estate_id` and `real_estate_rental.real_estate_id` carry a **UNIQUE** constraint at the SQL layer (NOT just a foreign key). The unique constraint is the load-bearing invariant; the service-level pre-flight `findFirst` is a UX nicety for clean 409 responses. If the unique constraint fails, the Prisma error mapper maps `P2002` to `MORTGAGE_ALREADY_ATTACHED` / `RENTAL_ALREADY_ATTACHED` based on the constraint name.
 - **`detach*` idempotency** — `detachMortgage` and `detachRental` are idempotent. Implementation: `deleteMany({ where: { realEstateId, userId } })` returns `{ count: 0 | 1 }`; service returns `{ ok: true }` regardless. The verb is intentionally permissive — a user calling detach on a missing child is asking the right thing ("ensure no mortgage attached"), not making an error.
-- **`updateMortgage` / `updateRental` shape** — both accept the same fields as their `attach*` siblings but ALL FIELDS ARE OPTIONAL (Zod `.partial()`). The service applies only the provided fields (`Prisma.RealEstateMortgageUpdateInput` shape). Missing child → `MORTGAGE_NOT_FOUND` / `RENTAL_NOT_FOUND` (404, NOT idempotent like detach).
+- **`updateMortgage` / `updateRental` shape** — both accept the same fields as their `attach*` siblings but ALL FIELDS ARE OPTIONAL (each field `.optional()` plus a `.refine()` rejecting empty payloads — functionally equivalent to `.partial()` with the extra constraint that the caller must supply at least one field). The service applies only the provided fields (`Prisma.RealEstateMortgageUpdateInput` shape). Missing child → `MORTGAGE_NOT_FOUND` / `RENTAL_NOT_FOUND` (404, NOT idempotent like detach).
 - **`deleteProperty` performance (DR-5)** — single `deleteMany({ where: { id, userId } })` relying on FK cascade. The 60 s budget is measured by the repository test seeding 50 properties × 50 valuations × 1 mortgage × 1 rental and timing one `deleteProperty` call.
 
 ### ADRs in scope
@@ -3029,7 +3029,7 @@ git commit -m "feat(#24): T19 — quality gate (lint+typecheck+test+rls-audit al
 
 ## File List
 
-**NEW (12 files):**
+**NEW (14 files):**
 
 - `apps/api/prisma/migrations/<timestamp>_create_realestate/migration.sql`
 - `apps/api/prisma/schema/realestate.prisma`
@@ -3046,9 +3046,11 @@ git commit -m "feat(#24): T19 — quality gate (lint+typecheck+test+rls-audit al
 - `packages/validators/src/realestate/realestate.schemas.ts` _(post-sync R11 path ; T7's `packages/validators/src/realestate.ts` relocated in merge `0777f62`)_
 - `packages/validators/src/realestate/index.ts` _(R11 domain barrel)_
 
-**MODIFIED (10 files):**
+**MODIFIED (13 files):**
 
 - `apps/api/src/database/id-prefixes.config.ts` (T2 — add `RealEstateMortgage: "resm"`)
+- `apps/api/src/database/id-prefixes.config.test.ts` (T2 — count 15 → 16)
+- `apps/api/src/database/prefixed-ids.extension.test.ts` (review-supp H2 — +4 tests covering RealEstate / RealEstateMortgage / RealEstateRental / RealEstateValuation against the real extension handlers, breaking the fake-prisma prefix tautology)
 - `apps/api/src/common/errors/pekulo-error.ts` (T5 — +5 codes)
 - `apps/api/src/platform/http/error-mapper.ts` (T5 — +5 HTTP mappings)
 - `apps/api/src/bootstrap/runtime-dependencies.ts` (T16 — instantiate + mount)
@@ -3130,3 +3132,81 @@ $ grep -rn 'Number(.*Decimal' apps/api/src/modules/realestate | wc -l           
 $ grep -rEn ':\s*Elysia\b|as\s+Elysia\b|<Elysia\b' apps/api/src/modules/realestate | wc -l         # 0
 $ find apps/api/src/modules/realestate -name '*.types.ts' | wc -l                                  # 0
 ```
+
+## Review Record
+
+**Date:** 2026-05-21
+**Auditors:** Spec, Code, Edge & Hallucination (Aria N/A — backend story)
+**Verdict:** done (pending user approval to flip state.yaml)
+**⚠️ Same-session reviewer disclosure:** the Lead Reviewer running this audit was active during the 3 post-sync commits on this branch (merge `0777f62`, R1 align `a0cc73c`, docs refresh `594e8f2`). T1-T19 implementation was authored by a separate session. Auditors were briefed to be extra-adversarial on the post-sync surface and on conflict resolutions; the chosen overrides + dismissals below were vetted with this bias in mind.
+
+### Auditors' raw verdict
+
+| Auditor | Verdict | Confidence | Findings |
+|---|---|---|---|
+| Spec | APPROVED | HIGH | 0 critical (LOW: imprecise file count) |
+| Code | CHANGES_REQUESTED | HIGH | 2 HIGH + 4 MEDIUM + 3 LOW |
+| Edge & Hallucination | APPROVED | HIGH | 0 critical (LOW: doc drift, forward-pointer) |
+
+### Findings
+
+#### Resolved (9)
+
+- **[HIGH] H1 — `recordValuation` race → 500 leak** `apps/api/src/modules/realestate/realestate.repository.ts:319-339`
+  - Source: Code auditor
+  - Resolution: commit `4b5a2c6` — switched `tx.realEstate.update` → `tx.realEstate.updateMany` inside `$transaction` ; service translates the new `{ outcome: "not-found" }` → `realestateNotFound()`. Concurrent `deleteProperty` between `requireOwnedProperty` and the tx no longer leaks Prisma P2025 as 500. New service-level race test asserts the 404 path.
+- **[HIGH] H2 — fake-prisma prefix tautology** `apps/api/src/test/fakes/fake-realestate.ts:82,158,229,284`
+  - Source: Code auditor
+  - Resolution: commit `4b5a2c6` — +4 tests in `prefixed-ids.extension.test.ts` exercise the REAL extension handlers for `RealEstate` / `RealEstateMortgage` / `RealEstateRental` / `RealEstateValuation`. The `/^res_…/` regex assertion in integration was passing against the fake's own `id()` generator ; the new tests prove the registry entries actually wire the runtime injection.
+- **[MEDIUM] M1 — `updateMortgage` / `updateRental` race** `realestate.repository.ts:257-267,300-310`
+  - Source: Code auditor
+  - Resolution: commit `4b5a2c6` — wrap `updateMany` + `findFirst` in `client.$transaction(async (tx) => …)`. Concurrent `detach*` between the two queries no longer surfaces `*_NOT_FOUND` despite a successful update.
+- **[MEDIUM] M2 — `PROPERTY_TYPES_MIRROR` invariant** `validators/realestate.schemas.ts:31` ↔ `types/realestate.types.ts:11`
+  - Source: Code auditor
+  - Resolution: commit `4b5a2c6` — behavior test in `realestate.repository.test.ts` asserts `propertyTypeSchema` accepts every value of `@pekulo/types#PROPERTY_TYPES` and rejects unknowns. A future widening of the SSOT without mirror update will be caught.
+- **[MEDIUM] M3 — integration port collision** `realestate.integration.test.ts:60`
+  - Source: Code auditor
+  - Resolution: commit `4b5a2c6` — bind `port: 0`, read `app.server.port` after listen. Eliminates the `Math.random()*200` birthday-paradox flake (root fix for the 2026-05-17 `bump PORT_BASE` workaround precedent).
+- **[LOW] L2 — Prisma 5+ relaxed `WhereUniqueInput` dependency** `repository.ts:321`
+  - Source: Code auditor
+  - Resolution: folded into H1's fix — switching to `updateMany` removed the dependency on Prisma 5+ tolerating non-unique fields in `update.where`.
+- **[LOW] L4 — story Dev Notes claim `.partial()` but actual is `.refine()`** `docs/stories/4-1-realestate-domain.md:91`
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `4b5a2c6` — doc fix in this story file. Wording clarified: each field `.optional()` + `.refine()` rejecting empty payloads (stricter than bare `.partial()`).
+- **[LOW] L5 — `realestateKeys.byId / .valuations` exported but unused** `apps/web/src/lib/zapaction/keys.ts:60-67`
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `4b5a2c6` — added TODO comment naming the consuming stories (4-2 / 4-3) so the next audit doesn't flag the factories as dead code.
+- **[LOW] L7 — File List count drift (24 claimed vs 28 in git)** `docs/stories/4-1-realestate-domain.md:3030`
+  - Source: Spec auditor
+  - Resolution: commit `4b5a2c6` — NEW count bumped 12 → 14 (validators R11 barrel + schemas) ; MODIFIED count bumped 10 → 13 (id-prefixes test, prefixed-ids extension test, others). Listed entries now align with git diff for `cd3de9b..HEAD`.
+
+#### Dismissed (3)
+
+- **[LOW] L1 — `detachMortgage` / `detachRental` drop `{count}` from delete (no telemetry)** `repository.ts:269-275,312-317`
+  - Source: Code auditor
+  - Rationale: structured logging at the repository layer is not an established pattern in this codebase (no other `*.repository.ts` does this). Per-handler attribute logs need a wider `platform/http/orpc-mount.ts` change to thread per-route attributes through `rpc.request`. TODO comment added in commit `4b5a2c6` documenting the gap ; out of scope for 4-1.
+- **[LOW] L3 — 12 hand-rolled try/catch in routes.ts duplicate the same RealestateError → errors mapping** `realestate.routes.ts:43-186`
+  - Source: Code auditor
+  - Rationale: attempted a `mapRealestateError(err, errors, allowed)` helper (then reverted in the same commit) — oRPC's `ORPCErrorConstructorMap<MergedErrorMap<…>>` is contract-narrow per handler, so a single helper can't be both type-safe and reusable across handlers with different error subsets. The duplication is the price of contract-level type safety. Documented in the file header of `realestate.routes.ts`.
+- **[LOW] L6 — fake-prisma `$transaction` does not rollback on inner failure** `fake-realestate.ts:305-307`
+  - Source: Edge & Hallucination auditor
+  - Rationale: defer — real Prisma's runtime `$transaction` is correct; the fake's no-rollback shape doesn't undermine the production AC-4 contract. Adding a partial-failure test would require teaching the fake to rollback, with marginal added confidence. Documented in the auditor report ; revisit in a future hardening pass.
+
+### Verification (fresh evidence captured in this conversation)
+
+```
+$ bun --filter='@pekulo/*' run typecheck   # 7/7 packages exit 0
+$ cd apps/api && bun test                  # 384 pass / 0 fail / 950 expect() (+7 vs pre-fix)
+$ cd apps/web && bun run test              # 45/45 vitest pass
+$ grep -rEn ':\s*Elysia\b|as\s+Elysia\b|<Elysia\b' apps/api/src/modules/realestate | wc -l   # 0
+$ grep -rn 'Number(.*Decimal' apps/api/src/modules/realestate | wc -l                          # 0
+$ find apps/api/src/modules/realestate -name '*.types.ts' | wc -l                              # 0
+```
+
+### Ticket sync
+
+- Issue #24 comment: PENDING (awaiting user approval to push)
+- PR #85 body re-edit: PENDING (awaiting user approval)
+- state.yaml flip 4-1 → done: PENDING (awaiting user approval)
+- Epic-4 context "Previous stories — outcomes" append: PENDING (awaiting user approval)
+
