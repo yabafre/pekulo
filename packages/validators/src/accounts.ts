@@ -17,7 +17,7 @@
 //     code — no DB-level length constraint).
 //   - notes optional, max 500.
 
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 export const ACCOUNT_ID_PREFIX_RE = /^acc_[0-9A-Za-z]{21}$/;
 export const MAX_ACCOUNT_LABEL_LENGTH = 120;

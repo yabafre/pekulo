@@ -7,7 +7,7 @@
 // No DB column references the enum at V1 — the asymmetry only matters when a
 // future story persists a snapshot status (then a write-time mapping kicks in).
 
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 // Domain constants — exported as the SSOT for both validator bounds AND
 // downstream consumers (apps/api service caps, apps/web form maxLength,

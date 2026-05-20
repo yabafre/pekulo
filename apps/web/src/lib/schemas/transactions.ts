@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 export const TRANSACTION_CATEGORIES = [
   "salaire",

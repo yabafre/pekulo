@@ -23,6 +23,7 @@
     "@pekulo/types": "workspace:*",
     "@pekulo/ui": "workspace:*",
     "@pekulo/validators": "workspace:*",
+    "@pekulo/zod": "workspace:*",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.1",
     "@tanstack/react-form": "^1.29.1",

@@ -4,7 +4,7 @@
 // (validation + DB mapping), and apps/web hypothesis-form (TanStack Form
 // resolver).
 
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 const ratio = z.number().min(0).max(1);
 const positive = z.number().min(0);

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 const positive = z.number().min(0);
 

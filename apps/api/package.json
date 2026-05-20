@@ -38,6 +38,7 @@
     "@pekulo/contracts": "workspace:*",
     "@pekulo/types": "workspace:*",
     "@pekulo/validators": "workspace:*",
+    "@pekulo/zod": "workspace:*",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
     "@prisma/client-runtime-utils": "7.8.0",

@@ -1,7 +1,7 @@
 // Zod source of truth for the compass aggregate. Consumed by @pekulo/contracts
 // (oRPC procedure I/O) and apps/api compass service/handler.
 
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 const currentYear = new Date().getUTCFullYear();
 

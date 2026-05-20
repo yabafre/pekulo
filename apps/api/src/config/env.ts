@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 
 // Treat `KEY=` in .env as absent — brownfield reads process.env directly and
 // `""` is falsy. Without this, optional URL / non-empty schemas reject the

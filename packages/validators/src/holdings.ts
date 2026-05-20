@@ -23,7 +23,7 @@
 //     code).
 //   - notes optional, max 500.
 
-import { z } from "zod";
+import { z } from "@pekulo/zod";
 import { accountSchema } from "./accounts";
 
 export const HOLDING_ID_PREFIX_RE = /^hld_[0-9A-Za-z]{21}$/;
