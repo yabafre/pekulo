@@ -762,10 +762,42 @@ These rules were ratified during the archi-deadcode audit pass after multiple su
 - New aggregate clusters that share a root MUST be co-located in a single `.prisma` file. Splitting an aggregate across files creates relation-resolution pain (Prisma cross-file `@relation` refs require client codegen flag + extra mental overhead).
 - Reviewers MUST NOT flag a missing `<module>.prisma` if the module's tables live in an aggregate-root file under a different name.
 
+**R11 — Folder-by-domain layout for every workspace package.**
+
+Every `packages/<pkg>/src/` follows the same structure:
+
+```
+packages/<pkg>/src/
+├── index.ts                       (aggregate barrel — re-exports each domain)
+├── <domain>/
+│   ├── <domain>.<suffix>.ts       (the actual code ; suffix = .schemas / .contract / .types / .tsx / .helpers / etc.)
+│   ├── <domain>.<suffix>.test.ts  (tests co-located)
+│   ├── __snapshots__/             (vitest snapshots, if any)
+│   └── index.ts                   (domain barrel — `export * from "./<domain>.<suffix>"`)
+└── <other-domain>/…
+```
+
+Concrete suffix conventions per package (match the apps/api `modules/<n>/<n>.{service,repository,routes}.ts` pattern):
+
+- `@pekulo/validators` → `<domain>/<domain>.schemas.ts`
+- `@pekulo/contracts` → `<domain>/<domain>.contract.ts`
+- `@pekulo/types` → `<domain>/<domain>.types.ts`
+- `@pekulo/ui` components → `components/PekuloX/PekuloX.tsx` (+ `PekuloX.a11y.test.tsx`, `PekuloX.snapshot.test.tsx`)
+
+Rules:
+
+- The aggregate `src/index.ts` MUST re-export every domain via `export * from "./<domain>"` (or named re-exports for surface-control, see contracts) — consumers always import from the package root, never from a domain barrel directly across package boundaries.
+- Cross-domain imports inside a package use the domain barrel: `from "../accounts"`, not `from "../accounts/accounts.schemas"`. The implementation file inside the folder stays a refactor-private detail.
+- Adding a new domain = new folder + new `index.ts` + new `<domain>.<suffix>.ts`. Editing the aggregate barrel is the only top-level edit ; reviewers MUST refuse a "flat file at the package root" addition.
+- Test files live in the same folder as the source they cover. Snapshots live in `__snapshots__/` inside the same folder so vitest's relative resolution keeps working.
+
+This was ratified after the audit pass surfaced flat-file growth in three packages (validators, types, contracts) that made cross-domain navigation needlessly costly. Restructured in PR #86 commit dfaa280 (validators + types + contracts) and ec8115e (ui components — 38 components × 4 files).
+
 **Audit lessons baked into agent prompts:**
 
 - Always check the actual branch state before flagging missing files. Realestate models were flagged "CRITICAL missing" by a sub-agent on `main` even though they were in flight on `feature/24-4-1-realestate-domain`. The branch-aware reading is in the audit checklist now.
 - Knip false-positives are systemic for: lint-rule machinery (`packages/oxlint-config/src/rules/*.js`), Tamagui runtime resolution (`react-native-web`, `@tamagui/web`), Next.js / Prisma generated artifacts (`@generated/prisma/client`), and module-level config imports (`tsconfig#extends` for `@pekulo/tsconfig`). Verify with grep before deleting flagged deps or files.
+- "Delete" is the last-resort move when something looks orphan. Default action is **relocate to the canonical home** — schemas to `@pekulo/validators`, UI types to `@pekulo/types`, forward-pointer scaffolds keep their forward-pointer location (with a header comment documenting why). The audit pass deleted six files that should have been relocated and had to re-author them in commit 26b367f.
 
 ## Phase 4 — Structure & Mapping
 
