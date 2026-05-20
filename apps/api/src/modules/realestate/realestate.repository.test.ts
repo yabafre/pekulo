@@ -12,10 +12,12 @@
 //        invariant by simply rejecting reads that lack the userId guard).
 
 import { describe, expect, test } from "bun:test";
+import { PROPERTY_TYPES } from "@pekulo/types";
 import {
   attachMortgageInputSchema,
   attachRentalInputSchema,
   createPropertyInputSchema,
+  propertyTypeSchema,
 } from "@pekulo/validators";
 import { ZodError } from "@pekulo/zod";
 import { createRealestateRepository } from "./realestate.repository";
@@ -210,8 +212,10 @@ describe("realestate.repository — recordValuation (atomic $transaction)", () =
       amount: 280_000,
       valuedOn: new Date("2026-05-01"),
     });
-    expect(updated.currentValuation).toBe(280_000);
-    expect(updated.lastValuedOn.toISOString().slice(0, 10)).toBe("2026-05-01");
+    expect(updated.outcome).toBe("ok");
+    if (updated.outcome !== "ok") throw new Error("unreachable");
+    expect(updated.property.currentValuation).toBe(280_000);
+    expect(updated.property.lastValuedOn.toISOString().slice(0, 10)).toBe("2026-05-01");
     const history = await repo.listValuations(USER_A, { propertyId: property.id });
     expect(history.length).toBe(1);
     expect(history[0]!.amount).toBe(280_000);
@@ -421,5 +425,23 @@ describe("realestate.repository — listByUser", () => {
     const a = await repo.listByUser(USER_A);
     expect(a.length).toBe(1);
     expect(a[0]!.label).toBe("A1");
+  });
+});
+
+describe("realestate.validators — PROPERTY_TYPES mirror invariant (M2 audit)", () => {
+  // M2 audit-finding (review-supp 2026-05-21): the validator-side
+  // PROPERTY_TYPES_MIRROR is documented as "reviewer-enforced invariant" but
+  // had no automated guard. A behavior-driven test exercises the relationship
+  // through propertyTypeSchema — a future story that widens PROPERTY_TYPES in
+  // @pekulo/types without updating the mirror gets caught here.
+  test("propertyTypeSchema accepts every value in @pekulo/types#PROPERTY_TYPES", () => {
+    for (const t of PROPERTY_TYPES) {
+      expect(propertyTypeSchema.parse(t)).toBe(t);
+    }
+  });
+
+  test("propertyTypeSchema rejects unknown values", () => {
+    expect(() => propertyTypeSchema.parse("sci-bricks")).toThrow(ZodError);
+    expect(() => propertyTypeSchema.parse("")).toThrow(ZodError);
   });
 });

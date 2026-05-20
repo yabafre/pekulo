@@ -19,6 +19,7 @@ import type {
   MortgageAttachOutcome,
   MortgageUpdateOutcome,
   RealestateRepository,
+  RecordValuationOutcome,
   RentalAttachOutcome,
   RentalUpdateOutcome,
 } from "./realestate.repository";
@@ -69,7 +70,9 @@ function fakeRepo(overrides: Partial<RealestateRepository> = {}): RealestateRepo
       }),
     ),
     detachRental: mock(async () => ({ ok: true as const })),
-    recordValuation: mock(async () => PROPERTY_A),
+    recordValuation: mock(
+      async (): Promise<RecordValuationOutcome> => ({ outcome: "ok", property: PROPERTY_A }),
+    ),
     listValuations: mock(async () => [] as RealEstateValuation[]),
     deleteProperty: mock(async () => ({ ok: true as const })),
     ...overrides,
@@ -245,6 +248,31 @@ describe("realestate.service — happy paths delegate to repo", () => {
         valuedOn: new Date(),
       }),
     ).toEqual(PROPERTY_A);
+  });
+
+  // H1 audit-finding (review-supp 2026-05-21): concurrent deleteProperty between
+  // requireOwnedProperty and the transaction races to `outcome: "not-found"` from
+  // the repo's updateMany count check (not P2025). Service must translate to a
+  // 404, preserving AC-11's "missing property → 404" promise under all timing
+  // conditions instead of leaking a 500.
+  test("recordValuation race: repo returns not-found → REALESTATE_NOT_FOUND", async () => {
+    const repo = fakeRepo({
+      recordValuation: mock(
+        async (): Promise<RecordValuationOutcome> => ({ outcome: "not-found" }),
+      ),
+    });
+    const service = createRealestateService({ repository: repo });
+    try {
+      await service.recordValuation(USER_A, {
+        propertyId: PROPERTY_A.id,
+        amount: 280_000,
+        valuedOn: new Date(),
+      });
+      throw new Error("Expected REALESTATE_NOT_FOUND");
+    } catch (err) {
+      expect(err).toBeInstanceOf(RealestateError);
+      expect((err as RealestateError).code).toBe("REALESTATE_NOT_FOUND");
+    }
   });
 
   test("deleteProperty → { ok: true }", async () => {

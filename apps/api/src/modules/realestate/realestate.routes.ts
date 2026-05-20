@@ -15,6 +15,12 @@
 // so oRPC's RPCHandler propagates them as canonical defined-error JSON.
 // Without this remap, RPCHandler would mask RealestateError as
 // INTERNAL_SERVER_ERROR before our Elysia .onError mapper sees it.
+//
+// L3 audit note (review-supp 2026-05-21): a centralised `mapRealestateError`
+// helper was attempted but oRPC's `ORPCErrorConstructorMap<MergedErrorMap<…>>`
+// type is contract-narrow per handler — a single helper can't be both
+// type-safe and reusable across handlers with different error subsets. The
+// duplication below is the price of contract-level type safety.
 
 import { implement } from "@orpc/server";
 import { realestateContract } from "@pekulo/contracts";

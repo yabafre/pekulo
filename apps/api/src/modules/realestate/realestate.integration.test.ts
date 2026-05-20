@@ -10,9 +10,13 @@
 //   - 404 cross-user on getProperty / mutations (REALESTATE_NOT_FOUND)
 //   - 409 duplicate on attachMortgage / attachRental
 //
-// PORT_BASE picked to avoid overlap with sibling integration tests under
-// `apps/api/src/modules/**` (hypothesis 13900, accounts 14160, holdings
-// 14500, compass 14700, milestones 14900). Range 15100–15299 is free.
+// Port binding: `port: 0` so the OS assigns a free port and we read it back
+// from `app.server.port` after listen. This avoids the birthday-paradox
+// collisions that `PORT_BASE + Math.random()*200` allocations race into when
+// 14+ sibling integration suites run concurrently (precedent: 2026-05-17
+// `bump compass+milestones PORT_BASE`). Sibling suites still use the legacy
+// pattern (hypothesis 13900, accounts 14160, holdings 14500, compass 14700,
+// milestones 14900) — migrating them is out of scope for story 4-1.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
@@ -34,8 +38,6 @@ const AUDIENCE = "authenticated";
 // "Output validation failed" (caught during T17 first run).
 const USER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const USER_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const PORT_BASE = 15100;
-
 async function signFor(userId: string): Promise<string> {
   return new SignJWT({ email: `${userId}@pekulo.local` })
     .setProtectedHeader({ alg: "HS256" })
@@ -57,7 +59,11 @@ beforeAll(async () => {
     prismaService: { client: fake.client } as unknown as PrismaService,
   });
   const orpcRouter: PekuloRpcRouter = { realestate: mod.router };
-  const port = PORT_BASE + Math.floor(Math.random() * 200);
+  // M3 audit-finding (review-supp 2026-05-21): bind port 0 + read the
+  // OS-assigned port after listen — eliminates the birthday-paradox
+  // collision that Math.random()*200 races into when 14+ spec files
+  // race in CI (see 2026-05-17 lesson — "bump PORT_BASE to avoid CI
+  // collision" was a workaround, port-0 is the root fix).
   const app = new Elysia().onError(({ error, set }) => {
     const requestId = extractRequestId(error) ?? crypto.randomUUID();
     const mapped = mapErrorToOrpcResponse(error, requestId);
@@ -66,9 +72,11 @@ beforeAll(async () => {
   });
   mountOrpc(app, { jwtVerifier, orpcRouter });
   await new Promise<void>((resolve) => {
-    app.listen({ port, hostname: "127.0.0.1" }, () => resolve());
+    app.listen({ port: 0, hostname: "127.0.0.1" }, () => resolve());
   });
-  baseUrl = `http://127.0.0.1:${port}`;
+  const assignedPort = app.server?.port;
+  if (!assignedPort) throw new Error("Elysia did not expose server.port after listen");
+  baseUrl = `http://127.0.0.1:${assignedPort}`;
   appHandle = {
     stop: async () => {
       await app.stop();

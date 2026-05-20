@@ -59,6 +59,11 @@ export const holdingsTags = createFeatureTags(HOLDINGS_KEY, {
 export const REALESTATE_KEY = "realestate" as const;
 export const realestateKeys = createFeatureKeys(REALESTATE_KEY, {
   list: () => ["list"] as const,
+  // TODO(4-2/4-3): `byId` consumed by `useProperty(id)` in 4-3 ; `valuations`
+  // consumed by the cap-history panel in 4-3. Until those stories land, the
+  // factories are declared here so adding the consuming hooks doesn't require
+  // touching this file again (review-supp L5 — keep forward-pointer scope
+  // explicit so the audit doesn't flag them as dead code).
   byId: (propertyId: string) => ["byId", propertyId] as const,
   valuations: (propertyId: string) => ["valuations", propertyId] as const,
 });

@@ -109,6 +109,20 @@ export function makeFakePrisma() {
         row.updatedAt = new Date();
         return row;
       },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: string; userId: string };
+        data: { currentValuation?: number; lastValuedOn?: Date };
+      }) => {
+        const row = real_estate.find((r) => r.id === where.id && r.userId === where.userId);
+        if (!row) return { count: 0 };
+        if (data.currentValuation !== undefined) row.currentValuation = dec(data.currentValuation);
+        if (data.lastValuedOn !== undefined) row.lastValuedOn = data.lastValuedOn;
+        row.updatedAt = new Date();
+        return { count: 1 };
+      },
       deleteMany: async ({ where }: { where: { id: string; userId: string } }) => {
         const idx = real_estate.findIndex((r) => r.id === where.id && r.userId === where.userId);
         if (idx === -1) return { count: 0 };

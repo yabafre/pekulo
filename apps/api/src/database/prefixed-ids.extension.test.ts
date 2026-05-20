@@ -137,4 +137,65 @@ describe("prefixedIdsHandlers", () => {
       }),
     ).rejects.toThrow(/upsert\.update for model "Account" must not contain id/);
   });
+
+  // H2 audit-finding (review-supp 2026-05-21) — the integration test's
+  // `expect(body.json.id).toMatch(/^res_…/)` was a tautology against the fake
+  // (which generates ids itself). Exercise the REAL extension handler for the
+  // 4 new realestate models so a broken registry entry surfaces here, not in
+  // production. Mirrors the Account / Holding / Transaction cases above.
+  it("create — RealEstate injects res_… prefix via the real extension", async () => {
+    let receivedArgs: { data: unknown } | undefined;
+    const query = async (args: { data: unknown }) => {
+      receivedArgs = args;
+      return null;
+    };
+    await prefixedIdsHandlers.create({
+      model: "RealEstate",
+      args: { data: { userId: "u", label: "X" } },
+      query,
+    });
+    expect((receivedArgs!.data as { id: string }).id).toMatch(/^res_[0-9A-Za-z]{21}$/);
+  });
+
+  it("create — RealEstateMortgage injects resm_… prefix via the real extension", async () => {
+    let receivedArgs: { data: unknown } | undefined;
+    const query = async (args: { data: unknown }) => {
+      receivedArgs = args;
+      return null;
+    };
+    await prefixedIdsHandlers.create({
+      model: "RealEstateMortgage",
+      args: { data: { userId: "u", realEstateId: "res_x" } },
+      query,
+    });
+    expect((receivedArgs!.data as { id: string }).id).toMatch(/^resm_[0-9A-Za-z]{21}$/);
+  });
+
+  it("create — RealEstateRental injects resr_… prefix via the real extension", async () => {
+    let receivedArgs: { data: unknown } | undefined;
+    const query = async (args: { data: unknown }) => {
+      receivedArgs = args;
+      return null;
+    };
+    await prefixedIdsHandlers.create({
+      model: "RealEstateRental",
+      args: { data: { userId: "u", realEstateId: "res_x" } },
+      query,
+    });
+    expect((receivedArgs!.data as { id: string }).id).toMatch(/^resr_[0-9A-Za-z]{21}$/);
+  });
+
+  it("create — RealEstateValuation injects resv_… prefix via the real extension", async () => {
+    let receivedArgs: { data: unknown } | undefined;
+    const query = async (args: { data: unknown }) => {
+      receivedArgs = args;
+      return null;
+    };
+    await prefixedIdsHandlers.create({
+      model: "RealEstateValuation",
+      args: { data: { userId: "u", realEstateId: "res_x", amount: 100, valuedOn: new Date() } },
+      query,
+    });
+    expect((receivedArgs!.data as { id: string }).id).toMatch(/^resv_[0-9A-Za-z]{21}$/);
+  });
 });

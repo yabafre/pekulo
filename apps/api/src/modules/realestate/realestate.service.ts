@@ -122,7 +122,12 @@ export function createRealestateService(deps: {
 
     async recordValuation(userId, input) {
       await requireOwnedProperty(userId, input.propertyId);
-      return repository.recordValuation(userId, input);
+      const result = await repository.recordValuation(userId, input);
+      // "not-found" only reachable via concurrent deleteProperty between guard
+      // and transaction — the repo uses updateMany inside $transaction so we
+      // never leak Prisma P2025 as 500 (AC-11 contract).
+      if (result.outcome === "not-found") throw realestateNotFound();
+      return result.property;
     },
 
     async listValuations(userId, input) {

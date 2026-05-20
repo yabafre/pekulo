@@ -56,6 +56,10 @@ export type RentalUpdateOutcome =
   | { outcome: "ok"; rental: RealEstateRental }
   | { outcome: "not-found" };
 
+export type RecordValuationOutcome =
+  | { outcome: "ok"; property: RealEstate }
+  | { outcome: "not-found" };
+
 export interface RealestateRepository {
   createProperty(userId: string, input: CreatePropertyInput): Promise<RealEstate>;
   findByIdForUser(userId: string, propertyId: string): Promise<RealEstate | null>;
@@ -68,7 +72,7 @@ export interface RealestateRepository {
   attachRental(userId: string, input: AttachRentalInput): Promise<RentalAttachOutcome>;
   updateRental(userId: string, input: UpdateRentalInput): Promise<RentalUpdateOutcome>;
   detachRental(userId: string, input: DetachRentalInput): Promise<{ ok: true }>;
-  recordValuation(userId: string, input: RecordValuationInput): Promise<RealEstate>;
+  recordValuation(userId: string, input: RecordValuationInput): Promise<RecordValuationOutcome>;
   listValuations(userId: string, input: ListValuationsInput): Promise<RealEstateValuation[]>;
   deleteProperty(userId: string, input: DeletePropertyInput): Promise<{ ok: true }>;
 }
@@ -254,20 +258,32 @@ export function createRealestateRepository(deps: {
       if (input.monthlyPayment !== undefined) data.monthlyPayment = input.monthlyPayment;
       if (input.termMonths !== undefined) data.termMonths = input.termMonths;
       if (input.startDate !== undefined) data.startDate = input.startDate;
-      const res = await client.realEstateMortgage.updateMany({
-        where: { realEstateId: input.propertyId, userId },
-        data,
+      // updateMany + findFirst inside the same $transaction so a concurrent
+      // detachMortgage cannot slip between the two queries (otherwise the
+      // service would surface MORTGAGE_NOT_FOUND despite a successful update).
+      return client.$transaction(async (tx) => {
+        const res = await tx.realEstateMortgage.updateMany({
+          where: { realEstateId: input.propertyId, userId },
+          data,
+        });
+        if (res.count === 0) return { outcome: "not-found" } as const;
+        const row = await tx.realEstateMortgage.findFirst({
+          where: { realEstateId: input.propertyId, userId },
+        });
+        if (!row) return { outcome: "not-found" } as const;
+        return {
+          outcome: "ok",
+          mortgage: toMortgage(row as unknown as PrismaMortgageRow),
+        } as const;
       });
-      if (res.count === 0) return { outcome: "not-found" };
-      const row = await client.realEstateMortgage.findFirst({
-        where: { realEstateId: input.propertyId, userId },
-      });
-      if (!row) return { outcome: "not-found" };
-      return { outcome: "ok", mortgage: toMortgage(row as unknown as PrismaMortgageRow) };
     },
 
     async detachMortgage(userId, input) {
       // Idempotent — { count: 0 | 1 } both surface as { ok: true } (AC-2).
+      // TODO(observability): once apps/api ships per-handler attribute logs,
+      // surface deleteMany's { count } so SRE can spot client double-detach
+      // retry storms. Currently the rpc.request log only carries durationMs +
+      // status; per-route attributes need a wider platform/http change.
       await client.realEstateMortgage.deleteMany({
         where: { realEstateId: input.propertyId, userId },
       });
@@ -297,19 +313,27 @@ export function createRealestateRepository(deps: {
       if (input.monthlyRent !== undefined) data.monthlyRent = input.monthlyRent;
       if (input.monthlyCharges !== undefined) data.monthlyCharges = input.monthlyCharges;
       if (input.furnished !== undefined) data.furnished = input.furnished;
-      const res = await client.realEstateRental.updateMany({
-        where: { realEstateId: input.propertyId, userId },
-        data,
+      // Wrap update + refetch in the same $transaction (concurrent detachRental
+      // safety — see updateMortgage above).
+      return client.$transaction(async (tx) => {
+        const res = await tx.realEstateRental.updateMany({
+          where: { realEstateId: input.propertyId, userId },
+          data,
+        });
+        if (res.count === 0) return { outcome: "not-found" } as const;
+        const row = await tx.realEstateRental.findFirst({
+          where: { realEstateId: input.propertyId, userId },
+        });
+        if (!row) return { outcome: "not-found" } as const;
+        return {
+          outcome: "ok",
+          rental: toRental(row as unknown as PrismaRentalRow),
+        } as const;
       });
-      if (res.count === 0) return { outcome: "not-found" };
-      const row = await client.realEstateRental.findFirst({
-        where: { realEstateId: input.propertyId, userId },
-      });
-      if (!row) return { outcome: "not-found" };
-      return { outcome: "ok", rental: toRental(row as unknown as PrismaRentalRow) };
     },
 
     async detachRental(userId, input) {
+      // Idempotent — see detachMortgage for the observability TODO.
       await client.realEstateRental.deleteMany({
         where: { realEstateId: input.propertyId, userId },
       });
@@ -317,14 +341,18 @@ export function createRealestateRepository(deps: {
     },
 
     async recordValuation(userId, input) {
-      const updated = await client.$transaction(async (tx) => {
-        const updatedRow = await tx.realEstate.update({
+      // updateMany (not update) inside $transaction so a concurrent deleteProperty
+      // races to a clean "not-found" outcome instead of leaking Prisma P2025 as
+      // a 500 (AC-11 promises 404 for missing property under all conditions).
+      return client.$transaction(async (tx) => {
+        const res = await tx.realEstate.updateMany({
           where: { id: input.propertyId, userId },
           data: {
             currentValuation: input.amount,
             lastValuedOn: input.valuedOn,
           },
         });
+        if (res.count === 0) return { outcome: "not-found" } as const;
         await tx.realEstateValuation.create({
           data: {
             userId,
@@ -333,9 +361,15 @@ export function createRealestateRepository(deps: {
             valuedOn: input.valuedOn,
           } as unknown as Parameters<typeof tx.realEstateValuation.create>[0]["data"],
         });
-        return updatedRow;
+        const updatedRow = await tx.realEstate.findFirst({
+          where: { id: input.propertyId, userId },
+        });
+        if (!updatedRow) return { outcome: "not-found" } as const;
+        return {
+          outcome: "ok",
+          property: toProperty(updatedRow as unknown as PrismaPropertyRow),
+        } as const;
       });
-      return toProperty(updated as unknown as PrismaPropertyRow);
     },
 
     async listValuations(userId, input) {
