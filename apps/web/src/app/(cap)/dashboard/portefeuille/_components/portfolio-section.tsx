@@ -21,6 +21,7 @@ import { LotForm } from "./lot-form";
 import { HoldingCloseConfirm } from "./holding-close-confirm";
 import { ClassRow } from "./class-row";
 import { HoldingRow } from "./holding-row";
+import styles from "./portfolio.module.css";
 
 // PortfolioSection — orchestrates hero + Répartition + Lignes for
 // /dashboard/portefeuille. The 3-3 portfolio-fx primitives
@@ -162,7 +163,7 @@ export function PortfolioSection() {
       >
         {/* Hero — Valeur totale (card-wrapped via Section primitive) */}
         <View width="100%" $lg={{ flex: 7, flexBasis: 0, minWidth: 0 }}>
-          <Section ariaLabel="Valeur totale du portefeuille">
+          <Section ariaLabel="Valeur totale du portefeuille" className={styles.cardStretch}>
             <Text color="$colorTertiary" fontSize="$caption">
               Valeur portefeuille · EUR
             </Text>
@@ -196,7 +197,7 @@ export function PortfolioSection() {
 
         {/* Répartition par classe (card-wrapped via Section primitive) */}
         <View width="100%" $lg={{ flex: 5, flexBasis: 0, minWidth: 0 }}>
-          <Section ariaLabel="Répartition par classe">
+          <Section ariaLabel="Répartition par classe" className={styles.cardStretch}>
             <Text color="$colorTertiary" fontSize="$caption" marginBottom="$3">
               Répartition
             </Text>
