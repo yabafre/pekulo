@@ -39,6 +39,7 @@ export const ID_PREFIXES = {
 
   // Real-estate (story 4-1, 4-2 — registered upfront)
   RealEstate: "res",
+  RealEstateMortgage: "resm",
   RealEstateRental: "resr",
   RealEstateValuation: "resv",
 
