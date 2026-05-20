@@ -178,3 +178,14 @@ export const propertyWithChildrenSchema = z.object({
   rental: realEstateRentalSchema.nullable(),
 });
 export type PropertyWithChildren = z.infer<typeof propertyWithChildrenSchema>;
+
+// ─── Aggregate list / ok shapes (owned here so @pekulo/contracts stays
+//     zod-free; mirrors holdings.contract.ts using listHoldingsOutputSchema).
+export const listPropertiesOutputSchema = z.array(realEstateSchema);
+export type ListPropertiesOutput = z.infer<typeof listPropertiesOutputSchema>;
+
+export const listValuationsOutputSchema = z.array(realEstateValuationSchema);
+export type ListValuationsOutput = z.infer<typeof listValuationsOutputSchema>;
+
+export const realestateOkSchema = z.object({ ok: z.literal(true) });
+export type RealestateOk = z.infer<typeof realestateOkSchema>;
