@@ -8,6 +8,27 @@
 **Depends on:** 0-4-prisma-setup (done), 0-5-orpc-contracts-scaffold (done)
 **Complexity:** L
 
+## Post-mainsync refresh (2026-05-20 — PR #86 absorbed)
+
+Main shipped the archi-deadcode audit pass (commit `08c9431`) **between this story's T19 push and the eventual squash-merge**. The branch was synced via a non-fast-forward merge (commit `0777f62`) + an R1 alignment commit (`a0cc73c`). The original tasks T1-T19 below still describe the work performed ; the path references they quote were realigned in the sync to match the new R7 folder-by-domain convention (see `architecture.md § Audit-derived conventions`).
+
+**Refreshed paths (R11 folder-by-domain — PR #86 commit `dfaa280`):**
+
+| Original task path | Realigned R11 path |
+|---|---|
+| `packages/validators/src/realestate.ts` (T7) | `packages/validators/src/realestate/realestate.schemas.ts` + `realestate/index.ts` |
+| `packages/contracts/src/realestate.contract.ts` (T13) | `packages/contracts/src/realestate/realestate.contract.ts` (git auto-rename ; T13's 12-procedure content preserved) |
+| `packages/types/src/index.ts` Real-estate section (T8) | `packages/types/src/realestate/realestate.types.ts` (`PROPERTY_TYPES` + branded IDs + `PropertyCardItem` + `@pekulo/validators` re-exports) |
+| `packages/ui/src/components/PekuloPropertyCard.tsx` (T8 rename consumer) | `packages/ui/src/components/PekuloPropertyCard/PekuloPropertyCard.tsx` (R7 sibling layout — uses `../PekuloDonut`) |
+
+**Other R-rule alignments applied during sync:**
+
+- **R1** — `import { z } from "zod"` retired in favour of `import { z } from "@pekulo/zod"` (validators + repository test) ; commit `a0cc73c`.
+- **R8** — validator-side `PROPERTY_TYPES` export demoted to private `PROPERTY_TYPES_MIRROR` const (matches accounts/holdings precedent) ; SSOT stays in `@pekulo/types#PROPERTY_TYPES`.
+- **R6** — `realestateTags` registry entry in `apps/web/src/lib/zapaction/keys.ts` retained because the realestate oRPC module is mounted (T16). The pre-sync version referenced a now-removed `portfolioKeys.holdings()` cross-edge — dropped in the sync.
+
+Post-sync verification: `bun --filter='@pekulo/*' run typecheck` → 0 ; `cd apps/api && bun test` → 377 pass / 0 fail ; realestate suite alone → 48/48 ; `cd apps/web && bun run test` (vitest) → 45/45.
+
 ## User Story
 
 **As a** Pekulo user, **I want** to create a property with valuation, attach a single mortgage and a single rental block (with full attach/update/detach lifecycle), and update valuations with the prior amount preserved, **so that** my real-estate footprint is tracked alongside cash and brokerage with audit history (FR-27), defense-in-depth (per-user `where: { userId }` ON TOP of Supabase RLS), and a clean handover to story 4-2 (derives) + 4-3 (UI).
@@ -3022,19 +3043,22 @@ git commit -m "feat(#24): T19 — quality gate (lint+typecheck+test+rls-audit al
 - `apps/api/src/modules/realestate/realestate.module.test.ts`
 - `apps/api/src/modules/realestate/realestate.integration.test.ts`
 - `apps/api/src/test/fakes/fake-realestate.ts`
-- `packages/validators/src/realestate.ts`
+- `packages/validators/src/realestate/realestate.schemas.ts` _(post-sync R11 path ; T7's `packages/validators/src/realestate.ts` relocated in merge `0777f62`)_
+- `packages/validators/src/realestate/index.ts` _(R11 domain barrel)_
 
-**MODIFIED (9 files):**
+**MODIFIED (10 files):**
 
 - `apps/api/src/database/id-prefixes.config.ts` (T2 — add `RealEstateMortgage: "resm"`)
 - `apps/api/src/common/errors/pekulo-error.ts` (T5 — +5 codes)
 - `apps/api/src/platform/http/error-mapper.ts` (T5 — +5 HTTP mappings)
 - `apps/api/src/bootstrap/runtime-dependencies.ts` (T16 — instantiate + mount)
 - `apps/api/scripts/rls-audit.ts` (T4 — +4 expected counts)
-- `packages/validators/src/index.ts` (T7 — barrel re-export)
-- `packages/types/src/index.ts` (T8 — Property → PropertyCardItem + re-exports + branded IDs)
-- `packages/contracts/src/realestate.contract.ts` (T13 — fill 12 procedures)
-- `apps/web/src/lib/zapaction/keys.ts` (T18 — REALESTATE_KEY + tag)
+- `packages/validators/src/index.ts` (T7 — domain barrel `export * from "./realestate"`)
+- `packages/types/src/index.ts` (T8 — post-sync this is a thin barrel ; the realestate types now live in `packages/types/src/realestate/realestate.types.ts`)
+- `packages/types/src/realestate/realestate.types.ts` (T8 — PROPERTY_TYPES + branded IDs + PropertyCardItem + validators re-exports ; post-sync home — was inline in `packages/types/src/index.ts` pre-merge)
+- `packages/contracts/src/realestate/realestate.contract.ts` (T13 — fill 12 procedures ; post-sync R11 path)
+- `packages/ui/src/components/PekuloPropertyCard/PekuloPropertyCard.tsx` (T8 consumer — Property → PropertyCardItem rename ; post-sync R7 subfolder location)
+- `apps/web/src/lib/zapaction/keys.ts` (T18 — REALESTATE_KEY + tag ; post-sync the unused `portfolioKeys` cross-edge was dropped per D3)
 
 ## Dev Agent Record
 
@@ -3063,11 +3087,13 @@ Shipped the real-estate aggregate end-to-end: 4 new Prisma models (property + 1:
 - `apps/api/src/platform/http/error-mapper.ts`
 - `apps/api/src/test/fakes/fake-realestate.ts`
 - `apps/web/src/lib/zapaction/keys.ts`
-- `packages/contracts/src/realestate.contract.ts`
-- `packages/types/src/index.ts`
-- `packages/ui/src/components/PekuloPropertyCard.tsx`
+- `packages/contracts/src/realestate/realestate.contract.ts` _(post-sync R11 path ; was `packages/contracts/src/realestate.contract.ts` pre-merge)_
+- `packages/types/src/realestate/realestate.types.ts` _(post-sync R11 path ; pre-merge the additions lived inline in `packages/types/src/index.ts`)_
+- `packages/types/src/realestate/index.ts` _(R11 domain barrel)_
+- `packages/ui/src/components/PekuloPropertyCard/PekuloPropertyCard.tsx` _(post-sync R7 sibling subfolder ; was flat `PekuloPropertyCard.tsx` pre-merge)_
 - `packages/validators/src/index.ts`
-- `packages/validators/src/realestate.ts`
+- `packages/validators/src/realestate/realestate.schemas.ts` _(post-sync R11 path ; was `packages/validators/src/realestate.ts` pre-merge)_
+- `packages/validators/src/realestate/index.ts` _(R11 domain barrel)_
 
 ### Deviations
 
