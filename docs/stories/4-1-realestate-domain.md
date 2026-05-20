@@ -3137,7 +3137,7 @@ $ find apps/api/src/modules/realestate -name '*.types.ts' | wc -l               
 
 **Date:** 2026-05-21
 **Auditors:** Spec, Code, Edge & Hallucination (Aria N/A — backend story)
-**Verdict:** done (pending user approval to flip state.yaml)
+**Verdict:** done
 **⚠️ Same-session reviewer disclosure:** the Lead Reviewer running this audit was active during the 3 post-sync commits on this branch (merge `0777f62`, R1 align `a0cc73c`, docs refresh `594e8f2`). T1-T19 implementation was authored by a separate session. Auditors were briefed to be extra-adversarial on the post-sync surface and on conflict resolutions; the chosen overrides + dismissals below were vetted with this bias in mind.
 
 ### Auditors' raw verdict
@@ -3205,8 +3205,8 @@ $ find apps/api/src/modules/realestate -name '*.types.ts' | wc -l               
 
 ### Ticket sync
 
-- Issue #24 comment: PENDING (awaiting user approval to push)
-- PR #85 body re-edit: PENDING (awaiting user approval)
-- state.yaml flip 4-1 → done: PENDING (awaiting user approval)
-- Epic-4 context "Previous stories — outcomes" append: PENDING (awaiting user approval)
+- Issue #24 comment: ✓ posted — https://github.com/yabafre/pekulo/issues/24#issuecomment-4503241697
+- PR #85 body: ✓ re-edited with Post-review-supp section — https://github.com/yabafre/pekulo/pull/85
+- state.yaml flip 4-1 → done: ✓ committed `37b49b7` (`completed_at: "2026-05-21T00:42:00Z"`)
+- Epic-4 context "Previous stories — outcomes" append: ✓ committed `37b49b7` (decisions / contracts / deviations for 4-2/4-3 inheritance)
 
