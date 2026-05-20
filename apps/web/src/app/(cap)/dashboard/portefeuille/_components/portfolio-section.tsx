@@ -151,12 +151,7 @@ export function PortfolioSection() {
   }
 
   return (
-    <View
-      flexDirection="column"
-      gap="$6"
-      width="100%"
-      $lg={{ maxWidth: 1024, marginHorizontal: "auto", gap: 40 }}
-    >
+    <View flexDirection="column" gap="$6" width="100%" $lg={{ gap: 16 }}>
       {/* Hero + Répartition — stacked on mobile, 7/5 split on lg+ (ux-preview parity) */}
       <View flexDirection="column" gap="$6" $lg={{ flexDirection: "row", gap: "$4" }}>
         {/* Hero — Valeur totale (card-wrapped via Section primitive) */}
