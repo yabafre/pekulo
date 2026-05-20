@@ -693,6 +693,80 @@ modules/<name>/
 - Every new server action emits a span named `action.<feature>.<verb>`.
 - Logging the `prompt_content`, raw `user_id`, `email`, `account_number`, JWT, or any secret is forbidden ; CI grep guards the rule (fails the build on match).
 
+### Audit-derived conventions (2026-05-20 — PR #86)
+
+These rules were ratified during the archi-deadcode audit pass after multiple sub-agents kept reaching for the wrong primitive (raw TanStack, direct `zod` imports, pre-exported clients without an api route). They were always implicit ; codifying them here means the next agent who reads this file before touching code can't miss them.
+
+**R1 — `@pekulo/zod` is the sole zod entry point (amends ADR-0011).**
+
+- No file under `packages/*` or `apps/*` is allowed to `import { z } from "zod"` (or any zod export) directly. Every consumer goes through `@pekulo/zod`.
+- `@pekulo/zod` re-exports zod and (incrementally) ships the Pekulo helpers (Money, EuroAmount, IsoDate, Percent, tabularNum). Consumers won't need a second migration when the helpers land.
+- The direct `zod` dependency MUST NOT appear in `apps/web/package.json`, `apps/api/package.json`, or `packages/validators/package.json`. Each declares `@pekulo/zod: workspace:*` instead.
+- Future enforcement: a custom oxlint rule (`pekulo/no-direct-zod-import`) tracks this — pre-rule, knip flags violations.
+
+**R2 — `@pekulo/types` and `@pekulo/validators` are correctly layered (re-affirmed).**
+
+- `@pekulo/validators` consumes `@pekulo/zod` and exports Zod schemas + their inferred types. Apps that need a schema (input parsing, action `defineAction({ input })`) consume validators.
+- `@pekulo/types` consumes `@pekulo/validators` for inferred types AND adds UI-only types (no schemas). Apps that only need a type for prop typing consume types.
+- Apps consume EITHER package depending on what they need. The dependency `@pekulo/types → @pekulo/validators` is intentional, not a back-dep mistake. Reviewers MUST NOT flag it.
+
+**R3 — ZapAction is the only allowed React-Query consumer in `apps/web` hooks.**
+
+- Every hook under `apps/web/src/app/**/_hooks/` MUST consume actions via `useActionQuery` / `useActionMutation` from `@zapaction/query` (or `useAction` from `@zapaction/react` for imperative flows).
+- Direct `useQuery` / `useMutation` from `@tanstack/react-query` is **BANNED** in hooks. Reviewers MUST treat this as a hard fail.
+- `useQueryClient` from `@tanstack/react-query` is **ONLY** allowed inside `onMutate` / `onError` / `onSettled` of `useActionMutation` for the documented optimistic-update recipe (R9).
+- The single legitimate `@tanstack/react-query` import outside a hook is the `QueryClient` + `QueryClientProvider` boot in `apps/web/src/components/providers.tsx`.
+
+**R4 — Tag registry centralises invalidation ; hooks never invalidate manually.**
+
+- Cross-feature invalidation maps live in `apps/web/src/lib/zapaction/keys.ts` via `setTagRegistry({...})`. Each action declares its tags ; the registry resolves tags → query keys.
+- Reads MUST pass `readPolicy: "read-only"` to `useActionQuery` ; mutations rely on `invalidateOnSuccess: true` (default) to fire the tag registry.
+- Manual `queryClient.invalidateQueries({ queryKey })` in a hook body is a review fail — it bypasses the registry and creates orphan invalidation paths.
+
+**R5 — oRPC client export policy (D2 finding).**
+
+- `apps/web/src/lib/orpc/modules.ts` exports ONLY clients whose router is actually mounted in `apps/api/src/bootstrap/runtime-dependencies.ts#orpcRouter`.
+- As of the audit, the api mounts 5 modules: `hypothesis`, `compass`, `milestones`, `accounts`, `holdings`. The exported clients track that exact list.
+- Each story that lands a new api module re-adds its client here in the same PR. Pre-exporting a client whose route isn't mounted yet causes runtime 404s and dead exports — review fail.
+
+**R6 — Tag registry forward-pointer policy (D3 finding).**
+
+- `lib/zapaction/keys.ts` registers only keys + tags whose consumer hook AND mounted api route both exist. Forward-pointer registry edges (`monthlyTags.all() → monthlyKeys.list()`) fire no-op invalidations — keep them out until the consuming story lands.
+- Module-key constants (e.g. `HOLDINGS_KEY`) stay file-local (`const`, no `export`) unless an external consumer actually needs them.
+
+**R7 — `@pekulo/ui` barrel discipline (H3 finding — amends ADR-0007).**
+
+- `packages/ui/src/provider/` is the single client boundary (mounts `NextThemeProvider` + `TamaguiProvider` + toast viewport). It MUST NOT import from `packages/ui/src/components/`.
+- If the provider needs a UI piece (toast, modal root, error boundary mount point), that piece lives in its OWN sibling top-level dir — never under `components/`.
+- Current sibling layout: `provider/`, `toast/`, `components/`, `primitives/`, `tokens/`, `themes/`, `animations/`, `config/`. Each module self-contained ; the public `src/index.ts` barrel re-exports each once.
+- Rationale: `components/` is a barrel of Pekulo\* domain components. The day one of them legitimately needs the provider, an A↔B barrel cycle closes — pre-empt by keeping the dependency direction one-way.
+
+**R8 — Visibility default is `unexported` ; `export` requires a justification.**
+
+- Types, functions, and consts consumed only inside their defining file MUST NOT be `export`-ed. `export` widens the public API surface and is the wrong default.
+- Audit-corrected examples (do not re-introduce as exports): `ReadinessProbe`, `ReadinessReport`, `BoursoramaQuote`, `TwelveDataQuote`, `YahooQuote`, `OrpcErrorBody`, `ORPC_HTTP_STATUS_BY_CODE`, `PlaceholderVariant`, `deriveAvantages`, `deriveDepensesTotales`, `HOLDINGS_KEY`.
+- Knip-driven re-scan periodically catches new violations (`bunx knip --reporter symbols` — config kept in agent workflows).
+
+**R9 — Optimistic mutation recipe with ZapAction.**
+
+- The supported optimistic pattern uses `useQueryClient` inside `useActionMutation`:
+  - `onMutate(input)`: `await queryClient.cancelQueries({ queryKey })` → snapshot via `queryClient.getQueryData` → optimistic `queryClient.setQueryData(updater)` → return `{ previous }` context.
+  - `onError(err, input, ctx)`: surgical restore from `ctx.previous` (per-row rollback, not blanket overwrite, so concurrent mutations don't resurrect each other's deletes).
+  - Trust the tag registry for the success path — NO manual `onSettled` invalidate.
+- Envelope `{ ok: false, code, message }` returns are DATA, not errors. The tag registry still invalidates on success (the action didn't throw) ; the no-op refetch on a `false-ok` response is an acceptable cost for a single coherent pattern across simple and optimistic mutations.
+
+**R10 — Aggregate-root Prisma layout exception (amends ADR-0012).**
+
+- ADR-0012 ("one `.prisma` file per Elysia domain module") is enforced module-by-module, BUT carves an exception for aggregates that share a root entity.
+- Concrete example: `apps/api/prisma/schema/accounts.prisma` declares `Account`, `Holding`, and `HoldingLot` together because `Account` is the aggregate root for the holdings sub-aggregate. There is intentionally no `holdings.prisma` even though `apps/api/src/modules/holdings/` exists.
+- New aggregate clusters that share a root MUST be co-located in a single `.prisma` file. Splitting an aggregate across files creates relation-resolution pain (Prisma cross-file `@relation` refs require client codegen flag + extra mental overhead).
+- Reviewers MUST NOT flag a missing `<module>.prisma` if the module's tables live in an aggregate-root file under a different name.
+
+**Audit lessons baked into agent prompts:**
+
+- Always check the actual branch state before flagging missing files. Realestate models were flagged "CRITICAL missing" by a sub-agent on `main` even though they were in flight on `feature/24-4-1-realestate-domain`. The branch-aware reading is in the audit checklist now.
+- Knip false-positives are systemic for: lint-rule machinery (`packages/oxlint-config/src/rules/*.js`), Tamagui runtime resolution (`react-native-web`, `@tamagui/web`), Next.js / Prisma generated artifacts (`@generated/prisma/client`), and module-level config imports (`tsconfig#extends` for `@pekulo/tsconfig`). Verify with grep before deleting flagged deps or files.
+
 ## Phase 4 — Structure & Mapping
 
 > Concrete file layout, FR-to-file mapping, integration surfaces, and shared-code inventory. Every FR-ID from the PRD lands in a specific file ; every external system has an explicit boundary owner.
