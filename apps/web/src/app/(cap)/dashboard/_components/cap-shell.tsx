@@ -19,7 +19,13 @@ import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { PekuloMobileBottomNav, PekuloNavRail, type PekuloNavKey, useToast } from "@pekulo/ui";
+import {
+  PekuloContextualAddButton,
+  PekuloMobileBottomNav,
+  PekuloNavRail,
+  type PekuloNavKey,
+  useToast,
+} from "@pekulo/ui";
 import styles from "./bento.module.css";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", {
@@ -54,11 +60,18 @@ export function CapShell({ email, children }: CapShellProps) {
       : navActiveKey === "settings"
         ? "Paramètres"
         : null;
-  // Contextual mobile add button (ux-preview L284-300). Shown only on
-  // screens that own a primary write action; null hides the button.
-  // Transactions / realestate aren't wired yet — those handlers reuse
-  // the toast placeholder below the same as desktop.
-  const contextualAddLabel: string | null = navActiveKey === "portfolio" ? "Nouvelle ligne" : null;
+  // Contextual mobile add button label per active screen. The primitive
+  // (PekuloContextualAddButton) gates visibility internally — only renders
+  // for transactions / portfolio / realestate AND only below `$lg`. We
+  // just provide the right aria-label per screen. Map covers all of
+  // SHOW_FOR even though navActiveKey only resolves to portfolio today
+  // (transactions / realestate routes ship later).
+  const CONTEXTUAL_LABEL: Partial<Record<PekuloNavKey, string>> = {
+    portfolio: "Nouvelle ligne",
+    transactions: "Nouvelle transaction",
+    realestate: "Nouveau bien",
+  };
+  const contextualAddLabel = CONTEXTUAL_LABEL[navActiveKey] ?? "Ajouter";
   const toast = useToast();
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
@@ -118,16 +131,11 @@ export function CapShell({ email, children }: CapShellProps) {
           {screenTitle && <h1 className={styles.screenTitle}>{screenTitle}</h1>}
         </div>
         <div className={styles.headerRight}>
-          {contextualAddLabel && (
-            <button
-              type="button"
-              className={styles.contextualAdd}
-              onClick={handleNewTx}
-              aria-label={contextualAddLabel}
-            >
-              <Plus size={18} strokeWidth={2.5} aria-hidden={true} />
-            </button>
-          )}
+          <PekuloContextualAddButton
+            activeNav={navActiveKey}
+            label={contextualAddLabel}
+            onPress={handleNewTx}
+          />
           <button
             type="button"
             className={styles.newTxPill}
