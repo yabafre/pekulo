@@ -9,13 +9,18 @@ export interface PekuloSkeletonProps {
   height?: number;
   /** Render as a single block instead of N lines. */
   block?: boolean;
+  /** Override width — overrides the calculated `100 - i*12%` per-line width
+   *  and the default `100%` block width. Accepts the same value types as
+   *  Tamagui View `width`. Use for nested inline skeletons where a fixed
+   *  px size matches the loaded content footprint better than a %. */
+  width?: number | `${number}%`;
 }
 
-export function PekuloSkeleton({ lines = 1, height = 16, block }: PekuloSkeletonProps) {
+export function PekuloSkeleton({ lines = 1, height = 16, block, width }: PekuloSkeletonProps) {
   if (block) {
     return (
       <View
-        width="100%"
+        width={width ?? "100%"}
         height={height}
         borderRadius="$md"
         backgroundColor="$backgroundMuted"
@@ -30,7 +35,7 @@ export function PekuloSkeleton({ lines = 1, height = 16, block }: PekuloSkeleton
         <View
           key={i}
           height={height}
-          width={`${100 - i * 12}%`}
+          width={width ?? `${100 - i * 12}%`}
           borderRadius="$sm"
           backgroundColor="$backgroundMuted"
           opacity={0.6}

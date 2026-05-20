@@ -16,7 +16,7 @@
 // reveal expanded the cell and broke the bento row track.
 
 import { Plus } from "lucide-react";
-import { PekuloMilestoneRow, Section, useToast } from "@pekulo/ui";
+import { PekuloMilestoneRow, PekuloSkeleton, Section, useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useMilestones } from "../_hooks/use-milestones";
 import { useMilestoneStatuses } from "../_hooks/use-milestone-statuses";
@@ -82,6 +82,11 @@ export function MilestonesSection({
     </button>
   );
 
+  // Distinguish "loading" (no data yet) from "empty" (data is []). The
+  // empty-state copy is a CTA; showing it during load would lie about
+  // server state. Only show empty-state when the milestones query has
+  // resolved to a verified empty array.
+  const isInitialLoading = milestonesQ.isLoading && !milestonesQ.data;
   return (
     <Section
       ariaLabel={`Paliers (${items.length}/20)`}
@@ -89,7 +94,21 @@ export function MilestonesSection({
       action={headerAction}
       flat={flat}
     >
-      {items.length === 0 ? (
+      {isInitialLoading ? (
+        <View role="status" aria-live="polite" paddingVertical="$2">
+          <Text
+            color="$colorTertiary"
+            fontSize="$caption"
+            position="absolute"
+            width={1}
+            height={1}
+            overflow="hidden"
+          >
+            Chargement des paliers…
+          </Text>
+          <PekuloSkeleton lines={3} height={32} />
+        </View>
+      ) : items.length === 0 ? (
         <Text color="$colorTertiary" fontSize="$caption" paddingVertical="$3">
           Aucun palier — ajoute le premier pour rythmer le cap.
         </Text>
