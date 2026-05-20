@@ -6,3 +6,4 @@ export * from "./compass";
 export * from "./holdings";
 export * from "./hypothesis";
 export * from "./milestones";
+export * from "./realestate";
