@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderWithTamagui, axe } from "../../test/setup.tsx";
-import { PekuloToast } from "./toast";
+import { PekuloToast } from ".";
 
 describe("PekuloToast a11y", () => {
   it("has role=status + no serious violations", async () => {

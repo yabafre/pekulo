@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderWithTamagui } from "../../test/setup.tsx";
-import { PekuloToast } from "./toast";
+import { PekuloToast } from ".";
 
 describe("PekuloToast snapshot", () => {
   it("renders success", () => {

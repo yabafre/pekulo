@@ -27,7 +27,7 @@ import { NextThemeProvider } from "@tamagui/next-theme";
 import { TamaguiProvider } from "tamagui";
 
 import { config } from "../config/tamagui";
-import { PekuloToastViewport, ToastProvider } from "../components/toast";
+import { PekuloToastViewport, ToastProvider } from "../toast";
 
 export function PekuloRootProvider({ children }: { children: ReactNode }) {
   return (

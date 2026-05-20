@@ -1,5 +1,7 @@
-// packages/ui/src/components/toast.tsx
+// packages/ui/src/toast/index.tsx
 // Lightweight toast hook + viewport. No external dep.
+// Sits outside src/components/ so src/provider/ can import it without crossing
+// the components barrel — avoids a latent provider ↔ components cycle.
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
