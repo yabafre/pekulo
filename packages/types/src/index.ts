@@ -90,7 +90,30 @@ export interface HoldingCardItem {
   pnlPct: number;
 }
 
-// ─── Transactions (Activity + Suggestion) ────────────────────────────────
+// ─── Transactions (Activity + Suggestion + data-row entity) ──────────────
+
+// String-literal unions mirror the zod enums in @pekulo/validators —
+// re-exported so apps/web type-narrowing (form field `type` / `category`
+// selects) doesn't have to import from two locations.
+export type { TransactionType, TransactionCategory } from "@pekulo/validators";
+
+// Data-row shape for the transactions table. Distinct from the UI-display
+// `Activity` below (which is the truncated row for the Recent Activity feed
+// on the dashboard). Returned by the brownfield Supabase reader being ported
+// in Epic 6.
+import type { TransactionType, TransactionCategory } from "@pekulo/validators";
+export interface Transaction {
+  id: string;
+  occurredOn: string; // YYYY-MM-DD
+  label: string;
+  amount: number;
+  type: TransactionType;
+  category: TransactionCategory;
+  isImprevu: boolean;
+  notes: string | null;
+  createdAt: string;
+}
+
 export const TX_DIRECTIONS = ["in", "out"] as const;
 export type TxDirection = (typeof TX_DIRECTIONS)[number];
 
@@ -155,6 +178,36 @@ export interface MonthlyRecord {
   netEur: number;
   closed?: boolean;
 }
+
+// Data-row shape for the brownfield `monthly_tracking` table. The reader that
+// produces these rows is in flight ; today it's a direct Supabase read in
+// `apps/web/src/lib/data/monthly.ts` (PR #86 staged a delete here ; the file
+// is being restored as Epic 5 lands the oRPC port). MonthlyEntry has more
+// fields than the input schema (`monthlyEntrySchema` in @pekulo/validators)
+// — those extra fields (`monthLabel`, `epargneMois`) are computed at the
+// reader boundary.
+export interface MonthlyEntry {
+  monthNum: number;
+  year: number;
+  monthLabel: string;
+  net: number;
+  avantages: number;
+  depenses: number;
+  credit: number;
+  remote: number;
+  freelance: number;
+  epargneMois: number;
+}
+
+// Composite shape produced by `apps/web/src/lib/derive-monthly.ts` when an
+// actual row (from the DB) is merged with its projected row (from
+// `deriveMonthly` in derive.ts) — the dashboard mixes both feeds with an
+// `ecart` (gap) annotation.
+export type MonthlyMerged = MonthlyEntry & {
+  source: "actual" | "projected";
+  projected: MonthlyEntry;
+  ecart: number;
+};
 
 // ─── Real-estate ─────────────────────────────────────────────────────────
 export interface Property {

@@ -52,13 +52,17 @@ function resolveRange(h: Hypotheses, opts: ProjectionOpts) {
   };
 }
 
-function deriveAvantages(h: Hypotheses): number {
+// Re-exported (was made file-local in PR #86 D3 part 2 — restored here
+// because `apps/web/src/lib/derive-monthly.ts` was restored in the same PR
+// after the audit's premature deletion, and projectMonth() consumes both
+// helpers).
+export function deriveAvantages(h: Hypotheses): number {
   const ticketResto = h.ticketRestoJour * h.partEmployeurTr * h.joursTravailles;
   const navigo = h.navigoCout * h.partEmployeurNavigo;
   return round(ticketResto + navigo + h.mutuelleEconomie);
 }
 
-function deriveDepensesTotales(h: Hypotheses): number {
+export function deriveDepensesTotales(h: Hypotheses): number {
   const chargesFixes = h.loyer + h.courses + h.transport + h.autresCharges;
   const lifestyle = h.sorties + h.divers;
   return round(chargesFixes + lifestyle + h.voyageMois);
