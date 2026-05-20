@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloPopover, pekuloRadius } from "@pekulo/ui";
+import { PekuloDialog, PekuloPopover, PekuloSkeleton, pekuloRadius } from "@pekulo/ui";
 import { MoreHorizontal, Plus } from "lucide-react";
 import type { Account, AccountCurrency } from "@pekulo/validators";
 import type { AccountType } from "@pekulo/types";
@@ -154,9 +154,19 @@ export function AccountsSection() {
       </View>
 
       {isLoading && (
-        <Text color="$colorTertiary" fontSize="$caption" role="status">
-          Chargement…
-        </Text>
+        <View role="status" aria-live="polite">
+          <Text
+            color="$colorTertiary"
+            fontSize="$caption"
+            position="absolute"
+            width={1}
+            height={1}
+            overflow="hidden"
+          >
+            Chargement…
+          </Text>
+          <PekuloSkeleton lines={3} height={48} />
+        </View>
       )}
       {error && !isLoading && (
         <Text color="$danger" fontSize="$caption" role="alert">

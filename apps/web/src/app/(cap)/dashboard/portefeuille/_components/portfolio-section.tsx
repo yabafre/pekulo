@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloPopover, Section, pekuloRadius } from "@pekulo/ui";
+import { PekuloDialog, PekuloPopover, PekuloSkeleton, Section, pekuloRadius } from "@pekulo/ui";
 import { MoreHorizontal, Plus } from "lucide-react";
 import type { Holding } from "@pekulo/validators";
 import { useHoldings } from "../_hooks/use-holdings";
@@ -132,11 +132,47 @@ export function PortfolioSection() {
   };
 
   if (isLoading) {
+    // Skeleton mirrors the loaded layout shape — 7/5 row + Lignes — so
+    // the page does not reflow when data lands. role="status" + sr-only
+    // text gives screen readers a single announce; PekuloSkeleton blocks
+    // are aria-hidden.
     return (
-      <View paddingVertical="$6">
-        <Text color="$colorTertiary" fontSize="$bodySm">
+      <View flexDirection="column" gap="$6" $lg={{ gap: 16 }} role="status" aria-live="polite">
+        <Text
+          color="$colorTertiary"
+          fontSize="$caption"
+          position="absolute"
+          width={1}
+          height={1}
+          overflow="hidden"
+        >
           Chargement du portefeuille…
         </Text>
+        <View
+          flexDirection="column"
+          gap="$6"
+          $lg={{ flexDirection: "row", gap: "$4", alignItems: "stretch" }}
+        >
+          <View width="100%" $lg={{ flex: 7, flexBasis: 0, minWidth: 0 }}>
+            <Section ariaLabel="Valeur portefeuille — chargement" className={styles.cardStretch}>
+              <PekuloSkeleton height={12} />
+              <View height={16} />
+              <PekuloSkeleton block height={44} />
+              <View height={12} />
+              <PekuloSkeleton lines={1} height={14} />
+            </Section>
+          </View>
+          <View width="100%" $lg={{ flex: 5, flexBasis: 0, minWidth: 0 }}>
+            <Section ariaLabel="Répartition — chargement" className={styles.cardStretch}>
+              <PekuloSkeleton height={12} />
+              <View height={12} />
+              <PekuloSkeleton lines={3} height={20} />
+            </Section>
+          </View>
+        </View>
+        <Section ariaLabel="Lignes — chargement" title="Lignes">
+          <PekuloSkeleton lines={4} height={28} />
+        </Section>
       </View>
     );
   }

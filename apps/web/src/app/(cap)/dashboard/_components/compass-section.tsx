@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PekuloDonut, Section } from "@pekulo/ui";
+import { PekuloDonut, PekuloSkeleton, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useDashboardCompass } from "../_hooks/use-dashboard-compass";
 import { useCompassCurve } from "../_hooks/use-compass-curve";
@@ -38,7 +38,21 @@ export function CompassSection() {
   if (setup.isLoading) {
     return (
       <Section ariaLabel="Cap (chargement)">
-        <View padding="$6" />
+        <View role="status" aria-live="polite">
+          <Text
+            color="$colorTertiary"
+            fontSize="$caption"
+            position="absolute"
+            width={1}
+            height={1}
+            overflow="hidden"
+          >
+            Chargement du cap…
+          </Text>
+          <PekuloSkeleton block height={120} />
+          <View height={12} />
+          <PekuloSkeleton lines={2} height={14} />
+        </View>
       </Section>
     );
   }
