@@ -37,3 +37,11 @@ The brownfield architecture put all server logic inside Next.js server actions i
 - **Breaking change to NFR-28** — the original wording "Supabase JS SDK v2 only" applied to the _web tier_ only. Amended in `architecture.md` Phase 2 — Data Layer to: "web tier opens zero direct DB connections ; `apps/api` talks to Postgres via Prisma ; Supabase JS SDK retained on web for Auth flows only."
 - **Build/deploy complexity** — two CI pipelines (Vercel + Dokploy), versioned independently. `oRPC` contract version (`@pekulo/contracts` package) gates compatibility.
 - **`apps/web/src/lib/llm/`** moves to `apps/api/src/modules/llm/` ; `/api/llm/attest` becomes `/internal/llm/attest` Elysia-native (private listener, not behind oRPC).
+
+## Amendments
+
+### 2026-05-20 — PR #86 (archi-deadcode audit)
+
+The original Decision retained `zapaction` "as the React Query bridge" on the web tier without specifying that the bridge MUST be the hook layer's only entry point. Sub-agents interpreted "zapaction is retained" as "zapaction is allowed alongside raw TanStack" — leading to 18 hooks bypassing `useActionQuery` / `useActionMutation` and calling raw `useQuery` / `useMutation` from `@tanstack/react-query` directly (PR #86 ZAP-1 finding).
+
+Cross-link: **see ADR-0010 amendment for R3 / R4 / R9** — the hook-layer enforcement rules (ZapAction-only consumption, tag-registry-centralised invalidation, optimistic-update recipe). The wire-level decision in this ADR is unchanged ; the bridge IS the only mechanism for the React-Query bridge, by amendment.

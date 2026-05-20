@@ -467,15 +467,15 @@ pekulo/
 │   ├── prices/                      ← FastAPI Python (brownfield, unchanged)
 │   └── mobile/                      ← Expo + expo-router (V1.5)
 │
-└── packages/
-    ├── zod/                         ← @pekulo/zod (re-export + helpers)
+└── packages/                       ← R11 — folder-by-domain inside each src/ (see L770)
+    ├── zod/                         ← @pekulo/zod (re-export + helpers — SSOT R1)
     ├── types/                       ← @pekulo/types (UserId, CompassSnapshot, …)
     ├── validators/                  ← @pekulo/validators (Zod schemas, camelCase + Schema suffix)
     ├── contracts/                   ← @pekulo/contracts (oRPC contracts per module)
     ├── tsconfig/                    ← @pekulo/tsconfig (base + presets)
     ├── oxlint-config/               ← @pekulo/oxlint-config (rules + Pekulo customs)
     └── ui/                          ← @pekulo/ui (Pekulo DS on Tamagui Core)
-        └── src/{tokens,primitives,components,themes}
+        └── src/{provider,toast,components,primitives,tokens,themes,animations,config}/
 ```
 
 **Module shape — self-similar in `apps/api/src/modules/<name>/`:**
@@ -858,9 +858,7 @@ pekulo/
 │   │   │   │   ├── llm/
 │   │   │   │   │   └── attest-queue.ts              IndexedDB-persisted retry queue (ADR-0008)
 │   │   │   │   └── otel/
-│   │   │   │       ├── tracer.ts
-│   │   │   │       ├── logger.ts
-│   │   │   │       └── meter.ts
+│   │   │   │       └── tracer.ts                    ← only tracer ships V1 (a) ; logger/meter land alongside the GlitchTip wire-up at (b) ramp.
 │   │   │   ├── proxy.ts                             middleware (Supabase auth gate, NFR-9)
 │   │   │   └── sw.ts                                Service Worker (FR-54, ADR-0003)
 │   │   ├── e2e/                                     ← Playwright specs (j1-…spec.ts → j9-…spec.ts)
@@ -960,32 +958,45 @@ pekulo/
 │   └── mobile/                                      ← Expo + expo-router (V1.5)
 │       └── (V1.5 detailed in a future revision)
 │
-├── packages/
-│   ├── zod/                                         @pekulo/zod
-│   │   └── src/{index,helpers}.ts                   Money, EuroAmount, IsoDate, Percent, tabularNum
+├── packages/                                        ← R11 — folder-by-domain (each src/ has `index.ts` + `<domain>/<domain>.<suffix>.ts` + `<domain>/index.ts`)
+│   ├── zod/                                         @pekulo/zod — SSOT zod entry point (R1)
+│   │   └── src/index.ts                             re-export of zod ; Money/EuroAmount/IsoDate/Percent/tabularNum land in a follow-up story
 │   ├── types/                                       @pekulo/types
-│   │   └── src/{index,brands,domain,enums}.ts       UserId, AccountId branded ; CompassSnapshot, LlmRoute, etc.
+│   │   └── src/                                     domain folders : shared/, account/, holding/, transaction/, milestone/, monthly/, realestate/, composition/, stat/, compass/
+│   │       └── <domain>/<domain>.types.ts           e.g. `account/account.types.ts` (AccountType, AccountCardItem, Account re-export from validators)
 │   ├── validators/                                  @pekulo/validators
-│   │   └── src/{auth,compass,milestones,accounts,holdings,realestate,transactions,llm,monthly,hypothesis,settings}.ts
+│   │   └── src/                                     domain folders : accounts/, compass/, holdings/, hypothesis/, milestones/, monthly/, transactions/ (Epic 4 lands realestate/)
+│   │       └── <domain>/<domain>.schemas.ts         Zod source of truth + inferred types
 │   ├── contracts/                                   @pekulo/contracts
-│   │   └── src/{auth,compass,milestones,accounts,holdings,realestate,transactions,llm,monthly,dashboard,settings,hypothesis}.contract.ts
+│   │   └── src/                                     domain folders : auth/, compass/, milestones/, accounts/, holdings/, realestate/, transactions/, llm/, monthly/, dashboard/, settings/, hypothesis/
+│   │       └── <domain>/<domain>.contract.ts        oRPC contract for the module (`<module>ContractV1`, `<module>Contract` alias, `<module>ContractMeta`)
 │   ├── tsconfig/                                    @pekulo/tsconfig
 │   │   └── {base,apps,packages,next}.json
 │   ├── oxlint-config/                               @pekulo/oxlint-config
 │   │   └── src/{index,rules/{no-server-action-in-component,no-cross-feature-action-import,no-prisma-query-without-user-id,no-tailwind-outside-ui}}.ts
 │   └── ui/                                          @pekulo/ui (Pekulo DS on Tamagui Core, ADR-0007)
 │       └── src/
+│           ├── provider/                            single client boundary — NextThemeProvider + TamaguiProvider + toast viewport (R7)
+│           ├── toast/                               ToastProvider, PekuloToast, PekuloToastViewport (sibling of provider/ to avoid A↔B barrel cycle — R7)
 │           ├── tokens/                              ported from docs/ux-preview/src/tokens/
+│           ├── themes/{pekulo-dark,pekulo-light}.ts
+│           ├── animations/                          useCountUp, useStagger
 │           ├── primitives/                          Section, Stack, Text, Pressable
-│           ├── components/                          PekuloDonut, PekuloHero, PekuloKpiTile, PekuloMilestoneRow,
-│           │                                        PekuloAccountRow, PekuloHoldingRow, PekuloPropertyCard,
-│           │                                        PekuloSuggestionRow, PekuloActivityRow, PekuloMonthlyRow,
-│           │                                        PekuloSettingRow, PekuloToggleRow, PekuloSegmentedControl,
-│           │                                        PekuloEmptyState, PekuloSkeleton, PekuloErrorBoundary,
-│           │                                        PekuloToast, PekuloTrajectoryChart, PekuloProjectionChart,
-│           │                                        PekuloHypothesisVerdict, PekuloUserDot, PekuloNavRail,
-│           │                                        PekuloTopTabToggle, PekuloContextualAddButton, PekuloHeaderAction
-│           └── themes/{pekulo-dark,pekulo-light}.ts
+│           ├── config/                              tamagui.config.ts
+│           └── components/                          R11 — each Pekulo* component in its own folder:
+│                                                    `components/PekuloX/PekuloX.tsx` + `PekuloX.a11y.test.tsx` + `PekuloX.snapshot.test.tsx` + `index.ts`.
+│                                                    PekuloAccountRow, PekuloAccountsSection, PekuloActivityRow, PekuloClassRow,
+│                                                    PekuloCompositionCard, PekuloCompositionRow, PekuloContextualAddButton,
+│                                                    PekuloCountUpEUR, PekuloCountUpPct, PekuloDonut, PekuloDonutCard,
+│                                                    PekuloEmptyState, PekuloErrorBoundary, PekuloHero, PekuloHeroCard,
+│                                                    PekuloHoldingRow, PekuloHypothesisCard, PekuloHypothesisVerdict,
+│                                                    PekuloKpiTile, PekuloMilestoneRow, PekuloMilestonesCard,
+│                                                    PekuloMobileBottomNav, PekuloMonthlyRow, PekuloNavRail,
+│                                                    PekuloProjectionChart, PekuloPropertyCard, PekuloRecentActivityCard,
+│                                                    PekuloSegmentedControl, PekuloSettingRow, PekuloSkeleton,
+│                                                    PekuloStaggerList, PekuloStat, PekuloSuggestionRow, PekuloToggleRow,
+│                                                    PekuloTopTabToggle, PekuloTrajectoryCard, PekuloTrajectoryChart,
+│                                                    PekuloUserDot.
 │
 ├── docs/                                            ← APED artefacts (this folder)
 ├── turbo.json                                       Turborepo task graph
