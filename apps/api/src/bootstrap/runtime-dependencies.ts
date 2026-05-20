@@ -9,6 +9,7 @@ import { createCompassModule } from "../modules/compass/compass.module";
 import { createHoldingsModule } from "../modules/holdings/holdings.module";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
 import { createMilestonesModule } from "../modules/milestones/milestones.module";
+import { createRealestateModule } from "../modules/realestate/realestate.module";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
 
 export interface RuntimeDeps {
@@ -118,12 +119,18 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // separate accounts dep needed at the module-factory layer).
   const holdingsModule = createHoldingsModule({ prismaService, env: input.env });
 
+  // Story 4-1 — realestate domain. Greenfield aggregate (4 tables); no
+  // brownfield port. The cross-aggregate guard lives inside the service via
+  // findByIdForUser; module factory stays trivial.
+  const realestateModule = createRealestateModule({ prismaService });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
     milestones: milestonesModule.router,
     accounts: accountsModule.router,
     holdings: holdingsModule.router,
+    realestate: realestateModule.router,
   };
 
   return {
