@@ -12,6 +12,12 @@
 //        invariant by simply rejecting reads that lack the userId guard).
 
 import { describe, expect, test } from "bun:test";
+import {
+  attachMortgageInputSchema,
+  attachRentalInputSchema,
+  createPropertyInputSchema,
+} from "@pekulo/validators";
+import { ZodError } from "zod";
 import { createRealestateRepository } from "./realestate.repository";
 import { makeFakePrisma } from "../../test/fakes/fake-realestate";
 
@@ -309,6 +315,89 @@ describe("realestate.repository — decimal coercion (L24)", () => {
     });
     expect(typeof row.currentValuation).toBe("number");
     expect(row.currentValuation).toBe(250_000.5);
+  });
+});
+
+describe("realestate.repository — validator boundary (AC-12)", () => {
+  // AC-12 (verbatim from story 4-1-realestate-domain L28):
+  //   Each invocation throws ZodError. 12 cases below cover bounds + enum
+  //   + label length on createProperty / attachMortgage / attachRental.
+  const okProperty = {
+    label: "X",
+    propertyType: "locatif" as const,
+    currentValuation: 100,
+    lastValuedOn: "2026-01-01",
+  };
+  const okMortgage = {
+    propertyId: "res_aaaaaaaaaaaaaaaaaaaaa",
+    outstandingPrincipal: 100,
+    annualRate: 0.02,
+    monthlyPayment: 100,
+    termMonths: 240,
+    startDate: "2020-01-01",
+  };
+  const okRental = {
+    propertyId: "res_aaaaaaaaaaaaaaaaaaaaa",
+    monthlyRent: 100,
+    monthlyCharges: 0,
+    furnished: false,
+  };
+
+  test("createProperty rejects currentValuation: -1", () => {
+    expect(() => createPropertyInputSchema.parse({ ...okProperty, currentValuation: -1 })).toThrow(
+      ZodError,
+    );
+  });
+  test("createProperty rejects label: empty", () => {
+    expect(() => createPropertyInputSchema.parse({ ...okProperty, label: "" })).toThrow(ZodError);
+  });
+  test("createProperty rejects label > 120 chars", () => {
+    expect(() =>
+      createPropertyInputSchema.parse({ ...okProperty, label: "x".repeat(121) }),
+    ).toThrow(ZodError);
+  });
+  test("createProperty rejects propertyType: 'invalid'", () => {
+    expect(() =>
+      createPropertyInputSchema.parse({ ...okProperty, propertyType: "invalid" }),
+    ).toThrow(ZodError);
+  });
+  test("attachMortgage rejects outstandingPrincipal: -1", () => {
+    expect(() =>
+      attachMortgageInputSchema.parse({ ...okMortgage, outstandingPrincipal: -1 }),
+    ).toThrow(ZodError);
+  });
+  test("attachMortgage rejects annualRate: -0.01", () => {
+    expect(() => attachMortgageInputSchema.parse({ ...okMortgage, annualRate: -0.01 })).toThrow(
+      ZodError,
+    );
+  });
+  test("attachMortgage rejects annualRate: 1.01", () => {
+    expect(() => attachMortgageInputSchema.parse({ ...okMortgage, annualRate: 1.01 })).toThrow(
+      ZodError,
+    );
+  });
+  test("attachMortgage rejects monthlyPayment: -1", () => {
+    expect(() => attachMortgageInputSchema.parse({ ...okMortgage, monthlyPayment: -1 })).toThrow(
+      ZodError,
+    );
+  });
+  test("attachMortgage rejects termMonths: 0", () => {
+    expect(() => attachMortgageInputSchema.parse({ ...okMortgage, termMonths: 0 })).toThrow(
+      ZodError,
+    );
+  });
+  test("attachMortgage rejects termMonths: 601", () => {
+    expect(() => attachMortgageInputSchema.parse({ ...okMortgage, termMonths: 601 })).toThrow(
+      ZodError,
+    );
+  });
+  test("attachRental rejects monthlyRent: -1", () => {
+    expect(() => attachRentalInputSchema.parse({ ...okRental, monthlyRent: -1 })).toThrow(ZodError);
+  });
+  test("attachRental rejects monthlyCharges: -1", () => {
+    expect(() => attachRentalInputSchema.parse({ ...okRental, monthlyCharges: -1 })).toThrow(
+      ZodError,
+    );
   });
 });
 
