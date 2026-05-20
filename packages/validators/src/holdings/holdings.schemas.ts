@@ -24,7 +24,7 @@
 //   - notes optional, max 500.
 
 import { z } from "@pekulo/zod";
-import { accountSchema } from "./accounts";
+import { accountSchema } from "../accounts";
 
 export const HOLDING_ID_PREFIX_RE = /^hld_[0-9A-Za-z]{21}$/;
 export const HOLDING_LOT_ID_PREFIX_RE = /^lot_[0-9A-Za-z]{21}$/;
