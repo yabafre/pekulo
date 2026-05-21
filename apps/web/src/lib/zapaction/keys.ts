@@ -109,18 +109,16 @@ setTagRegistry({
   // portfolioKeys.holdings + portfolioKeys.snapshot lands back here.
   [holdingsTags.all()]: [holdingsKeys.list()],
   [holdingsTags.list()]: [holdingsKeys.list()],
-  // Realestate (story 4-1) — `list` invalidates the realestate aggregate.
-  // Stories 4-2 (derives) / 4-3 (UI) / 7-1 (dashboard) add cross-feature
-  // edges (e.g. realestateTags.list → dashboardKeys.cap) when they land;
-  // the registry entry exists now because the realestate oRPC module is
-  // mounted (T16) and consumers can subscribe immediately.
-  // Realestate (story 4-1 + 4-2) — the `list` tag invalidates the
+  // Realestate (story 4-1 + 4-2 + 4-3) — the `list` tag invalidates the
   // realestate aggregate keys; the 4-2 derives are stateless reads of
-  // the same aggregate, so any mutation that bumps `list` also
-  // invalidates `getPropertyDerives` / `listPropertyDerives` /
-  // `getTotalEquity` consumers transparently. Stories 4-3 (UI) and 7-1
-  // (dashboard) will add cross-feature edges (e.g.
-  // realestateTags.list → dashboardKeys.cap) when they ship.
+  // the same aggregate, AND the 4-3 UI hooks (useProperties /
+  // useListPropertyDerives / useProperty / useListValuations) ALL
+  // subscribe to keys that share the `realestate` feature prefix, so
+  // any mutation that bumps `list` invalidates the entire immobilier
+  // route's read graph transparently. Per-id (`byId`, `valuations`)
+  // refetches happen on the same coarse edge — surgical edges are not
+  // required at V1 scale (NFR-16: 50 properties / user). 7-1 dashboard
+  // will add `realestateTags.list → dashboardKeys.cap` when it ships.
   [realestateTags.all()]: [realestateKeys.list()],
   [realestateTags.list()]: [realestateKeys.list()],
 });
