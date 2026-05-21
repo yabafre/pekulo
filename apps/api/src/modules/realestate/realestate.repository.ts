@@ -75,6 +75,13 @@ export interface RealestateRepository {
   recordValuation(userId: string, input: RecordValuationInput): Promise<RecordValuationOutcome>;
   listValuations(userId: string, input: ListValuationsInput): Promise<RealEstateValuation[]>;
   deleteProperty(userId: string, input: DeletePropertyInput): Promise<{ ok: true }>;
+  listWithChildrenForUser(userId: string): Promise<
+    Array<{
+      property: RealEstate;
+      mortgage: RealEstateMortgage | null;
+      rental: RealEstateRental | null;
+    }>
+  >;
 }
 
 type PrismaPropertyRow = {
@@ -384,6 +391,25 @@ export function createRealestateRepository(deps: {
       // FK cascade removes mortgage + rental + valuations atomically (DR-5).
       await client.realEstate.deleteMany({ where: { id: input.id, userId } });
       return { ok: true };
+    },
+
+    async listWithChildrenForUser(userId) {
+      const rows = await client.realEstate.findMany({
+        where: { userId },
+        include: { mortgage: true, rental: true },
+        orderBy: { createdAt: "desc" },
+      });
+      return rows.map((row) => {
+        const r = row as unknown as PrismaPropertyRow & {
+          mortgage: PrismaMortgageRow | null;
+          rental: PrismaRentalRow | null;
+        };
+        return {
+          property: toProperty(r),
+          mortgage: r.mortgage ? toMortgage(r.mortgage) : null,
+          rental: r.rental ? toRental(r.rental) : null,
+        };
+      });
     },
   };
 }
