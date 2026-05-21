@@ -190,5 +190,28 @@ export function createRealestateRouter(deps: { service: RealestateService }) {
         throw err;
       }
     }),
+
+    // ─── 4-2 — derive surface ─────────────────────────────────────
+    getPropertyDerives: impl.getPropertyDerives.handler(async ({ context, input, errors }) => {
+      requireUserId(context.userId);
+      try {
+        return await deps.service.getPropertyDerives(context.userId, input);
+      } catch (err) {
+        if (err instanceof RealestateError && err.code === "REALESTATE_NOT_FOUND") {
+          throw errors.REALESTATE_NOT_FOUND({ message: err.message });
+        }
+        throw err;
+      }
+    }),
+
+    listPropertyDerives: impl.listPropertyDerives.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return deps.service.listPropertyDerives(context.userId);
+    }),
+
+    getTotalEquity: impl.getTotalEquity.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return deps.service.getTotalEquity(context.userId);
+    }),
   });
 }
