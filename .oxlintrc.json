@@ -83,6 +83,19 @@
       "rules": {
         "pekulo/no-tailwind-outside-ui": "off"
       }
+    },
+    {
+      "files": ["apps/api/scripts/**/*.ts"],
+      "rules": {
+        "no-await-in-loop": "off"
+      }
+    },
+    {
+      "files": ["apps/api/**/*.test.ts"],
+      "rules": {
+        "no-await-in-loop": "off",
+        "no-underscore-dangle": "off"
+      }
     }
   ]
 }
