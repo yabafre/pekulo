@@ -1,9 +1,15 @@
-import { readCompass } from "@/lib/data/compass";
+// apps/web/src/app/(cap)/dashboard/parametres/page.tsx
+// RSC shell — delegates every read to its Client children. Mirror of
+// `portefeuille/page.tsx`: no `await` of oRPC clients, no props passed
+// down. The two Client components (`<CompassEditForm/>`,
+// `<CompassHistoryPanel/>`) subscribe to the relevant zapaction queries
+// themselves, so mutations invalidating the compass tags propagate
+// without a server round-trip.
+
 import { CompassEditForm } from "./_components/compass-edit-form";
 import { CompassHistoryPanel } from "./_components/compass-history-panel";
 
-export default async function ParametresPage() {
-  const { compass } = await readCompass();
+export default function ParametresPage() {
   return (
     <div style={{ display: "flex", padding: 16, alignItems: "center", flexDirection: "column" }}>
       <div
@@ -15,7 +21,7 @@ export default async function ParametresPage() {
           gap: 24,
         }}
       >
-        <CompassEditForm initial={compass} />
+        <CompassEditForm />
         <CompassHistoryPanel />
       </div>
     </div>

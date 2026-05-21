@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
   ACCOUNT_CURRENCIES,
@@ -8,6 +8,7 @@ import {
   MAX_ACCOUNT_NOTES_LENGTH,
 } from "@pekulo/validators";
 import { ACCOUNT_TYPES, type AccountType } from "@pekulo/types";
+import { useAppForm } from "@/hooks/form-hook";
 import { useCreateAccount } from "../_hooks/use-create-account";
 // Devise lives behind the FX work in story 3-3; until that ships, every new
 // account is created in EUR. The Patrimoine total sums raw `cashBalance`
@@ -41,90 +42,106 @@ export interface AccountCreateFormProps {
 }
 
 export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
-  const [label, setLabel] = useState("");
-  const [type, setType] = useState<AccountType>("livret");
-  const [cashBalance, setCashBalance] = useState("0");
-  const [notes, setNotes] = useState("");
-  const [clientError, setClientError] = useState<string | null>(null);
   const { mutate, isPending, error, isSuccess, reset } = useCreateAccount();
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setClientError(null);
-    const trimmed = label.trim();
-    if (trimmed.length === 0) {
-      setClientError("Libellé requis");
-      return;
-    }
-    if (trimmed.length > MAX_ACCOUNT_LABEL_LENGTH) {
-      setClientError(`Libellé > ${MAX_ACCOUNT_LABEL_LENGTH} caractères`);
-      return;
-    }
-    const balance = Number(cashBalance);
-    if (!Number.isFinite(balance) || balance < 0) {
-      setClientError("Solde invalide (>= 0)");
-      return;
-    }
-    const trimmedNotes = notes.trim();
-    if (trimmedNotes.length > MAX_ACCOUNT_NOTES_LENGTH) {
-      setClientError(`Notes > ${MAX_ACCOUNT_NOTES_LENGTH} caractères`);
-      return;
-    }
-    mutate(
-      {
-        label: trimmed,
-        type,
-        currency: FORCED_CURRENCY,
-        cashBalance: balance,
-        notes: trimmedNotes.length > 0 ? trimmedNotes : null,
+  const form = useAppForm({
+    defaultValues: {
+      label: "",
+      type: "livret" as AccountType,
+      cashBalance: "0",
+      notes: "",
+    },
+    validators: {
+      onSubmit: ({ value }) => {
+        const trimmed = value.label.trim();
+        if (trimmed.length === 0) {
+          return "Libellé requis";
+        }
+        if (trimmed.length > MAX_ACCOUNT_LABEL_LENGTH) {
+          return `Libellé > ${MAX_ACCOUNT_LABEL_LENGTH} caractères`;
+        }
+        const balance = Number(value.cashBalance);
+        if (!Number.isFinite(balance) || balance < 0) {
+          return "Solde invalide (>= 0)";
+        }
+        const trimmedNotes = value.notes.trim();
+        if (trimmedNotes.length > MAX_ACCOUNT_NOTES_LENGTH) {
+          return `Notes > ${MAX_ACCOUNT_NOTES_LENGTH} caractères`;
+        }
+        return undefined;
       },
-      {
-        onSuccess: () => {
-          setLabel("");
-          setType("livret");
-          setCashBalance("0");
-          setNotes("");
-          reset();
-          onSuccess?.();
+    },
+    onSubmit: async ({ value }) => {
+      const trimmed = value.label.trim();
+      const balance = Number(value.cashBalance);
+      const trimmedNotes = value.notes.trim();
+      mutate(
+        {
+          label: trimmed,
+          type: value.type,
+          currency: FORCED_CURRENCY,
+          cashBalance: balance,
+          notes: trimmedNotes.length > 0 ? trimmedNotes : null,
         },
-      },
-    );
-  };
+        {
+          onSuccess: () => {
+            form.reset();
+            reset();
+            onSuccess?.();
+          },
+        },
+      );
+    },
+  });
 
   return (
-    <form onSubmit={onSubmit} aria-label="Ajouter un compte">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void form.handleSubmit();
+      }}
+      aria-label="Ajouter un compte"
+    >
       <View flexDirection="column" gap="$3" padding="$4">
-        <Field>
-          <Text render="label" htmlFor="acc-label" color="$colorSecondary" fontSize="$caption">
-            Libellé
-          </Text>
-          <input
-            id="acc-label"
-            type="text"
-            maxLength={MAX_ACCOUNT_LABEL_LENGTH}
-            value={label}
-            onChange={(e) => setLabel(e.currentTarget.value)}
-            required
-            style={inputStyle}
-          />
-        </Field>
-        <Field>
-          <Text render="label" htmlFor="acc-type" color="$colorSecondary" fontSize="$caption">
-            Type
-          </Text>
-          <select
-            id="acc-type"
-            value={type}
-            onChange={(e) => setType(e.currentTarget.value as AccountType)}
-            style={selectStyle}
-          >
-            {ACCOUNT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {TYPE_LABEL[t]}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <form.Field name="label">
+          {(field) => (
+            <Field>
+              <Text render="label" htmlFor="acc-label" color="$colorSecondary" fontSize="$caption">
+                Libellé
+              </Text>
+              <input
+                id="acc-label"
+                type="text"
+                maxLength={MAX_ACCOUNT_LABEL_LENGTH}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.currentTarget.value)}
+                required
+                style={inputStyle}
+              />
+            </Field>
+          )}
+        </form.Field>
+        <form.Field name="type">
+          {(field) => (
+            <Field>
+              <Text render="label" htmlFor="acc-type" color="$colorSecondary" fontSize="$caption">
+                Type
+              </Text>
+              <select
+                id="acc-type"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.currentTarget.value as AccountType)}
+                style={selectStyle}
+              >
+                {ACCOUNT_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {TYPE_LABEL[t]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+        </form.Field>
         <Field>
           <Text render="label" htmlFor="acc-currency" color="$colorSecondary" fontSize="$caption">
             Devise
@@ -141,48 +158,77 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
             Multi-devises arrive avec les portefeuilles (story 3-3).
           </Text>
         </Field>
-        <Field>
-          <Text render="label" htmlFor="acc-balance" color="$colorSecondary" fontSize="$caption">
-            Solde initial
-          </Text>
-          <input
-            id="acc-balance"
-            type="number"
-            min={0}
-            step="0.01"
-            value={cashBalance}
-            onChange={(e) => setCashBalance(e.currentTarget.value)}
-            required
-            style={inputStyle}
-          />
-        </Field>
-        <Field>
-          <Text render="label" htmlFor="acc-notes" color="$colorSecondary" fontSize="$caption">
-            Notes (optionnel)
-          </Text>
-          <input
-            id="acc-notes"
-            type="text"
-            maxLength={MAX_ACCOUNT_NOTES_LENGTH}
-            value={notes}
-            onChange={(e) => setNotes(e.currentTarget.value)}
-            style={inputStyle}
-          />
-        </Field>
-        {clientError && (
-          <Text role="alert" color="$danger" fontSize="$caption">
-            {clientError}
-          </Text>
+        <form.Field name="cashBalance">
+          {(field) => (
+            <Field>
+              <Text
+                render="label"
+                htmlFor="acc-balance"
+                color="$colorSecondary"
+                fontSize="$caption"
+              >
+                Solde initial
+              </Text>
+              <input
+                id="acc-balance"
+                type="number"
+                min={0}
+                step="0.01"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.currentTarget.value)}
+                required
+                style={inputStyle}
+              />
+            </Field>
+          )}
+        </form.Field>
+        <form.Field name="notes">
+          {(field) => (
+            <Field>
+              <Text render="label" htmlFor="acc-notes" color="$colorSecondary" fontSize="$caption">
+                Notes (optionnel)
+              </Text>
+              <input
+                id="acc-notes"
+                type="text"
+                maxLength={MAX_ACCOUNT_NOTES_LENGTH}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.currentTarget.value)}
+                style={inputStyle}
+              />
+            </Field>
+          )}
+        </form.Field>
+        <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+          {(clientError) =>
+            clientError ? (
+              <Text role="alert" color="$danger" fontSize="$caption">
+                {String(clientError)}
+              </Text>
+            ) : null
+          }
+        </form.Subscribe>
+        {error && (
+          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+            {(clientError) =>
+              clientError ? null : (
+                <Text role="alert" color="$danger" fontSize="$caption">
+                  {error.message}
+                </Text>
+              )
+            }
+          </form.Subscribe>
         )}
-        {error && !clientError && (
-          <Text role="alert" color="$danger" fontSize="$caption">
-            {error.message}
-          </Text>
-        )}
-        {isSuccess && !clientError && !error && (
-          <Text role="status" color="$success" fontSize="$caption">
-            Compte ajouté.
-          </Text>
+        {isSuccess && !error && (
+          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+            {(clientError) =>
+              clientError ? null : (
+                <Text role="status" color="$success" fontSize="$caption">
+                  Compte ajouté.
+                </Text>
+              )
+            }
+          </form.Subscribe>
         )}
         <button
           type="submit"
