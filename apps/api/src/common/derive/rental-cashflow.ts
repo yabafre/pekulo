@@ -1,8 +1,8 @@
 // apps/api/src/common/derive/rental-cashflow.ts
 // Pure monthly rental cash-flow helper (story 4-2). FR-24.
 //
-// Inputs by argument only. No `prisma`, no `fetch`, no `Date.now()`, no
-// `@opentelemetry/*` import (AC-8 grep guard).
+// Inputs by argument only. Zero DB / network / clock / telemetry imports
+// (AC-8 grep guard — see story file for the literal token list).
 //
 // Returns `null` when no rental block exists — a property without a rental
 // has no defined cash-flow (FR-23 makes rental optional 1:1 per property).

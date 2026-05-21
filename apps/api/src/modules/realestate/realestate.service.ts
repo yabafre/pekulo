@@ -150,12 +150,14 @@ export function createRealestateService(deps: {
     },
 
     async getPropertyDerives(userId, input) {
-      const property = await repository.findByIdForUser(userId, input.id);
-      if (!property) throw realestateNotFound();
-      const [mortgage, rental] = await Promise.all([
-        repository.findMortgageForUser(userId, input.id),
-        repository.findRentalForUser(userId, input.id),
-      ]);
+      // Atomic snapshot via `findByIdWithChildrenForUser` — one Prisma
+      // round-trip with `include: { mortgage: true, rental: true }`.
+      // Eliminates the race window between findByIdForUser and the parallel
+      // children fetch where a concurrent detachMortgage/detachRental could
+      // surface an inconsistent derive (review-fix 2026-05-21 — n3).
+      const row = await repository.findByIdWithChildrenForUser(userId, input.id);
+      if (!row) throw realestateNotFound();
+      const { property, mortgage, rental } = row;
       return {
         monthlyCashFlowEur: computeRentalCashFlow({
           rental: rental

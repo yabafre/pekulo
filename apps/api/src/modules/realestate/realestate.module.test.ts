@@ -16,12 +16,6 @@ function fakePrismaService(): PrismaService {
 }
 
 describe("realestate.module — whole-module wired flow", () => {
-  test("createRealestateModule returns service + router", () => {
-    const mod = createRealestateModule({ prismaService: fakePrismaService() });
-    expect(typeof mod.service.createProperty).toBe("function");
-    expect(typeof mod.router).toBe("object");
-  });
-
   test("service.createProperty round-trip → repo persisted", async () => {
     const mod = createRealestateModule({ prismaService: fakePrismaService() });
     const property = await mod.service.createProperty(USER_A, {

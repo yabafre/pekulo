@@ -1,8 +1,8 @@
 // apps/api/src/common/derive/property-equity.ts
 // Pure net property equity helper (story 4-2). FR-25.
 //
-// Inputs by argument only. No `prisma`, no `fetch`, no `Date.now()`, no
-// `@opentelemetry/*` import (AC-8 grep guard).
+// Inputs by argument only. Zero DB / network / clock / telemetry imports
+// (AC-8 grep guard — see story file for the literal token list).
 //
 // Returns `currentValuation − outstandingPrincipal`. Mortgage is optional —
 // an unencumbered property surfaces full valuation. Underwater properties

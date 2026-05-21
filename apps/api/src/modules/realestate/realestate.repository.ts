@@ -82,6 +82,21 @@ export interface RealestateRepository {
       rental: RealEstateRental | null;
     }>
   >;
+  // Single-property atomic snapshot — one Prisma round-trip via `findFirst`
+  // + `include: { mortgage: true, rental: true }`. Replaces the 3-call
+  // sequence (findByIdForUser + parallel findMortgageForUser/findRentalForUser)
+  // in `service.getPropertyDerives`, eliminating the race window where a
+  // concurrent detachMortgage could surface a partial snapshot
+  // (review-fix 2026-05-21). 4-1's `getProperty` keeps its own pattern —
+  // forward-pointer for a future cross-module refactor if needed.
+  findByIdWithChildrenForUser(
+    userId: string,
+    propertyId: string,
+  ): Promise<{
+    property: RealEstate;
+    mortgage: RealEstateMortgage | null;
+    rental: RealEstateRental | null;
+  } | null>;
 }
 
 type PrismaPropertyRow = {
@@ -410,6 +425,23 @@ export function createRealestateRepository(deps: {
           rental: r.rental ? toRental(r.rental) : null,
         };
       });
+    },
+
+    async findByIdWithChildrenForUser(userId, propertyId) {
+      const row = await client.realEstate.findFirst({
+        where: { id: propertyId, userId },
+        include: { mortgage: true, rental: true },
+      });
+      if (!row) return null;
+      const r = row as unknown as PrismaPropertyRow & {
+        mortgage: PrismaMortgageRow | null;
+        rental: PrismaRentalRow | null;
+      };
+      return {
+        property: toProperty(r),
+        mortgage: r.mortgage ? toMortgage(r.mortgage) : null,
+        rental: r.rental ? toRental(r.rental) : null,
+      };
     },
   };
 }

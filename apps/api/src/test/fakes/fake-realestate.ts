@@ -96,8 +96,29 @@ export function makeFakePrisma() {
         real_estate.push(row);
         return row;
       },
-      findFirst: async ({ where }: { where: { id: string; userId: string } }) =>
-        real_estate.find((r) => r.id === where.id && r.userId === where.userId) ?? null,
+      findFirst: async ({
+        where,
+        include,
+      }: {
+        where: { id: string; userId: string };
+        include?: { mortgage?: boolean; rental?: boolean };
+      }) => {
+        const row = real_estate.find((r) => r.id === where.id && r.userId === where.userId) ?? null;
+        if (!row || !include) return row;
+        return {
+          ...row,
+          mortgage: include.mortgage
+            ? (real_estate_mortgage.find(
+                (m) => m.realEstateId === row.id && m.userId === row.userId,
+              ) ?? null)
+            : null,
+          rental: include.rental
+            ? (real_estate_rental.find(
+                (r) => r.realEstateId === row.id && r.userId === row.userId,
+              ) ?? null)
+            : null,
+        };
+      },
       findMany: async ({
         where,
         include,

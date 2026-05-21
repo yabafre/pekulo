@@ -285,20 +285,33 @@ describe("realestate HTTP boundary (AC-11)", () => {
 });
 
 describe("realestate.integration — derives (story 4-2)", () => {
-  // AC-12 — 401 on the 3 new procedures without JWT.
-  test("AC-12 — 401 on getPropertyDerives without JWT", async () => {
+  // AC-12 — 401 on the 3 new procedures without JWT, each within the
+  // NFR-9 latency budget (< 100 ms). Re-asserts the budget per procedure
+  // even though 4-1's integration suite already covers the shared Elysia
+  // handler, so a future divergence (e.g. async auth middleware added on
+  // a single route) is caught at the procedure level (review-fix 2026-05-21).
+  test("AC-12 — 401 on getPropertyDerives without JWT (< 100 ms)", async () => {
+    const t0 = performance.now();
     const res = await call("getPropertyDerives", { id: "res_xxxxxxxxxxxxxxxxxxxxx" });
+    const elapsed = performance.now() - t0;
     expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
   });
 
-  test("AC-12 — 401 on listPropertyDerives without JWT", async () => {
+  test("AC-12 — 401 on listPropertyDerives without JWT (< 100 ms)", async () => {
+    const t0 = performance.now();
     const res = await call("listPropertyDerives", {});
+    const elapsed = performance.now() - t0;
     expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
   });
 
-  test("AC-12 — 401 on getTotalEquity without JWT", async () => {
+  test("AC-12 — 401 on getTotalEquity without JWT (< 100 ms)", async () => {
+    const t0 = performance.now();
     const res = await call("getTotalEquity", {});
+    const elapsed = performance.now() - t0;
     expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
   });
 
   test("AC-1 + AC-2 — happy 200 getPropertyDerives composes cashflow=400 + equity=70000", async () => {

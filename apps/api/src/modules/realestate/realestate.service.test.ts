@@ -83,6 +83,14 @@ function fakeRepo(overrides: Partial<RealestateRepository> = {}): RealestateRepo
           rental: RealEstateRental | null;
         }>,
     ),
+    findByIdWithChildrenForUser: mock(
+      async () =>
+        null as {
+          property: RealEstate;
+          mortgage: RealEstateMortgage | null;
+          rental: RealEstateRental | null;
+        } | null,
+    ),
     ...overrides,
   };
 }
@@ -321,9 +329,11 @@ describe("realestate.service — derives (story 4-2)", () => {
 
   test("AC-1 + AC-2 — getPropertyDerives composes cashflow=+400 and equity=70000", async () => {
     const repo = fakeRepo({
-      findByIdForUser: mock(async () => PROPERTY_250K),
-      findMortgageForUser: mock(async () => MORTGAGE_180K),
-      findRentalForUser: mock(async () => RENTAL_1200),
+      findByIdWithChildrenForUser: mock(async () => ({
+        property: PROPERTY_250K,
+        mortgage: MORTGAGE_180K,
+        rental: RENTAL_1200,
+      })),
     });
     const service = createRealestateService({ repository: repo });
     const out = await service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id });
@@ -332,9 +342,11 @@ describe("realestate.service — derives (story 4-2)", () => {
 
   test("AC-4 — getPropertyDerives returns null cashflow when no rental", async () => {
     const repo = fakeRepo({
-      findByIdForUser: mock(async () => PROPERTY_250K),
-      findMortgageForUser: mock(async () => MORTGAGE_180K),
-      findRentalForUser: mock(async () => null),
+      findByIdWithChildrenForUser: mock(async () => ({
+        property: PROPERTY_250K,
+        mortgage: MORTGAGE_180K,
+        rental: null,
+      })),
     });
     const service = createRealestateService({ repository: repo });
     const out = await service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id });
@@ -343,9 +355,11 @@ describe("realestate.service — derives (story 4-2)", () => {
 
   test("AC-5 — getPropertyDerives returns full valuation as equity when no mortgage", async () => {
     const repo = fakeRepo({
-      findByIdForUser: mock(async () => PROPERTY_250K),
-      findMortgageForUser: mock(async () => null),
-      findRentalForUser: mock(async () => null),
+      findByIdWithChildrenForUser: mock(async () => ({
+        property: PROPERTY_250K,
+        mortgage: null,
+        rental: null,
+      })),
     });
     const service = createRealestateService({ repository: repo });
     const out = await service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id });
@@ -353,7 +367,7 @@ describe("realestate.service — derives (story 4-2)", () => {
   });
 
   test("AC-6 — getPropertyDerives throws REALESTATE_NOT_FOUND on cross-user", async () => {
-    const repo = fakeRepo({ findByIdForUser: mock(async () => null) });
+    const repo = fakeRepo({ findByIdWithChildrenForUser: mock(async () => null) });
     const service = createRealestateService({ repository: repo });
     await expect(
       service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id }),
