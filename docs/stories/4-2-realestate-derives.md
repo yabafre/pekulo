@@ -1354,5 +1354,5 @@ _None._
 
 ### Ticket sync
 
-- Ticket comment posted: see step-5 output
-- PR opened/updated: see step-5 output
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/25#issuecomment-4508196017
+- PR opened: https://github.com/yabafre/pekulo/pull/88 (base: `main`, head: `feature/25-4-2-realestate-derives`)
