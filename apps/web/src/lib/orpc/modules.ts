@@ -5,9 +5,9 @@
 // `accountsClient.list({ ... })` and propagate the typed response.
 //
 // Only clients backed by a mounted apps/api router are exported. The api
-// router today exposes 5 modules (see runtime-dependencies.ts):
-// hypothesis, compass, milestones, accounts, holdings. Clients for
-// contracts whose api route hasn't shipped yet (auth, realestate,
+// router today exposes 6 modules (see runtime-dependencies.ts):
+// hypothesis, compass, milestones, accounts, holdings, realestate.
+// Clients for contracts whose api route hasn't shipped yet (auth,
 // transactions, monthly, dashboard, settings, llm) are added back as the
 // corresponding story lands them server-side — keeping this file aligned
 // with the actual route surface prevents accidental 404s on unmounted
@@ -29,6 +29,7 @@ import {
   accountsContract,
   holdingsContract,
   hypothesisContract,
+  realestateContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -52,4 +53,8 @@ export const holdingsClient: ContractRouterClient<typeof holdingsContract> = cre
 export const hypothesisClient: ContractRouterClient<typeof hypothesisContract> = createORPCClient(
   orpcLink,
   { path: ["hypothesis"] },
+);
+export const realestateClient: ContractRouterClient<typeof realestateContract> = createORPCClient(
+  orpcLink,
+  { path: ["realestate"] },
 );
