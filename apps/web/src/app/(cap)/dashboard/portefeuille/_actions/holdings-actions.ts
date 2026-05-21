@@ -1,7 +1,6 @@
 "use server";
 
 import { defineAction } from "@zapaction/core";
-import { revalidatePath } from "next/cache";
 import { z } from "@pekulo/zod";
 import { ORPCError } from "@orpc/client";
 import {
@@ -66,8 +65,6 @@ export const createHolding = defineAction<CreateHoldingInput, CreateHoldingResul
     await ensureRequestContext();
     try {
       const holding = await holdingsClient.create(input);
-      revalidatePath("/dashboard/portefeuille");
-      revalidatePath("/dashboard");
       return { ok: true, holding };
     } catch (err) {
       if (err instanceof ORPCError && err.code === "ACCOUNT_NOT_FOUND") {
@@ -86,8 +83,6 @@ export const recordLot = defineAction<RecordLotInput, RecordLotResult, ActionCon
     await ensureRequestContext();
     try {
       const lot = await holdingsClient.recordLot(input);
-      revalidatePath("/dashboard/portefeuille");
-      revalidatePath("/dashboard");
       return { ok: true, lot };
     } catch (err) {
       if (
@@ -113,8 +108,6 @@ export const closeHolding = defineAction<CloseHoldingInput, CloseHoldingResult, 
     await ensureRequestContext();
     try {
       const result = await holdingsClient.close(input);
-      revalidatePath("/dashboard/portefeuille");
-      revalidatePath("/dashboard");
       return result;
     } catch (err) {
       if (err instanceof ORPCError && err.code === "HOLDING_NOT_FOUND") {

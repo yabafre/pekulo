@@ -1,7 +1,6 @@
 "use server";
 
 import { defineAction } from "@zapaction/core";
-import { revalidatePath } from "next/cache";
 import { z } from "@pekulo/zod";
 import {
   compassSchema,
@@ -87,9 +86,6 @@ export const updateCompass = defineAction<UpdateCompassInput, Compass, ActionCon
   tags: [compassTags.current()],
   handler: async ({ input }) => {
     await ensureRequestContext();
-    const persisted = await compassClient.updateCompass(input);
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/parametres");
-    return persisted;
+    return compassClient.updateCompass(input);
   },
 });

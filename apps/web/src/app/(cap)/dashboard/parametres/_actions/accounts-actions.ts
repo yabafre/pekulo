@@ -1,7 +1,6 @@
 "use server";
 
 import { defineAction } from "@zapaction/core";
-import { revalidatePath } from "next/cache";
 import { z } from "@pekulo/zod";
 import { ORPCError } from "@orpc/client";
 import {
@@ -65,10 +64,7 @@ export const createAccount = defineAction<CreateAccountInput, Account, ActionCon
   tags: [accountsTags.list()],
   handler: async ({ input }) => {
     await ensureRequestContext();
-    const created = await accountsClient.create(input);
-    revalidatePath("/dashboard/parametres");
-    revalidatePath("/dashboard");
-    return created;
+    return accountsClient.create(input);
   },
 });
 
@@ -80,8 +76,6 @@ export const updateAccount = defineAction<UpdateAccountInput, UpdateAccountResul
     await ensureRequestContext();
     try {
       const updated = await accountsClient.update(input);
-      revalidatePath("/dashboard/parametres");
-      revalidatePath("/dashboard");
       return { ok: true as const, account: updated };
     } catch (err) {
       if (err instanceof ORPCError && err.code === "ACCOUNT_NOT_FOUND") {
@@ -100,8 +94,6 @@ export const deleteAccount = defineAction<DeleteAccountInput, DeleteAccountResul
     await ensureRequestContext();
     try {
       await accountsClient.delete(input);
-      revalidatePath("/dashboard/parametres");
-      revalidatePath("/dashboard");
       return { ok: true as const };
     } catch (err) {
       if (
@@ -127,8 +119,6 @@ export const recordBalanceChange = defineAction<
     await ensureRequestContext();
     try {
       const updated = await accountsClient.recordBalanceChange(input);
-      revalidatePath("/dashboard/parametres");
-      revalidatePath("/dashboard");
       return { ok: true as const, account: updated };
     } catch (err) {
       if (err instanceof ORPCError && err.code === "ACCOUNT_NOT_FOUND") {

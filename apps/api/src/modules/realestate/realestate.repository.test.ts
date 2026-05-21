@@ -288,7 +288,8 @@ describe("realestate.repository — deleteProperty (cascade + DR-5 timing)", () 
     // Seeded sequentially on purpose: each recordValuation hits the same
     // parent row via $transaction so chronological order is preserved for
     // AC-5; parallelising would also race the unique-constraint check in
-    // real Prisma. Lint warns (no-await-in-loop) — accepted for this seeder.
+    // real Prisma. (no-await-in-loop is disabled for apps/api/**/*.test.ts
+    // in .oxlintrc.json so this stays warning-free.)
     for (let i = 0; i < 50; i++) {
       await repo.recordValuation(USER_A, {
         propertyId: victim.id,

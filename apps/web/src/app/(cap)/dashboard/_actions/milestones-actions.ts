@@ -1,7 +1,6 @@
 "use server";
 
 import { defineAction } from "@zapaction/core";
-import { revalidatePath } from "next/cache";
 import { z } from "@pekulo/zod";
 import {
   addMilestoneInputSchema,
@@ -63,9 +62,7 @@ export const addMilestone = defineAction<AddMilestoneInput, Milestone, ActionCon
   tags: [milestonesTags.list()],
   handler: async ({ input }) => {
     await ensureRequestContext();
-    const created = await milestonesClient.add(input);
-    revalidatePath("/dashboard");
-    return created;
+    return milestonesClient.add(input);
   },
 });
 
@@ -76,9 +73,7 @@ export const updateMilestone = defineAction<UpdateMilestoneInput, Milestone, Act
   tags: [milestonesTags.list()],
   handler: async ({ input }) => {
     await ensureRequestContext();
-    const updated = await milestonesClient.update(input);
-    revalidatePath("/dashboard");
-    return updated;
+    return milestonesClient.update(input);
   },
 });
 
@@ -93,8 +88,6 @@ export const deleteMilestone = defineAction<
   tags: [milestonesTags.list()],
   handler: async ({ input }) => {
     await ensureRequestContext();
-    const deleted = await milestonesClient.delete(input);
-    revalidatePath("/dashboard");
-    return deleted;
+    return milestonesClient.delete(input);
   },
 });
