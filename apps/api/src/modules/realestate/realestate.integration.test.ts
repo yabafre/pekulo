@@ -381,6 +381,72 @@ describe("realestate.integration — derives (story 4-2)", () => {
     expect(totalBody.json).toEqual({ totalEquityEur: 0, perProperty: [] });
   });
 
+  // AC-12 — HTTP boundary check on the populated listPropertyDerives path
+  // (review-fix 2026-05-21): the contract's `output` schema validation only
+  // runs at the RPC boundary, so the multi-row happy path was previously
+  // covered at the service layer but never at HTTP. Seeds 2 properties and
+  // asserts wire shape end-to-end.
+  test("AC-12 — happy 200 listPropertyDerives composes 2-row per-property derives", async () => {
+    const FRESH = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const jwt = await signFor(FRESH);
+    const created1 = await call(
+      "createProperty",
+      {
+        label: "list-1",
+        propertyType: "locatif",
+        currentValuation: 250_000,
+        lastValuedOn: "2026-01-01",
+      },
+      jwt,
+    );
+    const { json: p1 } = (await created1.json()) as { json: { id: string } };
+    await call(
+      "attachMortgage",
+      {
+        propertyId: p1.id,
+        outstandingPrincipal: 180_000,
+        annualRate: 0.025,
+        monthlyPayment: 600,
+        termMonths: 240,
+        startDate: "2020-01-01",
+      },
+      jwt,
+    );
+    await call(
+      "attachRental",
+      { propertyId: p1.id, monthlyRent: 1200, monthlyCharges: 200, furnished: false },
+      jwt,
+    );
+    const created2 = await call(
+      "createProperty",
+      {
+        label: "list-2",
+        propertyType: "residence-principale",
+        currentValuation: 400_000,
+        lastValuedOn: "2026-01-01",
+      },
+      jwt,
+    );
+    const { json: p2 } = (await created2.json()) as { json: { id: string } };
+    const res = await call("listPropertyDerives", {}, jwt);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      json: Array<{ propertyId: string; monthlyCashFlowEur: number | null; netEquityEur: number }>;
+    };
+    expect(body.json).toHaveLength(2);
+    const byId = new Map(body.json.map((row) => [row.propertyId, row]));
+    expect(byId.get(p1.id)).toEqual({
+      propertyId: p1.id,
+      monthlyCashFlowEur: 400,
+      netEquityEur: 70_000,
+    });
+    expect(byId.get(p2.id)).toEqual({
+      propertyId: p2.id,
+      monthlyCashFlowEur: null,
+      netEquityEur: 400_000,
+    });
+  });
+
   test("AC-3 — getTotalEquity sums 3 properties to 450000", async () => {
     const FRESH = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
     const jwt = await signFor(FRESH);

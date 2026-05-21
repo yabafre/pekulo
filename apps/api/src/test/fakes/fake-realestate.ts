@@ -63,6 +63,11 @@ export function makeFakePrisma() {
   const real_estate_mortgage: MortgageRow[] = [];
   const real_estate_rental: RentalRow[] = [];
   const real_estate_valuations: ValuationRow[] = [];
+  // AC-11 N+1 guard (review-fix 2026-05-21): counter exposed so tests can
+  // assert `listWithChildrenForUser` runs exactly one `findMany` call even
+  // across multi-property fixtures. Mirrors Prisma fake spy patterns used
+  // in story 3-2 holdings.cache tests.
+  const callCounts = { realEstateFindMany: 0 };
 
   const tableLike = {
     realEstate: {
@@ -101,20 +106,26 @@ export function makeFakePrisma() {
         orderBy?: unknown;
         include?: { mortgage?: boolean; rental?: boolean };
       }) => {
+        callCounts.realEstateFindMany++;
         const rows = real_estate.filter((r) => r.userId === where.userId);
         if (!include) return rows;
+        // Prisma's `include` either returns the joined row (or `null` for a
+        // missing 1:1) or omits the key entirely when the flag is falsy.
+        // Always returning `null` for unselected children matches the
+        // production cast `… & { mortgage: …Row | null; rental: …Row | null }`
+        // — never leak `undefined` into the cast (M2 fix 2026-05-21).
         return rows.map((row) => ({
           ...row,
           mortgage: include.mortgage
             ? (real_estate_mortgage.find(
                 (m) => m.realEstateId === row.id && m.userId === row.userId,
               ) ?? null)
-            : undefined,
+            : null,
           rental: include.rental
             ? (real_estate_rental.find(
                 (r) => r.realEstateId === row.id && r.userId === row.userId,
               ) ?? null)
-            : undefined,
+            : null,
         }));
       },
       update: async ({
@@ -343,7 +354,7 @@ export function makeFakePrisma() {
     },
   };
 
-  return { client: tableLike as unknown as ExtendedPrismaClient };
+  return { client: tableLike as unknown as ExtendedPrismaClient, callCounts };
 }
 
 export type FakeRealestateClient = ReturnType<typeof makeFakePrisma>["client"];

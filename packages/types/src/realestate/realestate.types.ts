@@ -24,6 +24,7 @@ export type {
   PropertyWithChildren,
   PropertyDerives,
   PropertyDerivesItem,
+  ListPropertyDerivesOutput,
   TotalEquityOutput,
 } from "@pekulo/validators";
 
