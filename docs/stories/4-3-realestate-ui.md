@@ -28,7 +28,7 @@
 
 ## Tasks
 
-- [ ] **T1** — Bootstrap `apps/web/src/lib/orpc/modules.ts` with the `realestateClient` (READS api endpoint, REGISTERS the typed client). [AC: AC-1, AC-7, AC-8]
+- [x] **T1** — Bootstrap `apps/web/src/lib/orpc/modules.ts` with the `realestateClient` (READS api endpoint, REGISTERS the typed client). [AC: AC-1, AC-7, AC-8]
   Open the file (current contents quoted in Dev Notes § Step-0). Find the import block ending with `hypothesisContract,` and the export block. Replace the file with the exact contents below (adds `realestateContract` to the import list and `realestateClient` to the exports):
   ```ts
   // apps/web/src/lib/orpc/modules.ts
@@ -96,7 +96,7 @@
   Expected: exit 0 (no errors — the `realestateContract` symbol is re-exported from `@pekulo/contracts` since 4-1 T6).
   Commit: `git add apps/web/src/lib/orpc/modules.ts && git commit -m "feat(#26): register realestateClient on the web orpc surface"`
 
-- [ ] **T2** — Create `apps/web/src/app/(cap)/dashboard/immobilier/_actions/realestate-actions.ts` (3 read + 9 envelope SAs). [AC: AC-4, AC-7, AC-8]
+- [x] **T2** — Create `apps/web/src/app/(cap)/dashboard/immobilier/_actions/realestate-actions.ts` (3 read + 9 envelope SAs). [AC: AC-4, AC-7, AC-8]
   Create the file with the exact contents below. This is the load-bearing boundary file — the 9 mutating SAs omit `output:` per the 2026-05-20 lesson so typed `ORPCError` codes survive the Server Action boundary as discriminated unions. Each SA carries `tags: [realestateTags.list()]` (or `realestateTags.byId(...)` for surgical edges, but here `list()` is the SSOT — see Dev Notes § "Decisions re-applied from 4-2"):
   ```ts
   "use server";
@@ -454,7 +454,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_actions/realestate-actions.ts && git commit -m "feat(#26): 12 realestate SAs (3 reads + 9 envelopes + 1 helper)"`
 
-- [ ] **T3** — Read hooks (`use-properties`, `use-property`, `use-list-property-derives`, `use-list-valuations`). [AC: AC-1, AC-2, AC-8]
+- [x] **T3** — Read hooks (`use-properties`, `use-property`, `use-list-property-derives`, `use-list-valuations`). [AC: AC-1, AC-2, AC-8]
   Create the 4 files below verbatim:
 
   `apps/web/src/app/(cap)/dashboard/immobilier/_hooks/use-properties.ts`:
@@ -537,7 +537,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-properties.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-property.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-list-property-derives.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-list-valuations.ts && git commit -m "feat(#26): 4 realestate read hooks (properties, derives, byId, valuations)"`
 
-- [ ] **T4** — Mutation hooks (8 files, one per envelope SA). [AC: AC-3, AC-4, AC-8]
+- [x] **T4** — Mutation hooks (8 files, one per envelope SA). [AC: AC-3, AC-4, AC-8]
   Create 8 files. Each is a thin `useActionMutation(...)` wrapper — envelope handling lives in the form layer.
 
   `apps/web/src/app/(cap)/dashboard/immobilier/_hooks/use-create-property.ts`:
@@ -651,7 +651,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-create-property.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-attach-mortgage.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-update-mortgage.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-detach-mortgage.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-attach-rental.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-update-rental.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-detach-rental.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-record-valuation.ts apps/web/src/app/\(cap\)/dashboard/immobilier/_hooks/use-delete-property.ts && git commit -m "feat(#26): 9 realestate mutation hooks"`
 
-- [ ] **T5** — `realestate.module.css` (cardStretch parity). [AC: AC-9]
+- [x] **T5** — `realestate.module.css` (cardStretch parity). [AC: AC-9]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/realestate.module.css` verbatim (1:1 copy of `portefeuille/_components/portfolio.module.css`):
   ```css
   /* Force the Section primitive's outer View to fill its flex wrapper.
@@ -669,7 +669,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/realestate.module.css && git commit -m "feat(#26): cardStretch css module (height parity for hero row)"`
 
-- [ ] **T6** — `property-create-form.tsx`. [AC: AC-3, AC-4, AC-10]
+- [x] **T6** — `property-create-form.tsx`. [AC: AC-3, AC-4, AC-10]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/property-create-form.tsx`:
   ```tsx
   "use client";
@@ -890,7 +890,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-create-form.tsx && git commit -m "feat(#26): property-create-form (FR-21)"`
 
-- [ ] **T7** — `mortgage-form.tsx` (modes `"attach"` / `"update"`). [AC: AC-3, AC-4]
+- [x] **T7** — `mortgage-form.tsx` (modes `"attach"` / `"update"`). [AC: AC-3, AC-4]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/mortgage-form.tsx`:
   ```tsx
   "use client";
@@ -1168,7 +1168,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/mortgage-form.tsx && git commit -m "feat(#26): mortgage-form (attach + update modes, FR-22)"`
 
-- [ ] **T8** — `rental-form.tsx` (modes `"attach"` / `"update"`). [AC: AC-3, AC-4]
+- [x] **T8** — `rental-form.tsx` (modes `"attach"` / `"update"`). [AC: AC-3, AC-4]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/rental-form.tsx`:
   ```tsx
   "use client";
@@ -1391,7 +1391,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/rental-form.tsx && git commit -m "feat(#26): rental-form (attach + update modes, FR-23)"`
 
-- [ ] **T9** — `valuation-update-form.tsx`. [AC: AC-2, AC-3, AC-4]
+- [x] **T9** — `valuation-update-form.tsx`. [AC: AC-2, AC-3, AC-4]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/valuation-update-form.tsx`:
   ```tsx
   "use client";
@@ -1559,7 +1559,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/valuation-update-form.tsx && git commit -m "feat(#26): valuation-update-form (FR-27)"`
 
-- [ ] **T10** — `valuation-history-dialog.tsx`. [AC: AC-2]
+- [x] **T10** — `valuation-history-dialog.tsx`. [AC: AC-2]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/valuation-history-dialog.tsx`:
   ```tsx
   "use client";
@@ -1650,7 +1650,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/valuation-history-dialog.tsx && git commit -m "feat(#26): valuation-history-dialog (FR-27 audit trail)"`
 
-- [ ] **T11** — `property-delete-confirm.tsx`. [AC: AC-3, AC-4]
+- [x] **T11** — `property-delete-confirm.tsx`. [AC: AC-3, AC-4]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/property-delete-confirm.tsx`:
   ```tsx
   "use client";
@@ -1767,7 +1767,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-delete-confirm.tsx && git commit -m "feat(#26): property-delete-confirm (cascade warning)"`
 
-- [ ] **T12** — `property-card.tsx` (route-local wrapper around `PekuloPropertyCard`, owns kebab + rental block + dialog routing). [AC: AC-1, AC-2, AC-3]
+- [x] **T12** — `property-card.tsx` (route-local wrapper around `PekuloPropertyCard`, owns kebab + rental block + dialog routing). [AC: AC-1, AC-2, AC-3]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/property-card.tsx`:
   ```tsx
   "use client";
@@ -2074,7 +2074,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-card.tsx && git commit -m "feat(#26): property-card route-local wrapper (kebab + 5 dialogs)"`
 
-- [ ] **T13** — `realestate-section.tsx` (orchestration: hero + Ajouter pill + list). [AC: AC-1, AC-9]
+- [x] **T13** — `realestate-section.tsx` (orchestration: hero + Ajouter pill + list). [AC: AC-1, AC-9]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/realestate-section.tsx`:
   ```tsx
   "use client";
@@ -2279,7 +2279,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/realestate-section.tsx && git commit -m "feat(#26): realestate-section (hero 7/5 + Ajouter + property list)"`
 
-- [ ] **T14** — `page.tsx` (route entry). [AC: AC-5, AC-11]
+- [x] **T14** — `page.tsx` (route entry). [AC: AC-5, AC-11]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/page.tsx`:
   ```tsx
   import { RealestateSection } from "./_components/realestate-section";
@@ -2306,7 +2306,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/page.tsx && git commit -m "feat(#26): /dashboard/immobilier route entry"`
 
-- [ ] **T15** — Cap-shell nav wiring (`handleNav("realestate")` + `screenTitle`). [AC: AC-5]
+- [x] **T15** — Cap-shell nav wiring (`handleNav("realestate")` + `screenTitle`). [AC: AC-5]
   Open `apps/web/src/app/(cap)/dashboard/_components/cap-shell.tsx`. The current `handleNav` block toasts on `realestate`. Replace the `navActiveKey` derivation AND the `screenTitle` mapping AND the `handleNav` function as follows. **Step-0 quote of the affected region is in Dev Notes § Step-0**.
 
   Find the line:
@@ -2378,7 +2378,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/_components/cap-shell.tsx && git commit -m "feat(#26): cap-shell routes realestate to /dashboard/immobilier"`
 
-- [ ] **T16** — `realestate-section.a11y.test.tsx`. [AC: AC-6]
+- [x] **T16** — `realestate-section.a11y.test.tsx`. [AC: AC-6]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/realestate-section.a11y.test.tsx`:
   ```tsx
   import { describe, expect, test, vi } from "vitest";
@@ -2421,7 +2421,7 @@
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/realestate-section.a11y.test.tsx && git commit -m "test(#26): realestate-section a11y zero-violation"`
 
-- [ ] **T17** — Form a11y tests (5 files — `property-create-form.a11y`, `mortgage-form.a11y`, `rental-form.a11y`, `valuation-update-form.a11y`, `property-delete-confirm.a11y`). [AC: AC-6]
+- [x] **T17** — Form a11y tests (5 files — `property-create-form.a11y`, `mortgage-form.a11y`, `rental-form.a11y`, `valuation-update-form.a11y`, `property-delete-confirm.a11y`). [AC: AC-6]
   Each file follows the pattern from 3-4 portefeuille. Create the 5 files below verbatim. A11y harness mocks the SAs, renders the form in isolation, and asserts zero axe violations.
 
   `apps/web/src/app/(cap)/dashboard/immobilier/_components/property-create-form.a11y.test.tsx`:
@@ -2612,7 +2612,7 @@
   Expected: 6 a11y tests pass (including T16's section a11y). Exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-create-form.a11y.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/mortgage-form.a11y.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/rental-form.a11y.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/valuation-update-form.a11y.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-delete-confirm.a11y.test.tsx && git commit -m "test(#26): 5 form a11y zero-violation suites"`
 
-- [ ] **T18** — Form envelope tests (5 files — one per envelope-returning form/confirm). [AC: AC-4]
+- [x] **T18** — Form envelope tests (5 files — one per envelope-returning form/confirm). [AC: AC-4]
   Each envelope test mocks the SA, fires a submit, and asserts that the localised `role="alert"` surfaces with the FR message.
 
   `apps/web/src/app/(cap)/dashboard/immobilier/_components/property-create-form.envelope.test.tsx`:
@@ -2895,7 +2895,7 @@
   Expected: 5 envelope test files pass (each at least 1 test ; `mortgage-form.envelope.test.tsx` has 2). Exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-create-form.envelope.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/mortgage-form.envelope.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/rental-form.envelope.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/valuation-update-form.envelope.test.tsx apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-delete-confirm.envelope.test.tsx && git commit -m "test(#26): 5 envelope test files (typed-error coverage)"`
 
-- [ ] **T19** — Annotate the `realestateTags` block in `apps/web/src/lib/zapaction/keys.ts`. [AC: AC-8]
+- [x] **T19** — Annotate the `realestateTags` block in `apps/web/src/lib/zapaction/keys.ts`. [AC: AC-8]
   Open `apps/web/src/lib/zapaction/keys.ts`. Find the comment block above the `[realestateTags.all()]` / `[realestateTags.list()]` entries:
   ```ts
     // Realestate (story 4-1 + 4-2) — the `list` tag invalidates the
@@ -2927,7 +2927,7 @@
   Expected: exit 0.
   Commit: `git add apps/web/src/lib/zapaction/keys.ts && git commit -m "docs(#26): annotate realestate tag block (4-3 consumers on aggregate)"`
 
-- [ ] **T20** — Property-card a11y test. [AC: AC-6]
+- [x] **T20** — Property-card a11y test. [AC: AC-6]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/property-card.a11y.test.tsx`:
   ```tsx
   import { describe, expect, test, vi } from "vitest";
@@ -2985,7 +2985,7 @@
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/property-card.a11y.test.tsx && git commit -m "test(#26): property-card a11y zero-violation"`
 
-- [ ] **T21** — Valuation-history-dialog a11y test. [AC: AC-6]
+- [x] **T21** — Valuation-history-dialog a11y test. [AC: AC-6]
   Create `apps/web/src/app/(cap)/dashboard/immobilier/_components/valuation-history-dialog.a11y.test.tsx`:
   ```tsx
   import { describe, expect, test, vi } from "vitest";
@@ -3028,7 +3028,7 @@
   Expected: `Tests: 1 passed`, exit 0.
   Commit: `git add apps/web/src/app/\(cap\)/dashboard/immobilier/_components/valuation-history-dialog.a11y.test.tsx && git commit -m "test(#26): valuation-history-dialog a11y zero-violation"`
 
-- [ ] **T22** — Grep guards for AC-7, AC-8, AC-9, AC-10 (sanity verification before quality gate). [AC: AC-7, AC-8, AC-9, AC-10]
+- [x] **T22** — Grep guards for AC-7, AC-8, AC-9, AC-10 (sanity verification before quality gate). [AC: AC-7, AC-8, AC-9, AC-10]
   Run each grep command. Every check MUST return the expected count:
 
   ```bash
@@ -3053,7 +3053,7 @@
   Expected: each line of the script returns its expected value (3, 9, 2, 2, 0). If any grep returns an unexpected count, fix the offending file before continuing.
   Commit: no commit — verification step.
 
-- [ ] **T23** — Full quality gate. [AC: AC-11]
+- [x] **T23** — Full quality gate. [AC: AC-11]
   Run each of the following in sequence; every command MUST exit 0:
   ```bash
   bun --filter='@pekulo/web' run lint
