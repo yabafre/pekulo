@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloPopover, PekuloPropertyCard, Section, pekuloRadius } from "@pekulo/ui";
+import { PekuloDialog, PekuloDonut, PekuloPopover, Section, pekuloRadius } from "@pekulo/ui";
 import { MoreHorizontal } from "lucide-react";
 import type {
   PropertyType,
@@ -16,6 +16,7 @@ import { RentalForm } from "./rental-form";
 import { ValuationUpdateForm } from "./valuation-update-form";
 import { ValuationHistoryDialog } from "./valuation-history-dialog";
 import { PropertyDeleteConfirm } from "./property-delete-confirm";
+import { DialogCloseX } from "./dialog-close-x";
 import { useProperty } from "../_hooks/use-property";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -106,10 +107,16 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
       ? childrenQuery.data.data.rental
       : null;
 
-  // Derive UI props from canonical RealEstate + derive surface (4-2).
+  // Derive UI values from canonical RealEstate + 4-2 derive surface.
+  // `hasMortgage` is inferred from the derive — netEquityEur < currentValuation
+  // implies the API knows about an outstanding principal. Without a mortgage,
+  // netEquityEur === currentValuation, and we hide the dette/donut blocks
+  // entirely (showing "0 € dette restante / 100 % remboursé" on a property
+  // the user just created without a loan was actively misleading).
   const netEquity = derives?.netEquityEur ?? property.currentValuation;
   const debtRemaining = property.currentValuation - netEquity;
-  const repaidPct = clamp01(netEquity / property.currentValuation);
+  const hasMortgage = derives !== null && netEquity < property.currentValuation - 0.5;
+  const repaidPct = hasMortgage ? clamp01(netEquity / property.currentValuation) : 1;
   const cashflow = derives?.monthlyCashFlowEur ?? null;
 
   return (
@@ -173,18 +180,66 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
         </View>
       }
     >
-      <PekuloPropertyCard
-        property={{
-          label: property.label,
-          valuationEur: property.currentValuation,
-          debtRemainingEur: debtRemaining,
-          monthlyPaymentEur: 0,
-          yearsRemaining: 0,
-          repaidPct,
-        }}
-      />
+      {/* Body — route-local inline render. PekuloPropertyCard was dropped
+       * because it always renders the dette restante + mensualité + ans
+       * restants block, even when no mortgage is attached. Without mortgage
+       * data at list level (4-3 doesn't fetch children per card), those
+       * fields rendered as "0 €" / "0 ans restants" — confusing the user
+       * about info they never entered. Inline render shows only what the
+       * data supports. */}
+      <View flexDirection="column" $lg={{ flexDirection: "row" }} gap="$5">
+        <View flex={1}>
+          <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
+            VALORISATION
+          </Text>
+          <Text
+            color="$color"
+            fontSize="$h2"
+            fontWeight="600"
+            marginTop="$1"
+            fontVariant={["tabular-nums"]}
+          >
+            {eur0.format(property.currentValuation)}
+          </Text>
+          <Text color="$colorTertiary" fontSize="$caption" marginTop="$3" letterSpacing={0.5}>
+            EQUITY
+          </Text>
+          <Text
+            color="$color"
+            fontSize="$h3"
+            fontWeight="500"
+            marginTop="$1"
+            fontVariant={["tabular-nums"]}
+          >
+            {eur0.format(netEquity)}
+          </Text>
+        </View>
+        {hasMortgage && (
+          <View flex={1}>
+            <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
+              DETTE RESTANTE
+            </Text>
+            <Text
+              color="$color"
+              fontSize="$h3"
+              fontWeight="500"
+              marginTop="$1"
+              fontVariant={["tabular-nums"]}
+            >
+              {eur0.format(debtRemaining)}
+            </Text>
+            <View flexDirection="row" alignItems="center" gap="$3" marginTop="$4">
+              <PekuloDonut pct={repaidPct} size={32} stroke={3} />
+              <Text color="$colorSecondary" fontSize="$caption">
+                {Math.round(repaidPct * 100)} % remboursé
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+
       {cashflow !== null && (
-        <View marginTop="$3" paddingTop="$3" borderTopWidth={1} borderTopColor="$borderDefault">
+        <View marginTop="$4" paddingTop="$3" borderTopWidth={1} borderTopColor="$borderDefault">
           <Text color="$colorTertiary" fontSize="$caption">
             Cash-flow mensuel
           </Text>
@@ -207,6 +262,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
           <PekuloDialog.Portal>
             <PekuloDialog.Overlay />
             <PekuloDialog.Content>
+              <DialogCloseX />
               <PekuloDialog.Title>
                 {mortgage ? "Modifier le crédit" : "Ajouter un crédit"}
               </PekuloDialog.Title>
@@ -230,6 +286,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
           <PekuloDialog.Portal>
             <PekuloDialog.Overlay />
             <PekuloDialog.Content>
+              <DialogCloseX />
               <PekuloDialog.Title>
                 {rental ? "Modifier le loyer" : "Ajouter un loyer"}
               </PekuloDialog.Title>
@@ -253,6 +310,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
           <PekuloDialog.Portal>
             <PekuloDialog.Overlay />
             <PekuloDialog.Content>
+              <DialogCloseX />
               <PekuloDialog.Title>Mettre à jour la valorisation</PekuloDialog.Title>
               <PekuloDialog.Description>
                 La valorisation actuelle sera remplacée et l'historique audit ajouté
