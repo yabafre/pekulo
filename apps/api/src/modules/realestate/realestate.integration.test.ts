@@ -283,3 +283,225 @@ describe("realestate HTTP boundary (AC-11)", () => {
     expect(ownerDel.status).toBe(200);
   });
 });
+
+describe("realestate.integration — derives (story 4-2)", () => {
+  // AC-12 — 401 on the 3 new procedures without JWT, each within the
+  // NFR-9 latency budget (< 100 ms). Re-asserts the budget per procedure
+  // even though 4-1's integration suite already covers the shared Elysia
+  // handler, so a future divergence (e.g. async auth middleware added on
+  // a single route) is caught at the procedure level (review-fix 2026-05-21).
+  test("AC-12 — 401 on getPropertyDerives without JWT (< 100 ms)", async () => {
+    const t0 = performance.now();
+    const res = await call("getPropertyDerives", { id: "res_xxxxxxxxxxxxxxxxxxxxx" });
+    const elapsed = performance.now() - t0;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  test("AC-12 — 401 on listPropertyDerives without JWT (< 100 ms)", async () => {
+    const t0 = performance.now();
+    const res = await call("listPropertyDerives", {});
+    const elapsed = performance.now() - t0;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  test("AC-12 — 401 on getTotalEquity without JWT (< 100 ms)", async () => {
+    const t0 = performance.now();
+    const res = await call("getTotalEquity", {});
+    const elapsed = performance.now() - t0;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  test("AC-1 + AC-2 — happy 200 getPropertyDerives composes cashflow=400 + equity=70000", async () => {
+    const jwt = await signFor(USER_A);
+    const created = await call(
+      "createProperty",
+      {
+        label: "P-derive",
+        propertyType: "locatif",
+        currentValuation: 250_000,
+        lastValuedOn: "2026-01-01",
+      },
+      jwt,
+    );
+    expect(created.status).toBe(200);
+    const { json: property } = (await created.json()) as { json: { id: string } };
+    await call(
+      "attachMortgage",
+      {
+        propertyId: property.id,
+        outstandingPrincipal: 180_000,
+        annualRate: 0.025,
+        monthlyPayment: 600,
+        termMonths: 240,
+        startDate: "2020-01-01",
+      },
+      jwt,
+    );
+    await call(
+      "attachRental",
+      {
+        propertyId: property.id,
+        monthlyRent: 1200,
+        monthlyCharges: 200,
+        furnished: false,
+      },
+      jwt,
+    );
+    const derivesRes = await call("getPropertyDerives", { id: property.id }, jwt);
+    expect(derivesRes.status).toBe(200);
+    const derivesBody = (await derivesRes.json()) as {
+      json: { monthlyCashFlowEur: number | null; netEquityEur: number };
+    };
+    expect(derivesBody.json).toEqual({ monthlyCashFlowEur: 400, netEquityEur: 70_000 });
+  });
+
+  test("AC-6 — cross-user getPropertyDerives → 404 REALESTATE_NOT_FOUND", async () => {
+    const jwtA = await signFor(USER_A);
+    const jwtB = await signFor(USER_B);
+    const created = await call(
+      "createProperty",
+      {
+        label: "A-only",
+        propertyType: "locatif",
+        currentValuation: 250_000,
+        lastValuedOn: "2026-01-01",
+      },
+      jwtA,
+    );
+    const { json: property } = (await created.json()) as { json: { id: string } };
+    const res = await call("getPropertyDerives", { id: property.id }, jwtB);
+    expect(res.status).toBe(404);
+  });
+
+  test("AC-7 — listPropertyDerives + getTotalEquity on empty account → [] and zero", async () => {
+    // Fresh UUID guarantees zero pre-existing rows in the per-suite fake.
+    const FRESH = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const jwt = await signFor(FRESH);
+    const listRes = await call("listPropertyDerives", {}, jwt);
+    expect(listRes.status).toBe(200);
+    const listBody = (await listRes.json()) as {
+      json: Array<{ propertyId: string; monthlyCashFlowEur: number | null; netEquityEur: number }>;
+    };
+    expect(listBody.json).toEqual([]);
+    const totalRes = await call("getTotalEquity", {}, jwt);
+    expect(totalRes.status).toBe(200);
+    const totalBody = (await totalRes.json()) as {
+      json: { totalEquityEur: number; perProperty: unknown[] };
+    };
+    expect(totalBody.json).toEqual({ totalEquityEur: 0, perProperty: [] });
+  });
+
+  // AC-12 — HTTP boundary check on the populated listPropertyDerives path
+  // (review-fix 2026-05-21): the contract's `output` schema validation only
+  // runs at the RPC boundary, so the multi-row happy path was previously
+  // covered at the service layer but never at HTTP. Seeds 2 properties and
+  // asserts wire shape end-to-end.
+  test("AC-12 — happy 200 listPropertyDerives composes 2-row per-property derives", async () => {
+    const FRESH = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const jwt = await signFor(FRESH);
+    const created1 = await call(
+      "createProperty",
+      {
+        label: "list-1",
+        propertyType: "locatif",
+        currentValuation: 250_000,
+        lastValuedOn: "2026-01-01",
+      },
+      jwt,
+    );
+    const { json: p1 } = (await created1.json()) as { json: { id: string } };
+    await call(
+      "attachMortgage",
+      {
+        propertyId: p1.id,
+        outstandingPrincipal: 180_000,
+        annualRate: 0.025,
+        monthlyPayment: 600,
+        termMonths: 240,
+        startDate: "2020-01-01",
+      },
+      jwt,
+    );
+    await call(
+      "attachRental",
+      { propertyId: p1.id, monthlyRent: 1200, monthlyCharges: 200, furnished: false },
+      jwt,
+    );
+    const created2 = await call(
+      "createProperty",
+      {
+        label: "list-2",
+        propertyType: "residence-principale",
+        currentValuation: 400_000,
+        lastValuedOn: "2026-01-01",
+      },
+      jwt,
+    );
+    const { json: p2 } = (await created2.json()) as { json: { id: string } };
+    const res = await call("listPropertyDerives", {}, jwt);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      json: Array<{ propertyId: string; monthlyCashFlowEur: number | null; netEquityEur: number }>;
+    };
+    expect(body.json).toHaveLength(2);
+    const byId = new Map(body.json.map((row) => [row.propertyId, row]));
+    expect(byId.get(p1.id)).toEqual({
+      propertyId: p1.id,
+      monthlyCashFlowEur: 400,
+      netEquityEur: 70_000,
+    });
+    expect(byId.get(p2.id)).toEqual({
+      propertyId: p2.id,
+      monthlyCashFlowEur: null,
+      netEquityEur: 400_000,
+    });
+  });
+
+  test("AC-3 — getTotalEquity sums 3 properties to 450000", async () => {
+    const FRESH = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const jwt = await signFor(FRESH);
+    const seed = async (valuation: number, debt: number | null) => {
+      const created = await call(
+        "createProperty",
+        {
+          label: `seed-${valuation}`,
+          propertyType: "locatif",
+          currentValuation: valuation,
+          lastValuedOn: "2026-01-01",
+        },
+        jwt,
+      );
+      const { json: p } = (await created.json()) as { json: { id: string } };
+      if (debt !== null) {
+        await call(
+          "attachMortgage",
+          {
+            propertyId: p.id,
+            outstandingPrincipal: debt,
+            annualRate: 0.025,
+            monthlyPayment: 600,
+            termMonths: 240,
+            startDate: "2020-01-01",
+          },
+          jwt,
+        );
+      }
+    };
+    await seed(250_000, 180_000); // +70k
+    await seed(400_000, null); //   +400k
+    await seed(100_000, 120_000); // -20k
+    const totalRes = await call("getTotalEquity", {}, jwt);
+    expect(totalRes.status).toBe(200);
+    const body = (await totalRes.json()) as {
+      json: { totalEquityEur: number; perProperty: Array<{ netEquityEur: number }> };
+    };
+    expect(body.json.totalEquityEur).toBe(450_000);
+    expect(body.json.perProperty).toHaveLength(3);
+    expect(body.json.perProperty.map((p) => p.netEquityEur).sort((a, b) => a - b)).toEqual([
+      -20_000, 70_000, 400_000,
+    ]);
+  });
+});

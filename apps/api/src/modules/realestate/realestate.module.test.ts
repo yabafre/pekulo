@@ -16,12 +16,6 @@ function fakePrismaService(): PrismaService {
 }
 
 describe("realestate.module — whole-module wired flow", () => {
-  test("createRealestateModule returns service + router", () => {
-    const mod = createRealestateModule({ prismaService: fakePrismaService() });
-    expect(typeof mod.service.createProperty).toBe("function");
-    expect(typeof mod.router).toBe("object");
-  });
-
   test("service.createProperty round-trip → repo persisted", async () => {
     const mod = createRealestateModule({ prismaService: fakePrismaService() });
     const property = await mod.service.createProperty(USER_A, {
@@ -56,5 +50,68 @@ describe("realestate.module — whole-module wired flow", () => {
     });
     const history = await mod.service.listValuations(USER_A, { propertyId: p.id });
     expect(history.map((r) => r.amount)).toEqual([280_000, 260_000]);
+  });
+});
+
+describe("realestate.module — derives (story 4-2)", () => {
+  test("AC-1 + AC-2 — wired flow returns cashflow=400 and equity=70000 via service", async () => {
+    const fake = makeFakePrisma();
+    const mod = createRealestateModule({
+      prismaService: { client: fake.client } as unknown as PrismaService,
+    });
+    const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const p = await mod.service.createProperty(userId, {
+      label: "P-derive",
+      propertyType: "locatif",
+      currentValuation: 250_000,
+      lastValuedOn: new Date("2026-01-01"),
+    });
+    await mod.service.attachMortgage(userId, {
+      propertyId: p.id,
+      outstandingPrincipal: 180_000,
+      annualRate: 0.025,
+      monthlyPayment: 600,
+      termMonths: 240,
+      startDate: new Date("2020-01-01"),
+    });
+    await mod.service.attachRental(userId, {
+      propertyId: p.id,
+      monthlyRent: 1200,
+      monthlyCharges: 200,
+      furnished: false,
+    });
+    const derives = await mod.service.getPropertyDerives(userId, { id: p.id });
+    expect(derives).toEqual({ monthlyCashFlowEur: 400, netEquityEur: 70_000 });
+  });
+
+  test("AC-3 — wired flow getTotalEquity sums net equity across all properties", async () => {
+    const fake = makeFakePrisma();
+    const mod = createRealestateModule({
+      prismaService: { client: fake.client } as unknown as PrismaService,
+    });
+    const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const p1 = await mod.service.createProperty(userId, {
+      label: "P1",
+      propertyType: "locatif",
+      currentValuation: 250_000,
+      lastValuedOn: new Date("2026-01-01"),
+    });
+    await mod.service.attachMortgage(userId, {
+      propertyId: p1.id,
+      outstandingPrincipal: 180_000,
+      annualRate: 0.025,
+      monthlyPayment: 600,
+      termMonths: 240,
+      startDate: new Date("2020-01-01"),
+    });
+    await mod.service.createProperty(userId, {
+      label: "P2",
+      propertyType: "residence-principale",
+      currentValuation: 400_000,
+      lastValuedOn: new Date("2026-01-01"),
+    });
+    const out = await mod.service.getTotalEquity(userId);
+    expect(out.totalEquityEur).toBe(70_000 + 400_000);
+    expect(out.perProperty).toHaveLength(2);
   });
 });

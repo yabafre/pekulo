@@ -19,16 +19,21 @@ import type {
   DetachMortgageInput,
   DetachRentalInput,
   GetPropertyInput,
+  ListPropertyDerivesOutput,
   ListValuationsInput,
+  PropertyDerives,
   PropertyWithChildren,
   RealEstate,
   RealEstateMortgage,
   RealEstateRental,
   RealEstateValuation,
   RecordValuationInput,
+  TotalEquityOutput,
   UpdateMortgageInput,
   UpdateRentalInput,
 } from "@pekulo/validators";
+import { computePropertyEquity } from "../../common/derive/property-equity";
+import { computeRentalCashFlow } from "../../common/derive/rental-cashflow";
 import {
   mortgageAlreadyAttached,
   mortgageNotFound,
@@ -51,6 +56,10 @@ export interface RealestateService {
   recordValuation(userId: string, input: RecordValuationInput): Promise<RealEstate>;
   listValuations(userId: string, input: ListValuationsInput): Promise<RealEstateValuation[]>;
   deleteProperty(userId: string, input: DeletePropertyInput): Promise<{ ok: true }>;
+  // Story 4-2 — pure-derive surface (FR-24 / FR-25 / FR-26)
+  getPropertyDerives(userId: string, input: GetPropertyInput): Promise<PropertyDerives>;
+  listPropertyDerives(userId: string): Promise<ListPropertyDerivesOutput>;
+  getTotalEquity(userId: string): Promise<TotalEquityOutput>;
 }
 
 export function createRealestateService(deps: {
@@ -138,6 +147,59 @@ export function createRealestateService(deps: {
     async deleteProperty(userId, input) {
       await requireOwnedProperty(userId, input.id);
       return repository.deleteProperty(userId, input);
+    },
+
+    async getPropertyDerives(userId, input) {
+      // Atomic snapshot via `findByIdWithChildrenForUser` — one Prisma
+      // round-trip with `include: { mortgage: true, rental: true }`.
+      // Eliminates the race window between findByIdForUser and the parallel
+      // children fetch where a concurrent detachMortgage/detachRental could
+      // surface an inconsistent derive (review-fix 2026-05-21 — n3).
+      const row = await repository.findByIdWithChildrenForUser(userId, input.id);
+      if (!row) throw realestateNotFound();
+      const { property, mortgage, rental } = row;
+      return {
+        monthlyCashFlowEur: computeRentalCashFlow({
+          rental: rental
+            ? { monthlyRent: rental.monthlyRent, monthlyCharges: rental.monthlyCharges }
+            : null,
+          mortgage: mortgage ? { monthlyPayment: mortgage.monthlyPayment } : null,
+        }),
+        netEquityEur: computePropertyEquity({
+          property: { currentValuation: property.currentValuation },
+          mortgage: mortgage ? { outstandingPrincipal: mortgage.outstandingPrincipal } : null,
+        }),
+      };
+    },
+
+    async listPropertyDerives(userId) {
+      const rows = await repository.listWithChildrenForUser(userId);
+      return rows.map(({ property, mortgage, rental }) => ({
+        propertyId: property.id,
+        monthlyCashFlowEur: computeRentalCashFlow({
+          rental: rental
+            ? { monthlyRent: rental.monthlyRent, monthlyCharges: rental.monthlyCharges }
+            : null,
+          mortgage: mortgage ? { monthlyPayment: mortgage.monthlyPayment } : null,
+        }),
+        netEquityEur: computePropertyEquity({
+          property: { currentValuation: property.currentValuation },
+          mortgage: mortgage ? { outstandingPrincipal: mortgage.outstandingPrincipal } : null,
+        }),
+      }));
+    },
+
+    async getTotalEquity(userId) {
+      const rows = await repository.listWithChildrenForUser(userId);
+      const perProperty = rows.map(({ property, mortgage }) => ({
+        propertyId: property.id,
+        netEquityEur: computePropertyEquity({
+          property: { currentValuation: property.currentValuation },
+          mortgage: mortgage ? { outstandingPrincipal: mortgage.outstandingPrincipal } : null,
+        }),
+      }));
+      const totalEquityEur = perProperty.reduce((sum, p) => sum + p.netEquityEur, 0);
+      return { totalEquityEur, perProperty };
     },
   };
 }

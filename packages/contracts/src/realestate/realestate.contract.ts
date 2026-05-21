@@ -17,14 +17,17 @@ import {
   detachRentalInputSchema,
   getPropertyInputSchema,
   listPropertiesOutputSchema,
+  listPropertyDerivesOutputSchema,
   listValuationsInputSchema,
   listValuationsOutputSchema,
+  propertyDerivesSchema,
   propertyWithChildrenSchema,
   realEstateMortgageSchema,
   realEstateRentalSchema,
   realEstateSchema,
   realestateOkSchema,
   recordValuationInputSchema,
+  totalEquityOutputSchema,
   updateMortgageInputSchema,
   updateRentalInputSchema,
 } from "@pekulo/validators";
@@ -105,6 +108,13 @@ export const realestateContractV1 = {
     .errors({ REALESTATE_NOT_FOUND: realestateNotFoundError })
     .input(deletePropertyInputSchema)
     .output(realestateOkSchema),
+  // ─── 4-2 — derive surface (FR-24 / FR-25 / FR-26) ────────────────
+  getPropertyDerives: oc
+    .errors({ REALESTATE_NOT_FOUND: realestateNotFoundError })
+    .input(getPropertyInputSchema)
+    .output(propertyDerivesSchema),
+  listPropertyDerives: oc.output(listPropertyDerivesOutputSchema),
+  getTotalEquity: oc.output(totalEquityOutputSchema),
 } as const;
 
 export const realestateContract = realestateContractV1;

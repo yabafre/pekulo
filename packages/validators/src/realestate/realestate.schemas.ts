@@ -191,3 +191,36 @@ export type ListValuationsOutput = z.infer<typeof listValuationsOutputSchema>;
 
 export const realestateOkSchema = z.object({ ok: z.literal(true) });
 export type RealestateOk = z.infer<typeof realestateOkSchema>;
+
+// ─── 4-2 — Pure-derive output shapes (FR-24 / FR-25 / FR-26) ────────────
+// Single source of truth for the realestate derives surface (story 4-2).
+// The pure helpers (`apps/api/src/common/derive/{rental-cashflow,property-equity}.ts`)
+// are inputs-by-argument; these schemas pin the wire shape exposed to
+// 4-3 UI (per-property derives) and 7-1 dashboard (total equity roll-up).
+
+export const propertyDerivesSchema = z.object({
+  monthlyCashFlowEur: z.number().nullable(),
+  netEquityEur: z.number(),
+});
+export type PropertyDerives = z.infer<typeof propertyDerivesSchema>;
+
+export const propertyDerivesItemSchema = z.object({
+  propertyId: realEstateIdSchema,
+  monthlyCashFlowEur: z.number().nullable(),
+  netEquityEur: z.number(),
+});
+export type PropertyDerivesItem = z.infer<typeof propertyDerivesItemSchema>;
+
+export const listPropertyDerivesOutputSchema = z.array(propertyDerivesItemSchema);
+export type ListPropertyDerivesOutput = z.infer<typeof listPropertyDerivesOutputSchema>;
+
+export const totalEquityOutputSchema = z.object({
+  totalEquityEur: z.number(),
+  perProperty: z.array(
+    z.object({
+      propertyId: realEstateIdSchema,
+      netEquityEur: z.number(),
+    }),
+  ),
+});
+export type TotalEquityOutput = z.infer<typeof totalEquityOutputSchema>;

@@ -22,6 +22,10 @@ export type {
   RealEstateRental,
   RealEstateValuation,
   PropertyWithChildren,
+  PropertyDerives,
+  PropertyDerivesItem,
+  ListPropertyDerivesOutput,
+  TotalEquityOutput,
 } from "@pekulo/validators";
 
 /** UI prop shape consumed by PekuloPropertyCard. Renamed from legacy `Property`
