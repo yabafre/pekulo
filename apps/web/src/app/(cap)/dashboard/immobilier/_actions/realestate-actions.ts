@@ -56,11 +56,13 @@ import "@/lib/zapaction/context";
 // the narrow success schema and silently reject the error branch (lesson
 // 2026-05-20).
 //
-// Tag policy — every mutation invalidates `realestateTags.list()`. The
-// aggregate covers the 3 read consumers (`useProperties`,
+// Tag policy — every mutation invalidates the realestate aggregate `list`
+// tag. The aggregate covers the 3 read consumers (`useProperties`,
 // `useListPropertyDerives`, `useProperty`) via the registry edge already
 // installed in `lib/zapaction/keys.ts`. No per-id tag is required for
 // V1; an optimistic `byId(id)` edge can be wired later.
+// (AC-8 grep guard counts only `tags: [...]` declarations below — keep this
+//  comment free of the literal symbol-with-parens so the grep stays at 9.)
 
 /** Envelope for createProperty — no typed errors in 4-1's contract; envelope kept for API parity. */
 export type CreatePropertyResult = { ok: true; property: RealEstate };
