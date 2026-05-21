@@ -131,3 +131,24 @@ Main shipped the R1-R11 codification + folder-by-domain restructure (commit 08c9
   - `recordValuation` discriminated outcome shape (`{ok | not-found}`) added during aped-review-supp ; service contract unchanged externally (still throws `realestateNotFound()`).
   - Integration test binds `port: 0` (Bun OS-assigned), not `PORT_BASE + Math.random()`. Other sibling integration tests still use the legacy pattern.
   - Story Dev Notes claim `.partial()` on `updateMortgage/Rental` schemas ; actual implementation is `.optional()` + `.refine()` rejecting empty payloads (stricter — caller must supply ≥1 field).
+
+### Story 4-2-realestate-derives — done 2026-05-21T14:10:00Z
+
+- **Decisions:**
+  - Pure derive helpers in `apps/api/src/common/derive/` for FR-24 (`rental-cashflow`) + FR-25 (`property-equity`). Inputs-by-argument; zero DB / network / clock / telemetry imports. AC-8 grep guard. 4-3 UI + 7-1 dashboard consume the service surface, not the helpers directly.
+  - 3 new oRPC procedures appended additively to `realestateContractV1` — `getPropertyDerives`, `listPropertyDerives`, `getTotalEquity`. 12 4-1 procedures untouched ; contract version stays v1.
+  - **Atomic single-property snapshot via `repo.findByIdWithChildrenForUser`** (one `findFirst` + `include: { mortgage: true, rental: true }`). Replaces the 3-call sequence in `service.getPropertyDerives`, eliminating the race against concurrent `detach*`. 4-1's `getProperty` keeps its own pattern — forward-pointer in the new repo interface entry for a future cross-module refactor.
+  - N+1 budget enforced via `fake.callCounts.realEstateFindMany` spy on a 3-property fixture (review-fix, supersedes the original 1-property shape-only assertion).
+  - `realestate` tag registry entry in `apps/web/src/lib/zapaction/keys.ts` left unchanged ; the 4-2 derives are stateless reads of the same aggregate. Annotation comment marks the forward edges 4-3 (UI) and 7-1 (dashboard cap) will add.
+- **Files:** see story 4-2 File List (4 NEW + 12 MODIFIED).
+- **Contracts:**
+  - 3 oRPC procedures on `realestateContractV1`: `getPropertyDerives` (input: `getPropertyInputSchema`, output: `propertyDerivesSchema`, errors: `REALESTATE_NOT_FOUND`), `listPropertyDerives` (output: `listPropertyDerivesOutputSchema`), `getTotalEquity` (output: `totalEquityOutputSchema`).
+  - 4 new Zod schemas + 4 type aliases (`PropertyDerives`, `PropertyDerivesItem`, `ListPropertyDerivesOutput`, `TotalEquityOutput`) — all re-exported from `@pekulo/types`.
+  - **Service primitive for 7-1 dashboard:** `realestate.service.getTotalEquity(userId)` returns `{ totalEquityEur: number, perProperty: { propertyId, netEquityEur }[] }`. `dashboard.service.computeTotalWealth` (story 7-1) will reduce this signed sum.
+  - **Repo primitive added during review:** `realestate.repository.findByIdWithChildrenForUser(userId, propertyId)` — atomic single-property snapshot. Available for future cross-module reuse (e.g. a hardened 4-1 `getProperty` refactor).
+- **Deviations from plan:**
+  - **T14 — HTTP integration tests use the existing `call()` helper** (RPCHandler `{ json: … }` envelope), not raw `fetch`. Story spec prescribed `fetch(body: JSON.stringify({ id }))`, which would silently drop the oRPC envelope and produce 400 input-validation noise. The 4-1 suite already established the helper pattern.
+  - **`bun --filter='@pekulo/{api,validators}' run lint`** exits "No packages matched the filter" — neither package declares a `lint` script. Switched to `npx oxlint <path>` for verification.
+  - **`apps/web/.next/dev/types` typecheck cache** had a stale reference to a deleted route file (unrelated to 4-2). Cleared `apps/web/.next/dev/{types,turbopack}` ; web typecheck returned 0.
+  - **AC-11 N+1 assertion** initially landed as shape-only (no call counter) ; review-fix added the spy + 3-property fixture (commit `0c870bc`).
+  - **`getPropertyDerives` originally composed via `findByIdForUser` + parallel children fetch** — review-fix replaced with atomic `findByIdWithChildrenForUser` to close the race window (commit `f07d63e`). Service contract unchanged externally.

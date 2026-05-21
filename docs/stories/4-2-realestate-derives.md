@@ -1291,3 +1291,68 @@ Per-suite spot checks at GREEN:
 - `realestate.service.test.ts` → 21 pass / 0 fail (13 existing + 8 new)
 - `realestate.module.test.ts` → 5 pass / 0 fail (3 existing + 2 new)
 - `realestate.integration.test.ts` → 15 pass / 0 fail (9 existing + 6 new)
+
+## Review Record
+
+**Date:** 2026-05-21
+**Auditors:** Spec, Code, Edge & Hallucination (Aria not dispatched — backend surface with a comment-only frontend touch)
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] AC-11 — "exactly one `findMany` call" assertion missing [`apps/api/src/modules/realestate/realestate.repository.test.ts:434-462`, `apps/api/src/test/fakes/fake-realestate.ts:96-119`]
+  - Source: Code auditor (MAJOR) + Spec auditor (MINOR — diagnostic agreement)
+  - Resolution: commit `0c870bc` — exposed `fake.callCounts.realEstateFindMany` counter; rewrote the AC-11 test against a 3-property fixture asserting `delta === 1`. Catches a future `findMany`-per-row N+1 regression.
+
+- [MAJOR] Anti-pattern #3 — fake `findMany` `include` returned `undefined` instead of `null`/omitted key for unselected children [`apps/api/src/test/fakes/fake-realestate.ts:105-118`]
+  - Source: Code auditor
+  - Resolution: commit `0c870bc` — fake now returns `null` (not `undefined`) when `include.X` is falsy, matching the production cast `& { mortgage: …|null; rental: …|null }`. Production code path unchanged (always passes both `include` flags).
+
+- [MINOR] No HTTP 200 + non-empty body assertion for `listPropertyDerives` [`apps/api/src/modules/realestate/realestate.integration.test.ts:387-446`]
+  - Source: Code auditor
+  - Resolution: commit `0c870bc` — added integration test seeding 2 properties via `call()` helper and asserting per-property derives at the wire boundary (`{400, 70_000}` + `{null, 400_000}`). Closes the schema-validation gap at the RPC envelope.
+
+- [MINOR] `ListPropertyDerivesOutput` not re-exported from `@pekulo/types` [`packages/types/src/realestate/realestate.types.ts:19-29`]
+  - Source: Edge auditor
+  - Resolution: commit `0c870bc` — added to the export block alongside its 3 siblings (`PropertyDerives`, `PropertyDerivesItem`, `TotalEquityOutput`).
+
+- [NIT] AC-12 NFR-9 latency (< 100 ms) on the 3 new procedures' 401 paths [`apps/api/src/modules/realestate/realestate.integration.test.ts:289-318`]
+  - Source: Spec auditor
+  - Resolution: commit `f07d63e` — wrapped each 401 test with `performance.now()` delta + `expect(elapsed).toBeLessThan(100)`. A future per-route async middleware regression is caught here, not just at the generic `createProperty` 4-1 test.
+
+- [NIT] AC-8 grep guard had 4 doc-comment hits on the literal token list [`apps/api/src/common/derive/rental-cashflow.ts:4-5`, `apps/api/src/common/derive/property-equity.ts:4-5`]
+  - Source: Spec auditor
+  - Resolution: commit `f07d63e` — rephrased the comments to "DB / network / clock / telemetry imports". The literal `grep 'prisma|fetch|Date.now|@opentelemetry'` now returns zero matches against the derive helpers (semantic intent unchanged).
+
+- [NIT] Race window `getPropertyDerives` vs concurrent `detachMortgage`/`detachRental` [`apps/api/src/modules/realestate/realestate.service.ts:152-171`]
+  - Source: Edge auditor
+  - Resolution: commit `f07d63e` — introduced `repository.findByIdWithChildrenForUser(userId, propertyId)` (one Prisma `findFirst` + `include: { mortgage: true, rental: true }`), routed the service through it. Atomic snapshot replaces the 3-call sequence. 4-1's `getProperty` keeps its own pattern — forward-pointer noted in the new interface entry for a future cross-module refactor.
+
+- [NIT] Tautological assertion `typeof mod.service.createProperty === "function"` [`apps/api/src/modules/realestate/realestate.module.test.ts:18-23`]
+  - Source: Code auditor
+  - Resolution: commit `f07d63e` — deleted the entire tautology test. Wired-flow tests below already cover the contract (round-trip + atomic valuation + 2 new derives tests).
+
+#### Dismissed
+
+_None — every flagged finding was actioned._
+
+#### Unresolved
+
+_None._
+
+### Verification
+
+- Test command (final pass): `cd apps/api && bun test src/common/derive/rental-cashflow.test.ts src/common/derive/property-equity.test.ts src/modules/realestate/realestate.repository.test.ts src/modules/realestate/realestate.service.test.ts src/modules/realestate/realestate.module.test.ts src/modules/realestate/realestate.integration.test.ts`
+- Test output: `84 pass / 0 fail / 147 expect() calls — Ran 84 tests across 6 files. [178ms]`
+- Workspace typecheck: `bun --filter='@pekulo/*' run typecheck` — 7 packages exit 0 (`@pekulo/zod`, `@pekulo/validators`, `@pekulo/oxlint-config`, `@pekulo/types`, `@pekulo/contracts`, `@pekulo/ui`, `@pekulo/api`).
+- Lint: `npx oxlint` — `Found 0 warnings and 0 errors. (30 files, 158 rules)`
+- Live grep invariants — AC-8: 0 matches against derive helpers; AC-9: 0 matches + zero `*.types.ts`; AC-10: 0 matches; L24 `Number(.*Decimal`: 0 matches in `apps/api/src/modules/realestate`.
+- HTTP boundary: RPC trace logs in the test run confirm 401 × 3, 200 happy `getPropertyDerives`, 200 happy `listPropertyDerives` (non-empty), 200 happy `getTotalEquity` (3 properties → 450 000), 404 cross-user.
+- Visual verification: N/A (backend story; T15 was comment-only).
+
+### Ticket sync
+
+- Ticket comment posted: see step-5 output
+- PR opened/updated: see step-5 output
