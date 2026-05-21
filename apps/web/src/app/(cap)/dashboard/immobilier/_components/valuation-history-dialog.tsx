@@ -4,6 +4,7 @@ import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, PekuloSkeleton } from "@pekulo/ui";
 import type { RealEstate } from "@pekulo/types";
 import { useListValuations } from "../_hooks/use-list-valuations";
+import { DialogCloseX } from "./dialog-close-x";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -35,6 +36,7 @@ export function ValuationHistoryDialog({
       <PekuloDialog.Portal>
         <PekuloDialog.Overlay />
         <PekuloDialog.Content>
+          <DialogCloseX />
           <View flexDirection="column" gap="$3" padding="$4">
             <PekuloDialog.Title>Historique — {property.label}</PekuloDialog.Title>
             <PekuloDialog.Description>

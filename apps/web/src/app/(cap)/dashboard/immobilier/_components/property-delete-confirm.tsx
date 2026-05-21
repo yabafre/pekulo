@@ -5,6 +5,7 @@ import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloRadius } from "@pekulo/ui";
 import type { RealEstate } from "@pekulo/types";
 import { useDeleteProperty } from "../_hooks/use-delete-property";
+import { DialogCloseX } from "./dialog-close-x";
 
 const NOT_FOUND_MESSAGE = "Bien introuvable (déjà supprimé ?). Recharge la page.";
 
@@ -65,6 +66,7 @@ export function PropertyDeleteConfirm({
       <PekuloDialog.Portal>
         <PekuloDialog.Overlay />
         <PekuloDialog.Content>
+          <DialogCloseX />
           <View flexDirection="column" gap="$3" padding="$4">
             <PekuloDialog.Title>Supprimer « {property.label} » ?</PekuloDialog.Title>
             <PekuloDialog.Description>
