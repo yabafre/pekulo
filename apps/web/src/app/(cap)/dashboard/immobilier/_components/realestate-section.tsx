@@ -9,6 +9,7 @@ import { useProperties } from "../_hooks/use-properties";
 import { useListPropertyDerives } from "../_hooks/use-list-property-derives";
 import { PropertyCreateForm } from "./property-create-form";
 import { PropertyCard } from "./property-card";
+import { DialogCloseX } from "./dialog-close-x";
 import styles from "./realestate.module.css";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -38,6 +39,7 @@ export function RealestateSection() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const isLoading = properties.isLoading || derives.isLoading;
+  const isRefetching = !isLoading && (properties.isFetching || derives.isFetching);
   const error = properties.error ?? derives.error;
   const rows = properties.data ?? [];
   const derivesById = useMemo(() => {
@@ -106,6 +108,21 @@ export function RealestateSection() {
 
   return (
     <View flexDirection="column" gap="$6" width="100%" $lg={{ gap: 16 }}>
+      {isRefetching && (
+        <View
+          role="status"
+          aria-live="polite"
+          alignSelf="flex-start"
+          paddingHorizontal="$3"
+          paddingVertical="$1"
+          borderRadius="$full"
+          backgroundColor="$backgroundElevated"
+        >
+          <Text color="$colorTertiary" fontSize="$caption">
+            Mise à jour…
+          </Text>
+        </View>
+      )}
       {/* Hero + Action — 7/5 split on lg+ (ux-preview L1650-1667 parity). */}
       <View
         flexDirection="column"
@@ -184,6 +201,7 @@ export function RealestateSection() {
         <PekuloDialog.Portal>
           <PekuloDialog.Overlay />
           <PekuloDialog.Content>
+            <DialogCloseX />
             <PekuloDialog.Title>Ajouter un bien</PekuloDialog.Title>
             <PekuloDialog.Description>
               Libellé, type (résidence principale / locatif / autre), valorisation EUR et date.
