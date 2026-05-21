@@ -114,6 +114,13 @@ setTagRegistry({
   // edges (e.g. realestateTags.list → dashboardKeys.cap) when they land;
   // the registry entry exists now because the realestate oRPC module is
   // mounted (T16) and consumers can subscribe immediately.
+  // Realestate (story 4-1 + 4-2) — the `list` tag invalidates the
+  // realestate aggregate keys; the 4-2 derives are stateless reads of
+  // the same aggregate, so any mutation that bumps `list` also
+  // invalidates `getPropertyDerives` / `listPropertyDerives` /
+  // `getTotalEquity` consumers transparently. Stories 4-3 (UI) and 7-1
+  // (dashboard) will add cross-feature edges (e.g.
+  // realestateTags.list → dashboardKeys.cap) when they ship.
   [realestateTags.all()]: [realestateKeys.list()],
   [realestateTags.list()]: [realestateKeys.list()],
 });
