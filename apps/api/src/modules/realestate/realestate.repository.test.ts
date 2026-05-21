@@ -429,6 +429,73 @@ describe("realestate.repository — listByUser", () => {
   });
 });
 
+describe("realestate.repository — listWithChildrenForUser (story 4-2)", () => {
+  // AC-11 (story 4-2): one Prisma round-trip, never N+1.
+  test("AC-11 — single findMany with include returns mortgage + rental joined", async () => {
+    const fake = makeFakePrisma();
+    const repo = createRealestateRepository({ client: fake.client });
+    const p = await repo.createProperty(USER_A, {
+      label: "P1",
+      propertyType: "locatif",
+      currentValuation: 250_000,
+      lastValuedOn: new Date("2026-01-01"),
+    });
+    await repo.attachMortgage(USER_A, {
+      propertyId: p.id,
+      outstandingPrincipal: 180_000,
+      annualRate: 0.025,
+      monthlyPayment: 600,
+      termMonths: 240,
+      startDate: new Date("2020-01-01"),
+    });
+    await repo.attachRental(USER_A, {
+      propertyId: p.id,
+      monthlyRent: 1200,
+      monthlyCharges: 200,
+      furnished: false,
+    });
+    const rows = await repo.listWithChildrenForUser(USER_A);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.property.id).toBe(p.id);
+    expect(rows[0]!.mortgage?.outstandingPrincipal).toBe(180_000);
+    expect(rows[0]!.rental?.monthlyRent).toBe(1200);
+  });
+
+  test("AC-7 — empty list when user owns zero properties", async () => {
+    const fake = makeFakePrisma();
+    const repo = createRealestateRepository({ client: fake.client });
+    expect(await repo.listWithChildrenForUser(USER_A)).toEqual([]);
+  });
+
+  test("AC-3 partial — property with no children → null mortgage + null rental in the row", async () => {
+    const fake = makeFakePrisma();
+    const repo = createRealestateRepository({ client: fake.client });
+    const p = await repo.createProperty(USER_A, {
+      label: "P-empty",
+      propertyType: "residence-principale",
+      currentValuation: 400_000,
+      lastValuedOn: new Date("2026-01-01"),
+    });
+    const rows = await repo.listWithChildrenForUser(USER_A);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.property.id).toBe(p.id);
+    expect(rows[0]!.mortgage).toBeNull();
+    expect(rows[0]!.rental).toBeNull();
+  });
+
+  test("AC-9 — cross-user isolation (USER_B sees zero of A's rows)", async () => {
+    const fake = makeFakePrisma();
+    const repo = createRealestateRepository({ client: fake.client });
+    await repo.createProperty(USER_A, {
+      label: "A-only",
+      propertyType: "locatif",
+      currentValuation: 100_000,
+      lastValuedOn: new Date("2026-01-01"),
+    });
+    expect(await repo.listWithChildrenForUser(USER_B)).toEqual([]);
+  });
+});
+
 describe("realestate.validators — PROPERTY_TYPES mirror invariant (M2 audit)", () => {
   // M2 audit-finding (review-supp 2026-05-21): the validator-side
   // PROPERTY_TYPES_MIRROR is documented as "reviewer-enforced invariant" but
