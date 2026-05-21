@@ -75,6 +75,14 @@ function fakeRepo(overrides: Partial<RealestateRepository> = {}): RealestateRepo
     ),
     listValuations: mock(async () => [] as RealEstateValuation[]),
     deleteProperty: mock(async () => ({ ok: true as const })),
+    listWithChildrenForUser: mock(
+      async () =>
+        [] as Array<{
+          property: RealEstate;
+          mortgage: RealEstateMortgage | null;
+          rental: RealEstateRental | null;
+        }>,
+    ),
     ...overrides,
   };
 }
@@ -279,5 +287,157 @@ describe("realestate.service — happy paths delegate to repo", () => {
     const repo = fakeRepo();
     const service = createRealestateService({ repository: repo });
     expect(await service.deleteProperty(USER_A, { id: PROPERTY_A.id })).toEqual({ ok: true });
+  });
+});
+
+describe("realestate.service — derives (story 4-2)", () => {
+  const PROPERTY_250K: RealEstate = {
+    ...PROPERTY_A,
+    id: "res_aaaaaaaaaaaaaaaaaaaaa",
+    currentValuation: 250_000,
+  };
+  const MORTGAGE_180K: RealEstateMortgage = {
+    id: "resm_bbbbbbbbbbbbbbbbbbbbb",
+    userId: USER_A,
+    realEstateId: PROPERTY_250K.id,
+    outstandingPrincipal: 180_000,
+    annualRate: 0.025,
+    monthlyPayment: 600,
+    termMonths: 240,
+    startDate: new Date("2020-01-01"),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const RENTAL_1200: RealEstateRental = {
+    id: "resr_ccccccccccccccccccccc",
+    userId: USER_A,
+    realEstateId: PROPERTY_250K.id,
+    monthlyRent: 1200,
+    monthlyCharges: 200,
+    furnished: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  test("AC-1 + AC-2 — getPropertyDerives composes cashflow=+400 and equity=70000", async () => {
+    const repo = fakeRepo({
+      findByIdForUser: mock(async () => PROPERTY_250K),
+      findMortgageForUser: mock(async () => MORTGAGE_180K),
+      findRentalForUser: mock(async () => RENTAL_1200),
+    });
+    const service = createRealestateService({ repository: repo });
+    const out = await service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id });
+    expect(out).toEqual({ monthlyCashFlowEur: 400, netEquityEur: 70_000 });
+  });
+
+  test("AC-4 — getPropertyDerives returns null cashflow when no rental", async () => {
+    const repo = fakeRepo({
+      findByIdForUser: mock(async () => PROPERTY_250K),
+      findMortgageForUser: mock(async () => MORTGAGE_180K),
+      findRentalForUser: mock(async () => null),
+    });
+    const service = createRealestateService({ repository: repo });
+    const out = await service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id });
+    expect(out).toEqual({ monthlyCashFlowEur: null, netEquityEur: 70_000 });
+  });
+
+  test("AC-5 — getPropertyDerives returns full valuation as equity when no mortgage", async () => {
+    const repo = fakeRepo({
+      findByIdForUser: mock(async () => PROPERTY_250K),
+      findMortgageForUser: mock(async () => null),
+      findRentalForUser: mock(async () => null),
+    });
+    const service = createRealestateService({ repository: repo });
+    const out = await service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id });
+    expect(out).toEqual({ monthlyCashFlowEur: null, netEquityEur: 250_000 });
+  });
+
+  test("AC-6 — getPropertyDerives throws REALESTATE_NOT_FOUND on cross-user", async () => {
+    const repo = fakeRepo({ findByIdForUser: mock(async () => null) });
+    const service = createRealestateService({ repository: repo });
+    await expect(
+      service.getPropertyDerives(USER_A, { id: PROPERTY_250K.id }),
+    ).rejects.toBeInstanceOf(RealestateError);
+  });
+
+  test("AC-3 — getTotalEquity reduces 3 properties to 450000 with signed perProperty entries", async () => {
+    const p1: RealEstate = {
+      ...PROPERTY_A,
+      id: "res_111111111111111111111",
+      currentValuation: 250_000,
+    };
+    const m1: RealEstateMortgage = {
+      ...MORTGAGE_180K,
+      realEstateId: p1.id,
+      outstandingPrincipal: 180_000,
+    };
+    const p2: RealEstate = {
+      ...PROPERTY_A,
+      id: "res_222222222222222222222",
+      currentValuation: 400_000,
+    };
+    const p3: RealEstate = {
+      ...PROPERTY_A,
+      id: "res_333333333333333333333",
+      currentValuation: 100_000,
+    };
+    const m3: RealEstateMortgage = {
+      ...MORTGAGE_180K,
+      realEstateId: p3.id,
+      outstandingPrincipal: 120_000,
+    };
+    const repo = fakeRepo({
+      listWithChildrenForUser: mock(async () => [
+        { property: p1, mortgage: m1, rental: null },
+        { property: p2, mortgage: null, rental: null },
+        { property: p3, mortgage: m3, rental: null },
+      ]),
+    });
+    const service = createRealestateService({ repository: repo });
+    const out = await service.getTotalEquity(USER_A);
+    expect(out.totalEquityEur).toBe(450_000);
+    expect(out.perProperty).toEqual([
+      { propertyId: p1.id, netEquityEur: 70_000 },
+      { propertyId: p2.id, netEquityEur: 400_000 },
+      { propertyId: p3.id, netEquityEur: -20_000 },
+    ]);
+  });
+
+  test("AC-7 — getTotalEquity on empty list → { totalEquityEur: 0, perProperty: [] }", async () => {
+    const service = createRealestateService({ repository: fakeRepo() });
+    expect(await service.getTotalEquity(USER_A)).toEqual({
+      totalEquityEur: 0,
+      perProperty: [],
+    });
+  });
+
+  test("AC-7 — listPropertyDerives on empty list → []", async () => {
+    const service = createRealestateService({ repository: fakeRepo() });
+    expect(await service.listPropertyDerives(USER_A)).toEqual([]);
+  });
+
+  test("listPropertyDerives composes per-property derives for 2 properties", async () => {
+    const p1: RealEstate = {
+      ...PROPERTY_A,
+      id: "res_aaaaaaaaaaaaaaaaaaaaa",
+      currentValuation: 250_000,
+    };
+    const p2: RealEstate = {
+      ...PROPERTY_A,
+      id: "res_bbbbbbbbbbbbbbbbbbbbb",
+      currentValuation: 400_000,
+    };
+    const repo = fakeRepo({
+      listWithChildrenForUser: mock(async () => [
+        { property: p1, mortgage: MORTGAGE_180K, rental: RENTAL_1200 },
+        { property: p2, mortgage: null, rental: null },
+      ]),
+    });
+    const service = createRealestateService({ repository: repo });
+    const out = await service.listPropertyDerives(USER_A);
+    expect(out).toEqual([
+      { propertyId: p1.id, monthlyCashFlowEur: 400, netEquityEur: 70_000 },
+      { propertyId: p2.id, monthlyCashFlowEur: null, netEquityEur: 400_000 },
+    ]);
   });
 });
