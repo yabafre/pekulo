@@ -7,7 +7,7 @@ import {
   PekuloFieldGroup,
   PekuloFieldLabel,
   PekuloInput,
-  PekuloNativeSelect,
+  PekuloSelect,
   PekuloSubmitButton,
 } from "@pekulo/ui";
 import { View } from "@pekulo/ui/client";
@@ -121,17 +121,23 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
             {(field) => (
               <PekuloField>
                 <PekuloFieldLabel htmlFor="acc-type">Type</PekuloFieldLabel>
-                <PekuloNativeSelect
-                  id="acc-type"
+                <PekuloSelect
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.currentTarget.value as AccountType)}
+                  onValueChange={(v) => field.handleChange(v as AccountType)}
                 >
-                  {ACCOUNT_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {TYPE_LABEL[t]}
-                    </option>
-                  ))}
-                </PekuloNativeSelect>
+                  <PekuloSelect.Trigger id="acc-type">
+                    <PekuloSelect.Value placeholder="Choisir un type" />
+                  </PekuloSelect.Trigger>
+                  <PekuloSelect.Content>
+                    <PekuloSelect.Group>
+                      {ACCOUNT_TYPES.map((t, i) => (
+                        <PekuloSelect.Item key={t} value={t} index={i}>
+                          {TYPE_LABEL[t]}
+                        </PekuloSelect.Item>
+                      ))}
+                    </PekuloSelect.Group>
+                  </PekuloSelect.Content>
+                </PekuloSelect>
               </PekuloField>
             )}
           </form.Field>

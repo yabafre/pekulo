@@ -8,7 +8,7 @@ import {
   PekuloFieldGroup,
   PekuloFieldLabel,
   PekuloInput,
-  PekuloNativeSelect,
+  PekuloSelect,
   PekuloSubmitButton,
 } from "@pekulo/ui";
 import { View } from "@pekulo/ui/client";
@@ -134,21 +134,29 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
             {(field) => (
               <PekuloField>
                 <PekuloFieldLabel htmlFor="hld-account">Compte</PekuloFieldLabel>
-                <PekuloNativeSelect
-                  id="hld-account"
+                <PekuloSelect
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.currentTarget.value)}
-                  required
+                  onValueChange={(v) => field.handleChange(v)}
                 >
-                  {accounts.length === 0 && (
-                    <option value="">Aucun compte — crée-en un dans Paramètres</option>
-                  )}
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.label}
-                    </option>
-                  ))}
-                </PekuloNativeSelect>
+                  <PekuloSelect.Trigger id="hld-account">
+                    <PekuloSelect.Value
+                      placeholder={
+                        accounts.length === 0
+                          ? "Aucun compte — crée-en un dans Paramètres"
+                          : "Choisir un compte"
+                      }
+                    />
+                  </PekuloSelect.Trigger>
+                  <PekuloSelect.Content>
+                    <PekuloSelect.Group>
+                      {accounts.map((a, i) => (
+                        <PekuloSelect.Item key={a.id} value={a.id} index={i}>
+                          {a.label}
+                        </PekuloSelect.Item>
+                      ))}
+                    </PekuloSelect.Group>
+                  </PekuloSelect.Content>
+                </PekuloSelect>
               </PekuloField>
             )}
           </form.Field>
@@ -156,17 +164,23 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
             {(field) => (
               <PekuloField>
                 <PekuloFieldLabel htmlFor="hld-kind">Classe</PekuloFieldLabel>
-                <PekuloNativeSelect
-                  id="hld-kind"
+                <PekuloSelect
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.currentTarget.value as HoldingKind)}
+                  onValueChange={(v) => field.handleChange(v as HoldingKind)}
                 >
-                  {HOLDING_KINDS.map((k) => (
-                    <option key={k} value={k}>
-                      {KIND_LABEL[k]}
-                    </option>
-                  ))}
-                </PekuloNativeSelect>
+                  <PekuloSelect.Trigger id="hld-kind">
+                    <PekuloSelect.Value placeholder="Choisir une classe" />
+                  </PekuloSelect.Trigger>
+                  <PekuloSelect.Content>
+                    <PekuloSelect.Group>
+                      {HOLDING_KINDS.map((k, i) => (
+                        <PekuloSelect.Item key={k} value={k} index={i}>
+                          {KIND_LABEL[k]}
+                        </PekuloSelect.Item>
+                      ))}
+                    </PekuloSelect.Group>
+                  </PekuloSelect.Content>
+                </PekuloSelect>
               </PekuloField>
             )}
           </form.Field>
@@ -203,17 +217,23 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
             {(field) => (
               <PekuloField>
                 <PekuloFieldLabel htmlFor="hld-currency">Devise</PekuloFieldLabel>
-                <PekuloNativeSelect
-                  id="hld-currency"
+                <PekuloSelect
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.currentTarget.value as HoldingCurrency)}
+                  onValueChange={(v) => field.handleChange(v as HoldingCurrency)}
                 >
-                  {HOLDING_CURRENCIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </PekuloNativeSelect>
+                  <PekuloSelect.Trigger id="hld-currency">
+                    <PekuloSelect.Value placeholder="Choisir une devise" />
+                  </PekuloSelect.Trigger>
+                  <PekuloSelect.Content>
+                    <PekuloSelect.Group>
+                      {HOLDING_CURRENCIES.map((c, i) => (
+                        <PekuloSelect.Item key={c} value={c} index={i}>
+                          {c}
+                        </PekuloSelect.Item>
+                      ))}
+                    </PekuloSelect.Group>
+                  </PekuloSelect.Content>
+                </PekuloSelect>
               </PekuloField>
             )}
           </form.Field>

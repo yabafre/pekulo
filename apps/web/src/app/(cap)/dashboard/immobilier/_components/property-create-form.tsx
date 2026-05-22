@@ -9,7 +9,7 @@ import {
   PekuloFieldGroup,
   PekuloFieldLabel,
   PekuloInput,
-  PekuloNativeSelect,
+  PekuloSelect,
   PekuloSubmitButton,
 } from "@pekulo/ui";
 import { PROPERTY_TYPES, type PropertyType } from "@pekulo/types";
@@ -101,17 +101,23 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
           {(field) => (
             <PekuloField>
               <PekuloFieldLabel htmlFor="re-type">Type</PekuloFieldLabel>
-              <PekuloNativeSelect
-                id="re-type"
+              <PekuloSelect
                 value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value as PropertyType)}
+                onValueChange={(v) => field.handleChange(v as PropertyType)}
               >
-                {PROPERTY_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {TYPE_LABEL[t]}
-                  </option>
-                ))}
-              </PekuloNativeSelect>
+                <PekuloSelect.Trigger id="re-type">
+                  <PekuloSelect.Value placeholder="Choisir un type" />
+                </PekuloSelect.Trigger>
+                <PekuloSelect.Content>
+                  <PekuloSelect.Group>
+                    {PROPERTY_TYPES.map((t, i) => (
+                      <PekuloSelect.Item key={t} value={t} index={i}>
+                        {TYPE_LABEL[t]}
+                      </PekuloSelect.Item>
+                    ))}
+                  </PekuloSelect.Group>
+                </PekuloSelect.Content>
+              </PekuloSelect>
             </PekuloField>
           )}
         </form.Field>
