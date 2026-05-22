@@ -41,7 +41,7 @@ export function RealestateSection() {
   const isLoading = properties.isLoading || derives.isLoading;
   const isRefetching = !isLoading && (properties.isFetching || derives.isFetching);
   const error = properties.error ?? derives.error;
-  const rows = properties.data ?? [];
+  const rows = useMemo(() => properties.data ?? [], [properties.data]);
   const derivesById = useMemo(() => {
     const map = new Map<string, PropertyDerivesItem>();
     for (const d of derives.data ?? []) {
@@ -50,12 +50,14 @@ export function RealestateSection() {
     return map;
   }, [derives.data]);
 
-  const totalValuation = rows.reduce((s, p) => s + p.currentValuation, 0);
-  const totalEquity = rows.reduce((s, p) => {
-    const d = derivesById.get(p.id);
-    return s + (d?.netEquityEur ?? p.currentValuation);
-  }, 0);
-  const totalDebt = totalValuation - totalEquity;
+  const { totalValuation, totalEquity, totalDebt } = useMemo(() => {
+    const tv = rows.reduce((s, p) => s + p.currentValuation, 0);
+    const te = rows.reduce((s, p) => {
+      const d = derivesById.get(p.id);
+      return s + (d?.netEquityEur ?? p.currentValuation);
+    }, 0);
+    return { totalValuation: tv, totalEquity: te, totalDebt: tv - te };
+  }, [rows, derivesById]);
 
   if (isLoading) {
     return (
