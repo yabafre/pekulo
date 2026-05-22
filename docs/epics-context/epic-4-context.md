@@ -111,6 +111,27 @@ Main shipped the R1-R11 codification + folder-by-domain restructure (commit 08c9
 
 ## Previous stories — outcomes
 
+### Story 4-3-realestate-ui — done 2026-05-22T20:27:00Z
+
+- **Decisions:**
+  - **Registry edge SSOT:** `realestateTags.list()` / `realestateTags.all()` map to `[[REALESTATE_KEY]]` (bare feature prefix) in `lib/zapaction/keys.ts`. TanStack inclusive-prefix invalidation covers `list`, `byId(*)`, `valuations(*)` in one shot. The 9 mutation hooks are single-line `useActionMutation(action)` calls — `useQueryClient` + manual `invalidateQueries` is BANNED in `apps/web/**/_hooks/*` per R3/R4 + lesson 2026-05-20. Future feature registries should follow the same `[[FEATURE_KEY]]` prefix pattern unless surgical edges are explicitly needed.
+  - **Envelope SAs omit `output:`, read SAs declare it.** 9 envelope SAs (mutations) propagate discriminated-union returns through the SA boundary without zapaction's `output.parse(result)` rejecting the error branch (lesson 2026-05-20). 3 read SAs (`listProperties`, `listPropertyDerives`, `listValuations`) declare `output:` since they have a single shape. AC-7 grep guard enforces.
+  - **Discriminated-union form props.** `MortgageFormProps` + `RentalFormProps` use `{mode:"attach", mortgage?:never} | {mode:"update", mortgage: RealEstateMortgage}` so a null mortgage in update mode is a type error. Apply this shape to any future form whose `mode` discriminates a required prop.
+  - **PekuloPropertyCard dropped, inline render with PekuloDonut.** The DS primitive renders dette/mensualité/ans on every variant — actively misleading for bare properties. Inline render in `property-card.tsx:182-189` shows only what derives support. Follow-up: patch the DS primitive to gate dette on `hasMortgage` then re-adopt.
+  - **3-property a11y fixture** (`mortgage+rental`, `mortgage-only`, `bare`) wired through `vi.hoisted` in section a11y; `test.each` in card a11y. Every future immobilier a11y test should exercise the same 3 variants.
+- **Files:** see story 4-3 File List (the original 31 NEW + 3 MODIFIED) PLUS the post-implementation drift documented in story `## Post-implementation drift addressed via aped-review (2026-05-22)` — ~22 new `packages/ui/src/primitives/Pekulo*` files (PekuloButton, PekuloCard, PekuloField family, PekuloCalendar, PekuloDatePicker, PekuloDrawer, etc.), 8 sibling form migrations (`parametres/_components/account-*`, `compass-edit-form`, `portefeuille/_components/holding-* + lot-form`, `dashboard/_components/add-milestone-form`), and `apps/web/src/app/dev/primitives/page.tsx` showcase. Total diff: 95 files / +11605 / −1467.
+- **Contracts:**
+  - 13 SAs in `apps/web/src/app/(cap)/dashboard/immobilier/_actions/realestate-actions.ts` (3 reads + 9 envelopes + 1 helper `getProperty`).
+  - 13 hooks in `_hooks/` (4 reads + 9 mutations). 7-1 dashboard cap will reuse `useProperties` / `useListPropertyDerives` via the same registry edge.
+  - 11 components in `_components/` (5 forms + 4 dialogs + property-card + section + realestate.module.css). The dialog-close-x.tsx pattern is the canonical close-affordance for any future PekuloDialog consumer.
+  - **DS primitive layer** (rode this branch but should have been a separate story): `PekuloField` family is the new SSOT for form input composition (replaces legacy `form-primitives.tsx`); `PekuloSubmitButton`, `PekuloLoadingItem`, `PekuloSpinner`, `PekuloEmpty`, `PekuloCard`, `PekuloDatePicker`, `PekuloCalendar`, `PekuloDrawer`, `PekuloSelect`, `PekuloButton(Group)`, `PekuloBreadcrumb`, `PekuloResizable`, `PekuloLabel` all gained shadcn-parity surfaces with axe tests.
+- **Deviations from plan:**
+  - **T6-T11 form-primitives → PekuloField migration** (commit `90b4ed1` deleted the legacy `form-primitives.tsx` + `submit-pill.module.css`); every form in immobilier + sibling parametres/portefeuille/dashboard routes was rewritten. Recommend retroactive story `0-11-pekulofield-migration` to document the DS layer landing separately.
+  - **T12 `PekuloPropertyCard` dropped** for inline `PekuloDonut` render — see Decisions.
+  - **AC-9 grep guard** rule updated from "expected 2" to "expected 4" via aped-review pass 2 (commit `236964d`). Story file flexBasis:0 + minWidth:0 each count 4 because the loading skeleton mirrors the loaded 7/5 hero shell to avoid layout shift — intentional design parity, not drift.
+  - **17 `fix(#26)` commits post-T23** correspond to the DS layer evolution (PekuloCalendar nav buttons, PekuloPopover row, PekuloSelect onPress leaks, PekuloEmpty overlap, PekuloDatePicker structural CSS, etc.). The Dev Agent Record's "quality gate green at T23" was true at the time; the post-T23 fixes were stabilising the new DS primitives the forms consumed.
+  - **aped-review pass 2 fix log:** 9 commits ending at `236964d` closed 11 findings (2 BLOCKERS, 4 HIGH, 4 MEDIUM, 2 LOW); 3 LOW findings dismissed with rationale. Full Review Record inside story file.
+
 ### Story 4-1-realestate-domain — done 2026-05-21T00:42:00Z
 
 - **Decisions:**

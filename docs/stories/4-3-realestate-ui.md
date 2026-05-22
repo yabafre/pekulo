@@ -3401,3 +3401,91 @@ Full quality gate (T23):
 - AC-9 `flexBasis: 0` in realestate-section.tsx → **4** (expected 4 — 2 hero + 2 skeleton mirror, story spec updated 2026-05-22 via aped-review L1)
 - AC-9 `minWidth: 0` in realestate-section.tsx → **4** (same as above)
 - AC-10 `from "zod"` across story-modified surface → **0** (expected 0) ✓
+
+## Review Record
+
+**Date:** 2026-05-22
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done
+**Override (step 03):** AC gap accepted — reason: *"User chose to stay in review and fix all findings in-loop (BLOCKERS + HIGH + MEDIUM, with LOW triage on demand)."*
+
+### Findings
+
+#### Resolved (11)
+
+- **[BLOCKER] B1 / AC-8** — 9 mutation hooks bypassed tag registry SSOT (manual `useQueryClient.invalidateQueries({queryKey:[REALESTATE_KEY]})` on every `onSuccess`, violating R3/R4 + lesson 2026-05-20) — [`apps/web/src/lib/zapaction/keys.ts:130-131`, `apps/web/src/app/(cap)/dashboard/immobilier/_hooks/use-*.ts`]
+  - Source: Spec + Code + Edge auditors (3 of 4 flagged the same root cause)
+  - Resolution: `8cc7131` — registry edge now maps `realestateTags.list()` + `realestateTags.all()` to `[[REALESTATE_KEY]]` (bare feature prefix). TanStack's inclusive prefix-match covers `list`, `byId(*)`, `valuations(*)` in one shot. 9 hooks revert to single-line `useActionMutation(action)`.
+
+- **[BLOCKER] B2 / AC-11** — `bun --filter='@pekulo/web' run lint` was unrunnable (no `lint` script in `apps/web/package.json`) — [`apps/web/package.json`]
+  - Source: Spec
+  - Resolution: `2159722` — added `"lint": "bunx oxlint src"`. Re-verified: 0 warnings / 0 errors / 142 files / exit 0.
+
+- **[HIGH] H1 / AC-4** — envelope coverage incomplete; 3 of 5 typed codes tested (missing `MORTGAGE_NOT_FOUND` update, `RENTAL_NOT_FOUND` update, `REALESTATE_NOT_FOUND` on rental form) — [`mortgage-form.envelope.test.tsx`, `rental-form.envelope.test.tsx`]
+  - Source: Spec + Code + Edge
+  - Resolution: `fd908b3` — 5 new tests added across mortgage + rental envelope suites. All 5 typed codes now covered across the 5 mutation forms.
+
+- **[HIGH] H2 / AC-3** — happy-path coverage gap; only `property-create-form` asserted SA-called-once + onSuccess fired; the other 6 forms lacked the assertion — [`mortgage-form.envelope.test.tsx`, `rental-form.envelope.test.tsx`, `valuation-update-form.envelope.test.tsx`, `property-delete-confirm.envelope.test.tsx`]
+  - Source: Spec
+  - Resolution: `0836fb0` — `ok:true` happy-path tests added to each form. Each asserts (a) SA called once with coerced/trimmed payload, (b) `onSuccess` / `onOpenChange(false)` fired exactly once. `beforeEach(mockReset)` added so call-count assertions don't accumulate across tests.
+
+- **[HIGH] H3 / AC-6** — a11y tests didn't exercise the 3-property fixture mandated by AC-6 (section rendered `[]`, card rendered 1 variant) — [`realestate-section.a11y.test.tsx`, `property-card.a11y.test.tsx`]
+  - Source: Spec
+  - Resolution: `be27abc` — section a11y wires `[mortgage+rental, mortgage-only, bare]` fixture via `vi.hoisted` (fixtures share the `vi.mock` factory hoist plateau). Card a11y uses `test.each` across 3 named variants.
+
+- **[HIGH] H4 / scope drift** — 95 files changed vs 34 declared; Dev Agent Record was an unfaithful audit trail — [story doc + git diff main..HEAD]
+  - Source: Spec + git-audit + Code
+  - Resolution: `236964d` — Dev Agent Record now carries a "Post-implementation drift addressed via aped-review" block documenting the DS primitive layer landing (~22 new `Pekulo*` files), the T6-T9 form-primitives → PekuloField migration, T12 PekuloPropertyCard drop with rationale, and 8 sibling form migrations. Recommends retroactive story `0-11-pekulofield-migration` for the DS work.
+
+- **[MEDIUM] M1 / T6-T9 deviation** — forms migrated to `PekuloField*` family + `PekuloSubmitButton` not declared
+  - Source: Spec
+  - Resolution: `236964d` (rolled into H4) — Deviations entry now lists each migrated form + commit `90b4ed1` (which deleted the legacy `form-primitives.tsx` + `submit-pill.module.css`).
+
+- **[MEDIUM] M2 / T12 deviation** — `PekuloPropertyCard` dropped in favour of inline `PekuloDonut` render
+  - Source: Spec
+  - Resolution: `236964d` (rolled into H4) — rationale documented (DS card always rendered dette/mensualité on bare properties); AC-1 donut math still honored at `property-card.tsx:119`. Follow-up: patch `PekuloPropertyCard` to gate dette block on `hasMortgage`, then re-adopt.
+
+- **[MEDIUM] M4** — `realestate-section.tsx` totals (`totalValuation`/`totalEquity`/`totalDebt`) recomputed on every render — [`realestate-section.tsx:53-58`]
+  - Source: Code
+  - Resolution: `8e4a71f` — 3 totals wrapped in a single `useMemo` keyed on `[rows, derivesById]`; `rows = properties.data ?? []` also memoised so the `[]` fallback identity stays stable.
+
+- **[LOW] L1 / AC-9 grep guard** — count 4 ≠ spec's 2 (skeleton mirror real but guard rule stale)
+  - Source: Spec, Aria
+  - Resolution: `236964d` — AC-9 grep guard updated to expect 4 with skeleton-mirror rationale inline; final counts block confirms 4/4.
+
+- **[LOW] L2 / mortgage-form null degradation** — `mode="update", mortgage=null` was type-legal and silently degraded to MORTGAGE_NOT_FOUND
+  - Source: Edge
+  - Resolution: `11e8cbc` — `MortgageFormProps` + `RentalFormProps` refactored to discriminated unions so `mode: "update"` MUST carry a non-null mortgage/rental. `property-card.tsx` ternary-splits per mode so TS narrows correctly.
+
+- **[LOW] L3 / valuation-history sort tie-breaker** — same-day re-record could render older row first (contradicts AC-2)
+  - Source: Edge
+  - Resolution: `2f8e952` — sort gains a secondary `id`-desc tie-breaker. Cuid-like Prisma IDs are monotonically increasing so `id`-desc on a tie inherently preserves "newest first".
+
+#### Dismissed (3)
+
+- **[MEDIUM] M3 — No real-pipeline integration test** — every envelope test mocks at the SA boundary; the discriminated-union narrow path is verified by TS, not at runtime
+  - Source: Code (anti-pattern #1 mock-the-behaviour)
+  - Rationale: User-accepted defer. The full zapaction→hook→form pipeline test belongs in a dedicated story (`0-12-integration-test-pekulo`). The pipeline is grep-guarded (AC-7) + type-checked, and a mock-of-mock integration shim would hide a real `useActionMutation` regression more than it'd catch.
+
+- **[LOW] L4 / PekuloDialog mobile drawer fallback** — no `< lg` PekuloDrawer branch
+  - Source: Aria
+  - Rationale: Matches sibling portefeuille pattern (also dialog-only). Cross-cutting Drawer mobile experience is a separate concern that should be triaged across both routes — not a 4-3 regression.
+
+- **[LOW] L5 / concurrent-edit race (last-write-wins, no version field)**
+  - Source: Code
+  - Rationale: V1 limitation by design (NFR-16 cap 50 properties/user, single-user concurrency unlikely). Optimistic-concurrency belongs in story 5-x (transactions) or 7-3 (hypothesis writes) which face the same boundary.
+
+### Verification
+
+- **Quality gate (captured fresh on 2026-05-22T20:25Z):**
+  - `bun --filter='@pekulo/web' run lint` → `Found 0 warnings and 0 errors. Finished in 211ms on 142 files using 10 threads. Exited with code 0`
+  - `bun --filter='@pekulo/web' run typecheck` → exit 0
+  - `cd apps/web && bun run test` → `Test Files  40 passed (40) · Tests  72 passed (72)` (vs 40/59 pre-review)
+  - `bun --filter='@pekulo/*' run typecheck` → all 8 packages (`@pekulo/zod`, `@pekulo/validators`, `@pekulo/oxlint-config`, `@pekulo/types`, `@pekulo/contracts`, `@pekulo/ui`, `@pekulo/api`, `@pekulo/web`) exit 0
+- **Auditor pass 2:** Spec APPROVED (HIGH) · Code APPROVED (HIGH) · Edge APPROVED (HIGH, pass 1) · Aria DEFERRED → user verified live.
+- **Visual verification (L6):** `bun --filter='@pekulo/web' run dev` was already running at review time; Alex confirmed the PekuloDatePicker single-mode flow (`re-date`, `m-sd`, `v-date`) opens, advances months without closing, and commits + closes once per click.
+
+### Ticket sync
+
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/26#issuecomment-4521823284
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/89 (base `main`, head `feature/26-4-3-realestate-ui`)
