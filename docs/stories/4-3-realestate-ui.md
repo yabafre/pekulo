@@ -3042,15 +3042,19 @@
 
   # AC-9 — `flexBasis: 0` AND `minWidth: 0` present on both hero lg props
   grep -nE "flexBasis:\s*0" apps/web/src/app/\(cap\)/dashboard/immobilier/_components/realestate-section.tsx | wc -l
-  # Expected: 2 (one per hero child)
+  # Expected: 4 (2 in loaded hero row + 2 in loading skeleton mirror — the
+  # skeleton replicates the 7/5 shell to avoid layout shift between
+  # loading and loaded states; AC-9's structural claim ("both wrappers
+  # carry flexBasis:0 AND minWidth:0") still holds, the count just
+  # doubles because two parallel branches use the same incantation).
   grep -nE "minWidth:\s*0" apps/web/src/app/\(cap\)/dashboard/immobilier/_components/realestate-section.tsx | wc -l
-  # Expected: 2
+  # Expected: 4 (same rationale as above)
 
   # AC-10 — zero `from "zod"` outside @pekulo/zod
   grep -rEn 'from\s+"zod"|from\s+'\''zod'\''' apps/web/src/app/\(cap\)/dashboard/immobilier apps/web/src/app/\(cap\)/dashboard/_components/cap-shell.tsx apps/web/src/lib/orpc/modules.ts apps/web/src/lib/zapaction/keys.ts | wc -l
   # Expected: 0
   ```
-  Expected: each line of the script returns its expected value (3, 9, 2, 2, 0). If any grep returns an unexpected count, fix the offending file before continuing.
+  Expected: each line of the script returns its expected value (3, 9, 4, 4, 0). If any grep returns an unexpected count, fix the offending file before continuing.
   Commit: no commit — verification step.
 
 - [x] **T23** — Full quality gate. [AC: AC-11]
@@ -3353,6 +3357,29 @@ Implemented the full Immobilier route in `apps/web` (31 NEW files + 3 MODIFIED) 
 - **T16-T21 (test gates)** — story spec uses `bun --filter='@pekulo/web' test PATH` ; that path resolves to bun's native `bun test` runner, which dies on the `server-only` import in `lib/zapaction/context.ts`. Switched to `cd apps/web && bun run test PATH` (invokes the `vitest run` script per package.json). Lesson candidate for `docs/lessons.md`.
 - **T22 (commit `0bdb51d`)** — AC-8 grep counted `realestateTags.list()` as a literal string match. The original docstring quoted the symbol-with-parens, inflating the count to 10. Reworded the comment to use natural language ("the realestate aggregate `list` tag"); the 9 envelope SA declarations now stand alone. AC-9's `flexBasis: 0` / `minWidth: 0` greps return 4 each instead of the story-spec-expected 2 — the loading skeleton mirrors the same 7/5 hero shell (avoiding layout shift between loading and loaded states); the additional 2 matches reflect intentional design parity, not drift.
 
+### Post-implementation drift addressed via aped-review (2026-05-22)
+
+The branch shipped 95 changed files vs the story File List's 34 — the discrepancy is real and was masked by silent migrations + post-T23 fix commits. Tracked here so future reviewers don't trip on the gap.
+
+- **DS primitive layer landed mid-story (not in story plan)** — ~22 new `packages/ui/src/primitives/Pekulo*` files (PekuloButton, PekuloButtonGroup, PekuloCard, PekuloCalendar, PekuloDatePicker, PekuloDrawer, PekuloEmpty, PekuloField + FieldGroup/Label/Description/Error, PekuloInput rev2, PekuloLabel, PekuloLoadingItem, PekuloResizable, PekuloSelect, PekuloSpinner, PekuloSubmitButton, PekuloBreadcrumb) + their `.a11y.test.tsx` / `.snapshot.test.tsx` siblings. Plus modifications to PekuloPopover, PekuloProgress, PekuloTextarea, PekuloNativeSelect. These should have ridden under a dedicated story (`0-11-pekulofield-migration` recommended for retroactive documentation). The work is sound — every primitive has axe tests and the showcase at `apps/web/src/app/dev/primitives/page.tsx` exercises each — but it inflated 4-3's diff to 95 files / +11605 / −1467 and produced the 17+ "fix(#26)" post-T23 commits in `git log` that contradict the "quality gate green" Dev Agent Record timestamp.
+- **T6-T9 deviation (form-primitives → PekuloField family)** — story spec T6-T9 import `FormField`, `formInputStyle`, `formSubmitStyle` from `apps/web/src/app/(cap)/_components/form-primitives` + `submit-pill.module.css`. Both files were DELETED in this branch (commit `90b4ed1`) and every form (immobilier + sibling parametres/portefeuille forms) migrated to `PekuloField` / `PekuloFieldGroup` / `PekuloFieldLabel` / `PekuloFieldDescription` / `PekuloFieldError` / `PekuloSubmitButton` from `@pekulo/ui`. The shipped forms are correct, but the story's code-block excerpts are now stale relative to the implementation.
+- **T12 deviation (PekuloPropertyCard dropped)** — story spec T12 says "route-local wrapper around `PekuloPropertyCard`". The shipped `property-card.tsx` inline-renders with `PekuloDonut` instead; comment at L183-189 documents the reason (the DS card always rendered the dette/mensualité/ans block, even on bare properties — actively misleading). The AC-1 donut math is still honored at L119 (`clamp01(netEquity / property.currentValuation)`). Follow-up: patch `PekuloPropertyCard` to gate the dette block on `hasMortgage`, then this route can re-adopt the DS primitive.
+- **Sibling form migrations (out-of-scope but shipped on this branch)** — `account-balance-form`, `account-create-form`, `account-edit-form`, `compass-edit-form` under `parametres/_components/`; `holding-close-confirm`, `holding-create-form`, `lot-form` under `portefeuille/_components/`; `add-milestone-form` under `dashboard/_components/`. All migrated to PekuloField as part of the DS layer landing; they would have failed typecheck once `form-primitives.tsx` was deleted, hence the in-place fix. Tracked here so the next reviewer knows why these untracked files appear in `git diff main..HEAD`.
+
+### aped-review fix commits (2026-05-22)
+
+Applied in `aped-review` after the auditors (Spec / Code / Edge / Aria) flagged drift between story claims and implementation. Each fix carries `[aped-review]` in its subject:
+
+- `8cc7131` — registry edge SSOT in `lib/zapaction/keys.ts` now maps `realestateTags.list()` → `[REALESTATE_KEY]` (bare feature prefix). The 9 mutation hooks revert to single-line `useActionMutation(...)` calls — `useQueryClient` + manual `invalidateQueries({queryKey:[REALESTATE_KEY]})` was a workaround for the original registry shape, which only matched the `["realestate","list"]` literal and missed `byId`/`valuations`. Restores R3/R4 + lesson 2026-05-20 conformance. Closes AC-8 + B1.
+- `2159722` — `lint: bunx oxlint src` added to `apps/web/package.json`. AC-11's `bun --filter='@pekulo/web' run lint` now exits 0 against 142 files. Closes B2.
+- `fd908b3` — 5 new envelope test cases (mortgage update + REALESTATE_NOT_FOUND; rental attach/update + REALESTATE_NOT_FOUND + RENTAL_NOT_FOUND). All 5 typed codes now covered across the 5 mutation forms. Closes AC-4 + H1.
+- `0836fb0` — happy-path (`ok:true`) assertions added to each form envelope test: SA called once with coerced payload + `onSuccess`/`onOpenChange(false)` fired exactly once. `beforeEach(mockReset)` added to mortgage + rental suites so call-count assertions don't accumulate across tests. Closes AC-3 + H2.
+- `be27abc` — 3-property fixture (`mortgage+rental`, `mortgage-only`, `bare`) wired through `realestate-section.a11y.test.tsx` via `vi.hoisted`; `property-card.a11y.test.tsx` parameterised with `test.each` across the 3 variants. Closes AC-6 + H3.
+- `8e4a71f` — `realestate-section.tsx` totals (`totalValuation`/`totalEquity`/`totalDebt`) memoised in a single `useMemo`; `rows = properties.data ?? []` also memoised so the `[]` fallback identity is stable. Closes M4.
+- `11e8cbc` — `MortgageFormProps` + `RentalFormProps` refactored to discriminated unions so `mode: "update"` MUST carry a non-null mortgage/rental. Pre-fix: the illegal `mode="update", mortgage=null` combination type-checked and silently degraded to a `MORTGAGE_NOT_FOUND` envelope. `property-card.tsx` splits its single `<MortgageForm>` / `<RentalForm>` call into a ternary so TS sees the proper narrow. Closes L2.
+- `2f8e952` — `valuation-history-dialog` sort gains a secondary id-desc tie-breaker so same-day re-records preserve "newest first" per AC-2. Closes L3.
+- Story spec AC-9 grep guard updated to expect 4 (was 2) with skeleton-mirror rationale recorded inline; the spec now matches reality. Closes L1.
+
 ### Test output
 
 ```
@@ -3371,6 +3398,6 @@ Full quality gate (T23):
 
 - AC-7 `^\s+output:` in realestate-actions.ts → **3** (expected 3) ✓
 - AC-8 `realestateTags.list()` in realestate-actions.ts → **9** (expected 9) ✓
-- AC-9 `flexBasis: 0` in realestate-section.tsx → **4** (expected 2 per story ; 4 = hero + skeleton mirror, intentional)
+- AC-9 `flexBasis: 0` in realestate-section.tsx → **4** (expected 4 — 2 hero + 2 skeleton mirror, story spec updated 2026-05-22 via aped-review L1)
 - AC-9 `minWidth: 0` in realestate-section.tsx → **4** (same as above)
 - AC-10 `from "zod"` across story-modified surface → **0** (expected 0) ✓
