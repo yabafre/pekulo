@@ -12,7 +12,7 @@
 //
 // Custom trigger label: pass `formatLabel` for fr-FR or custom output.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { PekuloCalendar } from "./PekuloCalendar";
@@ -86,27 +86,44 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
   }
 
   // Guard onOpenChange — in range mode, Tamagui's Popover fires a
-  // spurious close on the first day_button click (DismissableBranch
-  // treats a rapid focus shift inside the popover as outside dismiss).
+  // spurious close on day_button clicks (the dismissable layer runs on
+  // pointerdown in the capture phase, BEFORE react-day-picker's click
+  // handler reaches onSelect). A ref-based guard reading the current
+  // range value loses the race because the ref is still pre-click when
+  // dismiss fires.
   //
-  // Why a ref: when Tamagui calls onOpenChange(false) inside the same
-  // event loop as the day_button click, React hasn't yet flushed the
-  // setDatePickerRange state update fired from onSelect — so
-  // `props.value` still reflects the PRE-click value (no `from` yet),
-  // and the guard against `from && !to` doesn't trigger. The ref is
-  // written synchronously in onSelect so handleOpenChange always sees
-  // the latest range during the same event tick.
-  const rangeRef = useRef<DateRange | undefined>(undefined);
-  if (props.mode === "range") rangeRef.current = props.value;
+  // Solution: defer the close one macrotask via setTimeout(0). React
+  // flushes the click-handler chain (including react-day-picker →
+  // onSelect → onChange) in the current macrotask; setTimeout(0)'s
+  // callback runs in the next one, AFTER onSelect has settled the
+  // range. If the range turned out to be incomplete (just-set `from`,
+  // no `to` yet), onSelect cancels the pending close via the same
+  // timer ref. Genuine outside-clicks / Escape / trigger-press fire
+  // dismiss WITHOUT a follow-up onSelect → the timer is never cancelled
+  // → popover closes after one tick (imperceptible).
+  const pendingCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingCloseRef.current !== null) {
+        clearTimeout(pendingCloseRef.current);
+      }
+    };
+  }, []);
 
   const handleOpenChange = (next: boolean) => {
-    if (!next && props.mode === "range") {
-      const current = rangeRef.current;
-      if (current?.from && !current?.to) {
-        return;
-      }
+    if (next || props.mode !== "range") {
+      setOpen(next);
+      return;
     }
-    setOpen(next);
+    // Cancel any previously-pending close before scheduling a new one.
+    if (pendingCloseRef.current !== null) {
+      clearTimeout(pendingCloseRef.current);
+    }
+    pendingCloseRef.current = setTimeout(() => {
+      pendingCloseRef.current = null;
+      setOpen(false);
+    }, 0);
   };
 
   return (
@@ -146,12 +163,19 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
             mode="range"
             selected={props.value}
             onSelect={(r) => {
-              // Mirror to ref synchronously so handleOpenChange sees
-              // the latest range during Tamagui's same-tick dismiss
-              // check.
-              rangeRef.current = r;
               props.onChange(r);
-              if (r?.from && r?.to) setOpen(false);
+              if (r?.from && r?.to) {
+                // Range complete — let the pending close (if any) win,
+                // OR fire close ourselves if no dismiss was queued.
+                setOpen(false);
+                return;
+              }
+              // Range incomplete after this click — cancel any close
+              // pending from Tamagui's spurious pointerdown dismiss.
+              if (pendingCloseRef.current !== null) {
+                clearTimeout(pendingCloseRef.current);
+                pendingCloseRef.current = null;
+              }
             }}
             numberOfMonths={props.numberOfMonths ?? 2}
           />
