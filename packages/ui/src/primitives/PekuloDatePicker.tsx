@@ -91,7 +91,13 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
         id={props.id}
         aria-label="Sélectionner une date"
         style={{
+          // PekuloPopover.Trigger uses Tamagui's asChild Slot which
+          // injects the `is_View` class onto our <button>; that class
+          // sets `display: flex; flex-direction: column` by default,
+          // stacking the icon ABOVE the label. Override flex-direction
+          // explicitly so the inline-flex children sit side-by-side.
           display: "inline-flex",
+          flexDirection: "row",
           alignItems: "center",
           gap: 8,
           width,
