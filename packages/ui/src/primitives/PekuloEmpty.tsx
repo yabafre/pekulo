@@ -116,6 +116,12 @@ export function PekuloEmptyMedia({
 
 // ─── EmptyTitle ──────────────────────────────────────────────────────────
 
+// Plain <h3>/<p> instead of Tamagui Text — Tamagui's Text component
+// resolves line-height from the font config (pekuloLineHeights keys
+// don't match pekuloFontSizes keys, so Tamagui falls back or interprets
+// numeric tokens as absolute px). Native HTML respects CSS unitless
+// line-height as a ratio, so multi-line wrap renders correctly.
+
 export function PekuloEmptyTitle({
   children,
   style,
@@ -124,15 +130,21 @@ export function PekuloEmptyTitle({
   style?: CSSProperties;
 }) {
   return (
-    <Text
+    <h3
       data-slot="empty-title"
-      color="$color"
-      fontSize={pekuloFontSizes.bodySm}
-      fontWeight={pekuloFontWeights.medium}
-      style={{ letterSpacing: -0.1, lineHeight: 1.3, textAlign: "center", ...style }}
+      style={{
+        margin: 0,
+        color: "var(--color)",
+        fontSize: pekuloFontSizes.bodySm,
+        fontWeight: pekuloFontWeights.medium,
+        letterSpacing: -0.1,
+        lineHeight: 1.3,
+        textAlign: "center",
+        ...style,
+      }}
     >
       {children}
-    </Text>
+    </h3>
   );
 }
 
@@ -146,17 +158,25 @@ export function PekuloEmptyDescription({
   style?: CSSProperties;
 }) {
   return (
-    <Text
+    <p
       data-slot="empty-description"
-      color="$colorTertiary"
-      fontSize={pekuloFontSizes.bodySm}
-      // Tamagui interprets `lineHeight="$normal"` (token=1.4) as 1.4px
-      // ABSOLUTE — the wrapped text lines overlap. Use inline style with
-      // a unitless ratio so CSS multiplies by font-size correctly.
-      style={{ lineHeight: 1.5, textAlign: "center", ...style }}
+      // `@pekulo/ui/reset.css` applies `all: unset` to <p> (so Tamagui's
+      // `<Text render="p">` can own its own layout). That makes a bare
+      // <p> render as `display: inline`, killing line-height on wrapped
+      // text. Force `display: block` + width:100% to restore block flow.
+      style={{
+        display: "block",
+        width: "100%",
+        margin: 0,
+        color: "var(--colorTertiary)",
+        fontSize: pekuloFontSizes.bodySm,
+        lineHeight: 1.5,
+        textAlign: "center",
+        ...style,
+      }}
     >
       {children}
-    </Text>
+    </p>
   );
 }
 
