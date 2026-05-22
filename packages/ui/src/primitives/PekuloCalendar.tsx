@@ -23,6 +23,56 @@ const CALENDAR_THEME_CSS = `
   font-family: inherit;
   color: var(--color);
 }
+/* Layout — we don't import react-day-picker's base CSS, so we provide
+ * the structural rules ourselves (months row, weekday grid, table
+ * collapse). Without these the months render as block-level stacked
+ * vertically — broken for range mode with 2 months side-by-side. */
+.pekulo-calendar .rdp-months {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.pekulo-calendar .rdp-month {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pekulo-calendar .rdp-month_caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+}
+.pekulo-calendar .rdp-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pekulo-calendar .rdp-month_grid,
+.pekulo-calendar .rdp-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.pekulo-calendar .rdp-weekdays {
+  display: table-row;
+}
+.pekulo-calendar .rdp-weekday {
+  display: table-cell;
+  text-align: center;
+  padding: 4px 0;
+}
+.pekulo-calendar .rdp-weeks {
+  display: table-row-group;
+}
+.pekulo-calendar .rdp-week {
+  display: table-row;
+}
+.pekulo-calendar .rdp-day {
+  display: table-cell;
+  text-align: center;
+  padding: 2px 0;
+}
 .pekulo-calendar .rdp-day_button {
   color: var(--color);
   background: transparent;
