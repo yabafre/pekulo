@@ -27,9 +27,9 @@ const CALENDAR_THEME_CSS = `
  * the structural rules ourselves (months row, weekday grid, table
  * collapse). Without these the months render as block-level stacked
  * vertically — broken for range mode with 2 months side-by-side. */
-/* `.rdp-nav` is a sibling of all months at the `.rdp-months` level (NOT
- * inside each month). Make `.rdp-months` the positioned ancestor so the
- * nav can be absolutely positioned across the whole months container —
+/* .rdp-nav is a sibling of all months at the .rdp-months level (NOT
+ * inside each month). Make .rdp-months the positioned ancestor so the
+ * nav can be absolutely positioned across the whole months container --
  * prev on far-left, next on far-right, single shared set of chevrons
  * for both months in range mode. */
 .pekulo-calendar .rdp-months {
