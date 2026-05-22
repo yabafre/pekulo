@@ -50,7 +50,7 @@ describe("RentalForm envelope (AC-3 + AC-4)", () => {
     const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const { getByRole } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <RentalForm property={FAKE_PROPERTY} rental={null} mode="attach" onSuccess={onSuccess} />
+        <RentalForm property={FAKE_PROPERTY} mode="attach" onSuccess={onSuccess} />
       </QueryClientProvider>,
     );
 
@@ -104,7 +104,7 @@ describe("RentalForm envelope (AC-3 + AC-4)", () => {
     const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const { getByRole, findByRole } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <RentalForm property={FAKE_PROPERTY} rental={null} mode="attach" />
+        <RentalForm property={FAKE_PROPERTY} mode="attach" />
       </QueryClientProvider>,
     );
 
@@ -125,7 +125,7 @@ describe("RentalForm envelope (AC-3 + AC-4)", () => {
     const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const { getByRole, findByRole } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <RentalForm property={FAKE_PROPERTY} rental={null} mode="attach" />
+        <RentalForm property={FAKE_PROPERTY} mode="attach" />
       </QueryClientProvider>,
     );
 

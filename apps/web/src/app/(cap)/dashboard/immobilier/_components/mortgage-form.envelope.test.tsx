@@ -52,12 +52,7 @@ describe("MortgageForm envelope (AC-3 + AC-4)", () => {
     const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const { getByRole } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <MortgageForm
-          property={FAKE_PROPERTY}
-          mortgage={null}
-          mode="attach"
-          onSuccess={onSuccess}
-        />
+        <MortgageForm property={FAKE_PROPERTY} mode="attach" onSuccess={onSuccess} />
       </QueryClientProvider>,
     );
 
@@ -112,7 +107,7 @@ describe("MortgageForm envelope (AC-3 + AC-4)", () => {
     const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const { getByRole, findByRole } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <MortgageForm property={FAKE_PROPERTY} mortgage={null} mode="attach" />
+        <MortgageForm property={FAKE_PROPERTY} mode="attach" />
       </QueryClientProvider>,
     );
 
@@ -133,7 +128,7 @@ describe("MortgageForm envelope (AC-3 + AC-4)", () => {
     const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const { getByRole, findByRole } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <MortgageForm property={FAKE_PROPERTY} mortgage={null} mode="attach" />
+        <MortgageForm property={FAKE_PROPERTY} mode="attach" />
       </QueryClientProvider>,
     );
 

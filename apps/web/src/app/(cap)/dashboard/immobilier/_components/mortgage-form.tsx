@@ -20,14 +20,19 @@ const REALESTATE_NOT_FOUND_MSG = "Bien introuvable (déjà supprimé ?). Recharg
 const MORTGAGE_ALREADY_ATTACHED_MSG = "Ce bien a déjà un crédit. Modifie celui existant.";
 const MORTGAGE_NOT_FOUND_MSG = "Aucun crédit attaché à ce bien.";
 
-export interface MortgageFormProps {
-  property: RealEstate;
-  mortgage: RealEstateMortgage | null;
-  mode: "attach" | "update";
-  onSuccess?: () => void;
-}
+// Discriminated union so `mode: "update"` MUST carry a non-null mortgage.
+// Pre-fix the prop was `mortgage: RealEstateMortgage | null` for both
+// modes, so an `update` call with `mortgage=null` typechecked, silently
+// defaulted every numeric field to 0, sent the mutation, and bounced
+// on MORTGAGE_NOT_FOUND. The discriminated shape makes the invalid
+// combination a type error instead.
+export type MortgageFormProps =
+  | { property: RealEstate; mode: "attach"; mortgage?: never; onSuccess?: () => void }
+  | { property: RealEstate; mode: "update"; mortgage: RealEstateMortgage; onSuccess?: () => void };
 
-export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFormProps) {
+export function MortgageForm(props: MortgageFormProps) {
+  const { property, mode, onSuccess } = props;
+  const mortgage = props.mode === "update" ? props.mortgage : null;
   const attach = useAttachMortgage();
   const update = useUpdateMortgage();
   const active = mode === "attach" ? attach : update;

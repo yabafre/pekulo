@@ -27,7 +27,7 @@ describe("RentalForm a11y (AC-6)", () => {
     const qc = new QueryClient();
     const { container } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <RentalForm property={FAKE_PROPERTY} rental={null} mode="attach" />
+        <RentalForm property={FAKE_PROPERTY} mode="attach" />
       </QueryClientProvider>,
     );
     const results = await axe(container);

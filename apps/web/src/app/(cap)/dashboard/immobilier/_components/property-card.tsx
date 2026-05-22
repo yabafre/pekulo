@@ -269,12 +269,16 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
               <PekuloDialog.Description>
                 Capital restant, taux, mensualité, durée restante et date de début.
               </PekuloDialog.Description>
-              <MortgageForm
-                property={property}
-                mortgage={mortgage}
-                mode={mortgage ? "update" : "attach"}
-                onSuccess={() => setDialog(null)}
-              />
+              {mortgage ? (
+                <MortgageForm
+                  property={property}
+                  mode="update"
+                  mortgage={mortgage}
+                  onSuccess={() => setDialog(null)}
+                />
+              ) : (
+                <MortgageForm property={property} mode="attach" onSuccess={() => setDialog(null)} />
+              )}
             </PekuloDialog.Content>
           </PekuloDialog.Portal>
         </PekuloDialog>
@@ -293,12 +297,16 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
               <PekuloDialog.Description>
                 Loyer mensuel, charges et statut meublé.
               </PekuloDialog.Description>
-              <RentalForm
-                property={property}
-                rental={rental}
-                mode={rental ? "update" : "attach"}
-                onSuccess={() => setDialog(null)}
-              />
+              {rental ? (
+                <RentalForm
+                  property={property}
+                  mode="update"
+                  rental={rental}
+                  onSuccess={() => setDialog(null)}
+                />
+              ) : (
+                <RentalForm property={property} mode="attach" onSuccess={() => setDialog(null)} />
+              )}
             </PekuloDialog.Content>
           </PekuloDialog.Portal>
         </PekuloDialog>

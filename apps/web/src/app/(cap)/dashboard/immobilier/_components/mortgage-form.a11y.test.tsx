@@ -27,7 +27,7 @@ describe("MortgageForm a11y (AC-6)", () => {
     const qc = new QueryClient();
     const { container } = renderWithTamagui(
       <QueryClientProvider client={qc}>
-        <MortgageForm property={FAKE_PROPERTY} mortgage={null} mode="attach" />
+        <MortgageForm property={FAKE_PROPERTY} mode="attach" />
       </QueryClientProvider>,
     );
     const results = await axe(container);

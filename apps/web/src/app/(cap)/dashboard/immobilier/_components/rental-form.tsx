@@ -20,14 +20,16 @@ const REALESTATE_NOT_FOUND_MSG = "Bien introuvable (déjà supprimé ?). Recharg
 const RENTAL_ALREADY_ATTACHED_MSG = "Ce bien a déjà un loyer. Modifie celui existant.";
 const RENTAL_NOT_FOUND_MSG = "Aucun loyer attaché à ce bien.";
 
-export interface RentalFormProps {
-  property: RealEstate;
-  rental: RealEstateRental | null;
-  mode: "attach" | "update";
-  onSuccess?: () => void;
-}
+// Discriminated union — symmetric with MortgageFormProps. `mode: "update"`
+// MUST carry a non-null rental. See mortgage-form.tsx for the same rationale
+// (silent degradation to RENTAL_NOT_FOUND when null leaked through).
+export type RentalFormProps =
+  | { property: RealEstate; mode: "attach"; rental?: never; onSuccess?: () => void }
+  | { property: RealEstate; mode: "update"; rental: RealEstateRental; onSuccess?: () => void };
 
-export function RentalForm({ property, rental, mode, onSuccess }: RentalFormProps) {
+export function RentalForm(props: RentalFormProps) {
+  const { property, mode, onSuccess } = props;
+  const rental = props.mode === "update" ? props.rental : null;
   const attach = useAttachRental();
   const update = useUpdateRental();
   const active = mode === "attach" ? attach : update;
