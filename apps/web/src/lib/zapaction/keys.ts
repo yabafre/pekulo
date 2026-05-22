@@ -110,15 +110,23 @@ setTagRegistry({
   [holdingsTags.all()]: [holdingsKeys.list()],
   [holdingsTags.list()]: [holdingsKeys.list()],
   // Realestate (story 4-1 + 4-2 + 4-3) — the `list` tag invalidates the
-  // realestate aggregate keys; the 4-2 derives are stateless reads of
-  // the same aggregate, AND the 4-3 UI hooks (useProperties /
-  // useListPropertyDerives / useProperty / useListValuations) ALL
-  // subscribe to keys that share the `realestate` feature prefix, so
-  // any mutation that bumps `list` invalidates the entire immobilier
-  // route's read graph transparently. Per-id (`byId`, `valuations`)
-  // refetches happen on the same coarse edge — surgical edges are not
-  // required at V1 scale (NFR-16: 50 properties / user). 7-1 dashboard
-  // will add `realestateTags.list → dashboardKeys.cap` when it ships.
-  [realestateTags.all()]: [realestateKeys.list()],
-  [realestateTags.list()]: [realestateKeys.list()],
+  // entire realestate read graph via the bare `[REALESTATE_KEY]` prefix.
+  // TanStack's `invalidateQueries({queryKey:["realestate"]})` is inclusive
+  // prefix-match, so this single edge covers `realestateKeys.list()`,
+  // `byId(id)` AND `valuations(id)` in one shot — the 4-3 UI hooks
+  // (useProperties / useListPropertyDerives / useProperty /
+  // useListValuations) all subscribe to keys under the `realestate`
+  // prefix. Surgical edges are not required at V1 scale (NFR-16: 50
+  // properties / user). 7-1 dashboard will add a dedicated
+  // `realestateTags.list → dashboardKeys.cap` edge when it ships.
+  //
+  // 2026-05-22 aped-review fix — earlier shape mapped to
+  // `realestateKeys.list()` only, which silently missed `byId` and
+  // `valuations`; the 9 mutation hooks compensated with manual
+  // `queryClient.invalidateQueries({queryKey:[REALESTATE_KEY]})` calls
+  // that violated R3/R4 + lesson 2026-05-20 ("hooks consume zapaction,
+  // never raw @tanstack/react-query"). Fixing the registry restores
+  // the SSOT.
+  [realestateTags.all()]: [[REALESTATE_KEY]],
+  [realestateTags.list()]: [[REALESTATE_KEY]],
 });
