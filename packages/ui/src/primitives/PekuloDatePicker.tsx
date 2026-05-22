@@ -48,6 +48,8 @@ export interface PekuloDatePickerSingleProps {
   width?: number | string;
   /** Disable the trigger. */
   disabled?: boolean;
+  /** HTML id forwarded to the trigger button — enables `<label htmlFor>` association. */
+  id?: string;
 }
 
 // ─── Range-mode ──────────────────────────────────────────────────────────
@@ -62,6 +64,8 @@ export interface PekuloDatePickerRangeProps {
   disabled?: boolean;
   /** Render N months side-by-side (range only). Default 2. */
   numberOfMonths?: number;
+  /** HTML id forwarded to the trigger button — enables `<label htmlFor>` association. */
+  id?: string;
 }
 
 export type PekuloDatePickerProps = PekuloDatePickerSingleProps | PekuloDatePickerRangeProps;
@@ -84,6 +88,7 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
   return (
     <PekuloPopover open={open} onOpenChange={setOpen}>
       <PekuloPopover.Trigger
+        id={props.id}
         aria-label="Sélectionner une date"
         style={{
           display: "inline-flex",
