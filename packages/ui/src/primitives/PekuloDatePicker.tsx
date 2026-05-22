@@ -90,15 +90,12 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
       <PekuloPopover.Trigger
         id={props.id}
         aria-label="Sélectionner une date"
+        // PekuloPopover.Trigger now ships sensible row-flex defaults
+        // (display:inline-flex + flex-direction:row + alignItems:center)
+        // so consumers don't have to fight Tamagui's `is_View` column
+        // default. Style below only overrides what's specific to the
+        // DatePicker pill (width, padding, border, colors, etc.).
         style={{
-          // PekuloPopover.Trigger uses Tamagui's asChild Slot which
-          // injects the `is_View` class onto our <button>; that class
-          // sets `display: flex; flex-direction: column` by default,
-          // stacking the icon ABOVE the label. Override flex-direction
-          // explicitly so the inline-flex children sit side-by-side.
-          display: "inline-flex",
-          flexDirection: "row",
-          alignItems: "center",
           gap: 8,
           width,
           justifyContent: "flex-start",

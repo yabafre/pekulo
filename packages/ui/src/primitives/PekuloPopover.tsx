@@ -1,14 +1,27 @@
 "use client";
 
 import { Popover as TamaPopover, type PopoverProps } from "@tamagui/popover";
-import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ComponentProps, CSSProperties, ReactNode } from "react";
 
 function Root({ placement = "bottom", ...props }: PopoverProps & { children: ReactNode }) {
   return <TamaPopover placement={placement} {...props} />;
 }
 
+// Default trigger styles — Tamagui's asChild Slot clones the button and
+// merges its own View styles onto it via the `is_View` class. View's
+// default `flex-direction: column` would stack icon + label vertically.
+// Prepend sensible row-flex defaults so the common pattern (icon + text
+// inline) just works without each consumer remembering to set
+// `flexDirection: "row"`. Caller-supplied `style` spreads AFTER and wins.
+const DEFAULT_TRIGGER_STYLE: CSSProperties = {
+  display: "inline-flex",
+  flexDirection: "row",
+  alignItems: "center",
+};
+
 function Trigger({
   children,
+  style,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
   // Trigger renders as a native <button> via Tamagui's `asChild` slot so
@@ -25,7 +38,7 @@ function Trigger({
   // `style`, `aria-label`, `onClick`, etc. spread directly onto the button.
   return (
     <TamaPopover.Trigger asChild>
-      <button type="button" {...props}>
+      <button type="button" style={{ ...DEFAULT_TRIGGER_STYLE, ...style }} {...props}>
         {children}
       </button>
     </TamaPopover.Trigger>
