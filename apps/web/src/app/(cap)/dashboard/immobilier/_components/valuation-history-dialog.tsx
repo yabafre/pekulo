@@ -29,7 +29,14 @@ export function ValuationHistoryDialog({
   onOpenChange,
 }: ValuationHistoryDialogProps) {
   const { data, isLoading, error } = useListValuations(open ? property.id : null);
-  const rows = (data ?? []).slice().sort((a, b) => +b.valuedOn - +a.valuedOn);
+  // Primary sort: valuedOn desc. Secondary: id desc (cuid-like IDs are
+  // monotonically increasing per Prisma `@default(cuid())`) so two rows
+  // submitted the same day render in insertion order — AC-2 requires
+  // "the just-submitted row appears at the top" even when a same-day
+  // prior row exists.
+  const rows = (data ?? [])
+    .slice()
+    .sort((a, b) => +b.valuedOn - +a.valuedOn || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
 
   return (
     <PekuloDialog open={open} onOpenChange={onOpenChange}>
