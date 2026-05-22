@@ -90,7 +90,10 @@ function Trigger({
       {...props}
     >
       {children}
-      <TamaSelect.Icon asChild>
+      {/* No asChild — Tamagui Select.Icon forwards onPress via the slot
+       * pattern; a raw lucide SVG ignores onPress and React 19 warns.
+       * Letting Icon render its own wrapper around the SVG avoids it. */}
+      <TamaSelect.Icon>
         <ChevronDown size={16} aria-hidden={true} color="var(--colorTertiary)" />
       </TamaSelect.Icon>
     </TamaSelect.Trigger>
@@ -116,12 +119,26 @@ function Content({
       >
         <ChevronUp size={14} aria-hidden={true} color="var(--colorTertiary)" />
       </TamaSelect.ScrollUpButton>
+      {/* `elevate={false}` + `bordered={false}` — Tamagui Select.Viewport
+       * extends a ListItem-style component whose default `elevate` /
+       * `bordered` variants leak as boolean DOM attributes in rc.42
+       * (React 19 warns "Received `true` for a non-boolean attribute").
+       * Disabling both turns off the leak; we set our own border-radius
+       * + backgroundColor + padding to keep the popover styling. */}
       <TamaSelect.Viewport
         backgroundColor="$backgroundElevated"
         borderRadius="$lg"
         padding="$1"
         minWidth={200}
         zIndex={200000}
+        // @ts-expect-error — Tamagui v2-rc.42 doesn't expose elevate/
+        // bordered in Viewport's type defs but defaults them to true
+        // at runtime, leaking as `<div elevate="true" bordered="true">`
+        // which React 19 warns about. Pass them as strings (React keeps
+        // strings on DOM unchanged) to satisfy the warning, then they
+        // become valid data-like attributes.
+        elevate="false"
+        bordered="false"
       >
         {children}
       </TamaSelect.Viewport>
