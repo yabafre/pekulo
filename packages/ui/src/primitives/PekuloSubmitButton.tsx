@@ -13,7 +13,7 @@ import { PekuloSpinner } from "./PekuloSpinner";
 
 export interface PekuloSubmitButtonProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  "type" | "children"
+  "children"
 > {
   /** Label rendered on the button. */
   children: ReactNode;
@@ -25,6 +25,9 @@ export interface PekuloSubmitButtonProps extends Omit<
   variant?: "primary" | "danger";
   /** Stretch to parent width. Defaults to true. */
   fullWidth?: boolean;
+  /** HTML button type. Defaults to "submit" (in-form usage). Override to
+   * "button" when the pill drives an imperative action outside a form. */
+  type?: "submit" | "button" | "reset";
 }
 
 const PILL_INTERACTION_CSS = `
@@ -72,6 +75,7 @@ export function PekuloSubmitButton({
   loadingLabel,
   variant = "primary",
   fullWidth = true,
+  type = "submit",
   disabled,
   className,
   style,
@@ -87,7 +91,7 @@ export function PekuloSubmitButton({
     <>
       <style>{PILL_INTERACTION_CSS}</style>
       <button
-        type="submit"
+        type={type}
         data-slot="submit-button"
         aria-busy={loading ? "true" : undefined}
         disabled={isDisabled}
