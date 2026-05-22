@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
-import { Text, View } from "@pekulo/ui/client";
+import { useEffect, useState } from "react";
+import {
+  PekuloField,
+  PekuloFieldDescription,
+  PekuloFieldError,
+  PekuloFieldGroup,
+  PekuloFieldLabel,
+  PekuloInput,
+  PekuloNativeSelect,
+  PekuloSubmitButton,
+} from "@pekulo/ui";
+import { View } from "@pekulo/ui/client";
 import {
   ACCOUNT_CURRENCIES,
   MAX_ACCOUNT_LABEL_LENGTH,
@@ -12,12 +22,6 @@ import {
 import { ACCOUNT_TYPES, type AccountType } from "@pekulo/types";
 import { useAppForm } from "@/hooks/form-hook";
 import { useUpdateAccount } from "../_hooks/use-update-account";
-import {
-  FormField as Field,
-  formInputStyle as inputStyle,
-  formSubmitStyle as submitStyle,
-} from "../../../_components/form-primitives";
-import submitPill from "../../../_components/submit-pill.module.css";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   livret: "Livret",
@@ -26,8 +30,6 @@ const TYPE_LABEL: Record<AccountType, string> = {
   av: "Assurance vie",
   autre: "Autre",
 };
-
-const selectStyle: CSSProperties = { ...inputStyle, appearance: "none" };
 
 export interface AccountEditFormProps {
   account: Account;
@@ -127,174 +129,119 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
       }}
       aria-label="Modifier le compte"
     >
-      <View flexDirection="column" gap="$3" padding="$4">
-        <form.Field name="label">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="acc-edit-label"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Libellé
-              </Text>
-              <input
-                id="acc-edit-label"
-                type="text"
-                maxLength={MAX_ACCOUNT_LABEL_LENGTH}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
-                style={inputStyle}
-              />
-            </Field>
-          )}
-        </form.Field>
-        <form.Field name="type">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="acc-edit-type"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Type
-              </Text>
-              <select
-                id="acc-edit-type"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value as AccountType)}
-                style={selectStyle}
-              >
-                {ACCOUNT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {TYPE_LABEL[t]}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
-        </form.Field>
-        <Field>
-          <Text
-            render="label"
-            htmlFor="acc-edit-currency"
-            color="$colorSecondary"
-            fontSize="$caption"
-          >
-            Devise
-          </Text>
-          <input
-            id="acc-edit-currency"
-            type="text"
-            value={currency}
-            readOnly
-            aria-readonly="true"
-            style={{ ...inputStyle, opacity: 0.6, cursor: "not-allowed" }}
-          />
-          <Text color="$colorTertiary" fontSize="$caption">
-            Multi-devises arrive avec les portefeuilles (story 3-3).
-          </Text>
-        </Field>
-        <form.Field name="cashBalance">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="acc-edit-balance"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Solde
-              </Text>
-              <input
-                id="acc-edit-balance"
-                type="number"
-                min={0}
-                step="0.01"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
-                style={inputStyle}
-              />
-            </Field>
-          )}
-        </form.Field>
-        <form.Field name="notes">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="acc-edit-notes"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Notes
-              </Text>
-              <input
-                id="acc-edit-notes"
-                type="text"
-                maxLength={MAX_ACCOUNT_NOTES_LENGTH}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                style={inputStyle}
-              />
-            </Field>
-          )}
-        </form.Field>
-        <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-          {(clientError) =>
-            clientError ? (
-              <Text role="alert" color="$danger" fontSize="$caption">
-                {String(clientError)}
-              </Text>
-            ) : null
-          }
-        </form.Subscribe>
-        {envelopeError && (
+      <View padding="$4">
+        <PekuloFieldGroup>
+          <form.Field name="label">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="acc-edit-label">Libellé</PekuloFieldLabel>
+                <PekuloInput
+                  id="acc-edit-label"
+                  type="text"
+                  maxLength={MAX_ACCOUNT_LABEL_LENGTH}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                  required
+                />
+              </PekuloField>
+            )}
+          </form.Field>
+          <form.Field name="type">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="acc-edit-type">Type</PekuloFieldLabel>
+                <PekuloNativeSelect
+                  id="acc-edit-type"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value as AccountType)}
+                >
+                  {ACCOUNT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {TYPE_LABEL[t]}
+                    </option>
+                  ))}
+                </PekuloNativeSelect>
+              </PekuloField>
+            )}
+          </form.Field>
+          <PekuloField>
+            <PekuloFieldLabel htmlFor="acc-edit-currency">Devise</PekuloFieldLabel>
+            <PekuloInput
+              id="acc-edit-currency"
+              type="text"
+              value={currency}
+              readOnly
+              aria-readonly="true"
+              style={{ opacity: 0.6, cursor: "not-allowed" }}
+            />
+            <PekuloFieldDescription>
+              Multi-devises arrive avec les portefeuilles (story 3-3).
+            </PekuloFieldDescription>
+          </PekuloField>
+          <form.Field name="cashBalance">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="acc-edit-balance">Solde</PekuloFieldLabel>
+                <PekuloInput
+                  id="acc-edit-balance"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                  required
+                />
+              </PekuloField>
+            )}
+          </form.Field>
+          <form.Field name="notes">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="acc-edit-notes">Notes</PekuloFieldLabel>
+                <PekuloInput
+                  id="acc-edit-notes"
+                  type="text"
+                  maxLength={MAX_ACCOUNT_NOTES_LENGTH}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                />
+              </PekuloField>
+            )}
+          </form.Field>
           <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
             {(clientError) =>
-              clientError ? null : (
-                <Text role="alert" color="$danger" fontSize="$caption">
-                  {envelopeError}
-                </Text>
-              )
+              clientError ? <PekuloFieldError>{String(clientError)}</PekuloFieldError> : null
             }
           </form.Subscribe>
-        )}
-        {error && !envelopeError && (
-          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-            {(clientError) =>
-              clientError ? null : (
-                <Text role="alert" color="$danger" fontSize="$caption">
-                  {error.message}
-                </Text>
-              )
-            }
-          </form.Subscribe>
-        )}
-        {isSuccess && !envelopeRejected && !error && (
-          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-            {(clientError) =>
-              clientError ? null : (
-                <Text role="status" color="$success" fontSize="$caption">
-                  Compte mis à jour.
-                </Text>
-              )
-            }
-          </form.Subscribe>
-        )}
-        <button
-          type="submit"
-          disabled={isPending}
-          aria-disabled={isPending}
-          className={submitPill.pill}
-          style={submitStyle(isPending)}
-        >
-          {isPending ? "Enregistrement…" : "Enregistrer"}
-        </button>
+          {envelopeError && (
+            <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+              {(clientError) =>
+                clientError ? null : <PekuloFieldError>{envelopeError}</PekuloFieldError>
+              }
+            </form.Subscribe>
+          )}
+          {error && !envelopeError && (
+            <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+              {(clientError) =>
+                clientError ? null : <PekuloFieldError>{error.message}</PekuloFieldError>
+              }
+            </form.Subscribe>
+          )}
+          {isSuccess && !envelopeRejected && !error && (
+            <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+              {(clientError) =>
+                clientError ? null : (
+                  <PekuloFieldDescription color="$success">
+                    Compte mis à jour.
+                  </PekuloFieldDescription>
+                )
+              }
+            </form.Subscribe>
+          )}
+          <PekuloSubmitButton loading={isPending} loadingLabel="Enregistrement…">
+            Enregistrer
+          </PekuloSubmitButton>
+        </PekuloFieldGroup>
       </View>
     </form>
   );

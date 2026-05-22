@@ -1,28 +1,12 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, pekuloRadius } from "@pekulo/ui";
+import { PekuloDialog, PekuloFieldError, PekuloSubmitButton } from "@pekulo/ui";
 import type { Holding } from "@pekulo/validators";
 import { useCloseHolding } from "../_hooks/use-close-holding";
-import submitPill from "../../../_components/submit-pill.module.css";
 
 const NOT_FOUND_MSG = "Ce placement est introuvable (déjà supprimé ?). Recharge la page.";
-
-const dangerBtn = (disabled: boolean): CSSProperties => ({
-  alignSelf: "flex-start",
-  backgroundColor: "var(--danger)",
-  color: "var(--colorOnAccent)",
-  height: 44,
-  padding: "0 24px",
-  borderRadius: pekuloRadius.full,
-  border: "none",
-  cursor: disabled ? "not-allowed" : "pointer",
-  opacity: disabled ? 0.5 : 1,
-  fontSize: 14,
-  fontWeight: 500,
-  marginTop: 8,
-});
 
 export interface HoldingCloseConfirmProps {
   holding: Holding;
@@ -71,27 +55,19 @@ export function HoldingCloseConfirm({ holding, open, onOpenChange }: HoldingClos
               Le placement disparaît de la liste active. Les lots restent enregistrés pour
               l'historique. Cette action est idempotente — clôturer à nouveau n'a pas d'effet.
             </PekuloDialog.Description>
-            {envelopeError && (
-              <Text role="alert" color="$danger" fontSize="$caption">
-                {envelopeError}
-              </Text>
-            )}
-            {error && !envelopeError && (
-              <Text role="alert" color="$danger" fontSize="$caption">
-                {error.message}
-              </Text>
-            )}
+            {envelopeError && <PekuloFieldError>{envelopeError}</PekuloFieldError>}
+            {error && !envelopeError && <PekuloFieldError>{error.message}</PekuloFieldError>}
             <View flexDirection="row" gap="$3" alignItems="center">
-              <button
+              <PekuloSubmitButton
                 type="button"
+                variant="danger"
+                fullWidth={false}
+                loading={isPending}
+                loadingLabel="Clôture…"
                 onClick={handleConfirm}
-                disabled={isPending}
-                aria-disabled={isPending}
-                className={submitPill.pill}
-                style={dangerBtn(isPending)}
               >
-                {isPending ? "Clôture…" : "Marquer comme clôturé"}
-              </button>
+                Marquer comme clôturé
+              </PekuloSubmitButton>
               <PekuloDialog.Close asChild>
                 <View
                   render="button"
