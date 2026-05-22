@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { RealEstate, RealEstateMortgage } from "@pekulo/types";
@@ -39,7 +39,69 @@ const FAKE_MORTGAGE: RealEstateMortgage = {
   updatedAt: new Date(),
 };
 
-describe("MortgageForm envelope (AC-4)", () => {
+describe("MortgageForm envelope (AC-3 + AC-4)", () => {
+  beforeEach(() => {
+    attachMortgageMock.mockReset();
+    updateMortgageMock.mockReset();
+  });
+
+  test("ok:true (attach) — SA called once with coerced payload, onSuccess fires once", async () => {
+    attachMortgageMock.mockResolvedValueOnce({ ok: true, mortgage: FAKE_MORTGAGE });
+
+    const onSuccess = vi.fn();
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const { getByRole } = renderWithTamagui(
+      <QueryClientProvider client={qc}>
+        <MortgageForm
+          property={FAKE_PROPERTY}
+          mortgage={null}
+          mode="attach"
+          onSuccess={onSuccess}
+        />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.submit(getByRole("form", { name: "Ajouter un crédit" }));
+
+    await waitFor(() => expect(attachMortgageMock).toHaveBeenCalledTimes(1));
+    const call = attachMortgageMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call.propertyId).toBe("res_test");
+    expect(typeof call.outstandingPrincipal).toBe("number");
+    expect(typeof call.annualRate).toBe("number");
+    expect(typeof call.monthlyPayment).toBe("number");
+    expect(Number.isInteger(call.termMonths)).toBe(true);
+    expect(call.startDate).toBeInstanceOf(Date);
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+  });
+
+  test("ok:true (update) — SA called once with coerced payload, onSuccess fires once", async () => {
+    updateMortgageMock.mockResolvedValueOnce({ ok: true, mortgage: FAKE_MORTGAGE });
+
+    const onSuccess = vi.fn();
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const { getByRole } = renderWithTamagui(
+      <QueryClientProvider client={qc}>
+        <MortgageForm
+          property={FAKE_PROPERTY}
+          mortgage={FAKE_MORTGAGE}
+          mode="update"
+          onSuccess={onSuccess}
+        />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.submit(getByRole("form", { name: "Modifier le crédit" }));
+
+    await waitFor(() => expect(updateMortgageMock).toHaveBeenCalledTimes(1));
+    const call = updateMortgageMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call.propertyId).toBe("res_test");
+    expect(call.outstandingPrincipal).toBe(180_000);
+    expect(call.annualRate).toBe(0.025);
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+  });
+
   test("MORTGAGE_ALREADY_ATTACHED surfaces role=alert FR message", async () => {
     attachMortgageMock.mockResolvedValueOnce({
       ok: false,

@@ -22,7 +22,33 @@ const FAKE_PROPERTY: RealEstate = {
   updatedAt: new Date(),
 };
 
-describe("ValuationUpdateForm envelope (AC-4)", () => {
+describe("ValuationUpdateForm envelope (AC-3 + AC-4)", () => {
+  test("ok:true — SA called once with coerced payload, onSuccess fires once", async () => {
+    recordValuationMock.mockResolvedValueOnce({
+      ok: true,
+      property: { ...FAKE_PROPERTY, currentValuation: 280_000 },
+    });
+
+    const onSuccess = vi.fn();
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const { getByRole } = renderWithTamagui(
+      <QueryClientProvider client={qc}>
+        <ValuationUpdateForm property={FAKE_PROPERTY} onSuccess={onSuccess} />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.submit(getByRole("form", { name: "Mettre à jour la valorisation" }));
+
+    await waitFor(() => expect(recordValuationMock).toHaveBeenCalledTimes(1));
+    const call = recordValuationMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call.propertyId).toBe("res_test");
+    expect(typeof call.amount).toBe("number");
+    expect(call.amount).toBe(250_000);
+    expect(call.valuedOn).toBeInstanceOf(Date);
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+  });
+
   test("REALESTATE_NOT_FOUND surfaces role=alert FR message", async () => {
     recordValuationMock.mockResolvedValueOnce({
       ok: false,

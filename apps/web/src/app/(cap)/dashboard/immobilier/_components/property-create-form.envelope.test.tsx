@@ -10,8 +10,8 @@ vi.mock("../_actions/realestate-actions", () => ({
 
 import { PropertyCreateForm } from "./property-create-form";
 
-describe("PropertyCreateForm envelope (AC-4)", () => {
-  test("ok:true on success — form resets and onSuccess fires", async () => {
+describe("PropertyCreateForm envelope (AC-3 + AC-4)", () => {
+  test("ok:true — SA called once with trimmed/coerced payload, onSuccess fires once", async () => {
     createPropertyMock.mockResolvedValueOnce({
       ok: true,
       property: {
@@ -34,11 +34,18 @@ describe("PropertyCreateForm envelope (AC-4)", () => {
       </QueryClientProvider>,
     );
 
-    fireEvent.change(getByLabelText(/Libellé/), { target: { value: "Appartement" } });
+    // Whitespace on label is trimmed by the form before mutate().
+    fireEvent.change(getByLabelText(/Libellé/), { target: { value: "  Appartement  " } });
     fireEvent.change(getByLabelText(/Valorisation/), { target: { value: "250000" } });
     fireEvent.submit(getByRole("form", { name: "Ajouter un bien immobilier" }));
 
     await waitFor(() => expect(createPropertyMock).toHaveBeenCalledTimes(1));
+    const call = createPropertyMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call.label).toBe("Appartement");
+    expect(call.propertyType).toBe("residence-principale");
+    expect(call.currentValuation).toBe(250_000);
+    expect(call.lastValuedOn).toBeInstanceOf(Date);
+
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 });
