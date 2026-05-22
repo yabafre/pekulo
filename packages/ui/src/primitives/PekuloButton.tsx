@@ -14,7 +14,7 @@
 // `@radix-ui/react-slot` for a single feature isn't worth the surface
 // area. Restore by wrapping with Slot if needed.
 
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, MouseEvent, ReactNode } from "react";
 import { pekuloFontSizes, pekuloFontWeights, pekuloRadius, pekuloSpacing } from "../tokens";
 import { PekuloSpinner } from "./PekuloSpinner";
 
@@ -43,6 +43,14 @@ export interface PekuloButtonProps extends ButtonHTMLAttributes<HTMLButtonElemen
   loading?: boolean;
   /** Label rendered next to the spinner during loading (default: children). */
   loadingLabel?: ReactNode;
+  /**
+   * Tamagui asChild slot compatibility. PekuloDialog.Close / PekuloPopover.
+   * Trigger asChild forward `onPress` onto the child; a native <button>
+   * doesn't understand it (React 19 warns "Unknown event handler property
+   * onPress"). Accepting it here + routing to onClick keeps the asChild
+   * surface working.
+   */
+  onPress?: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 const PEKULO_BUTTON_CSS = `
@@ -140,8 +148,15 @@ export function PekuloButton({
   className,
   style,
   children,
+  onClick,
+  onPress,
   ...props
 }: PekuloButtonProps) {
+  // Merge onPress (Tamagui asChild slot event) into onClick. Tamagui's
+  // dialog/popover/sheet primitives fire onPress on their Close/Trigger
+  // children via the slot adapter; we accept either and route both to
+  // the native click handler.
+  const mergedClick = onClick ?? onPress;
   const isDisabled = disabled || loading;
   const dims = SIZE_DIMS[size];
   const variantStyles = variantStyle(variant);
@@ -177,6 +192,7 @@ export function PekuloButton({
         disabled={isDisabled}
         className={cls}
         style={merged}
+        onClick={mergedClick}
         {...props}
       >
         {loading && <PekuloSpinner size={dims.fontSize - 2} ariaLabel="" />}
