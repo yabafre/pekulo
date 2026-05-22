@@ -27,11 +27,18 @@ const CALENDAR_THEME_CSS = `
  * the structural rules ourselves (months row, weekday grid, table
  * collapse). Without these the months render as block-level stacked
  * vertically — broken for range mode with 2 months side-by-side. */
+/* `.rdp-nav` is a sibling of all months at the `.rdp-months` level (NOT
+ * inside each month). Make `.rdp-months` the positioned ancestor so the
+ * nav can be absolutely positioned across the whole months container —
+ * prev on far-left, next on far-right, single shared set of chevrons
+ * for both months in range mode. */
 .pekulo-calendar .rdp-months {
   display: flex;
   flex-direction: row;
   gap: 16px;
   flex-wrap: wrap;
+  position: relative;
+  padding-top: 32px;
 }
 .pekulo-calendar .rdp-month {
   display: flex;
@@ -43,14 +50,6 @@ const CALENDAR_THEME_CSS = `
   align-items: center;
   justify-content: center;
   min-height: 32px;
-  position: relative;
-}
-/* Each .rdp-month gets its own .rdp-nav with prev/next buttons. We
- * position them absolutely in the top corners of the month so the
- * month_caption stays centred. Visible affordance: background-muted
- * pill, chevron-style border, hover/disabled states. */
-.pekulo-calendar .rdp-month {
-  position: relative;
 }
 .pekulo-calendar .rdp-nav {
   position: absolute;
@@ -60,7 +59,7 @@ const CALENDAR_THEME_CSS = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 32px;
+  height: 28px;
   pointer-events: none;
   z-index: 1;
 }

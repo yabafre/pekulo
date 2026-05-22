@@ -12,7 +12,7 @@
 //
 // Custom trigger label: pass `formatLabel` for fr-FR or custom output.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { PekuloCalendar } from "./PekuloCalendar";
@@ -86,14 +86,23 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
   }
 
   // Guard onOpenChange — in range mode, Tamagui's Popover fires a
-  // spurious close on the first day_button click (the DismissableBranch
-  // sometimes treats a rapid focus shift inside the popover as an
-  // outside dismiss). Suppress close events while the user is
-  // mid-selection (from picked, to not yet).
+  // spurious close on the first day_button click (DismissableBranch
+  // treats a rapid focus shift inside the popover as outside dismiss).
+  //
+  // Why a ref: when Tamagui calls onOpenChange(false) inside the same
+  // event loop as the day_button click, React hasn't yet flushed the
+  // setDatePickerRange state update fired from onSelect — so
+  // `props.value` still reflects the PRE-click value (no `from` yet),
+  // and the guard against `from && !to` doesn't trigger. The ref is
+  // written synchronously in onSelect so handleOpenChange always sees
+  // the latest range during the same event tick.
+  const rangeRef = useRef<DateRange | undefined>(undefined);
+  if (props.mode === "range") rangeRef.current = props.value;
+
   const handleOpenChange = (next: boolean) => {
     if (!next && props.mode === "range") {
-      const rangeValue = props.value;
-      if (rangeValue?.from && !rangeValue?.to) {
+      const current = rangeRef.current;
+      if (current?.from && !current?.to) {
         return;
       }
     }
@@ -137,6 +146,10 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
             mode="range"
             selected={props.value}
             onSelect={(r) => {
+              // Mirror to ref synchronously so handleOpenChange sees
+              // the latest range during Tamagui's same-tick dismiss
+              // check.
+              rangeRef.current = r;
               props.onChange(r);
               if (r?.from && r?.to) setOpen(false);
             }}
