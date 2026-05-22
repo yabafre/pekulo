@@ -43,11 +43,61 @@ const CALENDAR_THEME_CSS = `
   align-items: center;
   justify-content: center;
   min-height: 32px;
+  position: relative;
+}
+/* Each .rdp-month gets its own .rdp-nav with prev/next buttons. We
+ * position them absolutely in the top corners of the month so the
+ * month_caption stays centred. Visible affordance: background-muted
+ * pill, chevron-style border, hover/disabled states. */
+.pekulo-calendar .rdp-month {
+  position: relative;
 }
 .pekulo-calendar .rdp-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  height: 32px;
+  pointer-events: none;
+  z-index: 1;
+}
+.pekulo-calendar .rdp-button_previous,
+.pekulo-calendar .rdp-button_next {
+  pointer-events: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  color: var(--colorTertiary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms, color 150ms;
+}
+.pekulo-calendar .rdp-button_previous:hover:not([disabled]),
+.pekulo-calendar .rdp-button_next:hover:not([disabled]) {
+  background: var(--backgroundMuted);
+  color: var(--color);
+}
+.pekulo-calendar .rdp-button_previous:focus-visible,
+.pekulo-calendar .rdp-button_next:focus-visible {
+  outline: 2px solid var(--color);
+  outline-offset: 2px;
+}
+.pekulo-calendar .rdp-button_previous[disabled],
+.pekulo-calendar .rdp-button_next[disabled] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.pekulo-calendar .rdp-chevron {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
 }
 .pekulo-calendar .rdp-month_grid,
 .pekulo-calendar .rdp-table {

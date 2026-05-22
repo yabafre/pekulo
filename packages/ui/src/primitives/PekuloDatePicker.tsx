@@ -85,8 +85,23 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
     label = fn(props.value);
   }
 
+  // Guard onOpenChange — in range mode, Tamagui's Popover fires a
+  // spurious close on the first day_button click (the DismissableBranch
+  // sometimes treats a rapid focus shift inside the popover as an
+  // outside dismiss). Suppress close events while the user is
+  // mid-selection (from picked, to not yet).
+  const handleOpenChange = (next: boolean) => {
+    if (!next && props.mode === "range") {
+      const rangeValue = props.value;
+      if (rangeValue?.from && !rangeValue?.to) {
+        return;
+      }
+    }
+    setOpen(next);
+  };
+
   return (
-    <PekuloPopover open={open} onOpenChange={setOpen}>
+    <PekuloPopover open={open} onOpenChange={handleOpenChange}>
       <PekuloPopover.Trigger
         id={props.id}
         aria-label="Sélectionner une date"
