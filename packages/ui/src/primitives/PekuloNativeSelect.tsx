@@ -8,7 +8,7 @@
 
 import type { CSSProperties, SelectHTMLAttributes } from "react";
 import { forwardRef } from "react";
-import { pekuloRadius } from "../tokens";
+import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
 
 export interface PekuloNativeSelectProps extends Omit<
   SelectHTMLAttributes<HTMLSelectElement>,
@@ -19,8 +19,13 @@ export interface PekuloNativeSelectProps extends Omit<
 }
 
 const SIZE_HEIGHT: Record<NonNullable<PekuloNativeSelectProps["controlSize"]>, number> = {
-  sm: 32,
-  md: 40,
+  sm: pekuloSpacing[8],
+  md: pekuloSpacing[10],
+};
+
+const SIZE_PADDING_X: Record<NonNullable<PekuloNativeSelectProps["controlSize"]>, number> = {
+  sm: pekuloSpacing[2],
+  md: pekuloSpacing[3],
 };
 
 export const PekuloNativeSelect = forwardRef<HTMLSelectElement, PekuloNativeSelectProps>(
@@ -34,8 +39,8 @@ export const PekuloNativeSelect = forwardRef<HTMLSelectElement, PekuloNativeSele
       backgroundColor: "var(--backgroundMuted)",
       color: "var(--color)",
       borderRadius: pekuloRadius.lg,
-      padding: controlSize === "sm" ? "0 10px" : "0 12px",
-      fontSize: 14,
+      padding: `0 ${SIZE_PADDING_X[controlSize]}px`,
+      fontSize: pekuloFontSizes.bodySm,
       border: invalid ? "1px solid var(--danger)" : "none",
       outline: "none",
       fontFamily: "inherit",

@@ -10,7 +10,7 @@
 
 import type { CSSProperties, InputHTMLAttributes } from "react";
 import { forwardRef } from "react";
-import { pekuloRadius } from "../tokens";
+import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
 
 export interface PekuloInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   /** Visual size — defaults to "md". Renamed from `size` to avoid clashing
@@ -21,8 +21,13 @@ export interface PekuloInputProps extends Omit<InputHTMLAttributes<HTMLInputElem
 }
 
 const SIZE_HEIGHT: Record<NonNullable<PekuloInputProps["controlSize"]>, number> = {
-  sm: 32,
-  md: 40,
+  sm: pekuloSpacing[8],
+  md: pekuloSpacing[10],
+};
+
+const SIZE_PADDING_X: Record<NonNullable<PekuloInputProps["controlSize"]>, number> = {
+  sm: pekuloSpacing[2],
+  md: pekuloSpacing[3],
 };
 
 export const PekuloInput = forwardRef<HTMLInputElement, PekuloInputProps>(function PekuloInput(
@@ -35,8 +40,8 @@ export const PekuloInput = forwardRef<HTMLInputElement, PekuloInputProps>(functi
     backgroundColor: "var(--backgroundMuted)",
     color: "var(--color)",
     borderRadius: pekuloRadius.lg,
-    padding: controlSize === "sm" ? "0 10px" : "0 12px",
-    fontSize: 14,
+    padding: `0 ${SIZE_PADDING_X[controlSize]}px`,
+    fontSize: pekuloFontSizes.bodySm,
     border: invalid ? "1px solid var(--danger)" : "none",
     outline: "none",
     fontFamily: "inherit",

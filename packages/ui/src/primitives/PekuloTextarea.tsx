@@ -2,7 +2,7 @@
 
 import type { CSSProperties, TextareaHTMLAttributes } from "react";
 import { forwardRef } from "react";
-import { pekuloRadius } from "../tokens";
+import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
 
 export interface PekuloTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   invalid?: boolean;
@@ -12,12 +12,12 @@ export const PekuloTextarea = forwardRef<HTMLTextAreaElement, PekuloTextareaProp
   function PekuloTextarea({ invalid = false, style, ...props }, ref) {
     const merged: CSSProperties = {
       width: "100%",
-      minHeight: 80,
+      minHeight: pekuloSpacing[20],
       backgroundColor: "var(--backgroundMuted)",
       color: "var(--color)",
       borderRadius: pekuloRadius.lg,
-      padding: "10px 12px",
-      fontSize: 14,
+      padding: `${pekuloSpacing[2]}px ${pekuloSpacing[3]}px`,
+      fontSize: pekuloFontSizes.bodySm,
       border: invalid ? "1px solid var(--danger)" : "none",
       outline: "none",
       fontFamily: "inherit",

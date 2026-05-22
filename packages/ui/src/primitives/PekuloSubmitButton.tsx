@@ -8,7 +8,7 @@
 // directly without composing its own spinner.
 
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
-import { pekuloRadius } from "../tokens";
+import { pekuloFontSizes, pekuloFontWeights, pekuloRadius, pekuloSpacing } from "../tokens";
 import { PekuloSpinner } from "./PekuloSpinner";
 
 export interface PekuloSubmitButtonProps extends Omit<
@@ -44,6 +44,11 @@ const PILL_INTERACTION_CSS = `
 }
 `;
 
+// 44px height has no exact spacing token (pekuloSpacing[10]=40,
+// pekuloSpacing[12]=48). Touch-target floor is 44 per WCAG 2.5.5, so we
+// hold the legacy value and document the deviation here.
+const PILL_HEIGHT = 44;
+
 const baseStyle = (
   variant: "primary" | "danger",
   fullWidth: boolean,
@@ -52,16 +57,16 @@ const baseStyle = (
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8,
+  gap: pekuloSpacing[2],
   alignSelf: fullWidth ? "stretch" : "flex-start",
   width: fullWidth ? "100%" : "auto",
-  height: 44,
-  padding: "0 24px",
+  height: PILL_HEIGHT,
+  padding: `0 ${pekuloSpacing[6]}px`,
   borderRadius: pekuloRadius.full,
   backgroundColor: variant === "danger" ? "var(--danger)" : "var(--color)",
   color: "var(--colorOnAccent)",
-  fontSize: 14,
-  fontWeight: 600,
+  fontSize: pekuloFontSizes.bodySm,
+  fontWeight: pekuloFontWeights.semibold,
   letterSpacing: 0.1,
   border: "none",
   cursor: isDisabled ? "not-allowed" : "pointer",
