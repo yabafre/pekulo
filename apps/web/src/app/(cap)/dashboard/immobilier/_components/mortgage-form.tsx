@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  PekuloDatePicker,
   PekuloField,
   PekuloFieldDescription,
   PekuloFieldError,
@@ -33,10 +34,7 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
   const { isPending, error, isSuccess, reset } = active;
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const initialDate =
-    mortgage?.startDate instanceof Date
-      ? mortgage.startDate.toISOString().slice(0, 10)
-      : new Date().toISOString().slice(0, 10);
+  const initialDate = mortgage?.startDate instanceof Date ? mortgage.startDate : new Date();
 
   const form = useAppForm({
     defaultValues: {
@@ -68,7 +66,7 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
         annualRate: Number(value.annualRate),
         monthlyPayment: Number(value.monthlyPayment),
         termMonths: Number(value.termMonths),
-        startDate: new Date(value.startDate),
+        startDate: value.startDate,
       };
       if (mode === "attach") {
         attach.mutate(payload, {
@@ -188,12 +186,10 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
           {(field) => (
             <PekuloField>
               <PekuloFieldLabel htmlFor="m-sd">Date de début</PekuloFieldLabel>
-              <PekuloInput
+              <PekuloDatePicker
                 id="m-sd"
-                type="date"
                 value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
+                onChange={(d) => d && field.handleChange(d)}
               />
             </PekuloField>
           )}

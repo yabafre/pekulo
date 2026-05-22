@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  PekuloDatePicker,
   PekuloField,
   PekuloFieldDescription,
   PekuloFieldError,
@@ -34,7 +35,7 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
       label: "",
       propertyType: "residence-principale" as PropertyType,
       currentValuation: "0",
-      lastValuedOn: new Date().toISOString().slice(0, 10),
+      lastValuedOn: new Date(),
     },
     validators: {
       onSubmit: ({ value }) => {
@@ -54,7 +55,7 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
           label: value.label.trim(),
           propertyType: value.propertyType,
           currentValuation: Number(value.currentValuation),
-          lastValuedOn: new Date(value.lastValuedOn),
+          lastValuedOn: value.lastValuedOn,
         },
         {
           onSuccess: (result) => {
@@ -134,12 +135,10 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
           {(field) => (
             <PekuloField>
               <PekuloFieldLabel htmlFor="re-date">Date de valorisation</PekuloFieldLabel>
-              <PekuloInput
+              <PekuloDatePicker
                 id="re-date"
-                type="date"
                 value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
+                onChange={(d) => d && field.handleChange(d)}
               />
             </PekuloField>
           )}

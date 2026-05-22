@@ -839,13 +839,16 @@ export default function PrimitivesShowcasePage() {
                 </div>
               </Subsection>
 
-              <Subsection label="Input — types text / number / date / email / password">
+              <Subsection
+                label="Input — types text / number / email / password"
+                hint="Pour les dates, utilise PekuloDatePicker (section dédiée plus bas)."
+              >
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 320 }}>
                   <PekuloInput type="text" placeholder="Texte" />
                   <PekuloInput type="number" defaultValue="42" />
-                  <PekuloInput type="date" defaultValue="2026-05-22" />
                   <PekuloInput type="email" placeholder="alex@pekulo.fr" />
                   <PekuloInput type="password" defaultValue="hunter2" />
+                  <PekuloInput type="password" defaultValue="hunter2" revealable={false} />
                 </div>
               </Subsection>
 

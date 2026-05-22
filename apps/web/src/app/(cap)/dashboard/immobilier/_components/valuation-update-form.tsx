@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  PekuloDatePicker,
   PekuloField,
   PekuloFieldDescription,
   PekuloFieldError,
@@ -28,7 +29,7 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
   const form = useAppForm({
     defaultValues: {
       amount: String(property.currentValuation),
-      valuedOn: new Date().toISOString().slice(0, 10),
+      valuedOn: new Date(),
     },
     validators: {
       onSubmit: ({ value }) => {
@@ -44,7 +45,7 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
         {
           propertyId: property.id,
           amount: Number(value.amount),
-          valuedOn: new Date(value.valuedOn),
+          valuedOn: value.valuedOn,
         },
         {
           onSuccess: (result) => {
@@ -91,12 +92,10 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
           {(field) => (
             <PekuloField>
               <PekuloFieldLabel htmlFor="v-date">Date de valorisation</PekuloFieldLabel>
-              <PekuloInput
+              <PekuloDatePicker
                 id="v-date"
-                type="date"
                 value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
+                onChange={(d) => d && field.handleChange(d)}
               />
             </PekuloField>
           )}

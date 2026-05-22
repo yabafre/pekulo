@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import {
+  PekuloDatePicker,
   PekuloDialog,
   PekuloField,
   PekuloFieldDescription,
@@ -20,12 +21,9 @@ import formControls from "../../../_components/form-controls.module.css";
 const HOLDING_NOT_FOUND_MSG = "Ce placement est introuvable. Recharge la page.";
 const HOLDING_CLOSED_MSG = "Ce placement est clôturé — les lots ne peuvent plus être modifiés.";
 
-function todayIso(): string {
+function todayLocalMidnight(): Date {
   const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 const radioRow: CSSProperties = {
@@ -58,7 +56,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
   const form = useAppForm({
     defaultValues: {
       type: "buy" as "buy" | "sell",
-      occurredOn: todayIso(),
+      occurredOn: todayLocalMidnight(),
       quantity: "0",
       priceUnit: initialPriceUnit(holding),
       fees: "0",
@@ -95,7 +93,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
         {
           holdingId: holding.id,
           type: value.type,
-          occurredOn: new Date(value.occurredOn),
+          occurredOn: value.occurredOn,
           quantity: qNum,
           priceUnit: pNum,
           fees: fNum,
@@ -193,12 +191,10 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                   {(field) => (
                     <PekuloField>
                       <PekuloFieldLabel htmlFor="lot-date">Date</PekuloFieldLabel>
-                      <PekuloInput
+                      <PekuloDatePicker
                         id="lot-date"
-                        type="date"
                         value={field.state.value}
-                        onChange={(e) => field.handleChange(e.currentTarget.value)}
-                        required
+                        onChange={(d) => d && field.handleChange(d)}
                       />
                     </PekuloField>
                   )}

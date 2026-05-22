@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  PekuloDatePicker,
   PekuloField,
   PekuloFieldDescription,
   PekuloFieldError,
@@ -15,12 +16,13 @@ import type { Account } from "@pekulo/validators";
 import { useAppForm } from "@/hooks/form-hook";
 import { useRecordBalanceChange } from "../_hooks/use-record-balance-change";
 
-function isoToday(): string {
+// Returns today's UTC midnight as a Date — matches the API's z.coerce.date.
+function utcMidnightToday(): Date {
   const d = new Date();
   const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  const mm = d.getUTCMonth();
+  const dd = d.getUTCDate();
+  return new Date(Date.UTC(yyyy, mm, dd));
 }
 
 export interface AccountBalanceFormProps {
@@ -35,33 +37,26 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
 
   const form = useAppForm({
     defaultValues: {
-      valuedOn: isoToday(),
+      valuedOn: utcMidnightToday(),
       cashBalance: String(account.cashBalance),
     },
     validators: {
       onSubmit: ({ value }) => {
-        if (!value.valuedOn || value.valuedOn.length === 0) {
+        if (!value.valuedOn || Number.isNaN(value.valuedOn.getTime())) {
           return "Date requise";
         }
         const balance = Number(value.cashBalance);
         if (!Number.isFinite(balance) || balance < 0) {
           return "Solde invalide (>= 0)";
         }
-        // ISO date string → UTC midnight; matches the API's z.coerce.date.
-        const valued = new Date(`${value.valuedOn}T00:00:00.000Z`);
-        if (Number.isNaN(valued.getTime())) {
-          return "Date invalide";
-        }
         return undefined;
       },
     },
     onSubmit: async ({ value }) => {
       const balance = Number(value.cashBalance);
-      // ISO date string → UTC midnight; matches the API's z.coerce.date.
-      const valued = new Date(`${value.valuedOn}T00:00:00.000Z`);
       setEnvelopeError(null);
       mutate(
-        { id: account.id, valuedOn: valued, cashBalance: balance },
+        { id: account.id, valuedOn: value.valuedOn, cashBalance: balance },
         {
           onSuccess: (result) => {
             if (!result.ok) {
@@ -90,12 +85,10 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
             {(field) => (
               <PekuloField>
                 <PekuloFieldLabel htmlFor="acc-bal-date">Date</PekuloFieldLabel>
-                <PekuloInput
+                <PekuloDatePicker
                   id="acc-bal-date"
-                  type="date"
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.currentTarget.value)}
-                  required
+                  onChange={(d) => d && field.handleChange(d)}
                 />
               </PekuloField>
             )}
