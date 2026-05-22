@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Text, View } from "@pekulo/ui/client";
+import {
+  PekuloField,
+  PekuloFieldDescription,
+  PekuloFieldError,
+  PekuloFieldGroup,
+  PekuloFieldLabel,
+  PekuloInput,
+  PekuloNativeCheckbox,
+  PekuloSubmitButton,
+} from "@pekulo/ui";
 import type { RealEstate, RealEstateRental } from "@pekulo/types";
 import { useAppForm } from "@/hooks/form-hook";
 import { useAttachRental } from "../_hooks/use-attach-rental";
 import { useUpdateRental } from "../_hooks/use-update-rental";
-import {
-  FormField as Field,
-  formInputStyle as inputStyle,
-  formSubmitStyle as submitStyle,
-} from "../../../_components/form-primitives";
-import submitPill from "../../../_components/submit-pill.module.css";
 
 const REALESTATE_NOT_FOUND_MSG = "Bien introuvable (déjà supprimé ?). Recharge la page.";
 const RENTAL_ALREADY_ATTACHED_MSG = "Ce bien a déjà un loyer. Modifie celui existant.";
@@ -99,14 +102,12 @@ export function RentalForm({ property, rental, mode, onSuccess }: RentalFormProp
       aria-label={mode === "attach" ? "Ajouter un loyer" : "Modifier le loyer"}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
-      <View flexDirection="column" gap="$2" paddingVertical="$2">
+      <PekuloFieldGroup>
         <form.Field name="monthlyRent">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="r-rent" color="$colorSecondary" fontSize="$caption">
-                Loyer mensuel (EUR)
-              </Text>
-              <input
+            <PekuloField>
+              <PekuloFieldLabel htmlFor="r-rent">Loyer mensuel (EUR)</PekuloFieldLabel>
+              <PekuloInput
                 id="r-rent"
                 type="number"
                 min={0}
@@ -114,18 +115,15 @@ export function RentalForm({ property, rental, mode, onSuccess }: RentalFormProp
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
                 required
-                style={inputStyle}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Field name="monthlyCharges">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="r-chg" color="$colorSecondary" fontSize="$caption">
-                Charges mensuelles (EUR)
-              </Text>
-              <input
+            <PekuloField>
+              <PekuloFieldLabel htmlFor="r-chg">Charges mensuelles (EUR)</PekuloFieldLabel>
+              <PekuloInput
                 id="r-chg"
                 type="number"
                 min={0}
@@ -133,83 +131,41 @@ export function RentalForm({ property, rental, mode, onSuccess }: RentalFormProp
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
                 required
-                style={inputStyle}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Field name="furnished">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="r-furn" color="$colorSecondary" fontSize="$caption">
-                Meublé
-              </Text>
-              <input
+            <PekuloField orientation="horizontal">
+              <PekuloFieldLabel htmlFor="r-furn">Meublé</PekuloFieldLabel>
+              <PekuloNativeCheckbox
                 id="r-furn"
-                type="checkbox"
                 checked={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.checked)}
-                style={{ width: 20, height: 20 }}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
           {(clientError) =>
-            clientError ? (
-              <Text role="alert" color="$danger" fontSize="$caption">
-                {String(clientError)}
-              </Text>
-            ) : null
+            clientError ? <PekuloFieldError>{String(clientError)}</PekuloFieldError> : null
           }
         </form.Subscribe>
-        {submitError && (
-          <Text role="alert" color="$danger" fontSize="$caption">
-            {submitError}
-          </Text>
-        )}
-        {error && !submitError && (
-          <Text role="alert" color="$danger" fontSize="$caption">
-            {error.message}
-          </Text>
-        )}
+        {submitError && <PekuloFieldError>{submitError}</PekuloFieldError>}
+        {error && !submitError && <PekuloFieldError>{error.message}</PekuloFieldError>}
         {isSuccess && !submitError && !error && (
-          <Text role="status" color="$success" fontSize="$caption">
+          <PekuloFieldDescription color="$success">
             {mode === "attach" ? "Loyer ajouté." : "Loyer mis à jour."}
-          </Text>
+          </PekuloFieldDescription>
         )}
-      </View>
-      <View paddingTop="$2">
-        <button
-          type="submit"
-          disabled={isPending}
-          aria-disabled={isPending}
-          className={submitPill.pill}
-          style={{
-            ...submitStyle(isPending),
-            alignSelf: "stretch",
-            width: "100%",
-            height: 44,
-            padding: "0 24px",
-            marginTop: 0,
-            fontSize: 14,
-            fontWeight: 600,
-            letterSpacing: 0.01,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
-          {isPending
-            ? mode === "attach"
-              ? "Ajout…"
-              : "Mise à jour…"
-            : mode === "attach"
-              ? "Ajouter le loyer"
-              : "Mettre à jour le loyer"}
-        </button>
-      </View>
+      </PekuloFieldGroup>
+      <PekuloSubmitButton
+        loading={isPending}
+        loadingLabel={mode === "attach" ? "Ajout…" : "Mise à jour…"}
+      >
+        {mode === "attach" ? "Ajouter le loyer" : "Mettre à jour le loyer"}
+      </PekuloSubmitButton>
     </form>
   );
 }

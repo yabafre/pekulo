@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloSkeleton, Section, pekuloRadius } from "@pekulo/ui";
+import { PekuloDialog, PekuloLoadingItem, PekuloSkeleton, Section, pekuloRadius } from "@pekulo/ui";
 import { Plus } from "lucide-react";
 import type { PropertyDerivesItem } from "@pekulo/types";
 import { useProperties } from "../_hooks/use-properties";
@@ -109,18 +109,8 @@ export function RealestateSection() {
   return (
     <View flexDirection="column" gap="$6" width="100%" $lg={{ gap: 16 }}>
       {isRefetching && (
-        <View
-          role="status"
-          aria-live="polite"
-          alignSelf="flex-start"
-          paddingHorizontal="$3"
-          paddingVertical="$1"
-          borderRadius="$full"
-          backgroundColor="$backgroundElevated"
-        >
-          <Text color="$colorTertiary" fontSize="$caption">
-            Mise à jour…
-          </Text>
+        <View alignSelf="flex-start">
+          <PekuloLoadingItem title="Mise à jour…" />
         </View>
       )}
       {/* Hero + Action — 7/5 split on lg+ (ux-preview L1650-1667 parity). */}

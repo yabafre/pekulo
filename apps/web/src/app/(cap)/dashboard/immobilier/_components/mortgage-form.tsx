@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Text, View } from "@pekulo/ui/client";
+import {
+  PekuloField,
+  PekuloFieldDescription,
+  PekuloFieldError,
+  PekuloFieldGroup,
+  PekuloFieldLabel,
+  PekuloInput,
+  PekuloSubmitButton,
+} from "@pekulo/ui";
 import type { RealEstate, RealEstateMortgage } from "@pekulo/types";
 import { useAppForm } from "@/hooks/form-hook";
 import { useAttachMortgage } from "../_hooks/use-attach-mortgage";
 import { useUpdateMortgage } from "../_hooks/use-update-mortgage";
-import {
-  FormField as Field,
-  formInputStyle as inputStyle,
-  formSubmitStyle as submitStyle,
-} from "../../../_components/form-primitives";
-import submitPill from "../../../_components/submit-pill.module.css";
 
 const REALESTATE_NOT_FOUND_MSG = "Bien introuvable (déjà supprimé ?). Recharge la page.";
 const MORTGAGE_ALREADY_ATTACHED_MSG = "Ce bien a déjà un crédit. Modifie celui existant.";
@@ -113,14 +115,12 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
       aria-label={mode === "attach" ? "Ajouter un crédit" : "Modifier le crédit"}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
-      <View flexDirection="column" gap="$2" paddingVertical="$2">
+      <PekuloFieldGroup>
         <form.Field name="outstandingPrincipal">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="m-op" color="$colorSecondary" fontSize="$caption">
-                Capital restant (EUR)
-              </Text>
-              <input
+            <PekuloField>
+              <PekuloFieldLabel htmlFor="m-op">Capital restant (EUR)</PekuloFieldLabel>
+              <PekuloInput
                 id="m-op"
                 type="number"
                 min={0}
@@ -128,18 +128,17 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
                 required
-                style={inputStyle}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Field name="annualRate">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="m-ar" color="$colorSecondary" fontSize="$caption">
+            <PekuloField>
+              <PekuloFieldLabel htmlFor="m-ar">
                 Taux annuel (décimal — 0,025 = 2,5 %)
-              </Text>
-              <input
+              </PekuloFieldLabel>
+              <PekuloInput
                 id="m-ar"
                 type="number"
                 min={0}
@@ -148,18 +147,15 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
                 required
-                style={inputStyle}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Field name="monthlyPayment">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="m-mp" color="$colorSecondary" fontSize="$caption">
-                Mensualité (EUR)
-              </Text>
-              <input
+            <PekuloField>
+              <PekuloFieldLabel htmlFor="m-mp">Mensualité (EUR)</PekuloFieldLabel>
+              <PekuloInput
                 id="m-mp"
                 type="number"
                 min={0}
@@ -167,18 +163,15 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
                 required
-                style={inputStyle}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Field name="termMonths">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="m-tm" color="$colorSecondary" fontSize="$caption">
-                Durée restante (mois)
-              </Text>
-              <input
+            <PekuloField>
+              <PekuloFieldLabel htmlFor="m-tm">Durée restante (mois)</PekuloFieldLabel>
+              <PekuloInput
                 id="m-tm"
                 type="number"
                 min={1}
@@ -187,84 +180,43 @@ export function MortgageForm({ property, mortgage, mode, onSuccess }: MortgageFo
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
                 required
-                style={inputStyle}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Field name="startDate">
           {(field) => (
-            <Field>
-              <Text render="label" htmlFor="m-sd" color="$colorSecondary" fontSize="$caption">
-                Date de début
-              </Text>
-              <input
+            <PekuloField>
+              <PekuloFieldLabel htmlFor="m-sd">Date de début</PekuloFieldLabel>
+              <PekuloInput
                 id="m-sd"
                 type="date"
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.currentTarget.value)}
                 required
-                style={inputStyle}
               />
-            </Field>
+            </PekuloField>
           )}
         </form.Field>
         <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
           {(clientError) =>
-            clientError ? (
-              <Text role="alert" color="$danger" fontSize="$caption">
-                {String(clientError)}
-              </Text>
-            ) : null
+            clientError ? <PekuloFieldError>{String(clientError)}</PekuloFieldError> : null
           }
         </form.Subscribe>
-        {submitError && (
-          <Text role="alert" color="$danger" fontSize="$caption">
-            {submitError}
-          </Text>
-        )}
-        {error && !submitError && (
-          <Text role="alert" color="$danger" fontSize="$caption">
-            {error.message}
-          </Text>
-        )}
+        {submitError && <PekuloFieldError>{submitError}</PekuloFieldError>}
+        {error && !submitError && <PekuloFieldError>{error.message}</PekuloFieldError>}
         {isSuccess && !submitError && !error && (
-          <Text role="status" color="$success" fontSize="$caption">
+          <PekuloFieldDescription color="$success">
             {mode === "attach" ? "Crédit ajouté." : "Crédit mis à jour."}
-          </Text>
+          </PekuloFieldDescription>
         )}
-      </View>
-      <View paddingTop="$2">
-        <button
-          type="submit"
-          disabled={isPending}
-          aria-disabled={isPending}
-          className={submitPill.pill}
-          style={{
-            ...submitStyle(isPending),
-            alignSelf: "stretch",
-            width: "100%",
-            height: 44,
-            padding: "0 24px",
-            marginTop: 0,
-            fontSize: 14,
-            fontWeight: 600,
-            letterSpacing: 0.01,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
-          {isPending
-            ? mode === "attach"
-              ? "Ajout…"
-              : "Mise à jour…"
-            : mode === "attach"
-              ? "Ajouter le crédit"
-              : "Mettre à jour le crédit"}
-        </button>
-      </View>
+      </PekuloFieldGroup>
+      <PekuloSubmitButton
+        loading={isPending}
+        loadingLabel={mode === "attach" ? "Ajout…" : "Mise à jour…"}
+      >
+        {mode === "attach" ? "Ajouter le crédit" : "Mettre à jour le crédit"}
+      </PekuloSubmitButton>
     </form>
   );
 }
