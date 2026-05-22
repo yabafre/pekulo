@@ -141,8 +141,13 @@ export interface PekuloFieldContentProps extends Omit<ViewProps, "children"> {
 }
 
 export function PekuloFieldContent({ children, ...props }: PekuloFieldContentProps) {
+  // No `flex: 1` by default — in a vertical Field, flex-grow makes the
+  // content area try to fill the column height and the natural-height
+  // children overflow visually outside the parent (reported on
+  // /dev/primitives showcase). Consumers needing the horizontal
+  // "fill remaining space" behaviour can pass `flex={1}` explicitly.
   return (
-    <View data-slot="field-content" flex={1} flexDirection="column" gap="$1" {...props}>
+    <View data-slot="field-content" flexDirection="column" gap="$1" width="100%" {...props}>
       {children}
     </View>
   );
