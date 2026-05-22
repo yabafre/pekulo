@@ -129,8 +129,7 @@ export function PekuloEmptyTitle({
       color="$color"
       fontSize={pekuloFontSizes.bodySm}
       fontWeight={pekuloFontWeights.medium}
-      letterSpacing={-0.1}
-      style={style}
+      style={{ letterSpacing: -0.1, lineHeight: 1.3, textAlign: "center", ...style }}
     >
       {children}
     </Text>
@@ -151,8 +150,10 @@ export function PekuloEmptyDescription({
       data-slot="empty-description"
       color="$colorTertiary"
       fontSize={pekuloFontSizes.bodySm}
-      lineHeight="$normal"
-      style={style}
+      // Tamagui interprets `lineHeight="$normal"` (token=1.4) as 1.4px
+      // ABSOLUTE — the wrapped text lines overlap. Use inline style with
+      // a unitless ratio so CSS multiplies by font-size correctly.
+      style={{ lineHeight: 1.5, textAlign: "center", ...style }}
     >
       {children}
     </Text>
