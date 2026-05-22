@@ -162,6 +162,14 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
           <PekuloCalendar
             mode="range"
             selected={props.value}
+            // min={1} forces react-day-picker v10's `addToRange` to leave
+            // `to` undefined on the FIRST click of an empty range. Without
+            // it (default min=0), v10 sets `to: from` on the first click —
+            // i.e. an empty-state click yields a "complete" single-day
+            // range, which our completion check below misreads as a
+            // legitimate close trigger. min=1 mirrors the standard
+            // range-picker UX: click #1 → from, click #2 → to.
+            min={1}
             onSelect={(r) => {
               props.onChange(r);
               if (r?.from && r?.to) {
