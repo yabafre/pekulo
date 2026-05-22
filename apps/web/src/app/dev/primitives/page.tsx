@@ -35,6 +35,7 @@ import {
   PekuloLabel,
   PekuloNativeCheckbox,
   PekuloNativeSelect,
+  PekuloSelect,
   PekuloTextarea,
   PekuloCard,
   PekuloCardAction,
@@ -74,6 +75,7 @@ const TOC: ReadonlyArray<{ id: string; label: string; count: number }> = [
   { id: "submit-button", label: "SubmitButton", count: 1 },
   { id: "field", label: "Field family", count: 10 },
   { id: "inputs", label: "Form inputs", count: 4 },
+  { id: "select", label: "Select (Tamagui)", count: 7 },
   { id: "label", label: "Label", count: 1 },
   { id: "cards", label: "Cards", count: 7 },
   { id: "empty", label: "Empty state", count: 6 },
@@ -897,6 +899,107 @@ export default function PrimitivesShowcasePage() {
                   <PekuloNativeCheckbox size={20} disabled />
                   <PekuloNativeCheckbox size={20} disabled defaultChecked />
                 </Row>
+              </Subsection>
+            </Section>
+
+            {/* SELECT (Tamagui compound) */}
+            <Section
+              id="select"
+              title="Select (Tamagui compound)"
+              tagline="PekuloSelect — shadcn API sur @tamagui/select : Trigger + Value + Content + Group + Label + Item + Separator. Custom popover, Check indicator, chevron built-in."
+            >
+              <Subsection label="Basic — placeholder + 3 items">
+                <div style={{ maxWidth: 280 }}>
+                  <PekuloSelect>
+                    <PekuloSelect.Trigger>
+                      <PekuloSelect.Value placeholder="Choisir un thème" />
+                    </PekuloSelect.Trigger>
+                    <PekuloSelect.Content>
+                      <PekuloSelect.Group>
+                        <PekuloSelect.Item value="light" index={0}>
+                          Light
+                        </PekuloSelect.Item>
+                        <PekuloSelect.Item value="dark" index={1}>
+                          Dark
+                        </PekuloSelect.Item>
+                        <PekuloSelect.Item value="system" index={2}>
+                          System
+                        </PekuloSelect.Item>
+                      </PekuloSelect.Group>
+                    </PekuloSelect.Content>
+                  </PekuloSelect>
+                </div>
+              </Subsection>
+
+              <Subsection label="With groups + labels + separator">
+                <div style={{ maxWidth: 280 }}>
+                  <PekuloSelect defaultValue="eur">
+                    <PekuloSelect.Trigger>
+                      <PekuloSelect.Value placeholder="Choisir une devise" />
+                    </PekuloSelect.Trigger>
+                    <PekuloSelect.Content>
+                      <PekuloSelect.Group>
+                        <PekuloSelect.Label>Europe</PekuloSelect.Label>
+                        <PekuloSelect.Item value="eur" index={0}>
+                          EUR · Euro
+                        </PekuloSelect.Item>
+                        <PekuloSelect.Item value="gbp" index={1}>
+                          GBP · Livre Sterling
+                        </PekuloSelect.Item>
+                        <PekuloSelect.Item value="chf" index={2}>
+                          CHF · Franc Suisse
+                        </PekuloSelect.Item>
+                      </PekuloSelect.Group>
+                      <PekuloSelect.Separator />
+                      <PekuloSelect.Group>
+                        <PekuloSelect.Label>Amérique</PekuloSelect.Label>
+                        <PekuloSelect.Item value="usd" index={3}>
+                          USD · Dollar
+                        </PekuloSelect.Item>
+                        <PekuloSelect.Item value="cad" index={4}>
+                          CAD · Dollar Canadien
+                        </PekuloSelect.Item>
+                      </PekuloSelect.Group>
+                    </PekuloSelect.Content>
+                  </PekuloSelect>
+                </div>
+              </Subsection>
+
+              <Subsection label="controlSize sm vs md">
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 280 }}
+                >
+                  <PekuloSelect defaultValue="a">
+                    <PekuloSelect.Trigger controlSize="md">
+                      <PekuloSelect.Value />
+                    </PekuloSelect.Trigger>
+                    <PekuloSelect.Content>
+                      <PekuloSelect.Group>
+                        <PekuloSelect.Item value="a" index={0}>
+                          Option A (md)
+                        </PekuloSelect.Item>
+                        <PekuloSelect.Item value="b" index={1}>
+                          Option B
+                        </PekuloSelect.Item>
+                      </PekuloSelect.Group>
+                    </PekuloSelect.Content>
+                  </PekuloSelect>
+                  <PekuloSelect defaultValue="a">
+                    <PekuloSelect.Trigger controlSize="sm">
+                      <PekuloSelect.Value />
+                    </PekuloSelect.Trigger>
+                    <PekuloSelect.Content>
+                      <PekuloSelect.Group>
+                        <PekuloSelect.Item value="a" index={0}>
+                          Option A (sm)
+                        </PekuloSelect.Item>
+                        <PekuloSelect.Item value="b" index={1}>
+                          Option B
+                        </PekuloSelect.Item>
+                      </PekuloSelect.Group>
+                    </PekuloSelect.Content>
+                  </PekuloSelect>
+                </div>
               </Subsection>
             </Section>
 

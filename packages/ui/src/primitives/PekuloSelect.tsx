@@ -1,42 +1,103 @@
 "use client";
 
-import { Select as TamaSelect, type SelectProps } from "@tamagui/select";
+// PekuloSelect — shadcn-parity API on a Tamagui (@tamagui/select)
+// backend. Compound surface mirrors shadcn's `Select` family:
+//
+//   <PekuloSelect>
+//     <PekuloSelect.Trigger> <PekuloSelect.Value placeholder="…" /> </PekuloSelect.Trigger>
+//     <PekuloSelect.Content>
+//       <PekuloSelect.Group>
+//         <PekuloSelect.Label>Section</PekuloSelect.Label>
+//         <PekuloSelect.Item value="…" index={0}>Label</PekuloSelect.Item>
+//         <PekuloSelect.Item value="…" index={1}>Label</PekuloSelect.Item>
+//       </PekuloSelect.Group>
+//       <PekuloSelect.Separator />
+//       <PekuloSelect.Group>...</PekuloSelect.Group>
+//     </PekuloSelect.Content>
+//   </PekuloSelect>
+//
+// Differences from shadcn / Radix:
+//   - Trigger renders a ChevronDown automatically (no need to mount
+//     Select.Icon manually).
+//   - Item renders an inline Check ItemIndicator on the right when the
+//     value matches, mirroring shadcn.
+//   - Item requires `index` (Tamagui's a11y model needs it; we surface it
+//     as a clearly-typed prop so consumers don't forget).
+
+import {
+  Select as TamaSelect,
+  SelectSeparator as TamaSelectSeparator,
+  type SelectProps,
+} from "@tamagui/select";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
-function Root(props: SelectProps & { children: ReactNode }) {
+// ─── Root ────────────────────────────────────────────────────────────────
+
+function Root<Value extends string = string>(props: SelectProps<Value>) {
   return <TamaSelect {...props} />;
 }
 
-function Trigger({
+// ─── Group ───────────────────────────────────────────────────────────────
+
+function Group({
   children,
   ...props
-}: ComponentProps<typeof TamaSelect.Trigger> & { children: ReactNode }) {
+}: ComponentProps<typeof TamaSelect.Group> & { children: ReactNode }) {
+  return (
+    <TamaSelect.Group padding="$1" {...props}>
+      {children}
+    </TamaSelect.Group>
+  );
+}
+
+// ─── Value ───────────────────────────────────────────────────────────────
+
+const Value = TamaSelect.Value;
+
+// ─── Trigger ─────────────────────────────────────────────────────────────
+
+function Trigger({
+  children,
+  controlSize = "md",
+  ...props
+}: ComponentProps<typeof TamaSelect.Trigger> & {
+  children: ReactNode;
+  controlSize?: "sm" | "md";
+}) {
   return (
     <TamaSelect.Trigger
+      data-slot="select-trigger"
+      data-size={controlSize}
       backgroundColor="$backgroundMuted"
-      borderRadius="$md"
-      // Tamagui's Select.Trigger inherits ListItem default which leaks a
-      // 1px hairline border. TR-strict requires zero card borders.
+      borderRadius="$lg"
       borderWidth={0}
       paddingHorizontal="$3"
-      paddingVertical={10}
+      height={controlSize === "sm" ? 32 : 40}
       gap="$2"
       flexDirection="row"
       alignItems="center"
+      justifyContent="space-between"
       cursor="pointer"
+      width="100%"
+      hoverStyle={{ backgroundColor: "$backgroundElevated" }}
       focusVisibleStyle={{
-        outlineColor: "$borderFocus",
+        outlineColor: "$color",
         outlineStyle: "solid",
         outlineWidth: 2,
+        outlineOffset: 2,
       }}
       {...props}
     >
       {children}
+      <TamaSelect.Icon asChild>
+        <ChevronDown size={16} aria-hidden={true} color="var(--colorTertiary)" />
+      </TamaSelect.Icon>
     </TamaSelect.Trigger>
   );
 }
 
-const Value = TamaSelect.Value;
+// ─── Content ─────────────────────────────────────────────────────────────
 
 function Content({
   children,
@@ -44,6 +105,17 @@ function Content({
 }: ComponentProps<typeof TamaSelect.Content> & { children: ReactNode }) {
   return (
     <TamaSelect.Content {...props}>
+      <TamaSelect.ScrollUpButton
+        alignItems="center"
+        justifyContent="center"
+        position="relative"
+        width="100%"
+        height="$3"
+        backgroundColor="$backgroundElevated"
+        cursor="default"
+      >
+        <ChevronUp size={14} aria-hidden={true} color="var(--colorTertiary)" />
+      </TamaSelect.ScrollUpButton>
       <TamaSelect.Viewport
         backgroundColor="$backgroundElevated"
         borderRadius="$lg"
@@ -53,9 +125,40 @@ function Content({
       >
         {children}
       </TamaSelect.Viewport>
+      <TamaSelect.ScrollDownButton
+        alignItems="center"
+        justifyContent="center"
+        position="relative"
+        width="100%"
+        height="$3"
+        backgroundColor="$backgroundElevated"
+        cursor="default"
+      >
+        <ChevronDown size={14} aria-hidden={true} color="var(--colorTertiary)" />
+      </TamaSelect.ScrollDownButton>
     </TamaSelect.Content>
   );
 }
+
+// ─── Label ───────────────────────────────────────────────────────────────
+
+function Label(props: ComponentProps<typeof TamaSelect.Label>) {
+  return (
+    <TamaSelect.Label
+      data-slot="select-label"
+      color="$colorTertiary"
+      fontSize="$xs"
+      fontWeight="500"
+      letterSpacing={0.4}
+      textTransform="uppercase"
+      paddingHorizontal="$2"
+      paddingVertical="$1"
+      {...props}
+    />
+  );
+}
+
+// ─── Item ────────────────────────────────────────────────────────────────
 
 function Item({
   children,
@@ -63,19 +166,52 @@ function Item({
 }: ComponentProps<typeof TamaSelect.Item> & { children: ReactNode }) {
   return (
     <TamaSelect.Item
-      paddingHorizontal={10}
+      data-slot="select-item"
+      paddingHorizontal="$2"
       paddingVertical="$2"
-      borderRadius="$sm"
+      paddingRight={28}
+      borderRadius="$md"
       cursor="pointer"
+      flexDirection="row"
+      alignItems="center"
+      gap="$2"
       hoverStyle={{ backgroundColor: "$backgroundMuted" }}
       focusStyle={{ backgroundColor: "$backgroundMuted" }}
       {...props}
     >
-      <TamaSelect.ItemText color="$color" fontSize="$caption">
+      <TamaSelect.ItemText color="$color" fontSize="$bodySm">
         {children}
       </TamaSelect.ItemText>
+      <TamaSelect.ItemIndicator marginLeft="auto">
+        <Check size={14} aria-hidden={true} color="var(--color)" />
+      </TamaSelect.ItemIndicator>
     </TamaSelect.Item>
   );
 }
 
-export const PekuloSelect = Object.assign(Root, { Trigger, Value, Content, Item });
+// ─── Separator ───────────────────────────────────────────────────────────
+
+function Separator(props: ComponentProps<typeof TamaSelectSeparator>) {
+  return (
+    <TamaSelectSeparator
+      data-slot="select-separator"
+      height={1}
+      backgroundColor="$borderDefault"
+      marginVertical="$1"
+      marginHorizontal={-4}
+      {...props}
+    />
+  );
+}
+
+// ─── Compose ─────────────────────────────────────────────────────────────
+
+export const PekuloSelect = Object.assign(Root, {
+  Group,
+  Value,
+  Trigger,
+  Content,
+  Label,
+  Item,
+  Separator,
+});
