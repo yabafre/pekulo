@@ -66,12 +66,14 @@ function Trigger({
   );
 }
 
-// 1px border + elevated bg makes the popover visually separable from the
-// near-black page surface. TR-strict bans card borders on in-flow
-// surfaces, but floating overlays (popover / menu / dropdown) require a
-// container outline to read as a layer above the page (mirrors how TR
-// itself outlines its dropdowns). Drop shadow stays off — the Pekulo
-// theme handles depth via the `$backgroundElevated` shade.
+// Floating overlays (popover / menu / dropdown) need clear visual lift
+// over the near-black page surface. Pekulo tokens: $backgroundElevated
+// is only #121212 (12% above pure black) and $borderDefault is 10% white
+// opacity — both invisible against #000. We bump to $borderStrong (16%)
+// AND add a contained shadow (TR-strict bans shadows on in-flow cards,
+// but floating-layer shadows are the canonical depth signal across every
+// shadcn / Radix / Vercel-style DS). The combination gives a clear
+// "above the page" affordance without bleeding chrome into static surfaces.
 function Content({
   children,
   ...props
@@ -83,7 +85,11 @@ function Content({
       padding="$3"
       gap="$2"
       borderWidth={1}
-      borderColor="$borderDefault"
+      borderColor="$borderStrong"
+      shadowColor="black"
+      shadowOpacity={0.45}
+      shadowRadius={24}
+      shadowOffset={{ width: 0, height: 8 }}
       transition="quick"
       enterStyle={{ opacity: 0, y: -4 }}
       exitStyle={{ opacity: 0, y: -4 }}
