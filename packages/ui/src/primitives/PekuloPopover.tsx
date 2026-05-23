@@ -3,8 +3,29 @@
 import { Popover as TamaPopover, type PopoverProps } from "@tamagui/popover";
 import type { ButtonHTMLAttributes, ComponentProps, CSSProperties, ReactNode } from "react";
 
-function Root({ placement = "bottom", ...props }: PopoverProps & { children: ReactNode }) {
-  return <TamaPopover placement={placement} {...props} />;
+// `allowFlip` + `stayInFrame` wire Tamagui Popper to Floating UI's flip +
+// shift middleware: the popover flips placement (e.g. bottom → top) when
+// the preferred side has no viewport space, and shifts horizontally to
+// stay inside the viewport. `offset` gives a tiny gap from the trigger.
+// Without these the popover stayed pinned to `bottom` and overflowed off-
+// screen on triggers near the viewport bottom edge (e.g. PekuloDatePicker
+// inside a dialog mid-page).
+function Root({
+  placement = "bottom",
+  allowFlip = true,
+  stayInFrame = true,
+  offset = 6,
+  ...props
+}: PopoverProps & { children: ReactNode }) {
+  return (
+    <TamaPopover
+      placement={placement}
+      allowFlip={allowFlip}
+      stayInFrame={stayInFrame}
+      offset={offset}
+      {...props}
+    />
+  );
 }
 
 // Default trigger styles — Tamagui's asChild Slot clones the button and
@@ -45,6 +66,12 @@ function Trigger({
   );
 }
 
+// 1px border + elevated bg makes the popover visually separable from the
+// near-black page surface. TR-strict bans card borders on in-flow
+// surfaces, but floating overlays (popover / menu / dropdown) require a
+// container outline to read as a layer above the page (mirrors how TR
+// itself outlines its dropdowns). Drop shadow stays off — the Pekulo
+// theme handles depth via the `$backgroundElevated` shade.
 function Content({
   children,
   ...props
@@ -55,6 +82,8 @@ function Content({
       borderRadius="$lg"
       padding="$3"
       gap="$2"
+      borderWidth={1}
+      borderColor="$borderDefault"
       transition="quick"
       enterStyle={{ opacity: 0, y: -4 }}
       exitStyle={{ opacity: 0, y: -4 }}

@@ -5,7 +5,7 @@
 // onboarding placeholders). Compositional: Empty (root) > EmptyHeader
 // (media + title + description) + EmptyContent (CTA).
 
-import { Text, View, type ViewProps } from "tamagui";
+import { View, type ViewProps } from "tamagui";
 import type { CSSProperties, ReactNode } from "react";
 import { pekuloFontSizes, pekuloFontWeights, pekuloRadius, pekuloSpacing } from "../tokens";
 

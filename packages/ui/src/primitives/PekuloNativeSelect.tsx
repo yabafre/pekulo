@@ -16,8 +16,10 @@ import type { CSSProperties, SelectHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
 
-export interface PekuloNativeSelectProps
-  extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> {
+export interface PekuloNativeSelectProps extends Omit<
+  SelectHTMLAttributes<HTMLSelectElement>,
+  "size"
+> {
   controlSize?: "sm" | "md";
   invalid?: boolean;
 }
@@ -63,13 +65,7 @@ export const PekuloNativeSelect = forwardRef<HTMLSelectElement, PekuloNativeSele
         data-slot="native-select-wrapper"
         style={{ position: "relative", display: "block", width: "100%" }}
       >
-        <select
-          data-slot="select"
-          ref={ref}
-          style={merged}
-          disabled={disabled}
-          {...props}
-        >
+        <select data-slot="select" ref={ref} style={merged} disabled={disabled} {...props}>
           {children}
         </select>
         <ChevronDown
