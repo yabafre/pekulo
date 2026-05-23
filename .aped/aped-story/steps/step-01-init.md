@@ -36,7 +36,41 @@ Initialize this skill's workflow: detect mode (worktree vs solo), refuse to oper
 Run, in order:
 
 1. `ls .aped/WORKTREE` — if it succeeds, **worktree mode**. Read the marker (story_key, ticket, branch, project_root). Skip step 2's branch creation entirely (the worktree was already cut from the umbrella by `aped-sprint`). Confirm the current branch matches the marker's `branch`; if not, HALT.
-2. `ls .aped/WORKTREE` fails → **solo mode**. Continue to the branch gate below.
+2. `ls .aped/WORKTREE` fails. Before concluding **solo mode**, run this guard so a real worktree with a missing marker doesn't silently fall through:
+
+   ```bash
+   GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || echo "")
+   COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || echo "")
+   # In a linked worktree the per-worktree gitdir lives under <common-dir>/worktrees/<name>;
+   # in the main checkout GIT_DIR == COMMON_DIR.
+   if [[ -n "$GIT_DIR" && -n "$COMMON_DIR" && "$GIT_DIR" != "$COMMON_DIR" && "$GIT_DIR" == *"/worktrees/"* ]]; then
+     IN_WORKTREE=true
+   else
+     IN_WORKTREE=false
+   fi
+   ```
+
+   If `IN_WORKTREE=true`, **HALT** — this is a sprint-owned worktree with no marker, almost certainly a workmux Path A dispatch that ran on a pre-6.12.2 aped-method. Tell the user verbatim:
+
+   > ❌ **This is a git worktree but `.aped/WORKTREE` is missing.** I refuse to fall through to solo mode — it would lose the sprint link and the Story Leader would lose track of which story/ticket/branch it owns.
+   >
+   > Recovery (run from this worktree, replacing the placeholders with the right values — read them from `docs/state.yaml` `sprint.stories` if you're unsure):
+   >
+   > ```bash
+   > bash .aped/scripts/write-worktree-marker.sh \
+   >   --worktree     "$PWD" \
+   >   --story        "<story-key>" \
+   >   --ticket       "<ticket-id>" \
+   >   --branch       "$(git symbolic-ref --short HEAD)" \
+   >   --mode         parallel \
+   >   --project-root "$(git rev-parse --show-toplevel | sed 's|/\\.worktrees/.*||;s|__worktrees/.*||')"
+   > ```
+   >
+   > Then re-invoke `aped-story`. (If you scaffolded before 6.12.2, also `npx aped-method` to install the helper — it lives at `.aped/scripts/write-worktree-marker.sh`.)
+
+   STOP. Do not continue.
+
+3. `IN_WORKTREE=false` → genuine **solo mode**. Continue to the branch gate below.
 
 ### 2. Branch gate (solo mode only)
 

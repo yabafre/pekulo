@@ -182,32 +182,18 @@ else
   fi
 fi
 
-mkdir -p "$WORKTREE_PATH/.aped"
-# 6.8.0 — sequential mode dispatches multiple stories into ONE shared worktree;
-# writing the same WORKTREE file each time would let the last story overwrite
-# the first. Per-story markers in sequential mode; legacy single marker stays
-# in parallel mode (one worktree per story, no collision risk).
-if [[ "$SPRINT_MODE" == "sequential" ]]; then
-  # STORY_KEY becomes part of the marker filename — reject any character outside
-  # [a-zA-Z0-9._-] so a key like `1-1/../evil` cannot escape the marker dir.
-  case "$STORY_KEY" in
-    "" | *[!a-zA-Z0-9._-]* | *..* )
-      echo "ERROR: invalid STORY_KEY '$STORY_KEY' for sequential marker — allowed chars: [a-zA-Z0-9._-]" >&2
-      exit 7 ;;
-  esac
-  MARKER_PATH="$WORKTREE_PATH/.aped/WORKTREE.$STORY_KEY.yaml"
-else
-  MARKER_PATH="$WORKTREE_PATH/.aped/WORKTREE"
-fi
-cat > "$MARKER_PATH" <<EOF
-schema_version: 1
-story_key: $STORY_KEY
-ticket: $TICKET_ID
-branch: $BRANCH_NAME
-project_root: $PROJECT_ROOT
-sprint_mode: $SPRINT_MODE
-created_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-EOF
+# 6.12.2 — marker write delegated to write-worktree-marker.sh so workmux
+# Path A (which never invokes this script) can use the same writer. Per-story
+# markers for sequential mode + legacy single marker for parallel are handled
+# inside the helper. The path-traversal guard on STORY_KEY lives there too.
+bash "$PROJECT_ROOT/.aped/scripts/write-worktree-marker.sh" \
+  --worktree     "$WORKTREE_PATH" \
+  --story        "$STORY_KEY" \
+  --ticket       "$TICKET_ID" \
+  --branch       "$BRANCH_NAME" \
+  --mode         "$SPRINT_MODE" \
+  --project-root "$PROJECT_ROOT" \
+  >/dev/null
 
 bash "$PROJECT_ROOT/.aped/scripts/log.sh" worktree_created \
   story="$STORY_KEY" ticket="$TICKET_ID" branch="$BRANCH_NAME" worktree="$WORKTREE_PATH" \
