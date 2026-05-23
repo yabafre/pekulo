@@ -193,75 +193,91 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
        * data at list level (4-3 doesn't fetch children per card), those
        * fields rendered as "0 €" / "0 ans restants" — confusing the user
        * about info they never entered. Inline render shows only what the
-       * data supports. */}
-      <View flexDirection="column" $lg={{ flexDirection: "row" }} gap="$5">
-        <View flex={1}>
+       * data supports.
+       *
+       * Layout discipline (2026-05-24 mobile fix): single-column vertical
+       * stack on EVERY breakpoint. The previous 2-column layout (`$lg`
+       * responsive override) collapsed visually on mobile — Tamagui's
+       * responsive prop didn't reliably reset flexDirection on the small
+       * media query, so VALORISATION and DETTE RESTANTE rendered on top
+       * of each other. Vertical stack is also better mobile UX per
+       * ui-ux-pro-max §5 content-priority: the hero metric (VALORISATION)
+       * is large and unambiguous; secondary metrics (EQUITY, DETTE) sit
+       * below in a clean key↔value rhythm. Card width on lg+ is wide
+       * enough that vertical reading remains comfortable. */}
+      <View flexDirection="column" gap="$4">
+        {/* Hero metric — VALORISATION */}
+        <View>
           <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
             VALORISATION
           </Text>
           <Text
             color="$color"
-            fontSize="$h2"
+            fontSize="$h1"
             fontWeight="600"
             marginTop="$1"
             fontVariant={["tabular-nums"]}
           >
             {eur0.format(property.currentValuation)}
           </Text>
-          <Text color="$colorTertiary" fontSize="$caption" marginTop="$3" letterSpacing={0.5}>
+        </View>
+
+        {/* Equity — secondary line, label left + value right */}
+        <View flexDirection="row" justifyContent="space-between" alignItems="baseline" gap="$3">
+          <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
             EQUITY
           </Text>
-          <Text
-            color="$color"
-            fontSize="$h3"
-            fontWeight="500"
-            marginTop="$1"
-            fontVariant={["tabular-nums"]}
-          >
+          <Text color="$color" fontSize="$h3" fontWeight="500" fontVariant={["tabular-nums"]}>
             {eur0.format(netEquity)}
           </Text>
         </View>
+
+        {/* Mortgage block (only when hasMortgage) — dette + donut */}
         {hasMortgage && (
-          <View flex={1}>
-            <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
-              DETTE RESTANTE
-            </Text>
-            <Text
-              color="$color"
-              fontSize="$h3"
-              fontWeight="500"
-              marginTop="$1"
-              fontVariant={["tabular-nums"]}
-            >
-              {eur0.format(debtRemaining)}
-            </Text>
-            <View flexDirection="row" alignItems="center" gap="$3" marginTop="$4">
+          <>
+            <View flexDirection="row" justifyContent="space-between" alignItems="baseline" gap="$3">
+              <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
+                DETTE RESTANTE
+              </Text>
+              <Text color="$color" fontSize="$h3" fontWeight="500" fontVariant={["tabular-nums"]}>
+                {eur0.format(debtRemaining)}
+              </Text>
+            </View>
+            <View flexDirection="row" alignItems="center" gap="$3">
               <PekuloDonut pct={repaidPct} size={32} stroke={3} />
               <Text color="$colorSecondary" fontSize="$caption">
                 {Math.round(repaidPct * 100)} % remboursé
               </Text>
             </View>
+          </>
+        )}
+
+        {/* Cashflow (only when set) — separator + key↔value */}
+        {cashflow !== null && (
+          <View
+            paddingTop="$3"
+            borderTopWidth={1}
+            borderTopColor="$borderDefault"
+            flexDirection="row"
+            justifyContent="space-between"
+            alignItems="baseline"
+            gap="$3"
+          >
+            <Text color="$colorTertiary" fontSize="$caption">
+              Cash-flow mensuel
+            </Text>
+            <Text
+              color={cashflow >= 0 ? "$accent" : "$danger"}
+              fontSize="$h3"
+              fontWeight="600"
+              fontVariant={["tabular-nums"]}
+            >
+              {cashflow >= 0 ? "+" : ""}
+              {eur0.format(cashflow)}
+            </Text>
           </View>
         )}
       </View>
-
-      {cashflow !== null && (
-        <View marginTop="$4" paddingTop="$3" borderTopWidth={1} borderTopColor="$borderDefault">
-          <Text color="$colorTertiary" fontSize="$caption">
-            Cash-flow mensuel
-          </Text>
-          <Text
-            color={cashflow >= 0 ? "$accent" : "$danger"}
-            fontSize="$h3"
-            fontWeight="600"
-            fontVariant={["tabular-nums"]}
-            marginTop="$1"
-          >
-            {cashflow >= 0 ? "+" : ""}
-            {eur0.format(cashflow)}
-          </Text>
-        </View>
-      )}
 
       {/* Mortgage attach/update dialog — single PekuloDialog driven by `mode`. */}
       {(dialog?.kind === "mortgage-attach" || dialog?.kind === "mortgage-update") && (
