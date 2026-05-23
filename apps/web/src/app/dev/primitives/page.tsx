@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Cloud, Folder, Plus, Settings as SettingsIcon } from "lucide-react";
-import type { DateRange } from "react-day-picker";
+import type { DateRange } from "@pekulo/ui";
 import {
   PekuloSpinner,
   PekuloLoadingItem,

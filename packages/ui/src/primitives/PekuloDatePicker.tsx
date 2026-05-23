@@ -15,6 +15,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
+
+// Re-export so apps/web consumers don't have to take react-day-picker as
+// a direct dep (it's hoisted from @pekulo/ui's deps in dev but strict CI
+// installs fail to resolve it without an explicit declaration). The DS
+// owns the type contract for range pickers; consumers import everything
+// through @pekulo/ui.
+export type { DateRange };
 import { PekuloCalendar } from "./PekuloCalendar";
 import { PekuloPopover } from "./PekuloPopover";
 import { pekuloFontSizes } from "../tokens";
