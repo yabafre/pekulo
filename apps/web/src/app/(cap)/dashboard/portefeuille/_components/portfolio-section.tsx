@@ -2,7 +2,14 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloPopover, PekuloSkeleton, Section, pekuloRadius } from "@pekulo/ui";
+import {
+  PekuloDialog,
+  PekuloPopover,
+  PekuloSkeleton,
+  Section,
+  pekuloFontSizes,
+  pekuloRadius,
+} from "@pekulo/ui";
 import { MoreHorizontal, Plus } from "lucide-react";
 import type { Holding } from "@pekulo/validators";
 import { useHoldings } from "../_hooks/use-holdings";
@@ -72,7 +79,7 @@ const addPill: CSSProperties = {
   color: "var(--color)",
   border: "none",
   cursor: "pointer",
-  fontSize: 13,
+  fontSize: pekuloFontSizes.caption,
   fontWeight: 500,
 };
 
@@ -97,7 +104,7 @@ const popoverActionBtnBase: CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  fontSize: 14,
+  fontSize: pekuloFontSizes.bodySm,
   fontWeight: 500,
   borderRadius: pekuloRadius.md,
   textAlign: "left",

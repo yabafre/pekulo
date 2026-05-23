@@ -109,18 +109,24 @@ setTagRegistry({
   // portfolioKeys.holdings + portfolioKeys.snapshot lands back here.
   [holdingsTags.all()]: [holdingsKeys.list()],
   [holdingsTags.list()]: [holdingsKeys.list()],
-  // Realestate (story 4-1) — `list` invalidates the realestate aggregate.
-  // Stories 4-2 (derives) / 4-3 (UI) / 7-1 (dashboard) add cross-feature
-  // edges (e.g. realestateTags.list → dashboardKeys.cap) when they land;
-  // the registry entry exists now because the realestate oRPC module is
-  // mounted (T16) and consumers can subscribe immediately.
-  // Realestate (story 4-1 + 4-2) — the `list` tag invalidates the
-  // realestate aggregate keys; the 4-2 derives are stateless reads of
-  // the same aggregate, so any mutation that bumps `list` also
-  // invalidates `getPropertyDerives` / `listPropertyDerives` /
-  // `getTotalEquity` consumers transparently. Stories 4-3 (UI) and 7-1
-  // (dashboard) will add cross-feature edges (e.g.
-  // realestateTags.list → dashboardKeys.cap) when they ship.
-  [realestateTags.all()]: [realestateKeys.list()],
-  [realestateTags.list()]: [realestateKeys.list()],
+  // Realestate (story 4-1 + 4-2 + 4-3) — the `list` tag invalidates the
+  // entire realestate read graph via the bare `[REALESTATE_KEY]` prefix.
+  // TanStack's `invalidateQueries({queryKey:["realestate"]})` is inclusive
+  // prefix-match, so this single edge covers `realestateKeys.list()`,
+  // `byId(id)` AND `valuations(id)` in one shot — the 4-3 UI hooks
+  // (useProperties / useListPropertyDerives / useProperty /
+  // useListValuations) all subscribe to keys under the `realestate`
+  // prefix. Surgical edges are not required at V1 scale (NFR-16: 50
+  // properties / user). 7-1 dashboard will add a dedicated
+  // `realestateTags.list → dashboardKeys.cap` edge when it ships.
+  //
+  // 2026-05-22 aped-review fix — earlier shape mapped to
+  // `realestateKeys.list()` only, which silently missed `byId` and
+  // `valuations`; the 9 mutation hooks compensated with manual
+  // `queryClient.invalidateQueries({queryKey:[REALESTATE_KEY]})` calls
+  // that violated R3/R4 + lesson 2026-05-20 ("hooks consume zapaction,
+  // never raw @tanstack/react-query"). Fixing the registry restores
+  // the SSOT.
+  [realestateTags.all()]: [[REALESTATE_KEY]],
+  [realestateTags.list()]: [[REALESTATE_KEY]],
 });

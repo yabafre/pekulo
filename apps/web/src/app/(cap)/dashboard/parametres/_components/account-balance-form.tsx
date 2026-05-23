@@ -1,23 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Text, View } from "@pekulo/ui/client";
+import {
+  PekuloDatePicker,
+  PekuloField,
+  PekuloFieldDescription,
+  PekuloFieldError,
+  PekuloFieldGroup,
+  PekuloFieldLabel,
+  PekuloInput,
+  PekuloSubmitButton,
+} from "@pekulo/ui";
+import { View } from "@pekulo/ui/client";
 import type { Account } from "@pekulo/validators";
 import { useAppForm } from "@/hooks/form-hook";
 import { useRecordBalanceChange } from "../_hooks/use-record-balance-change";
-import {
-  FormField as Field,
-  formInputStyle as inputStyle,
-  formSubmitStyle as submitStyle,
-} from "../../../_components/form-primitives";
-import submitPill from "../../../_components/submit-pill.module.css";
 
-function isoToday(): string {
+// Returns today's UTC midnight as a Date — matches the API's z.coerce.date.
+function utcMidnightToday(): Date {
   const d = new Date();
   const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  const mm = d.getUTCMonth();
+  const dd = d.getUTCDate();
+  return new Date(Date.UTC(yyyy, mm, dd));
 }
 
 export interface AccountBalanceFormProps {
@@ -32,33 +37,26 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
 
   const form = useAppForm({
     defaultValues: {
-      valuedOn: isoToday(),
+      valuedOn: utcMidnightToday(),
       cashBalance: String(account.cashBalance),
     },
     validators: {
       onSubmit: ({ value }) => {
-        if (!value.valuedOn || value.valuedOn.length === 0) {
+        if (!value.valuedOn || Number.isNaN(value.valuedOn.getTime())) {
           return "Date requise";
         }
         const balance = Number(value.cashBalance);
         if (!Number.isFinite(balance) || balance < 0) {
           return "Solde invalide (>= 0)";
         }
-        // ISO date string → UTC midnight; matches the API's z.coerce.date.
-        const valued = new Date(`${value.valuedOn}T00:00:00.000Z`);
-        if (Number.isNaN(valued.getTime())) {
-          return "Date invalide";
-        }
         return undefined;
       },
     },
     onSubmit: async ({ value }) => {
       const balance = Number(value.cashBalance);
-      // ISO date string → UTC midnight; matches the API's z.coerce.date.
-      const valued = new Date(`${value.valuedOn}T00:00:00.000Z`);
       setEnvelopeError(null);
       mutate(
-        { id: account.id, valuedOn: valued, cashBalance: balance },
+        { id: account.id, valuedOn: value.valuedOn, cashBalance: balance },
         {
           onSuccess: (result) => {
             if (!result.ok) {
@@ -81,104 +79,70 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
       }}
       aria-label={`Modifier le solde de ${account.label}`}
     >
-      <View flexDirection="column" gap="$3" padding="$4">
-        <form.Field name="valuedOn">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="acc-bal-date"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Date
-              </Text>
-              <input
-                id="acc-bal-date"
-                type="date"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
-                style={inputStyle}
-              />
-            </Field>
+      <View padding="$4">
+        <PekuloFieldGroup>
+          <form.Field name="valuedOn">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="acc-bal-date">Date</PekuloFieldLabel>
+                <PekuloDatePicker
+                  id="acc-bal-date"
+                  value={field.state.value}
+                  onChange={(d) => d && field.handleChange(d)}
+                />
+              </PekuloField>
+            )}
+          </form.Field>
+          <form.Field name="cashBalance">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="acc-bal-amount">Nouveau solde</PekuloFieldLabel>
+                <PekuloInput
+                  id="acc-bal-amount"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                  required
+                />
+              </PekuloField>
+            )}
+          </form.Field>
+          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+            {(clientError) =>
+              clientError ? <PekuloFieldError>{String(clientError)}</PekuloFieldError> : null
+            }
+          </form.Subscribe>
+          {envelopeError && (
+            <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+              {(clientError) =>
+                clientError ? null : <PekuloFieldError>{envelopeError}</PekuloFieldError>
+              }
+            </form.Subscribe>
           )}
-        </form.Field>
-        <form.Field name="cashBalance">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="acc-bal-amount"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Nouveau solde
-              </Text>
-              <input
-                id="acc-bal-amount"
-                type="number"
-                min={0}
-                step="0.01"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
-                style={inputStyle}
-              />
-            </Field>
+          {error && !envelopeError && (
+            <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+              {(clientError) =>
+                clientError ? null : <PekuloFieldError>{error.message}</PekuloFieldError>
+              }
+            </form.Subscribe>
           )}
-        </form.Field>
-        <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-          {(clientError) =>
-            clientError ? (
-              <Text role="alert" color="$danger" fontSize="$caption">
-                {String(clientError)}
-              </Text>
-            ) : null
-          }
-        </form.Subscribe>
-        {envelopeError && (
-          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-            {(clientError) =>
-              clientError ? null : (
-                <Text role="alert" color="$danger" fontSize="$caption">
-                  {envelopeError}
-                </Text>
-              )
-            }
-          </form.Subscribe>
-        )}
-        {error && !envelopeError && (
-          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-            {(clientError) =>
-              clientError ? null : (
-                <Text role="alert" color="$danger" fontSize="$caption">
-                  {error.message}
-                </Text>
-              )
-            }
-          </form.Subscribe>
-        )}
-        {isSuccess && !envelopeRejected && !error && (
-          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-            {(clientError) =>
-              clientError ? null : (
-                <Text role="status" color="$success" fontSize="$caption">
-                  Solde enregistré.
-                </Text>
-              )
-            }
-          </form.Subscribe>
-        )}
-        <button
-          type="submit"
-          disabled={isPending}
-          aria-disabled={isPending}
-          className={submitPill.pill}
-          style={submitStyle(isPending)}
-        >
-          {isPending ? "Enregistrement…" : "Enregistrer le solde"}
-        </button>
+          {isSuccess && !envelopeRejected && !error && (
+            <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+              {(clientError) =>
+                clientError ? null : (
+                  <PekuloFieldDescription color="$success">
+                    Solde enregistré.
+                  </PekuloFieldDescription>
+                )
+              }
+            </form.Subscribe>
+          )}
+          <PekuloSubmitButton loading={isPending} loadingLabel="Enregistrement…">
+            Enregistrer le solde
+          </PekuloSubmitButton>
+        </PekuloFieldGroup>
       </View>
     </form>
   );

@@ -20,7 +20,7 @@ const Portal = TamaDialog.Portal;
 function Overlay(props: ComponentProps<typeof TamaDialog.Overlay>) {
   return (
     <TamaDialog.Overlay
-      backgroundColor="rgba(0, 0, 0, 0.6)"
+      backgroundColor="$backgroundOverlay"
       transition="quick"
       enterStyle={{ opacity: 0 }}
       exitStyle={{ opacity: 0 }}

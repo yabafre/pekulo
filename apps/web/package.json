@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "@pekulo/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,8 @@
     "build": "bun --bun next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "bunx oxlint src"
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.0",
@@ -48,7 +49,7 @@
     "happy-dom": "^15.0.0",
     "react-grab": "^0.1.34",
     "supabase": "^2.95.4",
-    "tamagui": "2.0.0-rc.41",
+    "tamagui": "2.0.0-rc.42",
     "typescript": "^6.0.3",
     "vitest": "^2.0.0",
     "vitest-axe": "^0.1.0"

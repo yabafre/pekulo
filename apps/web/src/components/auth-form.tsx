@@ -4,7 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { Section, useToast } from "@pekulo/ui";
+import { Section, pekuloFontSizes, useToast } from "@pekulo/ui";
 import { Text, View, styled } from "@pekulo/ui/client";
 import { createClient } from "@/lib/supabase/client";
 
@@ -115,7 +115,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   placeholder="jean@exemple.fr"
                   required
-                  style={{ color: "var(--color)", fontSize: 14, outline: "none" }}
+                  style={{
+                    color: "var(--color)",
+                    fontSize: pekuloFontSizes.bodySm,
+                    outline: "none",
+                  }}
                 />
               </View>
               <View flexDirection="column" gap={6}>
@@ -136,7 +140,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  style={{ color: "var(--color)", fontSize: 14, outline: "none" }}
+                  style={{
+                    color: "var(--color)",
+                    fontSize: pekuloFontSizes.bodySm,
+                    outline: "none",
+                  }}
                 />
               </View>
               <SubmitButton type="submit" disabled={loading}>

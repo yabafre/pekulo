@@ -15,6 +15,7 @@ import type { ComponentType } from "react";
 import { View, Text } from "tamagui";
 import { Compass, Receipt, LineChart, Wallet, Building2 } from "lucide-react";
 import type { PekuloNavKey } from "../PekuloNavRail";
+import { pekuloSpacing } from "../../tokens";
 
 type LucideIcon = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
@@ -60,10 +61,10 @@ export function PekuloMobileBottomNav({ activeKey, onSelect }: PekuloMobileBotto
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(5, 1fr)",
-          paddingTop: 8,
-          paddingBottom: 20,
-          paddingLeft: 8,
-          paddingRight: 8,
+          paddingTop: pekuloSpacing[2],
+          paddingBottom: pekuloSpacing[5],
+          paddingLeft: pekuloSpacing[2],
+          paddingRight: pekuloSpacing[2],
         }}
       >
         {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
@@ -88,7 +89,7 @@ export function PekuloMobileBottomNav({ activeKey, onSelect }: PekuloMobileBotto
             >
               <Icon size={20} strokeWidth={1.75} color={iconColor(active)} />
               <Text
-                fontSize={10}
+                fontSize="$11"
                 lineHeight={12}
                 color={active ? "$color" : "$colorTertiary"}
                 fontWeight="500"

@@ -1,15 +1,18 @@
 "use client";
 
-import { Text, View } from "@pekulo/ui/client";
+import {
+  PekuloField,
+  PekuloFieldDescription,
+  PekuloFieldError,
+  PekuloFieldGroup,
+  PekuloFieldLabel,
+  PekuloInput,
+  PekuloSubmitButton,
+} from "@pekulo/ui";
+import { View } from "@pekulo/ui/client";
 import { MAX_LABEL_LENGTH, MAX_TARGET_CAPITAL_EUR } from "@pekulo/validators";
 import { useAppForm } from "@/hooks/form-hook";
 import { useAddMilestoneForm } from "../_hooks/use-add-milestone-form";
-import {
-  FormField as Field,
-  formInputStyle as inputStyle,
-  formSubmitStyle as submitStyle,
-} from "../../_components/form-primitives";
-import submitPill from "../../_components/submit-pill.module.css";
 
 export interface AddMilestoneFormProps {
   milestoneCount: number;
@@ -72,113 +75,80 @@ export function AddMilestoneForm({
       }}
       aria-label="Ajouter un palier"
     >
-      <View flexDirection="column" gap="$3" padding="$4">
-        <form.Field name="targetCapital">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="milestone-capital"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Capital cible (EUR)
-              </Text>
-              <input
-                id="milestone-capital"
-                type="number"
-                min={1}
-                max={MAX_TARGET_CAPITAL_EUR}
-                step={1}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
-                style={inputStyle}
-              />
-            </Field>
-          )}
-        </form.Field>
-        <form.Field name="targetYear">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="milestone-year"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Année cible
-              </Text>
-              <input
-                id="milestone-year"
-                type="number"
-                min={currentYear + 1}
-                max={horizonAbsoluteYearMax}
-                step={1}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                required
-                style={inputStyle}
-              />
-            </Field>
-          )}
-        </form.Field>
-        <form.Field name="label">
-          {(field) => (
-            <Field>
-              <Text
-                render="label"
-                htmlFor="milestone-label"
-                color="$colorSecondary"
-                fontSize="$caption"
-              >
-                Libellé (optionnel)
-              </Text>
-              <input
-                id="milestone-label"
-                type="text"
-                maxLength={MAX_LABEL_LENGTH}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.currentTarget.value)}
-                style={inputStyle}
-              />
-            </Field>
-          )}
-        </form.Field>
-        <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-          {(clientError) =>
-            clientError ? (
-              <Text role="alert" color="$danger" fontSize="$caption">
-                {String(clientError)}
-              </Text>
-            ) : null
-          }
-        </form.Subscribe>
-        {error && (
+      <View padding="$4">
+        <PekuloFieldGroup>
+          <form.Field name="targetCapital">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="milestone-capital">Capital cible (EUR)</PekuloFieldLabel>
+                <PekuloInput
+                  id="milestone-capital"
+                  type="number"
+                  min={1}
+                  max={MAX_TARGET_CAPITAL_EUR}
+                  step={1}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                  required
+                />
+              </PekuloField>
+            )}
+          </form.Field>
+          <form.Field name="targetYear">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="milestone-year">Année cible</PekuloFieldLabel>
+                <PekuloInput
+                  id="milestone-year"
+                  type="number"
+                  min={currentYear + 1}
+                  max={horizonAbsoluteYearMax}
+                  step={1}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                  required
+                />
+              </PekuloField>
+            )}
+          </form.Field>
+          <form.Field name="label">
+            {(field) => (
+              <PekuloField>
+                <PekuloFieldLabel htmlFor="milestone-label">Libellé (optionnel)</PekuloFieldLabel>
+                <PekuloInput
+                  id="milestone-label"
+                  type="text"
+                  maxLength={MAX_LABEL_LENGTH}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.currentTarget.value)}
+                />
+              </PekuloField>
+            )}
+          </form.Field>
           <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
             {(clientError) =>
-              clientError ? null : (
-                <Text role="alert" color="$danger" fontSize="$caption">
-                  {error.message}
-                </Text>
-              )
+              clientError ? <PekuloFieldError>{String(clientError)}</PekuloFieldError> : null
             }
           </form.Subscribe>
-        )}
-        {capReached && (
-          <Text role="status" color="$colorSecondary" fontSize="$caption">
-            Limite atteinte (20/20)
-          </Text>
-        )}
-        <button
-          type="submit"
-          disabled={submitDisabled}
-          aria-disabled={submitDisabled}
-          className={submitPill.pill}
-          style={submitStyle(submitDisabled)}
-        >
-          {isPending ? "Ajout…" : "Ajouter le palier"}
-        </button>
+          {error && (
+            <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+              {(clientError) =>
+                clientError ? null : <PekuloFieldError>{error.message}</PekuloFieldError>
+              }
+            </form.Subscribe>
+          )}
+          {capReached && (
+            <PekuloFieldDescription role="status">Limite atteinte (20/20)</PekuloFieldDescription>
+          )}
+          <PekuloSubmitButton
+            loading={isPending}
+            loadingLabel="Ajout…"
+            disabled={submitDisabled}
+            aria-disabled={submitDisabled}
+          >
+            Ajouter le palier
+          </PekuloSubmitButton>
+        </PekuloFieldGroup>
       </View>
     </form>
   );

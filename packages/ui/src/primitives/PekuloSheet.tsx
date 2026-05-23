@@ -27,7 +27,7 @@ function Root({
 function Overlay(props: ComponentProps<typeof TamaSheet.Overlay>) {
   return (
     <TamaSheet.Overlay
-      backgroundColor="rgba(0, 0, 0, 0.6)"
+      backgroundColor="$backgroundOverlay"
       transition="quick"
       enterStyle={{ opacity: 0 }}
       exitStyle={{ opacity: 0 }}

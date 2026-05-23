@@ -72,7 +72,7 @@ function MobileFlatCapView() {
   const pct = data ? data.percent / 100 : 0;
 
   return (
-    <View flexDirection="column" gap={40} width="100%">
+    <View flexDirection="column" gap="$10" width="100%">
       {/* Hero — Aujourd'hui + current wealth. Delta vs plan needs story 7-1
           curve data, hidden until then per the desktop CompassSection
           precedent ("delta hidden when curve unresolved"). */}

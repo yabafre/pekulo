@@ -67,7 +67,7 @@ export function PatrimoineView() {
   return (
     <View
       flexDirection="column"
-      gap={40}
+      gap="$10"
       width="100%"
       $lg={{ maxWidth: 768, marginHorizontal: "auto" }}
     >

@@ -1,28 +1,29 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import {
+  PekuloDatePicker,
+  PekuloDialog,
+  PekuloField,
+  PekuloFieldDescription,
+  PekuloFieldError,
+  PekuloFieldGroup,
+  PekuloFieldLabel,
+  PekuloInput,
+  PekuloSubmitButton,
+} from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog } from "@pekulo/ui";
 import { MAX_HOLDING_NOTES_LENGTH, type Holding } from "@pekulo/validators";
 import { useAppForm } from "@/hooks/form-hook";
 import { useRecordLot } from "../_hooks/use-record-lot";
-import {
-  FormField as Field,
-  formInputStyle as inputStyle,
-  formSubmitStyle as submitStyle,
-} from "../../../_components/form-primitives";
-import submitPill from "../../../_components/submit-pill.module.css";
 import formControls from "../../../_components/form-controls.module.css";
 
 const HOLDING_NOT_FOUND_MSG = "Ce placement est introuvable. Recharge la page.";
 const HOLDING_CLOSED_MSG = "Ce placement est clôturé — les lots ne peuvent plus être modifiés.";
 
-function todayIso(): string {
+function todayLocalMidnight(): Date {
   const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 const radioRow: CSSProperties = {
@@ -55,7 +56,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
   const form = useAppForm({
     defaultValues: {
       type: "buy" as "buy" | "sell",
-      occurredOn: todayIso(),
+      occurredOn: todayLocalMidnight(),
       quantity: "0",
       priceUnit: initialPriceUnit(holding),
       fees: "0",
@@ -92,7 +93,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
         {
           holdingId: holding.id,
           type: value.type,
-          occurredOn: new Date(value.occurredOn),
+          occurredOn: value.occurredOn,
           quantity: qNum,
           priceUnit: pNum,
           fees: fNum,
@@ -149,225 +150,156 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 overflowY: "auto",
               }}
             >
-              <form.Field name="type">
-                {(field) => (
-                  <Field>
-                    <Text color="$colorSecondary" fontSize="$caption">
-                      Type
-                    </Text>
-                    <div
-                      role="radiogroup"
-                      aria-label="Type de lot"
-                      style={radioRow}
-                      className={formControls.radioGroup}
-                    >
-                      <label>
-                        <input
-                          type="radio"
-                          name="lot-type"
-                          value="buy"
-                          checked={field.state.value === "buy"}
-                          onChange={() => field.handleChange("buy")}
-                        />{" "}
-                        Achat
-                      </label>
-                      <label>
-                        <input
-                          type="radio"
-                          name="lot-type"
-                          value="sell"
-                          checked={field.state.value === "sell"}
-                          onChange={() => field.handleChange("sell")}
-                        />{" "}
-                        Vente
-                      </label>
-                    </div>
-                  </Field>
-                )}
-              </form.Field>
-              <form.Field name="occurredOn">
-                {(field) => (
-                  <Field>
-                    <Text
-                      render="label"
-                      htmlFor="lot-date"
-                      color="$colorSecondary"
-                      fontSize="$caption"
-                    >
-                      Date
-                    </Text>
-                    <input
-                      id="lot-date"
-                      type="date"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.currentTarget.value)}
-                      required
-                      style={inputStyle}
-                    />
-                  </Field>
-                )}
-              </form.Field>
-              <form.Field name="quantity">
-                {(field) => (
-                  <Field>
-                    <Text
-                      render="label"
-                      htmlFor="lot-qty"
-                      color="$colorSecondary"
-                      fontSize="$caption"
-                    >
-                      Quantité
-                    </Text>
-                    <input
-                      id="lot-qty"
-                      type="number"
-                      min="0.0001"
-                      step="any"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.currentTarget.value)}
-                      required
-                      style={inputStyle}
-                    />
-                  </Field>
-                )}
-              </form.Field>
-              <form.Field name="priceUnit">
-                {(field) => (
-                  <Field>
-                    <Text
-                      render="label"
-                      htmlFor="lot-price"
-                      color="$colorSecondary"
-                      fontSize="$caption"
-                    >
-                      Prix unitaire
-                    </Text>
-                    <input
-                      id="lot-price"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.currentTarget.value)}
-                      required
-                      style={inputStyle}
-                    />
-                  </Field>
-                )}
-              </form.Field>
-              <form.Field name="fees">
-                {(field) => (
-                  <Field>
-                    <Text
-                      render="label"
-                      htmlFor="lot-fees"
-                      color="$colorSecondary"
-                      fontSize="$caption"
-                    >
-                      Frais
-                    </Text>
-                    <input
-                      id="lot-fees"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.currentTarget.value)}
-                      style={inputStyle}
-                    />
-                  </Field>
-                )}
-              </form.Field>
-              <form.Field name="notes">
-                {(field) => (
-                  <Field>
-                    <Text
-                      render="label"
-                      htmlFor="lot-notes"
-                      color="$colorSecondary"
-                      fontSize="$caption"
-                    >
-                      Notes (optionnel)
-                    </Text>
-                    <input
-                      id="lot-notes"
-                      type="text"
-                      maxLength={MAX_HOLDING_NOTES_LENGTH}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.currentTarget.value)}
-                      style={inputStyle}
-                    />
-                  </Field>
-                )}
-              </form.Field>
-              <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-                {(clientError) =>
-                  clientError ? (
-                    <Text role="alert" color="$danger" fontSize="$caption">
-                      {String(clientError)}
-                    </Text>
-                  ) : null
-                }
-              </form.Subscribe>
-              {envelopeError && (
+              <PekuloFieldGroup>
+                <form.Field name="type">
+                  {(field) => (
+                    <PekuloField>
+                      <Text color="$colorSecondary" fontSize="$caption">
+                        Type
+                      </Text>
+                      <div
+                        role="radiogroup"
+                        aria-label="Type de lot"
+                        style={radioRow}
+                        className={formControls.radioGroup}
+                      >
+                        <label>
+                          <input
+                            type="radio"
+                            name="lot-type"
+                            value="buy"
+                            checked={field.state.value === "buy"}
+                            onChange={() => field.handleChange("buy")}
+                          />{" "}
+                          Achat
+                        </label>
+                        <label>
+                          <input
+                            type="radio"
+                            name="lot-type"
+                            value="sell"
+                            checked={field.state.value === "sell"}
+                            onChange={() => field.handleChange("sell")}
+                          />{" "}
+                          Vente
+                        </label>
+                      </div>
+                    </PekuloField>
+                  )}
+                </form.Field>
+                <form.Field name="occurredOn">
+                  {(field) => (
+                    <PekuloField>
+                      <PekuloFieldLabel htmlFor="lot-date">Date</PekuloFieldLabel>
+                      <PekuloDatePicker
+                        id="lot-date"
+                        value={field.state.value}
+                        onChange={(d) => d && field.handleChange(d)}
+                      />
+                    </PekuloField>
+                  )}
+                </form.Field>
+                <form.Field name="quantity">
+                  {(field) => (
+                    <PekuloField>
+                      <PekuloFieldLabel htmlFor="lot-qty">Quantité</PekuloFieldLabel>
+                      <PekuloInput
+                        id="lot-qty"
+                        type="number"
+                        min="0.0001"
+                        step="any"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.currentTarget.value)}
+                        required
+                      />
+                    </PekuloField>
+                  )}
+                </form.Field>
+                <form.Field name="priceUnit">
+                  {(field) => (
+                    <PekuloField>
+                      <PekuloFieldLabel htmlFor="lot-price">Prix unitaire</PekuloFieldLabel>
+                      <PekuloInput
+                        id="lot-price"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.currentTarget.value)}
+                        required
+                      />
+                    </PekuloField>
+                  )}
+                </form.Field>
+                <form.Field name="fees">
+                  {(field) => (
+                    <PekuloField>
+                      <PekuloFieldLabel htmlFor="lot-fees">Frais</PekuloFieldLabel>
+                      <PekuloInput
+                        id="lot-fees"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.currentTarget.value)}
+                      />
+                    </PekuloField>
+                  )}
+                </form.Field>
+                <form.Field name="notes">
+                  {(field) => (
+                    <PekuloField>
+                      <PekuloFieldLabel htmlFor="lot-notes">Notes (optionnel)</PekuloFieldLabel>
+                      <PekuloInput
+                        id="lot-notes"
+                        type="text"
+                        maxLength={MAX_HOLDING_NOTES_LENGTH}
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.currentTarget.value)}
+                      />
+                    </PekuloField>
+                  )}
+                </form.Field>
                 <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
                   {(clientError) =>
-                    clientError ? null : (
-                      <Text role="alert" color="$danger" fontSize="$caption">
-                        {envelopeError}
-                      </Text>
-                    )
+                    clientError ? <PekuloFieldError>{String(clientError)}</PekuloFieldError> : null
                   }
                 </form.Subscribe>
-              )}
-              {error && !envelopeError && (
-                <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-                  {(clientError) =>
-                    clientError ? null : (
-                      <Text role="alert" color="$danger" fontSize="$caption">
-                        {error.message}
-                      </Text>
-                    )
-                  }
-                </form.Subscribe>
-              )}
-              {isSuccess && !envelopeError && !error && (
-                <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-                  {(clientError) =>
-                    clientError ? null : (
-                      <Text role="status" color="$success" fontSize="$caption">
-                        Lot enregistré.
-                      </Text>
-                    )
-                  }
-                </form.Subscribe>
-              )}
+                {envelopeError && (
+                  <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+                    {(clientError) =>
+                      clientError ? null : <PekuloFieldError>{envelopeError}</PekuloFieldError>
+                    }
+                  </form.Subscribe>
+                )}
+                {error && !envelopeError && (
+                  <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+                    {(clientError) =>
+                      clientError ? null : <PekuloFieldError>{error.message}</PekuloFieldError>
+                    }
+                  </form.Subscribe>
+                )}
+                {isSuccess && !envelopeError && !error && (
+                  <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+                    {(clientError) =>
+                      clientError ? null : (
+                        <PekuloFieldDescription color="$success">
+                          Lot enregistré.
+                        </PekuloFieldDescription>
+                      )
+                    }
+                  </form.Subscribe>
+                )}
+              </PekuloFieldGroup>
             </form>
             <View paddingTop="$2">
-              <button
-                type="submit"
+              <PekuloSubmitButton
                 form="lot-form-submit"
-                disabled={isPending}
-                aria-disabled={isPending}
-                className={submitPill.pill}
-                style={{
-                  ...submitStyle(isPending),
-                  alignSelf: "stretch",
-                  width: "100%",
-                  height: 44,
-                  padding: "0 24px",
-                  marginTop: 0,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  letterSpacing: 0.01,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                }}
+                loading={isPending}
+                loadingLabel="Enregistrement…"
               >
-                {isPending ? "Enregistrement…" : "Enregistrer le lot"}
-              </button>
+                Enregistrer le lot
+              </PekuloSubmitButton>
             </View>
           </View>
         </PekuloDialog.Content>

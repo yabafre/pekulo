@@ -56,7 +56,7 @@ export function PekuloSegmentedControl<T extends string>({
       gap="$1"
       padding="$1"
       backgroundColor="$backgroundMuted"
-      borderRadius={10}
+      borderRadius="$lg"
     >
       {options.map((opt) => {
         const Icon = opt.icon;
