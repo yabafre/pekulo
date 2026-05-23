@@ -182,6 +182,7 @@ sprint:
     0-10-pekulo-ui-migration: {status: done, depends_on: [0-9-tamagui-spike], ticket: "#10", worktree: null, started_at: "2026-05-06T00:00:00Z"}
     0-11-precommit-secrets: {status: done, depends_on: [0-2-oxc-toolchain], ticket: "#11", worktree: null, started_at: "2026-05-07T12:00:00Z"}
     0-12-custom-oxlint-rules: {status: done, depends_on: [0-2-oxc-toolchain, 0-10-pekulo-ui-migration], ticket: "#12", worktree: null, started_at: "2026-05-09T00:00:00Z"}
+    0-13-pekulofield-migration: {status: done, depends_on: [0-10-pekulo-ui-migration], ticket: null, worktree: null, started_at: "2026-05-21T00:00:00Z", completed_at: "2026-05-23T22:45:53Z", note: "retroactive — shipped under #26 / PR #89 squash a303e4a"}
     # Epic 1 — Compass & milestones (V1 differentiator)
     1-1-compass-domain: {status: done, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#13", worktree: null, started_at: "2026-05-09T15:00:00Z"}
     1-2-milestones-domain: {status: done, depends_on: [1-1-compass-domain], ticket: "#14", worktree: null, started_at: "2026-05-09T17:00:00Z"}
