@@ -32,3 +32,22 @@ pre-commit:
       glob: "apps/api/prisma/**/*.prisma"
       run: bash -c '(cd apps/api && bun run prisma:format)'
       stage_fixed: true
+    5_tamagui_css:
+      # Auto-regenerate packages/ui/public/tamagui.generated.css whenever
+      # the DS source changes. apps/web's TamaguiProvider runs with
+      # `disableInjectCSS` — it reads styles from the pre-generated CSS
+      # file, not from runtime injection. Without this hook, any new
+      # styled() / variant / theme-token added in packages/ui silently
+      # never reaches production CSS until a human remembers to
+      # regenerate (see docs/lessons.md 2026-05-24 entry — the symptom
+      # was "popover has no background" while typecheck + lint + tests
+      # all passed because Tamagui in jsdom uses a different runtime
+      # path).
+      #
+      # Glob is intentionally broad — any .ts(x) under packages/ui/src
+      # can affect the generated CSS. The hook explicitly `git add`s
+      # the output file (stage_fixed only restages INPUT files; the
+      # generated CSS is an OUTPUT, so we add it by hand).
+      tags: format
+      glob: "packages/ui/src/**/*.{ts,tsx}"
+      run: bash -c 'bun run generate:tamagui-css >/dev/null && git add packages/ui/public/tamagui.generated.css'
