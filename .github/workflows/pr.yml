@@ -145,3 +145,29 @@ jobs:
             exit 0
           fi
           bunx vitest run --grep axe
+
+  tamagui-css-fresh:
+    # Belt-and-suspenders for the pre-commit hook (lefthook 5_tamagui_css).
+    # apps/web's TamaguiProvider runs with disableInjectCSS and reads
+    # styles from packages/ui/public/tamagui.generated.css. If a dev
+    # bypassed the pre-commit hook (LEFTHOOK=0) or never installed
+    # lefthook, the committed CSS will silently drift from the source.
+    # Symptom is invisible until a user reports a "missing background"
+    # bug in production. This job re-runs the generation and asserts
+    # the committed file matches a fresh regen — fails the PR if drift
+    # is detected. See docs/lessons.md 2026-05-24 for the full story.
+    name: tamagui-css-fresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-bun
+      - name: regenerate tamagui.generated.css then assert no diff
+        run: |
+          bun run generate:tamagui-css
+          if ! git diff --exit-code packages/ui/public/tamagui.generated.css; then
+            echo "::error::packages/ui/public/tamagui.generated.css drifted from a fresh regen."
+            echo "::error::Run 'bun run generate:tamagui-css' locally, commit the result, push."
+            echo "::error::lefthook auto-regens on every packages/ui/src/**/*.tsx change — was the hook bypassed?"
+            exit 1
+          fi
+          echo "tamagui.generated.css matches source — no drift."
