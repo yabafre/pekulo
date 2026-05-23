@@ -17,6 +17,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { PekuloCalendar } from "./PekuloCalendar";
 import { PekuloPopover } from "./PekuloPopover";
+import { pekuloFontSizes } from "../tokens";
 
 const dateFmtFR = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -147,7 +148,7 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
           border: "1px solid var(--borderDefault)",
           borderRadius: 12,
           fontFamily: "inherit",
-          fontSize: 14,
+          fontSize: pekuloFontSizes.bodySm,
           fontWeight: 500,
           cursor: props.disabled ? "not-allowed" : "pointer",
           opacity: props.disabled ? 0.5 : 1,

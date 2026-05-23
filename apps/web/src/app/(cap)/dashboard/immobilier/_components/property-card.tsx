@@ -2,7 +2,14 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloDonut, PekuloPopover, Section, pekuloRadius } from "@pekulo/ui";
+import {
+  PekuloDialog,
+  PekuloDonut,
+  PekuloPopover,
+  Section,
+  pekuloFontSizes,
+  pekuloRadius,
+} from "@pekulo/ui";
 import { MoreHorizontal } from "lucide-react";
 import type {
   PropertyType,
@@ -52,7 +59,7 @@ const popoverActionBtnBase: CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  fontSize: 14,
+  fontSize: pekuloFontSizes.bodySm,
   fontWeight: 500,
   borderRadius: pekuloRadius.md,
   textAlign: "left",

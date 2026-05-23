@@ -7,9 +7,21 @@
 //
 // API parity with shadcn's `Calendar`:
 //   <PekuloCalendar mode="single" selected={date} onSelect={setDate} />
+//
+// Tokens note: the CALENDAR_THEME_CSS string below hard-codes a handful
+// of RDP-internal magic numbers (8px day-button radius, 36px cell size,
+// 12px weekday padding, 9999px nav-button radius). These are sub-token
+// values dictated by react-day-picker's `--rdp-*` CSS vars + the
+// month-grid geometry; Pekulo doesn't expose a matching token scale
+// (no `$radiusXs`=4 or `$spacing[2.5]`=10), and tokenizing them would
+// shift the magic into a new RDP-specific category that no other
+// primitive consumes. Container-level surface props (backgroundColor,
+// borderRadius, padding) are tokenised below; the per-element CSS
+// values stay numeric and intentional.
 
 import { DayPicker, type DayPickerProps } from "react-day-picker";
 import type { CSSProperties } from "react";
+import { pekuloRadius, pekuloSpacing } from "../tokens";
 
 const CALENDAR_THEME_CSS = `
 .pekulo-calendar {
@@ -189,8 +201,8 @@ const CALENDAR_THEME_CSS = `
 
 const containerStyle: CSSProperties = {
   backgroundColor: "var(--backgroundCard)",
-  borderRadius: 12,
-  padding: 12,
+  borderRadius: pekuloRadius.lg,
+  padding: pekuloSpacing[3],
 };
 
 export type PekuloCalendarProps = DayPickerProps;

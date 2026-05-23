@@ -23,7 +23,7 @@ const DRAWER_CSS = `
   position: fixed;
   inset: 0;
   z-index: 50;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--backgroundOverlay);
 }
 .pekulo-drawer-content {
   position: fixed;

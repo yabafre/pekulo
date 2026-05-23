@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, pekuloRadius } from "@pekulo/ui";
+import { PekuloDialog, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import type { RealEstate } from "@pekulo/types";
 import { useDeleteProperty } from "../_hooks/use-delete-property";
 import { DialogCloseX } from "./dialog-close-x";
@@ -19,7 +19,7 @@ const dangerBtn = (disabled: boolean): CSSProperties => ({
   border: "none",
   cursor: disabled ? "not-allowed" : "pointer",
   opacity: disabled ? 0.5 : 1,
-  fontSize: 14,
+  fontSize: pekuloFontSizes.bodySm,
   fontWeight: 500,
 });
 

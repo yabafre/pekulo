@@ -2,7 +2,14 @@
 
 import { useMemo, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloLoadingItem, PekuloSkeleton, Section, pekuloRadius } from "@pekulo/ui";
+import {
+  PekuloDialog,
+  PekuloLoadingItem,
+  PekuloSkeleton,
+  Section,
+  pekuloFontSizes,
+  pekuloRadius,
+} from "@pekulo/ui";
 import { Plus } from "lucide-react";
 import type { PropertyDerivesItem } from "@pekulo/types";
 import { useProperties } from "../_hooks/use-properties";
@@ -29,7 +36,7 @@ const addPill: CSSProperties = {
   color: "var(--colorOnAccent)",
   border: "none",
   cursor: "pointer",
-  fontSize: 14,
+  fontSize: pekuloFontSizes.bodySm,
   fontWeight: 500,
 };
 

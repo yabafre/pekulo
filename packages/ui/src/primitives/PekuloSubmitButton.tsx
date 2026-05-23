@@ -12,6 +12,7 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { PekuloButton, type PekuloButtonVariant } from "./PekuloButton";
+import { pekuloRadius } from "../tokens";
 
 export interface PekuloSubmitButtonProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -56,7 +57,7 @@ export function PekuloSubmitButton({
         height: 44,
         alignSelf: fullWidth ? "stretch" : "flex-start",
         width: fullWidth ? "100%" : "auto",
-        borderRadius: 9999,
+        borderRadius: pekuloRadius.full,
         ...style,
       }}
       {...props}

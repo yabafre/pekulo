@@ -6,19 +6,27 @@
 // themselves, so mutations invalidating the compass tags propagate
 // without a server round-trip.
 
+import { pekuloSpacing } from "@pekulo/ui";
 import { CompassEditForm } from "./_components/compass-edit-form";
 import { CompassHistoryPanel } from "./_components/compass-history-panel";
 
 export default function ParametresPage() {
   return (
-    <div style={{ display: "flex", padding: 16, alignItems: "center", flexDirection: "column" }}>
+    <div
+      style={{
+        display: "flex",
+        padding: pekuloSpacing[4],
+        alignItems: "center",
+        flexDirection: "column",
+      }}
+    >
       <div
         style={{
           width: "100%",
           maxWidth: 720,
           display: "flex",
           flexDirection: "column",
-          gap: 24,
+          gap: pekuloSpacing[6],
         }}
       >
         <CompassEditForm />

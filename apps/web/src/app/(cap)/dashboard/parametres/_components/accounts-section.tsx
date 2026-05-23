@@ -2,7 +2,13 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloPopover, PekuloSkeleton, pekuloRadius } from "@pekulo/ui";
+import {
+  PekuloDialog,
+  PekuloPopover,
+  PekuloSkeleton,
+  pekuloFontSizes,
+  pekuloRadius,
+} from "@pekulo/ui";
 import { MoreHorizontal, Plus } from "lucide-react";
 import type { Account, AccountCurrency } from "@pekulo/validators";
 import type { AccountType } from "@pekulo/types";
@@ -51,7 +57,7 @@ const addPill: CSSProperties = {
   color: "var(--color)",
   border: "none",
   cursor: "pointer",
-  fontSize: 13,
+  fontSize: pekuloFontSizes.caption,
   fontWeight: 500,
 };
 
@@ -60,7 +66,7 @@ const rowActionBtn: CSSProperties = {
   border: "none",
   cursor: "pointer",
   color: "var(--colorTertiary)",
-  fontSize: 12,
+  fontSize: pekuloFontSizes.xs,
   padding: "4px 8px",
 };
 
@@ -90,7 +96,7 @@ const popoverActionBtnBase: CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  fontSize: 14,
+  fontSize: pekuloFontSizes.bodySm,
   fontWeight: 500,
   borderRadius: pekuloRadius.md,
   textAlign: "left",

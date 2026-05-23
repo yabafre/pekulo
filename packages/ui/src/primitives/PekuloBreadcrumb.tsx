@@ -7,6 +7,7 @@
 import { Text, View, type TextProps, type ViewProps } from "tamagui";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import { pekuloFontSizes } from "../tokens";
 
 // ─── Breadcrumb (nav root) ───────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ export function PekuloBreadcrumbLink({ children, style, ...props }: PekuloBreadc
       style={{
         color: "var(--colorTertiary)",
         textDecoration: "none",
-        fontSize: 14,
+        fontSize: pekuloFontSizes.bodySm,
         transition: "color 150ms ease-out",
         ...style,
       }}
