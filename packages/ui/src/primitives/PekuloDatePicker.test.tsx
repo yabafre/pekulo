@@ -44,18 +44,21 @@ const calendarMock = {
   lastMode: null as null | string,
   lastMin: null as null | number,
   lastNumberOfMonths: null as null | number,
+  lastResetOnSelect: null as null | boolean,
 };
 vi.mock("./PekuloCalendar", () => ({
   PekuloCalendar: (props: {
     mode: "single" | "range";
     min?: number;
     numberOfMonths?: number;
+    resetOnSelect?: boolean;
     onSelect?: (value: Date | DateRange | undefined) => void;
   }) => {
     calendarMock.lastMode = props.mode;
     calendarMock.lastOnSelect = props.onSelect ?? null;
     calendarMock.lastMin = props.min ?? null;
     calendarMock.lastNumberOfMonths = props.numberOfMonths ?? null;
+    calendarMock.lastResetOnSelect = props.resetOnSelect ?? null;
     return <div data-testid="calendar-mock">{props.mode}</div>;
   },
 }));
@@ -68,6 +71,7 @@ beforeEach(() => {
   calendarMock.lastMode = null;
   calendarMock.lastMin = null;
   calendarMock.lastNumberOfMonths = null;
+  calendarMock.lastResetOnSelect = null;
   vi.useFakeTimers();
 });
 
@@ -120,10 +124,24 @@ describe("PekuloDatePicker — react-day-picker v10 first-click guard", () => {
     expect(calendarMock.lastMin).toBe(1);
   });
 
-  test("single mode does NOT forward min (default behaviour)", () => {
+  test("range mode forwards resetOnSelect={true} to PekuloCalendar", () => {
+    // Pins the contract for the v10 useRange.js:29-35 reset branch:
+    // when the existing range is complete and the user clicks a new date,
+    // resetOnSelect=true bypasses addToRange (which would otherwise
+    // shorten `to` to the clicked date) and produces
+    // {from: clicked, to: undefined} — i.e. "click on complete range
+    // starts a fresh range". Without this, clicking inside
+    // {from: 5, to: 20} on day 10 produced the counter-intuitive
+    // {from: 5, to: 10}.
+    renderWithTamagui(<PekuloDatePicker mode="range" value={undefined} onChange={() => {}} />);
+    expect(calendarMock.lastResetOnSelect).toBe(true);
+  });
+
+  test("single mode does NOT forward min or resetOnSelect (default behaviour)", () => {
     renderWithTamagui(<PekuloDatePicker value={undefined} onChange={() => {}} />);
     expect(calendarMock.lastMode).toBe("single");
     expect(calendarMock.lastMin).toBeNull();
+    expect(calendarMock.lastResetOnSelect).toBeNull();
   });
 
   test("range mode default numberOfMonths is 2; consumer override wins", () => {

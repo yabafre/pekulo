@@ -170,6 +170,18 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
             // legitimate close trigger. min=1 mirrors the standard
             // range-picker UX: click #1 → from, click #2 → to.
             min={1}
+            // resetOnSelect={true} makes a click on an already-complete
+            // range start a fresh range from the clicked date instead of
+            // calling addToRange (which would move `to` to the click,
+            // collapsing the existing range to {from, clicked}). Without
+            // this, clicking inside `{from: 5, to: 20}` on day 10
+            // produces `{from: 5, to: 10}` — counter-intuitive when the
+            // clicked date is closer to `from` than `to`. With reset,
+            // the same click produces `{from: 10, to: undefined}` and
+            // the user picks the new `to` on the next click. See
+            // useRange.js:29-35 — the reset branch bypasses addToRange
+            // when `hasFullRange || !selected.from`.
+            resetOnSelect={true}
             onSelect={(r) => {
               props.onChange(r);
               if (r?.from && r?.to) {
