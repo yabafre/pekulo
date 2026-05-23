@@ -19,7 +19,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "prepare": "lefthook install",
-    "generate:tamagui-css": "bun --filter='@pekulo/ui' run generate:tamagui-css",
+    "generate:tamagui-css": "bun --filter='@pekulo/ui' run generate:tamagui-css && bunx oxfmt packages/ui/public/tamagui.generated.css",
     "prisma:generate": "dotenv -c -e .env -e .env.local -- bun --filter='@pekulo/api' run prisma:generate",
     "prisma:migrate:dev": "dotenv -c -e .env -e .env.local -- bun --filter='@pekulo/api' run prisma:migrate:dev",
     "prisma:migrate:deploy": "dotenv -c -e .env -e .env.local -- bun --filter='@pekulo/api' run prisma:migrate:deploy",
