@@ -966,9 +966,7 @@ export default function PrimitivesShowcasePage() {
               </Subsection>
 
               <Subsection label="controlSize sm vs md">
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 280 }}
-                >
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 280 }}>
                   <PekuloSelect defaultValue="a">
                     <PekuloSelect.Trigger controlSize="md">
                       <PekuloSelect.Value />
@@ -1035,10 +1033,8 @@ export default function PrimitivesShowcasePage() {
               <Subsection label="Default size — full composition">
                 <PekuloCard>
                   <PekuloCardHeader>
-                    <div>
-                      <PekuloCardTitle>Hypothèse 1</PekuloCardTitle>
-                      <PekuloCardDescription>Vue 30 ans · base optimiste</PekuloCardDescription>
-                    </div>
+                    <PekuloCardTitle>Hypothèse 1</PekuloCardTitle>
+                    <PekuloCardDescription>Vue 30 ans · base optimiste</PekuloCardDescription>
                     <PekuloCardAction>
                       <PekuloButton variant="ghost" size="sm">
                         Modifier
