@@ -1,7 +1,7 @@
 # Story: 5-1-transactions-record — Transactions CRUD module + manual record UI
 
 **Epic:** Epic 5 — Transactions & monthly tracking (V1)
-**Status:** in-progress (pending bug-1 user retest)
+**Status:** review
 **Ticket:** [#27](https://github.com/yabafre/pekulo/issues/27)
 **Branch:** `feature/27-5-1-transactions-record`
 **Commit prefix:** `feat(#27): …`
