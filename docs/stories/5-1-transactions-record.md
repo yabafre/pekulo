@@ -2177,3 +2177,123 @@ $ bun --filter='@pekulo/api' run db:rls-audit → transactions: 4 preserved
 
 PR : https://github.com/yabafre/pekulo/pull/92
 Branch HEAD : `77564c0`
+
+## Review Record
+
+**Date:** 2026-05-25
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done
+**Override:** AC gap accepted — reason: "user requested all auditor findings be addressed in-session rather than punting back to dev"
+
+### Findings
+
+#### Resolved
+
+- **[HIGH] Shared queryKey collision between `useTransactions(50)` and `useTransactions(200)`** [`apps/web/src/lib/zapaction/keys.ts:80-83` + `_components/transactions-recent-section.tsx:79` + `transactions-stats-row.tsx:40`]
+  - Source: Code auditor
+  - Resolution: `8e7327c` — extended `transactionsKeys.list(limit?)` to include the limit in the cache key, mirroring `compassKeys.history`. Registry cross-edges already use bare `[TRANSACTIONS_KEY]` prefix so invalidation still covers both caches in one shot.
+
+- **[HIGH] Missing hydration guard on `transactions-stats-row.tsx`** [`_components/transactions-stats-row.tsx`]
+  - Source: Code auditor
+  - Resolution: `8e7327c` — added the canonical `useState(false)` + `useEffect(() => setIsHydrated(true), [])` pattern. Gates BOTH the cached-data render AND the `new Date()` month-filter behind the flag so SSR and first-client-paint emit identical DOM. Resolves finding #17 (time-boundary drift) in the same edit.
+
+- **[MED] Malformed cursor swallowed silently → first page instead of 400** [`apps/api/src/modules/transactions/transactions.repository.ts:74-83`]
+  - Source: Code auditor
+  - Resolution: `8c49fe2` — `listByUser` now throws `PekuloError("BAD_REQUEST")` when cursor is non-empty AND either undecodable OR decodes to an invalid date. Paginating clients react to 400 instead of looping on page 1. Covered by `transactions.repository.test.ts:176` (2 reject branches).
+
+- **[MED] ISO date regex permits Feb 30 / Feb 29 non-leap at API boundary** [`packages/validators/src/transactions/transactions.schemas.ts:55`]
+  - Source: Edge auditor
+  - Resolution: `8c49fe2` — extracted `isoDateString()` helper chaining `.refine(s => new Date(s).toISOString().slice(0,10) === s)`. Rejects day-in-month overflows. UI was already fenced via `PekuloDatePicker`; this closes the script/CSV import (5-2) hole. Test: `transactions.repository.test.ts:200` (Feb 30, Feb 29 non-leap, Apr 31 reject + Feb 29 leap-year accept).
+
+- **[MED] AC-13 over-promised "<500ms via onMutate" without shipping it** [`_hooks/use-create-transaction.ts:14-18`]
+  - Source: Spec + Aria
+  - Resolution: `1b9514f` — amended AC-13 to describe the actually-shipped registry-SSOT invalidation. Added lessons.md entry 2026-05-25 codifying that optimistic `onMutate` is opt-in (not default) and banning wall-clock latency claims in AC text unless paired with a perf test. Conservative path chosen over shipping optimistic UI (the hook's own L11-13 comment already acknowledged the divergence; adding optimism now would introduce untested complexity).
+
+- **[MED] AC-1 — repository test asserts only 3 columns; story said "each column"** [`transactions.repository.test.ts:82-86`]
+  - Source: Spec
+  - Resolution: `8c49fe2` — expanded the AC-1 test to assert 10 columns on the created DTO (id, accountId, occurredOn, label, amount, type, category, isImprevu, notes, createdAt) + the JS-number coercion on amount.
+
+- **[MED] AC-3 — integration test only asserted `label` stayed equal post-patch** [`transactions.integration.test.ts:276-286`]
+  - Source: Spec
+  - Resolution: `8c49fe2` — extended the AC-3 test to capture the full pre-patch DTO and assert every untouched field (id, accountId, occurredOn, label, type, category, isImprevu, notes) is preserved after the `amount`-only patch.
+
+- **[MED] AC-5 — no cursor-roundtrip zero-overlap test** [`transactions.repository.test.ts:106-125`]
+  - Source: Spec
+  - Resolution: `8c49fe2` — added a dedicated test seeding 26 rows for page 1, feeding `nextCursor` into page 2 (5 rows), asserting (a) page 2's `where.OR` clause contains the 2-branch tie-break from page 1's last row, (b) the union of ids is disjoint (size = page1.length + page2.length).
+
+- **[MED] AC-12 — 9th reject case `{ amount: "not-a-number" }` absent** [`transactions.repository.test.ts:144-170`]
+  - Source: Spec
+  - Resolution: `8c49fe2` — added the missing 9th rejection case + a dedicated test exercising the new `.finite()` on amount (Infinity / -Infinity / NaN) and the new date refine (Feb 30, Feb 29 non-leap, Apr 31).
+
+- **[MED] T9 — `accountExists` has no direct unit-test coverage** [`accounts.service.test.ts`]
+  - Source: Spec + Code
+  - Resolution: `8c49fe2` — added 3 direct tests (owned same-user → true, cross-user → false, missing accountId → false). A refactor inverting the `where: { id, userId }` clause would now fail here, not just via the transactions-module mocked probe seam.
+
+- **[MED] File List doc-gap — 35 files changed in git but not listed** [story File List vs `git diff main..HEAD`]
+  - Source: git-audit
+  - Resolution: `1b9514f` — added new "MODIFIED — post-flip hardening" subsection grouping the 18 mutation-hook back-ports + 7 hydration-guard sections + cap-shell nav fix + 2 ux-preview parity ports + orpc/modules + 2 accounts test files. Each entry cites the commit it landed in.
+
+- **[LOW] Stale `page.tsx` Suspense comment referencing removed `useSearchParams`** [`apps/web/src/app/(cap)/dashboard/transactions/page.tsx:12-15`]
+  - Source: Code + Aria
+  - Resolution: `56ffbdc` — rewrote the comment to cite the real reason (cap-shell.tsx:56 reads useSearchParams one layer up, Next.js requires Suspense at any ancestor). Notes that the `?new=1` path was removed in `902f4d3`.
+
+- **[LOW] AC-9 — documented gating command `bun --filter='@pekulo/api' run lint` was invalid** [`apps/api/package.json:8-25`]
+  - Source: Spec
+  - Resolution: `56ffbdc` — added a `lint` script to `apps/api/package.json` that delegates to the workspace root oxlint. Workspace-scoped invocation now works.
+
+- **[LOW] T16 — missing 4 test files (edit a11y+envelope, delete envelope, recent envelope)**
+  - Source: Spec
+  - Resolution: `56ffbdc` — added `transaction-edit-form.{a11y,envelope}.test.tsx`, `transaction-delete-confirm.envelope.test.tsx`, `transactions-recent-section.envelope.test.tsx`. Edit envelope test includes the no-op short-circuit assertion (covered by finding #18). Total web tests: 86 (was 77).
+
+- **[LOW] `amount: Infinity` accepted by Zod (`min(0)` lets it through, Postgres rejects with 500)** [`packages/validators/src/transactions/transactions.schemas.ts:77`]
+  - Source: Edge
+  - Resolution: `8c49fe2` — extracted `amountSchema()` chaining `.finite()` after `.min(0)`. Catches Infinity, -Infinity, NaN at the boundary as clean 400.
+
+- **[LOW] Migration Step 2 ALTERs are no-ops vs brownfield baseline (id was already TEXT)** [migration.sql:21-25]
+  - Source: Code
+  - Resolution: `56ffbdc` — rewrote the Step 2 comment to clarify the ALTERs are idempotent guards for snapshot-restore safety, not a real type flip. The actual schema delta is the FK + index.
+
+- **[LOW] Stats-row used `new Date()` at render → SSR/client month boundary drift** [`transactions-stats-row.tsx:43-49`]
+  - Source: Code
+  - Resolution: `8e7327c` — same fix as finding #2 (HIGH hydration guard). Gating `new Date()` behind `isHydrated` aligns server and first-client paint on the same "current month".
+
+- **[LOW] Edit form — empty patch produces 400 red banner instead of inline UX feedback** [`transaction-edit-form.tsx:60-83`]
+  - Source: Code
+  - Resolution: `56ffbdc` — short-circuit client-side: if computed patch reduces to `{ id }`, set inline message and skip the round-trip. Covered by new `transaction-edit-form.envelope.test.tsx` "no-op submit" case.
+
+- **[LOW] Repository `update` cast `as Prisma.TransactionUpdateInput` unjustified (vs ADR-0012 create bridge)** [`transactions.repository.ts:113-128`]
+  - Source: Code
+  - Resolution: `56ffbdc` — replaced with `Prisma.TransactionUncheckedUpdateInput` typed object + per-field conditional assignment. Generator's exhaustiveness check is now active on the update path.
+
+- **[NIT] `decimalToNumber` story doc-drift (cited line 24, actual line 9)** [story Dev Notes]
+  - Source: Edge
+  - Resolution: `1b9514f` — flipped the 2 L24 references to L9.
+
+#### Dismissed
+
+_None — all findings closed in-session per the override._
+
+#### Unresolved
+
+_None._
+
+### Verification
+
+Captured fresh in the same conversation turn (per lessons.md 2026-05-13 — "APPROVED post-fix" claims MUST be verified against HEAD live).
+
+- **Typecheck:**
+  - `bun --filter='@pekulo/api' run typecheck` → exit 0
+  - `bun --filter='@pekulo/web' run typecheck` → exit 0
+- **Lint:**
+  - `bun run lint` → `Found 0 warnings and 0 errors. Finished in 548ms on 631 files with 158 rules using 10 threads.`
+- **API tests:**
+  - `bun --filter='@pekulo/api' run test` → `446 pass / 0 fail / 1101 expect() calls / 51 files / 1093ms` (was 440 — 6 net new test cases across cluster B+C)
+- **Web tests:**
+  - `bun --filter='@pekulo/web' run test` → `86 passed / 0 failed / 44+4 files` (was 77 — 9 net new tests across 4 new files added in cluster E)
+- **Fix-cycle commits:** `8e7327c` (HIGH cache+hydration), `8c49fe2` (MED backend + test gaps), `56ffbdc` (LOW polish + T16 tests), `1b9514f` (docs + AC-13 amend + lessons).
+- **Visual verification:** Aria-static — `Visual Review: deferred — React Grab MCP unavailable at 2026-05-24T00:00:00Z`. Static parity confirmed against `docs/ux-preview/src/App.tsx` L1284-1374 (Stats / Suggestions IA / Récentes section order, "Filtrer" HeaderAction, mobile FAB + top-bar pill add entrypoint, kebab-mobile + inline-desktop CRUD, no `flat` prop on page Sections). Hydration-guard pattern confirmed identical across 7 sections. Tamagui `$lg = 1024px` confirmed against `@tamagui/config/v5-media.ts`. Recommendation: human spot-check at 360/1023/1024/1366 px in a real browser before merge if highest visual confidence is needed.
+
+### Ticket sync
+
+- Ticket comment posted: pending — user confirmation needed before remote write.
+- PR opened/updated: #92 already exists targeting `main` (sprint umbrella). Title/body update pending — user confirmation needed.
