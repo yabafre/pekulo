@@ -53,7 +53,9 @@ export function CapShell({ email, children }: CapShellProps) {
       ? "settings"
       : pathname.startsWith("/dashboard/immobilier")
         ? "realestate"
-        : "cap";
+        : pathname.startsWith("/dashboard/transactions")
+          ? "transactions"
+          : "cap";
   // Off-root screens replace the Cap/Patrimoine tabs with a page-title h1
   // (ux-preview L144-146). Mirrors the SCREEN_TITLE map; covers every nav
   // key the cap-shell can route to.
@@ -65,7 +67,9 @@ export function CapShell({ email, children }: CapShellProps) {
         ? "Paramètres"
         : navActiveKey === "realestate"
           ? "Immobilier"
-          : null;
+          : navActiveKey === "transactions"
+            ? "Transactions"
+            : null;
   // Contextual mobile add button label per active screen. The primitive
   // is a pure styled FAB (`$lg: display:none` keeps it mobile-only); the
   // shell owns the gating so the global "Nouvelle transaction" shortcut
@@ -100,8 +104,11 @@ export function CapShell({ email, children }: CapShellProps) {
       router.push("/dashboard/immobilier");
       return;
     }
-    const label = key === "transactions" ? "Transactions" : "Mensuel";
-    toast.info("Bientôt", `${label} arrive plus tard.`);
+    if (key === "transactions") {
+      router.push("/dashboard/transactions");
+      return;
+    }
+    toast.info("Bientôt", "Mensuel arrive plus tard.");
   };
 
   const handleNewTx = () => {
