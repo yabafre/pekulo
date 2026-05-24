@@ -71,6 +71,20 @@ export const realestateTags = createFeatureTags(REALESTATE_KEY, {
   list: () => ["list"] as const,
 });
 
+// Story 5-1 — transactions feature key set + tag registry. The block was
+// removed during the D3 audit pass; re-introduced now that the transactions
+// oRPC module is mounted. Stories 5-3 (transfer rule), 5-4 (monthly agg),
+// 6-2 (LLM categorise), 7-1 (dashboard) declare their invalidation edges
+// against `transactionsTags.list()` without further touching this file.
+export const TRANSACTIONS_KEY = "transactions" as const;
+export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
+  list: () => ["list"] as const,
+  byId: (id: string) => ["byId", id] as const,
+});
+export const transactionsTags = createFeatureTags(TRANSACTIONS_KEY, {
+  list: () => ["list"] as const,
+});
+
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
@@ -129,4 +143,11 @@ setTagRegistry({
   // the SSOT.
   [realestateTags.all()]: [[REALESTATE_KEY]],
   [realestateTags.list()]: [[REALESTATE_KEY]],
+  // Transactions (story 5-1) — `list` invalidates the entire transactions
+  // read graph via the bare `[TRANSACTIONS_KEY]` prefix (matches realestate
+  // pattern at L130) AND `accountsKeys.list()` since a recorded transaction
+  // affects the cash-balance display on the Patrimoine tab. Stories 5-3 / 5-4
+  // / 6-2 / 7-1 will append their own invalidation edges.
+  [transactionsTags.all()]: [[TRANSACTIONS_KEY], accountsKeys.list()],
+  [transactionsTags.list()]: [[TRANSACTIONS_KEY], accountsKeys.list()],
 });
