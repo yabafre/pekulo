@@ -7,7 +7,7 @@ import { listTransactions } from "../_actions/transactions-actions";
 export function useTransactions(limit = 50) {
   return useActionQuery(listTransactions, {
     input: { limit },
-    queryKey: transactionsKeys.list(),
+    queryKey: transactionsKeys.list(limit),
     readPolicy: "read-only",
     staleTime: 30_000,
   });

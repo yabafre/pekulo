@@ -78,7 +78,11 @@ export const realestateTags = createFeatureTags(REALESTATE_KEY, {
 // against `transactionsTags.list()` without further touching this file.
 export const TRANSACTIONS_KEY = "transactions" as const;
 export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
-  list: () => ["list"] as const,
+  // `limit` is part of the queryKey because callers with different page sizes
+  // (Récentes section reads 50, Stats row reads 200 to compute monthly net)
+  // would otherwise collide on the same cache entry → first mount wins,
+  // nondeterministic render. Mirrors `compassKeys.history(limit?)` pattern.
+  list: (limit?: number) => ["list", limit ?? 50] as const,
   byId: (id: string) => ["byId", id] as const,
 });
 export const transactionsTags = createFeatureTags(TRANSACTIONS_KEY, {
