@@ -116,7 +116,7 @@ pipeline:
       ticket_sync: "synced"
       synced_at: "2026-05-03T19:43:00Z"
     dev:
-      status: "complete"
+      status: "in-progress"
       started_at: "2026-05-09T15:00:00Z"
       last_completed_at: "2026-05-21T01:30:00Z"
       last_completed_story: "4-3-realestate-ui"
@@ -166,7 +166,7 @@ corrections_count: 1
 #   started_at:   ISO8601 timestamp set when status flips to in-progress
 sprint:
   project: "pekulo-v1"
-  active_epic: 4
+  active_epic: "5"
   umbrella_branch: "main"
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
@@ -202,7 +202,7 @@ sprint:
     4-2-realestate-derives: {status: done, depends_on: [4-1-realestate-domain], ticket: "#25", worktree: null, started_at: "2026-05-21T01:00:00Z", completed_at: "2026-05-21T14:10:00Z"}
     4-3-realestate-ui: {status: done, depends_on: [4-1-realestate-domain, 4-2-realestate-derives, 0-10-pekulo-ui-migration], ticket: "#26", worktree: null, started_at: "2026-05-21T15:00:00Z", completed_at: "2026-05-22T20:27:00Z"}
     # Epic 5 — Transactions & monthly (V1 brownfield + new flows)
-    5-1-transactions-record: {status: pending, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge, 2-1-accounts-orpc-port], ticket: "#27", worktree: null}
+    5-1-transactions-record: '{"status": "in-progress", "depends_on": ["0-4-prisma-setup", "0-5-orpc-contracts-scaffold", "0-6-zapaction-orpc-bridge", "2-1-accounts-orpc-port"], "ticket": "#27", "worktree": null, "started_at": "2026-05-24T00:00:00Z"}'
     5-2-csv-import: {status: pending, depends_on: [5-1-transactions-record, 0-10-pekulo-ui-migration], ticket: "#28", worktree: null}
     5-3-transfer-rule: {status: pending, depends_on: [5-1-transactions-record], ticket: "#29", worktree: null}
     5-4-monthly-tracking: {status: pending, depends_on: [5-1-transactions-record, 5-3-transfer-rule, 0-10-pekulo-ui-migration], ticket: "#30", worktree: null}
