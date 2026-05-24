@@ -157,7 +157,11 @@ beforeAll(async () => {
   const assignedPort = app.server?.port;
   if (!assignedPort) throw new Error("Elysia did not expose server.port");
   baseUrl = `http://127.0.0.1:${assignedPort}`;
-  appHandle = { stop: async () => app.stop() };
+  appHandle = {
+    stop: async () => {
+      await app.stop();
+    },
+  };
   // Warm-up — primes JIT for the 401 latency assertion.
   const warmup = await signFor(USER_A);
   await fetch(`${baseUrl}/rpc/v1/transactions/listTransactions`, {
