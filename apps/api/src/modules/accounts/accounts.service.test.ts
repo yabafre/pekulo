@@ -102,6 +102,9 @@ function stubRepo(seed?: {
     async countHoldingsReferencing(_userId, accountId) {
       return countMap[accountId] ?? 0;
     },
+    async accountExistsForUser(userId, accountId) {
+      return accounts.some((a) => a.id === accountId && a.userId === userId);
+    },
     async recordBalanceChange() {
       // Not exercised through stubRepo's in-memory path — the dedicated
       // describe block below uses stubAccountRepository() + spread override
@@ -129,6 +132,9 @@ function stubAccountRepository(): AccountRepository {
     countHoldingsReferencing: fail(
       "countHoldingsReferencing",
     ) as unknown as AccountRepository["countHoldingsReferencing"],
+    accountExistsForUser: fail(
+      "accountExistsForUser",
+    ) as unknown as AccountRepository["accountExistsForUser"],
     recordBalanceChange: fail(
       "recordBalanceChange",
     ) as unknown as AccountRepository["recordBalanceChange"],
