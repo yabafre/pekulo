@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
   HeaderAction,
@@ -81,6 +81,14 @@ export function TransactionsRecentSection() {
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeTx, setActiveTx] = useState<Transaction | null>(null);
   const toast = useToast();
+  // Hydration guard — TanStack Query keeps in-memory cache between visits ;
+  // SSR rendered the skeleton (no cache), client first paint sees cached
+  // data and would jump straight to the list → role="status" vs role="list"
+  // mismatch. Render the loading state until mounted to keep server + first
+  // client render identical, then transition to real data.
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
+  const showLoading = !isHydrated || isLoading;
 
   const accountLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -111,7 +119,7 @@ export function TransactionsRecentSection() {
         />
       }
     >
-      {isLoading && (
+      {showLoading && (
         <View role="status" aria-live="polite">
           <Text
             color="$colorTertiary"
@@ -126,18 +134,18 @@ export function TransactionsRecentSection() {
           <PekuloSkeleton lines={3} height={48} />
         </View>
       )}
-      {error && !isLoading && (
+      {error && !showLoading && (
         <Text color="$danger" fontSize="$caption" role="alert">
           {error.message}
         </Text>
       )}
-      {!isLoading && !error && items.length === 0 && (
+      {!showLoading && !error && items.length === 0 && (
         <Text color="$colorTertiary" fontSize="$caption">
           Aucune transaction. Ajoute la première pour démarrer le suivi mensuel.
         </Text>
       )}
 
-      {items.length > 0 && (
+      {!showLoading && items.length > 0 && (
         <View flexDirection="column" role="list" aria-label="Liste des transactions">
           {items.map((tx) => {
             const activity: Activity = {
