@@ -49,7 +49,10 @@ export type TransactionCategory = z.infer<typeof transactionCategorySchema>;
 // ─── ID regexes ───────────────────────────────────────────────────────────
 const TRANSACTION_ID_REGEX = /^tx_[0-9A-Za-z]{21}$/;
 const ACCOUNT_ID_REGEX = /^acc_[0-9A-Za-z]{21}$/;
-const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+// Shape + month/day range — rejects "2026-13-01" / "2026-02-32".
+// Day-in-month semantics (e.g. Feb 30) deferred to a refine if ever needed;
+// AC-12 only requires shape + range validation.
+const ISO_DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 // ─── DTO (row shape returned by reads) ───────────────────────────────────
 export const transactionSchema = z.object({
