@@ -176,11 +176,11 @@ describe("transactionsRepository", () => {
   test("listByUser rejects malformed cursor with BAD_REQUEST instead of serving page 1", async () => {
     // Bogus cursor — neither base64-with-pipe nor a valid date payload.
     await expect(
-      repo.listByUser("u_a", { cursor: "garbage-not-base64-pipe" }),
+      repo.listByUser("u_a", { limit: 50, cursor: "garbage-not-base64-pipe" }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     // Decodable but date is invalid.
     const bogusDate = Buffer.from("not-a-date|tx_xxxxxxxxxxxxxxxxxxxxx").toString("base64url");
-    await expect(repo.listByUser("u_a", { cursor: bogusDate })).rejects.toMatchObject({
+    await expect(repo.listByUser("u_a", { limit: 50, cursor: bogusDate })).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
   });
