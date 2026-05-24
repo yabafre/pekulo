@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
@@ -116,6 +116,12 @@ export function AccountsSection() {
   const { data, isLoading, error } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeAccount, setActiveAccount] = useState<Account | null>(null);
+  // Hydration guard — TanStack cache may pre-populate the client between
+  // navigations, causing SSR (role="status" loading) ↔ first paint
+  // (role="list" data) hydration mismatch. See lessons.md 2026-05-24.
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
+  const showLoading = !isHydrated || isLoading;
 
   const closeAll = () => {
     setOpenDialog(null);
@@ -159,7 +165,7 @@ export function AccountsSection() {
         </button>
       </View>
 
-      {isLoading && (
+      {showLoading && (
         <View role="status" aria-live="polite">
           <Text
             color="$colorTertiary"
@@ -174,18 +180,18 @@ export function AccountsSection() {
           <PekuloSkeleton lines={3} height={48} />
         </View>
       )}
-      {error && !isLoading && (
+      {error && !showLoading && (
         <Text color="$danger" fontSize="$caption" role="alert">
           {error.message}
         </Text>
       )}
-      {!isLoading && !error && accounts.length === 0 && (
+      {!showLoading && !error && accounts.length === 0 && (
         <Text color="$colorTertiary" fontSize="$caption">
           Aucun compte. Ajoute ton premier compte pour démarrer.
         </Text>
       )}
 
-      {accounts.length > 0 && (
+      {!showLoading && accounts.length > 0 && (
         <View flexDirection="column" role="list" aria-label="Liste des comptes">
           {accounts.map((acc) => (
             <View
@@ -275,7 +281,7 @@ export function AccountsSection() {
         </View>
       )}
 
-      {accounts.length > 0 && (
+      {!showLoading && accounts.length > 0 && (
         <View
           flexDirection="row"
           alignItems="center"

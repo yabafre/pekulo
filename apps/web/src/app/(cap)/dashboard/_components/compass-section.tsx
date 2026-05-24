@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PekuloDonut, PekuloSkeleton, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
@@ -34,8 +35,11 @@ export function CompassSection() {
   // AC-6: hook is called even on the dashboard's first paint to prove the
   // wire is alive. Disabled until setup is complete to avoid a 404 round-trip.
   useCompassCurve({ enabled: setup.data === "complete" });
+  // Hydration guard — lessons.md 2026-05-24 (TanStack cache vs SSR).
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
 
-  if (setup.isLoading) {
+  if (!isHydrated || setup.isLoading) {
     return (
       <Section ariaLabel="Cap (chargement)">
         <View role="status" aria-live="polite">

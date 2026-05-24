@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloSkeleton, Section } from "@pekulo/ui";
 import { useCompassHistory } from "../_hooks/use-compass-history";
@@ -17,9 +18,13 @@ const dateFmt = new Intl.DateTimeFormat("fr-FR", {
 
 export function CompassHistoryPanel() {
   const { data, isLoading, error } = useCompassHistory();
+  // Hydration guard — lessons.md 2026-05-24 (TanStack cache vs SSR).
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
+  const showLoading = !isHydrated || isLoading;
   return (
     <Section title="Historique du cap" ariaLabel="Historique du cap">
-      {isLoading && (
+      {showLoading && (
         <View role="status" aria-live="polite">
           <Text
             color="$colorTertiary"
@@ -34,17 +39,17 @@ export function CompassHistoryPanel() {
           <PekuloSkeleton lines={3} height={36} />
         </View>
       )}
-      {error && (
+      {error && !showLoading && (
         <Text role="alert" color="$danger" fontSize="$caption">
           {error.message}
         </Text>
       )}
-      {!isLoading && !error && (data?.length ?? 0) === 0 && (
+      {!showLoading && !error && (data?.length ?? 0) === 0 && (
         <Text color="$colorTertiary" fontSize="$caption">
           Aucune modification enregistrée.
         </Text>
       )}
-      {!isLoading && !error && (data?.length ?? 0) > 0 && (
+      {!showLoading && !error && (data?.length ?? 0) > 0 && (
         <View render="ul" padding={0} margin={0} style={{ listStyle: "none" }}>
           {data!.map((row) => (
             <View
