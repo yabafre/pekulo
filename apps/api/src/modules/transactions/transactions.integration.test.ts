@@ -276,13 +276,52 @@ describe("transactions HTTP boundary (AC-11)", () => {
   test("AC-3/AC-11 — updateTransaction patch updates amount, leaves other fields", async () => {
     probeExists = true;
     const token = await signFor(USER_A);
-    const create = await call("createTransaction", sampleCreate({ amount: 50 }), token);
-    const { json } = (await create.json()) as { json: { id: string; label: string } };
-    const res = await call("updateTransaction", { id: json.id, amount: 99 }, token);
+    const create = await call(
+      "createTransaction",
+      sampleCreate({ amount: 50, category: "voyage" }),
+      token,
+    );
+    const original = (
+      (await create.json()) as {
+        json: {
+          id: string;
+          accountId: string;
+          occurredOn: string;
+          label: string;
+          type: string;
+          category: string;
+          isImprevu: boolean;
+          notes: string | null;
+        };
+      }
+    ).json;
+    const res = await call("updateTransaction", { id: original.id, amount: 99 }, token);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { json: { amount: number; label: string } };
-    expect(body.json.amount).toBe(99);
-    expect(body.json.label).toBe("Courses");
+    const patched = (
+      (await res.json()) as {
+        json: {
+          id: string;
+          accountId: string;
+          occurredOn: string;
+          label: string;
+          amount: number;
+          type: string;
+          category: string;
+          isImprevu: boolean;
+          notes: string | null;
+        };
+      }
+    ).json;
+    // AC-3: only amount + updated_at mutate; every other column stays equal.
+    expect(patched.amount).toBe(99);
+    expect(patched.id).toBe(original.id);
+    expect(patched.accountId).toBe(original.accountId);
+    expect(patched.occurredOn).toBe(original.occurredOn);
+    expect(patched.label).toBe(original.label);
+    expect(patched.type).toBe(original.type);
+    expect(patched.category).toBe(original.category);
+    expect(patched.isImprevu).toBe(original.isImprevu);
+    expect(patched.notes).toBe(original.notes);
   });
 
   test("AC-3/AC-12 — updateTransaction empty patch → 400 from Zod refine", async () => {

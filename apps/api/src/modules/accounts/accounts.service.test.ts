@@ -287,6 +287,45 @@ describe("accounts.service", () => {
     expect(list).toHaveLength(1);
     expect(list[0]!.id).toBe("acc_a");
   });
+
+  // T9 / story 5-1 — cross-aggregate ownership probe for the transactions
+  // module. The service delegates to repo.accountExistsForUser, but the
+  // boolean shape is part of the public service contract — assert directly
+  // so a future refactor that inverts the where clause is caught here, not
+  // only via the transactions module's mocked probe seam.
+  test("accountExists returns true for owned same-user accounts", async () => {
+    accounts.push({
+      id: "acc_owned",
+      userId: USER_A,
+      label: "Owned",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: 100,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    expect(await service.accountExists(USER_A, "acc_owned")).toBe(true);
+  });
+
+  test("accountExists returns false for cross-user accounts", async () => {
+    accounts.push({
+      id: "acc_b",
+      userId: USER_B,
+      label: "B1",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: 0,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    expect(await service.accountExists(USER_A, "acc_b")).toBe(false);
+  });
+
+  test("accountExists returns false for missing accountId", async () => {
+    expect(await service.accountExists(USER_A, "acc_missing")).toBe(false);
+  });
 });
 
 // AC-1 (verbatim from story 2-2-account-balance-history:17):

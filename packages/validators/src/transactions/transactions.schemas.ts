@@ -49,18 +49,33 @@ export type TransactionCategory = z.infer<typeof transactionCategorySchema>;
 // ─── ID regexes ───────────────────────────────────────────────────────────
 const TRANSACTION_ID_REGEX = /^tx_[0-9A-Za-z]{21}$/;
 const ACCOUNT_ID_REGEX = /^acc_[0-9A-Za-z]{21}$/;
-// Shape + month/day range — rejects "2026-13-01" / "2026-02-32".
-// Day-in-month semantics (e.g. Feb 30) deferred to a refine if ever needed;
-// AC-12 only requires shape + range validation.
+// Shape + month/day range — rejects "2026-13-01" / "2026-02-32". A refine
+// below also rejects day-in-month overflows ("2026-02-30", "2026-02-29" in
+// non-leap years, "2026-04-31"). UI fences this via PekuloDatePicker; the
+// boundary refine guards the oRPC API for CSV import (5-2) + script callers.
 const ISO_DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+const isoDateString = (msg = "Date YYYY-MM-DD requise") =>
+  z
+    .string()
+    .regex(ISO_DATE_REGEX, msg)
+    .refine((s) => {
+      const d = new Date(`${s}T00:00:00Z`);
+      return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+    }, "Date invalide (jour hors mois)");
+
+// `z.number().min(0)` alone accepts Infinity (Infinity >= 0 is true), which
+// Postgres Decimal rejects later as a confusing 500 INTERNAL. Chain
+// `.finite()` to surface as a clean 400.
+const amountSchema = (msg = "Montant ≥ 0") => z.number().finite("Montant invalide").min(0, msg);
 
 // ─── DTO (row shape returned by reads) ───────────────────────────────────
 export const transactionSchema = z.object({
   id: z.string().regex(TRANSACTION_ID_REGEX),
   accountId: z.string().regex(ACCOUNT_ID_REGEX),
-  occurredOn: z.string().regex(ISO_DATE_REGEX, "Date YYYY-MM-DD requise"),
+  occurredOn: isoDateString(),
   label: z.string().min(1).max(120),
-  amount: z.number().min(0),
+  amount: amountSchema(),
   type: transactionTypeSchema,
   category: transactionCategorySchema,
   isImprevu: z.boolean(),
@@ -72,9 +87,9 @@ export type Transaction = z.infer<typeof transactionSchema>;
 // ─── Inputs ───────────────────────────────────────────────────────────────
 export const createTransactionInputSchema = z.object({
   accountId: z.string().regex(ACCOUNT_ID_REGEX, "accountId invalide"),
-  occurredOn: z.string().regex(ISO_DATE_REGEX, "Date YYYY-MM-DD requise"),
+  occurredOn: isoDateString(),
   label: z.string().min(1, "Libellé requis").max(120, "Libellé > 120 caractères"),
-  amount: z.number().min(0, "Montant ≥ 0"),
+  amount: amountSchema(),
   type: transactionTypeSchema,
   category: transactionCategorySchema,
   isImprevu: z.boolean(),
@@ -86,9 +101,9 @@ export const updateTransactionInputSchema = z
   .object({
     id: z.string().regex(TRANSACTION_ID_REGEX, "id invalide"),
     accountId: z.string().regex(ACCOUNT_ID_REGEX).optional(),
-    occurredOn: z.string().regex(ISO_DATE_REGEX).optional(),
+    occurredOn: isoDateString().optional(),
     label: z.string().min(1).max(120).optional(),
-    amount: z.number().min(0).optional(),
+    amount: amountSchema().optional(),
     type: transactionTypeSchema.optional(),
     category: transactionCategorySchema.optional(),
     isImprevu: z.boolean().optional(),

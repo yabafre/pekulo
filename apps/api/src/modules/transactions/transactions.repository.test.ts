@@ -75,14 +75,22 @@ describe("transactionsRepository", () => {
   //   Given a fresh DB + account acc_aaa… for user A, When A calls
   //   createTransaction({ … amount: 87.50 … }), Then a transactions row
   //   persists with id matching /^tx_[0-9A-Za-z]{21}$/, … amount = 87.50.
-  test("AC-1 — create returns DTO with prefixed id + coerced amount as JS number", async () => {
+  //   Repository test asserts each column.
+  test("AC-1 — create returns DTO with every column populated", async () => {
     const row = fakeRow();
     (client.transaction.create as ReturnType<typeof mock>).mockResolvedValueOnce(row);
     const out = await repo.create("u_a", sampleInput());
     expect(out.id).toMatch(/^tx_[0-9A-Za-z]{21}$/);
+    expect(out.accountId).toBe("acc_aaa111111111111111111");
+    expect(out.occurredOn).toBe("2026-05-15");
+    expect(out.label).toBe("Courses Carrefour");
     expect(out.amount).toBe(87.5);
     expect(typeof out.amount).toBe("number");
-    expect(out.accountId).toBe("acc_aaa111111111111111111");
+    expect(out.type).toBe("outflow");
+    expect(out.category).toBe("courses");
+    expect(out.isImprevu).toBe(false);
+    expect(out.notes).toBeNull();
+    expect(out.createdAt).toBe("2026-05-15T10:00:00.000Z");
   });
 
   // AC-6 (verbatim from story 5-1:22):
@@ -124,6 +132,59 @@ describe("transactionsRepository", () => {
     expect(typeof out.nextCursor).toBe("string");
   });
 
+  // AC-5 (zero-overlap between pages) — feed page1's nextCursor back into
+  // page2 and assert the OR clause is derived from page1's last row, with
+  // page2 returning disjoint ids. Tests the cursor protocol end-to-end at
+  // the repository boundary (the fake findMany doesn't filter; we assert
+  // on the where shape it received instead).
+  const id21 = (i: number) => `tx_${String(i).padStart(21, "0")}`;
+  test("AC-5 — cursor-roundtrip preserves order + produces zero overlap", async () => {
+    const page1Rows = Array.from({ length: 26 }, (_, i) =>
+      fakeRow({
+        id: id21(50 - i),
+        occurredOn: new Date(`2026-05-${String(20 - (i % 10)).padStart(2, "0")}`),
+      }),
+    );
+    (client.transaction.findMany as ReturnType<typeof mock>).mockResolvedValueOnce(page1Rows);
+    const page1 = await repo.listByUser("u_a", { limit: 25 });
+    expect(page1.items).toHaveLength(25);
+    expect(page1.nextCursor).not.toBeNull();
+    const page1Last = page1.items[24];
+
+    const page2Rows = Array.from({ length: 5 }, (_, i) =>
+      fakeRow({
+        id: id21(25 - i),
+        occurredOn: new Date(`2026-05-${String(9 - (i % 5)).padStart(2, "0")}`),
+      }),
+    );
+    (client.transaction.findMany as ReturnType<typeof mock>).mockResolvedValueOnce(page2Rows);
+    const page2 = await repo.listByUser("u_a", { limit: 25, cursor: page1.nextCursor! });
+
+    // Page2's where clause must carry the OR derived from page1's last row.
+    const lastCall = (client.transaction.findMany as ReturnType<typeof mock>).mock.calls.at(-1);
+    expect(lastCall).toBeDefined();
+    const lastWhere = (lastCall as unknown as [{ where: { OR: unknown[] } }])[0].where;
+    expect(lastWhere.OR).toBeDefined();
+    expect(lastWhere.OR).toHaveLength(2);
+
+    // Zero overlap on ids.
+    const allIds = new Set([...page1.items.map((t) => t.id), ...page2.items.map((t) => t.id)]);
+    expect(allIds.size).toBe(page1.items.length + page2.items.length);
+    expect(page1Last).toBeDefined();
+  });
+
+  test("listByUser rejects malformed cursor with BAD_REQUEST instead of serving page 1", async () => {
+    // Bogus cursor — neither base64-with-pipe nor a valid date payload.
+    await expect(
+      repo.listByUser("u_a", { cursor: "garbage-not-base64-pipe" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    // Decodable but date is invalid.
+    const bogusDate = Buffer.from("not-a-date|tx_xxxxxxxxxxxxxxxxxxxxx").toString("base64url");
+    await expect(repo.listByUser("u_a", { cursor: bogusDate })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  });
+
   // AC-4 (verbatim from story 5-1:20):
   //   Given A's tx_aaa…, When A calls deleteTransaction({ id }), Then the row
   //   is removed and the response is { ok: true }. And When A calls it again
@@ -141,8 +202,15 @@ describe("transactionsRepository", () => {
   //   { accountId: "not-prefixed" }, { occurredOn: "2026-13-01" },
   //   { notes: "x".repeat(501) }, Then each invocation throws ZodError.
   //   amount: 0 IS allowed.
-  test("AC-12 — validator rejects negative amount, invalid enums, empty/long label, etc.", () => {
+  test("AC-12 — validator rejects every documented bad-input shape", () => {
+    // Story L28 lists 9 reject cases + amount=0 allow.
     expect(() => createTransactionInputSchema.parse(sampleInput({ amount: -0.01 }))).toThrow();
+    expect(() =>
+      createTransactionInputSchema.parse({
+        ...sampleInput(),
+        amount: "not-a-number" as unknown as never,
+      }),
+    ).toThrow();
     expect(() =>
       createTransactionInputSchema.parse({ ...sampleInput(), type: "invalid" as unknown as never }),
     ).toThrow();
@@ -167,5 +235,29 @@ describe("transactionsRepository", () => {
     ).toThrow();
     // amount = 0 IS allowed (Alex D-step04 confirmation)
     expect(() => createTransactionInputSchema.parse(sampleInput({ amount: 0 }))).not.toThrow();
+  });
+
+  test("validator rejects impossible calendar dates + Infinity/NaN amounts", () => {
+    // Day-in-month overflow — refine catches these (regex alone would pass).
+    expect(() =>
+      createTransactionInputSchema.parse(sampleInput({ occurredOn: "2026-02-30" })),
+    ).toThrow();
+    expect(() =>
+      createTransactionInputSchema.parse(sampleInput({ occurredOn: "2026-02-29" })),
+    ).toThrow(); // 2026 is not a leap year
+    expect(() =>
+      createTransactionInputSchema.parse(sampleInput({ occurredOn: "2026-04-31" })),
+    ).toThrow();
+    expect(() =>
+      createTransactionInputSchema.parse(sampleInput({ occurredOn: "2024-02-29" })),
+    ).not.toThrow(); // 2024 is a leap year — valid.
+    // Infinity / NaN — .finite() catches these (.min(0) alone would let Infinity through).
+    expect(() =>
+      createTransactionInputSchema.parse(sampleInput({ amount: Number.POSITIVE_INFINITY })),
+    ).toThrow();
+    expect(() =>
+      createTransactionInputSchema.parse(sampleInput({ amount: Number.NEGATIVE_INFINITY })),
+    ).toThrow();
+    expect(() => createTransactionInputSchema.parse(sampleInput({ amount: Number.NaN }))).toThrow();
   });
 });

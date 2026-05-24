@@ -24,6 +24,7 @@ import type {
   Transaction,
   UpdateTransactionInput,
 } from "@pekulo/validators";
+import { PekuloError } from "../../common/errors";
 import { decimalToNumber } from "../../common/derive/decimal-to-number";
 import type { ExtendedPrismaClient } from "../../database";
 
@@ -143,7 +144,19 @@ export function createTransactionsRepository(deps: {
 
     async listByUser(userId, input) {
       const limit = input.limit ?? 50;
-      const decoded = input.cursor ? decodeCursor(input.cursor) : null;
+      // Cursor decode is fail-loud: a malformed/stale cursor surfaces as 400
+      // so paginating clients can react. Falling back to "no cursor" served
+      // page 1 silently and risked infinite loops.
+      let decoded: { occurredOn: string; id: string } | null = null;
+      if (input.cursor) {
+        decoded = decodeCursor(input.cursor);
+        if (!decoded) {
+          throw new PekuloError("BAD_REQUEST", "invalid cursor");
+        }
+        if (Number.isNaN(new Date(decoded.occurredOn).getTime())) {
+          throw new PekuloError("BAD_REQUEST", "invalid cursor");
+        }
+      }
 
       const where: Prisma.TransactionWhereInput = {
         userId,
