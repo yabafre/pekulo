@@ -112,7 +112,7 @@ export function CapShell({ email, children }: CapShellProps) {
   };
 
   const handleNewTx = () => {
-    toast.info("Bientôt", "Saisie de transaction arrive avec la story 5-x.");
+    router.push("/dashboard/transactions?new=1");
   };
 
   return (

@@ -3,6 +3,21 @@ import { axe } from "vitest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../../test/setup";
 
+// next/navigation hooks require the App Router context which happy-dom
+// doesn't provide — stub them per the compass-section.a11y precedent.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
+  usePathname: () => "/dashboard/transactions",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("../_actions/transactions-actions", () => ({
   createTransaction: vi.fn(),
   updateTransaction: vi.fn(),

@@ -1,10 +1,15 @@
 // apps/web/src/app/(cap)/dashboard/transactions/page.tsx
-// RSC shell — delegates every read to the Client section, which subscribes
-// to the zapaction queries itself so transactionsTags.list() invalidations
-// propagate without a server round-trip. Mirrors parametres/page.tsx shape.
+// RSC shell — mirrors ux-preview TransactionsScreen (App.tsx L1284-1374):
+//   1. Stats row (Net / À confirmer / + Entrées + Sorties lg)
+//   2. Suggestions IA (placeholder until 6-4)
+//   3. Récentes (5-1 owner)
+// Each child is a Client component subscribing to the relevant zapaction
+// queries — tag-invalidations propagate without a server round-trip.
 
 import { pekuloSpacing } from "@pekulo/ui";
 import { TransactionsRecentSection } from "./_components/transactions-recent-section";
+import { TransactionsStatsRow } from "./_components/transactions-stats-row";
+import { TransactionsSuggestionsSection } from "./_components/transactions-suggestions-section";
 
 export default function TransactionsPage() {
   return (
@@ -19,12 +24,14 @@ export default function TransactionsPage() {
       <div
         style={{
           width: "100%",
-          maxWidth: 720,
+          maxWidth: 960,
           display: "flex",
           flexDirection: "column",
           gap: pekuloSpacing[6],
         }}
       >
+        <TransactionsStatsRow />
+        <TransactionsSuggestionsSection />
         <TransactionsRecentSection />
       </div>
     </div>

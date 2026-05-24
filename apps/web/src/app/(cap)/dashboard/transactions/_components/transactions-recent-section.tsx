@@ -1,16 +1,20 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Text, View } from "@pekulo/ui/client";
 import {
+  HeaderAction,
   PekuloActivityRow,
   PekuloDialog,
   PekuloPopover,
   PekuloSkeleton,
+  Section,
   pekuloFontSizes,
   pekuloRadius,
+  useToast,
 } from "@pekulo/ui";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal, Search } from "lucide-react";
 import { TRANSACTION_CATEGORY_LABELS, type Transaction } from "@pekulo/validators";
 import type { Activity } from "@pekulo/types";
 import { useAccounts } from "../../parametres/_hooks/use-accounts";
@@ -20,24 +24,11 @@ import { TransactionEditForm } from "./transaction-edit-form";
 import { TransactionDeleteConfirm } from "./transaction-delete-confirm";
 
 // Flat layout — mirrors ux-preview TransactionsScreen's "Récentes" section
-// (App.tsx:1360-1372). The page-level shell provides the vertical rhythm; this
-// component renders only the header + activity rows + per-row CRUD actions
-// (inline desktop / kebab mobile per lesson 2026-05-17).
-
-const addPill: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  height: 32,
-  padding: "0 12px",
-  borderRadius: pekuloRadius.full,
-  backgroundColor: "var(--backgroundMuted)",
-  color: "var(--color)",
-  border: "none",
-  cursor: "pointer",
-  fontSize: pekuloFontSizes.caption,
-  fontWeight: 500,
-};
+// (App.tsx:1360-1372): title + "Filtrer" HeaderAction (Search icon) — no
+// inline "+ Ajouter" pill since the global top-bar "Nouvelle transaction"
+// button is the canonical add entrypoint per ux-preview L283-300. The
+// global button deep-links via /dashboard/transactions?new=1 ; this
+// component reads the search param and auto-opens the create dialog.
 
 const rowActionBtn: CSSProperties = {
   background: "none",
@@ -92,12 +83,28 @@ export function TransactionsRecentSection() {
   const { data: accounts } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeTx, setActiveTx] = useState<Transaction | null>(null);
+  const toast = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const accountLabelById = useMemo(() => {
     const map = new Map<string, string>();
     (accounts ?? []).forEach((a) => map.set(a.id, a.label));
     return map;
   }, [accounts]);
+
+  // Deep-link: the top-bar "Nouvelle transaction" pill routes here with
+  // ?new=1 ; auto-open the create dialog once on mount when the param is
+  // present, then strip it from the URL so a refresh doesn't re-open.
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setOpenDialog("create");
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("new");
+      router.replace(`${pathname}${next.size > 0 ? `?${next.toString()}` : ""}`, { scroll: false });
+    }
+  }, [searchParams, router, pathname]);
 
   const closeAll = () => {
     setOpenDialog(null);
@@ -111,34 +118,18 @@ export function TransactionsRecentSection() {
   const items = data?.items ?? [];
 
   return (
-    <View render="section" aria-labelledby="tx-h" flexDirection="column">
-      <View
-        flexDirection="row"
-        alignItems="center"
-        justifyContent="space-between"
-        marginBottom="$3"
-      >
-        <Text
-          id="tx-h"
-          render="h2"
-          color="$color"
-          fontSize="$h3"
-          fontWeight="600"
-          $lg={{ fontSize: "$h2" }}
-        >
-          Récentes
-        </Text>
-        <button
-          type="button"
-          onClick={() => setOpenDialog("create")}
-          style={addPill}
-          aria-label="Ajouter une transaction"
-        >
-          <Plus size={12} strokeWidth={2.25} aria-hidden />
-          Ajouter
-        </button>
-      </View>
-
+    <Section
+      ariaLabel="Récentes"
+      title="Récentes"
+      flat
+      action={
+        <HeaderAction
+          icon={Search}
+          label="Filtrer"
+          onPress={() => toast.info("Bientôt", "Le filtre transactions arrive plus tard.")}
+        />
+      }
+    >
       {isLoading && (
         <View role="status" aria-live="polite">
           <Text
@@ -297,6 +288,6 @@ export function TransactionsRecentSection() {
           onOpenChange={(o) => !o && closeAll()}
         />
       )}
-    </View>
+    </Section>
   );
 }
