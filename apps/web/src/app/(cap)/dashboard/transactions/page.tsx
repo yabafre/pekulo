@@ -9,10 +9,15 @@
 // (parametres precedent) reads as inset on this page. Matches
 // portefeuille/immobilier shape — minimal padding on the inner wrapper.
 //
-// Suspense boundary required: TransactionsRecentSection consumes
-// useSearchParams (?new=1 deep-link from the top-bar "Nouvelle transaction"
-// pill) — without Suspense the route bails out to CSR per Next.js docs
-// (next-best-practices skill, suspense-boundaries.md).
+// Suspense boundary required: cap-shell.tsx consumes useSearchParams
+// (tab=patrimoine query param threading) one layer up. Next.js requires
+// any route ancestor of a useSearchParams reader to render under Suspense,
+// otherwise the entire route bails to CSR (next-best-practices skill,
+// suspense-boundaries.md). Wrapping TransactionsRecentSection — the
+// heaviest data subtree below the shell — keeps SSR for the Stats and
+// Suggestions sections while satisfying the framework rule. Note: the
+// previous comment claimed `?new=1` deep-link was the trigger ; that
+// path was removed in 902f4d3 when the dialog lifted to cap-shell.
 
 import { Suspense } from "react";
 import { TransactionsRecentSection } from "./_components/transactions-recent-section";

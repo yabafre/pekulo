@@ -70,6 +70,14 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
       if (value.category !== transaction.category) patch.category = value.category;
       const newNotes = trimmedNotes.length > 0 ? trimmedNotes : null;
       if (newNotes !== transaction.notes) patch.notes = newNotes;
+      // Short-circuit on no-op submit — the validator refine would reject
+      // with 400 ("requires at least one field beyond id") and surface as
+      // a red banner. Better UX: tell the user inline before the round-trip.
+      const { id: _id, ...changed } = patch;
+      if (Object.keys(changed).length === 0) {
+        setEnvelopeError("Aucune modification — modifiez un champ avant d'enregistrer.");
+        return;
+      }
       mutate(patch, {
         onSuccess: (result) => {
           if (result.ok) {

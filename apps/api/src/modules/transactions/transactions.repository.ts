@@ -113,19 +113,25 @@ export function createTransactionsRepository(deps: {
 
     async update(userId, input) {
       const { id, ...patch } = input;
-      const data: Record<string, unknown> = { updatedAt: new Date() };
-      if (patch.accountId !== undefined) data["accountId"] = patch.accountId;
-      if (patch.occurredOn !== undefined) data["occurredOn"] = new Date(patch.occurredOn);
-      if (patch.label !== undefined) data["label"] = patch.label;
-      if (patch.amount !== undefined) data["amount"] = patch.amount;
-      if (patch.type !== undefined) data["type"] = patch.type;
-      if (patch.category !== undefined) data["category"] = patch.category;
-      if (patch.isImprevu !== undefined) data["isImprevu"] = patch.isImprevu;
-      if (patch.notes !== undefined) data["notes"] = patch.notes;
+      // Build the patch via the typed Prisma input shape — keeps the
+      // generator's exhaustiveness check active so a renamed column shows
+      // up at compile time. The create branch's `as unknown as …` bridge
+      // is justified by ADR-0012 (prefixed-ids extension injects `id`
+      // outside Prisma's generated types) ; update has no such bridge
+      // requirement, so cast-free is the right shape here.
+      const data: Prisma.TransactionUncheckedUpdateInput = { updatedAt: new Date() };
+      if (patch.accountId !== undefined) data.accountId = patch.accountId;
+      if (patch.occurredOn !== undefined) data.occurredOn = new Date(patch.occurredOn);
+      if (patch.label !== undefined) data.label = patch.label;
+      if (patch.amount !== undefined) data.amount = patch.amount;
+      if (patch.type !== undefined) data.type = patch.type;
+      if (patch.category !== undefined) data.category = patch.category;
+      if (patch.isImprevu !== undefined) data.isImprevu = patch.isImprevu;
+      if (patch.notes !== undefined) data.notes = patch.notes;
 
       const result = await deps.client.transaction.updateMany({
         where: { id, userId },
-        data: data as Prisma.TransactionUpdateInput,
+        data,
       });
       if (result.count === 0) return { outcome: "not-found" };
 

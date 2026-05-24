@@ -18,8 +18,13 @@ BEGIN;
 TRUNCATE TABLE "transactions" RESTART IDENTITY CASCADE;
 
 -- ───────────────────────────────────────────────────────────────────────────
--- Step 2 — flip id from UUID-with-default to plain TEXT
--- The prefixed-ids extension (ADR-0012) injects `tx_<base62>` at insert time.
+-- Step 2 — idempotent guard on the id column shape.
+-- The brownfield baseline (0_baseline_brownfield/migration.sql:144) already
+-- declares `id TEXT NOT NULL` with no DEFAULT — the prefixed-ids extension
+-- (ADR-0012) is responsible for injecting `tx_<base62>` at insert time. The
+-- two ALTERs below are no-ops against that baseline but are kept as belt-
+-- and-braces in case a future restore from an older snapshot revives the
+-- pre-baseline UUID-with-default shape ; both statements are safe to re-run.
 -- ───────────────────────────────────────────────────────────────────────────
 ALTER TABLE "transactions" ALTER COLUMN "id" DROP DEFAULT;
 ALTER TABLE "transactions" ALTER COLUMN "id" TYPE TEXT USING "id"::TEXT;
