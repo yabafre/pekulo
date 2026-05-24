@@ -38,6 +38,7 @@ export type PekuloErrorCode =
   | "RENTAL_ALREADY_ATTACHED"
   | "RENTAL_NOT_FOUND"
   | "TRANSACTION_FAILED"
+  | "TRANSACTION_NOT_FOUND"
   | "UNAUTHORIZED";
 
 const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode>([
@@ -65,6 +66,7 @@ const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode
   "RENTAL_ALREADY_ATTACHED",
   "RENTAL_NOT_FOUND",
   "TRANSACTION_FAILED",
+  "TRANSACTION_NOT_FOUND",
   "UNAUTHORIZED",
 ]);
 
