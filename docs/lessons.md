@@ -13,6 +13,19 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-24 — TanStack QueryClient in-memory cache survives client-side navigations and pre-populates `useQuery` observers on the second visit ; the same component then renders different DOM on SSR (no cache → `isLoading: true` → loading skeleton with `role="status"`) versus first client paint (cache hit → `isLoading: false` → data list with `role="list"`), which React 19 flags as a recoverable hydration error and rebuilds the subtree. The mismatch is invisible on fresh page loads (both server and client start without cache) and only surfaces after a user navigates away and back (Scope: aped-arch, aped-dev, aped-review — every web-tier client component that renders different DOM based on a `useActionQuery` / `useQuery` `isLoading` flag)
+
+- **Date:** 2026-05-24
+- **Mistake:** Story 5-1's `TransactionsRecentSection` rendered the `role="status"` loading skeleton on SSR and the `role="list"` data tree on first client paint after navigation, producing a React 19 hydration mismatch error. The 6 sibling sections (accounts, compass-history, compass-section, milestones, realestate, portfolio) had the exact same latent bug — they only escaped detection because users typically landed fresh on those routes (empty cache → loading state on both sides → no mismatch). My initial diagnostic blamed an HMR cache stale ; actually it's the standard SSR / TanStack Query divergence the React 19 docs name explicitly.
+- **Correction:** Add a `useEffect`-driven hydration guard inside every client component that branches on a query's `isLoading` flag. Pattern:
+  ```ts
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
+  const showLoading = !isHydrated || isLoading;
+  ```
+  Server + first client render both emit the loading state ; the real data appears on the second paint after `useEffect` fires. Applied to 7 sections in commits `5cf451e` + `77564c0`. Per `next-best-practices/hydration-error.md` recipe "Browser-only APIs" — the same shape (mounted check) applies to any divergent-state component.
+- **Rule:** Every web-tier client component whose first render branches on `useActionQuery.isLoading` (or any other client-only state that may differ from the empty SSR baseline) MUST gate the loading branch on a hydration flag. Codify as R13 in architecture.md once aped-review confirms. The proper long-term fix is TanStack's `HydrationBoundary` + RSC prefetch (server fetches the data, dehydrates state, client hydrates it) — but that's an aggregate refactor ; the hydration-flag pattern is the short-term V1 (a) ship.
+
 ### 2026-05-24 — `defineAction({ tags: [...] })` is server-only — Next.js "use server" wraps each exported action in a thin client-side RPC stub that does NOT preserve custom properties attached via `Object.defineProperty` ; reading `action.tags` on the client returns `undefined`, so `useActionMutation(action)`'s implicit `tags = action.tags` fallback resolves to `undefined` and the tag-registry invalidation is silently skipped. The `tags` field on `defineAction` exists purely so the server-side handler can call Next's `revalidateTag()` for the fetch cache ; client-side React Query invalidation must come from the consumer via `useActionMutation(action, { invalidateWithTags: [tagsX.list()] })`. Confirmed against zapaction 0.2.3 docs via Context7 — `invalidateWithTags` on the hook IS the canonical pattern, not a workaround (Scope: aped-arch, aped-dev, aped-review — every web-tier hook that wraps a `defineAction` and expects cache invalidation after the SA returns)
 
 - **Date:** 2026-05-24

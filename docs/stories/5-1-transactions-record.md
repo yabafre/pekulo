@@ -2086,3 +2086,73 @@ Found 0 warnings and 0 errors. 625 files / 158 rules
 $ bun --filter='@pekulo/api' run typecheck  → exit 0
 $ bun --filter='@pekulo/web' run typecheck  → exit 0
 ```
+
+### Post-implementation hardening
+
+After the initial flip to `review`, the user surfaced 7 issues from
+live testing that produced an additional cluster of commits before the
+branch was handed off:
+
+1. **`b32c51c` — cap-shell nav fix.** The Transactions nav rail button
+   was stubbed to a "Bientôt" toast since story 0-10. Wired the
+   `/dashboard/transactions` route + active-key detection + screen
+   title.
+2. **`3955baa` — ux-preview parity (3 sections).** The first pass
+   shipped only the Récentes section and inverted its header action
+   ("+ Ajouter" instead of "Filtrer"). Ported the missing Stats row
+   (4 KPIs derived from useTransactions over the current month) +
+   Suggestions IA section (EmptyState placeholder for 6-4). Récentes
+   header restored to "Filtrer" per ux-preview L1363.
+3. **`bd03380` — `invalidateWithTags` explicit.** After adding a
+   transaction, the Récentes list never refreshed. Root cause: Next.js
+   `"use server"` wraps each exported action in a thin client-side RPC
+   stub that does NOT preserve the `.tags` property `defineAction`
+   attaches via `Object.defineProperty`. `useActionMutation(action)`
+   reads `action.tags` on the client → `undefined` → invalidation
+   silently skipped. Context7 against `/yabafre/zapaction` 0.2.3
+   confirmed `invalidateWithTags` on the hook IS the canonical
+   pattern, not a workaround. Lessons.md entry added.
+4. **`b126640` — padding + Suspense + lesson.** The page double-padded
+   (bento.module.css `.main` already applies 24/20 px ; my inner
+   `pekuloSpacing[4]` cumulated). Switched to `"8px 4px 0"` matching
+   portefeuille/immobilier. Wrapped `TransactionsRecentSection` in
+   Suspense per Next.js docs (later removed in `902f4d3` when the
+   useSearchParams call was dropped).
+5. **`902f4d3` — lift create dialog + drop `flat` + back-port hooks.**
+   Three fixes:
+   - The "Nouvelle transaction" dialog now lives in cap-shell ; the
+     top-bar pill + mobile FAB open it via local `useState`. Dropped
+     the `?new=1` deep-link + `useSearchParams` + the
+     useEffect-strip-from-URL gymnastics + the now-unnecessary
+     Suspense boundary.
+   - Removed `flat` from all 8 Section usages in the transactions
+     screen — copied the wrong precedent (Cap-view mobile is the
+     exception per lesson 2026-05-17 ; ux-preview Transactions uses
+     default card chrome on every viewport).
+   - Back-ported `invalidateWithTags` to the 18
+     accounts/realestate/holdings/compass/milestones mutation hooks.
+     They worked today only because their optimistic `setQueryData`
+     paths masked the silent skip ; a future hook without optimistic
+     UX would have regressed.
+6. **`5cf451e` + `77564c0` — hydration guards on 7 data-fetching
+   sections.** React 19 surfaced a recoverable hydration error on
+   the Récentes section : SSR rendered `role="status"` (no cache)
+   while client first paint read cached data → `role="list"`.
+   Pattern : `useEffect`-driven `isHydrated` flag, render the loading
+   state until mounted so server + first client render emit identical
+   DOM. Applied to: transactions-recent, accounts, compass-history,
+   compass-section (early-return shape), milestones, realestate,
+   portfolio.
+
+Final quality gate (post-hardening, captured fresh) :
+
+```
+$ bun --filter='@pekulo/api' run typecheck  → exit 0
+$ bun --filter='@pekulo/web' run typecheck  → exit 0
+$ bun run lint                              → 0 / 0 / 627 files
+$ bun --filter='@pekulo/web' run test       → 77 pass / 44 files / 0 fail
+$ bun --filter='@pekulo/api' run db:rls-audit → transactions: 4 preserved
+```
+
+PR : https://github.com/yabafre/pekulo/pull/92
+Branch HEAD : `77564c0`
