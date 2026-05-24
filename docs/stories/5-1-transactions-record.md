@@ -1,7 +1,7 @@
 # Story: 5-1-transactions-record — Transactions CRUD module + manual record UI
 
 **Epic:** Epic 5 — Transactions & monthly tracking (V1)
-**Status:** ready-for-dev
+**Status:** in-progress (pending bug-1 user retest)
 **Ticket:** [#27](https://github.com/yabafre/pekulo/issues/27)
 **Branch:** `feature/27-5-1-transactions-record`
 **Commit prefix:** `feat(#27): …`
@@ -32,22 +32,22 @@
 
 ## Tasks
 
-- [ ] **T1** — Write the manual migration SQL at `apps/api/prisma/migrations/<TS>_alter_transactions_prefixed_ids_and_account_fk/migration.sql`. Apply via `bun --filter='@pekulo/api' run prisma:migrate:deploy`. [AC: AC-1, AC-2, AC-7]
-- [ ] **T2** — Update `apps/api/prisma/schema/transactions.prisma` (drop UUID default, add `accountId` field + relation) + update `apps/api/prisma/schema/accounts.prisma` (add `transactions Transaction[]` back-relation). Regenerate Prisma client. [AC: AC-1, AC-2]
-- [ ] **T3** — Extend `apps/api/src/common/errors/pekulo-error.ts` (add `TRANSACTION_NOT_FOUND` to alphabetical union + Set) + `apps/api/src/platform/http/error-mapper.ts` (add `TRANSACTION_NOT_FOUND: 404` in the 404 cluster). [AC: AC-4, AC-6, AC-11]
-- [ ] **T4** — Create `apps/api/src/modules/transactions/transactions.errors.ts` (`TransactionsError extends PekuloError` + `transactionNotFound()` factory). [AC: AC-4, AC-6]
-- [ ] **T5** — Replace the legacy `transactionInputSchema` in `packages/validators/src/transactions/transactions.schemas.ts` with 8 new schemas: `transactionIdSchema` (flipped to `tx_` regex), `transactionSchema` (DTO), `createTransactionInputSchema`, `updateTransactionInputSchema` (refine: at-least-one-field beyond id), `getTransactionInputSchema`, `deleteTransactionInputSchema`, `listTransactionsInputSchema`, `listTransactionsOutputSchema`, `transactionsOkSchema`. Keep `TRANSACTION_CATEGORIES` + `TRANSACTION_CATEGORY_LABELS` exported (consumed by UI in T15). [AC: AC-1, AC-3, AC-5, AC-12]
-- [ ] **T6** — Update `packages/types/src/transaction/transaction.types.ts`: add `TransactionId` branded type, re-export `CreateTransactionInput / UpdateTransactionInput / Transaction (DTO) / ListTransactionsInput / ListTransactionsOutput` from `@pekulo/validators`, drop the legacy inline `Transaction` interface (replaced by Zod-inferred DTO). [AC: AC-10]
-- [ ] **T7** — Replace the empty scaffold in `packages/contracts/src/transactions/transactions.contract.ts` with 5 oRPC procedures + typed-error declarations (`TRANSACTION_NOT_FOUND`, `ACCOUNT_NOT_FOUND`). [AC: AC-11]
-- [ ] **T8** — Write `apps/api/src/modules/transactions/transactions.repository.test.ts` (TDD RED) + `apps/api/src/modules/transactions/transactions.repository.ts` (TDD GREEN — Prisma layer with explicit `where: { userId }` on every query, cursor pagination via base64url `(occurredOn, id)`). Re-run test → expected GREEN. [AC: AC-1, AC-3, AC-4, AC-5, AC-6, AC-8, AC-9, AC-12]
-- [ ] **T9** — Add `accountExists(userId, accountId): Promise<boolean>` to `apps/api/src/modules/accounts/accounts.service.ts` (delegates to a new repository method) + extend repository with `accountExistsForUser`. Minimal interface for the transactions module's cross-aggregate probe. [AC: AC-2]
-- [ ] **T10** — Write `apps/api/src/modules/transactions/transactions.service.test.ts` (TDD RED) + `apps/api/src/modules/transactions/transactions.service.ts` (TDD GREEN — business logic: `AccountOwnershipProbe` injection, `TRANSACTION_NOT_FOUND` translation, `BAD_REQUEST` for empty patch wrapped at the validator level). Re-run test → expected GREEN. [AC: AC-2, AC-3, AC-4, AC-6, AC-11]
-- [ ] **T11** — Create `apps/api/src/modules/transactions/transactions.routes.ts` — `implement(transactionsContract).$context<{ userId, email }>().router({ … })` with 5 handlers; each calls `requireUserId(context.userId)` then delegates to service. [AC: AC-11]
-- [ ] **T12** — Create `apps/api/src/modules/transactions/transactions.module.ts` (`createTransactionsModule({ prismaService, accountOwnershipProbe }) → { service, router }`) + `apps/api/src/modules/transactions/transactions.module.test.ts` (whole-module wired against fake Prisma + fake probe). [AC: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
-- [ ] **T13** — Wire into `apps/api/src/bootstrap/runtime-dependencies.ts` — instantiate `transactionsModule` AFTER `accountsModule`, pass `accountOwnershipProbe = { exists: (uid, aid) => accountsModule.service.accountExists(uid, aid) }`, register `transactions: transactionsModule.router` in `orpcRouter`. Add `apps/api/src/modules/transactions/transactions.integration.test.ts` (oRPC HTTP boundary). [AC: AC-2, AC-11]
-- [ ] **T14** — Re-introduce `transactionsKeys` + `transactionsTags` in `apps/web/src/lib/zapaction/keys.ts` (removed in D3 audit pass per the inline comment) + wire the registry edges. [AC: AC-15]
-- [ ] **T15** — apps/web base wiring: create `apps/web/src/app/(cap)/dashboard/transactions/{page.tsx, loading.tsx, error.tsx}` + `_actions/transactions-actions.ts` (3 actions: `createTransaction`, `updateTransaction`, `deleteTransaction` — omit `output:` per lessons.md 2026-05-20) + `_hooks/{use-transactions.ts, use-create-transaction.ts, use-update-transaction.ts, use-delete-transaction.ts}` (ZapAction hooks per R3/R4) + `_components/transactions-recent-section.tsx` + `_components/transaction-create-form.tsx`. [AC: AC-13, AC-14, AC-15]
-- [ ] **T16** — apps/web finalisation: `_components/transaction-edit-form.tsx` + `_components/transaction-delete-confirm.tsx` + a11y + envelope tests (`*.a11y.test.tsx`, `*.envelope.test.tsx`) + full quality gate (`bun --filter='@pekulo/api' run lint`, `… typecheck`, `… test`, `… db:rls-audit`, `bun --filter=web run typecheck`, `bun --filter='@pekulo/ui' run test:axe`). Push the branch. [AC: AC-7, AC-8, AC-9, AC-10, AC-13, AC-14]
+- [x] **T1** — Write the manual migration SQL at `apps/api/prisma/migrations/<TS>_alter_transactions_prefixed_ids_and_account_fk/migration.sql`. Apply via `bun --filter='@pekulo/api' run prisma:migrate:deploy`. [AC: AC-1, AC-2, AC-7]
+- [x] **T2** — Update `apps/api/prisma/schema/transactions.prisma` (drop UUID default, add `accountId` field + relation) + update `apps/api/prisma/schema/accounts.prisma` (add `transactions Transaction[]` back-relation). Regenerate Prisma client. [AC: AC-1, AC-2]
+- [x] **T3** — Extend `apps/api/src/common/errors/pekulo-error.ts` (add `TRANSACTION_NOT_FOUND` to alphabetical union + Set) + `apps/api/src/platform/http/error-mapper.ts` (add `TRANSACTION_NOT_FOUND: 404` in the 404 cluster). [AC: AC-4, AC-6, AC-11]
+- [x] **T4** — Create `apps/api/src/modules/transactions/transactions.errors.ts` (`TransactionsError extends PekuloError` + `transactionNotFound()` factory). [AC: AC-4, AC-6]
+- [x] **T5** — Replace the legacy `transactionInputSchema` in `packages/validators/src/transactions/transactions.schemas.ts` with 8 new schemas: `transactionIdSchema` (flipped to `tx_` regex), `transactionSchema` (DTO), `createTransactionInputSchema`, `updateTransactionInputSchema` (refine: at-least-one-field beyond id), `getTransactionInputSchema`, `deleteTransactionInputSchema`, `listTransactionsInputSchema`, `listTransactionsOutputSchema`, `transactionsOkSchema`. Keep `TRANSACTION_CATEGORIES` + `TRANSACTION_CATEGORY_LABELS` exported (consumed by UI in T15). [AC: AC-1, AC-3, AC-5, AC-12]
+- [x] **T6** — Update `packages/types/src/transaction/transaction.types.ts`: add `TransactionId` branded type, re-export `CreateTransactionInput / UpdateTransactionInput / Transaction (DTO) / ListTransactionsInput / ListTransactionsOutput` from `@pekulo/validators`, drop the legacy inline `Transaction` interface (replaced by Zod-inferred DTO). [AC: AC-10]
+- [x] **T7** — Replace the empty scaffold in `packages/contracts/src/transactions/transactions.contract.ts` with 5 oRPC procedures + typed-error declarations (`TRANSACTION_NOT_FOUND`, `ACCOUNT_NOT_FOUND`). [AC: AC-11]
+- [x] **T8** — Write `apps/api/src/modules/transactions/transactions.repository.test.ts` (TDD RED) + `apps/api/src/modules/transactions/transactions.repository.ts` (TDD GREEN — Prisma layer with explicit `where: { userId }` on every query, cursor pagination via base64url `(occurredOn, id)`). Re-run test → expected GREEN. [AC: AC-1, AC-3, AC-4, AC-5, AC-6, AC-8, AC-9, AC-12]
+- [x] **T9** — Add `accountExists(userId, accountId): Promise<boolean>` to `apps/api/src/modules/accounts/accounts.service.ts` (delegates to a new repository method) + extend repository with `accountExistsForUser`. Minimal interface for the transactions module's cross-aggregate probe. [AC: AC-2]
+- [x] **T10** — Write `apps/api/src/modules/transactions/transactions.service.test.ts` (TDD RED) + `apps/api/src/modules/transactions/transactions.service.ts` (TDD GREEN — business logic: `AccountOwnershipProbe` injection, `TRANSACTION_NOT_FOUND` translation, `BAD_REQUEST` for empty patch wrapped at the validator level). Re-run test → expected GREEN. [AC: AC-2, AC-3, AC-4, AC-6, AC-11]
+- [x] **T11** — Create `apps/api/src/modules/transactions/transactions.routes.ts` — `implement(transactionsContract).$context<{ userId, email }>().router({ … })` with 5 handlers; each calls `requireUserId(context.userId)` then delegates to service. [AC: AC-11]
+- [x] **T12** — Create `apps/api/src/modules/transactions/transactions.module.ts` (`createTransactionsModule({ prismaService, accountOwnershipProbe }) → { service, router }`) + `apps/api/src/modules/transactions/transactions.module.test.ts` (whole-module wired against fake Prisma + fake probe). [AC: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
+- [x] **T13** — Wire into `apps/api/src/bootstrap/runtime-dependencies.ts` — instantiate `transactionsModule` AFTER `accountsModule`, pass `accountOwnershipProbe = { exists: (uid, aid) => accountsModule.service.accountExists(uid, aid) }`, register `transactions: transactionsModule.router` in `orpcRouter`. Add `apps/api/src/modules/transactions/transactions.integration.test.ts` (oRPC HTTP boundary). [AC: AC-2, AC-11]
+- [x] **T14** — Re-introduce `transactionsKeys` + `transactionsTags` in `apps/web/src/lib/zapaction/keys.ts` (removed in D3 audit pass per the inline comment) + wire the registry edges. [AC: AC-15]
+- [x] **T15** — apps/web base wiring: create `apps/web/src/app/(cap)/dashboard/transactions/{page.tsx, loading.tsx, error.tsx}` + `_actions/transactions-actions.ts` (3 actions: `createTransaction`, `updateTransaction`, `deleteTransaction` — omit `output:` per lessons.md 2026-05-20) + `_hooks/{use-transactions.ts, use-create-transaction.ts, use-update-transaction.ts, use-delete-transaction.ts}` (ZapAction hooks per R3/R4) + `_components/transactions-recent-section.tsx` + `_components/transaction-create-form.tsx`. [AC: AC-13, AC-14, AC-15]
+- [x] **T16** — apps/web finalisation: `_components/transaction-edit-form.tsx` + `_components/transaction-delete-confirm.tsx` + a11y + envelope tests (`*.a11y.test.tsx`, `*.envelope.test.tsx`) + full quality gate (`bun --filter='@pekulo/api' run lint`, `… typecheck`, `… test`, `… db:rls-audit`, `bun --filter=web run typecheck`, `bun --filter='@pekulo/ui' run test:axe`). Push the branch. [AC: AC-7, AC-8, AC-9, AC-10, AC-13, AC-14]
 
 ## Dev Notes
 
@@ -1985,22 +1985,104 @@ _Targeted by this story (NEW = create, MODIFIED = edit, NOT TOUCHED = verified i
 
 ## Dev Agent Record
 
-- **Model:** (filled by aped-dev)
-- **Started:** (filled by aped-dev)
-- **Completed:** (filled by aped-dev)
+- **Model:** claude-opus-4-7 (1M context)
+- **Started:** 2026-05-24T00:00:00Z
+- **Completed:** 2026-05-24T02:55:00Z
 
 ### Summary
 
-_(Filled by aped-dev at completion — 2-4 sentences on what shipped vs spec.)_
+Shipped the full Transactions CRUD module end-to-end — API tier (T1-T13: migration, Prisma schema, error code, validators, types, contract, repository, service, routes, module, runtime wiring, integration tests) plus the `/dashboard/transactions` web surface (T14-T16: zapaction keys, page/loading/error, 3 server actions with discriminated envelopes, 4 ZapAction hooks, create/edit forms, delete confirm, Récentes section with kebab-mobile / inline-desktop CRUD, a11y + envelope tests). Migration applied destructively (TRUNCATE + ALTER) per D3 — RLS quartet preserved (4 policies on `transactions` confirmed via `db:rls-audit` pre- and post-flight).
 
 ### Files changed
 
-_(Filled by aped-dev — actual paths touched, deltas, +N/-M counts.)_
+- apps/api/prisma/migrations/20260524021837_alter_transactions_prefixed_ids_and_account_fk/migration.sql
+- apps/api/prisma/schema/accounts.prisma
+- apps/api/prisma/schema/transactions.prisma
+- apps/api/src/bootstrap/runtime-dependencies.ts
+- apps/api/src/common/errors/pekulo-error.ts
+- apps/api/src/modules/accounts/accounts.integration.test.ts
+- apps/api/src/modules/accounts/accounts.repository.ts
+- apps/api/src/modules/accounts/accounts.service.test.ts
+- apps/api/src/modules/accounts/accounts.service.ts
+- apps/api/src/modules/transactions/transactions.errors.ts
+- apps/api/src/modules/transactions/transactions.integration.test.ts
+- apps/api/src/modules/transactions/transactions.module.test.ts
+- apps/api/src/modules/transactions/transactions.module.ts
+- apps/api/src/modules/transactions/transactions.repository.test.ts
+- apps/api/src/modules/transactions/transactions.repository.ts
+- apps/api/src/modules/transactions/transactions.routes.ts
+- apps/api/src/modules/transactions/transactions.service.test.ts
+- apps/api/src/modules/transactions/transactions.service.ts
+- apps/api/src/platform/http/error-mapper.ts
+- apps/web/src/app/(cap)/dashboard/transactions/_actions/transactions-actions.ts
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transaction-create-form.a11y.test.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transaction-create-form.envelope.test.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transaction-create-form.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transaction-delete-confirm.a11y.test.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transaction-delete-confirm.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transaction-edit-form.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.a11y.test.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/_hooks/use-create-transaction.ts
+- apps/web/src/app/(cap)/dashboard/transactions/_hooks/use-delete-transaction.ts
+- apps/web/src/app/(cap)/dashboard/transactions/_hooks/use-transactions.ts
+- apps/web/src/app/(cap)/dashboard/transactions/_hooks/use-update-transaction.ts
+- apps/web/src/app/(cap)/dashboard/transactions/error.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/loading.tsx
+- apps/web/src/app/(cap)/dashboard/transactions/page.tsx
+- apps/web/src/lib/orpc/modules.ts
+- apps/web/src/lib/zapaction/keys.ts
+- docs/epics-context/epic-5-context.md
+- docs/state.yaml
+- docs/stories/5-1-transactions-record.md
+- packages/contracts/src/transactions/transactions.contract.ts
+- packages/types/src/transaction/transaction.types.ts
+- packages/validators/src/transactions/transactions.schemas.ts
 
 ### Deviations
 
-_(Filled by aped-dev — anywhere the implementation diverged from the spec, with rationale. Empty = strict adherence.)_
+- **T4 — `TransactionsError.name`:** spec wrote `override readonly name = "PekuloError"` (apparent typo). Implementation uses `"TransactionsError"` to match the AccountError precedent; constructor narrows `code` from `PekuloErrorCode` to `TransactionErrorCode`. Rationale: R4 ("Existing Patterns Are Law"). No AC affected.
+- **T10/T15 — `accountNotFound()` signature:** spec called it as `accountNotFound(input.accountId)`; the existing factory in `apps/api/src/modules/accounts/accounts.errors.ts` takes no args. Followed the existing signature (no arg) rather than widening it. AC-2 still satisfied (the `code` field is what surfaces on the wire).
+- **T5 — `ISO_DATE_REGEX` tightened:** spec regex `/^\d{4}-\d{2}-\d{2}$/` accepted `2026-13-01` which AC-12 explicitly required to reject. Tightened to `/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/` (validates month + day-of-month range; day-in-month semantics like Feb 30 still pass — out of AC-12 scope). Caught during T8 GREEN run.
+- **T15 — date input:** spec implied `PekuloInput type="date"` but `PekuloInput`'s `AllowedInputType` doesn't include `"date"`. Switched to `PekuloDatePicker` (Date object + ISO conversion at submit). Same UX, better DS conformance.
+- **T15 — type field:** spec implied a radio group via `PekuloRadioGroup`; the available `PekuloRadioGroup.Item` exposes no `.Indicator` subcomponent (indicator rendered internally). Switched to `PekuloSelect` for the two-option inflow/outflow choice — simpler, fully a11y-clean. Story 5-3/5-4 can revisit if a segmented control is preferred.
+- **T15/T16 split:** T15 originally ended at "create form + section"; T16 had "edit/delete + tests". Since `transactions-recent-section.tsx` imports `TransactionEditForm` and `TransactionDeleteConfirm`, those two components ship in T15's commit (so the section compiles). T16 covers only the a11y/envelope tests + full quality gate.
+- **T11 — typed-error rethrow:** spec showed simple `try { ... } catch (err) { throw err }`. Followed the realestate precedent (rethrow via `errors.X({ message })`) so oRPC's RPCHandler propagates typed defined-error JSON instead of masking as INTERNAL.
+- **Spec artefacts (state.yaml + epic-5-context.md + story file):** bundled into T1's commit per user choice (offered the alternative of a separate `docs(#27)` commit; user picked T1 bundle).
+- **T13 — integration test body shape:** error body is `{ json: { code, message, ... } }` (oRPC wraps under `json`), not flat `{ code, ... }`. Initial test assertion failed; fixed after a one-shot `console.log` probe.
 
 ### Test output
 
-_(Filled by aped-dev — pasted final quality-gate output: `bun --filter='@pekulo/api' run lint/typecheck/test`, `db:rls-audit`, `bun --filter=web run typecheck`, vitest.)_
+```
+# API — all transactions tests (T8 + T10 + T12 + T13)
+$ cd apps/api && bun test src/modules/transactions/
+ 23 pass / 0 fail / 56 expect() calls / 4 files / 78 ms
+
+# API — full suite (no regression)
+$ cd apps/api && bun test
+ 440 pass / 0 fail / 1067 expect() calls / 51 files / 1098 ms
+
+# RLS audit (AC-7) — pre-flight + post-flight both report transactions: 4
+$ bun --filter='@pekulo/api' run db:rls-audit
+[rls-audit] OK — 14 tables checked: …, transactions (4 policies), …
+
+# Web — transactions tests
+$ bun --filter='@pekulo/web' run test -- src/app/(cap)/dashboard/transactions
+ 4 passed (4) test files / 5 passed (5) tests
+
+# Web — full suite (no regression)
+$ bun --filter='@pekulo/web' run test
+ 44 passed (44) test files / 77 passed (77) tests
+
+# UI — full suite
+$ bun --filter='@pekulo/ui' run test
+ 193 passed | 1 skipped / 194 tests
+
+# Lint — monorepo
+$ bun run lint
+Found 0 warnings and 0 errors. 625 files / 158 rules
+
+# Typecheck
+$ bun --filter='@pekulo/api' run typecheck  → exit 0
+$ bun --filter='@pekulo/web' run typecheck  → exit 0
+```
