@@ -3,8 +3,14 @@
 // apps/web/src/app/(cap)/dashboard/_components/cap-shell.tsx
 //
 // Client wrapper that holds the Cap-view chrome (sidebar nav + topbar)
-// around the bento page content. Mirrors ux-preview App.tsx:114-203
-// verbatim.
+// + the global "Nouvelle transaction" dialog around the bento page content.
+// Mirrors ux-preview App.tsx:114-203 verbatim.
+//
+// The create-transaction dialog lives at this layer because the top-bar
+// pill + the mobile FAB are the canonical add entrypoint per ux-preview
+// (no inline "+" pill on the page itself). Lifting the dialog state here
+// avoids cross-component coordination via search params / Zustand for
+// a one-boolean handshake.
 //
 // Responsive switch is shared between `bento.module.css`
 // (`@media (min-width: 1024px)`) and the DS components:
@@ -15,11 +21,12 @@
 // `$max-md` claiming Tamagui `md = 1020`; see lesson 2026-05-17 "Tamagui
 // v5 media keys" — the real `md` is 768 and the right cutover is 1024.)
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   PekuloContextualAddButton,
+  PekuloDialog,
   PekuloMobileBottomNav,
   PekuloNavRail,
   PekuloTopTabToggle,
@@ -28,6 +35,8 @@ import {
   type PekuloTopTab,
   useToast,
 } from "@pekulo/ui";
+import { Text, View } from "@pekulo/ui/client";
+import { TransactionCreateForm } from "../transactions/_components/transaction-create-form";
 import styles from "./bento.module.css";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", {
@@ -45,6 +54,7 @@ export function CapShell({ email, children }: CapShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [newTxOpen, setNewTxOpen] = useState(false);
   const isDashboardRoot = pathname === "/dashboard";
   const activeTab: PekuloTopTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
   const navActiveKey: PekuloNavKey = pathname.startsWith("/dashboard/portefeuille")
@@ -112,7 +122,7 @@ export function CapShell({ email, children }: CapShellProps) {
   };
 
   const handleNewTx = () => {
-    router.push("/dashboard/transactions?new=1");
+    setNewTxOpen(true);
   };
 
   return (
@@ -151,6 +161,35 @@ export function CapShell({ email, children }: CapShellProps) {
       </header>
       <main className={styles.main}>{children}</main>
       <PekuloMobileBottomNav activeKey={navActiveKey} onSelect={handleNav} />
+
+      <PekuloDialog open={newTxOpen} onOpenChange={setNewTxOpen}>
+        <PekuloDialog.Portal>
+          <PekuloDialog.Overlay />
+          <PekuloDialog.Content>
+            <View flexDirection="column" gap="$3">
+              <PekuloDialog.Title>Nouvelle transaction</PekuloDialog.Title>
+              <PekuloDialog.Description>
+                Renseigne le compte, la date, le libellé et le montant.
+              </PekuloDialog.Description>
+            </View>
+            <TransactionCreateForm onSuccess={() => setNewTxOpen(false)} />
+            <PekuloDialog.Close asChild>
+              <View
+                render="button"
+                paddingVertical="$2"
+                cursor="pointer"
+                backgroundColor="transparent"
+                borderWidth={0}
+                alignItems="center"
+              >
+                <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
+                  Annuler
+                </Text>
+              </View>
+            </PekuloDialog.Close>
+          </PekuloDialog.Content>
+        </PekuloDialog.Portal>
+      </PekuloDialog>
     </div>
   );
 }

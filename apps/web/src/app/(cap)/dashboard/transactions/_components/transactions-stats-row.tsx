@@ -60,7 +60,7 @@ export function TransactionsStatsRow() {
     <>
       <View display="block" $lg={{ display: "none" }}>
         <div style={gridStyle}>
-          <Section ariaLabel="Net du mois" flat>
+          <Section ariaLabel="Net du mois">
             <Text color="$colorTertiary" fontSize="$caption">
               Net · {monthLabel}
             </Text>
@@ -73,7 +73,7 @@ export function TransactionsStatsRow() {
               {signed(net)}
             </Text>
           </Section>
-          <Section ariaLabel="En attente IA" flat>
+          <Section ariaLabel="En attente IA">
             <Text color="$colorTertiary" fontSize="$caption">
               À confirmer
             </Text>
@@ -90,7 +90,7 @@ export function TransactionsStatsRow() {
       </View>
       <View display="none" $lg={{ display: "block" }}>
         <div style={gridStyleLg}>
-          <Section ariaLabel="Net du mois" flat>
+          <Section ariaLabel="Net du mois">
             <Text color="$colorTertiary" fontSize="$caption">
               Net · {monthLabel}
             </Text>
@@ -103,7 +103,7 @@ export function TransactionsStatsRow() {
               {signed(net)}
             </Text>
           </Section>
-          <Section ariaLabel="En attente IA" flat>
+          <Section ariaLabel="En attente IA">
             <Text color="$colorTertiary" fontSize="$caption">
               À confirmer
             </Text>
@@ -116,7 +116,7 @@ export function TransactionsStatsRow() {
               </Text>
             </View>
           </Section>
-          <Section ariaLabel="Entrées du mois" flat>
+          <Section ariaLabel="Entrées du mois">
             <Text color="$colorTertiary" fontSize="$caption">
               Entrées · {monthLabel}
             </Text>
@@ -124,7 +124,7 @@ export function TransactionsStatsRow() {
               {eur0.format(totalInflow)}
             </Text>
           </Section>
-          <Section ariaLabel="Sorties du mois" flat>
+          <Section ariaLabel="Sorties du mois">
             <Text color="$colorTertiary" fontSize="$caption">
               Sorties · {monthLabel}
             </Text>

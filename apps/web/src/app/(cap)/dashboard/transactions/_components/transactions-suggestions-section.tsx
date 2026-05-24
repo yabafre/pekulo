@@ -16,7 +16,6 @@ export function TransactionsSuggestionsSection() {
     <Section
       ariaLabel="Suggestions IA"
       title="Suggestions IA"
-      flat
       action={
         <View flexDirection="row" alignItems="center" gap="$2">
           <Bot size={12} strokeWidth={2} aria-hidden />
