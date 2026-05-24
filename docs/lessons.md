@@ -13,6 +13,22 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-24 — `defineAction({ tags: [...] })` is server-only — Next.js "use server" wraps each exported action in a thin client-side RPC stub that does NOT preserve custom properties attached via `Object.defineProperty` ; reading `action.tags` on the client returns `undefined`, so `useActionMutation(action)`'s implicit `tags = action.tags` fallback resolves to `undefined` and the tag-registry invalidation is silently skipped. The `tags` field on `defineAction` exists purely so the server-side handler can call Next's `revalidateTag()` for the fetch cache ; client-side React Query invalidation must come from the consumer via `useActionMutation(action, { invalidateWithTags: [tagsX.list()] })`. Confirmed against zapaction 0.2.3 docs via Context7 — `invalidateWithTags` on the hook IS the canonical pattern, not a workaround (Scope: aped-arch, aped-dev, aped-review — every web-tier hook that wraps a `defineAction` and expects cache invalidation after the SA returns)
+
+- **Date:** 2026-05-24
+- **Mistake:** Story 5-1 wired `defineAction({..., tags: [transactionsTags.list()] })` server-side and shipped `useActionMutation(createTransaction)` client-side, assuming the tag-registry invalidation path would kick in (mirroring the existing accounts / realestate hooks). The Récentes list never refreshed after create / update / delete — the user had to hard-refresh to see the new row. Root cause: Next.js's `"use server"` boundary produces a brand-new function reference on the client (the SA POST stub) that ignores the `Object.defineProperty(action, "tags", { value: ... })` line inside `defineAction`. The accounts / realestate hooks appeared to work because they ship optimistic `setQueryData` paths (`use-delete-account.ts` L20-37 etc.) that paint the new state immediately ; the tag-registry no-op was masked.
+- **Correction:** Pass the tags explicitly through `useActionMutation`'s `invalidateWithTags` option — they're then resolved through the same `setTagRegistry({...})` graph but the consumer is the source of truth, not a server-attached property. Zapaction's own docs (Context7 `/yabafre/zapaction` API reference + cache-tags recipes) show this is the canonical pattern, not a workaround:
+  ```ts
+  // _hooks/use-create-transaction.ts
+  export function useCreateTransaction() {
+    return useActionMutation(createTransaction, {
+      invalidateWithTags: [transactionsTags.list()],
+    });
+  }
+  ```
+  Same shape for update / delete. The `tags: [transactionsTags.list()]` on the `defineAction` side stays — it still drives Next.js `revalidateTag()` for any fetch-cache consumers ; the duplication is intentional (server cache vs client cache, two different stores).
+- **Rule:** Every web-tier `useActionMutation` MUST pass `invalidateWithTags` explicitly when the consumer expects React Query invalidation to fire on success. Codify as R12 in architecture.md once aped-review confirms (the existing accounts / realestate hooks should be retro-fitted as a follow-up — they work today by accident via optimistic updates, but a future hook without the optimistic path will regress to the same silent skip).
+
 ### 2026-05-24 — `apps/web`'s `TamaguiProvider` runs with `disableInjectCSS` and reads styles from the pre-generated `packages/ui/public/tamagui.generated.css` snapshot ; that file is committed to the repo and `bun run generate:tamagui-css` is NOT wired into any CI pre-build / pre-commit hook, so every new `styled(...)` / variant / theme token added during a story silently never reaches the rendered DOM until a human remembers to regenerate. The failure mode is invisible: JSX props like `backgroundColor="$backgroundElevated"` resolve to atomic class names that have no matching rule, so the element renders with browser defaults (transparent bg) — the page still builds, typechecks, lint-passes, and tests-pass because Tamagui in jsdom/happy-dom uses a different runtime path that doesn't depend on the generated CSS (Scope: aped-arch, aped-dev, aped-review, aped-debug — every story touching `packages/ui` AND every reviewer that visually checks an apps/web surface against unexplained "missing style" bugs)
 
 - **Date:** 2026-05-24
