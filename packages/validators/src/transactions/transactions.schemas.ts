@@ -1,14 +1,14 @@
-// Zod source of truth for the transactions aggregate. Will land server-side
-// when Epic 6 migrates transactions to oRPC ; the schemas + category labels
-// live here today so the form code in apps/web can validate input + render
-// French UI labels against the same shape the future api will accept.
+// packages/validators/src/transactions/transactions.schemas.ts
+// Zod source of truth for the transactions aggregate (story 5-1). 9 schemas
+// covering the DTO + 5 inputs + cursor pagination + ok envelope. Categories
+// (12 closed enum) + French labels exported for UI consumers.
 //
-// Relocated from apps/web/src/lib/schemas/transactions.ts during the
-// archi-audit pass (PR #86) — every Zod schema in the monorepo lives under
-// @pekulo/validators per ADR-0011 and routes its `z` through @pekulo/zod (R1).
+// R1: every zod import goes through @pekulo/zod (not "zod" direct).
+// Prefixed IDs (ADR-0012): transaction ids match /^tx_[0-9A-Za-z]{21}$/.
 
 import { z } from "@pekulo/zod";
 
+// ─── Closed enums + label maps ───────────────────────────────────────────
 export const TRANSACTION_CATEGORIES = [
   "salaire",
   "freelance",
@@ -46,28 +46,86 @@ export type TransactionType = z.infer<typeof transactionTypeSchema>;
 export const transactionCategorySchema = z.enum(TRANSACTION_CATEGORIES);
 export type TransactionCategory = z.infer<typeof transactionCategorySchema>;
 
-export const transactionInputSchema = z.object({
-  id: z.string().uuid().optional(),
-  occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date YYYY-MM-DD requise"),
-  label: z.string().min(1, "Libellé requis").max(120),
+// ─── ID regexes ───────────────────────────────────────────────────────────
+const TRANSACTION_ID_REGEX = /^tx_[0-9A-Za-z]{21}$/;
+const ACCOUNT_ID_REGEX = /^acc_[0-9A-Za-z]{21}$/;
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+// ─── DTO (row shape returned by reads) ───────────────────────────────────
+export const transactionSchema = z.object({
+  id: z.string().regex(TRANSACTION_ID_REGEX),
+  accountId: z.string().regex(ACCOUNT_ID_REGEX),
+  occurredOn: z.string().regex(ISO_DATE_REGEX, "Date YYYY-MM-DD requise"),
+  label: z.string().min(1).max(120),
+  amount: z.number().min(0),
+  type: transactionTypeSchema,
+  category: transactionCategorySchema,
+  isImprevu: z.boolean(),
+  notes: z.string().max(500).nullable(),
+  createdAt: z.string(),
+});
+export type Transaction = z.infer<typeof transactionSchema>;
+
+// ─── Inputs ───────────────────────────────────────────────────────────────
+export const createTransactionInputSchema = z.object({
+  accountId: z.string().regex(ACCOUNT_ID_REGEX, "accountId invalide"),
+  occurredOn: z.string().regex(ISO_DATE_REGEX, "Date YYYY-MM-DD requise"),
+  label: z.string().min(1, "Libellé requis").max(120, "Libellé > 120 caractères"),
   amount: z.number().min(0, "Montant ≥ 0"),
   type: transactionTypeSchema,
   category: transactionCategorySchema,
   isImprevu: z.boolean(),
-  notes: z.string().max(500).optional().nullable(),
+  notes: z.string().max(500, "Notes > 500 caractères").nullable(),
+});
+export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema>;
+
+export const updateTransactionInputSchema = z
+  .object({
+    id: z.string().regex(TRANSACTION_ID_REGEX, "id invalide"),
+    accountId: z.string().regex(ACCOUNT_ID_REGEX).optional(),
+    occurredOn: z.string().regex(ISO_DATE_REGEX).optional(),
+    label: z.string().min(1).max(120).optional(),
+    amount: z.number().min(0).optional(),
+    type: transactionTypeSchema.optional(),
+    category: transactionCategorySchema.optional(),
+    isImprevu: z.boolean().optional(),
+    notes: z.string().max(500).nullable().optional(),
+  })
+  .refine(
+    (v) => {
+      const { id: _id, ...rest } = v;
+      return Object.values(rest).some((x) => x !== undefined);
+    },
+    { message: "updateTransaction requires at least one field beyond id" },
+  );
+export type UpdateTransactionInput = z.infer<typeof updateTransactionInputSchema>;
+
+export const transactionIdSchema = z.object({
+  id: z.string().regex(TRANSACTION_ID_REGEX),
 });
 
-export type TransactionInput = z.infer<typeof transactionInputSchema>;
-
-export const transactionIdSchema = z.object({ id: z.string().uuid() });
-export type TransactionId = z.infer<typeof transactionIdSchema>;
-
-export const transactionFiltersSchema = z.object({
-  year: z.number().int().optional(),
-  monthNum: z.number().int().min(1).max(12).optional(),
-  type: transactionTypeSchema.optional(),
-  categories: z.array(transactionCategorySchema).optional(),
-  limit: z.number().int().min(1).max(500).optional(),
+export const getTransactionInputSchema = z.object({
+  id: z.string().regex(TRANSACTION_ID_REGEX),
 });
+export type GetTransactionInput = z.infer<typeof getTransactionInputSchema>;
 
-export type TransactionFilters = z.infer<typeof transactionFiltersSchema>;
+export const deleteTransactionInputSchema = z.object({
+  id: z.string().regex(TRANSACTION_ID_REGEX),
+});
+export type DeleteTransactionInput = z.infer<typeof deleteTransactionInputSchema>;
+
+export const listTransactionsInputSchema = z.object({
+  limit: z.number().int().min(1).max(200).optional().default(50),
+  cursor: z.string().optional(), // opaque base64url(`${occurredOnISO}|${id}`)
+  accountId: z.string().regex(ACCOUNT_ID_REGEX).optional(),
+});
+export type ListTransactionsInput = z.infer<typeof listTransactionsInputSchema>;
+
+export const listTransactionsOutputSchema = z.object({
+  items: z.array(transactionSchema),
+  nextCursor: z.string().nullable(),
+});
+export type ListTransactionsOutput = z.infer<typeof listTransactionsOutputSchema>;
+
+// ─── Envelope ─────────────────────────────────────────────────────────────
+export const transactionsOkSchema = z.object({ ok: z.literal(true) });
