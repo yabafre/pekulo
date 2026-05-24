@@ -1,8 +1,11 @@
-// transactions.prisma — brownfield Transaction model.
+// transactions.prisma — Transaction model (story 5-1).
+// id: TEXT, no @default — prefixed-ids extension injects `tx_<base62>`.
+// account_id: NOT NULL FK to accounts(id) with ON DELETE CASCADE.
 
 model Transaction {
   id         String          @id
   userId     String          @map("user_id") @db.Uuid
+  accountId  String          @map("account_id")
   occurredOn DateTime        @map("occurred_on") @db.Date
   label      String
   amount     Decimal         @db.Decimal
@@ -13,6 +16,9 @@ model Transaction {
   createdAt  DateTime?       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt  DateTime?       @default(now()) @map("updated_at") @db.Timestamptz
 
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
   @@index([userId, occurredOn(sort: Desc)], map: "transactions_user_date_idx")
+  @@index([userId, accountId, occurredOn(sort: Desc)], map: "transactions_user_account_date_idx")
   @@map("transactions")
 }
