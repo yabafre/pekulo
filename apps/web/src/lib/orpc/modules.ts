@@ -8,7 +8,7 @@
 // router today exposes 6 modules (see runtime-dependencies.ts):
 // hypothesis, compass, milestones, accounts, holdings, realestate.
 // Clients for contracts whose api route hasn't shipped yet (auth,
-// transactions, monthly, dashboard, settings, llm) are added back as the
+// monthly, dashboard, settings, llm) are added back as the
 // corresponding story lands them server-side — keeping this file aligned
 // with the actual route surface prevents accidental 404s on unmounted
 // paths.
@@ -30,6 +30,7 @@ import {
   holdingsContract,
   hypothesisContract,
   realestateContract,
+  transactionsContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -58,3 +59,5 @@ export const realestateClient: ContractRouterClient<typeof realestateContract> =
   orpcLink,
   { path: ["realestate"] },
 );
+export const transactionsClient: ContractRouterClient<typeof transactionsContract> =
+  createORPCClient(orpcLink, { path: ["transactions"] });
