@@ -15,9 +15,15 @@ export interface PekuloActivityRowProps {
 }
 
 export function PekuloActivityRow({ tx }: PekuloActivityRowProps) {
-  const Arrow = tx.direction === "in" ? ArrowDownRight : ArrowUpRight;
-  const arrowColor = tx.direction === "in" ? "var(--success)" : "var(--colorTertiary)";
-  const sign = tx.direction === "in" ? "+" : "−";
+  const isInflow = tx.direction === "in";
+  const Arrow = isInflow ? ArrowDownRight : ArrowUpRight;
+  const arrowColor = isInflow ? "var(--success)" : "var(--colorTertiary)";
+  // Inflow amounts share the success accent with the arrow (matches
+  // ux-preview ActivityRow at App.tsx:1099 — `isInflow ? "text-gain"
+  // : "text-fg"`). TR fidelity rule: emerald lives only on positive
+  // perf deltas ; outflow stays default neutral.
+  const amountColor = isInflow ? "$success" : "$color";
+  const sign = isInflow ? "+" : "−";
   return (
     <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
       <Arrow size={18} color={arrowColor} />
@@ -29,7 +35,7 @@ export function PekuloActivityRow({ tx }: PekuloActivityRowProps) {
           {tx.account} · {tx.category}
         </Text>
       </View>
-      <Text color="$color" fontSize="$bodySm" fontWeight="500">
+      <Text color={amountColor} fontSize="$bodySm" fontWeight="500">
         {sign}
         {eur0.format(tx.amountEur)}
       </Text>

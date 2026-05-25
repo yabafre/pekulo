@@ -16,7 +16,7 @@ describe("PekuloActivityRow snapshot", () => {
       />,
     );
     expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<span class="_dsp_contents  font_body"><div class="is_View _fd-row _items-center _gap-c-space-3 _pt-c-space-3 _pb-c-space-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-down-right" aria-hidden="true"><path d="m7 7 10 10"></path><path d="M17 7v10H7"></path></svg><div class="is_View _grow-1 _shrink-1 _fb-0px"><span class="is_Text _col-color _fs-f-size-body2682 _fw-500">Salaire</span><span class="is_Text _col-colorTertia3655 _fs-f-size-xs">Compte courant · Revenus</span></div><span class="is_Text _col-color _fs-f-size-body2682 _fw-500">+3 200&nbsp;€</span></div><div style="display: contents;"></div></span>"`,
+      `"<span class="_dsp_contents  font_body"><div class="is_View _fd-row _items-center _gap-c-space-3 _pt-c-space-3 _pb-c-space-3"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-down-right" aria-hidden="true"><path d="m7 7 10 10"></path><path d="M17 7v10H7"></path></svg><div class="is_View _grow-1 _shrink-1 _fb-0px"><span class="is_Text _col-color _fs-f-size-body2682 _fw-500">Salaire</span><span class="is_Text _col-colorTertia3655 _fs-f-size-xs">Compte courant · Revenus</span></div><span class="is_Text _col-success _fs-f-size-body2682 _fw-500">+3 200&nbsp;€</span></div><div style="display: contents;"></div></span>"`,
     );
   });
   it("renders outflow", () => {
