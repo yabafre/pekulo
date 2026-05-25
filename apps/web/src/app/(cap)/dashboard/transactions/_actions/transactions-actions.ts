@@ -6,13 +6,18 @@ import { ORPCError } from "@orpc/client";
 import {
   createTransactionInputSchema,
   deleteTransactionInputSchema,
+  importCsvInputSchema,
   listTransactionsInputSchema,
   listTransactionsOutputSchema,
+  previewImportCsvInputSchema,
   updateTransactionInputSchema,
   type CreateTransactionInput,
   type DeleteTransactionInput,
+  type ImportCsvInput,
   type ListTransactionsInput,
   type ListTransactionsOutput,
+  type PreviewImportCsvInput,
+  type PreviewImportCsvOutput,
   type Transaction,
   type UpdateTransactionInput,
 } from "@pekulo/validators";
@@ -115,6 +120,64 @@ export const deleteTransaction = defineAction<
       return { ok: true as const };
     } catch (err) {
       if (err instanceof ORPCError && err.code === "TRANSACTION_NOT_FOUND") {
+        return { ok: false as const, code: err.code, message: err.message };
+      }
+      throw err;
+    }
+  },
+});
+
+// ─── CSV import (story 5-2) ──────────────────────────────────────────────
+// Both actions OMIT `output:` per the 2026-05-20 envelope-discipline lesson —
+// zapaction core runs output.parse(result) unconditionally and would reject
+// the { ok: false } branch otherwise. previewImportCsv has no `tags:` (it's
+// a read-only side effect server-side); importCsv carries tags for Next's
+// revalidateTag fetch-cache invalidation (React Query side comes via the
+// useImportTransactionsCsvForm hook's invalidateWithTags option, per R12).
+
+export type PreviewImportCsvResult =
+  | ({ ok: true } & PreviewImportCsvOutput)
+  | { ok: false; code: "INVALID_CSV" | "PAYLOAD_TOO_LARGE"; message: string };
+
+export type ImportCsvResult =
+  | { ok: true; persisted: number }
+  | { ok: false; code: "ACCOUNT_NOT_FOUND"; message: string };
+
+export const previewImportCsv = defineAction<
+  PreviewImportCsvInput,
+  PreviewImportCsvResult,
+  ActionContext
+>({
+  name: "previewImportCsv",
+  input: previewImportCsvInputSchema,
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    try {
+      const out = await transactionsClient.previewImportCsv(input);
+      return { ok: true as const, ...out };
+    } catch (err) {
+      if (
+        err instanceof ORPCError &&
+        (err.code === "INVALID_CSV" || err.code === "PAYLOAD_TOO_LARGE")
+      ) {
+        return { ok: false as const, code: err.code, message: err.message };
+      }
+      throw err;
+    }
+  },
+});
+
+export const importCsv = defineAction<ImportCsvInput, ImportCsvResult, ActionContext>({
+  name: "importCsv",
+  input: importCsvInputSchema,
+  tags: [transactionsTags.list()],
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    try {
+      const out = await transactionsClient.importCsv(input);
+      return { ok: true as const, persisted: out.persisted };
+    } catch (err) {
+      if (err instanceof ORPCError && err.code === "ACCOUNT_NOT_FOUND") {
         return { ok: false as const, code: err.code, message: err.message };
       }
       throw err;
