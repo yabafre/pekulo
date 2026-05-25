@@ -1,7 +1,7 @@
 # Story: 5-3-transfer-rule — Rule-based transfer detection + Transfer badge in Récentes
 
 **Epic:** Epic 5 — Transactions & monthly tracking (V1)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#29](https://github.com/yabafre/pekulo/issues/29)
 **Branch:** `feature/29-5-3-transfer-rule`
 **Commit prefix:** `feat(#29): …`
@@ -1689,7 +1689,11 @@ Commit (one final wrap-up commit if any quality-gate-driven fix was needed) :
 - **Edit lifecycle for paired transfers.** If user A edits a paired transaction's `amount`, `occurredOn`, `accountId`, or `type`, the pair MAY no longer be structurally valid. 5-3 does NOT dissociate on update — the pair stays linked even if the structural match no longer holds. Tracked for story 5-5 or épic 6.
 - **Backfill existing transactions.** The rule fires only on new rows from now on. Pre-5-3 rows in `category=autre` stay as-is. No backfill ; Alex can manually re-categorise via `updateTransaction` if useful (V1 (a) personal data volume).
 - **LLM categorisation fallback (épic 6).** The `categoriseAfterCreate` no-match branch is the future hook point. Épic 6's `LlmCategoriser` will wrap : `categoriseAfterCreate → if not transfer → llm.categorise(...)`. The contract is in place — épic 6 only extends.
-- **UI badge ergonomics.** AC-8 ships the inline `⇆ Transfert` caption. A future iteration could add a click affordance on the badge ("see the paired transaction") via the `transferPairId`. Tracked for story 7-X dashboard once the cross-screen navigation patterns are validated.
+- **UI badge ergonomics.** AC-8 ships the inline `⇆ Transfert` caption (lucide `ArrowLeftRight` icon + plain "Transfert" label, reconciled by aped-review F2). A future iteration could add a click affordance on the badge ("see the paired transaction") via the `transferPairId`. Tracked for story 7-X dashboard once the cross-screen navigation patterns are validated.
+- **Partial covering index for pair detection** *(aped-review F7)*. `findTransferPairCandidates` filters on `(userId, type, occurredOn, amount, accountId≠, category="autre", transferPairId=null)` and currently leans on `transactions_user_date_idx`. For a high-volume CSV (1000+ rows) the planner falls back to a filter scan. A partial index `WHERE category='autre' AND transfer_pair_id IS NULL` on `(user_id, occurred_on, amount, type)` would collapse the filter to an index lookup. Defer until a real workload reveals slow imports (V1 (a) personal volume ≤ ~200 rows).
+- **Structured log for non-fatal categorise failures** *(aped-review F7)*. `importCsv` swallows per-row categorise errors via `console.warn` so a malformed pair doesn't abort the whole bulk. Future V2 observability should replace the warn with a structured `{ event: "categorise.error", txId, userId, err }` line consumable by the log scraper, so a real bug doesn't blend into transient warnings.
+- **Concurrent-create race surface** *(aped-review F6, partially mitigated)*. `pairAsTransfer` now asserts `count === 2` and raises `TRANSACTION_PAIR_RACE` (409) when a sibling vanishes mid-window — the `createTransaction` path lets it bubble, `importCsv` swallows it as non-fatal per AC-3's contract. The remaining unguarded window is the rare double-pair scenario (two concurrent inflows both racing for the same outflow sibling) which is acceptable for V1 single-user but worth revisiting if collaboration features land.
+- **`transactionsMock` strong typing** *(aped-review F7)*. The `vi.hoisted` mock in `transactions-recent-section.a11y.test.tsx` is untyped (`vi.fn()`). Tightening to `vi.fn<typeof useTransactions>()` would catch any future hook-signature drift at compile time.
 
 ## Dev Agent Record
 
