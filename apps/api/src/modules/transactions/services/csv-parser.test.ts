@@ -136,7 +136,7 @@ describe("parseCsvForPreview", () => {
       accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
     });
     expect(out.summary).toEqual({ total: 1, valid: 0, invalid: 1 });
-    expect(out.rows[0]!.error).toBe("account not found: Livret A");
+    expect(out.rows[0]!.error).toBe("Compte introuvable");
     expect(out.rows[0]!.parsed).toBeUndefined();
   });
 
@@ -153,7 +153,7 @@ describe("parseCsvForPreview", () => {
       accountResolver: ambiguousAccountResolver("Compte courant", 2),
     });
     expect(out.summary.invalid).toBe(1);
-    expect(out.rows[0]!.error).toBe("ambiguous account label: Compte courant (2 matches)");
+    expect(out.rows[0]!.error).toBe("Compte ambigu (2 comptes portent ce nom)");
   });
 
   it("marks malformed date as row-level invalid", async () => {
@@ -163,7 +163,7 @@ describe("parseCsvForPreview", () => {
       userId: "user-A",
       accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
     });
-    expect(out.rows[0]!.error).toContain("invalid date");
+    expect(out.rows[0]!.error).toContain("Date invalide");
   });
 
   it("marks day-out-of-month as row-level invalid", async () => {
@@ -173,7 +173,7 @@ describe("parseCsvForPreview", () => {
       userId: "user-A",
       accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
     });
-    expect(out.rows[0]!.error).toContain("day out of month");
+    expect(out.rows[0]!.error).toContain("jour hors mois");
   });
 
   it("marks zero amount as row-level invalid", async () => {
@@ -183,7 +183,7 @@ describe("parseCsvForPreview", () => {
       userId: "user-A",
       accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
     });
-    expect(out.rows[0]!.error).toContain("invalid amount");
+    expect(out.rows[0]!.error).toContain("Montant invalide");
   });
 
   it("marks empty label as row-level invalid", async () => {
@@ -193,7 +193,7 @@ describe("parseCsvForPreview", () => {
       userId: "user-A",
       accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
     });
-    expect(out.rows[0]!.error).toBe("label required");
+    expect(out.rows[0]!.error).toBe("Libellé requis");
   });
 
   // Cross-user safety guard — even if user-B's resolver returns no match,
@@ -214,7 +214,7 @@ describe("parseCsvForPreview", () => {
       accountResolver: resolver,
     });
     expect(out.summary.invalid).toBe(1);
-    expect(out.rows[0]!.error).toBe("account not found: Compte courant");
+    expect(out.rows[0]!.error).toBe("Compte introuvable");
     expect(out.rows[0]!.parsed?.accountId).toBeUndefined();
   });
 });

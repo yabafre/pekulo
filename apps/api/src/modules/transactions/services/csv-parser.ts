@@ -81,13 +81,18 @@ export async function parseCsvForPreview(
       invalid++;
     };
 
+    // User-facing strings (FR). The row's raw input is already rendered
+    // in the preview table cells — don't echo field values back into the
+    // error text. Reviewer feedback 2026-05-25 (Alex): "l'affichage d'erreur
+    // n'est pas bon" — fixed by removing the redundancy.
+
     if (record.length !== 4) {
-      rowError(`expected 4 columns, got ${record.length}`);
+      rowError(`Format invalide : ${record.length} colonne(s) au lieu de 4`);
       continue;
     }
 
     if (!ISO_DATE_REGEX.test(raw.occurredOn)) {
-      rowError(`invalid date: "${raw.occurredOn}" (expected YYYY-MM-DD)`);
+      rowError("Date invalide (format attendu : YYYY-MM-DD)");
       continue;
     }
     const dateCheck = new Date(`${raw.occurredOn}T00:00:00Z`);
@@ -95,37 +100,37 @@ export async function parseCsvForPreview(
       Number.isNaN(dateCheck.getTime()) ||
       dateCheck.toISOString().slice(0, 10) !== raw.occurredOn
     ) {
-      rowError(`invalid date: "${raw.occurredOn}" (day out of month)`);
+      rowError("Date inexistante (jour hors mois)");
       continue;
     }
 
     const amountNum = Number(raw.amountRaw);
     if (!Number.isFinite(amountNum) || amountNum === 0) {
-      rowError(`invalid amount: "${raw.amountRaw}" (must be a finite non-zero number)`);
+      rowError("Montant invalide (doit être un nombre fini non nul)");
       continue;
     }
 
     if (raw.label.length === 0) {
-      rowError("label required");
+      rowError("Libellé requis");
       continue;
     }
     if (raw.label.length > 120) {
-      rowError(`label > 120 characters (got ${raw.label.length})`);
+      rowError(`Libellé trop long (${raw.label.length} > 120 caractères)`);
       continue;
     }
 
     if (raw.accountLabel.length === 0) {
-      rowError("account label required");
+      rowError("Nom de compte requis");
       continue;
     }
 
     const resolved = await deps.accountResolver.resolve(deps.userId, raw.accountLabel);
     if (resolved.matchCount === 0) {
-      rowError(`account not found: ${raw.accountLabel}`);
+      rowError("Compte introuvable");
       continue;
     }
     if (resolved.matchCount > 1) {
-      rowError(`ambiguous account label: ${raw.accountLabel} (${resolved.matchCount} matches)`);
+      rowError(`Compte ambigu (${resolved.matchCount} comptes portent ce nom)`);
       continue;
     }
 
