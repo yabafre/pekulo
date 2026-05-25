@@ -56,12 +56,14 @@ describe("TransactionsRecentSection a11y (AC-13)", () => {
   });
 
   // AC-8 (verbatim from story 5-3-transfer-rule.md:31, excerpt):
-  //   When a row has tx.category === "transfer", Then the caption renders
-  //   as "{accountLabel} · ⇆ Transfert" — the existing TRANSACTION_CATEGORY_
-  //   LABELS["transfer"] translation prefixed by a small icon glyph.
-  // (Story T8 chose approach 1 — glyph inside the label string ; no DOM
-  //  surface change to PekuloActivityRow.)
-  test("AC-8 — renders '⇆ Transfert' caption when category === 'transfer'", async () => {
+  //   the caption (tx.account · tx.category) renders as "{accountLabel} · ⇆
+  //   Transfert" — the TRANSACTION_CATEGORY_LABELS["transfer"] translation
+  //   ("Transfert") prefixed by a small ArrowLeftRight lucide icon (14 px,
+  //   var(--colorTertiary), aria-hidden).
+  // (Reconciled by aped-review F2 — ships the prescribed lucide icon via the
+  //  new categoryPrefix prop on PekuloActivityRow ; the glyph is NOT baked
+  //  into the label string so screen readers announce only "Transfert".)
+  test("AC-8 — renders 'Transfert' caption with ArrowLeftRight icon when category === 'transfer'", async () => {
     transactionsMock.mockReturnValue({
       data: {
         items: [
@@ -92,8 +94,16 @@ describe("TransactionsRecentSection a11y (AC-13)", () => {
     );
     // findByText waits for the post-hydration paint (the section guards the
     // data render on isHydrated && !isLoading per lesson 2026-05-24 hydration
-    // discipline). The glyph + label come from the centralised label map.
-    await findByText(/⇆ Transfert/);
+    // discipline). The plain "Transfert" label comes from the centralised
+    // map ; the icon is injected separately by the recent-section consumer.
+    await findByText(/Transfert/);
+    // The lucide-react ArrowLeftRight icon renders as an inline <svg> with the
+    // `lucide-arrow-left-right` class and aria-hidden="true". Asserting on
+    // both pins (a) the icon is the prescribed lucide shape, NOT a Unicode
+    // glyph, and (b) screen readers skip it.
+    const icon = container.querySelector("svg.lucide-arrow-left-right");
+    expect(icon).not.toBeNull();
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });

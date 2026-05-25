@@ -39,7 +39,7 @@ export const TRANSACTION_CATEGORY_LABELS: Record<(typeof TRANSACTION_CATEGORIES)
     sante: "Santé",
     imprevu: "Imprévu",
     autre: "Autre",
-    transfer: "⇆ Transfert",
+    transfer: "Transfert",
   };
 
 export const transactionTypeSchema = z.enum(["inflow", "outflow"]);

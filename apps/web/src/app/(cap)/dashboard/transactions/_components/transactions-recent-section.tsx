@@ -13,7 +13,7 @@ import {
   pekuloRadius,
   useToast,
 } from "@pekulo/ui";
-import { MoreHorizontal, Search, Upload } from "lucide-react";
+import { ArrowLeftRight, MoreHorizontal, Search, Upload } from "lucide-react";
 import { TRANSACTION_CATEGORY_LABELS, type Transaction } from "@pekulo/validators";
 import type { Activity } from "@pekulo/types";
 import { useAccounts } from "../../parametres/_hooks/use-accounts";
@@ -160,10 +160,23 @@ export function TransactionsRecentSection() {
               direction: tx.type === "inflow" ? "in" : "out",
               amountEur: tx.amount,
             };
+            // Story 5-3 AC-8 — inline ⇆ ArrowLeftRight glyph prefixed to the
+            // category text when the row was tagged `transfer` by the rule.
+            // 14 px / colorTertiary / aria-hidden so SR readers announce only
+            // the "Transfert" label, not the icon.
+            const categoryPrefix =
+              tx.category === "transfer" ? (
+                <ArrowLeftRight
+                  size={14}
+                  color="var(--colorTertiary)"
+                  aria-hidden
+                  style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}
+                />
+              ) : undefined;
             return (
               <View key={tx.id} role="listitem" flexDirection="row" alignItems="center" gap="$3">
                 <View flex={1} minWidth={0}>
-                  <PekuloActivityRow tx={activity} />
+                  <PekuloActivityRow tx={activity} categoryPrefix={categoryPrefix} />
                 </View>
                 <View
                   flexDirection="row"
