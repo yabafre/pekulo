@@ -481,4 +481,79 @@ describe("transactions HTTP boundary (AC-11)", () => {
       expect(res.status).toBe(400);
     });
   });
+
+  // ─── Story 5-3 — paired-create via oRPC ────────────────────────────────
+  // AC-1 (verbatim from story 5-3-transfer-rule.md:17, excerpt):
+  //   When A calls createTransaction({ accountId: "acc_bbb…", type: "inflow",
+  //   amount: 120.00, occurredOn: "2026-05-20", category: "autre", … }),
+  //   Then the service detects the pair, generates a fresh tp_<21-char-base62>
+  //   id, and the repository updates BOTH rows so category=transfer,
+  //   transferPairId=<the same tp_… id>.
+  //
+  // AC-9 (verbatim from story 5-3-transfer-rule.md:33, excerpt):
+  //   the existing useActionMutation invalidates `transactionsTags.list()` —
+  //   both updated rows surface in Récentes on the next paint. 5-3 introduces
+  //   NO new tag, NO new SA, NO new hook.
+  // (The tag-registry edge is web-tier and not exercised here ; the API-side
+  //  contract this integration test pins is "creating an inflow that pairs
+  //  with an existing outflow returns transfer + persists transfer on both".)
+  describe("paired-create via oRPC (story 5-3)", () => {
+    test("AC-1 + AC-9 — creating an inflow that pairs with an existing outflow returns transfer + pairs both rows", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      // Seed the fake DB with the outflow side via the SAME oRPC handler
+      // — guarantees the row passes through prefixed-ids + DTO shape.
+      const outRes = await call(
+        "createTransaction",
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: "2026-05-20",
+          label: "Virement épargne (out)",
+          amount: 120,
+          type: "outflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      expect(outRes.status).toBe(200);
+      const outBody = (await outRes.json()) as {
+        json: { id: string; category: string; transferPairId: string | null };
+      };
+      expect(outBody.json.category).toBe("autre");
+      expect(outBody.json.transferPairId).toBeNull();
+
+      // Now the inflow on a different account — the rule should pair both.
+      const inRes = await call(
+        "createTransaction",
+        {
+          accountId: "acc_bbb222222222222222222",
+          occurredOn: "2026-05-20",
+          label: "Virement épargne (in)",
+          amount: 120,
+          type: "inflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      expect(inRes.status).toBe(200);
+      const inBody = (await inRes.json()) as {
+        json: { id: string; category: string; transferPairId: string | null };
+      };
+      expect(inBody.json.category).toBe("transfer");
+      expect(inBody.json.transferPairId).toMatch(/^tp_[0-9A-Za-z]{21}$/);
+
+      // The previously-existing outflow row was also updated by pairAsTransfer.
+      const outRe = await call("getTransaction", { id: outBody.json.id }, token);
+      expect(outRe.status).toBe(200);
+      const outReBody = (await outRe.json()) as {
+        json: { category: string; transferPairId: string | null };
+      };
+      expect(outReBody.json.category).toBe("transfer");
+      expect(outReBody.json.transferPairId).toBe(inBody.json.transferPairId);
+    });
+  });
 });
