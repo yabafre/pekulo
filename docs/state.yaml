@@ -203,7 +203,7 @@ sprint:
     4-3-realestate-ui: {status: done, depends_on: [4-1-realestate-domain, 4-2-realestate-derives, 0-10-pekulo-ui-migration], ticket: "#26", worktree: null, started_at: "2026-05-21T15:00:00Z", completed_at: "2026-05-22T20:27:00Z"}
     # Epic 5 — Transactions & monthly (V1 brownfield + new flows)
     5-1-transactions-record: {status: done, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge, 2-1-accounts-orpc-port], ticket: "#27", worktree: null, started_at: "2026-05-24T00:00:00Z", completed_at: "2026-05-25T01:40:00Z"}
-    5-2-csv-import: {status: ready-for-dev, depends_on: [5-1-transactions-record, 0-10-pekulo-ui-migration], ticket: "#28", worktree: null}
+    5-2-csv-import: {status: review, depends_on: [5-1-transactions-record, 0-10-pekulo-ui-migration], ticket: "#28", worktree: null, started_at: "2026-05-25T08:42:00Z", review_requested_at: "2026-05-25T09:27:00Z"}
     5-3-transfer-rule: {status: pending, depends_on: [5-1-transactions-record], ticket: "#29", worktree: null}
     5-4-monthly-tracking: {status: pending, depends_on: [5-1-transactions-record, 5-3-transfer-rule, 0-10-pekulo-ui-migration], ticket: "#30", worktree: null}
     5-5-monthly-signoff: {status: pending, depends_on: [5-4-monthly-tracking, 0-10-pekulo-ui-migration], ticket: "#31", worktree: null}
