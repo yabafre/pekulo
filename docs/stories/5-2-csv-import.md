@@ -2273,20 +2273,25 @@ Expected: branch created on the remote with all 12 commits ; subsequent PR creat
 - `packages/types/src/transaction/transaction.types.ts` — re-export 7 inferred CSV types (T9).
 - `apps/api/src/common/errors/pekulo-error.ts` — add `INVALID_CSV`, `NO_VALID_ROWS`, `PAYLOAD_TOO_LARGE` to union + Set (T2).
 - `apps/api/src/platform/http/error-mapper.ts` — add 400 / 422 / 413 entries (T2).
-- `apps/api/src/modules/accounts/accounts.repository.ts` — add `findAccountIdByLabelForUser` (T5).
-- `apps/api/src/modules/accounts/accounts.service.ts` — add `findAccountIdByLabel` (T5).
-- `apps/api/src/modules/accounts/accounts.repository.test.ts` — add 3 cases for label resolution (T5).
+- `apps/api/src/modules/accounts/accounts.repository.ts` — add `findAccountIdByLabelForUser` (T5) ; add `accountsExistForUser` (aped-review N2).
+- `apps/api/src/modules/accounts/accounts.service.ts` — add `findAccountIdByLabel` (T5) ; add `accountsExist` (aped-review N2).
+- `apps/api/src/modules/accounts/accounts.service.test.ts` — extend stubRepo with `accountsExistForUser` (aped-review N2).
+- `apps/api/src/modules/accounts/accounts.integration.test.ts` — extend in-memory service with `accountsExist` (aped-review N2).
+- `apps/api/src/modules/accounts/accounts.repository.test.ts` — add 3 cases for label resolution (T5) + 2 cases for bulk ownership probe (aped-review N2).
 - `apps/api/src/modules/transactions/transactions.repository.ts` — add `bulkCreate` via `prisma.$transaction` (T6).
 - `apps/api/src/modules/transactions/transactions.repository.test.ts` — add 2 cases for bulk happy path + rollback (T6).
-- `apps/api/src/modules/transactions/transactions.service.ts` — add `previewImportCsv` + `importCsv` ; extend DI with `AccountResolver` (T7).
-- `apps/api/src/modules/transactions/transactions.service.test.ts` — add 3 cases for preview + import + ownership re-check (T7).
+- `apps/api/src/modules/transactions/transactions.service.ts` — add `previewImportCsv` + `importCsv` ; extend DI with `AccountResolver` (T7) ; extend `AccountOwnershipProbe` with `existsMany` for bulk pre-flight (aped-review N2).
+- `apps/api/src/modules/transactions/transactions.service.test.ts` — add 3 cases for preview + import + ownership re-check (T7) ; update probe fakes with `existsMany` (aped-review N2).
 - `apps/api/src/modules/transactions/transactions.routes.ts` — add 2 handlers with typed-error remap (T8).
 - `apps/api/src/modules/transactions/transactions.module.ts` — accept `accountResolver` dep (T8).
-- `apps/api/src/modules/transactions/transactions.integration.test.ts` — add 6 oRPC HTTP boundary cases (T8).
-- `apps/api/src/bootstrap/runtime-dependencies.ts` — wire `accountResolver` into the transactions module (T8).
+- `apps/api/src/modules/transactions/transactions.module.test.ts` — update probe fake with `existsMany` (aped-review N2).
+- `apps/api/src/modules/transactions/transactions.integration.test.ts` — add 6 oRPC HTTP boundary cases (T8) + 1001-row overflow boundary (aped-review N5).
+- `apps/api/src/bootstrap/runtime-dependencies.ts` — wire `accountResolver` into the transactions module (T8) ; wire `accountOwnershipProbe.existsMany` adapter (aped-review N2).
 - `apps/api/package.json` — add `csv-parse@^5.5.6` runtime dep (T4).
 - `apps/web/src/app/(cap)/dashboard/transactions/_actions/transactions-actions.ts` — add `previewImportCsv` + `importCsv` server actions (T10).
 - `apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.tsx` — wrap header in `<View>` with TWO `HeaderAction`s + render `<CsvImportForm>` (T12).
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.a11y.test.tsx` — mock new CSV form hooks (T12).
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.envelope.test.tsx` — mock new CSV form hooks (T12).
 
 ### New
 
@@ -2297,7 +2302,8 @@ Expected: branch created on the remote with all 12 commits ; subsequent PR creat
 - `apps/web/src/app/(cap)/dashboard/transactions/_components/csv-preview-table.tsx` — responsive table (T11).
 - `apps/web/src/app/(cap)/dashboard/transactions/_components/csv-import-form.tsx` — Dialog with 2-step flow (T12).
 - `apps/web/src/app/(cap)/dashboard/transactions/_components/csv-import-form.a11y.test.tsx` — axe-clean check (T12).
-- `apps/web/src/app/(cap)/dashboard/transactions/_components/csv-import-form.envelope.test.tsx` — envelope narrowing for INVALID_CSV / PAYLOAD_TOO_LARGE paths (T12).
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/csv-import-form.envelope.test.tsx` — envelope narrowing for INVALID_CSV / PAYLOAD_TOO_LARGE paths (T12) + stale-preview guard (aped-review M1).
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/csv-import-form.module.css` — `:focus-visible` ring on the native CSV textarea per WCAG 2.4.11 (aped-review N6).
 
 ### Refreshed
 

@@ -49,7 +49,10 @@ export function CsvPreviewTable({ rows, accountLabelById }: CsvPreviewTableProps
             >
               <View flexDirection="row" alignItems="center" gap="$2" $lg={{ width: 28 }}>
                 {isValid ? (
-                  <Check size={16} strokeWidth={2} aria-hidden color="var(--color)" />
+                  // Use `--perfGain` (Pekulo's positive-perf token, emerald
+                  // per TR-fidelity feedback memory) for full green / red
+                  // semantic parity with the X icon below.
+                  <Check size={16} strokeWidth={2} aria-hidden color="var(--perfGain)" />
                 ) : (
                   <X size={16} strokeWidth={2} aria-hidden color="var(--danger)" />
                 )}
