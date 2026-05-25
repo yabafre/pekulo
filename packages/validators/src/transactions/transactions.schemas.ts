@@ -147,3 +147,62 @@ export type ListTransactionsOutput = z.infer<typeof listTransactionsOutputSchema
 
 // ─── Envelope ─────────────────────────────────────────────────────────────
 export const transactionsOkSchema = z.object({ ok: z.literal(true) });
+
+// ─── CSV import (story 5-2) ──────────────────────────────────────────────
+// Positional 4-column CSV: date (YYYY-MM-DD), amount (signed), label, account-label.
+// Validation happens server-side via apps/api/src/modules/transactions/services/csv-parser.ts.
+// Two procedures: previewImportCsv (csvText → row-by-row breakdown), importCsv (rows → atomic persist).
+
+export const rawCsvRowSchema = z.object({
+  occurredOn: z.string(),
+  amountRaw: z.string(),
+  label: z.string(),
+  accountLabel: z.string(),
+});
+export type RawCsvRow = z.infer<typeof rawCsvRowSchema>;
+
+export const validatedCsvRowSchema = z.object({
+  occurredOn: isoDateString(),
+  amount: amountSchema(),
+  type: transactionTypeSchema,
+  category: transactionCategorySchema,
+  label: z.string().min(1, "Libellé requis").max(120, "Libellé > 120 caractères"),
+  accountId: z.string().regex(ACCOUNT_ID_REGEX, "accountId invalide"),
+  isImprevu: z.boolean(),
+  notes: z.string().max(500).nullable(),
+});
+export type ValidatedCsvRow = z.infer<typeof validatedCsvRowSchema>;
+
+export const previewedRowSchema = z.object({
+  index: z.number().int().min(0),
+  raw: rawCsvRowSchema,
+  parsed: validatedCsvRowSchema.optional(),
+  error: z.string().optional(),
+});
+export type PreviewedRow = z.infer<typeof previewedRowSchema>;
+
+export const previewImportCsvInputSchema = z.object({
+  csvText: z.string().min(1, "CSV vide").max(2_000_000, "CSV > 2 MB"),
+});
+export type PreviewImportCsvInput = z.infer<typeof previewImportCsvInputSchema>;
+
+export const previewImportCsvOutputSchema = z.object({
+  rows: z.array(previewedRowSchema),
+  summary: z.object({
+    total: z.number().int().min(0),
+    valid: z.number().int().min(0),
+    invalid: z.number().int().min(0),
+  }),
+});
+export type PreviewImportCsvOutput = z.infer<typeof previewImportCsvOutputSchema>;
+
+export const importCsvInputSchema = z.object({
+  rows: z.array(validatedCsvRowSchema).min(1, "rows requis (min 1)").max(1000, "max 1000 lignes"),
+});
+export type ImportCsvInput = z.infer<typeof importCsvInputSchema>;
+
+export const importCsvOutputSchema = z.object({
+  ok: z.literal(true),
+  persisted: z.number().int().min(0),
+});
+export type ImportCsvOutput = z.infer<typeof importCsvOutputSchema>;
