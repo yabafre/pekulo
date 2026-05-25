@@ -42,6 +42,7 @@ export type PekuloErrorCode =
   | "RENTAL_NOT_FOUND"
   | "TRANSACTION_FAILED"
   | "TRANSACTION_NOT_FOUND"
+  | "TRANSACTION_PAIR_RACE"
   | "UNAUTHORIZED";
 
 const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode>([
@@ -73,6 +74,7 @@ const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode
   "RENTAL_NOT_FOUND",
   "TRANSACTION_FAILED",
   "TRANSACTION_NOT_FOUND",
+  "TRANSACTION_PAIR_RACE",
   "UNAUTHORIZED",
 ]);
 

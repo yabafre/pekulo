@@ -40,6 +40,7 @@ type TransactionRow = {
   category: string;
   isImprevu: boolean;
   notes: string | null;
+  transferPairId: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -52,7 +53,26 @@ export interface TransactionsRepository {
   update(userId: string, input: UpdateTransactionInput): Promise<UpdateOutcome>;
   delete(userId: string, input: DeleteTransactionInput): Promise<{ deleted: boolean }>;
   listByUser(userId: string, input: ListTransactionsInput): Promise<ListTransactionsOutput>;
-  bulkCreate(userId: string, rows: ValidatedCsvRow[]): Promise<{ persisted: number }>;
+  bulkCreate(
+    userId: string,
+    rows: ValidatedCsvRow[],
+  ): Promise<{ persisted: number; rows: Transaction[] }>;
+  findTransferPairCandidates(
+    userId: string,
+    candidate: {
+      accountId: string;
+      occurredOn: string;
+      amount: number;
+      type: "inflow" | "outflow";
+    },
+  ): Promise<Transaction[]>;
+  pairAsTransfer(
+    userId: string,
+    candidateId: string,
+    siblingId: string,
+    pairId: string,
+  ): Promise<{ paired: number }>;
+  unpairAfterDelete(userId: string, pairId: string, idToExclude: string): Promise<void>;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -66,6 +86,7 @@ function toDto(row: TransactionRow): Transaction {
     category: row.category as Transaction["category"],
     isImprevu: row.isImprevu,
     notes: row.notes,
+    transferPairId: row.transferPairId,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
   };
 }
@@ -197,15 +218,15 @@ export function createTransactionsRepository(deps: {
     },
 
     async bulkCreate(userId, rows) {
-      // Story 5-2 T6. Interactive `$transaction` + per-row `tx.transaction.create`
-      // (NOT `createMany`) so the prefixed-ids extension fires on every row
-      // (ADR-0012). All-or-nothing — Prisma rolls back the batch if any row
-      // throws (FK violation, NOT-NULL, etc.). The `as unknown as …` bridge
-      // mirrors the single-row create branch above.
-      let persisted = 0;
+      // Story 5-2 T6 + 5-3 T5. Interactive `$transaction` + per-row
+      // `tx.transaction.create` (NOT `createMany`) so the prefixed-ids
+      // extension fires on every row (ADR-0012). All-or-nothing — Prisma
+      // rolls back the batch if any row throws. 5-3 extension: capture
+      // every inserted row so the service can categorise post-batch.
+      const inserted: TransactionRow[] = [];
       await deps.client.$transaction(async (tx) => {
         for (const row of rows) {
-          await tx.transaction.create({
+          const created = (await tx.transaction.create({
             data: {
               userId,
               accountId: row.accountId,
@@ -217,11 +238,57 @@ export function createTransactionsRepository(deps: {
               isImprevu: row.isImprevu,
               notes: row.notes,
             } as unknown as Parameters<typeof tx.transaction.create>[0]["data"],
-          });
-          persisted++;
+          })) as TransactionRow;
+          inserted.push(created);
         }
       });
-      return { persisted };
+      return { persisted: inserted.length, rows: inserted.map(toDto) };
+    },
+
+    async findTransferPairCandidates(userId, candidate) {
+      // Pair eligibility query — opposite type, same date, same amount,
+      // different account, category=autre, transferPairId=null, same user.
+      // FIFO ordering by (createdAt asc, id asc) breaks ambiguity (AC-5)
+      // so the service's derive always picks the oldest unpaired sibling.
+      const wanted = candidate.type === "inflow" ? "outflow" : "inflow";
+      const rows = (await deps.client.transaction.findMany({
+        where: {
+          userId,
+          type: wanted,
+          occurredOn: new Date(candidate.occurredOn),
+          amount: candidate.amount,
+          accountId: { not: candidate.accountId },
+          category: "autre",
+          transferPairId: null,
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      })) as TransactionRow[];
+      return rows.map(toDto);
+    },
+
+    async pairAsTransfer(userId, candidateId, siblingId, pairId) {
+      // 2-row updateMany — both ids in one query. Explicit userId scopes
+      // the where so a tampered candidateId/siblingId cannot reach across
+      // users (AC-7). Returns the affected count so the caller (service)
+      // can detect concurrent-delete races (F6 — aped-review): if the
+      // sibling vanished between findTransferPairCandidates and this call,
+      // count === 1 and the caller raises TRANSACTION_PAIR_RACE.
+      const { count } = await deps.client.transaction.updateMany({
+        where: { userId, id: { in: [candidateId, siblingId] } },
+        data: { category: "transfer", transferPairId: pairId, updatedAt: new Date() },
+      });
+      return { paired: count };
+    },
+
+    async unpairAfterDelete(userId, pairId, idToExclude) {
+      // AC-11 — when a paired row is deleted, the sibling reverts to
+      // category=autre, transferPairId=null. The `id != idToExclude`
+      // filter restricts the update to the sibling alone (the candidate
+      // is about to be deleted by the caller anyway).
+      await deps.client.transaction.updateMany({
+        where: { userId, transferPairId: pairId, id: { not: idToExclude } },
+        data: { category: "autre", transferPairId: null, updatedAt: new Date() },
+      });
     },
   };
 }

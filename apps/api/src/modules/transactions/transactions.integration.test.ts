@@ -47,6 +47,7 @@ type Row = {
   category: string;
   isImprevu: boolean;
   notes: string | null;
+  transferPairId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -60,6 +61,13 @@ const mintId = (prefix: string) =>
 
 function makeFakeClient() {
   const rows: Row[] = [];
+  // Monotonic clock for the fake — two consecutive `new Date()` calls can
+  // land on the same millisecond, which makes (createdAt asc, id asc) FIFO
+  // tests flaky because the random `mintId` then decides the tiebreak. The
+  // counter bumps createdAt by 1 ms per insert so order-of-insertion is
+  // strictly preserved.
+  let monotonicMs = Date.now();
+  const nextCreatedAt = () => new Date((monotonicMs += 1));
   // Story 5-2 — $transaction wrapper. Snapshot rows pre-callback, restore on
   // throw so the bulk-insert rollback assertion is honest (matches Prisma's
   // interactive-tx semantics). Explicit `: any` on $transaction breaks the
@@ -90,7 +98,8 @@ function makeFakeClient() {
           category: data.category!,
           isImprevu: data.isImprevu ?? false,
           notes: data.notes ?? null,
-          createdAt: new Date(),
+          transferPairId: data.transferPairId ?? null,
+          createdAt: nextCreatedAt(),
           updatedAt: new Date(),
         };
         rows.push(row);
@@ -100,36 +109,105 @@ function makeFakeClient() {
         rows.find((r) => r.id === where.id && r.userId === where.userId) ?? null,
       findMany: async ({
         where,
+        orderBy,
         take,
       }: {
-        where: { userId: string; accountId?: string };
-        orderBy?: unknown;
+        where: {
+          userId: string;
+          accountId?: string | { not: string };
+          type?: "inflow" | "outflow";
+          occurredOn?: Date;
+          amount?: number;
+          category?: string;
+          transferPairId?: string | null;
+        };
+        orderBy?:
+          | Array<{ createdAt?: "asc" | "desc"; id?: "asc" | "desc"; occurredOn?: "asc" | "desc" }>
+          | { createdAt?: "asc" | "desc"; id?: "asc" | "desc"; occurredOn?: "asc" | "desc" };
         take?: number;
       }) => {
         let out = rows.filter((r) => r.userId === where.userId);
-        if (where.accountId) out = out.filter((r) => r.accountId === where.accountId);
-        out = [...out].sort(
-          (a, b) => b.occurredOn.getTime() - a.occurredOn.getTime() || (a.id < b.id ? 1 : -1),
-        );
+        if (typeof where.accountId === "string") {
+          out = out.filter((r) => r.accountId === where.accountId);
+        } else if (where.accountId && "not" in where.accountId) {
+          const excluded = where.accountId.not;
+          out = out.filter((r) => r.accountId !== excluded);
+        }
+        if (where.type !== undefined) out = out.filter((r) => r.type === where.type);
+        if (where.occurredOn !== undefined) {
+          const target = where.occurredOn.getTime();
+          out = out.filter((r) => r.occurredOn.getTime() === target);
+        }
+        if (where.amount !== undefined) {
+          const target = where.amount;
+          out = out.filter((r) => r.amount.toNumber() === target);
+        }
+        if (where.category !== undefined) out = out.filter((r) => r.category === where.category);
+        if (where.transferPairId !== undefined)
+          out = out.filter((r) => r.transferPairId === where.transferPairId);
+        // Honor orderBy — pair detection asks (createdAt asc, id asc) for AC-5
+        // FIFO, list reads ask (occurredOn desc, id desc). Default mirrors the
+        // 5-1 list contract when orderBy is omitted.
+        const clauses = Array.isArray(orderBy) ? orderBy : orderBy ? [orderBy] : [];
+        if (clauses.length === 0) {
+          out = [...out].sort(
+            (a, b) => b.occurredOn.getTime() - a.occurredOn.getTime() || (a.id < b.id ? 1 : -1),
+          );
+        } else {
+          out = [...out].sort((a, b) => {
+            for (const c of clauses) {
+              if (c.createdAt) {
+                const av = (a.createdAt ?? new Date(0)).getTime();
+                const bv = (b.createdAt ?? new Date(0)).getTime();
+                const cmp = av - bv;
+                if (cmp !== 0) return c.createdAt === "asc" ? cmp : -cmp;
+              }
+              if (c.occurredOn) {
+                const cmp = a.occurredOn.getTime() - b.occurredOn.getTime();
+                if (cmp !== 0) return c.occurredOn === "asc" ? cmp : -cmp;
+              }
+              if (c.id) {
+                const cmp = a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+                if (cmp !== 0) return c.id === "asc" ? cmp : -cmp;
+              }
+            }
+            return 0;
+          });
+        }
         return take ? out.slice(0, take) : out;
       },
       updateMany: async ({
         where,
         data,
       }: {
-        where: { id: string; userId: string };
-        data: Partial<Row>;
+        where: {
+          userId: string;
+          id?: string | { in?: string[]; not?: string };
+          transferPairId?: string;
+        };
+        data: Partial<Row> & { transferPairId?: string | null };
       }) => {
         let count = 0;
         for (const r of rows) {
-          if (r.id === where.id && r.userId === where.userId) {
-            if (data.amount !== undefined) r.amount = { toNumber: () => Number(data.amount) };
-            if (data.label !== undefined) r.label = data.label;
-            if (data.notes !== undefined) r.notes = data.notes;
-            if (data.accountId !== undefined) r.accountId = data.accountId;
-            r.updatedAt = new Date();
-            count += 1;
+          if (r.userId !== where.userId) continue;
+          // id match supports legacy `where.id: string`, the 5-3 pair shape
+          // `where.id: { in: [...] }`, and the unpair shape `where.id: { not }`.
+          if (typeof where.id === "string") {
+            if (r.id !== where.id) continue;
+          } else if (where.id) {
+            if (where.id.in !== undefined && !where.id.in.includes(r.id)) continue;
+            if (where.id.not !== undefined && r.id === where.id.not) continue;
           }
+          if (where.transferPairId !== undefined && r.transferPairId !== where.transferPairId)
+            continue;
+          if (data.amount !== undefined) r.amount = { toNumber: () => Number(data.amount) };
+          if (data.label !== undefined) r.label = data.label;
+          if (data.notes !== undefined) r.notes = data.notes;
+          if (data.accountId !== undefined) r.accountId = data.accountId;
+          if (data.category !== undefined) r.category = data.category;
+          if (data.transferPairId !== undefined) r.transferPairId = data.transferPairId;
+          r.updatedAt = new Date();
+          count += 1;
         }
         return { count };
       },
@@ -437,6 +515,154 @@ describe("transactions HTTP boundary (AC-11)", () => {
       const rows = Array.from({ length: 1001 }, () => sampleCsvRow());
       const res = await call("importCsv", { rows }, token);
       expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── Story 5-3 — paired-create via oRPC ────────────────────────────────
+  // AC-1 (verbatim from story 5-3-transfer-rule.md:17, excerpt):
+  //   When A calls createTransaction({ accountId: "acc_bbb…", type: "inflow",
+  //   amount: 120.00, occurredOn: "2026-05-20", category: "autre", … }),
+  //   Then the service detects the pair, generates a fresh tp_<21-char-base62>
+  //   id, and the repository updates BOTH rows so category=transfer,
+  //   transferPairId=<the same tp_… id>.
+  //
+  // AC-9 (verbatim from story 5-3-transfer-rule.md:33, excerpt):
+  //   the existing useActionMutation invalidates `transactionsTags.list()` —
+  //   both updated rows surface in Récentes on the next paint. 5-3 introduces
+  //   NO new tag, NO new SA, NO new hook.
+  // (The tag-registry edge is web-tier and not exercised here ; the API-side
+  //  contract this integration test pins is "creating an inflow that pairs
+  //  with an existing outflow returns transfer + persists transfer on both".)
+  describe("paired-create via oRPC (story 5-3)", () => {
+    test("AC-1 + AC-9 — creating an inflow that pairs with an existing outflow returns transfer + pairs both rows", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      // Seed the fake DB with the outflow side via the SAME oRPC handler
+      // — guarantees the row passes through prefixed-ids + DTO shape.
+      const outRes = await call(
+        "createTransaction",
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: "2026-05-20",
+          label: "Virement épargne (out)",
+          amount: 120,
+          type: "outflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      expect(outRes.status).toBe(200);
+      const outBody = (await outRes.json()) as {
+        json: { id: string; category: string; transferPairId: string | null };
+      };
+      expect(outBody.json.category).toBe("autre");
+      expect(outBody.json.transferPairId).toBeNull();
+
+      // Now the inflow on a different account — the rule should pair both.
+      const inRes = await call(
+        "createTransaction",
+        {
+          accountId: "acc_bbb222222222222222222",
+          occurredOn: "2026-05-20",
+          label: "Virement épargne (in)",
+          amount: 120,
+          type: "inflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      expect(inRes.status).toBe(200);
+      const inBody = (await inRes.json()) as {
+        json: { id: string; category: string; transferPairId: string | null };
+      };
+      expect(inBody.json.category).toBe("transfer");
+      expect(inBody.json.transferPairId).toMatch(/^tp_[0-9A-Za-z]{21}$/);
+
+      // The previously-existing outflow row was also updated by pairAsTransfer.
+      const outRe = await call("getTransaction", { id: outBody.json.id }, token);
+      expect(outRe.status).toBe(200);
+      const outReBody = (await outRe.json()) as {
+        json: { category: string; transferPairId: string | null };
+      };
+      expect(outReBody.json.category).toBe("transfer");
+      expect(outReBody.json.transferPairId).toBe(inBody.json.transferPairId);
+    });
+
+    // AC-5 (verbatim from story 5-3-transfer-rule.md:25):
+    //   ONLY the OLDEST unpaired outflow (the one with createdAt = T1) is
+    //   paired with the new inflow ; the T2 outflow stays category=autre,
+    //   transferPairId=null. End-to-end at the HTTP boundary so a future
+    //   regression on the orderBy direction surfaces here (the fake honors
+    //   orderBy per aped-review's F4 fix).
+    test("AC-5 — when 2 unpaired outflows match, the OLDEST pairs with the new inflow (FIFO)", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      const firstOut = await call(
+        "createTransaction",
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: "2026-05-20",
+          label: "First outflow",
+          amount: 100,
+          type: "outflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      const firstOutBody = (await firstOut.json()) as { json: { id: string } };
+      const secondOut = await call(
+        "createTransaction",
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: "2026-05-20",
+          label: "Second outflow",
+          amount: 100,
+          type: "outflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      const secondOutBody = (await secondOut.json()) as { json: { id: string } };
+      // Now the inflow — FIFO contract: the first (older) outflow gets paired.
+      const inRes = await call(
+        "createTransaction",
+        {
+          accountId: "acc_bbb222222222222222222",
+          occurredOn: "2026-05-20",
+          label: "Inflow",
+          amount: 100,
+          type: "inflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      const inBody = (await inRes.json()) as {
+        json: { category: string; transferPairId: string | null };
+      };
+      expect(inBody.json.category).toBe("transfer");
+      const pairId = inBody.json.transferPairId;
+      expect(pairId).toMatch(/^tp_[0-9A-Za-z]{21}$/);
+
+      const firstReread = (await (
+        await call("getTransaction", { id: firstOutBody.json.id }, token)
+      ).json()) as { json: { category: string; transferPairId: string | null } };
+      const secondReread = (await (
+        await call("getTransaction", { id: secondOutBody.json.id }, token)
+      ).json()) as { json: { category: string; transferPairId: string | null } };
+      expect(firstReread.json.category).toBe("transfer");
+      expect(firstReread.json.transferPairId).toBe(pairId);
+      expect(secondReread.json.category).toBe("autre");
+      expect(secondReread.json.transferPairId).toBeNull();
     });
   });
 });
