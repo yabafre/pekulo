@@ -5,7 +5,11 @@
 
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { Prisma } from "@generated/prisma/client";
-import { createTransactionInputSchema, type CreateTransactionInput } from "@pekulo/validators";
+import {
+  createTransactionInputSchema,
+  type CreateTransactionInput,
+  type ValidatedCsvRow,
+} from "@pekulo/validators";
 import { createTransactionsRepository } from "./transactions.repository";
 
 interface FakeRow {
@@ -51,15 +55,66 @@ const fakeRow = (over: Partial<FakeRow> = {}): FakeRow => ({
   ...over,
 });
 
-const createFakeClient = () => {
-  const create = mock(async ({ data }: { data: FakeRow }) => fakeRow(data));
+interface FakeClientControl {
+  // Story 5-2 T6 — control knob: when set, the Nth call (1-indexed) to
+  // tx.transaction.create inside $transaction throws, simulating a Prisma
+  // constraint violation. The fake's $transaction snapshots its store
+  // pre-callback and discards committed rows on throw — matches Prisma's
+  // interactive-tx rollback semantics so the AC-6 rollback assertion is
+  // honest, not just an exception bubble.
+  bulkCreateThrowsOnNth?: number;
+}
+
+const createFakeClient = (control: FakeClientControl = {}) => {
+  const persisted: FakeRow[] = [];
+  let nextId = 0;
+  let createCallCount = 0;
+  const create = mock(async ({ data }: { data: FakeRow }) => {
+    createCallCount++;
+    if (
+      control.bulkCreateThrowsOnNth !== undefined &&
+      createCallCount === control.bulkCreateThrowsOnNth
+    ) {
+      throw new Error(`simulated DB constraint on create call #${createCallCount}`);
+    }
+    const row = fakeRow({
+      ...data,
+      id: data.id || `tx_${String(nextId++).padStart(21, "0")}`,
+    });
+    persisted.push(row);
+    return row;
+  });
   const findFirst = mock(async () => null as FakeRow | null);
   const findMany = mock(async () => [] as FakeRow[]);
   const updateMany = mock(async () => ({ count: 1 }));
   const deleteMany = mock(async () => ({ count: 1 }));
-  return {
+  const txClient = {
     transaction: { create, findFirst, findMany, updateMany, deleteMany },
-  } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+  };
+  const $transaction = mock(async (callback: (tx: typeof txClient) => Promise<unknown>) => {
+    const snap = [...persisted];
+    try {
+      return await callback(txClient);
+    } catch (err) {
+      // Mirror Prisma's interactive-tx rollback — discard rows committed
+      // inside the callback when any subsequent statement throws.
+      persisted.length = 0;
+      persisted.push(...snap);
+      throw err;
+    }
+  });
+  const client = {
+    ...txClient,
+    $transaction,
+  };
+  return Object.assign(
+    client as unknown as Parameters<typeof createTransactionsRepository>[0]["client"],
+    {
+      __persisted: persisted,
+      __createCallCount: () => createCallCount,
+      __txCallCount: () => $transaction.mock.calls.length,
+    },
+  );
 };
 
 describe("transactionsRepository", () => {
@@ -259,5 +314,57 @@ describe("transactionsRepository", () => {
       createTransactionInputSchema.parse(sampleInput({ amount: Number.NEGATIVE_INFINITY })),
     ).toThrow();
     expect(() => createTransactionInputSchema.parse(sampleInput({ amount: Number.NaN }))).toThrow();
+  });
+
+  // Story 5-2 T6 — bulkCreate via prisma.$transaction per-row create.
+  // AC-6 (verbatim, story 5-2-csv-import.md:22):
+  //   Given an array of 50 ValidatedCsvRow for user A, When A calls
+  //   importCsv({ rows }), Then the repository runs $transaction with
+  //   per-row tx.transaction.create (NOT createMany — bypasses the
+  //   prefixed-ids extension per ADR-0012). And if any row fails, the
+  //   whole batch rolls back — 0 rows committed.
+  describe("bulkCreate", () => {
+    const sampleCsvRow = (over: Partial<ValidatedCsvRow> = {}): ValidatedCsvRow => ({
+      occurredOn: "2026-05-01",
+      amount: 42.5,
+      type: "inflow",
+      category: "autre",
+      label: "Row",
+      accountId: "acc_aaa111111111111111111",
+      isImprevu: false,
+      notes: null,
+      ...over,
+    });
+
+    test("persists every row inside a $transaction and returns persisted count", async () => {
+      const fakeClient = createFakeClient();
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const rows: ValidatedCsvRow[] = [
+        sampleCsvRow({ label: "Row 1" }),
+        sampleCsvRow({ label: "Row 2", type: "outflow", amount: 100 }),
+      ];
+      const out = await localRepo.bulkCreate("u_a", rows);
+      expect(out.persisted).toBe(2);
+      expect(fakeClient.__createCallCount()).toBe(2);
+      expect(fakeClient.__txCallCount()).toBe(1);
+      expect(fakeClient.__persisted).toHaveLength(2);
+    });
+
+    test("rolls back when any row fails — persisted reflects 0 (rejection + clean store)", async () => {
+      // Force the SECOND create call to throw — mirrors a Prisma constraint
+      // violation mid-batch. Pre-throw row 1 was committed inside the tx;
+      // the $transaction rollback path discards it (real Prisma behaviour).
+      const fakeClient = createFakeClient({ bulkCreateThrowsOnNth: 2 });
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const rows: ValidatedCsvRow[] = [
+        sampleCsvRow({ label: "A" }),
+        sampleCsvRow({ label: "B" }),
+        sampleCsvRow({ label: "C" }),
+      ];
+      await expect(localRepo.bulkCreate("u_a", rows)).rejects.toThrow(
+        /simulated DB constraint on create call #2/,
+      );
+      expect(fakeClient.__persisted).toHaveLength(0);
+    });
   });
 });
