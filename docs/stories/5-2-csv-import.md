@@ -2401,3 +2401,80 @@ Exited with code 0
 $ bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css
 (clean — no new styled primitives introduced)
 ```
+
+## Review Record
+
+**Date:** 2026-05-25
+**Status:** done
+**Verdict:** APPROVED — 10/10 findings RESOLVED
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+
+### Findings (10 — 0 BLOCKER / 2 MAJOR / 6 MINOR / 2 NIT)
+
+#### Resolved
+
+- **[MAJOR] M1 — Stale preview after textarea edit** [`apps/web/.../csv-import-form.tsx:39,79,107-113,177-181`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: `455586a` — track `lastPreviewedText`, gate `canConfirm` + `handleConfirm` on `csvText === lastPreviewedText`, surface FR alert "relance « Aperçu » avant de confirmer". 1 new envelope test pins the invariant.
+
+- **[MAJOR] M2 — Decimale virgule (FR) silencieusement rejetée** [`apps/api/.../csv-parser.ts:35-50,150`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: `cf8b2e4` — `parseAmountString()` accepts single-comma decimal (`"1,50"`), whitespace thousands (`"1 200.50"`), US thousands (`"1,200.50"` quoted); rejects scientific notation. Honours FR-29 (Trade Republic + FR bank exports). Error message updated to "utilisez . ou , comme séparateur décimal". 4 new tests.
+
+- **[MINOR] N1 — N+1 résolution comptes csv-parser** [`apps/api/.../csv-parser.ts:96-105,168`]
+  - Source: Code + Edge auditors
+  - Resolution: `8d7b89d` — `Promise.all(uniqueLabels.map(resolve))` BEFORE the row loop ; per-row reads `resolvedByLabel.get(...)`. 1000 rows / 1 unique label = K resolver calls (was N). `no-await-in-loop` warning eliminated.
+
+- **[MINOR] N2 — N+1 ownership re-check importCsv** [`apps/api/.../transactions.service.ts:36-40,107-111` + repo + bootstrap]
+  - Source: Code + Edge auditors
+  - Resolution: `8d7b89d` — new `AccountOwnershipProbe.existsMany` interface, backed by `accountsExistForUser` repo method (`findMany({ where: { userId, id: { in: ids } } })`). Dedupe ids + single bulk round-trip. 2 new repo tests.
+
+- **[MINOR] N3 — Scientific notation `"1e3"` silencieusement acceptée + thousand separators silencieusement rejetés** [`apps/api/.../csv-parser.ts:35-50`]
+  - Source: Edge auditor
+  - Resolution: `cf8b2e4` — strict regex chain (no `Number()` fallthrough for non-decimal patterns). Scientific notation explicitly rejected ; thousand separators (whitespace + US commas) now accepted. 2 new tests.
+
+- **[MINOR] N4 — Test année bisextile manquant** [`apps/api/.../csv-parser.test.ts:247-255`]
+  - Source: Edge auditor
+  - Resolution: `cf8b2e4` — 1 new test `"accepts a leap-year date (2024-02-29)"` pins the day-out-of-month boundary against future regression.
+
+- **[MINOR] N5 — AC-7 overflow 1001 rows non testé sur importCsv** [`apps/api/.../transactions.integration.test.ts:434-440`]
+  - Source: Spec auditor
+  - Resolution: `928092e` — new integration test `"returns 400 (Zod) when rows length exceeds 1000"` locks the schema's `.max(1000)` at the HTTP layer.
+
+- **[MINOR] N6 — Textarea sans `:focus-visible` (WCAG 2.4.11)** [`apps/web/.../csv-import-form.module.css:7-10`]
+  - Source: Aria
+  - Resolution: `455586a` — co-located CSS module with `.textarea:focus-visible { outline: 2px solid var(--color); outline-offset: 2px }`, mirrors the existing `form-controls.module.css` pattern.
+
+- **[NIT] T1 — File List incomplet (5 fichiers de plumbing)** [`docs/stories/5-2-csv-import.md` `## File List`]
+  - Source: Spec auditor
+  - Resolution: `c57f0ba` — appendices `accounts.{integration,service}.test.ts`, `transactions.module.test.ts`, `transactions-recent-section.{a11y,envelope}.test.tsx`, plus les fichiers nouveaux de l'aped-review (csv-import-form.module.css).
+
+- **[NIT] T2 — Asymétrie sémantique green check / red cross** [`apps/web/.../csv-preview-table.tsx:55`]
+  - Source: Aria
+  - Resolution: `c57f0ba` — Check icon passe à `var(--perfGain)` (emerald per TR-fidelity rule) pour parité green/red avec le X `var(--danger)`.
+
+#### Dismissed
+
+(none)
+
+#### Unresolved
+
+(none)
+
+### Verification
+
+- Test commands (run fresh in this review session):
+  - `cd apps/api && bun test` → **482 pass / 0 fail / 1163 expect()** (+8 vs initial 474)
+  - `bun --filter='@pekulo/web' run test` → **91 pass / 0 fail** (+1 vs initial 90)
+  - `bun --filter='@pekulo/ui' run test:axe` → **95 pass / 0 fail**
+  - `bun --filter='@pekulo/api' run lint` → 1 warning (intentional per ADR-0012 per-row `tx.transaction.create`), exit 0
+  - `bun --filter='@pekulo/api' run typecheck` → exit 0
+  - `bun --filter='@pekulo/web' run typecheck` → exit 0
+  - `bun --filter='@pekulo/api' run db:rls-audit` → `transactions: 4 policies`, exit 0
+  - `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css` → exit 0 (clean)
+- Visual verification: Aria — static review (react-grab-mcp non chargé cette session) ; tous les findings visuels (T2 green check, N6 focus-visible) cités au file:line et fix vérifié au commit.
+
+### Ticket sync
+
+- Ticket comment posté : https://github.com/yabafre/pekulo/issues/28#issuecomment-4532986902
+- PR mise à jour : https://github.com/yabafre/pekulo/pull/96
