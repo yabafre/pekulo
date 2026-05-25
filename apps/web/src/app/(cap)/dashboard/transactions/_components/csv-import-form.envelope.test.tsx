@@ -83,6 +83,72 @@ describe("CsvImportForm envelope (AC-2/AC-3 — previewImportCsv error paths)", 
   });
 });
 
+// aped-review M1 — stale-preview guard: editing the textarea AFTER a clean
+// preview re-disables the Confirm CTA and surfaces a French "relance Aperçu"
+// warning. The component must not import rows that diverge from what the user
+// currently sees.
+describe("CsvImportForm — stale-preview guard (aped-review M1)", () => {
+  beforeEach(() => {
+    previewImportCsvMock.mockReset();
+    importCsvMock.mockReset();
+  });
+
+  test("editing the textarea after a clean preview disables Confirm + shows alert", async () => {
+    previewImportCsvMock.mockImplementation(
+      (_input: unknown, opts: { onSuccess?: (r: unknown) => void }) => {
+        opts?.onSuccess?.({
+          ok: true,
+          rows: [
+            {
+              index: 0,
+              raw: {
+                occurredOn: "2026-05-01",
+                amountRaw: "42.50",
+                label: "Test",
+                accountLabel: "Compte courant",
+              },
+              parsed: {
+                occurredOn: "2026-05-01",
+                amount: 42.5,
+                type: "inflow",
+                category: "autre",
+                label: "Test",
+                accountId: "acc_aaaaaaaaaaaaaaaaaaaaa",
+                isImprevu: false,
+                notes: null,
+              },
+            },
+          ],
+          summary: { total: 1, valid: 1, invalid: 0 },
+        });
+      },
+    );
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const { getByLabelText, getByRole, findByText } = renderWithTamagui(
+      <QueryClientProvider client={qc}>
+        <CsvImportForm open={true} onOpenChange={() => {}} />
+      </QueryClientProvider>,
+    );
+    fireEvent.change(getByLabelText("Contenu CSV"), {
+      target: { value: "2026-05-01,42.50,Test,Compte courant" },
+    });
+    fireEvent.submit(getByRole("form", { name: "Importer un CSV" }));
+    const confirmBtn = await findByText("Confirmer (1)");
+    expect((confirmBtn.closest("button") as HTMLButtonElement).disabled).toBe(false);
+
+    // User edits the textarea after preview — preview state is now stale.
+    fireEvent.change(getByLabelText("Contenu CSV"), {
+      target: { value: "2026-05-01,99,Edited,Compte courant" },
+    });
+    expect(await findByText(/relance « Aperçu » avant de confirmer/)).toBeTruthy();
+    expect((confirmBtn.closest("button") as HTMLButtonElement).disabled).toBe(true);
+
+    // Clicking Confirmer while stale must NOT trigger importCsvMock.
+    fireEvent.click(confirmBtn);
+    expect(importCsvMock).not.toHaveBeenCalled();
+  });
+});
+
 // AC-13 — happy import path: clean preview → confirm → success toast.
 describe("CsvImportForm envelope (AC-13 — importCsv happy path)", () => {
   beforeEach(() => {

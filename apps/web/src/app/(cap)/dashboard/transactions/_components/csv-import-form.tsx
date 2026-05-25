@@ -18,6 +18,7 @@ import { useAccounts } from "../../parametres/_hooks/use-accounts";
 import { useImportTransactionsCsvForm } from "../_hooks/use-import-transactions-csv-form";
 import { usePreviewImportCsv } from "../_hooks/use-preview-import-csv";
 import { CsvPreviewTable } from "./csv-preview-table";
+import styles from "./csv-import-form.module.css";
 
 export interface CsvImportFormProps {
   open: boolean;
@@ -32,6 +33,10 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
     valid: number;
     invalid: number;
   } | null>(null);
+  // The exact textarea content that produced `previewedRows`. We gate
+  // "Confirmer" on `csvText === lastPreviewedText` so an edit after preview
+  // forces a fresh "Aperçu" round-trip and never imports stale rows.
+  const [lastPreviewedText, setLastPreviewedText] = useState<string | null>(null);
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
   const previewMut = usePreviewImportCsv();
   const importMut = useImportTransactionsCsvForm();
@@ -49,6 +54,7 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
       setCsvText("");
       setPreviewedRows(null);
       setSummary(null);
+      setLastPreviewedText(null);
       setEnvelopeError(null);
     }
   }, [open]);
@@ -56,25 +62,30 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
   const handlePreview = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setEnvelopeError(null);
+    const submittedText = csvText;
     previewMut.mutate(
-      { csvText },
+      { csvText: submittedText },
       {
         onSuccess: (result) => {
           if (!result.ok) {
             setEnvelopeError(result.message);
             setPreviewedRows(null);
             setSummary(null);
+            setLastPreviewedText(null);
             return;
           }
           setPreviewedRows(result.rows);
           setSummary(result.summary);
+          setLastPreviewedText(submittedText);
         },
       },
     );
   };
 
   const handleConfirm = () => {
+    if (importMut.isPending) return;
     if (!previewedRows || !summary || summary.invalid > 0 || summary.valid === 0) return;
+    if (csvText !== lastPreviewedText) return;
     const rows: ValidatedCsvRow[] = previewedRows
       .map((r) => r.parsed)
       .filter((p): p is ValidatedCsvRow => p !== undefined);
@@ -94,7 +105,12 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
   };
 
   const canConfirm =
-    summary !== null && summary.invalid === 0 && summary.valid > 0 && !importMut.isPending;
+    summary !== null &&
+    summary.invalid === 0 &&
+    summary.valid > 0 &&
+    !importMut.isPending &&
+    csvText === lastPreviewedText;
+  const isStalePreview = summary !== null && csvText !== lastPreviewedText;
 
   return (
     <PekuloDialog open={open} onOpenChange={onOpenChange}>
@@ -116,6 +132,7 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
                   aria-label="Contenu CSV"
                   rows={10}
                   placeholder="2026-05-01,42.50,Courses Carrefour,Compte courant"
+                  className={styles.textarea}
                   style={{
                     width: "100%",
                     minHeight: 200,
@@ -157,6 +174,11 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
                   {summary.valid} lignes valides · {summary.invalid} invalides · {summary.total} au
                   total
                 </Text>
+                {isStalePreview && (
+                  <Text fontSize="$caption" color="$danger" role="alert">
+                    Le CSV a été modifié — relance « Aperçu » avant de confirmer.
+                  </Text>
+                )}
                 <CsvPreviewTable rows={previewedRows} accountLabelById={accountLabelById} />
                 <View flexDirection="row" gap="$2" justifyContent="flex-end" marginTop="$3">
                   <PekuloButton onPress={handleConfirm} disabled={!canConfirm}>

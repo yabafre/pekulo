@@ -1,0 +1,10 @@
+/* Story 5-2 aped-review N6 — WCAG 2.4.11 focus appearance on the inline
+ * CSV textarea. The textarea is a native HTML element (Tamagui has no
+ * styled wrapper for multi-line input in this DS), so the UA default
+ * outline can be visually swallowed by the styled border. Make the
+ * keyboard focus ring explicit + co-locate it with the component. */
+
+.textarea:focus-visible {
+  outline: 2px solid var(--color);
+  outline-offset: 2px;
+}
