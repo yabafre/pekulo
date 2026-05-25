@@ -31,16 +31,69 @@ vi.mock("../../parametres/_actions/accounts-actions", () => ({
   listAccounts: vi.fn(async () => []),
 }));
 
+// Story 5-3 T8 — direct hook mock so the badge test can seed a transfer row
+// synchronously instead of waiting for the action-layer query to resolve.
+// vi.hoisted per lesson 2026-05-20 — bare `vi.fn()` constants fail at suite
+// load because vi.mock factories are hoisted to module top.
+const { transactionsMock } = vi.hoisted(() => ({ transactionsMock: vi.fn() }));
+vi.mock("../_hooks/use-transactions", () => ({
+  useTransactions: transactionsMock,
+}));
+
 import { TransactionsRecentSection } from "./transactions-recent-section";
 
 describe("TransactionsRecentSection a11y (AC-13)", () => {
   test("zero axe violations on empty state", async () => {
+    transactionsMock.mockReturnValue({ data: undefined, isLoading: true, error: null });
     const qc = new QueryClient();
     const { container } = renderWithTamagui(
       <QueryClientProvider client={qc}>
         <TransactionsRecentSection />
       </QueryClientProvider>,
     );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  // AC-8 (verbatim from story 5-3-transfer-rule.md:31, excerpt):
+  //   When a row has tx.category === "transfer", Then the caption renders
+  //   as "{accountLabel} · ⇆ Transfert" — the existing TRANSACTION_CATEGORY_
+  //   LABELS["transfer"] translation prefixed by a small icon glyph.
+  // (Story T8 chose approach 1 — glyph inside the label string ; no DOM
+  //  surface change to PekuloActivityRow.)
+  test("AC-8 — renders '⇆ Transfert' caption when category === 'transfer'", async () => {
+    transactionsMock.mockReturnValue({
+      data: {
+        items: [
+          {
+            id: "tx_pairaxxxxxxxxxxxxxxxx",
+            accountId: "acc_aaa111111111111111111",
+            occurredOn: "2026-05-20",
+            label: "Virement épargne",
+            amount: 120,
+            type: "outflow" as const,
+            category: "transfer" as const,
+            isImprevu: false,
+            notes: null,
+            transferPairId: "tp_xxxxxxxxxxxxxxxxxxxxx",
+            createdAt: "2026-05-20T10:00:00.000Z",
+          },
+        ],
+        nextCursor: null,
+      },
+      isLoading: false,
+      error: null,
+    });
+    const qc = new QueryClient();
+    const { findByText, container } = renderWithTamagui(
+      <QueryClientProvider client={qc}>
+        <TransactionsRecentSection />
+      </QueryClientProvider>,
+    );
+    // findByText waits for the post-hydration paint (the section guards the
+    // data render on isHydrated && !isLoading per lesson 2026-05-24 hydration
+    // discipline). The glyph + label come from the centralised label map.
+    await findByText(/⇆ Transfert/);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
