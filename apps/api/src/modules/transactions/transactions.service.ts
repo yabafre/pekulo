@@ -91,7 +91,19 @@ async function categoriseAfterCreateImpl(args: {
   const { pair } = detectTransferPair({ candidate, siblings });
   if (!pair) return candidate;
   const pairId = generateTransferPairId();
-  await repository.pairAsTransfer(userId, candidate.id, pair.id, pairId);
+  const { paired } = await repository.pairAsTransfer(userId, candidate.id, pair.id, pairId);
+  // F6 (aped-review) — guard against concurrent-delete race between the
+  // findTransferPairCandidates lookup and the updateMany. If the sibling
+  // vanished mid-window, updateMany matches only the candidate (count = 1)
+  // — raise TRANSACTION_PAIR_RACE (409) so the caller can retry with a fresh
+  // sibling scan. The createTransaction path lets it bubble ; importCsv's
+  // per-row loop already swallows categorise failures by design.
+  if (paired !== 2) {
+    throw new PekuloError(
+      "TRANSACTION_PAIR_RACE",
+      `pairAsTransfer expected count=2, got ${paired} (candidate=${candidate.id} sibling=${pair.id})`,
+    );
+  }
   return { ...candidate, category: "transfer", transferPairId: pairId };
 }
 

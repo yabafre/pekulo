@@ -71,7 +71,7 @@ export interface TransactionsRepository {
     candidateId: string,
     siblingId: string,
     pairId: string,
-  ): Promise<void>;
+  ): Promise<{ paired: number }>;
   unpairAfterDelete(userId: string, pairId: string, idToExclude: string): Promise<void>;
 }
 
@@ -269,11 +269,15 @@ export function createTransactionsRepository(deps: {
     async pairAsTransfer(userId, candidateId, siblingId, pairId) {
       // 2-row updateMany — both ids in one query. Explicit userId scopes
       // the where so a tampered candidateId/siblingId cannot reach across
-      // users (AC-7).
-      await deps.client.transaction.updateMany({
+      // users (AC-7). Returns the affected count so the caller (service)
+      // can detect concurrent-delete races (F6 — aped-review): if the
+      // sibling vanished between findTransferPairCandidates and this call,
+      // count === 1 and the caller raises TRANSACTION_PAIR_RACE.
+      const { count } = await deps.client.transaction.updateMany({
         where: { userId, id: { in: [candidateId, siblingId] } },
         data: { category: "transfer", transferPairId: pairId, updatedAt: new Date() },
       });
+      return { paired: count };
     },
 
     async unpairAfterDelete(userId, pairId, idToExclude) {

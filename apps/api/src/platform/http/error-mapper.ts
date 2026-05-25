@@ -110,6 +110,11 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // mapper raises 409 instead of letting Prisma P2002 leak through.
   MORTGAGE_ALREADY_ATTACHED: 409,
   RENTAL_ALREADY_ATTACHED: 409,
+  // Transfer-pair race (story 5-3, F6 aped-review): `pairAsTransfer` ran with
+  // count !== 2 — the sibling vanished (concurrent delete) or both ids resolved
+  // to the same row (defensive). Surfaces as 409 because the request shape is
+  // well-formed but the world state shifted under the categorise call.
+  TRANSACTION_PAIR_RACE: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
   // Compass repository $transaction failure surfaces as 500 — the audit
