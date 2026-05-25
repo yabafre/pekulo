@@ -46,6 +46,10 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // out-of-range year both surface as 400.
   MILESTONE_INVALID_CAPITAL: 400,
   MILESTONE_YEAR_OUT_OF_RANGE: 400,
+  // CSV import (story 5-2, FR-29): csv-parse exceptions, column-count
+  // mismatch, or any malformed payload surface as 400 — the client sent
+  // unparseable bytes.
+  INVALID_CSV: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
@@ -76,6 +80,17 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // delete. Defense-in-depth shape: the explicit { id, userId } guard surfaces
   // this rather than letting RLS produce a confusing P2025.
   TRANSACTION_NOT_FOUND: 404,
+  // CSV import (story 5-2, FR-29): payload exceeded MAX_CSV_ROWS (1000)
+  // before the row-loop ran. RFC-7231 § 6.5.11 maps "request entity too
+  // large" to 413.
+  PAYLOAD_TOO_LARGE: 413,
+  // CSV import (story 5-2, FR-29): reserved code for any service-level
+  // guard that decides the rows array is empty AFTER schema validation
+  // (e.g. all rows filtered out post-resolution). 422 = well-formed but
+  // semantically rejected. The Zod .min(1) on importCsvInputSchema covers
+  // the empty-array case as 400; this code is for future "all-invalid
+  // post-server-check" scenarios.
+  NO_VALID_ROWS: 422,
   CONFLICT: 409,
   // Milestones cap (FR-3, ≤ 20/user) and missing compass (FR-8 precondition)
   // both surface as 409 — they signal a state-shape conflict, not malformed

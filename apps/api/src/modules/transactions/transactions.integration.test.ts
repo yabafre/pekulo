@@ -60,88 +60,109 @@ const mintId = (prefix: string) =>
 
 function makeFakeClient() {
   const rows: Row[] = [];
-  return {
-    rows,
-    client: {
-      transaction: {
-        create: async ({ data }: { data: Partial<Row> }) => {
-          const row: Row = {
-            id: data.id ?? mintId("tx"),
-            userId: data.userId!,
-            accountId: data.accountId!,
-            occurredOn: data.occurredOn!,
-            label: data.label!,
-            amount: { toNumber: () => Number(data.amount) },
-            type: data.type!,
-            category: data.category!,
-            isImprevu: data.isImprevu ?? false,
-            notes: data.notes ?? null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-          rows.push(row);
-          return row;
-        },
-        findFirst: async ({ where }: { where: { id: string; userId: string } }) =>
-          rows.find((r) => r.id === where.id && r.userId === where.userId) ?? null,
-        findMany: async ({
-          where,
-          take,
-        }: {
-          where: { userId: string; accountId?: string };
-          orderBy?: unknown;
-          take?: number;
-        }) => {
-          let out = rows.filter((r) => r.userId === where.userId);
-          if (where.accountId) out = out.filter((r) => r.accountId === where.accountId);
-          out = [...out].sort(
-            (a, b) => b.occurredOn.getTime() - a.occurredOn.getTime() || (a.id < b.id ? 1 : -1),
-          );
-          return take ? out.slice(0, take) : out;
-        },
-        updateMany: async ({
-          where,
-          data,
-        }: {
-          where: { id: string; userId: string };
-          data: Partial<Row>;
-        }) => {
-          let count = 0;
-          for (const r of rows) {
-            if (r.id === where.id && r.userId === where.userId) {
-              if (data.amount !== undefined) r.amount = { toNumber: () => Number(data.amount) };
-              if (data.label !== undefined) r.label = data.label;
-              if (data.notes !== undefined) r.notes = data.notes;
-              if (data.accountId !== undefined) r.accountId = data.accountId;
-              r.updatedAt = new Date();
-              count += 1;
-            }
+  // Story 5-2 — $transaction wrapper. Snapshot rows pre-callback, restore on
+  // throw so the bulk-insert rollback assertion is honest (matches Prisma's
+  // interactive-tx semantics). Explicit `: any` on $transaction breaks the
+  // implicit-any cycle TS rejects on circular client ↔ $transaction refs;
+  // the helper is test-only — no production type leak.
+  const $transaction: (cb: (tx: unknown) => Promise<unknown>) => Promise<unknown> = async (cb) => {
+    const snap = rows.map((r) => ({ ...r }));
+    try {
+      return await cb(client);
+    } catch (err) {
+      rows.length = 0;
+      rows.push(...snap);
+      throw err;
+    }
+  };
+  const client = {
+    $transaction,
+    transaction: {
+      create: async ({ data }: { data: Partial<Row> }) => {
+        const row: Row = {
+          id: data.id ?? mintId("tx"),
+          userId: data.userId!,
+          accountId: data.accountId!,
+          occurredOn: data.occurredOn!,
+          label: data.label!,
+          amount: { toNumber: () => Number(data.amount) },
+          type: data.type!,
+          category: data.category!,
+          isImprevu: data.isImprevu ?? false,
+          notes: data.notes ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        rows.push(row);
+        return row;
+      },
+      findFirst: async ({ where }: { where: { id: string; userId: string } }) =>
+        rows.find((r) => r.id === where.id && r.userId === where.userId) ?? null,
+      findMany: async ({
+        where,
+        take,
+      }: {
+        where: { userId: string; accountId?: string };
+        orderBy?: unknown;
+        take?: number;
+      }) => {
+        let out = rows.filter((r) => r.userId === where.userId);
+        if (where.accountId) out = out.filter((r) => r.accountId === where.accountId);
+        out = [...out].sort(
+          (a, b) => b.occurredOn.getTime() - a.occurredOn.getTime() || (a.id < b.id ? 1 : -1),
+        );
+        return take ? out.slice(0, take) : out;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: string; userId: string };
+        data: Partial<Row>;
+      }) => {
+        let count = 0;
+        for (const r of rows) {
+          if (r.id === where.id && r.userId === where.userId) {
+            if (data.amount !== undefined) r.amount = { toNumber: () => Number(data.amount) };
+            if (data.label !== undefined) r.label = data.label;
+            if (data.notes !== undefined) r.notes = data.notes;
+            if (data.accountId !== undefined) r.accountId = data.accountId;
+            r.updatedAt = new Date();
+            count += 1;
           }
-          return { count };
-        },
-        deleteMany: async ({ where }: { where: { id: string; userId: string } }) => {
-          const before = rows.length;
-          for (let i = rows.length - 1; i >= 0; i -= 1) {
-            const r = rows[i]!;
-            if (r.id === where.id && r.userId === where.userId) rows.splice(i, 1);
-          }
-          return { count: before - rows.length };
-        },
+        }
+        return { count };
+      },
+      deleteMany: async ({ where }: { where: { id: string; userId: string } }) => {
+        const before = rows.length;
+        for (let i = rows.length - 1; i >= 0; i -= 1) {
+          const r = rows[i]!;
+          if (r.id === where.id && r.userId === where.userId) rows.splice(i, 1);
+        }
+        return { count: before - rows.length };
       },
     },
   };
+  return { rows, client };
 }
 
 let appHandle: { stop: () => Promise<void> } | undefined;
 let baseUrl = "";
 let probeExists = true;
+// Story 5-2 — control the resolver from each test scope. Default: not-found,
+// the 5-1 tests don't exercise CSV import.
+let resolverNextResult: { id: string | null; matchCount: number } = { id: null, matchCount: 0 };
 
 beforeAll(async () => {
   const jwtVerifier = createJwtVerifier({ secret: SECRET, issuer: ISSUER, audience: AUDIENCE });
   const fake = makeFakeClient();
   const mod = createTransactionsModule({
     prismaService: { client: fake.client } as unknown as PrismaService,
-    accountOwnershipProbe: { exists: async () => probeExists },
+    accountOwnershipProbe: {
+      exists: async () => probeExists,
+      existsMany: async (_u, ids) => (probeExists ? new Set(ids) : new Set<string>()),
+    },
+    accountResolver: { resolve: async () => resolverNextResult },
   });
   const orpcRouter: PekuloRpcRouter = { transactions: mod.router };
   const app = new Elysia().onError(({ error, set }) => {
@@ -330,5 +351,92 @@ describe("transactions HTTP boundary (AC-11)", () => {
     const { json } = (await create.json()) as { json: { id: string } };
     const res = await call("updateTransaction", { id: json.id }, token);
     expect(res.status).toBe(400);
+  });
+
+  // Story 5-2 — oRPC HTTP boundary tests (AC-9 full status matrix).
+
+  describe("POST /rpc/v1/transactions/preview-import-csv (story 5-2)", () => {
+    test("returns 200 with row breakdown on valid CSV", async () => {
+      const token = await signFor(USER_A);
+      resolverNextResult = { id: ACCOUNT_A, matchCount: 1 };
+      const res = await call(
+        "previewImportCsv",
+        { csvText: "2026-05-01,42.50,Test,Compte courant" },
+        token,
+      );
+      expect(res.status).toBe(200);
+      const { json } = (await res.json()) as {
+        json: { summary: { total: number; valid: number; invalid: number } };
+      };
+      expect(json.summary).toEqual({ total: 1, valid: 1, invalid: 0 });
+    });
+
+    test("returns 413 on payload > MAX_CSV_ROWS", async () => {
+      const token = await signFor(USER_A);
+      resolverNextResult = { id: ACCOUNT_A, matchCount: 1 };
+      const csvText = Array.from({ length: 1001 }, () => "2026-05-01,1,Test,Compte courant").join(
+        "\n",
+      );
+      const res = await call("previewImportCsv", { csvText }, token);
+      expect(res.status).toBe(413);
+    });
+
+    test("returns 400 on malformed CSV", async () => {
+      const token = await signFor(USER_A);
+      resolverNextResult = { id: ACCOUNT_A, matchCount: 1 };
+      const res = await call("previewImportCsv", { csvText: '2026-05-01,"unbalanced' }, token);
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("POST /rpc/v1/transactions/import-csv (story 5-2)", () => {
+    const sampleCsvRow = (over: Record<string, unknown> = {}) => ({
+      occurredOn: "2026-05-01",
+      amount: 42.5,
+      type: "inflow" as const,
+      category: "autre" as const,
+      label: "Test",
+      accountId: ACCOUNT_A,
+      isImprevu: false,
+      notes: null,
+      ...over,
+    });
+
+    test("returns 200 + { ok: true, persisted: N } on success", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      const res = await call("importCsv", { rows: [sampleCsvRow()] }, token);
+      expect(res.status).toBe(200);
+      const { json } = (await res.json()) as { json: { ok: true; persisted: number } };
+      expect(json).toEqual({ ok: true, persisted: 1 });
+    });
+
+    test("returns 404 ACCOUNT_NOT_FOUND when a row references another user's account", async () => {
+      const token = await signFor(USER_B);
+      probeExists = false;
+      const res = await call("importCsv", { rows: [sampleCsvRow()] }, token);
+      expect(res.status).toBe(404);
+      const body = (await res.json()) as { json: { code: string } };
+      expect(body.json.code).toBe("ACCOUNT_NOT_FOUND");
+    });
+
+    test("returns 400 (Zod) on empty rows array", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      const res = await call("importCsv", { rows: [] }, token);
+      expect(res.status).toBe(400);
+    });
+
+    // aped-review N5 — importCsv overflow boundary. The validator's
+    // .max(1000) covers AC-7's upper-boundary claim ("Boundary verified at
+    // 1 / 0 / 1000 / 1001"); locking it with an HTTP-level test prevents a
+    // future schema relaxation from silently shipping a 1001-row payload.
+    test("returns 400 (Zod) when rows length exceeds 1000", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      const rows = Array.from({ length: 1001 }, () => sampleCsvRow());
+      const res = await call("importCsv", { rows }, token);
+      expect(res.status).toBe(400);
+    });
   });
 });

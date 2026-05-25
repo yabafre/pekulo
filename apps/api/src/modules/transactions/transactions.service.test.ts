@@ -6,7 +6,11 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { PekuloError } from "../../common/errors";
 import type { TransactionsRepository, UpdateOutcome } from "./transactions.repository";
-import { createTransactionsService, type AccountOwnershipProbe } from "./transactions.service";
+import {
+  createTransactionsService,
+  type AccountOwnershipProbe,
+  type AccountResolver,
+} from "./transactions.service";
 
 const sampleTx = {
   id: "tx_aaaaaaaaaaaaaaaaaaaaa",
@@ -28,11 +32,22 @@ const makeRepoMock = (over: Partial<TransactionsRepository> = {}): TransactionsR
     update: mock(async () => ({ outcome: "ok", transaction: sampleTx }) as UpdateOutcome),
     delete: mock(async () => ({ deleted: true })),
     listByUser: mock(async () => ({ items: [sampleTx], nextCursor: null })),
+    bulkCreate: mock(async (_u: string, rows: unknown[]) => ({ persisted: rows.length })),
     ...over,
   }) as TransactionsRepository;
 
 const makeProbe = (exists: boolean): AccountOwnershipProbe => ({
   exists: mock(async () => exists),
+  existsMany: mock(async (_u: string, ids: string[]) =>
+    exists ? new Set(ids) : new Set<string>(),
+  ),
+});
+
+// Default resolver — story 5-1 tests don't exercise CSV paths, so a stub
+// that always returns "no match" is safe. Story 5-2 tests below pass their
+// own resolver fixtures.
+const makeResolver = (): AccountResolver => ({
+  resolve: mock(async () => ({ id: null, matchCount: 0 })),
 });
 
 describe("transactionsService", () => {
@@ -41,6 +56,7 @@ describe("transactionsService", () => {
     service = createTransactionsService({
       repository: makeRepoMock(),
       accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
     });
   });
 
@@ -53,6 +69,7 @@ describe("transactionsService", () => {
     const svc = createTransactionsService({
       repository: makeRepoMock(),
       accountOwnershipProbe: makeProbe(false),
+      accountResolver: makeResolver(),
     });
     await expect(
       svc.createTransaction("u_a", {
@@ -94,6 +111,7 @@ describe("transactionsService", () => {
         update: mock(async () => ({ outcome: "not-found" }) as UpdateOutcome),
       }),
       accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
     });
     await expect(
       svc.updateTransaction("u_a", { id: "tx_aaaaaaaaaaaaaaaaaaaaa", amount: 5 }),
@@ -106,6 +124,7 @@ describe("transactionsService", () => {
     const svc = createTransactionsService({
       repository: makeRepoMock(),
       accountOwnershipProbe: probe,
+      accountResolver: makeResolver(),
     });
     await expect(
       svc.updateTransaction("u_a", {
@@ -126,6 +145,7 @@ describe("transactionsService", () => {
         delete: mock(async () => ({ deleted: false })),
       }),
       accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
     });
     await expect(
       svc.deleteTransaction("u_a", { id: "tx_aaaaaaaaaaaaaaaaaaaaa" }),
@@ -139,6 +159,7 @@ describe("transactionsService", () => {
     const svc = createTransactionsService({
       repository: makeRepoMock({ findByIdForUser: mock(async () => null) }),
       accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
     });
     await expect(
       svc.getTransaction("u_b", { id: "tx_aaaaaaaaaaaaaaaaaaaaa" }),
@@ -149,6 +170,7 @@ describe("transactionsService", () => {
     const svc = createTransactionsService({
       repository: makeRepoMock({ findByIdForUser: mock(async () => null) }),
       accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
     });
     try {
       await svc.getTransaction("u_b", { id: "tx_aaaaaaaaaaaaaaaaaaaaa" });
@@ -156,5 +178,95 @@ describe("transactionsService", () => {
     } catch (err) {
       expect(err).toBeInstanceOf(PekuloError);
     }
+  });
+
+  // Story 5-2 T7 — previewImportCsv delegates to csv-parser; service
+  // surface is intentionally thin (parses + returns row breakdown unchanged).
+  describe("previewImportCsv", () => {
+    test("delegates to parseCsvForPreview and returns its output", async () => {
+      const resolver: AccountResolver = {
+        resolve: mock(async (_u: string, label: string) =>
+          label === "Compte courant"
+            ? { id: "acc_aaa111111111111111111", matchCount: 1 }
+            : { id: null, matchCount: 0 },
+        ),
+      };
+      const svc = createTransactionsService({
+        repository: makeRepoMock(),
+        accountOwnershipProbe: makeProbe(true),
+        accountResolver: resolver,
+      });
+      const out = await svc.previewImportCsv("u_a", {
+        csvText: "2026-05-01,42.50,Test,Compte courant",
+      });
+      expect(out.summary).toEqual({ total: 1, valid: 1, invalid: 0 });
+    });
+  });
+
+  // Story 5-2 T7 — importCsv: AC-8 re-check (defense in depth) + AC-6
+  // happy-path delegation + bulk-insert rollback surfaces as
+  // TRANSACTION_FAILED.
+  describe("importCsv", () => {
+    const sampleCsvRow = {
+      occurredOn: "2026-05-01",
+      amount: 1,
+      type: "inflow" as const,
+      category: "autre" as const,
+      label: "X",
+      accountId: "acc_owned1111111111111",
+      isImprevu: false,
+      notes: null,
+    };
+
+    test("AC-8 — re-checks ownership for every row before bulk-insert", async () => {
+      const probe: AccountOwnershipProbe = {
+        exists: mock(
+          async (_u: string, accountId: string) => accountId === "acc_owned1111111111111",
+        ),
+        existsMany: mock(
+          async (_u: string, ids: string[]) =>
+            new Set(ids.filter((id) => id === "acc_owned1111111111111")),
+        ),
+      };
+      const svc = createTransactionsService({
+        repository: makeRepoMock(),
+        accountOwnershipProbe: probe,
+        accountResolver: makeResolver(),
+      });
+      await expect(
+        svc.importCsv("u_a", {
+          rows: [{ ...sampleCsvRow, accountId: "acc_other1111111111111" }],
+        }),
+      ).rejects.toMatchObject({ code: "ACCOUNT_NOT_FOUND" });
+    });
+
+    test("returns { ok: true, persisted: N } on success", async () => {
+      const svc = createTransactionsService({
+        repository: makeRepoMock(),
+        accountOwnershipProbe: makeProbe(true),
+        accountResolver: makeResolver(),
+      });
+      const out = await svc.importCsv("u_a", {
+        rows: [
+          { ...sampleCsvRow, label: "X" },
+          { ...sampleCsvRow, label: "Y", type: "outflow", amount: 2 },
+        ],
+      });
+      expect(out).toEqual({ ok: true, persisted: 2 });
+    });
+
+    test("wraps bulk-insert failure as TRANSACTION_FAILED", async () => {
+      const bulkCreateFail = mock(async () => {
+        throw new Error("simulated bulk failure");
+      });
+      const svc = createTransactionsService({
+        repository: makeRepoMock({ bulkCreate: bulkCreateFail }),
+        accountOwnershipProbe: makeProbe(true),
+        accountResolver: makeResolver(),
+      });
+      await expect(svc.importCsv("u_a", { rows: [sampleCsvRow] })).rejects.toMatchObject({
+        code: "TRANSACTION_FAILED",
+      });
+    });
   });
 });

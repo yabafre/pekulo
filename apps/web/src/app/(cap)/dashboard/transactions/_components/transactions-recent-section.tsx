@@ -13,11 +13,12 @@ import {
   pekuloRadius,
   useToast,
 } from "@pekulo/ui";
-import { MoreHorizontal, Search } from "lucide-react";
+import { MoreHorizontal, Search, Upload } from "lucide-react";
 import { TRANSACTION_CATEGORY_LABELS, type Transaction } from "@pekulo/validators";
 import type { Activity } from "@pekulo/types";
 import { useAccounts } from "../../parametres/_hooks/use-accounts";
 import { useTransactions } from "../_hooks/use-transactions";
+import { CsvImportForm } from "./csv-import-form";
 import { TransactionEditForm } from "./transaction-edit-form";
 import { TransactionDeleteConfirm } from "./transaction-delete-confirm";
 
@@ -80,6 +81,7 @@ export function TransactionsRecentSection() {
   const { data: accounts } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeTx, setActiveTx] = useState<Transaction | null>(null);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const toast = useToast();
   // Hydration guard — TanStack Query keeps in-memory cache between visits ;
   // SSR rendered the skeleton (no cache), client first paint sees cached
@@ -112,11 +114,14 @@ export function TransactionsRecentSection() {
       ariaLabel="Récentes"
       title="Récentes"
       action={
-        <HeaderAction
-          icon={Search}
-          label="Filtrer"
-          onPress={() => toast.info("Bientôt", "Le filtre transactions arrive plus tard.")}
-        />
+        <View flexDirection="row" gap="$2">
+          <HeaderAction icon={Upload} label="Importer" onPress={() => setCsvImportOpen(true)} />
+          <HeaderAction
+            icon={Search}
+            label="Filtrer"
+            onPress={() => toast.info("Bientôt", "Le filtre transactions arrive plus tard.")}
+          />
+        </View>
       }
     >
       {showLoading && (
@@ -248,6 +253,8 @@ export function TransactionsRecentSection() {
           onOpenChange={(o) => !o && closeAll()}
         />
       )}
+
+      <CsvImportForm open={csvImportOpen} onOpenChange={setCsvImportOpen} />
     </Section>
   );
 }

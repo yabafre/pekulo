@@ -23,6 +23,9 @@ vi.mock("../_actions/transactions-actions", () => ({
   updateTransaction: vi.fn(),
   deleteTransaction: vi.fn(),
   listTransactions: vi.fn(async () => ({ items: [], nextCursor: null })),
+  // Story 5-2 — transitively required by CsvImportForm.
+  previewImportCsv: vi.fn(),
+  importCsv: vi.fn(),
 }));
 vi.mock("../../parametres/_actions/accounts-actions", () => ({
   listAccounts: vi.fn(async () => []),

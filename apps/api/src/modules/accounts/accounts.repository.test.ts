@@ -130,8 +130,21 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
   });
 
   const findMany = mock(
-    async (args: { where: { userId: string }; orderBy?: { createdAt?: "asc" | "desc" } }) => {
-      const filtered = accounts.filter((r) => r.userId === args.where.userId);
+    async (args: {
+      where: { userId: string; label?: string; id?: { in: string[] } };
+      orderBy?: { createdAt?: "asc" | "desc" };
+      // story 5-2 — findAccountIdByLabelForUser uses { select: { id: true } }
+      // and an optional `where.label` filter. Story 5-2 review M2 — bulk
+      // ownership probe adds `where.id.in: string[]`. The fake honours all
+      // three so the new tests don't need a parallel fake.
+      select?: { id?: boolean };
+    }) => {
+      const filtered = accounts.filter(
+        (r) =>
+          r.userId === args.where.userId &&
+          (args.where.label === undefined || r.label === args.where.label) &&
+          (args.where.id?.in === undefined || args.where.id.in.includes(r.id)),
+      );
       const dir = args.orderBy?.createdAt ?? "asc";
       return filtered.sort((a, b) =>
         dir === "asc"
@@ -569,5 +582,146 @@ describe("recordBalanceChange", () => {
     ).rejects.toThrow("simulated audit-insert failure");
     expect(Number(accounts[0]?.cashBalance)).toBe(1000);
     expect(balanceLog).toHaveLength(0);
+  });
+
+  // Story 5-2 — findAccountIdByLabelForUser. Backs csv-parser's resolver
+  // contract (AC-4 unknown label / AC-5 ambiguous label / 1-match happy).
+  describe("findAccountIdByLabelForUser", () => {
+    test("returns matchCount 0 when no account matches", async () => {
+      const { client } = fakeClient({ accounts: [] });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Inconnu");
+      expect(out).toEqual({ id: null, matchCount: 0 });
+    });
+
+    test("returns id + matchCount 1 when exactly one account matches", async () => {
+      const { client } = fakeClient({
+        accounts: [
+          {
+            id: "acc_seed00000000000000010",
+            userId: USER_A,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-01T00:00:00Z"),
+            updatedAt: new Date("2026-05-01T00:00:00Z"),
+          },
+        ],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Compte courant");
+      expect(out).toEqual({ id: "acc_seed00000000000000010", matchCount: 1 });
+    });
+
+    test("returns null + matchCount N when multiple accounts share the label", async () => {
+      const { client } = fakeClient({
+        accounts: [
+          {
+            id: "acc_seed00000000000000011",
+            userId: USER_A,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-01T00:00:00Z"),
+            updatedAt: new Date("2026-05-01T00:00:00Z"),
+          },
+          {
+            id: "acc_seed00000000000000012",
+            userId: USER_A,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-02T00:00:00Z"),
+            updatedAt: new Date("2026-05-02T00:00:00Z"),
+          },
+        ],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Compte courant");
+      expect(out).toEqual({ id: null, matchCount: 2 });
+    });
+
+    test("does not leak across users — cross-user label match returns 0", async () => {
+      const { client } = fakeClient({
+        accounts: [
+          {
+            id: "acc_seed00000000000000020",
+            userId: USER_B,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-01T00:00:00Z"),
+            updatedAt: new Date("2026-05-01T00:00:00Z"),
+          },
+        ],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Compte courant");
+      expect(out).toEqual({ id: null, matchCount: 0 });
+    });
+  });
+
+  // Story 5-2 aped-review N2 — accountsExistForUser. Bulk ownership probe used
+  // by transactions.service.importCsv to collapse N row-level ownership checks
+  // into a single findMany with `id: { in: [...] }`.
+  describe("accountsExistForUser", () => {
+    const baseAccount = (id: string, userId: string) => ({
+      id,
+      userId,
+      label: `acc-${id}`,
+      type: "autre" as const,
+      currency: "EUR",
+      cashBalance: new Prisma.Decimal(0),
+      notes: null,
+      createdAt: new Date("2026-05-01T00:00:00Z"),
+      updatedAt: new Date("2026-05-01T00:00:00Z"),
+    });
+
+    test("returns empty set when accountIds is empty (no round-trip)", async () => {
+      const { client } = fakeClient({
+        accounts: [baseAccount("acc_seed00000000000000031", USER_A)],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.accountsExistForUser(USER_A, []);
+      expect(out.size).toBe(0);
+    });
+
+    test("returns the subset of ids owned by the user, never leaking cross-user", async () => {
+      const { client } = fakeClient({
+        accounts: [
+          baseAccount("acc_seed00000000000000041", USER_A),
+          baseAccount("acc_seed00000000000000042", USER_A),
+          baseAccount("acc_seed00000000000000043", USER_B),
+        ],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.accountsExistForUser(USER_A, [
+        "acc_seed00000000000000041",
+        "acc_seed00000000000000042",
+        "acc_seed00000000000000043",
+        "acc_seed00000000000000099",
+      ]);
+      expect(out).toEqual(new Set(["acc_seed00000000000000041", "acc_seed00000000000000042"]));
+    });
   });
 });

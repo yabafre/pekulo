@@ -23,6 +23,7 @@ import type {
   ListTransactionsOutput,
   Transaction,
   UpdateTransactionInput,
+  ValidatedCsvRow,
 } from "@pekulo/validators";
 import { PekuloError } from "../../common/errors";
 import { decimalToNumber } from "../../common/derive/decimal-to-number";
@@ -51,6 +52,7 @@ export interface TransactionsRepository {
   update(userId: string, input: UpdateTransactionInput): Promise<UpdateOutcome>;
   delete(userId: string, input: DeleteTransactionInput): Promise<{ deleted: boolean }>;
   listByUser(userId: string, input: ListTransactionsInput): Promise<ListTransactionsOutput>;
+  bulkCreate(userId: string, rows: ValidatedCsvRow[]): Promise<{ persisted: number }>;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -192,6 +194,34 @@ export function createTransactionsRepository(deps: {
       const nextCursor = hasMore && last ? encodeCursor(last.occurredOn, last.id) : null;
 
       return { items, nextCursor };
+    },
+
+    async bulkCreate(userId, rows) {
+      // Story 5-2 T6. Interactive `$transaction` + per-row `tx.transaction.create`
+      // (NOT `createMany`) so the prefixed-ids extension fires on every row
+      // (ADR-0012). All-or-nothing — Prisma rolls back the batch if any row
+      // throws (FK violation, NOT-NULL, etc.). The `as unknown as …` bridge
+      // mirrors the single-row create branch above.
+      let persisted = 0;
+      await deps.client.$transaction(async (tx) => {
+        for (const row of rows) {
+          await tx.transaction.create({
+            data: {
+              userId,
+              accountId: row.accountId,
+              occurredOn: new Date(row.occurredOn),
+              label: row.label,
+              amount: row.amount,
+              type: row.type,
+              category: row.category,
+              isImprevu: row.isImprevu,
+              notes: row.notes,
+            } as unknown as Parameters<typeof tx.transaction.create>[0]["data"],
+          });
+          persisted++;
+        }
+      });
+      return { persisted };
     },
   };
 }

@@ -84,5 +84,34 @@ export function createTransactionsRouter(deps: { service: TransactionsService })
       requireUserId(context.userId);
       return deps.service.listTransactions(context.userId, input);
     }),
+
+    previewImportCsv: impl.previewImportCsv.handler(async ({ context, input, errors }) => {
+      requireUserId(context.userId);
+      try {
+        return await deps.service.previewImportCsv(context.userId, input);
+      } catch (err) {
+        if (err instanceof PekuloError) {
+          if (err.code === "INVALID_CSV") {
+            throw errors.INVALID_CSV({ message: err.message });
+          }
+          if (err.code === "PAYLOAD_TOO_LARGE") {
+            throw errors.PAYLOAD_TOO_LARGE({ message: err.message });
+          }
+        }
+        throw err;
+      }
+    }),
+
+    importCsv: impl.importCsv.handler(async ({ context, input, errors }) => {
+      requireUserId(context.userId);
+      try {
+        return await deps.service.importCsv(context.userId, input);
+      } catch (err) {
+        if (err instanceof PekuloError && err.code === "ACCOUNT_NOT_FOUND") {
+          throw errors.ACCOUNT_NOT_FOUND({ message: err.message });
+        }
+        throw err;
+      }
+    }),
   });
 }

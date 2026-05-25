@@ -66,6 +66,11 @@ export interface AccountRepository {
   findByIdForUser(userId: string, id: string): Promise<Account | null>;
   countHoldingsReferencing(userId: string, accountId: string): Promise<number>;
   accountExistsForUser(userId: string, accountId: string): Promise<boolean>;
+  accountsExistForUser(userId: string, accountIds: string[]): Promise<Set<string>>;
+  findAccountIdByLabelForUser(
+    userId: string,
+    label: string,
+  ): Promise<{ id: string | null; matchCount: number }>;
   recordBalanceChange(
     userId: string,
     input: RecordBalanceChangeRepoInput,
@@ -214,6 +219,30 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
         select: { id: true },
       });
       return row !== null;
+    },
+
+    async accountsExistForUser(userId, accountIds) {
+      if (accountIds.length === 0) return new Set();
+      const rows = await deps.client.account.findMany({
+        where: { userId, id: { in: accountIds } },
+        select: { id: true },
+      });
+      return new Set(rows.map((r) => r.id));
+    },
+
+    async findAccountIdByLabelForUser(userId, label) {
+      // Label resolution for CSV import (story 5-2, AC-4/AC-5). Returns the
+      // single matching id when exactly one row matches; null + matchCount
+      // otherwise so the caller can distinguish "no match" (404-equivalent at
+      // the row level) from "ambiguous" (the brownfield `accounts` table has
+      // no UNIQUE on (user_id, label), so duplicates are valid state).
+      const rows = await deps.client.account.findMany({
+        where: { userId, label },
+        select: { id: true },
+      });
+      if (rows.length === 0) return { id: null, matchCount: 0 };
+      if (rows.length > 1) return { id: null, matchCount: rows.length };
+      return { id: rows[0]!.id, matchCount: 1 };
     },
 
     async recordBalanceChange(userId, input) {

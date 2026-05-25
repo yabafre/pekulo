@@ -26,6 +26,11 @@ export interface AccountService {
   list(userId: string): Promise<Account[]>;
   recordBalanceChange(userId: string, input: RecordBalanceChangeInput): Promise<Account>;
   accountExists(userId: string, accountId: string): Promise<boolean>;
+  accountsExist(userId: string, accountIds: string[]): Promise<Set<string>>;
+  findAccountIdByLabel(
+    userId: string,
+    label: string,
+  ): Promise<{ id: string | null; matchCount: number }>;
 }
 
 export interface AccountServiceDeps {
@@ -74,6 +79,14 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
 
     async accountExists(userId, accountId) {
       return deps.repository.accountExistsForUser(userId, accountId);
+    },
+
+    async accountsExist(userId, accountIds) {
+      return deps.repository.accountsExistForUser(userId, accountIds);
+    },
+
+    async findAccountIdByLabel(userId, label) {
+      return deps.repository.findAccountIdByLabelForUser(userId, label);
     },
   };
 }

@@ -129,10 +129,16 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // injected as a narrow AccountOwnershipProbe adapter wrapping
   // accountsModule.service.accountExists — keeps L1 conformance (no
   // AccountsRepository type leak across modules) and avoids a wiring cycle.
+  // Story 5-2 extends the wiring with an AccountResolver adapter for CSV
+  // label→id resolution (findAccountIdByLabel).
   const transactionsModule = createTransactionsModule({
     prismaService,
     accountOwnershipProbe: {
       exists: (userId, accountId) => accountsModule.service.accountExists(userId, accountId),
+      existsMany: (userId, accountIds) => accountsModule.service.accountsExist(userId, accountIds),
+    },
+    accountResolver: {
+      resolve: (userId, label) => accountsModule.service.findAccountIdByLabel(userId, label),
     },
   });
 
