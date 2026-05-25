@@ -120,6 +120,14 @@ function inMemoryService(opts?: { fkLockedIds?: ReadonlySet<string> }): AccountS
       const a = store.get(accountId);
       return a !== undefined && a.userId === userId;
     },
+    async accountsExist(userId, accountIds) {
+      return new Set(
+        accountIds.filter((id) => {
+          const a = store.get(id);
+          return a !== undefined && a.userId === userId;
+        }),
+      );
+    },
     async findAccountIdByLabel(userId, label) {
       const matches = [...store.values()].filter((a) => a.userId === userId && a.label === label);
       if (matches.length === 0) return { id: null, matchCount: 0 };

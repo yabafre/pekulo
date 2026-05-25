@@ -66,6 +66,7 @@ export interface AccountRepository {
   findByIdForUser(userId: string, id: string): Promise<Account | null>;
   countHoldingsReferencing(userId: string, accountId: string): Promise<number>;
   accountExistsForUser(userId: string, accountId: string): Promise<boolean>;
+  accountsExistForUser(userId: string, accountIds: string[]): Promise<Set<string>>;
   findAccountIdByLabelForUser(
     userId: string,
     label: string,
@@ -218,6 +219,15 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
         select: { id: true },
       });
       return row !== null;
+    },
+
+    async accountsExistForUser(userId, accountIds) {
+      if (accountIds.length === 0) return new Set();
+      const rows = await deps.client.account.findMany({
+        where: { userId, id: { in: accountIds } },
+        select: { id: true },
+      });
+      return new Set(rows.map((r) => r.id));
     },
 
     async findAccountIdByLabelForUser(userId, label) {

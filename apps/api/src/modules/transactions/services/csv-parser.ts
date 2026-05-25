@@ -89,6 +89,21 @@ export async function parseCsvForPreview(
     );
   }
 
+  // Single-flight account resolution — collect the unique non-empty labels
+  // and resolve them in one round-trip via Promise.all (Bridge / Powens / DB
+  // can dedupe N row-references to the same label). Repeated labels in the
+  // CSV cost zero extra resolver calls.
+  const uniqueLabels = Array.from(
+    new Set(records.map((r) => (r[3] ?? "").trim()).filter((l): l is string => l.length > 0)),
+  );
+  const resolvedByLabel = new Map<string, { id: string | null; matchCount: number }>();
+  await Promise.all(
+    uniqueLabels.map(async (label) => {
+      const r = await deps.accountResolver.resolve(deps.userId, label);
+      resolvedByLabel.set(label, r);
+    }),
+  );
+
   const rows: PreviewedRow[] = [];
   let valid = 0;
   let invalid = 0;
@@ -150,8 +165,8 @@ export async function parseCsvForPreview(
       continue;
     }
 
-    const resolved = await deps.accountResolver.resolve(deps.userId, raw.accountLabel);
-    if (resolved.matchCount === 0) {
+    const resolved = resolvedByLabel.get(raw.accountLabel);
+    if (!resolved || resolved.matchCount === 0) {
       rowError("Compte introuvable");
       continue;
     }

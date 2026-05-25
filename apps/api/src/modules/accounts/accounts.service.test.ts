@@ -105,6 +105,11 @@ function stubRepo(seed?: {
     async accountExistsForUser(userId, accountId) {
       return accounts.some((a) => a.id === accountId && a.userId === userId);
     },
+    async accountsExistForUser(userId, accountIds) {
+      return new Set(
+        accounts.filter((a) => a.userId === userId && accountIds.includes(a.id)).map((a) => a.id),
+      );
+    },
     async findAccountIdByLabelForUser(userId, label) {
       const matches = accounts.filter((a) => a.userId === userId && a.label === label);
       if (matches.length === 0) return { id: null, matchCount: 0 };
@@ -141,6 +146,9 @@ function stubAccountRepository(): AccountRepository {
     accountExistsForUser: fail(
       "accountExistsForUser",
     ) as unknown as AccountRepository["accountExistsForUser"],
+    accountsExistForUser: fail(
+      "accountsExistForUser",
+    ) as unknown as AccountRepository["accountsExistForUser"],
     findAccountIdByLabelForUser: fail(
       "findAccountIdByLabelForUser",
     ) as unknown as AccountRepository["findAccountIdByLabelForUser"],

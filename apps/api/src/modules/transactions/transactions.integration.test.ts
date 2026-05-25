@@ -158,7 +158,10 @@ beforeAll(async () => {
   const fake = makeFakeClient();
   const mod = createTransactionsModule({
     prismaService: { client: fake.client } as unknown as PrismaService,
-    accountOwnershipProbe: { exists: async () => probeExists },
+    accountOwnershipProbe: {
+      exists: async () => probeExists,
+      existsMany: async (_u, ids) => (probeExists ? new Set(ids) : new Set<string>()),
+    },
     accountResolver: { resolve: async () => resolverNextResult },
   });
   const orpcRouter: PekuloRpcRouter = { transactions: mod.router };

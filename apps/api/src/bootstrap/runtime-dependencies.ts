@@ -135,6 +135,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     prismaService,
     accountOwnershipProbe: {
       exists: (userId, accountId) => accountsModule.service.accountExists(userId, accountId),
+      existsMany: (userId, accountIds) => accountsModule.service.accountsExist(userId, accountIds),
     },
     accountResolver: {
       resolve: (userId, label) => accountsModule.service.findAccountIdByLabel(userId, label),

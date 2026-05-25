@@ -38,6 +38,9 @@ const makeRepoMock = (over: Partial<TransactionsRepository> = {}): TransactionsR
 
 const makeProbe = (exists: boolean): AccountOwnershipProbe => ({
   exists: mock(async () => exists),
+  existsMany: mock(async (_u: string, ids: string[]) =>
+    exists ? new Set(ids) : new Set<string>(),
+  ),
 });
 
 // Default resolver — story 5-1 tests don't exercise CSV paths, so a stub
@@ -219,6 +222,10 @@ describe("transactionsService", () => {
       const probe: AccountOwnershipProbe = {
         exists: mock(
           async (_u: string, accountId: string) => accountId === "acc_owned1111111111111",
+        ),
+        existsMany: mock(
+          async (_u: string, ids: string[]) =>
+            new Set(ids.filter((id) => id === "acc_owned1111111111111")),
         ),
       };
       const svc = createTransactionsService({

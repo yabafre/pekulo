@@ -35,6 +35,9 @@ import type { TransactionsRepository } from "./transactions.repository";
 
 export interface AccountOwnershipProbe {
   exists(userId: string, accountId: string): Promise<boolean>;
+  // Bulk variant — single round-trip for N ids. The CSV import path dedupes
+  // row.accountIds and hands the set here instead of awaiting `exists` per row.
+  existsMany(userId: string, accountIds: string[]): Promise<Set<string>>;
 }
 
 export type { AccountResolver };
@@ -98,10 +101,13 @@ export function createTransactionsService(deps: {
     async importCsv(userId, input) {
       // AC-8 — defense in depth: re-check every account ownership even though
       // the resolver in previewImportCsv already filtered. The client could
-      // have tampered with the rows array between preview and import.
-      for (const row of input.rows) {
-        const owns = await deps.accountOwnershipProbe.exists(userId, row.accountId);
-        if (!owns) throw accountNotFound();
+      // have tampered with the rows array between preview and import. Bulk
+      // probe via existsMany so 1000 rows referencing K unique accounts cost
+      // one round-trip, not N (aped-review N2).
+      const uniqueIds = Array.from(new Set(input.rows.map((r) => r.accountId)));
+      const owned = await deps.accountOwnershipProbe.existsMany(userId, uniqueIds);
+      for (const id of uniqueIds) {
+        if (!owned.has(id)) throw accountNotFound();
       }
       try {
         const { persisted } = await deps.repository.bulkCreate(userId, input.rows);
