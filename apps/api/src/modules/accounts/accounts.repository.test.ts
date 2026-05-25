@@ -130,8 +130,19 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
   });
 
   const findMany = mock(
-    async (args: { where: { userId: string }; orderBy?: { createdAt?: "asc" | "desc" } }) => {
-      const filtered = accounts.filter((r) => r.userId === args.where.userId);
+    async (args: {
+      where: { userId: string; label?: string };
+      orderBy?: { createdAt?: "asc" | "desc" };
+      // story 5-2 — findAccountIdByLabelForUser uses { select: { id: true } }
+      // and an optional `where.label` filter. The fake honours both so the
+      // new tests don't need a parallel fake.
+      select?: { id?: boolean };
+    }) => {
+      const filtered = accounts.filter(
+        (r) =>
+          r.userId === args.where.userId &&
+          (args.where.label === undefined || r.label === args.where.label),
+      );
       const dir = args.orderBy?.createdAt ?? "asc";
       return filtered.sort((a, b) =>
         dir === "asc"
@@ -569,5 +580,98 @@ describe("recordBalanceChange", () => {
     ).rejects.toThrow("simulated audit-insert failure");
     expect(Number(accounts[0]?.cashBalance)).toBe(1000);
     expect(balanceLog).toHaveLength(0);
+  });
+
+  // Story 5-2 — findAccountIdByLabelForUser. Backs csv-parser's resolver
+  // contract (AC-4 unknown label / AC-5 ambiguous label / 1-match happy).
+  describe("findAccountIdByLabelForUser", () => {
+    test("returns matchCount 0 when no account matches", async () => {
+      const { client } = fakeClient({ accounts: [] });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Inconnu");
+      expect(out).toEqual({ id: null, matchCount: 0 });
+    });
+
+    test("returns id + matchCount 1 when exactly one account matches", async () => {
+      const { client } = fakeClient({
+        accounts: [
+          {
+            id: "acc_seed00000000000000010",
+            userId: USER_A,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-01T00:00:00Z"),
+            updatedAt: new Date("2026-05-01T00:00:00Z"),
+          },
+        ],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Compte courant");
+      expect(out).toEqual({ id: "acc_seed00000000000000010", matchCount: 1 });
+    });
+
+    test("returns null + matchCount N when multiple accounts share the label", async () => {
+      const { client } = fakeClient({
+        accounts: [
+          {
+            id: "acc_seed00000000000000011",
+            userId: USER_A,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-01T00:00:00Z"),
+            updatedAt: new Date("2026-05-01T00:00:00Z"),
+          },
+          {
+            id: "acc_seed00000000000000012",
+            userId: USER_A,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-02T00:00:00Z"),
+            updatedAt: new Date("2026-05-02T00:00:00Z"),
+          },
+        ],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Compte courant");
+      expect(out).toEqual({ id: null, matchCount: 2 });
+    });
+
+    test("does not leak across users — cross-user label match returns 0", async () => {
+      const { client } = fakeClient({
+        accounts: [
+          {
+            id: "acc_seed00000000000000020",
+            userId: USER_B,
+            label: "Compte courant",
+            type: "autre",
+            currency: "EUR",
+            cashBalance: new Prisma.Decimal(0),
+            notes: null,
+            createdAt: new Date("2026-05-01T00:00:00Z"),
+            updatedAt: new Date("2026-05-01T00:00:00Z"),
+          },
+        ],
+      });
+      const repo = createAccountRepository({
+        client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+      });
+      const out = await repo.findAccountIdByLabelForUser(USER_A, "Compte courant");
+      expect(out).toEqual({ id: null, matchCount: 0 });
+    });
   });
 });
