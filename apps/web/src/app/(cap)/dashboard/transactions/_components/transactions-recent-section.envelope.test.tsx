@@ -33,16 +33,19 @@ vi.mock("../../parametres/_actions/accounts-actions", () => ({
 
 import { TransactionsRecentSection } from "./transactions-recent-section";
 
-const fixtureTx = {
+import type { Transaction } from "@pekulo/validators";
+
+const fixtureTx: Transaction = {
   id: "tx_aaaaaaaaaaaaaaaaaaaaa",
   accountId: "acc_aaa111111111111111111",
   occurredOn: "2026-05-15",
   label: "Courses Carrefour",
   amount: 87.5,
-  type: "outflow" as const,
-  category: "courses" as const,
+  type: "outflow",
+  category: "courses",
   isImprevu: false,
   notes: null,
+  transferPairId: null,
   createdAt: "2026-05-15T10:00:00.000Z",
 };
 
