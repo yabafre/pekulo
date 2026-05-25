@@ -102,6 +102,7 @@ function makeFakeClient() {
         rows.find((r) => r.id === where.id && r.userId === where.userId) ?? null,
       findMany: async ({
         where,
+        orderBy,
         take,
       }: {
         where: {
@@ -113,7 +114,9 @@ function makeFakeClient() {
           category?: string;
           transferPairId?: string | null;
         };
-        orderBy?: unknown;
+        orderBy?:
+          | Array<{ createdAt?: "asc" | "desc"; id?: "asc" | "desc"; occurredOn?: "asc" | "desc" }>
+          | { createdAt?: "asc" | "desc"; id?: "asc" | "desc"; occurredOn?: "asc" | "desc" };
         take?: number;
       }) => {
         let out = rows.filter((r) => r.userId === where.userId);
@@ -135,9 +138,35 @@ function makeFakeClient() {
         if (where.category !== undefined) out = out.filter((r) => r.category === where.category);
         if (where.transferPairId !== undefined)
           out = out.filter((r) => r.transferPairId === where.transferPairId);
-        out = [...out].sort(
-          (a, b) => b.occurredOn.getTime() - a.occurredOn.getTime() || (a.id < b.id ? 1 : -1),
-        );
+        // Honor orderBy — pair detection asks (createdAt asc, id asc) for AC-5
+        // FIFO, list reads ask (occurredOn desc, id desc). Default mirrors the
+        // 5-1 list contract when orderBy is omitted.
+        const clauses = Array.isArray(orderBy) ? orderBy : orderBy ? [orderBy] : [];
+        if (clauses.length === 0) {
+          out = [...out].sort(
+            (a, b) => b.occurredOn.getTime() - a.occurredOn.getTime() || (a.id < b.id ? 1 : -1),
+          );
+        } else {
+          out = [...out].sort((a, b) => {
+            for (const c of clauses) {
+              if (c.createdAt) {
+                const av = (a.createdAt ?? new Date(0)).getTime();
+                const bv = (b.createdAt ?? new Date(0)).getTime();
+                const cmp = av - bv;
+                if (cmp !== 0) return c.createdAt === "asc" ? cmp : -cmp;
+              }
+              if (c.occurredOn) {
+                const cmp = a.occurredOn.getTime() - b.occurredOn.getTime();
+                if (cmp !== 0) return c.occurredOn === "asc" ? cmp : -cmp;
+              }
+              if (c.id) {
+                const cmp = a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+                if (cmp !== 0) return c.id === "asc" ? cmp : -cmp;
+              }
+            }
+            return 0;
+          });
+        }
         return take ? out.slice(0, take) : out;
       },
       updateMany: async ({
@@ -554,6 +583,79 @@ describe("transactions HTTP boundary (AC-11)", () => {
       };
       expect(outReBody.json.category).toBe("transfer");
       expect(outReBody.json.transferPairId).toBe(inBody.json.transferPairId);
+    });
+
+    // AC-5 (verbatim from story 5-3-transfer-rule.md:25):
+    //   ONLY the OLDEST unpaired outflow (the one with createdAt = T1) is
+    //   paired with the new inflow ; the T2 outflow stays category=autre,
+    //   transferPairId=null. End-to-end at the HTTP boundary so a future
+    //   regression on the orderBy direction surfaces here (the fake honors
+    //   orderBy per aped-review's F4 fix).
+    test("AC-5 — when 2 unpaired outflows match, the OLDEST pairs with the new inflow (FIFO)", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      const firstOut = await call(
+        "createTransaction",
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: "2026-05-20",
+          label: "First outflow",
+          amount: 100,
+          type: "outflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      const firstOutBody = (await firstOut.json()) as { json: { id: string } };
+      const secondOut = await call(
+        "createTransaction",
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: "2026-05-20",
+          label: "Second outflow",
+          amount: 100,
+          type: "outflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      const secondOutBody = (await secondOut.json()) as { json: { id: string } };
+      // Now the inflow — FIFO contract: the first (older) outflow gets paired.
+      const inRes = await call(
+        "createTransaction",
+        {
+          accountId: "acc_bbb222222222222222222",
+          occurredOn: "2026-05-20",
+          label: "Inflow",
+          amount: 100,
+          type: "inflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+        },
+        token,
+      );
+      const inBody = (await inRes.json()) as {
+        json: { category: string; transferPairId: string | null };
+      };
+      expect(inBody.json.category).toBe("transfer");
+      const pairId = inBody.json.transferPairId;
+      expect(pairId).toMatch(/^tp_[0-9A-Za-z]{21}$/);
+
+      const firstReread = (await (
+        await call("getTransaction", { id: firstOutBody.json.id }, token)
+      ).json()) as { json: { category: string; transferPairId: string | null } };
+      const secondReread = (await (
+        await call("getTransaction", { id: secondOutBody.json.id }, token)
+      ).json()) as { json: { category: string; transferPairId: string | null } };
+      expect(firstReread.json.category).toBe("transfer");
+      expect(firstReread.json.transferPairId).toBe(pairId);
+      expect(secondReread.json.category).toBe("autre");
+      expect(secondReread.json.transferPairId).toBeNull();
     });
   });
 });
