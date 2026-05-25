@@ -471,18 +471,19 @@ describe("transactionsRepository", () => {
     expect(firstCall[0].where.userId).toBe("u_a");
   });
 
-  test("AC-1 — pairAsTransfer runs a 2-row updateMany scoped by userId", async () => {
+  test("AC-1 — pairAsTransfer runs a 2-row updateMany scoped by userId and returns paired count", async () => {
     const updateManyMock = mock(async () => ({ count: 2 }));
     const fakeClient = {
       transaction: { updateMany: updateManyMock },
     } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
     const localRepo = createTransactionsRepository({ client: fakeClient });
-    await localRepo.pairAsTransfer(
+    const out = await localRepo.pairAsTransfer(
       "u_a",
       "tx_aaaaaaaaaaaaaaaaaaaaa",
       "tx_bbbbbbbbbbbbbbbbbbbbb",
       "tp_xxxxxxxxxxxxxxxxxxxxx",
     );
+    expect(out).toEqual({ paired: 2 });
     expect(updateManyMock).toHaveBeenCalledTimes(1);
     const firstCall = updateManyMock.mock.calls.at(0) as unknown as [
       {
@@ -495,6 +496,70 @@ describe("transactionsRepository", () => {
     expect(call.where.id.in).toEqual(["tx_aaaaaaaaaaaaaaaaaaaaa", "tx_bbbbbbbbbbbbbbbbbbbbb"]);
     expect(call.data.category).toBe("transfer");
     expect(call.data.transferPairId).toBe("tp_xxxxxxxxxxxxxxxxxxxxx");
+  });
+
+  // F6 (aped-review) — TOCTOU race: a concurrent delete vaporises the sibling
+  // between findTransferPairCandidates and pairAsTransfer. The updateMany
+  // matches only the candidate and the service surfaces TRANSACTION_PAIR_RACE.
+  test("F6 — pairAsTransfer surfaces count=1 when only one of the two ids is found (concurrent delete)", async () => {
+    const updateManyMock = mock(async () => ({ count: 1 }));
+    const fakeClient = {
+      transaction: { updateMany: updateManyMock },
+    } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+    const localRepo = createTransactionsRepository({ client: fakeClient });
+    const out = await localRepo.pairAsTransfer(
+      "u_a",
+      "tx_aaaaaaaaaaaaaaaaaaaaa",
+      "tx_vanishedxxxxxxxxxxxx",
+      "tp_xxxxxxxxxxxxxxxxxxxxx",
+    );
+    expect(out).toEqual({ paired: 1 });
+  });
+
+  // AC-5 (verbatim from story 5-3-transfer-rule.md:25):
+  //   ONLY the OLDEST unpaired outflow (the one with createdAt = T1) is
+  //   paired with the new inflow ; the T2 outflow stays category=autre.
+  //   Repository test asserts the ORDER BY createdAt ASC NULLS LAST ordering
+  //   produces this outcome.
+  test("AC-5 — findTransferPairCandidates returns siblings ordered FIFO (createdAt asc, id asc)", async () => {
+    const older = fakeRow({
+      id: "tx_oldestxxxxxxxxxxxxxx",
+      accountId: "acc_bbb222222222222222222",
+      type: "outflow",
+      category: "autre",
+      createdAt: new Date("2026-05-20T08:00:00Z"),
+    });
+    const younger = fakeRow({
+      id: "tx_youngerxxxxxxxxxxxxx",
+      accountId: "acc_bbb222222222222222222",
+      type: "outflow",
+      category: "autre",
+      createdAt: new Date("2026-05-20T09:30:00Z"),
+    });
+    // The fake honors orderBy by sorting per the requested clauses — assert
+    // the repository's call shape AND that consumers see oldest first.
+    const findManyMock = mock(async (args: { orderBy: { createdAt?: "asc" | "desc" }[] }) => {
+      const rows = [younger, older];
+      const dir = args.orderBy?.[0]?.createdAt ?? "asc";
+      return [...rows].sort((a, b) =>
+        dir === "asc"
+          ? a.createdAt.getTime() - b.createdAt.getTime()
+          : b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+    });
+    const fakeClient = {
+      transaction: { findMany: findManyMock },
+    } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+    const localRepo = createTransactionsRepository({ client: fakeClient });
+    const out = await localRepo.findTransferPairCandidates("u_a", {
+      accountId: "acc_aaa111111111111111111",
+      occurredOn: "2026-05-20",
+      amount: 120.0,
+      type: "inflow",
+    });
+    expect(out).toHaveLength(2);
+    expect(out[0]?.id).toBe("tx_oldestxxxxxxxxxxxxxx");
+    expect(out[1]?.id).toBe("tx_youngerxxxxxxxxxxxxx");
   });
 
   // AC-11 (verbatim from story 5-3-transfer-rule.md:37, excerpt):
