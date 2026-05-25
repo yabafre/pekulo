@@ -17,6 +17,14 @@ export type {
   DeleteTransactionInput,
   ListTransactionsInput,
   ListTransactionsOutput,
+  // Story 5-2 — CSV bulk import shapes.
+  RawCsvRow,
+  ValidatedCsvRow,
+  PreviewedRow,
+  PreviewImportCsvInput,
+  PreviewImportCsvOutput,
+  ImportCsvInput,
+  ImportCsvOutput,
 } from "@pekulo/validators";
 
 // ─── UI display shapes (unchanged from pre-5-1) ──────────────────────────
