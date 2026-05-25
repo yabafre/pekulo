@@ -105,6 +105,12 @@ function stubRepo(seed?: {
     async accountExistsForUser(userId, accountId) {
       return accounts.some((a) => a.id === accountId && a.userId === userId);
     },
+    async findAccountIdByLabelForUser(userId, label) {
+      const matches = accounts.filter((a) => a.userId === userId && a.label === label);
+      if (matches.length === 0) return { id: null, matchCount: 0 };
+      if (matches.length > 1) return { id: null, matchCount: matches.length };
+      return { id: matches[0]!.id, matchCount: 1 };
+    },
     async recordBalanceChange() {
       // Not exercised through stubRepo's in-memory path — the dedicated
       // describe block below uses stubAccountRepository() + spread override
@@ -135,6 +141,9 @@ function stubAccountRepository(): AccountRepository {
     accountExistsForUser: fail(
       "accountExistsForUser",
     ) as unknown as AccountRepository["accountExistsForUser"],
+    findAccountIdByLabelForUser: fail(
+      "findAccountIdByLabelForUser",
+    ) as unknown as AccountRepository["findAccountIdByLabelForUser"],
     recordBalanceChange: fail(
       "recordBalanceChange",
     ) as unknown as AccountRepository["recordBalanceChange"],

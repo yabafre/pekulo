@@ -12,6 +12,7 @@ import { createTransactionsRouter } from "./transactions.routes";
 import {
   createTransactionsService,
   type AccountOwnershipProbe,
+  type AccountResolver,
   type TransactionsService,
 } from "./transactions.service";
 
@@ -23,11 +24,13 @@ export interface TransactionsModule {
 export function createTransactionsModule(deps: {
   prismaService: PrismaService;
   accountOwnershipProbe: AccountOwnershipProbe;
+  accountResolver: AccountResolver;
 }): TransactionsModule {
   const repository = createTransactionsRepository({ client: deps.prismaService.client });
   const service = createTransactionsService({
     repository,
     accountOwnershipProbe: deps.accountOwnershipProbe,
+    accountResolver: deps.accountResolver,
   });
   const router = createTransactionsRouter({ service });
   return { service, router };
