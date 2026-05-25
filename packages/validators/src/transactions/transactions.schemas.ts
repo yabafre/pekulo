@@ -22,6 +22,7 @@ export const TRANSACTION_CATEGORIES = [
   "sante",
   "imprevu",
   "autre",
+  "transfer",
 ] as const;
 
 export const TRANSACTION_CATEGORY_LABELS: Record<(typeof TRANSACTION_CATEGORIES)[number], string> =
@@ -38,6 +39,7 @@ export const TRANSACTION_CATEGORY_LABELS: Record<(typeof TRANSACTION_CATEGORIES)
     sante: "Santé",
     imprevu: "Imprévu",
     autre: "Autre",
+    transfer: "⇆ Transfert",
   };
 
 export const transactionTypeSchema = z.enum(["inflow", "outflow"]);
@@ -49,6 +51,7 @@ export type TransactionCategory = z.infer<typeof transactionCategorySchema>;
 // ─── ID regexes ───────────────────────────────────────────────────────────
 const TRANSACTION_ID_REGEX = /^tx_[0-9A-Za-z]{21}$/;
 const ACCOUNT_ID_REGEX = /^acc_[0-9A-Za-z]{21}$/;
+const TRANSFER_PAIR_ID_REGEX = /^tp_[0-9A-Za-z]{21}$/;
 // Shape + month/day range — rejects "2026-13-01" / "2026-02-32". A refine
 // below also rejects day-in-month overflows ("2026-02-30", "2026-02-29" in
 // non-leap years, "2026-04-31"). UI fences this via PekuloDatePicker; the
@@ -70,6 +73,9 @@ const isoDateString = (msg = "Date YYYY-MM-DD requise") =>
 const amountSchema = (msg = "Montant ≥ 0") => z.number().finite("Montant invalide").min(0, msg);
 
 // ─── DTO (row shape returned by reads) ───────────────────────────────────
+// transferPairId: nullable grouping tp_<base62> set by the service on the
+// rule-based transfer match (story 5-3, FR-30). System-set only — never on
+// the create / update input shapes below.
 export const transactionSchema = z.object({
   id: z.string().regex(TRANSACTION_ID_REGEX),
   accountId: z.string().regex(ACCOUNT_ID_REGEX),
@@ -80,6 +86,7 @@ export const transactionSchema = z.object({
   category: transactionCategorySchema,
   isImprevu: z.boolean(),
   notes: z.string().max(500).nullable(),
+  transferPairId: z.string().regex(TRANSFER_PAIR_ID_REGEX).nullable(),
   createdAt: z.string(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
