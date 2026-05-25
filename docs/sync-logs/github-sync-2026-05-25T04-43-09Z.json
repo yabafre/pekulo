@@ -1,0 +1,64 @@
+{
+  "sync_id": "github-sync-2026-05-25T04-43-09Z",
+  "started_at": "2026-05-25T04:43:09Z",
+  "provider": "github",
+  "operator": "fred@bonjour.email",
+  "directive_version": null,
+  "phases": {
+    "tickets_created": {
+      "status": "complete",
+      "calls": 2,
+      "issues": [
+        {
+          "number": 93,
+          "story": "5-6-bridge-connector",
+          "title": "[L] 5-6-bridge-connector: Bridge bank-aggregator connector + Prisma BankConnection + cron refresh",
+          "milestone": "Epic 5: Transactions & monthly tracking",
+          "labels": [
+            "feature",
+            "size/L",
+            "epic/5",
+            "aped/story",
+            "tier/v1"
+          ]
+        },
+        {
+          "number": 94,
+          "story": "5-7-bridge-ui",
+          "title": "[M] 5-7-bridge-ui: Bridge connection UI — Connect widget redirect + settings page + SCA-expired badge",
+          "milestone": "Epic 5: Transactions & monthly tracking",
+          "labels": [
+            "feature",
+            "size/M",
+            "epic/5",
+            "aped/story",
+            "tier/v1"
+          ]
+        }
+      ]
+    }
+  },
+  "totals": {
+    "api_calls_total": 2
+  },
+  "trigger": "aped-course major change: promote bank-account connectivity from V2+ Vision to V1 MVP. Adds Bridge as agent-of AISP per ADR-0015, new FRs in Group E, new NFRs, two new Epic 5 stories (5-6 connector + 5-7 ui).",
+  "scope": {
+    "stories_added": [
+      "5-6-bridge-connector",
+      "5-7-bridge-ui"
+    ],
+    "decisions_amended": [
+      "PRD MVP Phase 1",
+      "PRD Out of Scope line 101",
+      "PRD Vision V2+ line 86",
+      "DR-9",
+      "Compliance matrix PSD2 row",
+      "Regulatory positioning PSD2 row",
+      "Security architecture"
+    ],
+    "adrs_added": [
+      "ADR-0015"
+    ]
+  },
+  "ended_at": "2026-05-25T04:52:03Z"
+}

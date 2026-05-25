@@ -104,7 +104,7 @@ phases_planned:
 - **Schema folder** at `apps/api/prisma/schema/` — one file per Elysia domain module:
   - `_base.prisma` — `datasource db`, `generator client`, `previewFeatures = ["prismaSchemaFolder"]`
   - `enums.prisma` — every domain enum (`AccountType`, `HoldingKind`, `TransactionType`, `LotType`, `LlmRoute`, `MilestoneStatus`, `PropertyType`, …)
-  - `accounts.prisma`, `holdings.prisma`, `transactions.prisma`, `compass.prisma`, `realestate.prisma`, `llm.prisma`, `monthly.prisma`, `hypothesis.prisma`, `dashboard.prisma`
+  - `accounts.prisma`, `holdings.prisma`, `transactions.prisma`, `compass.prisma`, `realestate.prisma`, `llm.prisma`, `monthly.prisma`, `hypothesis.prisma`, `dashboard.prisma`, `bank_aggregator.prisma` (added 2026-05-25 per ADR-0015 — `BankConnection` model with `pgcrypto` column-level encryption on OAuth token columns)
 - **Prefixed IDs Prisma extension** (Trafi pattern, ported as-is) at `apps/api/src/database/prefixed-ids.extension.ts`. `Prisma.defineExtension` intercepts `create` / `createMany` / `createManyAndReturn` / `upsert` to inject `{prefix}_{base62_21chars}` (~125 bits entropy) when `id` is undefined. Central config at `apps/api/src/database/id-prefixes.config.ts`. **See ADR-0012.**
 
   | Model           | Prefix | Model               | Prefix |
@@ -116,8 +116,9 @@ phases_planned:
   | Kpi             | `kpi`  | RealEstateRental    | `resr` |
   | MonthlyTracking | `mtr`  | RealEstateValuation | `resv` |
   | LlmCallLog      | `llm`  | LlmOptIn            | `llmo` |
+  | BankConnection  | `bnk`  |                     |        |
 
-  `User` carries no prefix (managed by Supabase Auth, native UUID).
+  `User` carries no prefix (managed by Supabase Auth, native UUID). `BankConnection` row added 2026-05-25 per ADR-0015.
 
 - **Brownfield table names retained** via `@@map("kpis")` / `@@map("monthly_tracking")` / `@@map("holding_lots")` ; new tables follow plural-snake-case convention (`milestones`, `compass_history`, `real_estate`, `real_estate_rental`, `real_estate_valuations`, `llm_call_log`, `llm_opt_in`).
 - **Caching strategy:**
@@ -160,8 +161,10 @@ phases_planned:
     - `/rpc/v1/accounts` `/rpc/v1/holdings` `/rpc/v1/realestate`
     - `/rpc/v1/transactions` `/rpc/v1/monthly` `/rpc/v1/dashboard`
     - `/rpc/v1/settings` `/rpc/v1/hypothesis` `/rpc/v1/llm`
+    - `/rpc/v1/bankaggregator` (added 2026-05-25 per ADR-0015 — Bridge connector + connection CRUD)
     - `/health`, `/ready` (Elysia-native, public)
     - `/internal/llm/attest` (Elysia-native private listener for iOS FoundationModels attestation, JWT-verified)
+    - `/internal/bridge/webhook` (Elysia-native private listener for Bridge webhooks ; HMAC signature verified per NFR-33 ; added 2026-05-25 per ADR-0015)
   - **Web tier (`apps/web`)** — Next.js server actions stay as **thin `'use server'` wrappers** (`<feature>-actions.ts`, single file per feature, multiple verbs co-located via zapaction `defineAction`) that call the oRPC client and return typed responses. **`zapaction` retained** as the React Query bridge ; `setTagRegistry` retained for cross-feature invalidation hints.
   - **`apps/prices`** — REST + Bearer token (FastAPI 0.115, brownfield). Stateless. Called by `apps/api`'s holdings module via internal HTTP. Satisfies FR-16, NFR-29, NFR-17.
   - **See ADR-0009.**
@@ -968,7 +971,7 @@ pekulo/
 │   │   └── src/                                     domain folders : accounts/, compass/, holdings/, hypothesis/, milestones/, monthly/, transactions/ (Epic 4 lands realestate/)
 │   │       └── <domain>/<domain>.schemas.ts         Zod source of truth + inferred types
 │   ├── contracts/                                   @pekulo/contracts
-│   │   └── src/                                     domain folders : auth/, compass/, milestones/, accounts/, holdings/, realestate/, transactions/, llm/, monthly/, dashboard/, settings/, hypothesis/
+│   │   └── src/                                     domain folders : auth/, compass/, milestones/, accounts/, holdings/, realestate/, transactions/, llm/, monthly/, dashboard/, settings/, hypothesis/, bank-aggregator/ (added 2026-05-25 per ADR-0015)
 │   │       └── <domain>/<domain>.contract.ts        oRPC contract for the module (`<module>ContractV1`, `<module>Contract` alias, `<module>ContractMeta`)
 │   ├── tsconfig/                                    @pekulo/tsconfig
 │   │   └── {base,apps,packages,next}.json
@@ -1059,17 +1062,21 @@ pekulo/
 
 #### Group E — Transactions & LLM categorisation
 
-| FR    | Definition                                                        | API module                                                                                          | Web surface                                                                                                |
-| ----- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --- |
-| FR-28 | Record transaction (date, amount, type, category, account, label) | `apps/api/src/modules/transactions/transactions.service.ts#create`                                  | `(cap)/transactions/_components/transaction-form.tsx`                                                      |
-| FR-29 | CSV bulk import (preview before persist)                          | `transactions.service.ts#importCsv` (handler `/transactions/import-csv`)                            | `_components/csv-import-form.tsx` + `csv-preview-table.tsx` + `_hooks/use-import-transactions-csv-form.ts` |
-| FR-30 | Rule-based transfer detection (bypass LLM)                        | `apps/api/src/common/derive/transfer-rule.ts` (pure) called by `transactions.service.ts#categorise` | n/a                                                                                                        |
-| FR-31 | LLM routing policy                                                | `apps/api/src/modules/llm/llm.service.ts#route` (returns `{route, providerCall}`)                   | `transactions/_components/suggestion-row.tsx` shows `route_actual` badge                                   |
-| FR-32 | LLM suggestion + confidence                                       | `llm.service.ts#categorise` returns `{category, confidence}`                                        | `PekuloSuggestionRow`                                                                                      |
-| FR-33 | Accept/override suggestion                                        | `transactions.service.ts#confirmCategorisation` (override wins)                                     | `_hooks/use-confirm-categorisation.ts`                                                                     |
-| FR-34 | Opt-in toggle for 3rd-party LLM                                   | `apps/api/src/modules/settings/settings.service.ts#updateLlmOptIn` writes `LlmOptIn` row            | `(cap)/parametres/_components/llm-opt-in-toggle.tsx`                                                       |
-| FR-35 | Per-call audit (no prompt content)                                | `llm.service.ts#recordLlmCall(intent                                                                | outcome)` is the sole writer                                                                               | n/a |
-| FR-36 | View 90-day LLM activity log                                      | `llm.repository.ts#findByUserSince`                                                                 | `(cap)/parametres/_components/llm-activity-log.tsx`                                                        |
+| FR    | Definition                                                        | API module                                                                                                                                                                 | Web surface                                                                                                |
+| ----- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --- |
+| FR-28 | Record transaction (date, amount, type, category, account, label) | `apps/api/src/modules/transactions/transactions.service.ts#create`                                                                                                         | `(cap)/transactions/_components/transaction-form.tsx`                                                      |
+| FR-29 | CSV bulk import (preview before persist)                          | `transactions.service.ts#importCsv` (handler `/transactions/import-csv`)                                                                                                   | `_components/csv-import-form.tsx` + `csv-preview-table.tsx` + `_hooks/use-import-transactions-csv-form.ts` |
+| FR-30 | Rule-based transfer detection (bypass LLM)                        | `apps/api/src/common/derive/transfer-rule.ts` (pure) called by `transactions.service.ts#categorise`                                                                        | n/a                                                                                                        |
+| FR-31 | LLM routing policy                                                | `apps/api/src/modules/llm/llm.service.ts#route` (returns `{route, providerCall}`)                                                                                          | `transactions/_components/suggestion-row.tsx` shows `route_actual` badge                                   |
+| FR-32 | LLM suggestion + confidence                                       | `llm.service.ts#categorise` returns `{category, confidence}`                                                                                                               | `PekuloSuggestionRow`                                                                                      |
+| FR-33 | Accept/override suggestion                                        | `transactions.service.ts#confirmCategorisation` (override wins)                                                                                                            | `_hooks/use-confirm-categorisation.ts`                                                                     |
+| FR-34 | Opt-in toggle for 3rd-party LLM                                   | `apps/api/src/modules/settings/settings.service.ts#updateLlmOptIn` writes `LlmOptIn` row                                                                                   | `(cap)/parametres/_components/llm-opt-in-toggle.tsx`                                                       |
+| FR-35 | Per-call audit (no prompt content)                                | `llm.service.ts#recordLlmCall(intent                                                                                                                                       | outcome)` is the sole writer                                                                               | n/a |
+| FR-36 | View 90-day LLM activity log                                      | `llm.repository.ts#findByUserSince`                                                                                                                                        | `(cap)/parametres/_components/llm-activity-log.tsx`                                                        |
+| FR-60 | Connect bank via Bridge Connect widget (OAuth + SCA)              | `apps/api/src/modules/bank-aggregator/bank-aggregator.{handler,service,repository}.ts#initiateConnection` + `services/bridge-client.ts` (`BankProvider` impl per ADR-0015) | `(cap)/parametres/_components/bank-connections-section.tsx` + `bank-connect-redirect.tsx`                  |
+| FR-61 | Cron-refresh bank transactions (dedup on provider + tx_id)        | `bank-aggregator.service.ts#refreshAll` (Bun scheduled task) + `transactions.service.ts#importFromProvider`                                                                | n/a (background)                                                                                           |
+| FR-62 | View, rename, revoke bank connections                             | `bank-aggregator.service.ts#{listConnections,rename,revoke}` + Bridge token revoke API                                                                                     | `bank-connection-row.tsx` + `bank-connection-rename-form.tsx` + `bank-connection-revoke-confirm.tsx`       |
+| FR-63 | Surface SCA-required + reconnect CTA (90-day refresh)             | `bank-aggregator.service.ts#getConnectionState` + Bridge webhook handler on `ITEM_SCA_REQUIRED` (`/internal/bridge/webhook`)                                               | `bank-connection-row.tsx` SCA badge + `bank-reconnect-button.tsx`                                          |
 
 #### Group F — Monthly tracking (brownfield)
 
@@ -1167,7 +1174,7 @@ pekulo/
 
 #### `@pekulo/contracts` — oRPC contracts
 
-- One contract per Elysia module: `authContract`, `compassContract`, `milestonesContract`, `accountsContract`, `holdingsContract`, `realestateContract`, `transactionsContract`, `llmContract`, `monthlyContract`, `dashboardContract`, `settingsContract`, `hypothesisContract`. Mount paths follow the same all-lowercase no-separator convention: `/rpc/v1/realestate` (not `/rpc/v1/real-estate`) — the database tables remain `real_estate*` (snake_case for SQL) but the contract surface is uniform across the 12 modules.
+- One contract per Elysia module: `authContract`, `compassContract`, `milestonesContract`, `accountsContract`, `holdingsContract`, `realestateContract`, `transactionsContract`, `llmContract`, `monthlyContract`, `dashboardContract`, `settingsContract`, `hypothesisContract`, `bankAggregatorContract` (added 2026-05-25 per ADR-0015). Mount paths follow the same all-lowercase no-separator convention: `/rpc/v1/realestate` (not `/rpc/v1/real-estate`), `/rpc/v1/bankaggregator` (not `/rpc/v1/bank-aggregator`) — the database tables remain snake_case for SQL but the contract surface is uniform across the 13 modules.
 - Each contract bumpable independently (sub-tree versioning per Phase 2 — API Design)
 
 #### `@pekulo/ui` — Pekulo DS (Tamagui Core)

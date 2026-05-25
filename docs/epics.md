@@ -13,26 +13,26 @@
 - Group B — Accounts: FR-9, FR-10, FR-11, FR-12
 - Group C — Holdings & Portfolio: FR-13, FR-14, FR-15, FR-16, FR-17, FR-18, FR-19, FR-20
 - Group D — Real-estate: FR-21, FR-22, FR-23, FR-24, FR-25, FR-26, FR-27
-- Group E — Transactions & LLM categorisation: FR-28, FR-29, FR-30, FR-31, FR-32, FR-33, FR-34, FR-35, FR-36
+- Group E — Transactions & LLM categorisation: FR-28, FR-29, FR-30, FR-31, FR-32, FR-33, FR-34, FR-35, FR-36, FR-60, FR-61, FR-62, FR-63 (FR-60+ added 2026-05-25 per ADR-0015 — bank-aggregator promotion to V1)
 - Group F — Monthly tracking: FR-37, FR-38, FR-39, FR-40
 - Group G — Dashboard & KPIs: FR-41, FR-42, FR-43, FR-44
 - Group H — Auth, settings, lifecycle: FR-45, FR-46, FR-47, FR-48, FR-49, FR-50, FR-51, FR-52
 - Group I — PWA, mobile, design system: FR-53, FR-54, FR-55, FR-56
 - Group J — Hypotheses & projections: FR-57, FR-58, FR-59
 
-**Total:** 59 FRs.
+**Total:** 63 FRs (59 original + 4 added 2026-05-25 per ADR-0015).
 
 ### Non-Functional Requirements
 
 - Performance: NFR-1, NFR-2, NFR-3, NFR-4, NFR-5, NFR-6, NFR-7
-- Security: NFR-8, NFR-9, NFR-10, NFR-11, NFR-12, NFR-13, NFR-14
+- Security: NFR-8, NFR-9, NFR-10, NFR-11, NFR-12, NFR-13, NFR-14, NFR-31 (NFR-31 added 2026-05-25 per ADR-0015 — Bridge token encryption at rest)
 - Scalability: NFR-15, NFR-16, NFR-17
 - Reliability: NFR-18, NFR-19, NFR-20, NFR-21
 - Accessibility: NFR-22, NFR-23, NFR-24
 - Observability: NFR-25, NFR-26, NFR-27
-- Integration: NFR-28, NFR-29, NFR-30
+- Integration: NFR-28, NFR-29, NFR-30, NFR-32, NFR-33 (NFR-32/33 added 2026-05-25 per ADR-0015 — SCA refresh + Bridge webhook signature)
 
-**Total:** 30 NFRs.
+**Total:** 33 NFRs (30 original + 3 added 2026-05-25 per ADR-0015).
 
 ### Additional Requirements
 
@@ -103,25 +103,29 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 | FR-57 | 7-3-hypothesis-domain         | 7    |
 | FR-58 | 7-3-hypothesis-domain         | 7    |
 | FR-59 | 7-4-hypothesis-comparison-ui  | 7    |
+| FR-60 | 5-6-bridge-connector          | 5    |
+| FR-61 | 5-6-bridge-connector          | 5    |
+| FR-62 | 5-7-bridge-ui                 | 5    |
+| FR-63 | 5-7-bridge-ui                 | 5    |
 
-**Coverage:** 59/59 FRs owned by exactly one story. No orphans, no multi-cover.
+**Coverage:** 63/63 FRs owned by exactly one story. No orphans, no multi-cover. (FR-60/61 owned by 5-6-bridge-connector ; FR-62/63 owned by 5-7-bridge-ui ; both added 2026-05-25 per ADR-0015.)
 
 ## File Structure Design (epic-level)
 
-| Epic | Path prefix(es)                                                                                                                                                                                                                                                    | Single responsibility                                                              | Inputs → Outputs                                                                                                                 |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | `packages/{zod,types,validators,contracts,tsconfig,oxlint-config,ui}/`, `apps/api/src/{bootstrap,platform,database,common}/`, `.github/workflows/`, lefthook                                                                                                       | Workspace primitives + Elysia runtime + Prisma layer + CI/CD + DS migration        | brownfield types/schemas → importable `@pekulo/*` + HTTP server + PR check matrix                                                |
-| 1    | `apps/api/src/modules/{compass,milestones}/`, `apps/web/src/app/(cap)/{dashboard,parametres}/_components/compass-*`, `apps/api/src/common/derive/compass-progress.ts`                                                                                              | Target-capital + horizon + intermediate steps + status compute                     | Prisma `Hypothesis` + `CompassHistory` + `Milestone` → oRPC `/compass`, `/milestones` + Cap view fragments                       |
-| 2    | `apps/api/src/modules/accounts/`, `apps/web/src/app/(cap)/parametres/_components/accounts-*`                                                                                                                                                                       | Account CRUD + balance log + Patrimoine tab                                        | Prisma `Account`, `AccountBalanceLog` → oRPC `/accounts/*` + settings/dashboard?tab=patrimoine fragments                         |
-| 3    | `apps/api/src/modules/holdings/` (+ `services/{prices,yahoo,boursorama,twelve-data,frankfurter}-client.ts` + `holdings.cache.ts`), `apps/api/src/common/derive/{portfolio-fx,holding-quantity,holding-pnl}.ts`, `apps/web/src/app/(cap)/portefeuille/_components/` | Holdings + lots + 4-tier price chain + FX + crypto enum                            | Prisma `Holding`, `HoldingLot` + external providers → oRPC `/holdings/*` + portefeuille screen                                   |
-| 4    | `apps/api/src/modules/realestate/`, `apps/api/src/common/derive/{rental-cashflow,property-equity}.ts`, `apps/web/src/app/(cap)/immobilier/_components/`                                                                                                            | Properties + mortgage + rental + valuation history                                 | Prisma `RealEstate`, `RealEstateMortgage`, `RealEstateRental`, `RealEstateValuation` → oRPC `/realestate/*` + immobilier screen  |
-| 5    | `apps/api/src/modules/{transactions,monthly}/`, `apps/api/src/common/derive/{transfer-rule,monthly-aggregates}.ts`, `apps/web/src/app/(cap)/{transactions,mensuel}/_components/`                                                                                   | Transaction CRUD + CSV import + transfer detection + monthly aggregates + sign-off | Prisma `Transaction`, `MonthlyRecord` → oRPC `/transactions/*`, `/monthly/*` + transactions + mensuel screens                    |
-| 6    | `apps/api/src/modules/llm/` (+ `providers/{ollama,third-party,foundation-models}-client.ts` + `llm-prompt-builder.ts`), `apps/web/src/lib/llm/attest-queue.ts`, `apps/web/src/app/(cap)/{parametres,transactions}/_components/{llm,suggestion}-*`                  | LLM routing + categorisation + per-call audit + opt-in guard + AI transparency     | Prisma `LlmCallLog`, `LlmOptIn` + provider endpoints → oRPC `/llm/*` + suggestion UI + activity log + opt-in toggle              |
-| 7    | `apps/api/src/modules/{dashboard,hypothesis}/` (+ `derive/projection-curve.ts`), `apps/web/src/app/(cap)/dashboard/_components/`                                                                                                                                   | Cross-domain aggregator + total wealth + projection comparison                     | compass + accounts + holdings + realestate + hypothesis → oRPC `/dashboard/*`, `/hypothesis/*` + Cap layout + Hypothèse card     |
-| 8    | `apps/web/src/app/(auth)/{login,signup,recover}/`, `apps/api/src/modules/{auth,settings}/`, `apps/web/src/lib/stores/{theme,lang}-store.ts`, `apps/web/src/app/(cap)/parametres/_components/{theme,lang}-*`                                                        | Auth flows + theme/lang preferences                                                | Supabase Auth + Prisma `UserPref` → session + persisted preferences                                                              |
-| 9    | `apps/web/src/app/manifest.ts`, `apps/web/src/sw.ts`, `apps/web/public/icons/`, `apps/web/src/components/install-prompt.tsx`                                                                                                                                       | PWA install affordance + offline read-only cache                                   | app metadata + last-snapshot per route → install prompt + Lighthouse PWA ≥90 + offline fallback                                  |
-| 10   | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx`, `apps/mobile/`, `.maestro/`                                                                                                                                                                           | Visual parity web ↔ mobile (V1.5)                                                  | `@pekulo/ui` components + oRPC client → snapshot artefacts + V1.5 mobile build                                                   |
-| 11   | `apps/api/src/modules/settings/{exportData,deleteAccount}.ts`, `docs/exports/schema-v1.json`, `docs/security.md`, axe + RLS-audit gates in `.github/workflows/pr.yml`, GlitchTip OTLP                                                                              | Pre-(b) public-ramp readiness — GDPR + a11y + ops hardening                        | per-user data + Supabase tier + codebase → JSON export + cascade deletion + failing CI on regressions + structured error capture |
+| Epic | Path prefix(es)                                                                                                                                                                                                                                                                                                                                                                                                       | Single responsibility                                                                                          | Inputs → Outputs                                                                                                                                                                      |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | `packages/{zod,types,validators,contracts,tsconfig,oxlint-config,ui}/`, `apps/api/src/{bootstrap,platform,database,common}/`, `.github/workflows/`, lefthook                                                                                                                                                                                                                                                          | Workspace primitives + Elysia runtime + Prisma layer + CI/CD + DS migration                                    | brownfield types/schemas → importable `@pekulo/*` + HTTP server + PR check matrix                                                                                                     |
+| 1    | `apps/api/src/modules/{compass,milestones}/`, `apps/web/src/app/(cap)/{dashboard,parametres}/_components/compass-*`, `apps/api/src/common/derive/compass-progress.ts`                                                                                                                                                                                                                                                 | Target-capital + horizon + intermediate steps + status compute                                                 | Prisma `Hypothesis` + `CompassHistory` + `Milestone` → oRPC `/compass`, `/milestones` + Cap view fragments                                                                            |
+| 2    | `apps/api/src/modules/accounts/`, `apps/web/src/app/(cap)/parametres/_components/accounts-*`                                                                                                                                                                                                                                                                                                                          | Account CRUD + balance log + Patrimoine tab                                                                    | Prisma `Account`, `AccountBalanceLog` → oRPC `/accounts/*` + settings/dashboard?tab=patrimoine fragments                                                                              |
+| 3    | `apps/api/src/modules/holdings/` (+ `services/{prices,yahoo,boursorama,twelve-data,frankfurter}-client.ts` + `holdings.cache.ts`), `apps/api/src/common/derive/{portfolio-fx,holding-quantity,holding-pnl}.ts`, `apps/web/src/app/(cap)/portefeuille/_components/`                                                                                                                                                    | Holdings + lots + 4-tier price chain + FX + crypto enum                                                        | Prisma `Holding`, `HoldingLot` + external providers → oRPC `/holdings/*` + portefeuille screen                                                                                        |
+| 4    | `apps/api/src/modules/realestate/`, `apps/api/src/common/derive/{rental-cashflow,property-equity}.ts`, `apps/web/src/app/(cap)/immobilier/_components/`                                                                                                                                                                                                                                                               | Properties + mortgage + rental + valuation history                                                             | Prisma `RealEstate`, `RealEstateMortgage`, `RealEstateRental`, `RealEstateValuation` → oRPC `/realestate/*` + immobilier screen                                                       |
+| 5    | `apps/api/src/modules/{transactions,monthly,bank-aggregator}/` (bank-aggregator/ added 2026-05-25), `apps/api/src/modules/bank-aggregator/services/bridge-client.ts` (BankProvider impl per ADR-0015), `apps/api/src/common/derive/{transfer-rule,monthly-aggregates}.ts`, `apps/web/src/app/(cap)/{transactions,mensuel}/_components/`, `apps/web/src/app/(cap)/parametres/_components/bank-connections-section.tsx` | Transaction CRUD + CSV import + transfer detection + monthly aggregates + sign-off + bank connections (Bridge) | Prisma `Transaction`, `MonthlyRecord`, `BankConnection` → oRPC `/transactions/*`, `/monthly/*`, `/bankaggregator/*` + transactions + mensuel screens + parametres connections section |
+| 6    | `apps/api/src/modules/llm/` (+ `providers/{ollama,third-party,foundation-models}-client.ts` + `llm-prompt-builder.ts`), `apps/web/src/lib/llm/attest-queue.ts`, `apps/web/src/app/(cap)/{parametres,transactions}/_components/{llm,suggestion}-*`                                                                                                                                                                     | LLM routing + categorisation + per-call audit + opt-in guard + AI transparency                                 | Prisma `LlmCallLog`, `LlmOptIn` + provider endpoints → oRPC `/llm/*` + suggestion UI + activity log + opt-in toggle                                                                   |
+| 7    | `apps/api/src/modules/{dashboard,hypothesis}/` (+ `derive/projection-curve.ts`), `apps/web/src/app/(cap)/dashboard/_components/`                                                                                                                                                                                                                                                                                      | Cross-domain aggregator + total wealth + projection comparison                                                 | compass + accounts + holdings + realestate + hypothesis → oRPC `/dashboard/*`, `/hypothesis/*` + Cap layout + Hypothèse card                                                          |
+| 8    | `apps/web/src/app/(auth)/{login,signup,recover}/`, `apps/api/src/modules/{auth,settings}/`, `apps/web/src/lib/stores/{theme,lang}-store.ts`, `apps/web/src/app/(cap)/parametres/_components/{theme,lang}-*`                                                                                                                                                                                                           | Auth flows + theme/lang preferences                                                                            | Supabase Auth + Prisma `UserPref` → session + persisted preferences                                                                                                                   |
+| 9    | `apps/web/src/app/manifest.ts`, `apps/web/src/sw.ts`, `apps/web/public/icons/`, `apps/web/src/components/install-prompt.tsx`                                                                                                                                                                                                                                                                                          | PWA install affordance + offline read-only cache                                                               | app metadata + last-snapshot per route → install prompt + Lighthouse PWA ≥90 + offline fallback                                                                                       |
+| 10   | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx`, `apps/mobile/`, `.maestro/`                                                                                                                                                                                                                                                                                                                              | Visual parity web ↔ mobile (V1.5)                                                                              | `@pekulo/ui` components + oRPC client → snapshot artefacts + V1.5 mobile build                                                                                                        |
+| 11   | `apps/api/src/modules/settings/{exportData,deleteAccount}.ts`, `docs/exports/schema-v1.json`, `docs/security.md`, axe + RLS-audit gates in `.github/workflows/pr.yml`, GlitchTip OTLP                                                                                                                                                                                                                                 | Pre-(b) public-ramp readiness — GDPR + a11y + ops hardening                                                    | per-user data + Supabase tier + codebase → JSON export + cascade deletion + failing CI on regressions + structured error capture                                                      |
 
 ## Backlog
 
@@ -693,9 +697,9 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 ## Epic 5: Transactions & monthly tracking
 
-**Goal:** Reaffirm transactions + monthly under oRPC + Prisma, add CSV import, the rule-based transfer detection (bypass LLM), and the monthly sign-off lifecycle (immutable freeze + explicit re-open). LLM categorisation lives in epic 6 — this epic covers the structural plumbing and the manual flow.
+**Goal:** Reaffirm transactions + monthly under oRPC + Prisma, add CSV import, the rule-based transfer detection (bypass LLM), the monthly sign-off lifecycle (immutable freeze + explicit re-open), AND the Bridge bank-aggregator connector + UI (added 2026-05-25 per ADR-0015 — bank-account connectivity promoted from Vision V2+ to V1 MVP). LLM categorisation lives in epic 6 — this epic covers the structural plumbing, the manual flow, and the automated bank-API flow.
 
-**Sequencing:** V1 — depends on 2-1 (accounts referenced by transactions). Parallel with epics 1, 3, 4, 6.
+**Sequencing:** V1 — depends on 2-1 (accounts referenced by transactions). Parallel with epics 1, 3, 4, 6. The bank-aggregator stories (5-6, 5-7) depend on 5-1 (transactions module + Prisma `Transaction`) being landed first so bank-pulled rows can flow into the same persistence path.
 
 #### Story 5-1-transactions-record
 
@@ -796,6 +800,50 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 - **Given** a signed month, **When** I trigger re-open and confirm, **Then** `signedOffAt` is cleared and edits resume.
 
 **Complexity:** S
+
+#### Story 5-6-bridge-connector
+
+**Ticket:** [#93](https://github.com/yabafre/pekulo/issues/93)
+**Title:** Bridge bank-aggregator connector + Prisma BankConnection + cron refresh
+
+**Depends on:** 5-1-transactions-record, 0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge
+
+**As a** Pekulo user, **I want** to connect my Société Générale and Revolut accounts to Pekulo via Bridge (OAuth + SCA), with transactions pulled automatically every N hours and deduplicated against existing rows, **so that** my daily bank flow lands in Pekulo without manual entry.
+
+**Summary:** Implement the bank-aggregator module (`apps/api/src/modules/bank-aggregator/{handler,service,repository}.ts`) + `BankProvider` interface + `BridgeProvider` implementation under `services/bridge-client.ts` (iso-pattern with holdings price clients) + Prisma `BankConnection` model (`bnk` prefix, `pgcrypto`-encrypted `access_token` + `refresh_token` columns, RLS per-row guard) + Bun-scheduled `refreshAll` task + Bridge webhook receiver mounted at `/internal/bridge/webhook` with HMAC signature verification (NFR-33). Transactions ingested by Bridge are written via `transactions.service.ts#importFromProvider` with dedup on `(provider, provider_transaction_id)`. Reference: ADR-0015.
+
+**Covered FRs:** FR-60, FR-61
+
+**Acceptance Criteria:**
+
+- **Given** a valid Bridge OAuth callback (`access_token` + `refresh_token` + `item_id`), **When** I call `initiateConnection` then complete the redirect, **Then** a `BankConnection` row is persisted with the tokens encrypted at rest via `pgcrypto` and the connection appears in `listConnections` for the user.
+- **Given** an existing `BankConnection`, **When** the cron-refresh job runs and Bridge returns 50 transactions including 10 already in Pekulo, **Then** only the 40 new transactions are persisted (dedup on `provider_transaction_id`) and the `transactions.service.ts#categorise` pipeline runs on the new rows.
+- **Given** an inbound Bridge webhook with an invalid HMAC signature, **When** the receiver processes it, **Then** the request is rejected with a 401 within 100 ms (NFR-33) and no `BankConnection` row mutates.
+- **Given** a Prisma query against `BankConnection`, **When** the oRPC handler returns the row to the client, **Then** the `access_token` and `refresh_token` columns are stripped by the DTO mapper (verified by a unit test) — NFR-31 enforcement.
+
+**Complexity:** L
+
+#### Story 5-7-bridge-ui
+
+**Ticket:** [#94](https://github.com/yabafre/pekulo/issues/94)
+**Title:** Bridge connection UI — Connect widget redirect + settings page + SCA-expired badge
+
+**Depends on:** 5-6-bridge-connector, 0-10-pekulo-ui-migration
+
+**As a** Pekulo user, **I want** a dedicated connections section in `parametres` to add, rename, revoke, and reconnect my bank connections, with an SCA-expired badge that prompts me to re-authenticate when Bridge requires it, **so that** I can manage my bank ingestion end-to-end without leaving Pekulo.
+
+**Summary:** Implement `bank-connections-section.tsx` (parametres tab + connections list) + `bank-connect-redirect.tsx` (handles the post-OAuth callback page) + `bank-connection-row.tsx` (per-connection display with SCA badge driven by `getConnectionState`) + `bank-connection-rename-form.tsx` + `bank-connection-revoke-confirm.tsx` + `bank-reconnect-button.tsx` (triggers the SCA re-auth flow). Hooks via the oRPC client. The dashboard's compass-progress query must NOT block on bank refresh (NFR-1 budget unchanged). Reference: ADR-0015.
+
+**Covered FRs:** FR-62, FR-63
+
+**Acceptance Criteria:**
+
+- **Given** I open `parametres` → connexions, **When** I click "Connecter une banque", **Then** I am redirected to the Bridge Connect widget and on return the new connection appears in the list with status `OK`.
+- **Given** a connection whose state is `SCA_REQUIRED`, **When** I land on the connections page, **Then** the row shows the SCA-expired badge and the "Reconnecter" CTA opens the SCA re-auth flow.
+- **Given** I confirm revocation of a connection, **When** the mutation completes, **Then** Bridge token-revoke is called server-side AND the local `BankConnection` is soft-deleted AND the connection disappears from the list.
+- **Given** the dashboard renders while a bank refresh is in progress, **When** the compass-progress query fires, **Then** it returns within the NFR-1 300 ms p95 budget and is not blocked by the refresh job.
+
+**Complexity:** M
 
 ## Epic 6: LLM auto-categorisation
 

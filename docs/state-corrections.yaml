@@ -1,4 +1,73 @@
 corrections:
+  - date: "2026-05-25"
+    type: "major"
+    reason: >-
+      SUPERSEDES the earlier 2026-05-25 "minor" entry on bank-aggregator
+      (which captured the deferred Powens-vs-Bridge pivot but accepted the
+      original DEFER triage). After Fred re-evaluated the persona stack
+      (Trade Republic = broker / PEA / CTO only, Société Générale + Revolut
+      = daily transactions) and pointed out the architecture + PRD were
+      intact, aped-course was re-run as a real major change: bank-account
+      connectivity is promoted from PRD Vision V2+ (line 86) / Out of Scope
+      V1/V1.5 (line 101) to V1 MVP (Phase 1 item 9). Resolves DR-9 via
+      ADR-0015 documenting Bridge as agent-of AISP. Epic 5 grows from 5 to
+      7 stories with 5-6-bridge-connector (#93) + 5-7-bridge-ui (#94).
+      Adds FR-60 / FR-61 (5-6) + FR-62 / FR-63 (5-7) to Group E, adds
+      NFR-31 (token storage encryption) to Security, NFR-32 (SCA refresh)
+      and NFR-33 (Bridge webhook HMAC) to Integration. Adds J10 User
+      Journey. Updates Compliance matrix PSD2 row, Regulatory positioning
+      PSD2 row, and Security architecture with a new Bank credentials row.
+      Powers the bank-aggregator concept file rename from
+      `.aped/.out-of-scope/bank-aggregator.md` to
+      `.aped/.out-of-scope/bank-aggregator-resolved-2026-05-25.md` per the
+      README `[U] Update` convention. Lesson captured: verify the PRD's
+      explicit position before agreeing to a user's classification challenge;
+      aped-course is the only mechanism for amending upstream artefacts.
+    artifacts_updated:
+      - "docs/adr/0015-bank-aggregator-bridge-with-provider-abstraction.md"
+      - "docs/prd.md"
+      - "docs/architecture.md"
+      - "docs/epics.md"
+      - "docs/state.yaml"
+      - "docs/triage-decision.md"
+      - ".aped/.out-of-scope/bank-aggregator-resolved-2026-05-25.md"
+      - "docs/sync-logs/github-sync-2026-05-25T04-43-09Z.json"
+    affected_stories:
+      - "5-6-bridge-connector"
+      - "5-7-bridge-ui"
+    trigger: "aped-course"
+    supersedes:
+      date: "2026-05-25"
+      reason_excerpt: "aped-triage pivot on the deferred bank-aggregator decision."
+    upstream_changes:
+      - "GitHub issues #93 (5-6-bridge-connector) + #94 (5-7-bridge-ui) created on yabafre/pekulo under milestone Epic 5"
+      - "PRD scope expanded — bank-account connectivity promoted from Vision V2+ to V1 MVP"
+      - "ADR-0015 introduced — Bridge as agent-of AISP, BankProvider abstraction"
+  - date: "2026-05-25"
+    type: "minor"
+    reason: >-
+      aped-triage pivot on the deferred bank-aggregator decision. Initial
+      pre-decided choice (Powens) was overturned after Fred challenged the call:
+      Powens requires commercial onboarding (no self-serve sandbox), a 12-24 month
+      contract, 1-5 k€ setup fee, and forum-Finary evidence shows the Trade Republic
+      connector has recurring sync bugs. Fred clarified TR is broker-only
+      (PEA / CTO) while SG + Revolut handle daily transactions — both confirmed
+      covered by Bridge (99 % of FR major banks, Revolut among the 24 supporting
+      aggregators). New pre-decided V1 stack captured for the future pickup:
+      Bridge for daily accounts + story 5-2 csv-import absorbs Trade Republic
+      + Epic 3 manual holdings already covers PEA / CTO positions. Powens
+      parked for V2 / public-ramp. V1 scope (epics 0-11) is unchanged — this
+      is purely an update to the deferred decision artefact, not a re-scoping
+      of the current sprint. Also discovered and parked during the research:
+      GoCardless Bank Account Data closed new signups since July 2025.
+    artifacts_updated:
+      - ".aped/.out-of-scope/bank-aggregator.md"
+      - "docs/triage-decision.md"
+    affected_stories: []
+    trigger: "aped-course"
+    upstream_changes:
+      - "GoCardless Bank Account Data closed new signups since July 2025 (external market shift)"
+      - "APED tooling friction: .aped/scripts/sync-state.sh append-correction rejects schema v4 (only knows v2) — entry appended directly via Edit per skill's documented fallback"
   - date: "2026-05-20"
     type: "minor"
     reason: >-

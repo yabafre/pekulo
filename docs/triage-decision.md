@@ -1,0 +1,32 @@
+# Triage Decision
+
+- **Issue**: Choix d'agrégateur bancaire (AISP) pour récupérer les transactions — Pekulo
+- **Classification**: FEATURE
+- **Priority**: HIGH (in-scope V1)
+- **Route**: Epic 5 — Transactions & monthly tracking ; stories `5-6-bridge-connector` (#93) + `5-7-bridge-ui` (#94)
+- **Evidence**:
+  - Demande utilisateur (Fred, 2026-05-25) : "pour notre produit, comment faire pour pouvoir ce connecter aux banques et recuperer les transactions ?"
+  - Recherche menée (WebSearch) : GoCardless BAD fermé aux nouveaux signups depuis 07/2025 ; Bridge × Trade Republic = connecteur défaillant (SCA quotidienne, comptes courants non récupérés) confirmé via support Bankin' ; Powens × TR = connecteur maintenu mais bugs synchro CB récurrents (forum Finary).
+  - Pivot 1 (2026-05-25, premier challenge Fred) : Powens écarté pour V1 (commercial obligé, pas si stable, friction pour 10 users) ; précision TR = broker uniquement, SG + Revolut = quotidien → Bridge devient viable.
+  - Pivot 2 (2026-05-25, second challenge Fred) : la classification DEFER initiale était factuellement correcte sur le PRD-as-written (Out of Scope V1/V1.5 ligne 101 + Vision V2+ ligne 86 + DR-9 binding requirement) mais ne servait pas le besoin produit réel ; Fred a explicitement autorisé l'amendement PRD pour promouvoir le scope V1.
+  - ADR-0015 (2026-05-25) — Bridge as agent-of AISP ; résout DR-9 ; document de référence pour l'amendement PRD et l'extension Epic 5.
+- **Scope check (final)**:
+  - Phase courante : `sprint` (cf. `docs/state.yaml`).
+  - Active epic : 5 — Transactions & monthly (cf. `sprint.active_epic`).
+  - Story 5-1 (`5-1-transactions-record`) : status `done`, mergée 2026-05-25T01:40:00Z.
+  - Stories ajoutées : `5-6-bridge-connector` (pending, depends on 5-1 done) et `5-7-bridge-ui` (pending, depends on 5-6).
+  - **In-scope V1** : confirmé après amendement PRD (Out of Scope ligne 101 transformée en note d'audit ; Vision V2+ ligne 86 réduit à wallet/exchange crypto ; MVP Phase 1 item 9 ajouté ; DR-9 résolu par référence à ADR-0015 ; FRs FR-60 à FR-63 ajoutés à Group E ; NFRs NFR-31/NFR-32/NFR-33 ajoutés ; J10 User Journey ajouté ; Compliance matrix + Regulatory positioning + Security architecture mis à jour).
+- **Outcome / artifacts created or modified**:
+  - `docs/adr/0015-bank-aggregator-bridge-with-provider-abstraction.md` (created)
+  - `docs/prd.md` (10 surgical edits — MVP item 9, Vision V2+ narrowed, Out of Scope ligne 101 transformed, Regulatory positioning, Compliance matrix, Security architecture row, DR-9 update, J10 added, Group E FRs appended, NFRs appended)
+  - `docs/architecture.md` (6 surgical edits — contracts list, domain folder, Prisma schema folder, prefixed IDs registry, mount paths, FR mapping Group E rows)
+  - `docs/epics.md` (9 surgical edits — Group E inventory, FR totals, NFR groups, NFR totals, FR coverage map rows, coverage statement, File Structure Design Epic 5 row, Epic 5 goal/sequencing, stories 5-6/5-7 added)
+  - `docs/state.yaml` (3 edits — stories 5-6/5-7 added with depends_on + tickets backfilled to #93/#94, story_count 53→55, fr_coverage 59/59→63/63 ; earlier collateral fix dev.status complete→done)
+  - `docs/state-corrections.yaml` (2 entries appended : initial 2026-05-25 minor pivot + 2026-05-25 superseding "promote to V1" entry)
+  - `docs/sync-logs/github-sync-2026-05-25T04-43-09Z.json` (created — captures the 2 ticket creations + meta context)
+  - `.aped/.out-of-scope/bank-aggregator-resolved-2026-05-25.md` (renamed from `bank-aggregator.md` per README `[U] Update` convention ; prologue added explaining the same-day reclassification)
+  - GitHub issues #93 (5-6-bridge-connector) + #94 (5-7-bridge-ui) created on yabafre/pekulo under milestone "Epic 5: Transactions & monthly tracking"
+- **Memory cross-references**:
+  - `project_pekulo_bank_aggregator_landscape.md` (auto-memory) — landscape research + final V1 choice (Bridge, Powens parked for V2).
+  - `.aped/.out-of-scope/bank-aggregator-resolved-2026-05-25.md` — historical research preserved as the input that informed ADR-0015.
+- **Lesson captured**: When the user pushes back on a triage classification, verify the PRD's explicit position before agreeing or disagreeing — the PRD is the source of truth and amending it is the explicit responsibility of `aped-course`. See `docs/state-corrections.yaml` 2026-05-25 supersede entry for the meta-correction of an earlier mid-course over-quick agreement.

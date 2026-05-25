@@ -9,7 +9,7 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.12.2
+  version: 6.12.3
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 

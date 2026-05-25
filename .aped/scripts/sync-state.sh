@@ -260,16 +260,17 @@ append_correction() {
     echo "ERROR: append-correction requires \`yq\` to manipulate YAML structurally. Install yq and retry." >&2
     return 3
   fi
-  # 4.1.2 — schema-version guard. append-correction is the v2 helper. On a
-  # v1 scaffold (3.x line, never run through migrate-state.sh), the legacy
-  # top-level `corrections:` array is the source of truth — writing
-  # corrections_pointer/corrections_count alongside it would orphan the
-  # legacy entries and produce a wrong count. Refuse loudly with a hint.
+  # 4.1.2 — schema-version guard. v1 keeps the legacy top-level `corrections:`
+  # array; writing corrections_pointer/corrections_count alongside would orphan
+  # the legacy entries and produce a wrong count. v2 introduced the pointer +
+  # sister file, and v3/v4 preserved that exact shape (the v2→v3 and v3→v4
+  # migrations didn't touch corrections). 6.12.3 widens the guard from "v2 only"
+  # to "v2+" — anything in KNOWN_SCHEMA_VERSIONS except v1 uses the same writer.
   local schema_v
   schema_v=$(yq eval '.schema_version // 1' "$STATE_FILE" 2>/dev/null || echo 1)
   schema_v=${schema_v%.0}
-  if [[ "$schema_v" != "2" ]]; then
-    echo "ERROR: append-correction requires state.yaml schema v2 (current: v$schema_v). Run \`bash $(dirname "$0")/migrate-state.sh\` to migrate first, or — on legacy 3.x scaffolds — append directly to the top-level \`corrections:\` array in state.yaml until you upgrade." >&2
+  if [[ "$schema_v" == "1" ]]; then
+    echo "ERROR: append-correction requires state.yaml schema v2 or later (current: v$schema_v). Run \`bash $(dirname "$0")/migrate-state.sh\` to migrate first, or — on legacy 3.x scaffolds — append directly to the top-level \`corrections:\` array in state.yaml until you upgrade." >&2
     return 3
   fi
   # Validate JSON shape via node (always available — APED ships as a Node CLI).
