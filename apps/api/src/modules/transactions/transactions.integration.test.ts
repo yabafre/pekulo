@@ -426,5 +426,17 @@ describe("transactions HTTP boundary (AC-11)", () => {
       const res = await call("importCsv", { rows: [] }, token);
       expect(res.status).toBe(400);
     });
+
+    // aped-review N5 — importCsv overflow boundary. The validator's
+    // .max(1000) covers AC-7's upper-boundary claim ("Boundary verified at
+    // 1 / 0 / 1000 / 1001"); locking it with an HTTP-level test prevents a
+    // future schema relaxation from silently shipping a 1001-row payload.
+    test("returns 400 (Zod) when rows length exceeds 1000", async () => {
+      const token = await signFor(USER_A);
+      probeExists = true;
+      const rows = Array.from({ length: 1001 }, () => sampleCsvRow());
+      const res = await call("importCsv", { rows }, token);
+      expect(res.status).toBe(400);
+    });
   });
 });
