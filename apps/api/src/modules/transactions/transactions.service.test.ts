@@ -39,7 +39,7 @@ const makeRepoMock = (over: Partial<TransactionsRepository> = {}): TransactionsR
     })),
     // 5-3 additions — default no-op stubs ; tests that need behaviour override.
     findTransferPairCandidates: mock(async () => []),
-    pairAsTransfer: mock(async () => undefined),
+    pairAsTransfer: mock(async () => ({ paired: 2 })),
     unpairAfterDelete: mock(async () => undefined),
     ...over,
   }) as TransactionsRepository;
@@ -276,6 +276,60 @@ describe("transactionsService", () => {
         code: "TRANSACTION_FAILED",
       });
     });
+
+    // AC-3 (verbatim from story 5-3-transfer-rule.md:21):
+    //   the 2 paired rows land with category=transfer, transferPairId=<same
+    //   tp_… id>, the 2 non-paired rows keep category=autre, transferPairId=
+    //   null. Categorisation runs AFTER the bulk insert commits, sequentially
+    //   per row.
+    test("AC-3 — importCsv runs categoriseAfterCreate per row after bulkCreate commits", async () => {
+      const outflowRow = {
+        ...sampleTx,
+        id: "tx_bulkoutxxxxxxxxxxxxx",
+        accountId: "acc_aaa111111111111111111",
+        type: "outflow" as const,
+        category: "autre" as const,
+      };
+      const inflowRow = {
+        ...sampleTx,
+        id: "tx_bulkinxxxxxxxxxxxxxx",
+        accountId: "acc_bbb222222222222222222",
+        type: "inflow" as const,
+        category: "autre" as const,
+      };
+      const bulkMock = mock(async () => ({ persisted: 2, rows: [outflowRow, inflowRow] }));
+      // findTransferPairCandidates: row 1 (outflow) sees no sibling yet —
+      // its post-commit categorise finds the empty list. Row 2 (inflow) sees
+      // row 1 as its sibling. Sequential per-row contract.
+      const findPairMock = mock(async () => [outflowRow])
+        .mockImplementationOnce(async () => [])
+        .mockImplementationOnce(async () => [outflowRow]);
+      const pairMock = mock(async () => ({ paired: 2 }));
+      const svc = createTransactionsService({
+        repository: makeRepoMock({
+          bulkCreate: bulkMock,
+          findTransferPairCandidates: findPairMock,
+          pairAsTransfer: pairMock,
+        }),
+        accountOwnershipProbe: makeProbe(true),
+        accountResolver: makeResolver(),
+      });
+      const out = await svc.importCsv("u_a", {
+        rows: [
+          { ...sampleCsvRow, label: "out", type: "outflow", amount: 120 },
+          { ...sampleCsvRow, label: "in", type: "inflow", amount: 120 },
+        ],
+      });
+      expect(out).toEqual({ ok: true, persisted: 2 });
+      expect(findPairMock).toHaveBeenCalledTimes(2);
+      expect(pairMock).toHaveBeenCalledTimes(1);
+      const pairCall = pairMock.mock.calls.at(0) as unknown as [string, string, string, string];
+      expect(pairCall[0]).toBe("u_a");
+      // Candidate is row 2 (inflow), sibling is row 1 (outflow).
+      expect(pairCall[1]).toBe("tx_bulkinxxxxxxxxxxxxxx");
+      expect(pairCall[2]).toBe("tx_bulkoutxxxxxxxxxxxxx");
+      expect(pairCall[3]).toMatch(/^tp_[0-9A-Za-z]{21}$/);
+    });
   });
 
   // ─── 5-3 — categoriseAfterCreate ───────────────────────────────────────
@@ -292,7 +346,7 @@ describe("transactionsService", () => {
       category: "autre" as const,
     };
     const findPairMock = mock(async () => [sibling]);
-    const pairMock = mock(async () => undefined);
+    const pairMock = mock(async () => ({ paired: 2 }));
     const svc = createTransactionsService({
       repository: makeRepoMock({
         findTransferPairCandidates: findPairMock,
@@ -324,7 +378,7 @@ describe("transactionsService", () => {
   //   runs, Then it short-circuits at the eligibility check.
   test("AC-4 — categoriseAfterCreate short-circuits when category !== 'autre'", async () => {
     const findPairMock = mock(async () => [{ ...sampleTx, id: "tx_siblingxxxxxxxxxxxxx" }]);
-    const pairMock = mock(async () => undefined);
+    const pairMock = mock(async () => ({ paired: 2 }));
     const svc = createTransactionsService({
       repository: makeRepoMock({
         findTransferPairCandidates: findPairMock,
@@ -350,7 +404,7 @@ describe("transactionsService", () => {
   //   user's input ; transferPairId stays null.
   test("AC-2 — categoriseAfterCreate is a no-op when no sibling matches", async () => {
     const findPairMock = mock(async () => []);
-    const pairMock = mock(async () => undefined);
+    const pairMock = mock(async () => ({ paired: 2 }));
     const svc = createTransactionsService({
       repository: makeRepoMock({
         findTransferPairCandidates: findPairMock,
@@ -368,6 +422,41 @@ describe("transactionsService", () => {
     expect(out.transferPairId).toBeNull();
     expect(findPairMock).toHaveBeenCalledTimes(1);
     expect(pairMock).not.toHaveBeenCalled();
+  });
+
+  // F6 (aped-review) — TOCTOU race guard. pairAsTransfer returning count !== 2
+  // signals a concurrent delete vaporised the sibling between the candidates
+  // lookup and the pair-stamp updateMany. The service raises
+  // TRANSACTION_PAIR_RACE so the caller can retry on a fresh scan. The
+  // createTransaction path lets it bubble (the user sees 409) ; importCsv's
+  // per-row loop swallows it via console.warn (already covered by AC-3's
+  // non-fatal contract — story Architecture > Atomic persistence).
+  test("F6 — categoriseAfterCreate raises TRANSACTION_PAIR_RACE when pairAsTransfer count !== 2", async () => {
+    const sibling = {
+      ...sampleTx,
+      id: "tx_siblingxxxxxxxxxxxxx",
+      accountId: "acc_bbb222222222222222222",
+      type: "inflow" as const,
+      category: "autre" as const,
+    };
+    const findPairMock = mock(async () => [sibling]);
+    const pairMock = mock(async () => ({ paired: 1 }));
+    const svc = createTransactionsService({
+      repository: makeRepoMock({
+        findTransferPairCandidates: findPairMock,
+        pairAsTransfer: pairMock,
+      }),
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+    });
+    await expect(
+      svc.categoriseAfterCreate("u_a", {
+        ...sampleTx,
+        type: "outflow",
+        category: "autre",
+        transferPairId: null,
+      }),
+    ).rejects.toMatchObject({ code: "TRANSACTION_PAIR_RACE" });
   });
 
   // AC-11 (verbatim from story 5-3-transfer-rule.md:37):
