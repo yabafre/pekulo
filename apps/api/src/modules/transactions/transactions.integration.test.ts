@@ -61,6 +61,13 @@ const mintId = (prefix: string) =>
 
 function makeFakeClient() {
   const rows: Row[] = [];
+  // Monotonic clock for the fake — two consecutive `new Date()` calls can
+  // land on the same millisecond, which makes (createdAt asc, id asc) FIFO
+  // tests flaky because the random `mintId` then decides the tiebreak. The
+  // counter bumps createdAt by 1 ms per insert so order-of-insertion is
+  // strictly preserved.
+  let monotonicMs = Date.now();
+  const nextCreatedAt = () => new Date((monotonicMs += 1));
   // Story 5-2 — $transaction wrapper. Snapshot rows pre-callback, restore on
   // throw so the bulk-insert rollback assertion is honest (matches Prisma's
   // interactive-tx semantics). Explicit `: any` on $transaction breaks the
@@ -92,7 +99,7 @@ function makeFakeClient() {
           isImprevu: data.isImprevu ?? false,
           notes: data.notes ?? null,
           transferPairId: data.transferPairId ?? null,
-          createdAt: new Date(),
+          createdAt: nextCreatedAt(),
           updatedAt: new Date(),
         };
         rows.push(row);
