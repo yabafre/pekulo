@@ -22,6 +22,7 @@ const sampleTx = {
   category: "courses" as const,
   isImprevu: false,
   notes: null,
+  transferPairId: null,
   createdAt: "2026-05-15T10:00:00.000Z",
 };
 
@@ -32,7 +33,14 @@ const makeRepoMock = (over: Partial<TransactionsRepository> = {}): TransactionsR
     update: mock(async () => ({ outcome: "ok", transaction: sampleTx }) as UpdateOutcome),
     delete: mock(async () => ({ deleted: true })),
     listByUser: mock(async () => ({ items: [sampleTx], nextCursor: null })),
-    bulkCreate: mock(async (_u: string, rows: unknown[]) => ({ persisted: rows.length })),
+    bulkCreate: mock(async (_u: string, rows: unknown[]) => ({
+      persisted: rows.length,
+      rows: rows.map((_, i) => ({ ...sampleTx, id: `tx_bulk${i}aaaaaaaaaaaaaaaa`.slice(0, 24) })),
+    })),
+    // 5-3 additions — default no-op stubs ; tests that need behaviour override.
+    findTransferPairCandidates: mock(async () => []),
+    pairAsTransfer: mock(async () => undefined),
+    unpairAfterDelete: mock(async () => undefined),
     ...over,
   }) as TransactionsRepository;
 
@@ -268,5 +276,132 @@ describe("transactionsService", () => {
         code: "TRANSACTION_FAILED",
       });
     });
+  });
+
+  // ─── 5-3 — categoriseAfterCreate ───────────────────────────────────────
+  // AC-1 (verbatim from story 5-3-transfer-rule.md:17, excerpt):
+  //   the service detects the pair, generates a fresh tp_<21-char-base62> id,
+  //   and the repository updates BOTH rows so category=transfer,
+  //   transferPairId=<the same tp_… id>.
+  test("AC-1 — categoriseAfterCreate pairs both rows when a sibling matches", async () => {
+    const sibling = {
+      ...sampleTx,
+      id: "tx_siblingxxxxxxxxxxxxx",
+      accountId: "acc_bbb222222222222222222",
+      type: "inflow" as const,
+      category: "autre" as const,
+    };
+    const findPairMock = mock(async () => [sibling]);
+    const pairMock = mock(async () => undefined);
+    const svc = createTransactionsService({
+      repository: makeRepoMock({
+        findTransferPairCandidates: findPairMock,
+        pairAsTransfer: pairMock,
+      }),
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+    });
+    const out = await svc.categoriseAfterCreate("u_a", {
+      ...sampleTx,
+      type: "outflow",
+      category: "autre",
+      transferPairId: null,
+    });
+    expect(out.category).toBe("transfer");
+    expect(out.transferPairId).toMatch(/^tp_[0-9A-Za-z]{21}$/);
+    expect(pairMock).toHaveBeenCalledTimes(1);
+    const pairCall = pairMock.mock.calls.at(0) as unknown as [string, string, string, string];
+    expect(pairCall[0]).toBe("u_a");
+    expect(pairCall[1]).toBe(sampleTx.id);
+    expect(pairCall[2]).toBe("tx_siblingxxxxxxxxxxxxx");
+    // `toMatch` above proved transferPairId is a string — non-null-assert here.
+    expect(pairCall[3]).toBe(out.transferPairId!);
+  });
+
+  // AC-4 (verbatim from story 5-3-transfer-rule.md:23):
+  //   Given Alex creates a transaction with category=loyer and a sibling on
+  //   the other account would otherwise match, When categoriseAfterCreate
+  //   runs, Then it short-circuits at the eligibility check.
+  test("AC-4 — categoriseAfterCreate short-circuits when category !== 'autre'", async () => {
+    const findPairMock = mock(async () => [{ ...sampleTx, id: "tx_siblingxxxxxxxxxxxxx" }]);
+    const pairMock = mock(async () => undefined);
+    const svc = createTransactionsService({
+      repository: makeRepoMock({
+        findTransferPairCandidates: findPairMock,
+        pairAsTransfer: pairMock,
+      }),
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+    });
+    const out = await svc.categoriseAfterCreate("u_a", {
+      ...sampleTx,
+      category: "loyer",
+      transferPairId: null,
+    });
+    expect(out.category).toBe("loyer");
+    expect(out.transferPairId).toBeNull();
+    expect(findPairMock).not.toHaveBeenCalled();
+    expect(pairMock).not.toHaveBeenCalled();
+  });
+
+  // AC-2 (verbatim from story 5-3-transfer-rule.md:19):
+  //   Given an outflow for A with no inflow sibling that matches, When
+  //   createTransaction runs, Then the transaction's category stays as the
+  //   user's input ; transferPairId stays null.
+  test("AC-2 — categoriseAfterCreate is a no-op when no sibling matches", async () => {
+    const findPairMock = mock(async () => []);
+    const pairMock = mock(async () => undefined);
+    const svc = createTransactionsService({
+      repository: makeRepoMock({
+        findTransferPairCandidates: findPairMock,
+        pairAsTransfer: pairMock,
+      }),
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+    });
+    const out = await svc.categoriseAfterCreate("u_a", {
+      ...sampleTx,
+      category: "autre",
+      transferPairId: null,
+    });
+    expect(out.category).toBe("autre");
+    expect(out.transferPairId).toBeNull();
+    expect(findPairMock).toHaveBeenCalledTimes(1);
+    expect(pairMock).not.toHaveBeenCalled();
+  });
+
+  // AC-11 (verbatim from story 5-3-transfer-rule.md:37):
+  //   the service (a) pre-reads tx_A to discover its transferPairId, (b) calls
+  //   the repository to update the SIBLING → { category: "autre",
+  //   transferPairId: null }, (c) deletes tx_A.
+  test("AC-11 — deleteTransaction unpairs the sibling before deleting (when transferPairId is set)", async () => {
+    const findByIdMock = mock(async () => ({
+      ...sampleTx,
+      transferPairId: "tp_xxxxxxxxxxxxxxxxxxxxx",
+    }));
+    const unpairMock = mock(async () => undefined);
+    const deleteMock = mock(async () => ({ deleted: true }));
+    const svc = createTransactionsService({
+      repository: makeRepoMock({
+        findByIdForUser: findByIdMock,
+        unpairAfterDelete: unpairMock,
+        delete: deleteMock,
+      }),
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+    });
+    await svc.deleteTransaction("u_a", { id: sampleTx.id });
+    expect(unpairMock).toHaveBeenCalledTimes(1);
+    const unpairCall = unpairMock.mock.calls.at(0) as unknown as [string, string, string];
+    expect(unpairCall[0]).toBe("u_a");
+    expect(unpairCall[1]).toBe("tp_xxxxxxxxxxxxxxxxxxxxx");
+    expect(unpairCall[2]).toBe(sampleTx.id);
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    // Ordering proof: unpair invoked BEFORE delete.
+    const unpairOrder = unpairMock.mock.invocationCallOrder?.[0];
+    const deleteOrder = deleteMock.mock.invocationCallOrder?.[0];
+    if (unpairOrder !== undefined && deleteOrder !== undefined) {
+      expect(unpairOrder).toBeLessThan(deleteOrder);
+    }
   });
 });

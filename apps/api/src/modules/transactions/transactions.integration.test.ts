@@ -47,6 +47,7 @@ type Row = {
   category: string;
   isImprevu: boolean;
   notes: string | null;
+  transferPairId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -90,6 +91,7 @@ function makeFakeClient() {
           category: data.category!,
           isImprevu: data.isImprevu ?? false,
           notes: data.notes ?? null,
+          transferPairId: data.transferPairId ?? null,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -102,12 +104,37 @@ function makeFakeClient() {
         where,
         take,
       }: {
-        where: { userId: string; accountId?: string };
+        where: {
+          userId: string;
+          accountId?: string | { not: string };
+          type?: "inflow" | "outflow";
+          occurredOn?: Date;
+          amount?: number;
+          category?: string;
+          transferPairId?: string | null;
+        };
         orderBy?: unknown;
         take?: number;
       }) => {
         let out = rows.filter((r) => r.userId === where.userId);
-        if (where.accountId) out = out.filter((r) => r.accountId === where.accountId);
+        if (typeof where.accountId === "string") {
+          out = out.filter((r) => r.accountId === where.accountId);
+        } else if (where.accountId && "not" in where.accountId) {
+          const excluded = where.accountId.not;
+          out = out.filter((r) => r.accountId !== excluded);
+        }
+        if (where.type !== undefined) out = out.filter((r) => r.type === where.type);
+        if (where.occurredOn !== undefined) {
+          const target = where.occurredOn.getTime();
+          out = out.filter((r) => r.occurredOn.getTime() === target);
+        }
+        if (where.amount !== undefined) {
+          const target = where.amount;
+          out = out.filter((r) => r.amount.toNumber() === target);
+        }
+        if (where.category !== undefined) out = out.filter((r) => r.category === where.category);
+        if (where.transferPairId !== undefined)
+          out = out.filter((r) => r.transferPairId === where.transferPairId);
         out = [...out].sort(
           (a, b) => b.occurredOn.getTime() - a.occurredOn.getTime() || (a.id < b.id ? 1 : -1),
         );
@@ -117,19 +144,34 @@ function makeFakeClient() {
         where,
         data,
       }: {
-        where: { id: string; userId: string };
-        data: Partial<Row>;
+        where: {
+          userId: string;
+          id?: string | { in?: string[]; not?: string };
+          transferPairId?: string;
+        };
+        data: Partial<Row> & { transferPairId?: string | null };
       }) => {
         let count = 0;
         for (const r of rows) {
-          if (r.id === where.id && r.userId === where.userId) {
-            if (data.amount !== undefined) r.amount = { toNumber: () => Number(data.amount) };
-            if (data.label !== undefined) r.label = data.label;
-            if (data.notes !== undefined) r.notes = data.notes;
-            if (data.accountId !== undefined) r.accountId = data.accountId;
-            r.updatedAt = new Date();
-            count += 1;
+          if (r.userId !== where.userId) continue;
+          // id match supports legacy `where.id: string`, the 5-3 pair shape
+          // `where.id: { in: [...] }`, and the unpair shape `where.id: { not }`.
+          if (typeof where.id === "string") {
+            if (r.id !== where.id) continue;
+          } else if (where.id) {
+            if (where.id.in !== undefined && !where.id.in.includes(r.id)) continue;
+            if (where.id.not !== undefined && r.id === where.id.not) continue;
           }
+          if (where.transferPairId !== undefined && r.transferPairId !== where.transferPairId)
+            continue;
+          if (data.amount !== undefined) r.amount = { toNumber: () => Number(data.amount) };
+          if (data.label !== undefined) r.label = data.label;
+          if (data.notes !== undefined) r.notes = data.notes;
+          if (data.accountId !== undefined) r.accountId = data.accountId;
+          if (data.category !== undefined) r.category = data.category;
+          if (data.transferPairId !== undefined) r.transferPairId = data.transferPairId;
+          r.updatedAt = new Date();
+          count += 1;
         }
         return { count };
       },
