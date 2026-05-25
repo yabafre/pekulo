@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useActionMutation } from "@zapaction/query";
 import type { Milestone } from "@pekulo/validators";
-import { milestonesKeys } from "@/lib/zapaction/keys";
+import { milestonesKeys, milestonesTags } from "@/lib/zapaction/keys";
 import { deleteMilestone } from "../_actions/milestones-actions";
 
 // Optimistic delete. Pattern: cancel → snapshot → optimistic apply → rollback
@@ -15,6 +15,7 @@ import { deleteMilestone } from "../_actions/milestones-actions";
 export function useDeleteMilestone() {
   const queryClient = useQueryClient();
   return useActionMutation(deleteMilestone, {
+    invalidateWithTags: [milestonesTags.list()],
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: milestonesKeys.list() });
       const previous = queryClient.getQueryData<Milestone[]>(milestonesKeys.list());

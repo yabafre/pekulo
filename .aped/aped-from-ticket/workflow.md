@@ -24,7 +24,7 @@ Before any other action, read `.aped/config.yaml` and resolve:
 - This skill is for **tickets that have no entry in `epics.md` / `state.yaml` yet**. For stories already planned in the sprint, use `aped-story`.
 - The ticket system in use is determined by `ticket_system` in `.aped/config.yaml` — never assume or default.
 - If `ticket_system: none`, refuse to run with a clear message: this skill requires a configured ticket system.
-- **Provider parity is mandatory.** The skill must handle every value the APED installer offers (`linear`, `jira`, `github-issues`, `gitlab-issues`). For `linear` and `jira`, that means the corresponding MCP must be configured in the user's Claude Code; for `github-issues` and `gitlab-issues`, `gh` / `glab` CLIs must be installed and authenticated.
+- **Provider parity is mandatory.** The skill must handle every value the APED installer offers (`linear`, `jira`, `github-issues`, `gitlab-issues`, `clickup`). For `linear`, `jira`, and `clickup`, that means the corresponding MCP must be configured in the user's Claude Code; for `github-issues` and `gitlab-issues`, `gh` / `glab` CLIs must be installed and authenticated.
 - **Do not auto-chain into dev.** After the story is written, ask the user how to proceed — do not silently run `aped-dev`.
 - **Do not modify the ticket without permission.** Comment-back is opt-in via config.
 
@@ -50,7 +50,7 @@ Before any other action, read `.aped/config.yaml` and resolve:
 
 If `ticket_system == none`:
 
-> "ticket_system is set to 'none' in `.aped/config.yaml`. `aped-from-ticket` requires a configured ticket system (linear, jira, github-issues, or gitlab-issues). Reconfigure APED or use `aped-quick` instead."
+> "ticket_system is set to 'none' in `.aped/config.yaml`. `aped-from-ticket` requires a configured ticket system (linear, jira, github-issues, gitlab-issues, or clickup). Reconfigure APED or use `aped-quick` instead."
 
 HALT.
 
@@ -72,6 +72,7 @@ Before fetching, verify the toolchain for the configured `ticket_system`:
 - `gitlab-issues`: `glab auth status` must succeed → otherwise HALT with `"glab CLI not authenticated. Run 'glab auth login' first."`
 - `linear`: the Linear MCP must be available in this Claude Code session (i.e., a tool prefixed `mcp__linear` is exposed) → otherwise HALT with `"Linear MCP is not configured in Claude Code. Configure it before using aped-from-ticket."`
 - `jira`: the Atlassian/Jira MCP must be available → otherwise HALT with `"Jira/Atlassian MCP is not configured in Claude Code. Configure it before using aped-from-ticket."`
+- `clickup`: the ClickUp MCP must be available (i.e., a tool prefixed `mcp__clickup` is exposed) → otherwise HALT with `"ClickUp MCP is not configured in Claude Code. Configure it before using aped-from-ticket."`
 
 Never silently downgrade to a different provider. The user chose `ticket_system` at install — respect it.
 
@@ -86,8 +87,8 @@ bash .aped/scripts/sync-log.sh record $LOG api_calls_total 1
 
 The user passes `<ticket-id-or-url>`. Accept all of:
 
-- Bare ID: `LIN-1234`, `PROJ-42`, `#42`, `42`
-- Full URL: `https://linear.app/{team}/issue/LIN-1234/...`, `https://github.com/{owner}/{repo}/issues/42`, `https://gitlab.com/{owner}/{repo}/-/issues/42`, `https://{tenant}.atlassian.net/browse/PROJ-42`
+- Bare ID: `LIN-1234`, `PROJ-42`, `#42`, `42`, `abc12345` (ClickUp task id)
+- Full URL: `https://linear.app/{team}/issue/LIN-1234/...`, `https://github.com/{owner}/{repo}/issues/42`, `https://gitlab.com/{owner}/{repo}/-/issues/42`, `https://{tenant}.atlassian.net/browse/PROJ-42`, `https://app.clickup.com/t/{task_id}`
 
 Parsing rules:
 - If a URL is given and its host doesn't match `ticket_system`: HALT, do NOT fall back. Tell the user: `"URL host doesn't match ticket_system={ticket_system}. Reconfigure APED or pass an ID consistent with the configured provider."`
@@ -102,6 +103,7 @@ Fetch the ticket using the configured provider's tool. Capture: title, body/desc
 - `gitlab-issues`: `glab issue view {id} --output json`
 - `linear`: use the Linear MCP tool to fetch the issue by identifier
 - `jira`: use the Jira/Atlassian MCP tool to fetch the issue by key
+- `clickup`: use the ClickUp MCP tool to fetch the task by id
 
 If the fetch fails (404, permission denied, etc.): HALT and report the underlying error verbatim. Do not invent ticket content.
 
@@ -253,6 +255,7 @@ If `from_ticket.ticket_comment.enabled: true`:
   - `gitlab-issues`: `glab issue note create {id} --message "..."`
   - `linear`: Linear MCP comment tool
   - `jira`: Jira/Atlassian MCP comment tool
+  - `clickup`: ClickUp MCP comment tool
 
 If the post fails, report the error but do NOT roll back the story file — the local artefact stands on its own.
 

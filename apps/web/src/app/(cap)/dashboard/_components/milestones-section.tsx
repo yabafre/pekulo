@@ -15,6 +15,7 @@
 // page level via `AddMilestoneDialogProvider`) — the previous V0 inline
 // reveal expanded the cell and broke the bento row track.
 
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { PekuloMilestoneRow, PekuloSkeleton, Section, useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
@@ -86,7 +87,10 @@ export function MilestonesSection({
   // empty-state copy is a CTA; showing it during load would lie about
   // server state. Only show empty-state when the milestones query has
   // resolved to a verified empty array.
-  const isInitialLoading = milestonesQ.isLoading && !milestonesQ.data;
+  // Hydration guard — lessons.md 2026-05-24 (TanStack cache vs SSR).
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
+  const isInitialLoading = !isHydrated || (milestonesQ.isLoading && !milestonesQ.data);
   return (
     <Section
       ariaLabel={`Paliers (${items.length}/20)`}

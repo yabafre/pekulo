@@ -3,17 +3,19 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useActionMutation } from "@zapaction/query";
 import type { Account } from "@pekulo/validators";
-import { accountsKeys } from "@/lib/zapaction/keys";
+import { accountsKeys, accountsTags } from "@/lib/zapaction/keys";
 import { deleteAccount } from "../_actions/accounts-actions";
 
 // Optimistic delete with envelope-handling. The action returns
 // `{ ok: false, code }` as data (not an exception) for the FK-probe case;
-// onSuccess restores the row when `!result.ok`. The tag registry covers the
-// post-success invalidation path; the onMutate/onError keep the optimistic
-// UX honest under concurrent deletes.
+// onSuccess restores the row when `!result.ok`. invalidateWithTags drives
+// the post-success registry invalidation (per lessons.md 2026-05-24 —
+// action.tags is server-only); onMutate/onError keep the optimistic UX
+// honest under concurrent deletes.
 export function useDeleteAccount() {
   const queryClient = useQueryClient();
   return useActionMutation(deleteAccount, {
+    invalidateWithTags: [accountsTags.list()],
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: accountsKeys.list() });
       const previous = queryClient.getQueryData<Account[]>(accountsKeys.list());

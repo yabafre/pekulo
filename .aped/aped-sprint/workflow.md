@@ -197,7 +197,7 @@ Two paths, picked by the Setup detection. **Neither path posts `story-ready` nor
 
 ### Path A — workmux available (preferred)
 
-`workmux` creates the worktree, opens a tmux/wezterm window, launches Claude Code per the configured pane command, **and auto-injects the first prompt via `-p`**. There is no manual step per window — `aped-story` runs as soon as claude is up.
+`workmux` creates the worktree, opens a tmux/wezterm window, and launches Claude Code per the configured pane command. The Lead then writes the worktree marker and pushes `aped-story` into the pane via `workmux send` — there is no manual step per window, but the three operations are split (`add` → `write-worktree-marker.sh` → `send`) so the marker is guaranteed to exist before /aped-story reads it.
 
 If `.workmux.yaml` is missing at the repo root, bootstrap from `.aped/templates/workmux.yaml.example` before dispatching. The template copies everything the worktree needs to run Claude Code + APED end-to-end: `.env*`, `.mcp.json` (project-scoped MCPs — Linear/Stripe/etc., critical for aped-story ticket fetches), **the full `.claude/` directory** (commands, skills, settings.local.json — permissions shared across worktrees), and **the full `.aped/` directory** (APED skills, hooks, scripts, templates, config.yaml — without this the UserPromptSubmit hook fails immediately because `.aped/hooks/guardrail.sh` is missing). It symlinks `node_modules`, runs `pnpm install --frozen-lockfile` post_create, and uses `claude --permission-mode bypassPermissions` as the pane command so parallel Story Leaders don't block on approval prompts (the copied `settings.local.json` is the source of truth for permissions). Many APED users gitignore `.claude/` and `.aped/` as user-local tooling, so the copy is not redundant — it's what makes the worktree functional at all.
 
@@ -214,22 +214,34 @@ UMBRELLA=$(yq '.sprint.umbrella_branch' docs/state.yaml)
 if ! git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
   git branch "$BRANCH" "$UMBRELLA"
 fi
-workmux add "$BRANCH" -p "aped-story {story-key}"
-```
 
-No `-a` flag — the pane config (`command: claude --permission-mode bypassPermissions`) already defines how claude launches. Workmux auto-detects the built-in `claude` agent in the pane command and injects `-p` via the supported prompt-injection path (writes a prompt file, claude reads it on startup).
-
-Workmux slugifies the branch into a **handle** (`feature/KON-84-1-3-foo` → `feature-kon-84-1-3-foo`) and places the worktree at `<project>__worktrees/<handle>`. Recover the handle and path via:
-
-```bash
-HANDLE=$(workmux list --format name | grep -F "$BRANCH" | awk '{print $1}')   # or compute from slug
+# 6.12.2 — DO NOT pass `-p` here. The marker MUST exist before /aped-story
+# runs inside the worktree, otherwise step-01-init falls through to solo mode
+# and the Story Leader loses its sprint link (cf the 6.12.2 fix). Three steps:
+#   1. workmux add (creates worktree + launches claude in pane, no prompt yet)
+#   2. write-worktree-marker.sh (parity with Path B's sprint-dispatch.sh)
+#   3. workmux send (push aped-story now that the marker exists)
+workmux add "$BRANCH"
+HANDLE=$(workmux list --format name | grep -F "$BRANCH" | awk '{print $1}')
 WORKTREE=$(workmux path "$HANDLE")
+bash .aped/scripts/write-worktree-marker.sh \
+  --worktree     "$WORKTREE" \
+  --story        "{story-key}" \
+  --ticket       "{ticket-id}" \
+  --branch       "$BRANCH" \
+  --mode         parallel \
+  --project-root "$PWD"
+workmux send "$HANDLE" "aped-story {story-key}"
 ```
 
-**If a git worktree already exists for the story** (user ran `sprint-dispatch.sh` earlier, or aped-sprint was interrupted), use the recovery path:
+No `-a` flag — the pane config (`command: claude --permission-mode bypassPermissions`) already defines how claude launches. Workmux auto-detects the built-in `claude` agent in the pane command. Before 6.12.2 we used `workmux add -p "aped-story …"` to auto-inject the first prompt, but `-p` runs as soon as claude is up — there was no chance to write the worktree marker in between, so /aped-story would see no `.aped/WORKTREE` and fall through to solo mode. Splitting `add` and `send` is what makes the marker-then-prompt ordering enforceable.
+
+Workmux slugifies the branch into a **handle** (`feature/KON-84-1-3-foo` → `feature-kon-84-1-3-foo`) and places the worktree at `<project>__worktrees/<handle>`. The recovery snippets below reuse `workmux list` / `workmux path` to recover handle+worktree path when needed.
+
+**If a git worktree already exists for the story** (user ran `sprint-dispatch.sh` earlier, or aped-sprint was interrupted), use the recovery path. `sprint-dispatch.sh` writes the marker idempotently via the same helper, so the marker is guaranteed before the close+open cycle hands the pane to claude:
 
 ```bash
-# 1. Ensure the worktree exists (idempotent)
+# 1. Ensure the worktree + marker exist (sprint-dispatch.sh calls the helper)
 WORKTREE=$(bash .aped/scripts/sprint-dispatch.sh <story-key> <ticket-id>)
 HANDLE=$(basename "$WORKTREE")
 
@@ -310,7 +322,7 @@ For each successfully dispatched story:
 
 ## User Instructions
 
-**Path A (workmux)** — claude is running in each window AND `aped-story` was auto-injected via `-p`. Tell the user:
+**Path A (workmux)** — claude is running in each window AND `aped-story` was pushed via `workmux send` after the worktree marker was written. Tell the user:
 
 ```
 ▶ Dispatched 2 stories via workmux. Each Story Leader is already running
@@ -330,7 +342,7 @@ For each successfully dispatched story:
     workmux send <handle> "<prompt>"   send a prompt to a running agent
 ```
 
-**If the recovery path was used** (`close` + `open` + `send` instead of `workmux add -p`), add this line to the user instructions:
+**If the recovery path was used** (`sprint-dispatch.sh` + `close` + `open` + `send` instead of fresh `workmux add`), add this line to the user instructions:
 
 ```
   NOTE: worktrees existed, so windows were re-created via workmux close+open
@@ -372,9 +384,9 @@ For each successfully dispatched story:
 ## Next Step
 
 After dispatch, tell the user:
-> "Worktrees created and `aped-story` auto-injected into each window via workmux. Each Story Leader will draft its story file on the feature branch, commit it, post `story-ready`, and HALT. **Come back to this main session and run `aped-lead`** to approve the batch — the Lead will push `aped-dev` into each worktree via `workmux send`. As stories progress, each Story Leader will post `dev-done` and `review-done` check-ins; re-run `aped-lead` when `aped-status` shows new pending ones. Come back to `aped-sprint` to dispatch more when capacity frees up."
+> "Worktrees created, markers written, and `aped-story` pushed into each window via `workmux send`. Each Story Leader will draft its story file on the feature branch, commit it, post `story-ready`, and HALT. **Come back to this main session and run `aped-lead`** to approve the batch — the Lead will push `aped-dev` into each worktree via `workmux send`. As stories progress, each Story Leader will post `dev-done` and `review-done` check-ins; re-run `aped-lead` when `aped-status` shows new pending ones. Come back to `aped-sprint` to dispatch more when capacity frees up."
 
-**Do NOT auto-chain beyond `aped-story`.** Auto-injecting `aped-story` is fine because it IS the Story Leader's legitimate first act on its own branch (nothing is approved yet, nothing merges). The user controls `aped-dev` and `aped-review` via `aped-lead`, and `aped-ship` handles the end-of-sprint batch merge.
+**Do NOT auto-chain beyond `aped-story`.** Pushing `aped-story` as the first prompt is fine because it IS the Story Leader's legitimate first act on its own branch (nothing is approved yet, nothing merges). The user controls `aped-dev` and `aped-review` via `aped-lead`, and `aped-ship` handles the end-of-sprint batch merge.
 
 ## Completion Gate
 

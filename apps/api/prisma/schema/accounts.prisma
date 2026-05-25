@@ -12,8 +12,9 @@ model Account {
   createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
 
-  holdings   Holding[]
-  balanceLog AccountBalanceLog[]
+  holdings     Holding[]
+  balanceLog   AccountBalanceLog[]
+  transactions Transaction[]
 
   @@map("accounts")
 }

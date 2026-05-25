@@ -9,7 +9,7 @@ argument-hint: "[story-key]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.12.0
+  version: 6.12.2
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 

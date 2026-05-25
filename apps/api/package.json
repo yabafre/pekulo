@@ -12,6 +12,7 @@
     "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
+    "lint": "bun run --cwd ../.. lint",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",

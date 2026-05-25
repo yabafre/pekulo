@@ -116,6 +116,10 @@ function inMemoryService(opts?: { fkLockedIds?: ReadonlySet<string> }): AccountS
       store.set(updated.id, updated);
       return updated;
     },
+    async accountExists(userId, accountId) {
+      const a = store.get(accountId);
+      return a !== undefined && a.userId === userId;
+    },
   };
 }
 

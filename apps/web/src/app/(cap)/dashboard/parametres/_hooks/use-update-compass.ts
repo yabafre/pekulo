@@ -1,13 +1,16 @@
 "use client";
 
 import { useActionMutation } from "@zapaction/query";
+import { compassTags } from "@/lib/zapaction/keys";
 import { updateCompass } from "../../_actions/compass-actions";
 
-// Compass change moves the donut + curve + history + every milestone status
-// (linear-plan target shifted). `updateCompass.tags` carries `compassTags
-// .current()`; the registry maps that to `compassKeys.{current,setup,
-// progress,curve,history}`. Milestones list invalidation comes from the
-// downstream wire — see lib/zapaction/keys.ts for the registry mappings.
+// invalidateWithTags explicit — see lessons.md 2026-05-24 entry
+// "defineAction tags is server-only" for the SA-boundary rationale.
+// `compassTags.current()` maps in the registry to compassKeys.{current,
+// setup,progress,curve,history} + milestonesKeys.list() — one tag, full
+// downstream invalidation.
 export function useUpdateCompass() {
-  return useActionMutation(updateCompass);
+  return useActionMutation(updateCompass, {
+    invalidateWithTags: [compassTags.current()],
+  });
 }

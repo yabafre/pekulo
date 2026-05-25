@@ -18,7 +18,9 @@ import { addMilestone } from "../_actions/milestones-actions";
 // dashboard re-renders the donut + milestones-section without a manual
 // invalidate here.
 export function useAddMilestoneForm(args: { milestoneCount: number }) {
-  const mutation = useActionMutation(addMilestone);
+  const mutation = useActionMutation(addMilestone, {
+    invalidateWithTags: [milestonesTags.list()],
+  });
   return {
     submit: mutation.mutate,
     isPending: mutation.isPending,

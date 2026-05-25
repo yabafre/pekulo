@@ -10,6 +10,7 @@ import { createHoldingsModule } from "../modules/holdings/holdings.module";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
 import { createMilestonesModule } from "../modules/milestones/milestones.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
+import { createTransactionsModule } from "../modules/transactions/transactions.module";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
 
 export interface RuntimeDeps {
@@ -124,6 +125,17 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // findByIdForUser; module factory stays trivial.
   const realestateModule = createRealestateModule({ prismaService });
 
+  // Story 5-1 — transactions domain. The cross-aggregate accountId guard is
+  // injected as a narrow AccountOwnershipProbe adapter wrapping
+  // accountsModule.service.accountExists — keeps L1 conformance (no
+  // AccountsRepository type leak across modules) and avoids a wiring cycle.
+  const transactionsModule = createTransactionsModule({
+    prismaService,
+    accountOwnershipProbe: {
+      exists: (userId, accountId) => accountsModule.service.accountExists(userId, accountId),
+    },
+  });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -131,6 +143,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     accounts: accountsModule.router,
     holdings: holdingsModule.router,
     realestate: realestateModule.router,
+    transactions: transactionsModule.router,
   };
 
   return {

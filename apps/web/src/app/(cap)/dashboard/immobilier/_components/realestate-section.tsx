@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
@@ -45,7 +45,10 @@ export function RealestateSection() {
   const derives = useListPropertyDerives();
   const [createOpen, setCreateOpen] = useState(false);
 
-  const isLoading = properties.isLoading || derives.isLoading;
+  // Hydration guard — lessons.md 2026-05-24 (TanStack cache vs SSR).
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
+  const isLoading = !isHydrated || properties.isLoading || derives.isLoading;
   const isRefetching = !isLoading && (properties.isFetching || derives.isFetching);
   const error = properties.error ?? derives.error;
   const rows = useMemo(() => properties.data ?? [], [properties.data]);

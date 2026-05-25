@@ -72,6 +72,10 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   REALESTATE_NOT_FOUND: 404,
   MORTGAGE_NOT_FOUND: 404,
   RENTAL_NOT_FOUND: 404,
+  // Transactions 404 (story 5-1): cross-user probe or stale id on get / update /
+  // delete. Defense-in-depth shape: the explicit { id, userId } guard surfaces
+  // this rather than letting RLS produce a confusing P2025.
+  TRANSACTION_NOT_FOUND: 404,
   CONFLICT: 409,
   // Milestones cap (FR-3, ≤ 20/user) and missing compass (FR-8 precondition)
   // both surface as 409 — they signal a state-shape conflict, not malformed

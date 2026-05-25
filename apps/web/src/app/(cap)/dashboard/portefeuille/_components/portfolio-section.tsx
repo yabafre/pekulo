@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
@@ -119,9 +119,13 @@ const popoverActionBtnDanger: CSSProperties = {
 };
 
 export function PortfolioSection() {
-  const { data: holdings, isLoading, error } = useHoldings();
+  const { data: holdings, isLoading: queryLoading, error } = useHoldings();
   const { data: accounts } = useAccounts();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  // Hydration guard — lessons.md 2026-05-24 (TanStack cache vs SSR).
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
+  const isLoading = !isHydrated || queryLoading;
 
   const rows = holdings ?? [];
   const accountLabel = (id: string): string | null =>

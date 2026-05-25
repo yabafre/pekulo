@@ -65,6 +65,7 @@ export interface AccountRepository {
   listByUser(userId: string): Promise<Account[]>;
   findByIdForUser(userId: string, id: string): Promise<Account | null>;
   countHoldingsReferencing(userId: string, accountId: string): Promise<number>;
+  accountExistsForUser(userId: string, accountId: string): Promise<boolean>;
   recordBalanceChange(
     userId: string,
     input: RecordBalanceChangeRepoInput,
@@ -205,6 +206,14 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
       return deps.client.holding.count({
         where: { accountId, userId },
       });
+    },
+
+    async accountExistsForUser(userId, accountId) {
+      const row = await deps.client.account.findFirst({
+        where: { id: accountId, userId },
+        select: { id: true },
+      });
+      return row !== null;
     },
 
     async recordBalanceChange(userId, input) {

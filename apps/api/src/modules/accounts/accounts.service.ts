@@ -25,6 +25,7 @@ export interface AccountService {
   delete(userId: string, input: DeleteAccountInput): Promise<DeleteAccountOutput>;
   list(userId: string): Promise<Account[]>;
   recordBalanceChange(userId: string, input: RecordBalanceChangeInput): Promise<Account>;
+  accountExists(userId: string, accountId: string): Promise<boolean>;
 }
 
 export interface AccountServiceDeps {
@@ -69,6 +70,10 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
       });
       if (out.outcome === "not-found") throw accountNotFound();
       return out.account;
+    },
+
+    async accountExists(userId, accountId) {
+      return deps.repository.accountExistsForUser(userId, accountId);
     },
   };
 }
