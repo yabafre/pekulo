@@ -1,7 +1,7 @@
 # Story: 5-3-transfer-rule — Rule-based transfer detection + Transfer badge in Récentes
 
 **Epic:** Epic 5 — Transactions & monthly tracking (V1)
-**Status:** review
+**Status:** done
 **Ticket:** [#29](https://github.com/yabafre/pekulo/issues/29)
 **Branch:** `feature/29-5-3-transfer-rule`
 **Commit prefix:** `feat(#29): …`
@@ -1790,3 +1790,70 @@ a2ef2da feat(#29): T1 — add transfer_pair_id column + (user_id, transfer_pair_
 ### Visual verification
 
 T8 ships no DOM tree change — only the label string in `TRANSACTION_CATEGORY_LABELS["transfer"]` shifted. The vitest a11y test (`findByText(/⇆ Transfert/)` + axe-clean on a mounted transfer row) is the executable contract. No React Grab snapshot needed — there is no new primitive, no new variant, no new layout. Visual cross-check vs ux-preview is N/A: ux-preview's `TransactionsScreen` (App.tsx:1284) has no transfer concept yet, and the inline-caption decision was locked in step-04 per story Dev Notes > 2026-05-17 lesson. `aped-review`'s Aria persona will see the badge live during the visual review pass.
+
+> **aped-review F2 update (2026-05-25):** the dev-pass DOM-zero claim was reconciled. AC-8 verbatim prescribed the lucide `ArrowLeftRight` icon (14 px, `var(--colorTertiary)`, `aria-hidden`) — the original Dev pass shipped a Unicode `⇆` glyph baked into the label string, which (a) inherited surrounding text colour, (b) was announced by screen readers, and (c) was not the prescribed SVG. F2 ships the lucide icon for real via a new optional `categoryPrefix?: ReactNode` prop on `PekuloActivityRow` ; the label reverts to the plain `"Transfert"`. The a11y test now asserts `svg.lucide-arrow-left-right` + `aria-hidden="true"` + axe-clean. Tamagui CSS regen guard still green (no new styled primitive — just a ReactNode pass-through).
+
+## Review Record
+
+**Date:** 2026-05-25
+**Auditors:** Spec, Code, Edge & Hallucination *(Aria skipped — T8 ships no new DS primitive ; vitest a11y test + axe-clean covers the contract)*
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+
+- **[MAJOR] AC-3 — no test pinned the `importCsv` per-row `categoriseAfterCreate` loop** [`apps/api/src/modules/transactions/transactions.service.test.ts:280`]
+  - Source: Spec auditor (HIGH) + Code auditor (MEDIUM) + Edge auditor (MEDIUM) — strongest convergence
+  - Resolution: commit `c53e630` — F1 test mocks `bulkCreate` to return 2 paired rows + `findTransferPairCandidates` to return the sibling on the second invocation ; asserts `pairAsTransfer` invoked once with both ids + a `tp_…` pair-id matching `TRANSFER_PAIR_ID_REGEX`. AC-3 bulk path now executable.
+
+- **[MAJOR] AC-8 — implementation diverged from AC verbatim** (story prescribed lucide `ArrowLeftRight` icon ; dev shipped Unicode glyph baked in label string) [`apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.tsx:155-180`]
+  - Source: Code auditor (MEDIUM)
+  - Resolution: commit `5c2a914` — F2 ships the prescribed lucide icon via a new optional `categoryPrefix?: ReactNode` prop on `PekuloActivityRow` (`packages/ui/.../PekuloActivityRow.tsx`). Validators label revert : `"⇆ Transfert"` → `"Transfert"`. Recent-section injects `<ArrowLeftRight size={14} color="var(--colorTertiary)" aria-hidden />` only when `tx.category === "transfer"`. A11y test asserts `svg.lucide-arrow-left-right` + `aria-hidden="true"`. Tamagui CSS regen guard still green.
+
+- **[MAJOR] 5th sibling fixture missed** (`transactions-recent-section.envelope.test.tsx:36-47` had untyped `fixtureTx` without `transferPairId` ; Dev Deviations claimed only 4 fixtures patched) [`apps/web/.../transactions-recent-section.envelope.test.tsx:36`]
+  - Source: Code auditor (MEDIUM)
+  - Resolution: commit `25672d0` — F3 adds `transferPairId: null` to the fixture AND annotates `const fixtureTx: Transaction` so any future drift breaks the build at compile time.
+
+- **[MAJOR] Integration fake `findMany` hardcoded `(occurredOn desc, id desc)` sort — ignored every `orderBy` argument** [`apps/api/src/modules/transactions/transactions.integration.test.ts:138-141`]
+  - Source: Edge auditor (HIGH) + Code auditor (LOW)
+  - Resolution: commit `7cc775e` — F4 makes the fake honor the requested `orderBy` clauses (default mirrors the 5-1 list contract when omitted). Bundled an AC-5 HTTP-boundary test that seeds 2 unpaired outflows at distinct timestamps, creates an inflow, asserts the OLDEST outflow pairs while the younger stays `category=autre, transferPairId=null`. Boundary FIFO contract now executable. *(Follow-up `8d46d28` — F4-flaky : made the fake's `create` use a monotonic 1-ms clock so consecutive inserts get strictly increasing `createdAt` ; eliminates a 50/50 race in the AC-5 HTTP test against `mintId`'s random ids.)*
+
+- **[MINOR] AC-5 FIFO never behaviourally tested at the repository level — only the `orderBy` shape was pinned** [`apps/api/src/modules/transactions/transactions.repository.test.ts:430`]
+  - Source: Spec auditor (LOW) + Edge auditor (MEDIUM)
+  - Resolution: commit `b9bf40f` — F5 adds a repository test seeding 2 unpaired siblings at distinct `createdAt` timestamps, asserts the returned array is ordered `(createdAt asc, id asc)` so the derive picks the oldest. Pairs with F4's HTTP-boundary AC-5 test for full coverage.
+
+- **[MINOR] TOCTOU race — `pairAsTransfer` did not validate `count === 2`** (concurrent create could orphan a sibling) [`apps/api/src/modules/transactions/transactions.repository.ts:269-277` + `apps/api/src/modules/transactions/transactions.service.ts:85-94`]
+  - Source: Code auditor (LOW) + Edge auditor (MEDIUM)
+  - Resolution: commit `e4741de` — F6 ships a new `TRANSACTION_PAIR_RACE` error code (409 — added to `PEKULO_ERROR_CODES` + `ORPC_HTTP_STATUS_BY_CODE`). `pairAsTransfer` returns `{ paired: number }` ; `categoriseAfterCreateImpl` raises if `paired !== 2`. The `createTransaction` path lets it bubble to the client ; `importCsv` swallows it via `console.warn` per AC-3 non-fatal contract. Service test asserts the throw ; repository test asserts the `{ paired: 1 }` count surfaces faithfully.
+
+#### Dismissed
+
+*(none — every finding was addressed in code or documented in Forward Work)*
+
+#### Deferred (documented in story Forward Work)
+
+- **[MINOR] AC-7 cross-user test uses where-clause inspection rather than a 2-user dataset** — Spec auditor (LOW). Where-clause check is functional unit-test proof ; integration test at the HTTP boundary doesn't seed 2 users here. Not blocker-grade. *(No follow-up tracked — the lint rule `pekulo/no-prisma-query-without-user-id` + the where-clause assertion together pin the contract.)*
+- **[NIT] Pair-detection covering index for high-volume CSV imports** — Code auditor. Documented in Forward Work. Defer until a real workload reveals slow imports (V1 (a) personal volume ≤ ~200 rows).
+- **[NIT] `console.warn` non-fatal log for categorise failures should become structured log in V2** — Code auditor. Documented in Forward Work.
+- **[NIT] `transactionsMock` strong typing** — Edge auditor. Documented in Forward Work — `vi.fn<typeof useTransactions>()` would catch hook-signature drift at compile time.
+
+### Verification
+
+- **Test command:** `bun --filter='@pekulo/api' run test` (× 3 runs for stability)
+- **Test output (final pass):** `505 pass / 0 fail / 1242 expect() calls` (was 500 / 0 baseline at story handoff — +5 from F1, F4 HTTP test, F5, F6 service throw, F6 repo race-count)
+- **Full Iron Law re-run post-fixes:**
+  - `bun --filter='@pekulo/api' run lint` → 0 errors / 2 warnings (intentional sequential-awaits, unchanged from story baseline)
+  - `bun --filter='@pekulo/api' run typecheck` → 0 errors
+  - `bun --filter='@pekulo/validators' run typecheck` → 0 errors
+  - `bun --filter='@pekulo/web' run typecheck` → 0 errors
+  - `bun --filter='@pekulo/ui' run test:axe` → 95 pass / 99 skipped / 0 violations
+  - `git diff --exit-code -- packages/ui/public/tamagui.generated.css` → clean
+  - AC-10 grep guard on `transfer-rule.ts` → empty (exit 1 = no forbidden tokens)
+- **Visual verification:** vitest a11y test asserts `svg.lucide-arrow-left-right` rendered + `aria-hidden="true"` + axe-clean on a mounted transfer row (`transactions-recent-section.a11y.test.tsx:104-106`). Aria persona skipped per setup decision — no new DS primitive ships ; the executable contract is the a11y test.
+
+### Ticket sync
+
+- **Ticket comment posted:** https://github.com/yabafre/pekulo/issues/29#issuecomment-4535280053
+- **PR opened:** https://github.com/yabafre/pekulo/pull/97 (base `main`, head `feature/29-5-3-transfer-rule`)
+- **Commits authored by aped-review (8):** `25672d0` F3 · `b9bf40f` F5 · `c53e630` F1 · `7cc775e` F4 · `e4741de` F6 · `5c2a914` F2 · `81f41c3` F7 · `8d46d28` F4-flaky
