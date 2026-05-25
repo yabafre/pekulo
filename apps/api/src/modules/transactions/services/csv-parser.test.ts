@@ -1,8 +1,10 @@
 // apps/api/src/modules/transactions/services/csv-parser.test.ts
 // Coverage for parseCsvForPreview (story 5-2). Uses bun:test (apps/api).
-// 11 cases — AC-1 (parse + type inference), AC-2 (PAYLOAD_TOO_LARGE + boundary),
+// AC-1 (parse + type inference), AC-2 (PAYLOAD_TOO_LARGE + boundary),
 // AC-3 (INVALID_CSV), AC-4 (unknown account), AC-5 (ambiguous), plus per-row
-// guards (date/amount/label) and cross-user resolver isolation.
+// guards (date/amount/label), locale-aware amount parsing (FR comma decimal +
+// thousand separators per aped-review M2/N3), leap-year happy path (N4),
+// scientific-notation rejection (N3), and cross-user resolver isolation.
 
 import { describe, expect, it } from "bun:test";
 import { PekuloError } from "../../../common/errors";
@@ -184,6 +186,73 @@ describe("parseCsvForPreview", () => {
       accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
     });
     expect(out.rows[0]!.error).toContain("Montant invalide");
+  });
+
+  // FR decimal comma (quoted to escape the field separator) — Trade Republic
+  // and other FR bank exports use "," as the decimal mark. AC review M2.
+  it("accepts FR comma decimal when the field is quoted", async () => {
+    const csvText = '2026-05-01,"1,50",Test,Compte courant';
+    const out = await parseCsvForPreview({
+      csvText,
+      userId: "user-A",
+      accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
+    });
+    expect(out.summary).toEqual({ total: 1, valid: 1, invalid: 0 });
+    expect(out.rows[0]!.parsed?.amount).toBe(1.5);
+    expect(out.rows[0]!.parsed?.type).toBe("inflow");
+  });
+
+  // Whitespace thousands separator — common in FR exports ("1 200.50").
+  // csv-parse preserves internal whitespace, parseAmountString strips it.
+  it("accepts whitespace thousand separators in amount", async () => {
+    const csvText = "2026-05-01,1 200.50,Test,Compte courant";
+    const out = await parseCsvForPreview({
+      csvText,
+      userId: "user-A",
+      accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
+    });
+    expect(out.summary.valid).toBe(1);
+    expect(out.rows[0]!.parsed?.amount).toBe(1200.5);
+  });
+
+  // US-style thousands separator + decimal dot — needs quoting because the
+  // comma collides with the field separator.
+  it('accepts US thousands "1,200.50" when quoted', async () => {
+    const csvText = '2026-05-01,"1,200.50",Test,Compte courant';
+    const out = await parseCsvForPreview({
+      csvText,
+      userId: "user-A",
+      accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
+    });
+    expect(out.summary.valid).toBe(1);
+    expect(out.rows[0]!.parsed?.amount).toBe(1200.5);
+  });
+
+  // Scientific notation must be rejected — real CSVs never carry "1e3", and
+  // accepting it would silently coerce hostile or typo input to 1000.
+  it("rejects scientific notation as row-level invalid", async () => {
+    const csvText = "2026-05-01,1e3,Test,Compte courant";
+    const out = await parseCsvForPreview({
+      csvText,
+      userId: "user-A",
+      accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
+    });
+    expect(out.summary.invalid).toBe(1);
+    expect(out.rows[0]!.error).toContain("Montant invalide");
+  });
+
+  // Leap-year happy path — the day-out-of-month guard relies on Date
+  // round-trip equality. Lock 2024-02-29 as accepted to prevent future regen
+  // logic from rejecting valid leap days.
+  it("accepts a leap-year date (2024-02-29)", async () => {
+    const csvText = "2024-02-29,42.50,Test,Compte courant";
+    const out = await parseCsvForPreview({
+      csvText,
+      userId: "user-A",
+      accountResolver: singleAccountResolver("Compte courant", ACCOUNT_ID_VALID),
+    });
+    expect(out.summary).toEqual({ total: 1, valid: 1, invalid: 0 });
+    expect(out.rows[0]!.parsed?.occurredOn).toBe("2024-02-29");
   });
 
   it("marks empty label as row-level invalid", async () => {

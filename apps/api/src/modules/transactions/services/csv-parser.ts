@@ -23,6 +23,32 @@ export const MAX_CSV_ROWS = 1000;
 
 const ISO_DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
+// Strict numeric parser for CSV amount fields.
+// Accepts:
+//   - ISO/US decimal:        "42.50", "-1200.00", "+3500"
+//   - FR comma decimal:      "1,50"          (Trade Republic / FR bank exports)
+//   - Whitespace thousands:  "1 200.50", "1 200,50"
+//   - US comma thousands:    "1,200.50", "1,000,000.50"
+// Rejects: scientific notation ("1e3"), Infinity/NaN passthrough, multi-dot,
+// trailing/leading dot, mixed unparseable input. Returns null on reject —
+// callers map null to a row-level INVALID error.
+function parseAmountString(raw: string): number | null {
+  const stripped = raw.replace(/\s+/g, "");
+  if (stripped.length === 0) return null;
+  let normalized = stripped;
+  if (/^[+-]?\d+,\d+$/.test(stripped)) {
+    // Single comma, no dot — FR decimal.
+    normalized = stripped.replace(",", ".");
+  } else if (/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(stripped)) {
+    // US thousands: 1,234 or 1,234.56 or 1,000,000.50.
+    normalized = stripped.replace(/,/g, "");
+  } else if (!/^[+-]?\d+(\.\d+)?$/.test(stripped)) {
+    return null;
+  }
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
 export interface AccountResolver {
   resolve(userId: string, label: string): Promise<{ id: string | null; matchCount: number }>;
 }
@@ -104,9 +130,9 @@ export async function parseCsvForPreview(
       continue;
     }
 
-    const amountNum = Number(raw.amountRaw);
-    if (!Number.isFinite(amountNum) || amountNum === 0) {
-      rowError("Montant invalide (doit être un nombre fini non nul)");
+    const amountNum = parseAmountString(raw.amountRaw);
+    if (amountNum === null || amountNum === 0) {
+      rowError("Montant invalide (utilisez . ou , comme séparateur décimal, valeur non nulle)");
       continue;
     }
 
