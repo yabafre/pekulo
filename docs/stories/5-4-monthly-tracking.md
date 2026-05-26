@@ -16,15 +16,15 @@
 
 - **AC-1 (FR-37, FR-38 — derive returns the four aggregates):** **Given** user A has 30 categorised transactions for May 2026 across two accounts — an `inflow` of 3 700 € (`category=salaire`), an `inflow` of 243 € (`category=bonus`), several `outflow`s totalling 2 100 € across `category ∈ {loyer, courses, transport, sorties, voyage, sante, imprevu, autre}`, AND ONE paired transfer (500 € `outflow` from `acc_aaa…` + 500 € `inflow` on `acc_bbb…`, both `category=transfer` with the same `transferPairId`), **When** A calls `getMonthly({year: 2026, monthNum: 5})` on a user **without** any persisted `MonthlyRecord` for that month, **Then** the response is `{ source: "derived", record: { year: 2026, monthNum: 5, incomeEur: 3943, spendingEur: 2100, transfersEur: 500, netChangeEur: 1843, signedOffAt: null } }`. Derive contract — `incomeEur = Σ(type='inflow' ∧ category != 'transfer')`, `spendingEur = Σ(type='outflow' ∧ category != 'transfer')`, `transfersEur = Σ(type='outflow' ∧ category='transfer')` (outflow leg only, no double-count), `netChangeEur = incomeEur - spendingEur`.
 
-- **AC-2 (FR-38 — override persists, re-read returns persisted):** **Given** the user is at the derived defaults (AC-1), **When** A submits `upsertMonthly({year: 2026, monthNum: 5, incomeEur: 3943, spendingEur: 2500, transfersEur: 500, netChangeEur: 1443})` (overriding `spendingEur` 2100 → 2500 and `netChangeEur` 1843 → 1443), **Then** a row is created in `monthly_records` with `id=mr_<21-char-base62>, userId=<A>, year=2026, monthNum=5, incomeEur=3943, spendingEur=2500, transfersEur=500, netChangeEur=1443, signedOffAt=null`. The subsequent `getMonthly({year: 2026, monthNum: 5})` returns `{ source: "persisted", record: <the row above> }` — the derive does NOT run.
+- **AC-2 (FR-38 — `upsertMonthly` API persists, re-read returns persisted) — V1 scope: API-ready for 5-5.** **Given** the user is at the derived defaults (AC-1), **When** the `upsertMonthly` endpoint is called server-side with `{year: 2026, monthNum: 5, incomeEur: 3943, spendingEur: 2500, transfersEur: 500, netChangeEur: 1443}`, **Then** a row is created in `monthly_records` with `id=mr_<21-char-base62>, userId=<A>, year=2026, monthNum=5, incomeEur=3943, spendingEur=2500, transfersEur=500, netChangeEur=1443, signedOffAt=null`. The subsequent `getMonthly({year: 2026, monthNum: 5})` returns `{ source: "persisted", record: <the row above> }` — the derive does NOT run. **5-4 V1 scope (aped-review 2026-05-26 — recadrage AC-2 / Alex sign-off).** The `/mensuel` proto is **read-only** during the in-progress month. The user-facing override path (`MonthlyForm` + `useUpsertMonthly` hook + `upsertMonthly` server action) is **descoped to story 5-5** where it lands inside the close-of-month flow (the override is the value the user signs off on at close, not a free-form edit on the in-progress month). 5-4 ships the endpoint + integration coverage only — see "Spinoff into 5-5" in the Dev Agent Record.
 
 - **AC-3 (NFR-8, DR-4 — per-row RLS):** **Given** user A has a `MonthlyRecord` row for May 2026 (`spendingEur=2500`), AND user B (a separate authenticated user) has 0 transactions and no `MonthlyRecord`, **When** B calls `getMonthly({year: 2026, monthNum: 5})`, **Then** B receives `{ source: "derived", record: { ..., incomeEur: 0, spendingEur: 0, transfersEur: 0, netChangeEur: 0, signedOffAt: null } }` — A's persisted row is invisible to B (4 RLS policies on `monthly_records.user_id` + explicit `where: { userId }` in the repository belt-and-braces).
 
 - **AC-4 (NFR-9 — auth gate):** **Given** a request without a valid Supabase JWT (missing or expired), **When** any procedure under `/rpc/v1/monthly/*` is called, **Then** the response is HTTP 401 in under 100 ms. Wired via the same `requireUserId(context.userId)` guard the transactions routes use (story 5-1).
 
-- **AC-5 (R12 + leçon 2026-05-24 — cross-domain invalidation):** **Given** the `/mensuel` page is mounted and `useMonthly(2026, 5)` has populated the cache, **When** ANY transactions mutation hook (`use-create-transaction`, `use-update-transaction`, `use-delete-transaction`, `use-import-transactions-csv-form`) resolves successfully — each carrying `useActionMutation(action, { invalidateWithTags: [transactionsTags.list()] })` — **Then** the new tag-registry edge `transactionsTags.list() → [..., [MONTHLY_KEY]]` invalidates every cache entry under the `monthly` prefix. The next read of `/mensuel` re-derives from the updated transactions. Vitest test in `apps/web/src/lib/zapaction/__tests__/keys.test.ts` covers the edge.
+- **AC-5 (R12 + leçon 2026-05-24 — cross-domain invalidation):** **Given** the `/mensuel` page is mounted and `useMonthly(2026, 5)` has populated the cache, **When** ANY transactions mutation hook (`use-create-transaction`, `use-update-transaction`, `use-delete-transaction`, `use-import-transactions-csv-form`) resolves successfully — each carrying `useActionMutation(action, { invalidateWithTags: [transactionsTags.list()] })` — **Then** the new tag-registry edge `transactionsTags.list() → [..., [MONTHLY_KEY]]` invalidates every cache entry under the `monthly` prefix. The next read of `/mensuel` re-derives from the updated transactions. Vitest test in `apps/web/src/lib/zapaction/__tests__/monthly-registry.test.ts` covers the edge.
 
-- **AC-6 (NFR-22, R13 — a11y + hydration):** **Given** the `/mensuel` page is rendered, **When** `useMonthly` is in `isLoading` (first mount), **Then** the loading branch is gated by `isHydrated && isLoading` (lesson 2026-05-24 — no hydration mismatch warning). The form carries `<form aria-label="Mois en cours">` ; each numeric input carries its own `<PekuloField label="...">` so axe-core finds a label per input. `bun --filter='@pekulo/ui' run test:axe` returns 0 violations. The submit affordance has a visible focus ring (Tamagui base) and accepts keyboard activation (Enter inside any input AND Space on the focussed submit button).
+- **AC-6 (NFR-22, R13 — a11y + hydration) — V1 scope: read-only screen.** **Given** the `/mensuel` page is rendered, **When** `useMonthly` is in `isLoading` (first mount or post-invalidate), **Then** the loading branch is gated by `!isHydrated || isLoading` (lesson 2026-05-24 — no hydration mismatch warning ; the formula was corrected on commit `0fb20b4` after R13's initial inverted form crashed React 19). The read-only "Mois en cours" carries `<Section ariaLabel="Mois en cours">` ; the Clôture placeholder carries `<Section ariaLabel="Action">` ; the Historique carries `<Section ariaLabel="Historique">`. `bun --filter='@pekulo/ui' run test:axe` returns 0 violations across the DS surface. **5-4 V1 scope (aped-review 2026-05-26).** The form-specific clauses (form aria-label per input via `<PekuloField>`, submit focus ring, Enter/Space keyboard activation) are **descoped to 5-5** — they re-land inside the close-of-month modal alongside AC-2's UI override path. 5-4 ships the section-level a11y + hydration guard only.
 
 - **AC-7 (forward-prep 5-5 — signedOffAt column shipped):** **Given** the manual SQL migration `<TS>_create_monthly_records/migration.sql` runs, **Then** the `monthly_records` table carries a `signed_off_at TIMESTAMPTZ NULL DEFAULT NULL` column out of the box. Story 5-5 (`signOff` / `reopen`) ships behaviour over this column without a schema migration.
 
@@ -32,22 +32,22 @@
 
 ## Tasks
 
-- [ ] **T1** — Register `MonthlyRecord: "mr"` in `apps/api/src/database/id-prefixes.config.ts` and bump the registry length test. [AC: AC-2, AC-7]
-- [ ] **T2** — Manual SQL migration `apps/api/prisma/migrations/20260525190000_create_monthly_records/migration.sql` (CREATE TABLE + UNIQUE + index + FK CASCADE auth.users + 4 RLS policies) + extend `apps/api/prisma/schema/monthly.prisma` with `model MonthlyRecord`. Apply via `bun --filter='@pekulo/api' run prisma:migrate:deploy`. [AC: AC-2, AC-3, AC-7]
-- [ ] **T3** — Extend `packages/validators/src/monthly/monthly.schemas.ts` with `monthlyRecordSchema`, `getMonthlyInputSchema`, `getMonthlyOutputSchema` (discriminated `source`), `upsertMonthlyInputSchema`. [AC: AC-1, AC-2]
-- [ ] **T4** — Fill `packages/contracts/src/monthly/monthly.contract.ts` with `getMonthly` + `upsertMonthly` ; re-export from `packages/contracts/src/index.ts` ; rename the legacy `MonthlyRecord` UI-display interface to `MonthlyDisplayRow` in `packages/types/src/monthly/monthly.types.ts` to free the name for the new DTO. Update the two web-tier callers (`apps/web/src/lib/derive.ts` + `apps/web/src/lib/derive-monthly.ts` if they reference the legacy name). [AC: AC-1, AC-2]
-- [ ] **T5** — Pure derive `apps/api/src/common/derive/monthly-aggregates.ts` + co-located `monthly-aggregates.test.ts` (≥6 bun:test cases). [AC: AC-1, AC-8]
-- [ ] **T6** — Repository `apps/api/src/modules/monthly/monthly.repository.ts` (`findByMonth`, `upsertByMonth`, `listTransactionsForMonth`) + `monthly.repository.test.ts` (≥4 cases). [AC: AC-1, AC-2, AC-3]
-- [ ] **T7** — Errors `apps/api/src/modules/monthly/monthly.errors.ts` + service `apps/api/src/modules/monthly/monthly.service.ts` (`getMonthly`, `upsertMonthly`) + `monthly.service.test.ts` (≥4 cases — derived-when-empty, persisted-when-row, upsert-creates, upsert-preserves-signedOffAt). [AC: AC-1, AC-2, AC-7]
-- [ ] **T8** — Routes `apps/api/src/modules/monthly/monthly.routes.ts` (oRPC handlers for the 2 procedures, `requireUserId` guard). [AC: AC-4]
-- [ ] **T9** — Module composition `apps/api/src/modules/monthly/monthly.module.ts` (`createMonthlyModule({prismaService})`) + integration test `apps/api/src/modules/monthly/monthly.integration.test.ts` (3 cases — 401 sans JWT, derived defaults sur user vide, upsert + re-read persisted). [AC: AC-1, AC-2, AC-4]
-- [ ] **T10** — Wire the module in `apps/api/src/bootstrap/runtime-dependencies.ts` ; mount under `/rpc/v1/monthly` ; bind to the apps/web client in `apps/web/src/lib/orpc/modules.ts`. [AC: AC-1, AC-2, AC-4]
-- [ ] **T11** — Extend `apps/web/src/lib/zapaction/keys.ts` with `MONTHLY_KEY`, `monthlyKeys`, `monthlyTags` ; add the registry edges `monthlyTags.get(...) → monthlyKeys.get(...)` AND extend `transactionsTags.list()` edge to also include the bare `[MONTHLY_KEY]` prefix. Co-located vitest covers the edge. [AC: AC-5]
-- [ ] **T12** — Server actions `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts` (`getMonthly`, `upsertMonthly`) — `defineAction` SANS slot `output:` (lesson 2026-05-20). [AC: AC-1, AC-2]
-- [ ] **T13** — Hooks `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly.ts` (useActionQuery) + `use-upsert-monthly.ts` (useActionMutation, `invalidateWithTags`). [AC: AC-1, AC-2, AC-5]
-- [ ] **T14** — `apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.tsx` + `monthly-form.test.tsx` (vitest, 4 cases : defaults render, override field, submit via `fireEvent.submit(form)`, hydration guard). [AC: AC-2, AC-6]
-- [ ] **T15** — `apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx` + `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` (Server Component, computes current `year/monthNum` server-side). [AC: AC-1, AC-2, AC-6]
-- [ ] **T16** — Full Iron Law quality gates : `bun --filter='@pekulo/api' run lint`, `… typecheck`, `… test`, `… db:rls-audit`, `bun --filter='@pekulo/web' run typecheck`, `bun --filter='@pekulo/web' run test:run`, `bun --filter='@pekulo/ui' run test:axe`, `git diff --exit-code packages/ui/public/tamagui.generated.css`, visual sanity-check via `mcp__react-grab-mcp__get_element_context` on `/mensuel`. Push the branch. [AC: AC-6, AC-8]
+- [x] **T1** — Register `MonthlyRecord: "mr"` in `apps/api/src/database/id-prefixes.config.ts` and bump the registry length test. [AC: AC-2, AC-7]
+- [x] **T2** — Manual SQL migration `apps/api/prisma/migrations/20260525190000_create_monthly_records/migration.sql` (CREATE TABLE + UNIQUE + index + FK CASCADE auth.users + 4 RLS policies) + extend `apps/api/prisma/schema/monthly.prisma` with `model MonthlyRecord`. Apply via `bun --filter='@pekulo/api' run prisma:migrate:deploy`. [AC: AC-2, AC-3, AC-7]
+- [x] **T3** — Extend `packages/validators/src/monthly/monthly.schemas.ts` with `monthlyRecordSchema`, `getMonthlyInputSchema`, `getMonthlyOutputSchema` (discriminated `source`), `upsertMonthlyInputSchema`. [AC: AC-1, AC-2]
+- [x] **T4** — Fill `packages/contracts/src/monthly/monthly.contract.ts` with `getMonthly` + `upsertMonthly` ; re-export from `packages/contracts/src/index.ts` ; rename the legacy `MonthlyRecord` UI-display interface to `MonthlyDisplayRow` in `packages/types/src/monthly/monthly.types.ts` to free the name for the new DTO. Update the actual consumer (`packages/ui/src/components/PekuloMonthlyRow/PekuloMonthlyRow.tsx`, see Deviation §T4). [AC: AC-1, AC-2]
+- [x] **T5** — Pure derive `apps/api/src/common/derive/monthly-aggregates.ts` + co-located `monthly-aggregates.test.ts` (7 bun:test cases — exceeds ≥6). [AC: AC-1, AC-8]
+- [x] **T6** — Repository `apps/api/src/modules/monthly/monthly.repository.ts` (`findByMonth`, `upsertByMonth`, `listTransactionsForMonth`, `listPersistedInWindow`, `listTransactionsSince` added post-T16 for listMonthly) + `monthly.repository.test.ts`. [AC: AC-1, AC-2, AC-3]
+- [x] **T7** — Errors `apps/api/src/modules/monthly/monthly.errors.ts` (empty `export {}` — placeholder for 5-5 `MONTHLY_RECORD_FROZEN`) + service `apps/api/src/modules/monthly/monthly.service.ts` (`getMonthly`, `upsertMonthly`, `listMonthly` added post-T16) + `monthly.service.test.ts`. [AC: AC-1, AC-2, AC-7]
+- [x] **T8** — Routes `apps/api/src/modules/monthly/monthly.routes.ts` (oRPC handlers for the 3 procedures incl. `listMonthly`, `requireUserId` guard). [AC: AC-4]
+- [x] **T9** — Module composition `apps/api/src/modules/monthly/monthly.module.ts` (`createMonthlyModule({prismaService})`) + integration test `apps/api/src/modules/monthly/monthly.integration.test.ts` (4 cases — 401 sans JWT, derived defaults sur user vide, upsert + re-read persisted, listMonthly window). [AC: AC-1, AC-2, AC-4]
+- [x] **T10** — Wire the module in `apps/api/src/bootstrap/runtime-dependencies.ts` ; mount under `/rpc/v1/monthly` ; bind to the apps/web client in `apps/web/src/lib/orpc/modules.ts`. [AC: AC-1, AC-2, AC-4]
+- [x] **T11** — Extend `apps/web/src/lib/zapaction/keys.ts` with `MONTHLY_KEY`, `monthlyKeys`, `monthlyTags` ; add the registry edges `monthlyTags.get(...) → monthlyKeys.get(...)` AND extend `transactionsTags.list()` edge to also include the bare `[MONTHLY_KEY]` prefix. Co-located vitest covers the edge. [AC: AC-5]
+- [~] **T12** — Server actions `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts` — ships `getMonthly` + `listMonthly` (post-T16 addition for Historique). **`upsertMonthly` server action descoped to story 5-5** (see Spinoff into 5-5 below). `defineAction` omits `output:` per lesson 2026-05-20. [AC: AC-1]
+- [~] **T13** — Hooks `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly.ts` (useActionQuery) **shipped** ; `use-monthly-history.ts` added post-T16 for Historique. **`use-upsert-monthly.ts` descoped to story 5-5** (no V1 mutation surface). [AC: AC-1, AC-5]
+- [ ] **T14 — DESCOPED to 5-5** (aped-review 2026-05-26). `monthly-form.tsx` + `monthly-form.test.tsx` were drafted, then dropped in commit `16e7279` when the proto pivoted to read-only (post-T16 visual-parity refactor). They re-land in story 5-5 inside the close-of-month modal — the override + sign-off flow consumes the same shape (4 numeric fields + submit + hydration guard). AC-2 / AC-6 form clauses moved to 5-5 in lock-step. See Spinoff into 5-5 below. [AC moved to 5-5]
+- [x] **T15** — `apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx` (read-only — 3 PekuloStat over `<Section ariaLabel="Mois en cours">`) + `cloture-section.tsx` (5-5 placeholder) + `historique-section.tsx` (post-T16) + `loading.tsx` (post-T16 skeleton) + `mensuel-top-row.module.css` (CSS-selector layout) + `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` (Server Component computes current `year/monthNum`). [AC: AC-1, AC-6]
+- [x] **T16** — Full Iron Law quality gates : `bun --filter='@pekulo/api' run lint`, `… typecheck`, `… test`, `… db:rls-audit`, `bun --filter='@pekulo/web' run typecheck`, `bun --filter='@pekulo/web' run test:run`, `bun --filter='@pekulo/ui' run test:axe`, `git diff --exit-code packages/ui/public/tamagui.generated.css`. Visual sanity (React Grab MCP on `/mensuel`) skipped per user choice — replaced by Alex's manual visual sign-off on commit `5c8d2ad`. Push the branch. [AC: AC-6, AC-8]
 
 ## Dev Notes
 
@@ -2435,23 +2435,43 @@ Files this story creates or modifies. Each carries the 3-bullet decision templat
 
 19. `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly.ts` *(create)*
     - **Single responsibility** — `useActionQuery` hook for read.
-    - **Inputs/outputs** — `useMonthly(year, monthNum)`. Consumed by `mois-en-cours-section.tsx`.
+    - **Inputs/outputs** — `useMonthly(year, monthNum)`. Consumed by `mois-en-cours-section.tsx`, `cloture-section.tsx`.
 
-20. `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-upsert-monthly.ts` *(create)*
-    - **Single responsibility** — `useActionMutation` hook with `invalidateWithTags`.
-    - **Inputs/outputs** — `useUpsertMonthly(year, monthNum)`. Consumed by `monthly-form.tsx`.
+20. `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly-history.ts` *(create — post-T16)*
+    - **Single responsibility** — `useActionQuery` hook for the Historique window (12 most recent persisted/derived months).
+    - **Inputs/outputs** — `useMonthlyHistory(limit?)`. Consumed by `historique-section.tsx`.
 
-21. `apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.tsx` *(create)* + `monthly-form.test.tsx` *(create)*
-    - **Single responsibility** — client form with 4 numeric fields + submit (AC-2, AC-6).
-    - **Inputs/outputs** — props `{ year, monthNum, defaults, onSubmitSuccess? }`. Consumes `useUpsertMonthly`.
-
-22. `apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx` *(create)*
-    - **Single responsibility** — read-only Section with 3 `Stat` (Entrées / Sorties / Net) + "Modifier" affordance that swaps in `MonthlyForm`.
+21. `apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx` *(create)*
+    - **Single responsibility** — read-only Section with 3 `PekuloStat` (Entrées / Sorties / Net). No Modifier button, no override form (V1 read-only — see Spinoff into 5-5 for the override flow that re-lands in the close-of-month modal).
     - **Inputs/outputs** — props `{ year, monthNum }`. Consumes `useMonthly`.
 
-23. `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` *(create)*
-    - **Single responsibility** — Server Component computing current `(year, monthNum)` and mounting `MoisEnCoursSection`.
-    - **Inputs/outputs** — Next.js App Router page at `/mensuel`.
+22. `apps/web/src/app/(cap)/dashboard/mensuel/_components/cloture-section.tsx` *(create — post-T16, 5-5 placeholder)*
+    - **Single responsibility** — disabled "Clôturer {mois}" button + Action Section. Consumes `useMonthly` so it shares the React Query cache + skeleton timing with MoisEnCours.
+    - **Inputs/outputs** — props `{ year, monthNum }`. 5-5 wires the onPress (close → upsertMonthly + signedOffAt = now()).
+
+23. `apps/web/src/app/(cap)/dashboard/mensuel/_components/historique-section.tsx` *(create — post-T16)*
+    - **Single responsibility** — full-width Section listing the 12-month Historique window via `PekuloMonthlyRow`. Drops `items[0]` (current month, already rendered above by MoisEnCoursSection).
+    - **Inputs/outputs** — props `{ year, monthNum }`. Consumes `useMonthlyHistory`.
+
+24. `apps/web/src/app/(cap)/dashboard/mensuel/_components/mensuel-top-row.module.css` *(create — post-T16)*
+    - **Single responsibility** — CSS-selector layout : `grid-template-columns: 7fr 5fr` on lg + `align-items: stretch` + parent-side selector `.moisEnCours > section, .cloture > section { height: 100% }` (lesson 2026-05-26, bypasses Tamagui's `className`-on-Section path).
+
+25. `apps/web/src/app/(cap)/dashboard/mensuel/loading.tsx` *(create — post-T16)*
+    - **Single responsibility** — SSR skeleton matching the eventual 3-section shape so the RSC transition stays visually continuous.
+
+26. `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` *(create)*
+    - **Single responsibility** — Server Component computing current `(year, monthNum)` UTC and mounting the 3-section layout (MoisEnCoursSection + ClotureSection + HistoriqueSection, no Suspense — see lesson 2026-05-26).
+    - **Inputs/outputs** — Next.js App Router page at `/dashboard/mensuel` (per Post-T16 fix — route placement).
+
+27. `apps/web/src/app/(cap)/dashboard/_components/cap-shell.tsx` *(modify — post-T16)*
+    - **Single responsibility** — nav shell that hosts every (cap)/dashboard route.
+    - **Inputs/outputs** — adds `monthly → Mensuel` to `screenTitle` ; adds `pathname.startsWith("/dashboard/mensuel") → "monthly"` to `navActiveKey` resolver ; replaces the `toast.info("Bientôt", …)` stub with `router.push("/dashboard/mensuel")`.
+
+28. `apps/api/prisma/migrations/20260526150000_relax_monthly_year_check/migration.sql` *(create — aped-review fix 2026-05-26)*
+    - **Single responsibility** — relax the `monthly_records.year` CHECK from `BETWEEN 2026 AND 2099` to `BETWEEN 2020 AND 2099` so the validator (`upsertMonthlyInputSchema.year`) and the DB match. Surfaced by the Edge auditor as a BLOCKER (validator allowed 2020-2099, DB rejected < 2026 with a CHECK violation that would surface as 500 INTERNAL once 5-5 wires the close UI).
+    - **Inputs/outputs** — DO block locates the anonymous original CHECK by definition substring, DROPs it, then ADDs a named replacement (`monthly_records_year_range_check`).
+
+> **Descoped to story 5-5** (aped-review 2026-05-26): `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-upsert-monthly.ts`, `apps/web/src/app/(cap)/dashboard/mensuel/_components/{monthly-form,monthly-form.test}.tsx`, and the `upsertMonthly` server action inside `monthly-actions.ts`. See Spinoff into 5-5 below.
 
 ## Dev Agent Record
 
@@ -2461,20 +2481,32 @@ Files this story creates or modifies. Each carries the 3-bullet decision templat
 
 ### Summary
 
-All 16 tasks landed RED→GREEN→COMMIT through `aped-dev`. New module
-`apps/api/src/modules/monthly/` ships `getMonthly` (discriminated derived
-vs persisted envelope) + `upsertMonthly` (idempotent override) mounted at
-`/rpc/v1/monthly`. New table `monthly_records` carries the FR-37/38 aggregate
-snapshot with the forward-prep `signed_off_at` column ready for 5-5.
-`/mensuel` page renders 3 `Stat` (Entrées / Sorties / Net) over `Section`
-primitive + reveals the editable `MonthlyForm`. Tag-registry edge
+T1–T12 + T15–T16 landed RED→GREEN→COMMIT through `aped-dev`. T13 ships partially
+(`use-monthly.ts` + `use-monthly-history.ts` only — `use-upsert-monthly.ts`
+descoped to 5-5). T14 descoped entirely (the `MonthlyForm` re-lands in 5-5
+inside the close-of-month modal). New module `apps/api/src/modules/monthly/`
+ships `getMonthly` (discriminated derived vs persisted envelope) + `upsertMonthly`
+(idempotent override, API-ready for 5-5) + `listMonthly` (Historique window, added
+post-T16) mounted at `/rpc/v1/monthly`. New table `monthly_records` carries the
+FR-37/38 aggregate snapshot with the forward-prep `signed_off_at` column ready
+for 5-5. `/dashboard/mensuel` page renders **read-only** : 3 PekuloStat
+(Entrées / Sorties / Net) over `Section ariaLabel="Mois en cours"` + a 5-5
+placeholder Clôture section + a full-width Historique. Tag-registry edge
 `transactionsTags.list() → [MONTHLY_KEY]` carries AC-5: every transaction
-mutation re-derives the monthly view.
+mutation re-derives the monthly view. Year-CHECK constraint relaxed to
+2020-2099 via follow-up migration (aped-review fix).
 
-Iron Law gates: api lint 0 errors, api typecheck 0 errors, 523 bun:test
-pass, db:rls-audit `monthly_records (4 policies)`, web lint 0 errors, web
-typecheck 0 errors, 99 vitest pass, ui axe 95 pass / 0 violations,
-tamagui.generated.css clean.
+Iron Law gates: api lint 0 errors, api typecheck 0 errors, bun:test 523+ pass
+(see Test output for the post-fix re-run), db:rls-audit `monthly_records
+(4 policies)`, web lint 0 errors, web typecheck 0 errors, vitest 99+ pass,
+ui axe 95 pass / 0 violations, tamagui.generated.css clean.
+
+Visual sign-off by Alex on commit `5c8d2ad` (post-T16 layout fix saga). aped-review
+2026-05-26: Spec auditor flagged AC-2 / AC-6 drift and the false `monthly-form.test.tsx`
+claim in the original Test output ; Edge auditor flagged the year-validator vs
+SQL-CHECK mismatch as BLOCKER ; Code + Aria APPROVED. Fix path agreed with Alex :
+recadrer AC-2 / AC-6 in V1 (read-only proto), relax SQL CHECK, sync story doc to
+HEAD reality, document Spinoff into 5-5.
 
 ### Files changed
 
@@ -2482,22 +2514,26 @@ tamagui.generated.css clean.
 - `apps/api/src/database/id-prefixes.config.test.ts` (bump 16 → 17 + add `MonthlyRecord` to key list)
 - `apps/api/prisma/schema/monthly.prisma` (append `model MonthlyRecord`)
 - `apps/api/prisma/migrations/20260525190000_create_monthly_records/migration.sql` (new — table + UNIQUE + index + FK CASCADE + 4 RLS policies)
+- `apps/api/prisma/migrations/20260526150000_relax_monthly_year_check/migration.sql` (new — aped-review fix: relax year CHECK 2026-2099 → 2020-2099)
 - `apps/api/scripts/rls-audit.ts` (add `monthly_records: 4`)
 - `apps/api/src/common/derive/monthly-aggregates.{ts,test.ts}` (new — pure derive + 7 bun:test cases)
-- `apps/api/src/modules/monthly/monthly.{errors,repository,service,routes,module}.ts` (new module)
-- `apps/api/src/modules/monthly/monthly.{repository,service,integration}.test.ts` (4 + 4 + 3 bun:test cases)
+- `apps/api/src/modules/monthly/monthly.{errors,repository,service,routes,module}.ts` (new module ; `listMonthly` added on service+routes post-T16)
+- `apps/api/src/modules/monthly/monthly.{repository,service,integration}.test.ts` (post-T16 augmented: includes listMonthly cases)
 - `apps/api/src/bootstrap/runtime-dependencies.ts` (wire `createMonthlyModule` + mount at `monthly` router key)
-- `packages/validators/src/monthly/monthly.schemas.ts` (+5 schemas/types: `monthlyRecordSchema`, `monthlyRecordDerivedSchema`, `getMonthlyInputSchema`, `getMonthlyOutputSchema`, `upsertMonthlyInputSchema`)
-- `packages/contracts/src/monthly/monthly.contract.ts` (replace empty scaffold with 2-procedure contract)
+- `packages/validators/src/monthly/monthly.schemas.ts` (+ schemas/types incl. `listMonthlyInputSchema`/`listMonthlyOutputSchema` post-T16 ; year range relaxed to `min(2020).max(2099)` on the new schemas)
+- `packages/contracts/src/monthly/monthly.contract.ts` (replace empty scaffold with 3-procedure contract: `getMonthly`, `upsertMonthly`, `listMonthly`)
 - `packages/types/src/monthly/monthly.types.ts` (rename legacy `MonthlyRecord` → `MonthlyDisplayRow`; re-export new `MonthlyRecord` from validators)
 - `packages/ui/src/components/PekuloMonthlyRow/PekuloMonthlyRow.tsx` (consume `MonthlyDisplayRow` per rename)
 - `apps/web/src/lib/orpc/modules.ts` (export `monthlyClient`)
 - `apps/web/src/lib/zapaction/keys.ts` (+ `MONTHLY_KEY`/`monthlyKeys`/`monthlyTags` + extend transactions edges with `[MONTHLY_KEY]`)
 - `apps/web/src/lib/zapaction/__tests__/monthly-registry.test.ts` (3 vitest cases — registry edge proof via `invalidateTags`)
-- `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts` (new — `getMonthly`, `upsertMonthly`)
-- `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/{use-monthly,use-upsert-monthly}.ts` (new)
-- `apps/web/src/app/(cap)/dashboard/mensuel/_components/{monthly-form,monthly-form.test,mois-en-cours-section}.tsx` (4 vitest cases on form)
-- `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` (Server Component — computes current year/monthNum)
+- `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts` (new — `getMonthly` + `listMonthly` ; `upsertMonthly` server action descoped to 5-5)
+- `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/{use-monthly,use-monthly-history}.ts` (new ; `use-upsert-monthly.ts` descoped to 5-5)
+- `apps/web/src/app/(cap)/dashboard/mensuel/_components/{mois-en-cours-section,cloture-section,historique-section}.tsx` (new — read-only proto, 5-5 placeholder, Historique)
+- `apps/web/src/app/(cap)/dashboard/mensuel/_components/mensuel-top-row.module.css` (new — CSS-selector layout per lesson 2026-05-26)
+- `apps/web/src/app/(cap)/dashboard/mensuel/loading.tsx` (new — SSR skeleton)
+- `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` (Server Component — computes current year/monthNum UTC, mounts 3 sections)
+- `apps/web/src/app/(cap)/dashboard/_components/cap-shell.tsx` (nav shell: monthly nav-key + screenTitle + router.push wired)
 
 ### Deviations
 
@@ -2530,8 +2566,36 @@ tamagui.generated.css clean.
 
 @pekulo/web test
   99 pass / 0 fail — 52 files
-  (incl. monthly-form.test.tsx: 4/4, monthly-registry.test.ts: 3/3)
+  (incl. monthly-registry.test.ts: 3/3)
 
 @pekulo/ui test:axe
   95 pass / 0 violations — 64 files
 ```
+
+> aped-review 2026-05-26 correction : the earlier "(incl. `monthly-form.test.tsx: 4/4`)" line in this block was inaccurate — the test file never existed in HEAD (the form + its test were dropped in commit `16e7279` ; the original Test output table was authored from the pre-drop draft and not reconciled). Struck. Lesson 2026-05-13 (aped-review claims must match `git show HEAD:`) re-applied — see `docs/lessons.md` for the codified rule. Post-fix re-run of the gates is captured in the Review Record below.
+
+### Spinoff into 5-5
+
+aped-review 2026-05-26 (Alex sign-off) — the AC-2 / AC-6 UI override clauses
+were not authored cleanly for an in-progress month. They re-land in story 5-5
+inside the **close-of-month flow** with the following contract :
+
+1. **Close window** — a month `(year, monthNum)` is closeable from
+   `(last_day_of_month − 4)` UTC through `(last_day_of_month + 5)` UTC (inclusive).
+   Outside that window, the "Clôturer {mois}" button is disabled.
+2. **Auto-close at J+6** — at `(last_day_of_month + 6)` UTC, the month
+   auto-closes : a snapshot of the derived aggregates is persisted via
+   `upsertMonthly` and `signedOffAt` is set to `now()`. Implementation TBD
+   (Vercel Cron vs inline check on read — debate inside 5-5).
+3. **Reopen** — a closed month can be reopened (`signedOffAt → NULL`), which
+   flips it back to `derived`. Useful when a transaction is added retroactively
+   to a closed month.
+4. **Override at close** — the close button opens a modal pre-filled with the
+   derived aggregates, editable across 4 numeric fields, with a "Confirmer la
+   clôture" submit. T13 (`use-upsert-monthly.ts`), T14 (`monthly-form.tsx` +
+   `monthly-form.test.tsx`), and the `upsertMonthly` server action all re-land
+   here, **inside** the close flow — not on the in-progress month.
+
+The endpoint (`upsertMonthly`) ships in 5-4 ; only the V1 UI is shifted. The
+forward-prep `signed_off_at` column (AC-7) is exactly the mechanism the close
+flow consumes — no schema change in 5-5.
