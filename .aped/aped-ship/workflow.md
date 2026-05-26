@@ -5,7 +5,7 @@
 
 # APED Ship — Sprint Umbrella → Base PR
 
-The end-of-sprint counterpart to `aped-sprint`. The umbrella branch (`sprint/epic-{N}`, created by aped-sprint at sprint start) has been accumulating story merges from aped-lead's au-fil-de-l'eau approvals. `aped-ship`'s job is the **final PR**: verify the umbrella is integration-complete, run the composite pre-push review on it, push, and print the `gh pr create --base <base> --head sprint/epic-N` command for the user.
+The end-of-sprint counterpart to `aped-sprint`. The umbrella branch (`sprint/epic-{N}`, created by aped-sprint at sprint start) has been accumulating story merges from aped-lead's au-fil-de-l'eau approvals. `aped-ship`'s job is the **final PR**: verify the umbrella is integration-complete, run the composite pre-push review on it, push, and print the `gh pr create --draft --base <base> --head sprint/epic-N` command for the user.
 
 `aped-ship` does NOT merge stories. Per-story merges into the umbrella are owned by `aped-lead` (au-fil-de-l'eau, see aped-lead.md). If a story isn't merged into the umbrella by ship time, that's a workflow gap the user fixes (re-run aped-lead, or merge manually) — not something aped-ship works around.
 
@@ -234,18 +234,18 @@ Present three options:
 1. **Fix blockers first** (recommended when BLOCKERS > 0) — the user applies fixes on the umbrella branch directly (or on a story branch + rerun `aped-lead` to merge), then re-runs `aped-ship`. The composite review re-runs on the new tip.
 2. **Open the PR anyway** — only sensible when findings are all WARNINGS or INFO.
 
-   > **Writing discipline (PR title + body).** Before drafting either, read `.aped/aped-skills/writing-discipline.md`. Title: short, recognizable, ≤ 70 chars (epic slug + the *one* lever the sprint pulled, not the kitchen sink). Body: 3–6 short bullets — what the sprint changed for the reader, the WARNING items the reviewer should ack, link to the merged stories. Drop file lists, test counts, "boundaries respected" checkboxes. The diff proves the work; prose adds the *why*.
+   > **Writing discipline (PR title + body).** Before drafting either, read `.aped/aped-skills/writing-discipline.md` § PRs. Title: short, recognizable, ≤ 70 chars (epic slug + the *one* lever the sprint pulled, not the kitchen sink). Body: substantive PR shape — `## Summary` (2–3 short paragraphs framing before/after for a reader unfamiliar with the project), themed sections per coherent area of the sprint (one bullet per concrete behaviour), `## Tests` (coverage moved), `## Validation` (the exact commands a reviewer can run). No `/aped-X` slash names in prose, no internal phase labels — describe what the code does, not which internal command produced it.
 
    Print the exact commands:
 
    ```
    git push -u origin "$UMBRELLA"
-   gh pr create --base "$BASE_BRANCH" --head "$UMBRELLA" \\
+   gh pr create --draft --base "$BASE_BRANCH" --head "$UMBRELLA" \\
      --title "Sprint epic-${EPIC_N} — <epic slug>" \\
-     --body "$(composite review summary; list of merged stories with tickets)"
+     --body "$(composite review summary; list of merged stories with tickets; validation commands)"
    ```
 
-   Tell the user to run the commands themselves. Never execute them from the skill. Before printing, emit:
+   The PR opens as a draft; tell the user to mark it ready (`gh pr ready <n>`) once they have re-run the validation block locally. Tell the user to run the commands themselves. Never execute them from the skill. Before printing, emit:
 
    ```bash
    bash .aped/scripts/log.sh pr_recommended \\

@@ -56,11 +56,13 @@ if EXISTING=$(gh pr view "$HEAD_BRANCH" --json number,baseRefName -q '.number' 2
   [[ -n "$EXISTING_BASE" && "$EXISTING_BASE" != "$UMBRELLA" ]] && gh pr edit "$EXISTING" --base "$UMBRELLA"
   gh pr edit "$EXISTING" --title "$TITLE" --body "$BODY"
 else
-  gh pr create --base "$UMBRELLA" --head "$HEAD_BRANCH" --title "$TITLE" --body "$BODY"
+  gh pr create --draft --base "$UMBRELLA" --head "$HEAD_BRANCH" --title "$TITLE" --body "$BODY"
 fi
 ```
 
-GitLab equivalent uses `glab mr view / update / create` with the same probe shape.
+Always open the PR as `--draft`. Once the Review Record verdict is `done` and the human validation block (see `.aped/aped-skills/writing-discipline.md` § PRs) re-runs green locally, mark it ready: `gh pr ready <n>`.
+
+GitLab equivalent uses `glab mr view / update / create --draft` with the same probe shape; ready toggle is `glab mr update --ready`.
 
 The probe path also fixes the legacy case where a previous `aped-review` opened the PR against the wrong base (e.g. project base branch instead of umbrella).
 

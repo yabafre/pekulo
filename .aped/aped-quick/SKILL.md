@@ -9,7 +9,7 @@ argument-hint: "<title> [fix|feature|refactor]"
 license: MIT
 metadata:
   author: yabafre
-  version: 6.12.3
+  version: 6.12.4
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
@@ -139,8 +139,9 @@ Read `.aped/aped-skills/writing-discipline.md` before drafting commit / PR / tic
 1. **Branch**: create `fix/{ticket-id}-{slug}` or `feature/{ticket-id}-{slug}`
 2. **Commits**: `type({ticket-id}): description` — include magic words per ticket provider
 3. **PR/MR**:
-   - `github`: `gh pr create --title "fix({ticket-id}): description" --body "Fixes {ticket-id}"`
-   - `gitlab`: `glab mr create --title "fix({ticket-id}): description" --description "Closes {ticket-id}"`
+   - `github`: `gh pr create --draft --title "fix({ticket-id}): description" --body "Fixes {ticket-id}"`
+   - `gitlab`: `glab mr create --draft --title "fix({ticket-id}): description" --description "Closes {ticket-id}"`
+   - Mark the PR/MR ready (`gh pr ready <n>` / `glab mr update --ready`) once the validation block has been re-run locally and is green. See `.aped/aped-skills/writing-discipline.md` § PRs.
    - `bitbucket`: push branch, create PR via web
 4. **Ticket**: move to Done after merge — short comment + link to the merged PR, don't re-narrate the work in the ticket
 
