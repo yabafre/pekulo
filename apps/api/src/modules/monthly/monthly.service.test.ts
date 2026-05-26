@@ -31,8 +31,19 @@ function tx(partial: Partial<Transaction>): Transaction {
 function makeRepo(seed: {
   persisted?: MonthlyRecord | null;
   transactions?: Transaction[];
-}): MonthlyRepository & { upsertCalls: number; lastUpsert: unknown } {
-  const state = { upsertCalls: 0, lastUpsert: null as unknown };
+}): MonthlyRepository & {
+  upsertCalls: number;
+  lastUpsert: unknown;
+  setSignedOffAtCalls: number;
+} {
+  const state = { upsertCalls: 0, lastUpsert: null as unknown, setSignedOffAtCalls: 0 };
+  // 5-5 T7: mutable signedOffAt + per-month payload tracking so signOff
+  // (upsert → setSignedOffAt) and reopen (setSignedOffAt → null) flows can be
+  // exercised end-to-end against the fake repository. `lastUpsertedRow` lets
+  // the post-freeze read return the values the caller just upserted, even
+  // when seed.persisted was empty at construction.
+  let currentSignedOffAt: string | null = seed.persisted?.signedOffAt ?? null;
+  let lastUpsertedRow: MonthlyRecord | null = seed.persisted ?? null;
   return {
     get upsertCalls() {
       return state.upsertCalls;
@@ -40,8 +51,12 @@ function makeRepo(seed: {
     get lastUpsert() {
       return state.lastUpsert;
     },
+    get setSignedOffAtCalls() {
+      return state.setSignedOffAtCalls;
+    },
     async findByMonth() {
-      return seed.persisted ?? null;
+      if (!seed.persisted) return null;
+      return { ...seed.persisted, signedOffAt: currentSignedOffAt };
     },
     async listTransactionsForMonth() {
       return seed.transactions ?? [];
@@ -49,25 +64,47 @@ function makeRepo(seed: {
     async upsertByMonth(_userId, input) {
       state.upsertCalls++;
       state.lastUpsert = input;
-      return {
-        id: "mr_upsert000000000000000",
+      const row: MonthlyRecord = {
+        id: lastUpsertedRow?.id ?? "mr_upsert000000000000000",
         year: input.year,
         monthNum: input.monthNum,
         incomeEur: input.incomeEur,
         spendingEur: input.spendingEur,
         transfersEur: input.transfersEur,
         netChangeEur: input.netChangeEur,
-        signedOffAt: seed.persisted?.signedOffAt ?? null,
-        createdAt: "2026-05-25T10:00:00.000Z",
+        signedOffAt: currentSignedOffAt,
+        createdAt: lastUpsertedRow?.createdAt ?? "2026-05-25T10:00:00.000Z",
+      };
+      lastUpsertedRow = row;
+      return row;
+    },
+    async setSignedOffAt(_userId, year, monthNum, value) {
+      state.setSignedOffAtCalls++;
+      currentSignedOffAt = value ? value.toISOString() : null;
+      const base = lastUpsertedRow;
+      return {
+        id: base?.id ?? "mr_upsert000000000000000",
+        year,
+        monthNum,
+        incomeEur: base?.incomeEur ?? 0,
+        spendingEur: base?.spendingEur ?? 0,
+        transfersEur: base?.transfersEur ?? 0,
+        netChangeEur: base?.netChangeEur ?? 0,
+        signedOffAt: currentSignedOffAt,
+        createdAt: base?.createdAt ?? "2026-05-25T10:00:00.000Z",
       };
     },
     async listPersistedInWindow() {
-      return seed.persisted ? [seed.persisted] : [];
+      return seed.persisted ? [{ ...seed.persisted, signedOffAt: currentSignedOffAt }] : [];
     },
     async listTransactionsSince() {
       return seed.transactions ?? [];
     },
-  } as MonthlyRepository & { upsertCalls: number; lastUpsert: unknown };
+  } as MonthlyRepository & {
+    upsertCalls: number;
+    lastUpsert: unknown;
+    setSignedOffAtCalls: number;
+  };
 }
 
 describe("monthly.service", () => {
@@ -235,6 +272,114 @@ describe("monthly.service", () => {
     expect(apr?.record.signedOffAt).toBe("2026-05-01T00:00:00.000Z");
   });
 
+  // ─── 5-5 signOff (T7) ───────────────────────────────────────────────────
+  // The service consults global `new Date()` for the close-window check; tests
+  // override globalThis.Date inside a try/finally so they pin a deterministic
+  // "now" without leaking into adjacent tests.
+
+  it("signOff — inside close window, no row → upserts + freezes (5-5 AC-1)", async () => {
+    const repo = makeRepo({});
+    service = createMonthlyService({ repository: repo });
+    const fixedNow = new Date("2026-05-27T10:00:00.000Z"); // May 27 = window start
+    const realDate = globalThis.Date;
+    class FakeDate extends realDate {
+      constructor(...args: ConstructorParameters<typeof realDate>) {
+        super(...(args.length === 0 ? [fixedNow.toISOString()] : args));
+      }
+      static override now() {
+        return fixedNow.getTime();
+      }
+    }
+    globalThis.Date = FakeDate as unknown as DateConstructor;
+    try {
+      const out = await service.signOff(USER_A, {
+        year: 2026,
+        monthNum: 5,
+        incomeEur: 3943,
+        spendingEur: 2500,
+        transfersEur: 500,
+        netChangeEur: 1443,
+      });
+      expect(out.signedOffAt).toBe("2026-05-27T10:00:00.000Z");
+      expect(out.spendingEur).toBe(2500);
+    } finally {
+      globalThis.Date = realDate;
+    }
+  });
+
+  it("signOff — outside close window → MONTHLY_OUT_OF_WINDOW (5-5 AC-5)", async () => {
+    const repo = makeRepo({});
+    service = createMonthlyService({ repository: repo });
+    const realDate = globalThis.Date;
+    // May 26 = one day before May window start (May 27).
+    const fixedNow = new Date("2026-05-26T10:00:00.000Z");
+    class FakeDate extends realDate {
+      constructor(...args: ConstructorParameters<typeof realDate>) {
+        super(...(args.length === 0 ? [fixedNow.toISOString()] : args));
+      }
+      static override now() {
+        return fixedNow.getTime();
+      }
+    }
+    globalThis.Date = FakeDate as unknown as DateConstructor;
+    try {
+      await expect(
+        service.signOff(USER_A, {
+          year: 2026,
+          monthNum: 5,
+          incomeEur: 100,
+          spendingEur: 50,
+          transfersEur: 0,
+          netChangeEur: 50,
+        }),
+      ).rejects.toThrow(/MONTHLY_OUT_OF_WINDOW|outside close window/);
+    } finally {
+      globalThis.Date = realDate;
+    }
+  });
+
+  it("signOff — already signed → MONTHLY_SIGNED_OFF (5-5 AC-2)", async () => {
+    const repo = makeRepo({
+      persisted: {
+        id: "mr_already0000000000000",
+        year: 2026,
+        monthNum: 5,
+        incomeEur: 3943,
+        spendingEur: 2500,
+        transfersEur: 500,
+        netChangeEur: 1443,
+        signedOffAt: "2026-05-27T10:00:00.000Z",
+        createdAt: "2026-05-25T10:00:00.000Z",
+      },
+    });
+    service = createMonthlyService({ repository: repo });
+    const realDate = globalThis.Date;
+    const fixedNow = new Date("2026-05-28T10:00:00.000Z");
+    class FakeDate extends realDate {
+      constructor(...args: ConstructorParameters<typeof realDate>) {
+        super(...(args.length === 0 ? [fixedNow.toISOString()] : args));
+      }
+      static override now() {
+        return fixedNow.getTime();
+      }
+    }
+    globalThis.Date = FakeDate as unknown as DateConstructor;
+    try {
+      await expect(
+        service.signOff(USER_A, {
+          year: 2026,
+          monthNum: 5,
+          incomeEur: 3943,
+          spendingEur: 2500,
+          transfersEur: 500,
+          netChangeEur: 1443,
+        }),
+      ).rejects.toThrow(/MONTHLY_SIGNED_OFF|already signed/);
+    } finally {
+      globalThis.Date = realDate;
+    }
+  });
+
   it("listMonthly — wraps year on January boundary (descending past dec previous year)", async () => {
     const listRepo = makeListRepo({ now: { year: 2027, monthNum: 1 } });
     service = createMonthlyService({ repository: listRepo });
@@ -273,6 +418,9 @@ function makeListRepo(seed: {
         signedOffAt: null,
         createdAt: "2026-05-25T10:00:00.000Z",
       };
+    },
+    async setSignedOffAt() {
+      throw new Error("setSignedOffAt not exercised by listMonthly tests");
     },
     async listTransactionsForMonth() {
       return [];

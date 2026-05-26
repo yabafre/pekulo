@@ -17,10 +17,14 @@ import type {
   ListMonthlyInput,
   ListMonthlyOutput,
   MonthlyRecord,
+  ReopenMonthlyInput,
+  SignOffMonthlyInput,
   Transaction,
   UpsertMonthlyInput,
 } from "@pekulo/validators";
+import { isWithinCloseWindow } from "../../common/derive/close-window";
 import { deriveMonthlyAggregates } from "../../common/derive/monthly-aggregates";
+import { PekuloError } from "../../common/errors";
 import type { MonthlyRepository } from "./monthly.repository";
 
 export interface MonthlyServiceClock {
@@ -30,6 +34,12 @@ export interface MonthlyServiceClock {
 export interface MonthlyService {
   getMonthly(userId: string, input: GetMonthlyInput): Promise<GetMonthlyOutput>;
   upsertMonthly(userId: string, input: UpsertMonthlyInput): Promise<MonthlyRecord>;
+  /** Atomic upsert + freeze. Throws MONTHLY_OUT_OF_WINDOW (409) if today
+   *  is outside [(last_day - 4) UTC, (last_day + 5) UTC]; throws
+   *  MONTHLY_SIGNED_OFF (409) if the row is already signed. */
+  signOff(userId: string, input: SignOffMonthlyInput): Promise<MonthlyRecord>;
+  /** Clears signedOffAt. Throws MONTHLY_NOT_FOUND (404) if no row exists. */
+  reopen(userId: string, input: ReopenMonthlyInput): Promise<MonthlyRecord>;
   /** Optional clock seam — defaults to `new Date()` UTC. Test path pins it. */
   listMonthly(
     userId: string,
@@ -68,6 +78,57 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
 
     async upsertMonthly(userId, input) {
       return deps.repository.upsertByMonth(userId, input);
+    },
+
+    async signOff(userId, input) {
+      const nowDate = new Date();
+      if (!isWithinCloseWindow(input.year, input.monthNum, nowDate)) {
+        throw new PekuloError(
+          "MONTHLY_OUT_OF_WINDOW",
+          `Sign-off rejected: outside close window for ${input.year}-${String(input.monthNum).padStart(2, "0")}`,
+        );
+      }
+      const existing = await deps.repository.findByMonth(userId, input.year, input.monthNum);
+      if (existing && existing.signedOffAt !== null) {
+        throw new PekuloError(
+          "MONTHLY_SIGNED_OFF",
+          `Month ${input.year}-${String(input.monthNum).padStart(2, "0")} already signed off`,
+        );
+      }
+      // Atomic upsert + freeze. The repository's upsertByMonth preserves
+      // signedOffAt on the update branch (no field in the update payload),
+      // so we explicitly call setSignedOffAt right after to stamp the freeze
+      // timestamp. Both calls fan-out within the same logical operation —
+      // the race window is ≤ 1 ms in V1 (a) (single-writer per user); codify
+      // a $transaction wrapper if shared accounts ship in V2+.
+      await deps.repository.upsertByMonth(userId, {
+        year: input.year,
+        monthNum: input.monthNum,
+        incomeEur: input.incomeEur,
+        spendingEur: input.spendingEur,
+        transfersEur: input.transfersEur,
+        netChangeEur: input.netChangeEur,
+      });
+      return deps.repository.setSignedOffAt(userId, input.year, input.monthNum, nowDate);
+    },
+
+    async reopen(userId, input) {
+      const existing = await deps.repository.findByMonth(userId, input.year, input.monthNum);
+      if (!existing) {
+        throw new PekuloError(
+          "MONTHLY_NOT_FOUND",
+          `Cannot reopen ${input.year}-${String(input.monthNum).padStart(2, "0")}: no record`,
+        );
+      }
+      // Idempotent: already-null is a no-op return rather than an error —
+      // the UI only surfaces reopen on signed-off rows in Historique, so a
+      // null-on-reopen call would mean a stale tab. Returning the existing
+      // row prevents a confusing client-side failure mode; the registry-SSOT
+      // invalidation refreshes the stale tab on the next paint.
+      if (existing.signedOffAt === null) {
+        return existing;
+      }
+      return deps.repository.setSignedOffAt(userId, input.year, input.monthNum, null);
     },
 
     async listMonthly(userId, input, clock) {
