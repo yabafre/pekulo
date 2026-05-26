@@ -109,7 +109,30 @@ describe("monthly.service", () => {
     });
   });
 
-  it("getMonthly — persisted row present → returns it (no derive)", async () => {
+  it("getMonthly — persisted row with signedOffAt set → returns persisted (5-5 AC-4)", async () => {
+    service = createMonthlyService({
+      repository: makeRepo({
+        persisted: {
+          id: "mr_persist00000000000000",
+          year: 2026,
+          monthNum: 5,
+          incomeEur: 3943,
+          spendingEur: 2500,
+          transfersEur: 500,
+          netChangeEur: 1443,
+          signedOffAt: "2026-05-27T10:00:00.000Z",
+          createdAt: "2026-05-25T10:00:00.000Z",
+        },
+        transactions: [tx({ type: "inflow", category: "salaire", amount: 9999 })],
+      }),
+    });
+    const out = await service.getMonthly(USER_A, { year: 2026, monthNum: 5 });
+    expect(out.source).toBe("persisted");
+    if (out.source !== "persisted") throw new Error("unreachable");
+    expect(out.record.spendingEur).toBe(2500);
+  });
+
+  it("getMonthly — persisted row with signedOffAt null → returns derived (5-5 AC-4)", async () => {
     service = createMonthlyService({
       repository: makeRepo({
         persisted: {
@@ -123,15 +146,14 @@ describe("monthly.service", () => {
           signedOffAt: null,
           createdAt: "2026-05-25T10:00:00.000Z",
         },
-        // Transactions are present but MUST NOT be consulted when a row
-        // is persisted (AC-2 — persisted shape is the source of truth).
         transactions: [tx({ type: "inflow", category: "salaire", amount: 9999 })],
       }),
     });
     const out = await service.getMonthly(USER_A, { year: 2026, monthNum: 5 });
-    expect(out.source).toBe("persisted");
-    if (out.source !== "persisted") throw new Error("unreachable");
-    expect(out.record.spendingEur).toBe(2500);
+    expect(out.source).toBe("derived");
+    // The 9999 inflow is what's surfaced — the persisted 3943 override is
+    // intentionally ignored because the row isn't signed off yet.
+    expect(out.record.incomeEur).toBe(9999);
   });
 
   it("upsertMonthly — delegates to repository (signedOffAt preserved by repo, AC-7)", async () => {

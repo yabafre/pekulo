@@ -42,7 +42,11 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
   return {
     async getMonthly(userId, input) {
       const persisted = await deps.repository.findByMonth(userId, input.year, input.monthNum);
-      if (persisted) {
+      // 5-5 contract (AC-4): the source is signedOffAt-driven, not row-existence-
+      // driven. A row with signedOffAt: null is treated as derived (and stays
+      // refreshable from transactions on every read). The persisted override
+      // values are only authoritative once frozen.
+      if (persisted && persisted.signedOffAt !== null) {
         return { source: "persisted", record: persisted };
       }
       const transactions = await deps.repository.listTransactionsForMonth(
@@ -91,7 +95,9 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
         const year = Math.floor(ordinal / 12);
         const monthNum = (ordinal % 12) + 1;
         const persisted = persistedByMonth.get(ordinal);
-        if (persisted) {
+        // 5-5 (AC-4): persisted ONLY when signedOffAt is set. A row with
+        // signedOffAt: null falls back to the derive path same as no row.
+        if (persisted && persisted.signedOffAt !== null) {
           items.push({ source: "persisted", record: persisted });
           continue;
         }
