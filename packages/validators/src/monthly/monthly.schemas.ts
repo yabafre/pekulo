@@ -64,3 +64,57 @@ export function monthRange(): Array<{ year: number; monthNum: number; label: str
   }
   return out;
 }
+
+// ─── 5-4-monthly-tracking — FR-37/38 ─────────────────────────────────────
+// New aggregate-snapshot DTO surfaced via /rpc/v1/monthly. The legacy
+// monthlyEntrySchema / monthlyKeySchema above STAY — still consumed by the
+// hypothesis-projection path (apps/web/src/lib/derive-monthly.ts).
+
+const MONTHLY_RECORD_ID_REGEX = /^mr_[0-9A-Za-z]{21}$/;
+
+const eurAmount = (msg = "Montant ≥ 0") => z.number().finite("Montant invalide").min(0, msg);
+
+// Net change can be negative (spending > income). No min(0) constraint.
+const netChangeAmount = () => z.number().finite("Net change invalide");
+
+export const monthlyRecordSchema = z.object({
+  id: z.string().regex(MONTHLY_RECORD_ID_REGEX),
+  year: z.number().int().min(2026).max(2099),
+  monthNum: z.number().int().min(1).max(12),
+  incomeEur: eurAmount(),
+  spendingEur: eurAmount(),
+  transfersEur: eurAmount(),
+  netChangeEur: netChangeAmount(),
+  signedOffAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type MonthlyRecord = z.infer<typeof monthlyRecordSchema>;
+
+// Defaults branch — pre-persistence shape. id/createdAt are absent; the
+// service composes this when the user has not yet saved an override.
+export const monthlyRecordDerivedSchema = monthlyRecordSchema
+  .omit({ id: true, createdAt: true, signedOffAt: true })
+  .extend({ signedOffAt: z.null() });
+export type MonthlyRecordDerived = z.infer<typeof monthlyRecordDerivedSchema>;
+
+export const getMonthlyInputSchema = z.object({
+  year: z.number().int().min(2026).max(2099),
+  monthNum: z.number().int().min(1).max(12),
+});
+export type GetMonthlyInput = z.infer<typeof getMonthlyInputSchema>;
+
+export const getMonthlyOutputSchema = z.discriminatedUnion("source", [
+  z.object({ source: z.literal("derived"), record: monthlyRecordDerivedSchema }),
+  z.object({ source: z.literal("persisted"), record: monthlyRecordSchema }),
+]);
+export type GetMonthlyOutput = z.infer<typeof getMonthlyOutputSchema>;
+
+export const upsertMonthlyInputSchema = z.object({
+  year: z.number().int().min(2026).max(2099),
+  monthNum: z.number().int().min(1).max(12),
+  incomeEur: eurAmount(),
+  spendingEur: eurAmount(),
+  transfersEur: eurAmount(),
+  netChangeEur: netChangeAmount(),
+});
+export type UpsertMonthlyInput = z.infer<typeof upsertMonthlyInputSchema>;
