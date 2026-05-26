@@ -64,8 +64,16 @@ export function SignOffButton({
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    setNow(new Date());
-    const handle = setInterval(() => setNow(new Date()), 60_000);
+    // Dev-only clock override mirrors apps/api's PEKULO_DEV_NOW_ISO seam
+    // (gated on NODE_ENV !== "production"). When set, the CTA reads the
+    // close-window state as if "now" were the override timestamp. Lets a
+    // developer exercise the happy-path branch without waiting for the
+    // real window to open. Production builds receive the bare new Date().
+    const devOverride = process.env.NEXT_PUBLIC_PEKULO_DEV_NOW_ISO;
+    const computeNow = () =>
+      process.env.NODE_ENV !== "production" && devOverride ? new Date(devOverride) : new Date();
+    setNow(computeNow());
+    const handle = setInterval(() => setNow(computeNow()), 60_000);
     return () => clearInterval(handle);
   }, []);
 
