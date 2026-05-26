@@ -96,6 +96,7 @@ export const transactionsTags = createFeatureTags(TRANSACTIONS_KEY, {
 export const MONTHLY_KEY = "monthly" as const;
 export const monthlyKeys = createFeatureKeys(MONTHLY_KEY, {
   get: (year: number, monthNum: number) => ["get", year, monthNum] as const,
+  list: (limit: number) => ["list", limit] as const,
 });
 export const monthlyTags = createFeatureTags(MONTHLY_KEY, {
   get: (year: number, monthNum: number) => ["get", year, monthNum] as const,

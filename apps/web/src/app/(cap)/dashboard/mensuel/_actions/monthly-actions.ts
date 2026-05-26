@@ -3,25 +3,24 @@
 import { defineAction } from "@zapaction/core";
 import {
   getMonthlyInputSchema,
-  upsertMonthlyInputSchema,
+  listMonthlyInputSchema,
   type GetMonthlyInput,
   type GetMonthlyOutput,
-  type MonthlyRecord,
-  type UpsertMonthlyInput,
+  type ListMonthlyInput,
+  type ListMonthlyOutput,
 } from "@pekulo/validators";
 import { monthlyClient } from "@/lib/orpc/modules";
 import { ensureRequestContext } from "@/lib/orpc/request-context";
-import { monthlyTags } from "@/lib/zapaction/keys";
 import type { ActionContext } from "@/lib/zapaction/context";
 import "@/lib/zapaction/context";
 
-// L25 (2026-05-20): getMonthly returns a discriminated `source` envelope —
-// omit `output:` to avoid the zapaction-core `output.parse(result)` reject
-// path against a narrowed schema. The generic types still pin the contract
-// for callers. upsertMonthly returns a single MonthlyRecord and could carry
-// `output:`, but the prefixed-id regex inside monthlyRecordSchema would
-// reject the server-issued id on the client; the round-trip stays typed
-// via the generic.
+// L25 (2026-05-20): getMonthly + listMonthly both return discriminated
+// `source` envelopes — omit `output:` so zapaction core doesn't reject the
+// narrowed branches via output.parse. Generic types pin the contract.
+//
+// upsertMonthly is exposed by the api contract but has no V1 web surface
+// (the /mensuel UI is read-only per ux-preview MonthlyScreen). Story 5-5
+// sign-off will re-add it here when the freeze button needs a server action.
 
 export const getMonthly = defineAction<GetMonthlyInput, GetMonthlyOutput, ActionContext>({
   name: "getMonthly",
@@ -32,12 +31,11 @@ export const getMonthly = defineAction<GetMonthlyInput, GetMonthlyOutput, Action
   },
 });
 
-export const upsertMonthly = defineAction<UpsertMonthlyInput, MonthlyRecord, ActionContext>({
-  name: "upsertMonthly",
-  input: upsertMonthlyInputSchema,
-  tags: [monthlyTags.get(0, 0)],
+export const listMonthly = defineAction<ListMonthlyInput, ListMonthlyOutput, ActionContext>({
+  name: "listMonthly",
+  input: listMonthlyInputSchema,
   handler: async ({ input }) => {
     await ensureRequestContext();
-    return monthlyClient.upsertMonthly(input);
+    return monthlyClient.listMonthly(input);
   },
 });
