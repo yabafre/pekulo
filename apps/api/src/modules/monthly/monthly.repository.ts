@@ -64,6 +64,14 @@ export interface MonthlyRepository {
     fromYear: number,
     fromMonthNum: number,
   ): Promise<Transaction[]>;
+  /** Stamp signedOffAt on an existing row (the upsert is the caller's job).
+   *  Throws Prisma P2025 → caller maps to MONTHLY_NOT_FOUND. */
+  setSignedOffAt(
+    userId: string,
+    year: number,
+    monthNum: number,
+    value: Date | null,
+  ): Promise<MonthlyRecord>;
 }
 
 function toMonthlyDto(row: MonthlyRecordRow): MonthlyRecord {
@@ -188,6 +196,21 @@ export function createMonthlyRepository(deps: { client: ExtendedPrismaClient }):
         orderBy: [{ occurredOn: "asc" }, { id: "asc" }],
       })) as TransactionRow[];
       return rows.map(toTransactionDto);
+    },
+
+    async setSignedOffAt(userId, year, monthNum, value) {
+      const row = (await deps.client.monthlyRecord.update({
+        where: {
+          // Compound unique key — same shape as upsertByMonth (ADR-0013
+          // defense-in-depth + lint-rule satisfaction). P2025 surfaces here
+          // when the row doesn't exist; the caller (service) translates
+          // to PekuloError("MONTHLY_NOT_FOUND", …).
+          userId,
+          userId_year_monthNum: { userId, year, monthNum },
+        },
+        data: { signedOffAt: value, updatedAt: new Date() },
+      })) as MonthlyRecordRow;
+      return toMonthlyDto(row);
     },
   };
 }
