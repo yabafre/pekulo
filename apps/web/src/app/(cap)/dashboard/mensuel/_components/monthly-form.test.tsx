@@ -13,7 +13,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import { renderWithTamagui } from "../../../../../test/setup";
+import { renderWithTamagui } from "../../../../../../test/setup";
 
 const { upsertMutateAsync } = vi.hoisted(() => ({
   upsertMutateAsync: vi.fn().mockResolvedValue({

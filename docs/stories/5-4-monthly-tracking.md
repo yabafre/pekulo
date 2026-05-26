@@ -43,10 +43,10 @@
 - [ ] **T9** — Module composition `apps/api/src/modules/monthly/monthly.module.ts` (`createMonthlyModule({prismaService})`) + integration test `apps/api/src/modules/monthly/monthly.integration.test.ts` (3 cases — 401 sans JWT, derived defaults sur user vide, upsert + re-read persisted). [AC: AC-1, AC-2, AC-4]
 - [ ] **T10** — Wire the module in `apps/api/src/bootstrap/runtime-dependencies.ts` ; mount under `/rpc/v1/monthly` ; bind to the apps/web client in `apps/web/src/lib/orpc/modules.ts`. [AC: AC-1, AC-2, AC-4]
 - [ ] **T11** — Extend `apps/web/src/lib/zapaction/keys.ts` with `MONTHLY_KEY`, `monthlyKeys`, `monthlyTags` ; add the registry edges `monthlyTags.get(...) → monthlyKeys.get(...)` AND extend `transactionsTags.list()` edge to also include the bare `[MONTHLY_KEY]` prefix. Co-located vitest covers the edge. [AC: AC-5]
-- [ ] **T12** — Server actions `apps/web/src/app/(cap)/mensuel/_actions/monthly-actions.ts` (`getMonthly`, `upsertMonthly`) — `defineAction` SANS slot `output:` (lesson 2026-05-20). [AC: AC-1, AC-2]
-- [ ] **T13** — Hooks `apps/web/src/app/(cap)/mensuel/_hooks/use-monthly.ts` (useActionQuery) + `use-upsert-monthly.ts` (useActionMutation, `invalidateWithTags`). [AC: AC-1, AC-2, AC-5]
-- [ ] **T14** — `apps/web/src/app/(cap)/mensuel/_components/monthly-form.tsx` + `monthly-form.test.tsx` (vitest, 4 cases : defaults render, override field, submit via `fireEvent.submit(form)`, hydration guard). [AC: AC-2, AC-6]
-- [ ] **T15** — `apps/web/src/app/(cap)/mensuel/_components/mois-en-cours-section.tsx` + `apps/web/src/app/(cap)/mensuel/page.tsx` (Server Component, computes current `year/monthNum` server-side). [AC: AC-1, AC-2, AC-6]
+- [ ] **T12** — Server actions `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts` (`getMonthly`, `upsertMonthly`) — `defineAction` SANS slot `output:` (lesson 2026-05-20). [AC: AC-1, AC-2]
+- [ ] **T13** — Hooks `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly.ts` (useActionQuery) + `use-upsert-monthly.ts` (useActionMutation, `invalidateWithTags`). [AC: AC-1, AC-2, AC-5]
+- [ ] **T14** — `apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.tsx` + `monthly-form.test.tsx` (vitest, 4 cases : defaults render, override field, submit via `fireEvent.submit(form)`, hydration guard). [AC: AC-2, AC-6]
+- [ ] **T15** — `apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx` + `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` (Server Component, computes current `year/monthNum` server-side). [AC: AC-1, AC-2, AC-6]
 - [ ] **T16** — Full Iron Law quality gates : `bun --filter='@pekulo/api' run lint`, `… typecheck`, `… test`, `… db:rls-audit`, `bun --filter='@pekulo/web' run typecheck`, `bun --filter='@pekulo/web' run test:run`, `bun --filter='@pekulo/ui' run test:axe`, `git diff --exit-code packages/ui/public/tamagui.generated.css`, visual sanity-check via `mcp__react-grab-mcp__get_element_context` on `/mensuel`. Push the branch. [AC: AC-6, AC-8]
 
 ## Dev Notes
@@ -1871,10 +1871,10 @@ git commit -m "feat(#30): monthly keys + tags + transactions→monthly invalidat
 
 #### T12 — Server actions
 
-Create `apps/web/src/app/(cap)/mensuel/_actions/monthly-actions.ts`:
+Create `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts`:
 
 ```ts
-// apps/web/src/app/(cap)/mensuel/_actions/monthly-actions.ts
+// apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts
 "use server";
 
 import { defineAction } from "@zapaction/core";
@@ -1914,10 +1914,10 @@ git commit -m "feat(#30): server actions getMonthly + upsertMonthly (5-4 T12)"
 
 #### T13 — Hooks
 
-Create `apps/web/src/app/(cap)/mensuel/_hooks/use-monthly.ts`:
+Create `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly.ts`:
 
 ```ts
-// apps/web/src/app/(cap)/mensuel/_hooks/use-monthly.ts
+// apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly.ts
 "use client";
 
 import { useActionQuery } from "@zapaction/query";
@@ -1932,10 +1932,10 @@ export function useMonthly(year: number, monthNum: number) {
 }
 ```
 
-Create `apps/web/src/app/(cap)/mensuel/_hooks/use-upsert-monthly.ts`:
+Create `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-upsert-monthly.ts`:
 
 ```ts
-// apps/web/src/app/(cap)/mensuel/_hooks/use-upsert-monthly.ts
+// apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-upsert-monthly.ts
 "use client";
 
 import { useActionMutation } from "@zapaction/query";
@@ -1964,10 +1964,10 @@ git commit -m "feat(#30): useMonthly + useUpsertMonthly hooks (5-4 T13)"
 
 #### T14 — `monthly-form.tsx` + tests
 
-Create `apps/web/src/app/(cap)/mensuel/_components/monthly-form.tsx`:
+Create `apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.tsx`:
 
 ```tsx
-// apps/web/src/app/(cap)/mensuel/_components/monthly-form.tsx
+// apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.tsx
 "use client";
 
 import { useState } from "react";
@@ -2060,10 +2060,10 @@ export function MonthlyForm({ year, monthNum, defaults, onSubmitSuccess }: Month
 
 > **Note** — the `PekuloField`, `PekuloButton`, `PekuloStack` imports must match the actual exports of `@pekulo/ui` (verify with `grep -nE "(export.*PekuloField|export.*PekuloButton|export.*PekuloStack)" packages/ui/src/index.ts` before committing). If a primitive is missing, FALL BACK to the closest existing one (e.g. `<PekuloInput>` for the input wrapper) — do NOT introduce a new styled primitive (Tamagui CSS regen would be required).
 
-Create `apps/web/src/app/(cap)/mensuel/_components/monthly-form.test.tsx`:
+Create `apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.test.tsx`:
 
 ```tsx
-// apps/web/src/app/(cap)/mensuel/_components/monthly-form.test.tsx
+// apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.test.tsx
 // 4 cases — defaults render, override field, submit via fireEvent.submit, hydration guard.
 
 import { describe, expect, it, vi } from "vitest";
@@ -2172,10 +2172,10 @@ git commit -m "feat(#30): MonthlyForm client component + 4 vitest cases (5-4 T14
 
 #### T15 — Mois en cours section + page route
 
-Create `apps/web/src/app/(cap)/mensuel/_components/mois-en-cours-section.tsx`:
+Create `apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx`:
 
 ```tsx
-// apps/web/src/app/(cap)/mensuel/_components/mois-en-cours-section.tsx
+// apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -2269,10 +2269,10 @@ export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) 
 
 > **Note** — the imports `PekuloSection`, `PekuloStack`, `PekuloText`, `PekuloButton` MUST match `@pekulo/ui` exports. Verify before committing (`grep -nE "^export" packages/ui/src/index.ts`). If a primitive is missing or named differently, FALL BACK to the closest match — do NOT introduce a new styled primitive (Tamagui CSS regen guard).
 
-Create `apps/web/src/app/(cap)/mensuel/page.tsx`:
+Create `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx`:
 
 ```tsx
-// apps/web/src/app/(cap)/mensuel/page.tsx
+// apps/web/src/app/(cap)/dashboard/mensuel/page.tsx
 // Server Component — computes the current (year, monthNum) once at request
 // time so all client children consume the same key. Server-side compute
 // avoids the hydration mismatch a `new Date()` in a client component would
@@ -2429,27 +2429,27 @@ Files this story creates or modifies. Each carries the 3-bullet decision templat
     - **Single responsibility** — query-key + tag registry SSOT for apps/web cache invalidation.
     - **Inputs/outputs** — adds `MONTHLY_KEY`, `monthlyKeys`, `monthlyTags` ; extends `transactionsTags.list()` edge with `[MONTHLY_KEY]` (AC-5).
 
-18. `apps/web/src/app/(cap)/mensuel/_actions/monthly-actions.ts` *(create)*
+18. `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts` *(create)*
     - **Single responsibility** — `"use server"` zapaction `defineAction` wrappers around the oRPC client.
     - **Inputs/outputs** — `getMonthly`, `upsertMonthly`. Consumed by the hooks.
 
-19. `apps/web/src/app/(cap)/mensuel/_hooks/use-monthly.ts` *(create)*
+19. `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-monthly.ts` *(create)*
     - **Single responsibility** — `useActionQuery` hook for read.
     - **Inputs/outputs** — `useMonthly(year, monthNum)`. Consumed by `mois-en-cours-section.tsx`.
 
-20. `apps/web/src/app/(cap)/mensuel/_hooks/use-upsert-monthly.ts` *(create)*
+20. `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/use-upsert-monthly.ts` *(create)*
     - **Single responsibility** — `useActionMutation` hook with `invalidateWithTags`.
     - **Inputs/outputs** — `useUpsertMonthly(year, monthNum)`. Consumed by `monthly-form.tsx`.
 
-21. `apps/web/src/app/(cap)/mensuel/_components/monthly-form.tsx` *(create)* + `monthly-form.test.tsx` *(create)*
+21. `apps/web/src/app/(cap)/dashboard/mensuel/_components/monthly-form.tsx` *(create)* + `monthly-form.test.tsx` *(create)*
     - **Single responsibility** — client form with 4 numeric fields + submit (AC-2, AC-6).
     - **Inputs/outputs** — props `{ year, monthNum, defaults, onSubmitSuccess? }`. Consumes `useUpsertMonthly`.
 
-22. `apps/web/src/app/(cap)/mensuel/_components/mois-en-cours-section.tsx` *(create)*
+22. `apps/web/src/app/(cap)/dashboard/mensuel/_components/mois-en-cours-section.tsx` *(create)*
     - **Single responsibility** — read-only Section with 3 `Stat` (Entrées / Sorties / Net) + "Modifier" affordance that swaps in `MonthlyForm`.
     - **Inputs/outputs** — props `{ year, monthNum }`. Consumes `useMonthly`.
 
-23. `apps/web/src/app/(cap)/mensuel/page.tsx` *(create)*
+23. `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` *(create)*
     - **Single responsibility** — Server Component computing current `(year, monthNum)` and mounting `MoisEnCoursSection`.
     - **Inputs/outputs** — Next.js App Router page at `/mensuel`.
 
@@ -2494,10 +2494,10 @@ tamagui.generated.css clean.
 - `apps/web/src/lib/orpc/modules.ts` (export `monthlyClient`)
 - `apps/web/src/lib/zapaction/keys.ts` (+ `MONTHLY_KEY`/`monthlyKeys`/`monthlyTags` + extend transactions edges with `[MONTHLY_KEY]`)
 - `apps/web/src/lib/zapaction/__tests__/monthly-registry.test.ts` (3 vitest cases — registry edge proof via `invalidateTags`)
-- `apps/web/src/app/(cap)/mensuel/_actions/monthly-actions.ts` (new — `getMonthly`, `upsertMonthly`)
-- `apps/web/src/app/(cap)/mensuel/_hooks/{use-monthly,use-upsert-monthly}.ts` (new)
-- `apps/web/src/app/(cap)/mensuel/_components/{monthly-form,monthly-form.test,mois-en-cours-section}.tsx` (4 vitest cases on form)
-- `apps/web/src/app/(cap)/mensuel/page.tsx` (Server Component — computes current year/monthNum)
+- `apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts` (new — `getMonthly`, `upsertMonthly`)
+- `apps/web/src/app/(cap)/dashboard/mensuel/_hooks/{use-monthly,use-upsert-monthly}.ts` (new)
+- `apps/web/src/app/(cap)/dashboard/mensuel/_components/{monthly-form,monthly-form.test,mois-en-cours-section}.tsx` (4 vitest cases on form)
+- `apps/web/src/app/(cap)/dashboard/mensuel/page.tsx` (Server Component — computes current year/monthNum)
 
 ### Deviations
 
@@ -2506,6 +2506,8 @@ tamagui.generated.css clean.
 - **T6 lint rule belt.** The `pekulo/no-prisma-query-without-user-id` rule's `hasWhereUserId` helper only checks for a top-level `userId` key inside `where`; nested compound keys (`userId_year_monthNum.userId`) don't satisfy it. Solution: pass both top-level `userId` AND `userId_year_monthNum` in the upsert `where` clause — Prisma's `AtLeast` type accepts both, the rule is satisfied without an opt-out comment.
 - **T14/T15 DS API.** The story prescribed `<PekuloField label htmlFor>` + `<PekuloSection>` + `<PekuloStack>` + `<PekuloText>`. Actual DS surface ships `<PekuloField>` (group only) + `<PekuloFieldLabel htmlFor>` + `<PekuloInput id>` mirroring shadcn; `Section` (no `Pekulo` prefix); no `PekuloStack` / `PekuloText`. `PekuloStat` is the canonical 3-stat carrier. Adapted to use the real DS API + raw `View`/`Text` from `@pekulo/ui/client` for layouts. Zero new styled() primitive introduced — `tamagui.generated.css` clean.
 - **T16 visual sanity.** Skipped the `mcp__react-grab-mcp__get_element_context` runtime check on `/mensuel` per user choice — coverage already carried by 4 vitest cases (form + aria-label + labels per input + hydration guard) + 95 ui axe tests + the hydration-guard pattern enforced by R13. Re-runnable post-merge before the (b) ramp.
+
+- **Post-T16 fix — route placement.** The story prose + architecture matrix prescribed `apps/web/src/app/(cap)/mensuel/page.tsx`, but the brownfield ships all (cap) routes under `(cap)/dashboard/*` so they inherit `CapShell` (NavRail + topbar + bottom nav + add-tx dialog). A standalone `/mensuel` would have been an orphan: no nav shell, no entry from the rail, and a dangling `toast.info("Bientôt", "Mensuel arrive plus tard.")` in `cap-shell.tsx:122` that ux-preview's `monthly` NavKey was meant to wire eventually. Caught by Alex on the visual smoke ask. Lesson 2026-05-17 ("cross-check ux-preview before pinning UX placement") was cited in the pre-impl checklist but not effectively applied — ux-preview's `MonthlyScreen` lives as a `NavKey === "monthly"` tab of the SAME shell as transactions/portfolio/realestate (App.tsx:57 + L171), not a separate route. Fix: `git mv (cap)/mensuel → (cap)/dashboard/mensuel`, branch the rail handler in `cap-shell.tsx` (`router.push("/dashboard/mensuel")` replaces the toast), add `monthly → Mensuel` to the screenTitle map + the navActiveKey resolver. Architecture matrix unchanged — `/mensuel` stays the eventual target if the nav ever migrates up to `(cap)` root.
 
 ### Test output
 

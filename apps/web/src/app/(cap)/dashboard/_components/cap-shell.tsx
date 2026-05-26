@@ -33,7 +33,6 @@ import {
   PekuloUserDot,
   type PekuloNavKey,
   type PekuloTopTab,
-  useToast,
 } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { TransactionCreateForm } from "../transactions/_components/transaction-create-form";
@@ -65,7 +64,9 @@ export function CapShell({ email, children }: CapShellProps) {
         ? "realestate"
         : pathname.startsWith("/dashboard/transactions")
           ? "transactions"
-          : "cap";
+          : pathname.startsWith("/dashboard/mensuel")
+            ? "monthly"
+            : "cap";
   // Off-root screens replace the Cap/Patrimoine tabs with a page-title h1
   // (ux-preview L144-146). Mirrors the SCREEN_TITLE map; covers every nav
   // key the cap-shell can route to.
@@ -79,7 +80,9 @@ export function CapShell({ email, children }: CapShellProps) {
           ? "Immobilier"
           : navActiveKey === "transactions"
             ? "Transactions"
-            : null;
+            : navActiveKey === "monthly"
+              ? "Mensuel"
+              : null;
   // Contextual mobile add button label per active screen. The primitive
   // is a pure styled FAB (`$lg: display:none` keeps it mobile-only); the
   // shell owns the gating so the global "Nouvelle transaction" shortcut
@@ -93,7 +96,6 @@ export function CapShell({ email, children }: CapShellProps) {
     realestate: "Nouveau bien",
   };
   const contextualAddLabel = CONTEXTUAL_LABEL[navActiveKey];
-  const toast = useToast();
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
 
@@ -118,7 +120,10 @@ export function CapShell({ email, children }: CapShellProps) {
       router.push("/dashboard/transactions");
       return;
     }
-    toast.info("Bientôt", "Mensuel arrive plus tard.");
+    if (key === "monthly") {
+      router.push("/dashboard/mensuel");
+      return;
+    }
   };
 
   const handleNewTx = () => {
