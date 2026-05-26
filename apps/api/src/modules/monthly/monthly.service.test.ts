@@ -283,8 +283,11 @@ describe("monthly.service", () => {
     const fixedNow = new Date("2026-05-27T10:00:00.000Z"); // May 27 = window start
     const realDate = globalThis.Date;
     class FakeDate extends realDate {
-      constructor(...args: ConstructorParameters<typeof realDate>) {
-        super(...(args.length === 0 ? [fixedNow.toISOString()] : args));
+      constructor(...args: unknown[]) {
+        // Default-constructed Date (no args) → pin to fixedNow. Other call
+        // shapes (string / number / ymd…) pass through to the real Date.
+        if (args.length === 0) super(fixedNow.toISOString());
+        else super(...(args as ConstructorParameters<typeof realDate>));
       }
       static override now() {
         return fixedNow.getTime();
@@ -314,8 +317,11 @@ describe("monthly.service", () => {
     // May 26 = one day before May window start (May 27).
     const fixedNow = new Date("2026-05-26T10:00:00.000Z");
     class FakeDate extends realDate {
-      constructor(...args: ConstructorParameters<typeof realDate>) {
-        super(...(args.length === 0 ? [fixedNow.toISOString()] : args));
+      constructor(...args: unknown[]) {
+        // Default-constructed Date (no args) → pin to fixedNow. Other call
+        // shapes (string / number / ymd…) pass through to the real Date.
+        if (args.length === 0) super(fixedNow.toISOString());
+        else super(...(args as ConstructorParameters<typeof realDate>));
       }
       static override now() {
         return fixedNow.getTime();
@@ -356,8 +362,11 @@ describe("monthly.service", () => {
     const realDate = globalThis.Date;
     const fixedNow = new Date("2026-05-28T10:00:00.000Z");
     class FakeDate extends realDate {
-      constructor(...args: ConstructorParameters<typeof realDate>) {
-        super(...(args.length === 0 ? [fixedNow.toISOString()] : args));
+      constructor(...args: unknown[]) {
+        // Default-constructed Date (no args) → pin to fixedNow. Other call
+        // shapes (string / number / ymd…) pass through to the real Date.
+        if (args.length === 0) super(fixedNow.toISOString());
+        else super(...(args as ConstructorParameters<typeof realDate>));
       }
       static override now() {
         return fixedNow.getTime();

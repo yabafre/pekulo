@@ -91,6 +91,20 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
           return y * 12 + (m - 1) >= fromOrdinal;
         });
     },
+    async setSignedOffAt(userId, year, monthNum, value) {
+      const key = `${userId}|${year}|${monthNum}`;
+      const existing = rows.get(key);
+      if (!existing) {
+        // Mirror Prisma P2025 — service translates to MONTHLY_NOT_FOUND.
+        throw Object.assign(new Error("Record to update not found."), { code: "P2025" });
+      }
+      const updated: MonthlyRecord = {
+        ...existing,
+        signedOffAt: value ? value.toISOString() : null,
+      };
+      rows.set(key, updated);
+      return updated;
+    },
   };
 }
 
