@@ -51,6 +51,9 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   real_estate_mortgage: 4,
   real_estate_rental: 4,
   real_estate_valuations: 2,
+  // monthly_records — CRUD table for monthly aggregate overrides (story 5-4).
+  // Full quartet. AC-3 of story 5-4 asserts per-row RLS isolation.
+  monthly_records: 4,
 };
 
 async function main(): Promise<number> {

@@ -1,4 +1,5 @@
-// monthly.prisma — Kpi (singleton-per-user) + MonthlyTracking (per user-month-year).
+// monthly.prisma — Kpi (singleton-per-user) + MonthlyTracking (per user-month-year)
+// + MonthlyRecord (5-4 — derived monthly aggregates the user can override).
 
 model Kpi {
   id             String    @id
@@ -35,4 +36,31 @@ model MonthlyTracking {
   @@unique([userId, monthNum, year], map: "monthly_tracking_user_id_month_num_year_key")
   @@index([userId, year, monthNum], map: "monthly_tracking_user_id_year_month_num_idx")
   @@map("monthly_tracking")
+}
+
+// MonthlyRecord — story 5-4 (FR-37/38). Derived monthly aggregates the user
+// can override before sign-off. The brownfield `MonthlyTracking` above stays
+// untouched — it's the hypothesis-projection target consumed by
+// apps/web/src/lib/derive-monthly.ts. `MonthlyRecord` is the new
+// aggregate-snapshot table: 4 totals + signedOffAt (NULL today, 5-5 ships
+// sign-off behaviour over this column without a schema migration).
+//
+// id: TEXT, no @default — prefixed-ids extension injects `mr_<base62>`.
+
+model MonthlyRecord {
+  id           String    @id
+  userId       String    @map("user_id") @db.Uuid
+  year         Int
+  monthNum     Int       @map("month_num")
+  incomeEur    Decimal   @map("income_eur") @db.Decimal
+  spendingEur  Decimal   @map("spending_eur") @db.Decimal
+  transfersEur Decimal   @map("transfers_eur") @db.Decimal
+  netChangeEur Decimal   @map("net_change_eur") @db.Decimal
+  signedOffAt  DateTime? @map("signed_off_at") @db.Timestamptz
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([userId, year, monthNum], map: "monthly_records_user_id_year_month_num_key")
+  @@index([userId, year, monthNum], map: "monthly_records_user_year_month_idx")
+  @@map("monthly_records")
 }
