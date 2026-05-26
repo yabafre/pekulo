@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Section, PekuloStat, PekuloSkeleton } from "@pekulo/ui";
+import { Section, PekuloStat, PekuloSkeleton, type SectionProps } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import { useMonthly } from "../_hooks/use-monthly";
 
@@ -29,9 +29,10 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 interface MoisEnCoursSectionProps {
   year: number;
   monthNum: number;
+  className?: SectionProps["className"];
 }
 
-export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) {
+export function MoisEnCoursSection({ year, monthNum, className }: MoisEnCoursSectionProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const monthly = useMonthly(year, monthNum);
 
@@ -47,7 +48,7 @@ export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) 
 
   if (!isHydrated || monthly.isLoading) {
     return (
-      <Section ariaLabel="Mois en cours">
+      <Section ariaLabel="Mois en cours" className={className}>
         <PekuloSkeleton width="40%" height={12} />
         <View height={12} />
         <PekuloSkeleton block height={48} />
@@ -57,7 +58,7 @@ export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) 
 
   if (monthly.error) {
     return (
-      <Section ariaLabel="Mois en cours">
+      <Section ariaLabel="Mois en cours" className={className}>
         <Text color="$danger" fontSize="$bodySm">
           Erreur de chargement.
         </Text>
