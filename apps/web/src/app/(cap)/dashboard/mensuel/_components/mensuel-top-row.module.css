@@ -1,6 +1,9 @@
-/* Mensuel top row — 2-col grid 7/5 above the Historique section.
- * Mirrors ux-preview MonthlyScreen (App.tsx:1553-1584) `grid-cols-1
- * lg:grid-cols-12` with col-span-7 / col-span-5. Mobile stacks linearly. */
+/* Mensuel top row — 2-col grid 7/5. Mirrors ux-preview MonthlyScreen
+ * (App.tsx:1553-1584) `grid grid-cols-1 lg:grid-cols-12 gap-4` with
+ * `lg:col-span-7` + `lg:col-span-5` applied DIRECTLY to the Section
+ * primitives (no wrapper div). Without wrappers, each Section is the
+ * grid item itself and `align-items: stretch` (CSS Grid default) makes
+ * the two cards line up top + bottom without any height: 100% hack. */
 
 .row {
   display: grid;
@@ -11,7 +14,6 @@
 @media (min-width: 1024px) {
   .row {
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    align-items: stretch;
   }
   .moisEnCours {
     grid-column: span 7;
@@ -19,14 +21,4 @@
   .cloture {
     grid-column: span 5;
   }
-}
-
-/* Lesson 2026-05-20 — Section (Tamagui View wrapper) ignores parent
- * align-items: stretch on its own. Force height: 100% + display:flex via
- * the className escape hatch so the two sibling cards line up top + bottom
- * on lg. Mirrors portefeuille.module.css `.cardStretch` precedent. */
-.section {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
 }
