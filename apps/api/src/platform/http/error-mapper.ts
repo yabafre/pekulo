@@ -80,6 +80,14 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // delete. Defense-in-depth shape: the explicit { id, userId } guard surfaces
   // this rather than letting RLS produce a confusing P2025.
   TRANSACTION_NOT_FOUND: 404,
+  // Monthly sign-off (story 5-5). MONTHLY_NOT_FOUND fires when reopen targets
+  // a row that doesn't exist (cross-user probe or programming error — the UI
+  // only surfaces reopen on rows present in Historique). MONTHLY_OUT_OF_WINDOW
+  // and MONTHLY_SIGNED_OFF are 409 — both are state-shape conflicts (the
+  // request is well-formed but the world contradicts the call).
+  MONTHLY_NOT_FOUND: 404,
+  MONTHLY_OUT_OF_WINDOW: 409,
+  MONTHLY_SIGNED_OFF: 409,
   // CSV import (story 5-2, FR-29): payload exceeded MAX_CSV_ROWS (1000)
   // before the row-loop ran. RFC-7231 § 6.5.11 maps "request entity too
   // large" to 413.
