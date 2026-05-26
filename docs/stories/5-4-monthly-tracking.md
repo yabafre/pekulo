@@ -1,7 +1,7 @@
 # Story: 5-4-monthly-tracking — Monthly aggregates module + Mois en cours UI
 
 **Epic:** Epic 5 — Transactions & monthly tracking (V1)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#30](https://github.com/yabafre/pekulo/issues/30)
 **Branch:** `feature/30-5-4-monthly-tracking`
 **Commit prefix:** `feat(#30): …`
