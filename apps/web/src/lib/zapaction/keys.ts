@@ -89,6 +89,18 @@ export const transactionsTags = createFeatureTags(TRANSACTIONS_KEY, {
   list: () => ["list"] as const,
 });
 
+// Story 5-4 — monthly aggregate (FR-37/38). `get(year, monthNum)` is the
+// granular query key. The `get` tag invalidates that exact month; any
+// transactions mutation bulk-invalidates every month via the bare prefix
+// in the transactions edge below (AC-5).
+export const MONTHLY_KEY = "monthly" as const;
+export const monthlyKeys = createFeatureKeys(MONTHLY_KEY, {
+  get: (year: number, monthNum: number) => ["get", year, monthNum] as const,
+});
+export const monthlyTags = createFeatureTags(MONTHLY_KEY, {
+  get: (year: number, monthNum: number) => ["get", year, monthNum] as const,
+});
+
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
@@ -150,8 +162,15 @@ setTagRegistry({
   // Transactions (story 5-1) — `list` invalidates the entire transactions
   // read graph via the bare `[TRANSACTIONS_KEY]` prefix (matches realestate
   // pattern at L130) AND `accountsKeys.list()` since a recorded transaction
-  // affects the cash-balance display on the Patrimoine tab. Stories 5-3 / 5-4
-  // / 6-2 / 7-1 will append their own invalidation edges.
-  [transactionsTags.all()]: [[TRANSACTIONS_KEY], accountsKeys.list()],
-  [transactionsTags.list()]: [[TRANSACTIONS_KEY], accountsKeys.list()],
+  // affects the cash-balance display on the Patrimoine tab. Extended in 5-4
+  // (AC-5) with `[MONTHLY_KEY]` so any transaction mutation re-derives the
+  // monthly view — TanStack's prefix-match invalidates every monthly entry
+  // under any (year, monthNum).
+  [transactionsTags.all()]: [[TRANSACTIONS_KEY], accountsKeys.list(), [MONTHLY_KEY]],
+  [transactionsTags.list()]: [[TRANSACTIONS_KEY], accountsKeys.list(), [MONTHLY_KEY]],
+  // Monthly (story 5-4) — the runtime keys the registry by the tag's
+  // structural shape; `monthlyTags.get(0, 0)` is a stand-in shape that
+  // resolves to `monthlyKeys.get(0, 0)`. Bulk invalidation from transactions
+  // mutations happens via the `[MONTHLY_KEY]` bare prefix in the edges above.
+  [monthlyTags.get(0, 0)]: [monthlyKeys.get(0, 0)],
 });
