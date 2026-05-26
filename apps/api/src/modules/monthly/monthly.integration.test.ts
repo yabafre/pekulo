@@ -72,6 +72,25 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
     async listTransactionsForMonth(userId, year, monthNum) {
       return transactions.get(`${userId}|${year}|${monthNum}`) ?? [];
     },
+    async listPersistedInWindow(userId, fromYear, fromMonthNum) {
+      const fromOrdinal = fromYear * 12 + (fromMonthNum - 1);
+      return Array.from(rows.entries())
+        .filter(([key]) => key.startsWith(`${userId}|`))
+        .map(([, row]) => row)
+        .filter((r) => r.year * 12 + (r.monthNum - 1) >= fromOrdinal);
+    },
+    async listTransactionsSince(userId, fromYear, fromMonthNum) {
+      const fromOrdinal = fromYear * 12 + (fromMonthNum - 1);
+      return Array.from(transactions.entries())
+        .filter(([key]) => key.startsWith(`${userId}|`))
+        .flatMap(([, txs]) => txs)
+        .filter((tx) => {
+          const parts = tx.occurredOn.split("-").map(Number);
+          const y = parts[0] ?? 0;
+          const m = parts[1] ?? 1;
+          return y * 12 + (m - 1) >= fromOrdinal;
+        });
+    },
   };
 }
 
@@ -144,6 +163,47 @@ describe("monthly bridge (integration)", () => {
     expect(wrapped.json.record.transfersEur).toBe(0);
     expect(wrapped.json.record.netChangeEur).toBe(0);
     expect(wrapped.json.record.signedOffAt).toBeNull();
+  });
+
+  test("listMonthly: returns N descending months, persisted upserts win over derive", async () => {
+    const token = await signValid();
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    // Persist April 2026 with an override; the listMonthly window should
+    // surface it as `persisted` even though the current month falls into
+    // the same window unaltered.
+    const upsertRes = await fetch(`${baseUrl}/rpc/v1/monthly/upsertMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        json: {
+          year: 2026,
+          monthNum: 4,
+          incomeEur: 4200,
+          spendingEur: 1800,
+          transfersEur: 0,
+          netChangeEur: 2400,
+        },
+      }),
+    });
+    expect(upsertRes.status).toBe(200);
+
+    const listRes = await fetch(`${baseUrl}/rpc/v1/monthly/listMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ json: { limit: 6 } }),
+    });
+    expect(listRes.status).toBe(200);
+    const body = (await listRes.json()) as {
+      json: { items: Array<{ source: string; record: MonthlyRecord }> };
+    };
+    expect(body.json.items).toHaveLength(6);
+    const apr = body.json.items.find((i) => i.record.year === 2026 && i.record.monthNum === 4);
+    expect(apr?.source).toBe("persisted");
+    expect(apr?.record.incomeEur).toBe(4200);
   });
 
   test("AC-2: upsert persists + subsequent get returns source:'persisted'", async () => {

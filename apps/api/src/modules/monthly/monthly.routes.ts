@@ -35,5 +35,10 @@ export function createMonthlyRouter(deps: { service: MonthlyService }) {
       requireUserId(context.userId);
       return deps.service.upsertMonthly(context.userId, input);
     }),
+
+    listMonthly: impl.listMonthly.handler(async ({ context, input }) => {
+      requireUserId(context.userId);
+      return deps.service.listMonthly(context.userId, input);
+    }),
   });
 }

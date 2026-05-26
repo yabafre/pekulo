@@ -61,6 +61,12 @@ function makeRepo(seed: {
         createdAt: "2026-05-25T10:00:00.000Z",
       };
     },
+    async listPersistedInWindow() {
+      return seed.persisted ? [seed.persisted] : [];
+    },
+    async listTransactionsSince() {
+      return seed.transactions ?? [];
+    },
   } as MonthlyRepository & { upsertCalls: number; lastUpsert: unknown };
 }
 
@@ -143,4 +149,117 @@ describe("monthly.service", () => {
     expect(out.spendingEur).toBe(2500);
     expect(repo.upsertCalls).toBe(1);
   });
+
+  // listMonthly — N most-recent months. Persisted rows win per month; missing
+  // months derive from listTransactionsSince filtered to the month window.
+  it("listMonthly — returns N descending months, derived when empty", async () => {
+    const listRepo = makeListRepo({ now: { year: 2026, monthNum: 5 } });
+    service = createMonthlyService({ repository: listRepo });
+    const out = await service.listMonthly(
+      USER_A,
+      { limit: 3 },
+      { now: { year: 2026, monthNum: 5 } },
+    );
+    expect(out.items).toHaveLength(3);
+    expect(out.items.map((i) => `${i.record.year}-${i.record.monthNum}`)).toEqual([
+      "2026-5",
+      "2026-4",
+      "2026-3",
+    ]);
+    expect(out.items.every((i) => i.source === "derived")).toBe(true);
+  });
+
+  it("listMonthly — persisted row wins over derive for that exact (year, monthNum)", async () => {
+    const listRepo = makeListRepo({
+      now: { year: 2026, monthNum: 5 },
+      persisted: [
+        {
+          id: "mr_persistedapr00000000",
+          year: 2026,
+          monthNum: 4,
+          incomeEur: 9999,
+          spendingEur: 1,
+          transfersEur: 0,
+          netChangeEur: 9998,
+          signedOffAt: "2026-05-01T00:00:00.000Z",
+          createdAt: "2026-05-01T00:00:00.000Z",
+        },
+      ],
+      transactions: [
+        // These would derive incomeEur: 100 / spendingEur: 50 if used.
+        tx({
+          type: "inflow",
+          category: "salaire",
+          amount: 100,
+          occurredOn: "2026-04-10",
+        }),
+        tx({
+          type: "outflow",
+          category: "loyer",
+          amount: 50,
+          occurredOn: "2026-04-15",
+        }),
+      ],
+    });
+    service = createMonthlyService({ repository: listRepo });
+    const out = await service.listMonthly(
+      USER_A,
+      { limit: 2 },
+      { now: { year: 2026, monthNum: 5 } },
+    );
+    const apr = out.items.find((i) => i.record.monthNum === 4);
+    expect(apr?.source).toBe("persisted");
+    expect(apr?.record.incomeEur).toBe(9999);
+    expect(apr?.record.signedOffAt).toBe("2026-05-01T00:00:00.000Z");
+  });
+
+  it("listMonthly — wraps year on January boundary (descending past dec previous year)", async () => {
+    const listRepo = makeListRepo({ now: { year: 2027, monthNum: 1 } });
+    service = createMonthlyService({ repository: listRepo });
+    const out = await service.listMonthly(
+      USER_A,
+      { limit: 3 },
+      { now: { year: 2027, monthNum: 1 } },
+    );
+    expect(out.items.map((i) => `${i.record.year}-${i.record.monthNum}`)).toEqual([
+      "2027-1",
+      "2026-12",
+      "2026-11",
+    ]);
+  });
 });
+
+// listMonthly fake — supplies persisted + transactions across multiple months.
+function makeListRepo(seed: {
+  now: { year: number; monthNum: number };
+  persisted?: MonthlyRecord[];
+  transactions?: Transaction[];
+}): MonthlyRepository {
+  return {
+    async findByMonth() {
+      return null;
+    },
+    async upsertByMonth(_userId, input) {
+      return {
+        id: "mr_unused0000000000000000",
+        year: input.year,
+        monthNum: input.monthNum,
+        incomeEur: input.incomeEur,
+        spendingEur: input.spendingEur,
+        transfersEur: input.transfersEur,
+        netChangeEur: input.netChangeEur,
+        signedOffAt: null,
+        createdAt: "2026-05-25T10:00:00.000Z",
+      };
+    },
+    async listTransactionsForMonth() {
+      return [];
+    },
+    async listPersistedInWindow() {
+      return seed.persisted ?? [];
+    },
+    async listTransactionsSince() {
+      return seed.transactions ?? [];
+    },
+  };
+}

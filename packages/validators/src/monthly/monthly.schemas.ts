@@ -79,7 +79,7 @@ const netChangeAmount = () => z.number().finite("Net change invalide");
 
 export const monthlyRecordSchema = z.object({
   id: z.string().regex(MONTHLY_RECORD_ID_REGEX),
-  year: z.number().int().min(2026).max(2099),
+  year: z.number().int().min(2020).max(2099),
   monthNum: z.number().int().min(1).max(12),
   incomeEur: eurAmount(),
   spendingEur: eurAmount(),
@@ -98,7 +98,7 @@ export const monthlyRecordDerivedSchema = monthlyRecordSchema
 export type MonthlyRecordDerived = z.infer<typeof monthlyRecordDerivedSchema>;
 
 export const getMonthlyInputSchema = z.object({
-  year: z.number().int().min(2026).max(2099),
+  year: z.number().int().min(2020).max(2099),
   monthNum: z.number().int().min(1).max(12),
 });
 export type GetMonthlyInput = z.infer<typeof getMonthlyInputSchema>;
@@ -110,7 +110,7 @@ export const getMonthlyOutputSchema = z.discriminatedUnion("source", [
 export type GetMonthlyOutput = z.infer<typeof getMonthlyOutputSchema>;
 
 export const upsertMonthlyInputSchema = z.object({
-  year: z.number().int().min(2026).max(2099),
+  year: z.number().int().min(2020).max(2099),
   monthNum: z.number().int().min(1).max(12),
   incomeEur: eurAmount(),
   spendingEur: eurAmount(),
@@ -118,3 +118,16 @@ export const upsertMonthlyInputSchema = z.object({
   netChangeEur: netChangeAmount(),
 });
 export type UpsertMonthlyInput = z.infer<typeof upsertMonthlyInputSchema>;
+
+// listMonthly — N most-recent months (current + past). Each entry carries the
+// same discriminated `source` envelope as getMonthly: persisted row wins,
+// otherwise we derive from the transactions of that month.
+export const listMonthlyInputSchema = z.object({
+  limit: z.number().int().min(1).max(60).default(12),
+});
+export type ListMonthlyInput = z.infer<typeof listMonthlyInputSchema>;
+
+export const listMonthlyOutputSchema = z.object({
+  items: z.array(getMonthlyOutputSchema),
+});
+export type ListMonthlyOutput = z.infer<typeof listMonthlyOutputSchema>;

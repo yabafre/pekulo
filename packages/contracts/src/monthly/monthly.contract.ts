@@ -8,6 +8,8 @@ import { oc } from "@orpc/contract";
 import {
   getMonthlyInputSchema,
   getMonthlyOutputSchema,
+  listMonthlyInputSchema,
+  listMonthlyOutputSchema,
   monthlyRecordSchema,
   upsertMonthlyInputSchema,
 } from "@pekulo/validators";
@@ -15,6 +17,7 @@ import {
 export const monthlyContractV1 = {
   getMonthly: oc.input(getMonthlyInputSchema).output(getMonthlyOutputSchema),
   upsertMonthly: oc.input(upsertMonthlyInputSchema).output(monthlyRecordSchema),
+  listMonthly: oc.input(listMonthlyInputSchema).output(listMonthlyOutputSchema),
 } as const;
 
 export const monthlyContract = monthlyContractV1;

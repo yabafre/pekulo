@@ -51,6 +51,19 @@ export interface MonthlyRepository {
   findByMonth(userId: string, year: number, monthNum: number): Promise<MonthlyRecord | null>;
   upsertByMonth(userId: string, input: UpsertMonthlyInput): Promise<MonthlyRecord>;
   listTransactionsForMonth(userId: string, year: number, monthNum: number): Promise<Transaction[]>;
+  /** All persisted MonthlyRecord rows for the user in the [from, to] window
+   *  (inclusive on both ends, year/monthNum compound). */
+  listPersistedInWindow(
+    userId: string,
+    fromYear: number,
+    fromMonthNum: number,
+  ): Promise<MonthlyRecord[]>;
+  /** All transactions for the user with occurredOn ≥ first day of from-month. */
+  listTransactionsSince(
+    userId: string,
+    fromYear: number,
+    fromMonthNum: number,
+  ): Promise<Transaction[]>;
 }
 
 function toMonthlyDto(row: MonthlyRecordRow): MonthlyRecord {
@@ -143,6 +156,34 @@ export function createMonthlyRepository(deps: { client: ExtendedPrismaClient }):
             gte: firstDayOfMonthUTC(year, monthNum),
             lt: firstDayOfNextMonthUTC(year, monthNum),
           },
+        },
+        orderBy: [{ occurredOn: "asc" }, { id: "asc" }],
+      })) as TransactionRow[];
+      return rows.map(toTransactionDto);
+    },
+
+    async listPersistedInWindow(userId, fromYear, fromMonthNum) {
+      // Compose year*12 + monthNum so the SQL filter is a simple `>=`.
+      const fromOrdinal = fromYear * 12 + (fromMonthNum - 1);
+      const rows = (await deps.client.monthlyRecord.findMany({
+        where: {
+          userId,
+          // CASE-by-case index hit isn't great in Postgres for derived
+          // expressions; we filter in-memory after pulling the user's full
+          // recent rows. For V1 scale (NFR-16: a few dozen per user) the
+          // overhead is negligible.
+          year: { gte: fromYear },
+        },
+        orderBy: [{ year: "desc" }, { monthNum: "desc" }],
+      })) as MonthlyRecordRow[];
+      return rows.map(toMonthlyDto).filter((r) => r.year * 12 + (r.monthNum - 1) >= fromOrdinal);
+    },
+
+    async listTransactionsSince(userId, fromYear, fromMonthNum) {
+      const rows = (await deps.client.transaction.findMany({
+        where: {
+          userId,
+          occurredOn: { gte: firstDayOfMonthUTC(fromYear, fromMonthNum) },
         },
         orderBy: [{ occurredOn: "asc" }, { id: "asc" }],
       })) as TransactionRow[];

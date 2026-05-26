@@ -14,15 +14,28 @@
 import type {
   GetMonthlyInput,
   GetMonthlyOutput,
+  ListMonthlyInput,
+  ListMonthlyOutput,
   MonthlyRecord,
+  Transaction,
   UpsertMonthlyInput,
 } from "@pekulo/validators";
 import { deriveMonthlyAggregates } from "../../common/derive/monthly-aggregates";
 import type { MonthlyRepository } from "./monthly.repository";
 
+export interface MonthlyServiceClock {
+  now: { year: number; monthNum: number };
+}
+
 export interface MonthlyService {
   getMonthly(userId: string, input: GetMonthlyInput): Promise<GetMonthlyOutput>;
   upsertMonthly(userId: string, input: UpsertMonthlyInput): Promise<MonthlyRecord>;
+  /** Optional clock seam — defaults to `new Date()` UTC. Test path pins it. */
+  listMonthly(
+    userId: string,
+    input: ListMonthlyInput,
+    clock?: MonthlyServiceClock,
+  ): Promise<ListMonthlyOutput>;
 }
 
 export function createMonthlyService(deps: { repository: MonthlyRepository }): MonthlyService {
@@ -52,5 +65,68 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
     async upsertMonthly(userId, input) {
       return deps.repository.upsertByMonth(userId, input);
     },
+
+    async listMonthly(userId, input, clock) {
+      const now = clock?.now ?? currentMonthUTC();
+      // Window: [now - (limit-1) months, now] inclusive — same shape ux-preview
+      // ships in MonthlyScreen (current month at index 0, past months after).
+      const fromOrdinal = monthOrdinal(now.year, now.monthNum) - (input.limit - 1);
+      const fromYear = Math.floor(fromOrdinal / 12);
+      const fromMonthNum = (fromOrdinal % 12) + 1;
+
+      const [persistedRows, transactions] = await Promise.all([
+        deps.repository.listPersistedInWindow(userId, fromYear, fromMonthNum),
+        deps.repository.listTransactionsSince(userId, fromYear, fromMonthNum),
+      ]);
+
+      const persistedByMonth = new Map<number, MonthlyRecord>();
+      for (const row of persistedRows) {
+        persistedByMonth.set(monthOrdinal(row.year, row.monthNum), row);
+      }
+      const txsByMonth = bucketTransactionsByMonth(transactions);
+
+      const items: ListMonthlyOutput["items"] = [];
+      for (let i = 0; i < input.limit; i++) {
+        const ordinal = monthOrdinal(now.year, now.monthNum) - i;
+        const year = Math.floor(ordinal / 12);
+        const monthNum = (ordinal % 12) + 1;
+        const persisted = persistedByMonth.get(ordinal);
+        if (persisted) {
+          items.push({ source: "persisted", record: persisted });
+          continue;
+        }
+        const monthTxs = txsByMonth.get(ordinal) ?? [];
+        const aggregates = deriveMonthlyAggregates({ transactions: monthTxs });
+        items.push({
+          source: "derived",
+          record: { year, monthNum, ...aggregates, signedOffAt: null },
+        });
+      }
+      return { items };
+    },
   };
+}
+
+function monthOrdinal(year: number, monthNum: number): number {
+  return year * 12 + (monthNum - 1);
+}
+
+function currentMonthUTC(): { year: number; monthNum: number } {
+  const now = new Date();
+  return { year: now.getUTCFullYear(), monthNum: now.getUTCMonth() + 1 };
+}
+
+function bucketTransactionsByMonth(transactions: Transaction[]): Map<number, Transaction[]> {
+  const out = new Map<number, Transaction[]>();
+  for (const tx of transactions) {
+    // tx.occurredOn is ISO yyyy-mm-dd; parse without timezone drift.
+    const parts = tx.occurredOn.split("-");
+    const year = Number(parts[0] ?? 0);
+    const monthNum = Number(parts[1] ?? 1);
+    const ordinal = monthOrdinal(year, monthNum);
+    const bucket = out.get(ordinal);
+    if (bucket) bucket.push(tx);
+    else out.set(ordinal, [tx]);
+  }
+  return out;
 }
