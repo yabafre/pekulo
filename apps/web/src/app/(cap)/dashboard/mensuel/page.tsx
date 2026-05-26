@@ -31,11 +31,11 @@ export default function MensuelPage() {
       <div className={topRowStyles.row}>
         <div className={topRowStyles.moisEnCours}>
           <Suspense fallback={null}>
-            <MoisEnCoursSection year={year} monthNum={monthNum} />
+            <MoisEnCoursSection year={year} monthNum={monthNum} className={topRowStyles.section} />
           </Suspense>
         </div>
         <div className={topRowStyles.cloture}>
-          <ClotureSection year={year} monthNum={monthNum} />
+          <ClotureSection year={year} monthNum={monthNum} className={topRowStyles.section} />
         </div>
       </div>
       <Suspense fallback={null}>

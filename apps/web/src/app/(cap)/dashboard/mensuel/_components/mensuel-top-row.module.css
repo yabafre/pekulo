@@ -11,6 +11,7 @@
 @media (min-width: 1024px) {
   .row {
     grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: stretch;
   }
   .moisEnCours {
     grid-column: span 7;
@@ -18,4 +19,11 @@
   .cloture {
     grid-column: span 5;
   }
+}
+
+/* Lesson 2026-05-20 — Section (Tamagui View wrapper) ignores parent
+ * align-items: stretch on its own. Force height: 100% via the className
+ * escape hatch so the two sibling cards line up top + bottom on lg. */
+.section {
+  height: 100%;
 }
