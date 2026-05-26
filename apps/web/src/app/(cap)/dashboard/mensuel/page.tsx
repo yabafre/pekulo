@@ -29,8 +29,12 @@ export default function MensuelPage() {
       }}
     >
       <div className={topRowStyles.row}>
-        <MoisEnCoursSection year={year} monthNum={monthNum} className={topRowStyles.moisEnCours} />
-        <ClotureSection year={year} monthNum={monthNum} className={topRowStyles.cloture} />
+        <div className={topRowStyles.moisEnCours}>
+          <MoisEnCoursSection year={year} monthNum={monthNum} />
+        </div>
+        <div className={topRowStyles.cloture}>
+          <ClotureSection year={year} monthNum={monthNum} />
+        </div>
       </div>
       <HistoriqueSection limit={6} />
     </div>

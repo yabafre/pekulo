@@ -19,16 +19,20 @@ export default function MensuelLoading() {
       }}
     >
       <div className={topRowStyles.row}>
-        <Section ariaLabel="Chargement du mois en cours" className={topRowStyles.moisEnCours}>
-          <PekuloSkeleton width="40%" height={12} />
-          <div style={{ height: 12 }} />
-          <PekuloSkeleton block height={48} />
-        </Section>
-        <Section ariaLabel="Chargement de la clôture" className={topRowStyles.cloture}>
-          <PekuloSkeleton width="30%" height={12} />
-          <div style={{ height: 12 }} />
-          <PekuloSkeleton lines={2} height={14} />
-        </Section>
+        <div className={topRowStyles.moisEnCours}>
+          <Section ariaLabel="Chargement du mois en cours">
+            <PekuloSkeleton width="40%" height={12} />
+            <div style={{ height: 12 }} />
+            <PekuloSkeleton block height={48} />
+          </Section>
+        </div>
+        <div className={topRowStyles.cloture}>
+          <Section ariaLabel="Chargement de la clôture">
+            <PekuloSkeleton width="30%" height={12} />
+            <div style={{ height: 12 }} />
+            <PekuloSkeleton lines={2} height={14} />
+          </Section>
+        </div>
       </div>
       <Section ariaLabel="Chargement de l'historique" title="Historique">
         <PekuloSkeleton lines={5} height={36} />

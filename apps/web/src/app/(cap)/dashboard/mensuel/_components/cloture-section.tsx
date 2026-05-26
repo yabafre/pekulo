@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { Section, PekuloSkeleton, type SectionProps } from "@pekulo/ui";
+import { Section, PekuloSkeleton } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import { useMonthly } from "../_hooks/use-monthly";
 
@@ -35,10 +35,9 @@ const MONTH_LABELS_FR = [
 interface ClotureSectionProps {
   year: number;
   monthNum: number;
-  className?: SectionProps["className"];
 }
 
-export function ClotureSection({ year, monthNum, className }: ClotureSectionProps) {
+export function ClotureSection({ year, monthNum }: ClotureSectionProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const monthly = useMonthly(year, monthNum);
 
@@ -51,7 +50,7 @@ export function ClotureSection({ year, monthNum, className }: ClotureSectionProp
   // form lets the client diverge from the server tree.
   if (!isHydrated || monthly.isLoading) {
     return (
-      <Section ariaLabel="Action" className={className}>
+      <Section ariaLabel="Action">
         <PekuloSkeleton width="30%" height={12} />
         <View height={12} />
         <PekuloSkeleton lines={2} height={14} />
@@ -60,7 +59,7 @@ export function ClotureSection({ year, monthNum, className }: ClotureSectionProp
   }
 
   return (
-    <Section ariaLabel="Action" className={className}>
+    <Section ariaLabel="Action">
       <Text color="$colorTertiary" fontSize="$caption">
         Clôture
       </Text>
