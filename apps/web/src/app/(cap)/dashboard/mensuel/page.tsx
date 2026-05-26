@@ -1,4 +1,4 @@
-// apps/web/src/app/(cap)/mensuel/page.tsx
+// apps/web/src/app/(cap)/dashboard/mensuel/page.tsx
 // Server Component — computes the current (year, monthNum) at request time
 // so all client children consume the same key. Server-side compute avoids
 // the hydration mismatch a `new Date()` in a client component would
