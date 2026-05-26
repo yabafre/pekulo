@@ -1,0 +1,21 @@
+/* Mensuel top row — 2-col grid 7/5 above the Historique section.
+ * Mirrors ux-preview MonthlyScreen (App.tsx:1553-1584) `grid-cols-1
+ * lg:grid-cols-12` with col-span-7 / col-span-5. Mobile stacks linearly. */
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .row {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .moisEnCours {
+    grid-column: span 7;
+  }
+  .cloture {
+    grid-column: span 5;
+  }
+}

@@ -1,29 +1,46 @@
 // apps/web/src/app/(cap)/dashboard/mensuel/page.tsx
-// Server Component — computes the current (year, monthNum) at request
-// time so all client children consume the same key. Mirrors ux-preview
-// MonthlyScreen (App.tsx:1551+): 2-col top row (Mois en cours 7/12 +
-// Clôture 5/12) + Historique full-width below.
+// RSC shell — mirrors transactions/portefeuille/immobilier page.tsx shape:
+// inline-styled flex column matching the bento.module.css `.main` padding
+// chain. The inner 2-col 7/5 grid (Mois en cours + Clôture) needs an
+// @media query, so it lives in `mensuel-top-row.module.css`.
+//
+// Suspense boundaries wrap the data-fetching client sections so the
+// loading.tsx sibling stays the SSR loading carrier without forcing the
+// whole route to CSR-bail (transactions/page.tsx precedent).
 
+import { Suspense } from "react";
 import { MoisEnCoursSection } from "./_components/mois-en-cours-section";
 import { ClotureSection } from "./_components/cloture-section";
 import { HistoriqueSection } from "./_components/historique-section";
-import styles from "./_components/mensuel.module.css";
+import topRowStyles from "./_components/mensuel-top-row.module.css";
 
 export default function MensuelPage() {
   const now = new Date();
   const year = now.getUTCFullYear();
   const monthNum = now.getUTCMonth() + 1;
   return (
-    <div className={styles.page} aria-label="Mensuel">
-      <div className={styles.topRow}>
-        <div className={styles.moisEnCours}>
-          <MoisEnCoursSection year={year} monthNum={monthNum} />
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+        padding: "8px 4px 0",
+        width: "100%",
+      }}
+    >
+      <div className={topRowStyles.row}>
+        <div className={topRowStyles.moisEnCours}>
+          <Suspense fallback={null}>
+            <MoisEnCoursSection year={year} monthNum={monthNum} />
+          </Suspense>
         </div>
-        <div className={styles.cloture}>
+        <div className={topRowStyles.cloture}>
           <ClotureSection year={year} monthNum={monthNum} />
         </div>
       </div>
-      <HistoriqueSection limit={6} />
+      <Suspense fallback={null}>
+        <HistoriqueSection limit={6} />
+      </Suspense>
     </div>
   );
 }

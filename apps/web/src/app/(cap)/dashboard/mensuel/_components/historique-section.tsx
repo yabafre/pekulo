@@ -6,7 +6,7 @@
 // MoisEnCoursSection at the top of the page.
 
 import { useEffect, useState } from "react";
-import { Section, PekuloMonthlyRow } from "@pekulo/ui";
+import { Section, PekuloMonthlyRow, PekuloSkeleton } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import type { MonthlyDisplayRow } from "@pekulo/types";
 import { useMonthlyHistory } from "../_hooks/use-monthly-history";
@@ -39,9 +39,7 @@ export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
   if (isHydrated && history.isLoading) {
     return (
       <Section ariaLabel="Mois passés" title="Historique">
-        <Text color="$colorTertiary" fontSize="$caption">
-          Chargement…
-        </Text>
+        <PekuloSkeleton lines={5} height={36} />
       </Section>
     );
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Section, PekuloStat } from "@pekulo/ui";
+import { Section, PekuloStat, PekuloSkeleton } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import { useMonthly } from "../_hooks/use-monthly";
 
@@ -44,9 +44,9 @@ export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) 
   if (isHydrated && monthly.isLoading) {
     return (
       <Section ariaLabel="Mois en cours">
-        <Text color="$colorTertiary" fontSize="$caption">
-          Chargement…
-        </Text>
+        <PekuloSkeleton width="40%" height={12} />
+        <View height={12} />
+        <PekuloSkeleton block height={48} />
       </Section>
     );
   }
