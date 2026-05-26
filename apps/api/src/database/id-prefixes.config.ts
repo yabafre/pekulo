@@ -23,9 +23,10 @@ export const ID_PREFIXES = {
   // Transactions (story 0-4)
   Transaction: "tx",
 
-  // Monthly + KPI (story 0-4)
+  // Monthly + KPI (story 0-4 + story 5-4)
   Kpi: "kpi",
   MonthlyTracking: "mtr",
+  MonthlyRecord: "mr",
 
   // Hypothesis (story 0-4) — brownfield UUID column, see header note.
   // Surfaced 2026-05-10 when story 1-4 first exercised

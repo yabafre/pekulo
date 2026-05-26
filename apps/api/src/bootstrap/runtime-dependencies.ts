@@ -9,6 +9,7 @@ import { createCompassModule } from "../modules/compass/compass.module";
 import { createHoldingsModule } from "../modules/holdings/holdings.module";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
 import { createMilestonesModule } from "../modules/milestones/milestones.module";
+import { createMonthlyModule } from "../modules/monthly/monthly.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
@@ -142,6 +143,8 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     },
   });
 
+  const monthlyModule = createMonthlyModule({ prismaService });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -150,6 +153,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     holdings: holdingsModule.router,
     realestate: realestateModule.router,
     transactions: transactionsModule.router,
+    monthly: monthlyModule.router,
   };
 
   return {

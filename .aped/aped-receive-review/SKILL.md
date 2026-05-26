@@ -9,7 +9,7 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.12.3
+  version: 6.12.4
 ---
 
 Follow the instructions in `.aped/aped-receive-review/workflow.md`.

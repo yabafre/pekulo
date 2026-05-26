@@ -31,6 +31,7 @@ import {
   hypothesisContract,
   realestateContract,
   transactionsContract,
+  monthlyContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -61,3 +62,7 @@ export const realestateClient: ContractRouterClient<typeof realestateContract> =
 );
 export const transactionsClient: ContractRouterClient<typeof transactionsContract> =
   createORPCClient(orpcLink, { path: ["transactions"] });
+export const monthlyClient: ContractRouterClient<typeof monthlyContract> = createORPCClient(
+  orpcLink,
+  { path: ["monthly"] },
+);
