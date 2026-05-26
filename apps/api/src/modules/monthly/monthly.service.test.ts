@@ -380,6 +380,56 @@ describe("monthly.service", () => {
     }
   });
 
+  // ─── 5-5 reopen (T8) ────────────────────────────────────────────────────
+
+  it("reopen — signed month → clears signedOffAt (5-5 AC-3)", async () => {
+    const repo = makeRepo({
+      persisted: {
+        id: "mr_signed00000000000000",
+        year: 2026,
+        monthNum: 5,
+        incomeEur: 3943,
+        spendingEur: 2500,
+        transfersEur: 500,
+        netChangeEur: 1443,
+        signedOffAt: "2026-05-27T10:00:00.000Z",
+        createdAt: "2026-05-25T10:00:00.000Z",
+      },
+    });
+    service = createMonthlyService({ repository: repo });
+    const out = await service.reopen(USER_A, { year: 2026, monthNum: 5 });
+    expect(out.signedOffAt).toBeNull();
+    expect(repo.setSignedOffAtCalls).toBe(1);
+  });
+
+  it("reopen — non-existent month → MONTHLY_NOT_FOUND", async () => {
+    const repo = makeRepo({});
+    service = createMonthlyService({ repository: repo });
+    await expect(service.reopen(USER_A, { year: 2026, monthNum: 5 })).rejects.toThrow(
+      /MONTHLY_NOT_FOUND|no record/,
+    );
+  });
+
+  it("reopen — already null → idempotent return (no setSignedOffAt call)", async () => {
+    const repo = makeRepo({
+      persisted: {
+        id: "mr_unsigned000000000000",
+        year: 2026,
+        monthNum: 5,
+        incomeEur: 3943,
+        spendingEur: 2500,
+        transfersEur: 500,
+        netChangeEur: 1443,
+        signedOffAt: null,
+        createdAt: "2026-05-25T10:00:00.000Z",
+      },
+    });
+    service = createMonthlyService({ repository: repo });
+    const out = await service.reopen(USER_A, { year: 2026, monthNum: 5 });
+    expect(out.signedOffAt).toBeNull();
+    expect(repo.setSignedOffAtCalls).toBe(0);
+  });
+
   it("listMonthly — wraps year on January boundary (descending past dec previous year)", async () => {
     const listRepo = makeListRepo({ now: { year: 2027, monthNum: 1 } });
     service = createMonthlyService({ repository: listRepo });
