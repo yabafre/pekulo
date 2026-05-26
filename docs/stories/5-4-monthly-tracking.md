@@ -2599,3 +2599,110 @@ inside the **close-of-month flow** with the following contract :
 The endpoint (`upsertMonthly`) ships in 5-4 ; only the V1 UI is shifted. The
 forward-prep `signed_off_at` column (AC-7) is exactly the mechanism the close
 flow consumes — no schema change in 5-5.
+
+## Review Record
+
+**Date:** 2026-05-26
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done (all blockers resolved, story flips to `done`)
+
+### Findings
+
+#### Resolved
+
+- **[CRITICAL] T13/T14 dropped — Dev Record claimed "all 16 tasks landed" while `monthly-form.tsx`, `monthly-form.test.tsx`, `use-upsert-monthly.ts` do not exist** [`docs/stories/5-4-monthly-tracking.md:47-48` + Dev Record §2479-2500]
+  - Source: Spec auditor
+  - Resolution: commit `ce784e3` — Alex sign-off on AC-2 recadrage. T13 marked `[~]` (partial — `use-monthly` shipped, `use-upsert-monthly` descoped) ; T14 marked DESCOPED with explicit footnote citing commit `16e7279`. File List + Dev Record Files-changed list rewritten to reflect HEAD reality. Spinoff into 5-5 section added enumerating the 4 close-of-month contracts where T13/T14 re-land.
+
+- **[CRITICAL] AC-2 lost its UI contract without a recorded approval gate** [`apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts:21-23`]
+  - Source: Spec auditor
+  - Resolution: commit `ce784e3` — AC-2 reformulated to "V1 scope: API-ready for 5-5. The `/mensuel` proto is **read-only** during the in-progress month. The user-facing override path is **descoped to story 5-5**." Alex's UX rationale (close-of-month flow with a 5-day window + auto-close at J+6 + reopen + override-at-close) recorded in the new "Spinoff into 5-5" subsection of the Dev Agent Record.
+
+- **[MAJOR] Dev Record §2533 falsely claimed `monthly-form.test.tsx: 4/4` passed** [`docs/stories/5-4-monthly-tracking.md:2533`]
+  - Source: Spec auditor (violation of lesson 2026-05-13 — claims must match `git show HEAD:`)
+  - Resolution: commit `ce784e3` — line struck, Test output table reconciled to the real numbers (95 web tests / 51 files, not 99/52). Explanatory callout added pointing to the corrective commit and re-citing lesson 2026-05-13.
+
+- **[MAJOR] AC-6 partially unfulfilled (form-layer clauses unimplementable without the dropped form)** [`docs/stories/5-4-monthly-tracking.md:27`]
+  - Source: Spec auditor
+  - Resolution: commit `ce784e3` — AC-6 narrowed to V1 scope: Section ariaLabel + hydration guard. The form-specific clauses (form aria-label per input, submit focus ring, Enter/Space activation) moved to 5-5 in lock-step with T13/T14.
+
+- **[BLOCKER] Year-constraint mismatch — validator allows 2020-2099, SQL CHECK rejected < 2026** [`packages/validators/src/monthly/monthly.schemas.ts:113` vs `apps/api/prisma/migrations/20260525190000_create_monthly_records/migration.sql:20`]
+  - Source: Edge & Hallucination auditor
+  - Resolution: commit `52f1567` — new migration `20260526150000_relax_monthly_year_check/migration.sql` ALTERs the anonymous CHECK via `DO` block lookup in `pg_constraint`, then adds named replacement `monthly_records_year_range_check CHECK ("year" BETWEEN 2020 AND 2099)`. Idempotent through `_prisma_migrations`.
+
+- **[HIGH] Story Tasks list + Files-changed block out of sync with the landed surface** [`docs/stories/5-4-monthly-tracking.md:47-48, 2440-2446, 2498-2499`]
+  - Source: Edge & Hallucination auditor (docs-vs-code drift)
+  - Resolution: commit `ce784e3` — File List rewritten to reflect the actual landed surface (added `cloture-section.tsx`, `historique-section.tsx`, `loading.tsx`, `mensuel-top-row.module.css`, `use-monthly-history.ts`, `cap-shell.tsx` change, the relax-year-check migration ; removed `monthly-form.tsx`, `monthly-form.test.tsx`, `use-upsert-monthly.ts`). Descoped paths captured in a callout immediately below the File List.
+
+- **[MINOR] AC-5 cited `keys.test.ts` but actual vitest is `monthly-registry.test.ts`** [`docs/stories/5-4-monthly-tracking.md:25`]
+  - Source: Spec auditor (deviation name caveat)
+  - Resolution: commit `ce784e3` — path corrected inline in AC-5.
+
+#### Dismissed
+
+- **[MAJOR] AC-3 cross-user RLS isolation tested at repository layer only** [`apps/api/src/modules/monthly/monthly.integration.test.ts:134-247`]
+  - Source: Spec auditor
+  - Rationale: the 4 RLS policies are SQL-level enforcement that requires a Supabase auth.uid() context to exercise — bun:test integration boots a fake JWT verifier, not a live Supabase connection. The repository belt + the rls-audit script (`monthly_records: 4 policies`) covers the SQL-level invariant ; an end-to-end cross-user JWT test belongs in the staging smoke suite, not in unit/integration. Inherited pattern from story 5-1 (same trade-off). Defer to the V1 (b) ramp staging gate.
+
+- **[MAJOR] Hydration guard regression has no vitest pin** [`apps/web/src/app/(cap)/dashboard/mensuel/_components/{mois-en-cours,cloture,historique}-section.tsx`]
+  - Source: Spec auditor
+  - Rationale: the corrected `!isHydrated || isLoading` form is in HEAD across all 3 sections (verified inline in the Spec auditor table). A regression to the inverted form would surface as a React 19 hydration error in the browser — not silent. The cost of a vitest pin (mount + deferred mock + assert paint shape) is high relative to the protection it adds for a pattern documented twice in `docs/lessons.md` (2026-05-24 R13 + the corrective lesson on 2026-05-26). Defer until the proto leaves V1.
+
+- **[NIT] `monthlyTags` registry edge does not declare a tag for `monthlyKeys.list(limit)`** [`apps/web/src/lib/zapaction/keys.ts:101-103, 176`]
+  - Source: Code auditor
+  - Rationale: the bare-prefix edge under `transactionsTags.list() → [MONTHLY_KEY]` already covers list invalidation. The forward-pointer line `[monthlyTags.get(0, 0)]` is the 5-5 hook ; explicit `monthlyTags.list(...)` will land then.
+
+- **[NIT] `listPersistedInWindow` uses over-broad `year >= fromYear` filter + in-memory month culling** [`apps/api/src/modules/monthly/monthly.repository.ts:166-179`]
+  - Source: Code auditor
+  - Rationale: NFR-16 scale (dozens of rows per user) makes the in-memory cull negligible. Index hit on `(user_id, year DESC, month_num DESC)` confirmed. SQL push-down deferred until scale demands.
+
+- **[NIT] `MonthlyRecord.list` factory signature drift vs `transactionsKeys.list`** [`apps/web/src/lib/zapaction/keys.ts:99`]
+  - Source: Code auditor
+  - Rationale: cosmetic. `monthlyKeys.list(limit: number)` is always called with an explicit limit ; aligning the default to `50` like transactions adds no functional behaviour.
+
+- **[NIT] `monthly-actions.ts` does not export `upsertMonthly`** [`apps/web/src/app/(cap)/dashboard/mensuel/_actions/monthly-actions.ts:21-23`]
+  - Source: Code auditor
+  - Rationale: this is the AC-2 recadrage decision (see CRITICAL resolution above). Documented in the file's own comment + Spinoff into 5-5.
+
+- **[LOW] `upsertByMonth.where` carries a redundant top-level `userId` to satisfy `pekulo/no-prisma-query-without-user-id`** [`apps/api/src/modules/monthly/monthly.repository.ts:124-130`]
+  - Source: Edge & Hallucination auditor
+  - Rationale: documented inline. The Deviations §2506 already captures the lint-rule limitation. A custom rule patch is a `0-12-custom-oxlint-rules` follow-up, not a 5-4 fix.
+
+- **[LOW] `page.tsx` uses server-side UTC for the current month** [`apps/web/src/app/(cap)/dashboard/mensuel/page.tsx:18-20`]
+  - Source: Edge & Hallucination auditor
+  - Rationale: aligned with the data-source clock (transactions are stored with UTC `occurredOn`). For a Europe/Paris user the boundary mismatch is ≤ 2 hours per month and only at midnight. TR/Finary parity decision — defer the locale-aware boundary to V1 (b) ramp.
+
+- **[LOW] Floating-point accumulation drift in `deriveMonthlyAggregates`** [`apps/api/src/common/derive/monthly-aggregates.ts:31-41`]
+  - Source: Edge & Hallucination auditor
+  - Rationale: latent — current test fixtures use integer EUR amounts. A round-at-boundary (`Math.round(x * 100) / 100`) is a one-line follow-up. Tracker for 5-5 close flow which is the first user-visible delta path.
+
+- **[LOW] `listMonthly.input.limit` allows up to 60 (5 years walkback)** [`packages/validators/src/monthly/monthly.schemas.ts:125-127`]
+  - Source: Edge & Hallucination auditor
+  - Rationale: `useMonthlyHistory` calls with `limit=6` ; the schema ceiling is forward-prep. Not on any UI path that demonstrates the latent issue.
+
+- **[MINOR] Historique uses `View flexDirection="column"` instead of ux-preview's `<ul>/<li>`** [`apps/web/src/app/(cap)/dashboard/mensuel/_components/historique-section.tsx:77-90`]
+  - Source: Aria
+  - Rationale: very low semantic regression — `PekuloMonthlyRow` carries its own keying and the visual list shape is preserved. Defer to 5-5.
+
+### Verification
+
+- **Self-verify against HEAD** (lesson 2026-05-13):
+  - `git show HEAD:docs/stories/5-4-monthly-tracking.md | sed -n '19p'` → AC-2 recadrage line present ✓
+  - `git show HEAD:docs/stories/5-4-monthly-tracking.md | sed -n '48p'` → T14 DESCOPED line present ✓
+  - `git show HEAD:apps/api/prisma/migrations/20260526150000_relax_monthly_year_check/migration.sql` → 35-line ALTER migration present ✓
+- **Iron Law gates re-run after fixes:**
+  - `bun --filter='@pekulo/api' run typecheck` → exit 0 ✓
+  - `bun --filter='@pekulo/api' run lint` → 2 unrelated warnings / 0 errors ✓
+  - `bun --filter='@pekulo/api' run test` → **527 pass / 0 fail / 1297 expect() calls across 57 files** ✓
+  - `bun --filter='@pekulo/web' run typecheck` → exit 0 ✓
+  - `bun --filter='@pekulo/web' run test` → **95 pass / 0 fail across 51 files** ✓ (matches reality, not the previously claimed 99/52)
+- **Visual verification:** Aria APPROVED (static code review fallback at 2026-05-26 — React Grab MCP not used). Alex's manual visual sign-off remains on commit `5c8d2ad`. No layout change introduced by the aped-review fixes (only docs + one migration file).
+
+### Auditor verdicts
+
+| Auditor | Verdict (pre-fix) | Verdict (post-fix) | Confidence |
+|---|---|---|---|
+| Spec | CHANGES_REQUESTED | APPROVED (via recadrage of AC-2/AC-6 + sync to HEAD + Spinoff into 5-5) | HIGH |
+| Code | APPROVED | APPROVED | HIGH |
+| Edge & Hallucination | CHANGES_REQUESTED (BLOCKER year-mismatch + HIGH docs drift) | APPROVED (migration shipped, docs synced) | HIGH |
+| Aria | APPROVED | APPROVED | HIGH |
