@@ -2,13 +2,13 @@
 // RSC shell — mirrors transactions/portefeuille/immobilier page.tsx shape:
 // inline-styled flex column matching the bento.module.css `.main` padding
 // chain. The inner 2-col 7/5 grid (Mois en cours + Clôture) needs an
-// @media query, so it lives in `mensuel-top-row.module.css`.
+// @media query so it lives in `mensuel-top-row.module.css`.
 //
-// Suspense boundaries wrap the data-fetching client sections so the
-// loading.tsx sibling stays the SSR loading carrier without forcing the
-// whole route to CSR-bail (transactions/page.tsx precedent).
+// No Suspense wrappers: useActionQuery doesn't throw/suspend (it surfaces
+// loading via the isLoading flag the sections gate on), so a Suspense
+// boundary here is dead weight that also creates structural asymmetry in
+// the React tree between the two top-row cards.
 
-import { Suspense } from "react";
 import { MoisEnCoursSection } from "./_components/mois-en-cours-section";
 import { ClotureSection } from "./_components/cloture-section";
 import { HistoriqueSection } from "./_components/historique-section";
@@ -29,18 +29,14 @@ export default function MensuelPage() {
       }}
     >
       <div className={topRowStyles.row}>
-        <Suspense fallback={null}>
-          <MoisEnCoursSection
-            year={year}
-            monthNum={monthNum}
-            className={topRowStyles.moisEnCours}
-          />
-        </Suspense>
-        <ClotureSection year={year} monthNum={monthNum} className={topRowStyles.cloture} />
+        <div className={topRowStyles.moisEnCours}>
+          <MoisEnCoursSection year={year} monthNum={monthNum} />
+        </div>
+        <div className={topRowStyles.cloture}>
+          <ClotureSection year={year} monthNum={monthNum} />
+        </div>
       </div>
-      <Suspense fallback={null}>
-        <HistoriqueSection limit={6} />
-      </Suspense>
+      <HistoriqueSection limit={6} />
     </div>
   );
 }
