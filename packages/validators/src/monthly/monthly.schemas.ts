@@ -131,3 +131,26 @@ export const listMonthlyOutputSchema = z.object({
   items: z.array(getMonthlyOutputSchema),
 });
 export type ListMonthlyOutput = z.infer<typeof listMonthlyOutputSchema>;
+
+// ─── 5-5-monthly-signoff — FR-39 / FR-40 ────────────────────────────────
+// signOffMonthly is an atomic upsert + freeze. Input mirrors
+// upsertMonthlyInputSchema (the 4 numeric overrides + year/monthNum); the
+// service stamps signedOffAt = now() inside the same transaction.
+// reopenMonthly only carries the month key — the service flips
+// signedOffAt to null on the existing row (404 if no row).
+
+export const signOffMonthlyInputSchema = z.object({
+  year: z.number().int().min(2020).max(2099),
+  monthNum: z.number().int().min(1).max(12),
+  incomeEur: eurAmount(),
+  spendingEur: eurAmount(),
+  transfersEur: eurAmount(),
+  netChangeEur: netChangeAmount(),
+});
+export type SignOffMonthlyInput = z.infer<typeof signOffMonthlyInputSchema>;
+
+export const reopenMonthlyInputSchema = z.object({
+  year: z.number().int().min(2020).max(2099),
+  monthNum: z.number().int().min(1).max(12),
+});
+export type ReopenMonthlyInput = z.infer<typeof reopenMonthlyInputSchema>;

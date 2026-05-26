@@ -12,6 +12,8 @@ export type {
   GetMonthlyInput,
   GetMonthlyOutput,
   UpsertMonthlyInput,
+  SignOffMonthlyInput,
+  ReopenMonthlyInput,
 } from "@pekulo/validators";
 
 // Legacy UI-display row. Pre-5-4 this was named `MonthlyRecord`; renamed
