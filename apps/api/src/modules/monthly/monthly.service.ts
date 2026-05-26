@@ -77,6 +77,17 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
     },
 
     async upsertMonthly(userId, input) {
+      // 5-5 AC-2: defense-in-depth guard. The web tier descopes the bare
+      // upsert path (no UI surface in 5-4); a future override-on-current-
+      // month surface might re-introduce it, and the API contract must
+      // refuse writes to a signed-off row from any caller.
+      const existing = await deps.repository.findByMonth(userId, input.year, input.monthNum);
+      if (existing && existing.signedOffAt !== null) {
+        throw new PekuloError(
+          "MONTHLY_SIGNED_OFF",
+          `Cannot upsert ${input.year}-${String(input.monthNum).padStart(2, "0")}: month is signed off`,
+        );
+      }
       return deps.repository.upsertByMonth(userId, input);
     },
 

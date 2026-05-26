@@ -380,6 +380,34 @@ describe("monthly.service", () => {
     }
   });
 
+  it("upsertMonthly — blocked when signedOffAt is set (5-5 AC-2)", async () => {
+    const repo = makeRepo({
+      persisted: {
+        id: "mr_signed00000000000000",
+        year: 2026,
+        monthNum: 5,
+        incomeEur: 3943,
+        spendingEur: 2500,
+        transfersEur: 500,
+        netChangeEur: 1443,
+        signedOffAt: "2026-05-27T10:00:00.000Z",
+        createdAt: "2026-05-25T10:00:00.000Z",
+      },
+    });
+    service = createMonthlyService({ repository: repo });
+    await expect(
+      service.upsertMonthly(USER_A, {
+        year: 2026,
+        monthNum: 5,
+        incomeEur: 1,
+        spendingEur: 1,
+        transfersEur: 0,
+        netChangeEur: 0,
+      }),
+    ).rejects.toThrow(/MONTHLY_SIGNED_OFF|signed off/);
+    expect(repo.upsertCalls).toBe(0);
+  });
+
   // ─── 5-5 reopen (T8) ────────────────────────────────────────────────────
 
   it("reopen — signed month → clears signedOffAt (5-5 AC-3)", async () => {
