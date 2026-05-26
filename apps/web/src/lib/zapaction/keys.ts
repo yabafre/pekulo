@@ -99,6 +99,7 @@ export const monthlyKeys = createFeatureKeys(MONTHLY_KEY, {
   list: (limit: number) => ["list", limit] as const,
 });
 export const monthlyTags = createFeatureTags(MONTHLY_KEY, {
+  all: () => [] as const,
   get: (year: number, monthNum: number) => ["get", year, monthNum] as const,
 });
 
@@ -169,9 +170,12 @@ setTagRegistry({
   // under any (year, monthNum).
   [transactionsTags.all()]: [[TRANSACTIONS_KEY], accountsKeys.list(), [MONTHLY_KEY]],
   [transactionsTags.list()]: [[TRANSACTIONS_KEY], accountsKeys.list(), [MONTHLY_KEY]],
-  // Monthly (story 5-4) — the runtime keys the registry by the tag's
-  // structural shape; `monthlyTags.get(0, 0)` is a stand-in shape that
-  // resolves to `monthlyKeys.get(0, 0)`. Bulk invalidation from transactions
-  // mutations happens via the `[MONTHLY_KEY]` bare prefix in the edges above.
+  // Monthly (story 5-4 + 5-5). The `get(0, 0)` stand-in carries the
+  // structural shape; `all()` is the bulk edge that invalidates every
+  // monthlyKeys.* slot via the bare `[MONTHLY_KEY]` prefix. Sign-off / reopen
+  // mutations (5-5) pass `monthlyTags.all()` on their useActionMutation
+  // invalidate option so both the per-month get cache AND the listMonthly
+  // window cache refresh after the mutation resolves.
+  [monthlyTags.all()]: [[MONTHLY_KEY]],
   [monthlyTags.get(0, 0)]: [monthlyKeys.get(0, 0)],
 });
