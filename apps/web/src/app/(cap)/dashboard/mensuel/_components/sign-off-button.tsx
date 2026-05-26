@@ -130,7 +130,7 @@ export function SignOffButton({
         hoverStyle={{ opacity: 0.9 }}
         aria-label={`Clôturer ${monthName}`}
       >
-        <Check size={14} strokeWidth={2} aria-hidden={true} />
+        <Check size={14} strokeWidth={2} color="var(--background)" aria-hidden={true} />
         <Text color="$background" fontSize="$bodySm" fontWeight="500">
           Clôturer {monthName}
         </Text>
