@@ -1,25 +1,31 @@
 "use client";
 
-// 5-5 cloture modal (AC-1 / AC-7). PekuloDialog on desktop ; on mobile we
-// keep the same Dialog rather than swap to PekuloSheet — the 4 numeric
-// fields fit comfortably on mobile and the close-window CTA UX is
-// "decisive moment" rather than "background browse" (lesson 2026-05-17
-// applies for the inverse: sheets are for bottom-anchored browse flows).
-// The form's aria-label is the test selector.
+// 5-5 cloture modal (AC-1 / AC-7).
+//
+// Portal + Overlay are mandatory for the dialog to render as a true overlay
+// — without them PekuloDialog.Content lands inline in the parent card
+// (5-5 first-pass regression caught by Alex's visual review). The DS
+// primitive's animations (scale+fade enter/exit, $backgroundOverlay scrim)
+// only fire under the Portal.
+//
+// Modal Content already brings padding $6 + gap $3 from PekuloDialog —
+// the form body adds no further padding, only inner gap. Tabular-nums on
+// the 4 numeric inputs aligns the digit columns (SSOT --font-feature-tabular).
+// Submit affordance is a primary PekuloButton (white chrome per TR-strict);
+// Cancel is the ghost variant.
 
 import { useEffect, useState } from "react";
 import {
   PekuloButton,
   PekuloDialog,
   PekuloField,
-  PekuloFieldError,
   PekuloFieldGroup,
   PekuloFieldLabel,
   PekuloInput,
-  PekuloSubmitButton,
 } from "@pekulo/ui";
-import { View } from "@pekulo/ui/client";
+import { View, Text } from "@pekulo/ui/client";
 import { useSignOffMonthly } from "../_hooks/use-sign-off-monthly";
+import { DialogCloseX } from "./dialog-close-x";
 
 const MONTH_LABELS_FR = [
   "janvier",
@@ -47,6 +53,8 @@ interface ClotureModalProps {
   derivedNetChangeEur: number;
   onSuccess?: () => void;
 }
+
+const tabularInputStyle = { fontVariantNumeric: "tabular-nums" as const };
 
 export function ClotureModal({
   open,
@@ -131,71 +139,89 @@ export function ClotureModal({
 
   return (
     <PekuloDialog open={open} onOpenChange={onOpenChange}>
-      <PekuloDialog.Content>
-        <PekuloDialog.Title>
-          Clôturer {monthName} {year}
-        </PekuloDialog.Title>
-        <PekuloDialog.Description>
-          Les valeurs ci-dessous seront figées sur la fiche mensuelle. Tu pourras les rééditer en
-          réouvrant le mois.
-        </PekuloDialog.Description>
-        <form onSubmit={handleSubmit} aria-label="Clôturer le mois">
-          <View padding="$4" gap="$4">
-            <PekuloFieldGroup>
-              <PekuloField>
-                <PekuloFieldLabel htmlFor="cloture-income">Entrées (€)</PekuloFieldLabel>
-                <PekuloInput
-                  id="cloture-income"
-                  inputMode="decimal"
-                  value={incomeStr}
-                  onChange={(e) => setIncomeStr(e.currentTarget.value)}
-                />
-              </PekuloField>
-              <PekuloField>
-                <PekuloFieldLabel htmlFor="cloture-spending">Sorties (€)</PekuloFieldLabel>
-                <PekuloInput
-                  id="cloture-spending"
-                  inputMode="decimal"
-                  value={spendingStr}
-                  onChange={(e) => setSpendingStr(e.currentTarget.value)}
-                />
-              </PekuloField>
-              <PekuloField>
-                <PekuloFieldLabel htmlFor="cloture-transfers">Transferts (€)</PekuloFieldLabel>
-                <PekuloInput
-                  id="cloture-transfers"
-                  inputMode="decimal"
-                  value={transfersStr}
-                  onChange={(e) => setTransfersStr(e.currentTarget.value)}
-                />
-              </PekuloField>
-              <PekuloField>
-                <PekuloFieldLabel htmlFor="cloture-net">Net (€)</PekuloFieldLabel>
-                <PekuloInput
-                  id="cloture-net"
-                  inputMode="decimal"
-                  value={netChangeStr}
-                  onChange={(e) => setNetChangeStr(e.currentTarget.value)}
-                />
-              </PekuloField>
-              {validationError !== null && <PekuloFieldError>{validationError}</PekuloFieldError>}
-              {envelopeError !== null && <PekuloFieldError>{envelopeError}</PekuloFieldError>}
-            </PekuloFieldGroup>
-            <View flexDirection="row" gap="$2" justifyContent="flex-end" marginTop="$2">
-              <PekuloButton
-                variant="ghost"
-                onPress={() => onOpenChange(false)}
-                disabled={isPending}
-              >
-                Annuler
-              </PekuloButton>
-              <PekuloSubmitButton loading={isPending} fullWidth={false}>
-                Confirmer la clôture
-              </PekuloSubmitButton>
-            </View>
+      <PekuloDialog.Portal>
+        <PekuloDialog.Overlay />
+        <PekuloDialog.Content>
+          <DialogCloseX />
+          <View flexDirection="column" gap="$2">
+            <PekuloDialog.Title>
+              Clôturer {monthName} {year}
+            </PekuloDialog.Title>
+            <PekuloDialog.Description>
+              Les valeurs ci-dessous seront figées sur la fiche mensuelle. Tu pourras les rééditer
+              en réouvrant le mois.
+            </PekuloDialog.Description>
           </View>
-        </form>
-      </PekuloDialog.Content>
+          <form onSubmit={handleSubmit} aria-label="Clôturer le mois">
+            <View flexDirection="column" gap="$4" marginTop="$2">
+              <PekuloFieldGroup>
+                <PekuloField>
+                  <PekuloFieldLabel htmlFor="cloture-income">Entrées (€)</PekuloFieldLabel>
+                  <PekuloInput
+                    id="cloture-income"
+                    inputMode="decimal"
+                    value={incomeStr}
+                    onChange={(e) => setIncomeStr(e.currentTarget.value)}
+                    style={tabularInputStyle}
+                  />
+                </PekuloField>
+                <PekuloField>
+                  <PekuloFieldLabel htmlFor="cloture-spending">Sorties (€)</PekuloFieldLabel>
+                  <PekuloInput
+                    id="cloture-spending"
+                    inputMode="decimal"
+                    value={spendingStr}
+                    onChange={(e) => setSpendingStr(e.currentTarget.value)}
+                    style={tabularInputStyle}
+                  />
+                </PekuloField>
+                <PekuloField>
+                  <PekuloFieldLabel htmlFor="cloture-transfers">Transferts (€)</PekuloFieldLabel>
+                  <PekuloInput
+                    id="cloture-transfers"
+                    inputMode="decimal"
+                    value={transfersStr}
+                    onChange={(e) => setTransfersStr(e.currentTarget.value)}
+                    style={tabularInputStyle}
+                  />
+                </PekuloField>
+                <PekuloField>
+                  <PekuloFieldLabel htmlFor="cloture-net">Net (€)</PekuloFieldLabel>
+                  <PekuloInput
+                    id="cloture-net"
+                    inputMode="decimal"
+                    value={netChangeStr}
+                    onChange={(e) => setNetChangeStr(e.currentTarget.value)}
+                    style={tabularInputStyle}
+                  />
+                </PekuloField>
+              </PekuloFieldGroup>
+              {validationError !== null && (
+                <Text role="alert" color="$danger" fontSize="$caption">
+                  {validationError}
+                </Text>
+              )}
+              {envelopeError !== null && (
+                <Text role="alert" color="$danger" fontSize="$caption">
+                  {envelopeError}
+                </Text>
+              )}
+              <View flexDirection="row" gap="$2" justifyContent="flex-end" marginTop="$2">
+                <PekuloButton
+                  variant="ghost"
+                  onPress={() => onOpenChange(false)}
+                  disabled={isPending}
+                >
+                  Annuler
+                </PekuloButton>
+                <PekuloButton type="submit" disabled={isPending}>
+                  {isPending ? "Clôture…" : "Confirmer la clôture"}
+                </PekuloButton>
+              </View>
+            </View>
+          </form>
+        </PekuloDialog.Content>
+      </PekuloDialog.Portal>
     </PekuloDialog>
   );
 }

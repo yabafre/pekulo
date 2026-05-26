@@ -1,14 +1,15 @@
 "use client";
 
-// 5-5 reopen confirm (AC-3). PekuloDialog confirm shape — explicit
-// "Réouvrir / Annuler" choice, body explains the consequence (the row
-// flips back to derived and edits resume). Same envelope-narrow shape
-// as ClotureModal.
+// 5-5 reopen confirm (AC-3). Portal + Overlay restored (first pass shipped
+// inline render — caught by Alex's visual review). The confirm body explains
+// the consequence: row flips back to derived, edits resume. Reopen is NOT
+// destructive (reversible) — Confirm button stays primary, not danger.
 
 import { useState } from "react";
-import { PekuloButton, PekuloDialog, PekuloFieldError } from "@pekulo/ui";
-import { View } from "@pekulo/ui/client";
+import { PekuloButton, PekuloDialog } from "@pekulo/ui";
+import { View, Text } from "@pekulo/ui/client";
 import { useReopenMonthly } from "../_hooks/use-reopen-monthly";
+import { DialogCloseX } from "./dialog-close-x";
 
 const MONTH_LABELS_FR = [
   "janvier",
@@ -64,33 +65,43 @@ export function ReopenConfirm({
 
   return (
     <PekuloDialog open={open} onOpenChange={onOpenChange}>
-      <PekuloDialog.Content>
-        <PekuloDialog.Title>
-          Réouvrir {monthName} {year} ?
-        </PekuloDialog.Title>
-        <PekuloDialog.Description>
-          Le mois redeviendra modifiable et l'agrégat repassera en mode dérivé. Les valeurs figées
-          actuelles seront ignorées (mais conservées en base — tu pourras les rééditer avant la
-          prochaine clôture).
-        </PekuloDialog.Description>
-        <form onSubmit={handleConfirm} aria-label="Réouvrir le mois">
-          <View padding="$4" gap="$3">
-            {envelopeError !== null && <PekuloFieldError>{envelopeError}</PekuloFieldError>}
-            <View flexDirection="row" gap="$2" justifyContent="flex-end" marginTop="$2">
-              <PekuloButton
-                variant="ghost"
-                onPress={() => onOpenChange(false)}
-                disabled={isPending}
-              >
-                Annuler
-              </PekuloButton>
-              <PekuloButton type="submit" disabled={isPending}>
-                {isPending ? "Réouverture…" : "Réouvrir"}
-              </PekuloButton>
-            </View>
+      <PekuloDialog.Portal>
+        <PekuloDialog.Overlay />
+        <PekuloDialog.Content>
+          <DialogCloseX />
+          <View flexDirection="column" gap="$2">
+            <PekuloDialog.Title>
+              Réouvrir {monthName} {year} ?
+            </PekuloDialog.Title>
+            <PekuloDialog.Description>
+              Le mois redeviendra modifiable et l&apos;agrégat repassera en mode dérivé. Les valeurs
+              figées actuelles seront ignorées, mais conservées en base — tu pourras les rééditer
+              avant la prochaine clôture.
+            </PekuloDialog.Description>
           </View>
-        </form>
-      </PekuloDialog.Content>
+          <form onSubmit={handleConfirm} aria-label="Réouvrir le mois">
+            <View flexDirection="column" gap="$3" marginTop="$2">
+              {envelopeError !== null && (
+                <Text role="alert" color="$danger" fontSize="$caption">
+                  {envelopeError}
+                </Text>
+              )}
+              <View flexDirection="row" gap="$2" justifyContent="flex-end" marginTop="$2">
+                <PekuloButton
+                  variant="ghost"
+                  onPress={() => onOpenChange(false)}
+                  disabled={isPending}
+                >
+                  Annuler
+                </PekuloButton>
+                <PekuloButton type="submit" disabled={isPending}>
+                  {isPending ? "Réouverture…" : "Réouvrir"}
+                </PekuloButton>
+              </View>
+            </View>
+          </form>
+        </PekuloDialog.Content>
+      </PekuloDialog.Portal>
     </PekuloDialog>
   );
 }

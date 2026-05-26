@@ -85,6 +85,7 @@ export function SignOffButton({
         <View
           render="button"
           disabled
+          alignSelf="flex-start"
           flexDirection="row"
           alignItems="center"
           gap="$2"
@@ -115,6 +116,7 @@ export function SignOffButton({
       <View
         render="button"
         onPress={() => setOpen(true)}
+        alignSelf="flex-start"
         flexDirection="row"
         alignItems="center"
         gap="$2"
