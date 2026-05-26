@@ -22,8 +22,11 @@
 }
 
 /* Lesson 2026-05-20 — Section (Tamagui View wrapper) ignores parent
- * align-items: stretch on its own. Force height: 100% via the className
- * escape hatch so the two sibling cards line up top + bottom on lg. */
+ * align-items: stretch on its own. Force height: 100% + display:flex via
+ * the className escape hatch so the two sibling cards line up top + bottom
+ * on lg. Mirrors portefeuille.module.css `.cardStretch` precedent. */
 .section {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }

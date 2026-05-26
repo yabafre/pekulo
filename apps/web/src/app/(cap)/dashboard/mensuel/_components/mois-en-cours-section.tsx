@@ -37,12 +37,16 @@ export function MoisEnCoursSection({ year, monthNum, className }: MoisEnCoursSec
   const monthly = useMonthly(year, monthNum);
 
   // R13 (lesson 2026-05-24): hydration guard so SSR + first client paint
-  // both emit the loading state and React 19 doesn't flag mismatch.
+  // both emit the loading state and React 19 doesn't flag mismatch. The
+  // gate MUST be `!isHydrated || isLoading` — flipping it to `isHydrated
+  // && isLoading` (a recurring trap) inverts the guard: server returns
+  // null, client returns the live Section once TanStack Query resolves
+  // → hydration mismatch on the second paint.
   useEffect(() => setIsHydrated(true), []);
 
   const label = `${MONTH_LABELS_FR[monthNum - 1]} ${year}`;
 
-  if (isHydrated && monthly.isLoading) {
+  if (!isHydrated || monthly.isLoading) {
     return (
       <Section ariaLabel="Mois en cours" className={className}>
         <PekuloSkeleton width="40%" height={12} />

@@ -36,7 +36,9 @@ export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
 
   useEffect(() => setIsHydrated(true), []);
 
-  if (isHydrated && history.isLoading) {
+  // R13 (lesson 2026-05-24) — `!isHydrated || isLoading` not `isHydrated
+  // && isLoading`; the inverted form caused the mensuel hydration error.
+  if (!isHydrated || history.isLoading) {
     return (
       <Section ariaLabel="Mois passés" title="Historique">
         <PekuloSkeleton lines={5} height={36} />

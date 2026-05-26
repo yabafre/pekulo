@@ -46,7 +46,10 @@ export function ClotureSection({ year, monthNum, className }: ClotureSectionProp
 
   const monthName = MONTH_LABELS_FR[monthNum - 1];
 
-  if (isHydrated && monthly.isLoading) {
+  // R13 (lesson 2026-05-24) — `!isHydrated || isLoading` gates the SSR +
+  // first-paint output to the skeleton. The inverted `isHydrated && X`
+  // form lets the client diverge from the server tree.
+  if (!isHydrated || monthly.isLoading) {
     return (
       <Section ariaLabel="Action" className={className}>
         <PekuloSkeleton width="30%" height={12} />
