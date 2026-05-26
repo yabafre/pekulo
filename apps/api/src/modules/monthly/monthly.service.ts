@@ -92,7 +92,7 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
     },
 
     async signOff(userId, input) {
-      const nowDate = getNow();
+      const nowDate = new Date();
       if (!isWithinCloseWindow(input.year, input.monthNum, nowDate)) {
         throw new PekuloError(
           "MONTHLY_OUT_OF_WINDOW",
@@ -187,22 +187,6 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
 
 function monthOrdinal(year: number, monthNum: number): number {
   return year * 12 + (monthNum - 1);
-}
-
-// Dev-only clock seam. When `PEKULO_DEV_NOW_ISO` is set AND NODE_ENV is not
-// production, the close-window check + the signedOffAt freeze stamp both
-// derive their "now" from the ISO override. Lets a developer exercise the
-// happy-path branches of sign-off / reopen flows without waiting for the
-// real calendar window to open. Production path is unaffected. Codify a
-// proper clock-injection seam (`signOff(userId, input, clock?)`) on the
-// service interface in a follow-up if integration tests want deterministic
-// CI runs.
-function getNow(): Date {
-  if (process.env.NODE_ENV !== "production") {
-    const override = process.env.PEKULO_DEV_NOW_ISO;
-    if (override) return new Date(override);
-  }
-  return new Date();
 }
 
 function currentMonthUTC(): { year: number; monthNum: number } {
