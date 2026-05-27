@@ -33,7 +33,6 @@ function makeInMemoryRepo(): BankAggregatorRepository {
       displayName: string | null;
       status: "active" | "sca_required" | "revoked";
       lastRefreshedAt: Date | null;
-      tokens: { accessToken: string; refreshToken: string };
       createdAt: Date;
     }
   >();
@@ -44,7 +43,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
     persistProviderUserUuid: async (userId, _provider, uuid) => {
       providerUsers.set(userId, uuid);
     },
-    createConnection: async ({ userId, provider, providerItemId, displayName, tokens }) => {
+    createConnection: async ({ userId, provider, providerItemId, displayName }) => {
       const id = `bnk_${String(++nextId).padStart(21, "0")}`;
       const row = {
         userId,
@@ -53,7 +52,6 @@ function makeInMemoryRepo(): BankAggregatorRepository {
         displayName,
         status: "active" as const,
         lastRefreshedAt: null,
-        tokens: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
         createdAt: new Date(),
       };
       store.set(id, row);
@@ -99,11 +97,6 @@ function makeInMemoryRepo(): BankAggregatorRepository {
           lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
           createdAt: r.createdAt.toISOString(),
         },
-        tokens: {
-          accessToken: r.tokens.accessToken,
-          refreshToken: r.tokens.refreshToken,
-          expiresAt: null,
-        },
       };
     },
     findByProviderItemId: async (userId, provider, providerItemId) => {
@@ -119,11 +112,6 @@ function makeInMemoryRepo(): BankAggregatorRepository {
               displayName: r.displayName,
               lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
               createdAt: r.createdAt.toISOString(),
-            },
-            tokens: {
-              accessToken: r.tokens.accessToken,
-              refreshToken: r.tokens.refreshToken,
-              expiresAt: null,
             },
           };
         }
@@ -150,10 +138,6 @@ function makeFakeProvider(): BankProvider {
   return {
     createUser: async () => ({ providerUserUuid: "bridge-uuid-fixture" }),
     createConnectSession: async () => ({ connectUrl: "https://x", sessionId: "session-1" }),
-    exchangeCode: async () => ({
-      providerItemId: "item-42",
-      tokens: { accessToken: "fake-access", refreshToken: "fake-refresh", expiresAt: null },
-    }),
     listAccounts: async () => [
       {
         providerAccountId: "sg-1",
@@ -283,7 +267,12 @@ test("full lifecycle: connect → refresh → dedup → webhook SCA flip → ref
   expect(session.connectUrl).toBe("https://x");
 
   // 2) complete → BankConnection persisted, accounts auto-created
-  const connection = await svc.completeConnection("u", "fred@x", { code: "c", state: "s" });
+  // First mint the bridge_users mapping (mimics initiateConnection's lazy create)
+  await svc.initiateConnection("u", "fred@x", {});
+  const connection = await svc.completeConnection("u", "fred@x", {
+    itemId: "item-42",
+    userUuid: "bridge-uuid-fixture",
+  });
   expect(connection.provider).toBe("bridge");
   expect(connection.providerItemId).toBe("item-42");
   expect(connection.status).toBe("active");

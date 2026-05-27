@@ -85,19 +85,10 @@ test("createConnectSession returns connectUrl + sessionId", async () => {
   expect(session.sessionId).toBe("session-1");
 });
 
-test("exchangeCode returns providerItemId + tokens", async () => {
-  const p = createBridgeProvider({ env });
-  const { providerItemId, tokens } = await p.exchangeCode({ code: "c", state: "s" });
-  expect(providerItemId).toBe("42");
-  expect(tokens.accessToken).toBe("a");
-  expect(tokens.refreshToken).toBe("r");
-  expect(tokens.expiresAt?.toISOString()).toBe("2026-08-25T00:00:00.000Z");
-});
-
-test("listTransactions returns rows + latestUpdatedAt", async () => {
+test("listTransactions mints user-Bearer + returns rows + latestUpdatedAt", async () => {
   const p = createBridgeProvider({ env });
   const { transactions, latestUpdatedAt } = await p.listTransactions({
-    tokens: { accessToken: "a", refreshToken: "r", expiresAt: null },
+    userUuid: "bridge-user-uuid-1",
     providerItemId: "42",
     since: null,
   });

@@ -14,7 +14,6 @@ import type {
   ProviderBankAccount,
   ProviderConnectSession,
   ProviderItemState,
-  ProviderTokenPair,
   ProviderTransaction,
 } from "../bank-provider";
 
@@ -69,6 +68,32 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
     return (await req<T>(path, init)).data;
   }
 
+  // Bridge v3 user-level Bearer minting (cached briefly to amortize the extra
+  // HTTP per item-scoped call). The token has ~2h TTL per the live sandbox
+  // (`expires_at` ~2h ahead); we cache for 5 min to stay well below.
+  // Per-user cache keyed by userUuid — same composition root, no cross-user
+  // bleed.
+  interface CachedToken {
+    accessToken: string;
+    cachedAt: number;
+  }
+  const userTokenCache = new Map<string, CachedToken>();
+  const USER_TOKEN_CACHE_TTL_MS = 5 * 60 * 1000;
+
+  async function mintUserAccessToken(userUuid: string): Promise<string> {
+    const now = Date.now();
+    const cached = userTokenCache.get(userUuid);
+    if (cached && now - cached.cachedAt < USER_TOKEN_CACHE_TTL_MS) {
+      return cached.accessToken;
+    }
+    const result = await reqJson<{ access_token: string; expires_at: string | null }>(
+      `/v3/aggregation/authorization/token`,
+      { method: "POST", body: JSON.stringify({ user_uuid: userUuid }) },
+    );
+    userTokenCache.set(userUuid, { accessToken: result.access_token, cachedAt: now });
+    return result.access_token;
+  }
+
   return {
     async createUser({ externalUserId }) {
       // Bridge enforces external_user_id unique per app. 409 = "user already
@@ -109,17 +134,13 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       itemId,
       forceReauthentication,
     }) {
-      // Bridge v3 — 3-step auth on user-scoped endpoints (smoke-test 2026-05-27):
+      // Bridge v3 — 3-tier auth on user-scoped endpoints (smoke-test 2026-05-27):
       //   1. App auth (Client-Id/Secret in headers — set by authHeaders)
-      //   2. Mint user access token via /authorization/token { user_uuid }
+      //   2. User-level Bearer (minted via mintUserAccessToken)
       //   3. POST /connect-sessions with Bearer + body { user_email, ... }
-      // The previous shapes (user_email in body without Bearer, OR user_uuid
-      // in body with Bearer) BOTH return 401/400 respectively. Codified
-      // verbatim from the live sandbox call.
-      const tokenResult = await reqJson<{ access_token: string; expires_at: string | null }>(
-        `/v3/aggregation/authorization/token`,
-        { method: "POST", body: JSON.stringify({ user_uuid: userUuid }) },
-      );
+      // The user_uuid MUST NOT appear in the body (the Bearer identifies the
+      // user); body describes the session only.
+      const bearer = await mintUserAccessToken(userUuid);
       const body: Record<string, unknown> = { user_email: userEmail };
       if (redirectUri) body.callback_url = redirectUri;
       if (itemId) body.item_id = itemId;
@@ -127,33 +148,13 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       const data = await reqJson<{ id: string; url: string }>(`/v3/aggregation/connect-sessions`, {
         method: "POST",
         body: JSON.stringify(body),
-        bearer: tokenResult.access_token,
+        bearer,
       });
       return { connectUrl: data.url, sessionId: data.id } satisfies ProviderConnectSession;
     },
 
-    async exchangeCode({ code }) {
-      // OAuth-equivalent code exchange — endpoint shape targets Bridge-Version 2025-01-15.
-      const data = await reqJson<{
-        access_token: string;
-        refresh_token: string;
-        item_id: number;
-        expires_at: string | null;
-      }>(`/v3/aggregation/authorization/token`, {
-        method: "POST",
-        body: JSON.stringify({ code }),
-      });
-      return {
-        providerItemId: String(data.item_id),
-        tokens: {
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
-          expiresAt: data.expires_at ? new Date(data.expires_at) : null,
-        } satisfies ProviderTokenPair,
-      };
-    },
-
-    async listAccounts({ tokens, providerItemId }) {
+    async listAccounts({ userUuid, providerItemId }) {
+      const bearer = await mintUserAccessToken(userUuid);
       const data = await reqJson<{
         resources: Array<{
           id: number;
@@ -165,7 +166,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         }>;
       }>(`/v3/aggregation/items/${providerItemId}/accounts`, {
         method: "GET",
-        bearer: tokens.accessToken,
+        bearer,
       });
       return data.resources.map(
         (r) =>
@@ -179,7 +180,8 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       );
     },
 
-    async listTransactions({ tokens, providerItemId, since }) {
+    async listTransactions({ userUuid, providerItemId, since }) {
+      const bearer = await mintUserAccessToken(userUuid);
       const params = new URLSearchParams({ limit: "500" });
       if (since) params.set("since", since.toISOString());
       const data = await reqJson<{
@@ -194,7 +196,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         }>;
       }>(`/v3/aggregation/items/${providerItemId}/transactions?${params.toString()}`, {
         method: "GET",
-        bearer: tokens.accessToken,
+        bearer,
       });
       let latest: Date | null = null;
       const transactions = data.resources.map((r) => {
@@ -213,14 +215,16 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       return { transactions, latestUpdatedAt: latest };
     },
 
-    async revokeItem({ tokens, providerItemId }) {
+    async revokeItem({ userUuid, providerItemId }) {
+      const bearer = await mintUserAccessToken(userUuid);
       await reqJson<{ ok: true }>(`/v3/aggregation/items/${providerItemId}`, {
         method: "DELETE",
-        bearer: tokens.accessToken,
+        bearer,
       });
     },
 
-    async getItem({ tokens, providerItemId }) {
+    async getItem({ userUuid, providerItemId }) {
+      const bearer = await mintUserAccessToken(userUuid);
       const data = await reqJson<{
         id: number;
         status_code: number;
@@ -228,7 +232,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         authentication_expires_at: string | null;
       }>(`/v3/aggregation/items/${providerItemId}`, {
         method: "GET",
-        bearer: tokens.accessToken,
+        bearer,
       });
       return {
         providerItemId: String(data.id),

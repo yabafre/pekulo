@@ -1,40 +1,53 @@
 // apps/web/src/app/(cap)/dashboard/parametres/bank/callback/page.tsx
-// Story 5-6 — Bridge OAuth callback landing.
+// Story 5-6 — Bridge Connect callback (v3 stateful-widget model).
 //
-// Route: /dashboard/parametres/bank/callback (under (cap)/dashboard/* so
-// CapShell inherits — lesson 2026-05-26).
+// Bridge v3 redirects back with:
+//   ?source=connect&success=true&user_uuid=<uuid>&step=sync_success&item_id=<id>
+// NOT the classic OAuth ?code=&state= shape. The widget handles SCA + token
+// exchange server-side ; we just receive the finalized item_id + user_uuid.
 //
-// Bridge redirects the user here with ?code=...&state=... after the connect
-// widget flow. This Server Component reads the params, calls the
-// completeBankConnection server action, and either redirects to
-// /dashboard/parametres on success or renders a minimal error state.
-//
-// V1 (a) personal-use scope: no rich success affordance — redirect-on-ok is
-// enough. 5-7 will replace the error render with a richer "Reconnecter" CTA.
+// Failure shapes (Bridge docs):
+//   - success=false&error_code=<code>
+//   - step ≠ sync_success while success=true (rare partial; treat as error)
 
 import { redirect } from "next/navigation";
 import { completeBankConnection } from "../../_actions/bank-aggregator-actions";
 
 interface CallbackPageProps {
-  searchParams: Promise<{ code?: string; state?: string }>;
+  searchParams: Promise<{
+    source?: string;
+    success?: string;
+    step?: string;
+    user_uuid?: string;
+    item_id?: string;
+    error_code?: string;
+  }>;
 }
 
 export default async function BridgeCallbackPage({ searchParams }: CallbackPageProps) {
-  const { code, state } = await searchParams;
+  const params = await searchParams;
 
-  if (!code || !state) {
+  if (params.success !== "true" || !params.item_id || !params.user_uuid) {
     return (
       <main aria-label="Erreur callback Bridge">
         <h1>Connexion bancaire interrompue</h1>
         <p>
-          Le code OAuth ou le paramètre <code>state</code> manque dans l&apos;URL. Réessaie depuis
-          les paramètres.
+          La connexion n&apos;a pas abouti côté Bridge (success={params.success ?? "—"}, step=
+          {params.step ?? "—"}). Réessaie depuis les paramètres.
         </p>
+        {params.error_code ? (
+          <p>
+            Code d&apos;erreur Bridge : <code>{params.error_code}</code>
+          </p>
+        ) : null}
       </main>
     );
   }
 
-  const result = await completeBankConnection({ code, state });
+  const result = await completeBankConnection({
+    itemId: params.item_id,
+    userUuid: params.user_uuid,
+  });
 
   if (result.ok) {
     redirect("/dashboard/parametres");

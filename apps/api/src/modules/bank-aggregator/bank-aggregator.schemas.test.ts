@@ -51,10 +51,16 @@ describe("bank-aggregator schemas", () => {
     }
   });
 
-  test("completeConnectionInputSchema requires non-empty code + state", () => {
-    expect(completeConnectionInputSchema.safeParse({ code: "", state: "x" }).success).toBe(false);
-    expect(completeConnectionInputSchema.safeParse({ code: "x", state: "" }).success).toBe(false);
-    expect(completeConnectionInputSchema.safeParse({ code: "x", state: "y" }).success).toBe(true);
+  test("completeConnectionInputSchema requires non-empty itemId + userUuid (Bridge v3 shape)", () => {
+    expect(completeConnectionInputSchema.safeParse({ itemId: "", userUuid: "x" }).success).toBe(
+      false,
+    );
+    expect(completeConnectionInputSchema.safeParse({ itemId: "x", userUuid: "" }).success).toBe(
+      false,
+    );
+    expect(completeConnectionInputSchema.safeParse({ itemId: "x", userUuid: "y" }).success).toBe(
+      true,
+    );
   });
 
   test("refreshConnectionInputSchema requires connectionId", () => {

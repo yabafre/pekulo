@@ -22,7 +22,10 @@ import { createBankAggregatorService } from "./bank-aggregator.service";
 
 function makeStubs() {
   const repo: BankAggregatorRepository = {
-    findProviderUserUuid: async () => null,
+    // Stubs default to "user already mapped" so completeConnection's identity
+    // guard (input.userUuid === expectedUserUuid) passes for tests that don't
+    // override findProviderUserUuid.
+    findProviderUserUuid: async () => "bridge-uuid-1",
     persistProviderUserUuid: async () => undefined,
     createConnection: async () => ({
       id: "bnk_x",
@@ -44,10 +47,6 @@ function makeStubs() {
   const provider: BankProvider = {
     createUser: async () => ({ providerUserUuid: "bridge-uuid-1" }),
     createConnectSession: async () => ({ connectUrl: "u", sessionId: "s" }),
-    exchangeCode: async () => ({
-      providerItemId: "i",
-      tokens: { accessToken: "a", refreshToken: "r", expiresAt: null },
-    }),
     listAccounts: async () => [
       {
         providerAccountId: "1",
@@ -128,7 +127,10 @@ test("completeConnection auto-creates accounts then persists (AC-7)", async () =
     accountsService,
     listAllActiveConnections: async () => [],
   });
-  const result = await svc.completeConnection("u", "fred@x", { code: "c", state: "s" });
+  const result = await svc.completeConnection("u", "fred@x", {
+    itemId: "i",
+    userUuid: "bridge-uuid-1",
+  });
   expect(result.provider).toBe("bridge");
   expect(createCalls).toBe(1);
 });
@@ -146,7 +148,6 @@ test("completeConnection rejects when the Bridge item is already connected", asy
       lastRefreshedAt: null,
       createdAt: new Date().toISOString(),
     },
-    tokens: { accessToken: "a", refreshToken: "r", expiresAt: null },
   });
   const svc = createBankAggregatorService({
     repository: repo,
@@ -155,9 +156,9 @@ test("completeConnection rejects when the Bridge item is already connected", asy
     accountsService,
     listAllActiveConnections: async () => [],
   });
-  await expect(svc.completeConnection("u", "fred@x", { code: "c", state: "s" })).rejects.toThrow(
-    /already exists/,
-  );
+  await expect(
+    svc.completeConnection("u", "fred@x", { itemId: "i", userUuid: "bridge-uuid-1" }),
+  ).rejects.toThrow(/already exists/);
 });
 
 test("listConnections delegates without leaking secret-id columns (AC-4)", async () => {
@@ -201,7 +202,6 @@ test("refreshConnection rejects sca_required with BANK_SCA_REQUIRED (AC-5)", asy
       lastRefreshedAt: null,
       createdAt: new Date().toISOString(),
     },
-    tokens: { accessToken: "a", refreshToken: "r", expiresAt: null },
   });
   const svc = createBankAggregatorService({
     repository: repo,
@@ -228,7 +228,6 @@ test("refreshConnection persists fetched + skipped + lastRefreshedAt (AC-2)", as
       lastRefreshedAt: null,
       createdAt: new Date().toISOString(),
     },
-    tokens: { accessToken: "a", refreshToken: "r", expiresAt: null },
   });
   provider.listTransactions = async () => ({
     transactions: [
@@ -351,7 +350,6 @@ test("handleWebhookEvent on status_code=0 triggers transaction fetch for owners"
       lastRefreshedAt: null,
       createdAt: new Date().toISOString(),
     },
-    tokens: { accessToken: "a", refreshToken: "r", expiresAt: null },
   });
   provider.listTransactions = async () => ({ transactions: [], latestUpdatedAt: null });
   let imported = false;

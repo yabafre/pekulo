@@ -9,12 +9,6 @@ export interface ProviderConnectSession {
   sessionId: string;
 }
 
-export interface ProviderTokenPair {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date | null;
-}
-
 export interface ProviderBankAccount {
   providerAccountId: string;
   bankName: string;
@@ -68,28 +62,25 @@ export interface BankProvider {
   }): Promise<ProviderConnectSession>;
 
   /**
-   * Exchange the `code` from the OAuth callback for an access + refresh token
-   * pair plus the resolved `providerItemId`.
+   * Bridge v3 stateful-widget model (story 5-6 FIX 2026-05-27, second smoke):
+   * the Connect widget handles SCA + token exchange internally; the callback
+   * redirect carries `item_id` directly (no OAuth code/state). All subsequent
+   * item-scoped calls use a user-level Bearer (minted internally by the
+   * client from `userUuid`) and the `item_id` in the URL path. No per-item
+   * tokens are ever issued or persisted.
    */
-  exchangeCode(args: {
-    code: string;
-    state: string;
-  }): Promise<{ providerItemId: string; tokens: ProviderTokenPair }>;
 
   /**
    * List the bank accounts attached to a given item.
    */
-  listAccounts(args: {
-    tokens: ProviderTokenPair;
-    providerItemId: string;
-  }): Promise<ProviderBankAccount[]>;
+  listAccounts(args: { userUuid: string; providerItemId: string }): Promise<ProviderBankAccount[]>;
 
   /**
    * Incremental transaction fetch — `since` drives Bridge's `?since=<ISO>` dedup
    * (Bridge returns rows with `updated_at > since` only).
    */
   listTransactions(args: {
-    tokens: ProviderTokenPair;
+    userUuid: string;
     providerItemId: string;
     since: Date | null;
   }): Promise<{ transactions: ProviderTransaction[]; latestUpdatedAt: Date | null }>;
@@ -98,11 +89,11 @@ export interface BankProvider {
    * Revoke a Bridge item — used by the 5-7 revoke flow. 5-6 implements but
    * does not expose via oRPC (the procedure ships in 5-7).
    */
-  revokeItem(args: { tokens: ProviderTokenPair; providerItemId: string }): Promise<void>;
+  revokeItem(args: { userUuid: string; providerItemId: string }): Promise<void>;
 
   /**
    * Query the current item state — used by the cron-backup refresh to skip
    * items in `SCA_REQUIRED` (1010) without calling listTransactions.
    */
-  getItem(args: { tokens: ProviderTokenPair; providerItemId: string }): Promise<ProviderItemState>;
+  getItem(args: { userUuid: string; providerItemId: string }): Promise<ProviderItemState>;
 }

@@ -9,10 +9,8 @@
 // NEVER log or return plaintext tokens. The DTO mapper at the end of every
 // method drops the secret-id columns from the response shape (NFR-31, AC-4).
 
-import { Prisma } from "@generated/prisma/client";
 import type { BankConnection, BankConnectionStatus, BankProviderName } from "@pekulo/validators";
 import type { PrismaService } from "../../database";
-import type { ProviderTokenPair } from "./bank-provider";
 
 interface PersistedConnectionRow {
   id: string;
@@ -49,12 +47,18 @@ export interface BankAggregatorRepository {
     providerUserUuid: string,
   ): Promise<void>;
 
+  /**
+   * Story 5-6 FIX (Bridge v3, 2026-05-27) — tokens dropped from the create
+   * surface. Bridge keeps OAuth tokens server-side under the stateful-widget
+   * model ; Pekulo persists only the connection metadata + provider_item_id.
+   * Vault columns (access_token_secret_id, refresh_token_secret_id) stay
+   * NULL — slated for a clean DROP COLUMN migration in V1.5.
+   */
   createConnection(args: {
     userId: string;
     provider: BankProviderName;
     providerItemId: string;
     displayName: string | null;
-    tokens: ProviderTokenPair;
   }): Promise<BankConnection>;
 
   listByUser(userId: string): Promise<BankConnection[]>;
@@ -62,13 +66,13 @@ export interface BankAggregatorRepository {
   findByIdForUser(
     userId: string,
     connectionId: string,
-  ): Promise<{ connection: BankConnection; tokens: ProviderTokenPair } | null>;
+  ): Promise<{ connection: BankConnection } | null>;
 
   findByProviderItemId(
     userId: string,
     provider: BankProviderName,
     providerItemId: string,
-  ): Promise<{ connection: BankConnection; tokens: ProviderTokenPair } | null>;
+  ): Promise<{ connection: BankConnection } | null>;
 
   setStatus(userId: string, connectionId: string, status: BankConnectionStatus): Promise<void>;
 
@@ -129,22 +133,6 @@ export function createBankAggregatorRepository(deps: {
 }): BankAggregatorRepository {
   const db = deps.prismaService.client;
 
-  async function createVaultSecret(name: string, secret: string): Promise<string> {
-    const rows = await db.$queryRaw<Array<{ id: string }>>(
-      Prisma.sql`SELECT vault.create_secret(${secret}, ${name})::text AS id`,
-    );
-    if (!rows[0]?.id) throw new Error("vault.create_secret did not return an id");
-    return rows[0].id;
-  }
-
-  async function readVaultSecret(id: string): Promise<string> {
-    const rows = await db.$queryRaw<Array<{ decrypted_secret: string }>>(
-      Prisma.sql`SELECT decrypted_secret FROM vault.decrypted_secrets WHERE id = ${id}::uuid`,
-    );
-    if (!rows[0]) throw new Error(`vault secret ${id} not found`);
-    return rows[0].decrypted_secret;
-  }
-
   return {
     async findProviderUserUuid(userId, _provider) {
       // V1 only supports Bridge — _provider is the placeholder for the
@@ -163,19 +151,12 @@ export function createBankAggregatorRepository(deps: {
       });
     },
 
-    async createConnection({ userId, provider, providerItemId, displayName, tokens }) {
-      const accessId = await createVaultSecret(`bnk_${providerItemId}_access`, tokens.accessToken);
-      const refreshId = await createVaultSecret(
-        `bnk_${providerItemId}_refresh`,
-        tokens.refreshToken,
-      );
+    async createConnection({ userId, provider, providerItemId, displayName }) {
       const row = (await db.bankConnection.create({
         data: {
           userId,
           provider,
           providerItemId,
-          accessTokenSecretId: accessId,
-          refreshTokenSecretId: refreshId,
           displayName,
           status: "active",
         } as unknown as Parameters<typeof db.bankConnection.create>[0]["data"],
@@ -196,15 +177,7 @@ export function createBankAggregatorRepository(deps: {
         where: { userId, id: connectionId },
       })) as PrismaBankConnectionRow | null;
       if (!r) return null;
-      if (!r.accessTokenSecretId || !r.refreshTokenSecretId) return null;
-      const [accessToken, refreshToken] = await Promise.all([
-        readVaultSecret(r.accessTokenSecretId),
-        readVaultSecret(r.refreshTokenSecretId),
-      ]);
-      return {
-        connection: rowToDto(r),
-        tokens: { accessToken, refreshToken, expiresAt: null },
-      };
+      return { connection: rowToDto(r) };
     },
 
     async findByProviderItemId(userId, provider, providerItemId) {
@@ -212,15 +185,7 @@ export function createBankAggregatorRepository(deps: {
         where: { userId, provider, providerItemId },
       })) as PrismaBankConnectionRow | null;
       if (!r) return null;
-      if (!r.accessTokenSecretId || !r.refreshTokenSecretId) return null;
-      const [accessToken, refreshToken] = await Promise.all([
-        readVaultSecret(r.accessTokenSecretId),
-        readVaultSecret(r.refreshTokenSecretId),
-      ]);
-      return {
-        connection: rowToDto(r),
-        tokens: { accessToken, refreshToken, expiresAt: null },
-      };
+      return { connection: rowToDto(r) };
     },
 
     async setStatus(userId, connectionId, status) {

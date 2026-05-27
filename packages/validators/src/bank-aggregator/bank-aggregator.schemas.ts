@@ -41,10 +41,13 @@ export const initiateConnectionOutputSchema = z.object({
 export type InitiateConnectionOutput = z.infer<typeof initiateConnectionOutputSchema>;
 
 // ---------- completeConnection ----------
+// Bridge v3 stateful-widget model (story 5-6 FIX 2026-05-27): the callback
+// receives `item_id` + `user_uuid` (NOT OAuth code/state). The widget handles
+// the OAuth + SCA dance server-side and just hands us the finalized item.
 
 export const completeConnectionInputSchema = z.object({
-  code: z.string().min(1),
-  state: z.string().min(1),
+  itemId: z.string().min(1),
+  userUuid: z.string().min(1),
 });
 export type CompleteConnectionInput = z.infer<typeof completeConnectionInputSchema>;
 

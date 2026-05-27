@@ -132,17 +132,25 @@ export function createBankAggregatorService(deps: {
     },
 
     async completeConnection(userId, _userEmail, input) {
-      const exchange = await deps.provider.exchangeCode({ code: input.code, state: input.state });
-      const existing = await deps.repository.findByProviderItemId(
-        userId,
-        "bridge",
-        exchange.providerItemId,
-      );
-      if (existing) throw bankConnectionAlreadyExists(exchange.providerItemId);
+      // Bridge v3 stateful-widget model: the widget handed us a ready-to-use
+      // item_id + user_uuid via the callback. We:
+      //   1. Verify the user_uuid in the callback matches the bridge_users
+      //      mapping for this Pekulo userId (defense — prevents a
+      //      cross-user-attacker-supplies-someone-else's-item_id race).
+      //   2. List the accounts for the item (user-Bearer minted internally).
+      //   3. Auto-create local Account rows (AC-7).
+      //   4. Persist BankConnection (tokens null — Bridge keeps them).
+      const expectedUserUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
+      if (!expectedUserUuid || expectedUserUuid !== input.userUuid) {
+        throw bankConnectionNotFound(input.itemId);
+      }
+
+      const existing = await deps.repository.findByProviderItemId(userId, "bridge", input.itemId);
+      if (existing) throw bankConnectionAlreadyExists(input.itemId);
 
       const remoteAccounts = await deps.provider.listAccounts({
-        tokens: exchange.tokens,
-        providerItemId: exchange.providerItemId,
+        userUuid: input.userUuid,
+        providerItemId: input.itemId,
       });
       for (const a of remoteAccounts) {
         await deps.accountsService.findOrCreateAutoFromProvider(
@@ -160,9 +168,8 @@ export function createBankAggregatorService(deps: {
       const created = await deps.repository.createConnection({
         userId,
         provider: "bridge" as BankProviderName,
-        providerItemId: exchange.providerItemId,
+        providerItemId: input.itemId,
         displayName: remoteAccounts[0]?.bankName ?? null,
-        tokens: exchange.tokens,
       });
       return created;
     },
@@ -177,11 +184,14 @@ export function createBankAggregatorService(deps: {
       if (found.connection.status === "sca_required") throw bankScaRequired(input.connectionId);
       if (found.connection.status === "revoked") throw bankConnectionNotFound(input.connectionId);
 
+      const userUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
+      if (!userUuid) throw bankConnectionNotFound(input.connectionId);
+
       const since = found.connection.lastRefreshedAt
         ? new Date(found.connection.lastRefreshedAt)
         : null;
       const { transactions, latestUpdatedAt } = await deps.provider.listTransactions({
-        tokens: found.tokens,
+        userUuid,
         providerItemId: found.connection.providerItemId,
         since,
       });

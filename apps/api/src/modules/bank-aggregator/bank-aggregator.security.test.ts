@@ -52,14 +52,6 @@ function makeFakeProvider(): BankProvider {
   return {
     createUser: async () => ({ providerUserUuid: "bridge-uuid-1" }),
     createConnectSession: async () => ({ connectUrl: "u", sessionId: "s" }),
-    exchangeCode: async () => ({
-      providerItemId: "item-1",
-      tokens: {
-        accessToken: SECRET_TOKEN_VALUES[0]!,
-        refreshToken: SECRET_TOKEN_VALUES[1]!,
-        expiresAt: null,
-      },
-    }),
     listAccounts: async () => [
       {
         providerAccountId: "1",
@@ -94,17 +86,15 @@ function makeFakeProvider(): BankProvider {
 }
 
 function makeRepo(): BankAggregatorRepository {
-  let stored: {
-    accessToken: string;
-    refreshToken: string;
-  } | null = null;
+  let stored = false;
   return {
-    findProviderUserUuid: async () => null,
+    // Bridge v3 — bridge_users mapping IS the user-level credential, the
+    // provider Bearer is minted from it. The connection row stores only the
+    // item_id; no per-item tokens.
+    findProviderUserUuid: async () => "bridge-uuid-fixture",
     persistProviderUserUuid: async () => undefined,
-    createConnection: async ({ tokens }) => {
-      // The repository would write the tokens to Vault here — we capture
-      // them in-memory and DO NOT include them in the returned DTO.
-      stored = { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
+    createConnection: async () => {
+      stored = true;
       return {
         id: "bnk_1",
         userId: "u",
@@ -129,11 +119,6 @@ function makeRepo(): BankAggregatorRepository {
           displayName: "SG",
           lastRefreshedAt: null,
           createdAt: new Date().toISOString(),
-        },
-        tokens: {
-          accessToken: stored.accessToken,
-          refreshToken: stored.refreshToken,
-          expiresAt: null,
         },
       };
     },
@@ -183,7 +168,10 @@ test("full lifecycle leaks zero token substrings to console/stderr (AC-8)", asyn
       listAllActiveConnections: async () => [{ userId: "u", connectionId: "bnk_1" }],
     });
 
-    const connection = await svc.completeConnection("u", "fred@x", { code: "c", state: "s" });
+    const connection = await svc.completeConnection("u", "fred@x", {
+      itemId: "item-1",
+      userUuid: "bridge-uuid-fixture",
+    });
     expect(connection).not.toHaveProperty("accessTokenSecretId");
 
     await svc.refreshConnection("u", { connectionId: "bnk_1" });
