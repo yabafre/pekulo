@@ -3,7 +3,7 @@ story_key: 5-5-monthly-signoff
 epic: 5
 ticket: "#31"
 branch: feature/31-5-5-monthly-signoff
-status: ready-for-dev
+status: review
 depends_on: [5-4-monthly-tracking, 0-10-pekulo-ui-migration]
 complexity: S
 commit_prefix: "feat(#31)"
@@ -39,26 +39,26 @@ stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection,
 >
 > Ordering rationale: contract-first (T1 → T3) so the workspace typechecks coherently from T4 onward; close-window derive (T4) is pure & test-first; repository (T5) before service (T6–T9) before routes (T10); integration test (T11) closes the API loop; web actions/hooks (T12–T14) before components (T15–T18); component tests (T19); Iron Law sweep (T20). Full code blocks live in **Dev Notes → Execution tasks — full code** below.
 
-- [ ] **T1** — Error codes (`PekuloErrorCode` + `ORPC_HTTP_STATUS_BY_CODE`) [AC: AC-2, AC-3, AC-5]
-- [ ] **T2** — Validator schemas — `signOffMonthlyInputSchema` + `reopenMonthlyInputSchema` [AC: AC-1, AC-3]
-- [ ] **T3** — Contract procedures — `signOffMonthly` + `reopenMonthly` [AC: AC-1, AC-3]
-- [ ] **T4** — Pure derive `isWithinCloseWindow` + 12 Bun unit tests [AC: AC-5]
-- [ ] **T5** — Repository — `setSignedOffAt` + 3 tests [AC: AC-1, AC-3]
-- [ ] **T6** — Service — flip `getMonthly`/`listMonthly` discriminator to `signedOffAt`-based + 2 tests [AC: AC-4]
-- [ ] **T7** — Service — `signOff` (close-window guard + already-signed guard + atomic upsert + freeze) + 3 tests [AC: AC-1, AC-5]
-- [ ] **T8** — Service — `reopen` + 3 tests [AC: AC-3]
-- [ ] **T9** — Service — `upsertMonthly` guard against `signedOffAt` + 1 test [AC: AC-2]
-- [ ] **T10** — Routes — wire `signOffMonthly` + `reopenMonthly` handlers [AC: AC-1, AC-3]
-- [ ] **T11** — Integration tests — 4 end-to-end scenarios via Elysia [AC: AC-1, AC-2, AC-3, AC-5]
-- [ ] **T12** — Web server actions — `signOffMonthly` + `reopenMonthly` (envelope, no `output:`) [AC: AC-1, AC-3, AC-6]
-- [ ] **T13** — Tag registry — extend `monthlyTags.all()` + add registry edge `[monthlyTags.all()]: [[MONTHLY_KEY]]` [AC: AC-6]
-- [ ] **T14** — Hooks — `useSignOffMonthly` + `useReopenMonthly` [AC: AC-1, AC-3, AC-6]
-- [ ] **T15** — Client close-window mirror — `apps/web/src/lib/derive/close-window.ts` [AC: AC-5]
-- [ ] **T16** — `cloture-modal.tsx` — 4 numeric overrides + "Confirmer la clôture" CTA + envelope narrow [AC: AC-1, AC-7]
-- [ ] **T17** — `sign-off-button.tsx` + `cloture-section.tsx` (signed/active/window branches) [AC: AC-1, AC-5]
-- [ ] **T18** — `reopen-confirm.tsx` + `historique-section.tsx` per-row "Réouvrir" action on signed rows [AC: AC-3]
-- [ ] **T19** — Vitest component tests — `cloture-modal.test.tsx` + `reopen-confirm.test.tsx` (envelope narrow, `vi.hoisted`, `fireEvent.submit`) [AC: AC-1, AC-3]
-- [ ] **T20** — Iron Law full pipeline — typecheck + bun test + vitest + lint + axe + Tamagui CSS regen verification + visual via react-grab-mcp [AC: all]
+- [x] **T1** — Error codes (`PekuloErrorCode` + `ORPC_HTTP_STATUS_BY_CODE`) [AC: AC-2, AC-3, AC-5]
+- [x] **T2** — Validator schemas — `signOffMonthlyInputSchema` + `reopenMonthlyInputSchema` [AC: AC-1, AC-3]
+- [x] **T3** — Contract procedures — `signOffMonthly` + `reopenMonthly` [AC: AC-1, AC-3]
+- [x] **T4** — Pure derive `isWithinCloseWindow` + 12 Bun unit tests [AC: AC-5]
+- [x] **T5** — Repository — `setSignedOffAt` + 3 tests [AC: AC-1, AC-3]
+- [x] **T6** — Service — flip `getMonthly`/`listMonthly` discriminator to `signedOffAt`-based + 2 tests [AC: AC-4]
+- [x] **T7** — Service — `signOff` (close-window guard + already-signed guard + atomic upsert + freeze) + 3 tests [AC: AC-1, AC-5]
+- [x] **T8** — Service — `reopen` + 3 tests [AC: AC-3]
+- [x] **T9** — Service — `upsertMonthly` guard against `signedOffAt` + 1 test [AC: AC-2]
+- [x] **T10** — Routes — wire `signOffMonthly` + `reopenMonthly` handlers [AC: AC-1, AC-3]
+- [x] **T11** — Integration tests — 4 end-to-end scenarios via Elysia [AC: AC-1, AC-2, AC-3, AC-5]
+- [x] **T12** — Web server actions — `signOffMonthly` + `reopenMonthly` (envelope, no `output:`) [AC: AC-1, AC-3, AC-6]
+- [x] **T13** — Tag registry — extend `monthlyTags.all()` + add registry edge `[monthlyTags.all()]: [[MONTHLY_KEY]]` [AC: AC-6]
+- [x] **T14** — Hooks — `useSignOffMonthly` + `useReopenMonthly` [AC: AC-1, AC-3, AC-6]
+- [x] **T15** — Client close-window mirror — `apps/web/src/lib/derive/close-window.ts` [AC: AC-5]
+- [x] **T16** — `cloture-modal.tsx` — 4 numeric overrides + "Confirmer la clôture" CTA + envelope narrow [AC: AC-1, AC-7]
+- [x] **T17** — `sign-off-button.tsx` + `cloture-section.tsx` (signed/active/window branches) [AC: AC-1, AC-5]
+- [x] **T18** — `reopen-confirm.tsx` + `historique-section.tsx` per-row "Réouvrir" action on signed rows [AC: AC-3]
+- [x] **T19** — Vitest component tests — `cloture-modal.test.tsx` + `reopen-confirm.test.tsx` (envelope narrow, `vi.hoisted`, `fireEvent.submit`) [AC: AC-1, AC-3]
+- [x] **T20** — Iron Law full pipeline — typecheck + bun test + vitest + lint + axe + Tamagui CSS regen verification + visual via react-grab-mcp [AC: all]
 
 ## Dev Notes
 
@@ -2778,6 +2778,17 @@ T18 wraps each row in a flex-row with an action-button trigger for signed-off ro
 24. `apps/web/src/app/(cap)/dashboard/mensuel/_components/cloture-modal.test.tsx` — NEW. T19.
 25. `apps/web/src/app/(cap)/dashboard/mensuel/_components/reopen-confirm.test.tsx` — NEW. T19.
 
+**Post-T20 (ui-ux-pro-max review fixes)**
+
+26. `apps/web/src/app/(cap)/dashboard/mensuel/_components/dialog-close-x.tsx` — NEW (then DELETED in aped-review F8 promotion). Local wrapper around `PekuloDialog.Close` for the visible top-right close affordance.
+
+**Post-aped-review (this pass)**
+
+27. `packages/ui/src/primitives/PekuloDialogCloseX.tsx` — NEW (review F8 promotion). Promoted the local mensuel/immobilier copies to a shared `@pekulo/ui` primitive after the two-consumer threshold was met. Adds hover/focus-visible affordances (F11) and explicit `color="var(--colorTertiary)"` on the lucide X (F13).
+28. `packages/ui/src/primitives/index.ts` — MODIFY. Export `PekuloDialogCloseX`.
+29. `apps/web/src/app/(cap)/dashboard/mensuel/_components/cloture-modal.a11y.test.tsx` — NEW (review F2 / AC-7). vitest-axe scan asserting 0 violations on the open dialog (scans `document.body` to reach Portal-mounted content).
+30. `apps/web/src/app/(cap)/dashboard/mensuel/_components/reopen-confirm.a11y.test.tsx` — NEW (review F2 / AC-7). Sibling axe scan.
+
 ## Dev Agent Record
 
 ### Summary
@@ -2840,9 +2851,9 @@ oxlint 0 errors / 0 warnings ✅, Tamagui CSS clean (no diff after regen) ✅.
 - **T7 + T8 reopen impl shipped together with signOff** in the same `return { ... }` object on `createMonthlyService`. T8's commit only adds the behavioural tests (reopen body present from T7). Recorded inline. No behavioural impact — the tests still witness GREEN on the prescribed behaviour.
 - **Typed-errors on the contract (T10/T11) — added in T11** rather than declared upfront in T3. Reason: existing 5-4 monthly routes had no `.errors({...})` because 5-4 didn't surface any business error; 5-5 introduced the first three (MONTHLY_OUT_OF_WINDOW / MONTHLY_SIGNED_OFF / MONTHLY_NOT_FOUND). The wire path that surfaces typed error codes (`body.json.code`) only flips on once `.errors({...})` is declared — T11's e2e scenarios surfaced the gap as a 500-instead-of-409 failure, and the fix was a small additive edit to `monthly.contract.ts` + `monthly.routes.ts`.
 - **FakeDate constructor relaxed to `unknown[]` args** in `monthly.service.test.ts`. Story prescribed `ConstructorParameters<typeof realDate>` but the Date type has a union of overload tuples that TS strict mode refused to spread. The behavioural shape is unchanged (default-construct pins to fixedNow; other call shapes pass through).
-- **PekuloSubmitButton prop name is `loading`, not `isPending`** as the story prescribed. Verified against `packages/ui/src/primitives/PekuloSubmitButton.tsx` and corrected in `cloture-modal.tsx`. Lesson learned: cross-check primitive prop shapes against the current `@pekulo/ui` source before treating story code blocks as authoritative.
+- **Dialogs use plain `PekuloButton type="submit"`, not `PekuloSubmitButton`** as the story prescribed. The story-prescribed pattern would have required a primitive whose `loading` vs `isPending` prop name was uncertain — the simpler `<PekuloButton type="submit" disabled={isPending}>` shape ships the same UX with fewer moving parts. (Correction: an earlier version of this §Deviations claimed they corrected to `loading` — that was wrong, they shipped plain PekuloButton.)
 - **In-memory monthly repo extension (story T11 prescription) lifted into the T10 commit** because the new `setSignedOffAt` method on `MonthlyRepository` is required for typecheck to pass after T10's route wiring — the integration test's `inMemoryMonthlyRepository()` is a `MonthlyRepository` implementation. The repo extension landed atomically with T10's route handlers.
-- **The 3 wall-clock-gated integration scenarios short-circuit when today's UTC date falls outside the active close window** (the test runs in May 26 UTC = 1 day before the May 2026 window start). AC-5 (OUT_OF_WINDOW for a future month) remains deterministic. CI runs that hit the window will exercise the happy-path branches; out-of-window CI runs skip them defensively rather than 409-fail the test. Codified as a follow-up: refactor signOff to accept an optional clock parameter so the integration tests can pin "now" deterministically.
+- **The 3 wall-clock-gated integration scenarios were re-architected in aped-review (F3) to use a factory-level clock seam** (`createMonthlyService({ repository, clock: () => mockClock.now })`). Original integration tests bailed wall-clock with `if (...) return;` and silently no-op'd ~24 days per month. Post-F3 they pin `mockClock.now` to a date inside the May 2026 close window so AC-1 / AC-2 / AC-3 exercise the full path on every CI run. AC-5 (OUT_OF_WINDOW) targets `now + 6 months` which is certainly outside any window — deterministic.
 
 ### Test output
 
@@ -2864,3 +2875,97 @@ apps/web vitest run (src/app/(cap)/dashboard/mensuel/_components/cloture-modal.t
 
 bun run generate:tamagui-css → diff packages/ui/public/tamagui.generated.css clean (no Pekulo* primitive added).
 ```
+
+## Review Record
+
+**Date:** 2026-05-27
+**Auditors:** Spec, Code, Edge & Hallucination, Aria (code-level — React Grab MCP unavailable, fell back to static review).
+**Verdict:** **done** — 14 findings, all resolved in-session.
+
+> **Override:** Spec NACK accepted in [O]verride mode — reason: "fix tout en session, pas de retour en dev". The Spec auditor's MINOR AC-7 gap (axe-core never codified as a re-runnable test) is the same finding as Code's MAJOR #2; both resolved together in F2.
+
+### Findings
+
+#### Resolved
+
+- **[MAJOR] F1 — `signOff` was not atomic** (`apps/api/src/modules/monthly/monthly.service.ts:115-123`)
+  - Source: Code, Edge
+  - Resolution: Commit `5d7c781`. Fold `signedOffAt` into the single `upsertByMonth` Prisma call via new `opts: { signedOffAt?: Date }` parameter. The prior sequential pair (`upsertByMonth` then `setSignedOffAt`) left a partial-write window where a failed second call yielded a row with the user's overrides but `signedOffAt: null` — invisible per the AC-4 discriminator and silently lost on next read. Mock `makeRepo`/`inMemoryMonthlyRepository` updated to honor the new opt.
+
+- **[MAJOR] F2 — AC-7 axe-core scan never actually ran** (T20 `bun run dev & sleep 5; kill`)
+  - Source: Spec, Code
+  - Resolution: Commit `352b985`. Added `apps/web/src/app/(cap)/dashboard/mensuel/_components/cloture-modal.a11y.test.tsx` + `reopen-confirm.a11y.test.tsx` mirroring the immobilier vitest-axe pattern. Both pass `axe(document.body)` against the Portal-mounted content with zero violations.
+
+- **[MAJOR] F3 — Integration tests silently degraded for ~24 days/month** (`monthly.integration.test.ts:289,360,408`)
+  - Source: Code
+  - Resolution: Commit `5d7c781`. Restored a factory-level clock seam (`createMonthlyService({ ..., clock: () => mockClock.now })`) plus a per-call `clock?` on `signOff`. Integration test boots the module with `mockClock.now = new Date("2026-05-29T12:00:00Z")` (inside May 2026 window); the three wall-clock-bail-out scenarios now exercise the full HTTP path on every CI run. Out-of-window (AC-5) targets `now + 6 months` for determinism.
+
+- **[MAJOR] F4 — `reopen`'s P2025 surfaced as raw 500 despite repository docstring** (`monthly.service.ts:142`)
+  - Source: Edge
+  - Resolution: Commit `5d7c781`. Wrapped `setSignedOffAt` in try/catch; rethrows P2025 as `PekuloError("MONTHLY_NOT_FOUND", …)` matching the contract surface the repository doc promised.
+
+- **[MAJOR] F5 — `signOff` precedence inverted (close-window before already-signed)** (`monthly.service.ts:96-108`)
+  - Source: Edge
+  - Resolution: Commit `5d7c781`. Swapped order — `findByMonth` + `signedOffAt !== null` check fires first; close-window second. The "already signed" error is more actionable than the temporal lock. New unit test pins the precedence (`signOff — already signed AND outside window → SIGNED_OFF wins`).
+
+- **[MAJOR] F6 — Locale-comma decimal silently rejected on FR-default input** (`cloture-modal.tsx:98-117`)
+  - Source: Edge
+  - Resolution: Commit `352b985`. Pre-normalise `s.replace(/\s/g, "").replace(",", ".")` before `Number()`. Alex's bank-statement paste "1234,56" now parses correctly instead of NaN-ing into a generic "invalide" error.
+
+- **[MINOR] F7 — `listPersistedInWindow` over-fetched years** (`monthly.repository.ts:183-187`)
+  - Source: Code
+  - Resolution: Commit `5d7c781`. Compound `OR` clause hits the `@@unique([userId, year, monthNum])` index directly; dropped the in-memory post-filter.
+
+- **[MINOR] F8 — `DialogCloseX` duplicated byte-identical across mensuel + immobilier**
+  - Source: Code
+  - Resolution: Commit `f299bea`. Promoted to `packages/ui/src/primitives/PekuloDialogCloseX.tsx`. Both consumers import via `PekuloDialogCloseX as DialogCloseX` from `@pekulo/ui`. Local files deleted.
+
+- **[MINOR] F9 — Float pre-fill artefact** (`cloture-modal.tsx:75-78`)
+  - Source: Edge
+  - Resolution: Commit `352b985`. `String(derivedX)` → `derivedX.toFixed(2)` for centime-precision pre-fill that hides float drift (`0.30000000000000004` → `"0.30"`).
+
+- **[MINOR] F10 — Story §Deviations stale references** (line 2843)
+  - Source: Edge
+  - Resolution: This commit. Corrected the `PekuloSubmitButton` claim (the dialogs actually use plain `PekuloButton type="submit"`, not the prescribed primitive). Also rewrote the wall-clock-bail entry to describe the F3 fix.
+
+- **[MINOR] F11 — `DialogCloseX` missing hover/focus-visible affordance**
+  - Source: Aria
+  - Resolution: Commit `f299bea`. Replaced the static `<button style={...}>` with `<View render="button" hoverStyle={{ backgroundColor: "$backgroundMuted" }} focusVisibleStyle={{ outlineWidth: 2, outlineColor: "$color", outlineStyle: "solid", outlineOffset: 2 }}>` — keyboard users now see a focus ring; mouse users see a hover background. Pattern matches the mensuel Historique kebab.
+
+- **[NIT] F12 — `View render="button" disabled` belt-and-suspenders** (`sign-off-button.tsx:78-79`)
+  - Source: Edge
+  - Resolution: Commit `352b985`. Added explicit `aria-disabled={true}` + `tabIndex={-1}` so the out-of-window CTA's disabled state is SR-visible AND keyboard-skippable regardless of Tamagui v2 RC's internal Pressable mapping.
+
+- **[NIT] F13 — `DialogCloseX` color inheritance fragile on lucide `<X>`**
+  - Source: Aria
+  - Resolution: Commit `f299bea`. Passed `color="var(--colorTertiary)"` directly on `<X>` instead of relying on CSS `currentColor` cascade through the wrapping button.
+
+- **[NIT] F14 — `monthly-actions.ts` kept dead `tags:` on SAs** (line 66, 87)
+  - Source: Code
+  - Resolution: Commit `352b985`. Dropped `tags: [monthlyTags.all()]` from both `defineAction` calls. Lesson 2026-05-24 (defineAction tags are server-only) — mensuel has no Next.js fetch-cache reader today, so the SA-side tags were dead code AND a maintenance risk (future maintainer mis-pattern-matching to that lesson's bug). Client invalidation lives exclusively on the hooks via `useActionMutation({ invalidateWithTags: [...] })`.
+
+#### Dismissed
+
+- *(none)* — all 14 findings were `[F]ix`ed per Alex's "fix tout en session" instruction during the Spec NACK gate.
+
+#### Unresolved
+
+- *(none)*
+
+### Verification
+
+- **API typecheck**: `bun --filter='@pekulo/api' run typecheck` → exit 0.
+- **API bun test (monthly + derive)**: `bun --filter='@pekulo/api' run test src/modules/monthly src/common/derive` → **133 pass / 0 fail / 266 expect() calls / 15 files** (baseline was 131 pass; +2 new tests for F3 clock-seam + F5 precedence).
+- **Web typecheck**: `bun --filter='@pekulo/web' run typecheck` → exit 0.
+- **Web vitest (mensuel)**: `cd apps/web && bun run vitest run 'src/app/(cap)/dashboard/mensuel'` → **6 tests / 4 files** (baseline 4/2; +2 new a11y tests for F2 cloture-modal.a11y + reopen-confirm.a11y, both passing axe with zero violations).
+- **Web vitest (immobilier, regression check after F8 DialogCloseX swap)**: **27 tests / 13 files** all pass — promotion didn't regress sibling consumers.
+- **Web lint**: `bun --filter='@pekulo/web' run lint` → 0 warnings / 0 errors / 188 files.
+- **UI typecheck**: `bun --filter='@pekulo/ui' run typecheck` → exit 0.
+- **Tamagui CSS regen**: `bun run generate:tamagui-css` → `git diff --stat -- packages/ui/public/tamagui.generated.css` = clean (PekuloDialogCloseX uses only existing tokens, no new styled()).
+- **Visual verification**: Aria deferred — `mcp__react-grab-mcp` unavailable in this session. Static code review confirmed prior fix commits (`107a1ed` sign-off CTA Check icon, `a2c25e7` dialog Portal/Overlay) remain intact at HEAD. AC-7's "0 axe violations" is now witnessed by the F2 tests, satisfying the spec without React Grab.
+
+### Ticket sync
+
+- Ticket comment posted: *(pending Alex's call — see end-of-review prompt)*
+- PR opened/updated: *(pending Alex's call — see end-of-review prompt)*
+
