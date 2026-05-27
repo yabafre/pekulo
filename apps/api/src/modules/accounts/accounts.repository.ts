@@ -75,6 +75,28 @@ export interface AccountRepository {
     userId: string,
     input: RecordBalanceChangeRepoInput,
   ): Promise<RecordBalanceChangeOutcome>;
+  /**
+   * Story 5-6 T22 — find an existing provider-key-stamped account row.
+   * Idempotency primitive for findOrCreateAutoFromProvider.
+   */
+  findByProviderKey(
+    userId: string,
+    provider: string,
+    providerAccountKey: string,
+  ): Promise<Account | null>;
+  /**
+   * Story 5-6 T22 — insert a provider-stamped account row in one shot.
+   * Distinct from create() so the service stays explicit about the auto-
+   * created vs user-created path.
+   */
+  createAuto(args: {
+    userId: string;
+    label: string;
+    type: Account["type"];
+    currency: string;
+    provider: string;
+    providerAccountKey: string;
+  }): Promise<Account>;
 }
 
 type AccountRow = {
@@ -292,6 +314,32 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
         outcome: "updated",
         account: rowToAccount(updated as unknown as AccountRow),
       } as const;
+    },
+
+    async findByProviderKey(userId, provider, providerAccountKey) {
+      const row = await deps.client.account.findFirst({
+        where: {
+          userId,
+          ...({ provider, providerAccountKey } as unknown as Record<string, string>),
+        },
+      });
+      return row ? rowToAccount(row as unknown as AccountRow) : null;
+    },
+
+    async createAuto({ userId, label, type, currency, provider, providerAccountKey }) {
+      const created = await deps.client.account.create({
+        data: {
+          userId,
+          label,
+          type,
+          currency,
+          cashBalance: 0,
+          notes: null,
+          provider,
+          providerAccountKey,
+        } as unknown as Parameters<typeof deps.client.account.create>[0]["data"],
+      });
+      return rowToAccount(created as unknown as AccountRow);
     },
   };
 }

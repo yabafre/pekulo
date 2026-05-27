@@ -134,6 +134,11 @@ function inMemoryService(opts?: { fkLockedIds?: ReadonlySet<string> }): AccountS
       if (matches.length > 1) return { id: null, matchCount: matches.length };
       return { id: matches[0]!.id, matchCount: 1 };
     },
+    async findOrCreateAutoFromProvider() {
+      // Not exercised by the accounts integration test suite — story 5-6
+      // covers this entry point through bank-aggregator.integration.test.ts.
+      throw new Error("inMemoryService.findOrCreateAutoFromProvider not implemented");
+    },
   };
 }
 

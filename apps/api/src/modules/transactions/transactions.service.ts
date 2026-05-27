@@ -53,6 +53,22 @@ export interface AccountOwnershipProbe {
 
 export type { AccountResolver };
 
+/**
+ * Story 5-6 T21 — input row for `importFromProvider`. The bank-aggregator
+ * service translates ProviderTransaction → this shape (resolving the local
+ * accountId via accounts.service.findOrCreateAutoFromProvider) before
+ * delegating to TransactionsService.
+ */
+export interface ProviderTransactionImportRow {
+  accountId: string;
+  occurredOn: Date;
+  label: string;
+  amount: number;
+  type: "inflow" | "outflow";
+  category: string;
+  providerTransactionId: string;
+}
+
 export interface TransactionsService {
   createTransaction(userId: string, input: CreateTransactionInput): Promise<Transaction>;
   updateTransaction(userId: string, input: UpdateTransactionInput): Promise<Transaction>;
@@ -64,6 +80,16 @@ export interface TransactionsService {
   // Story 5-3 — exposed on the interface so a future LLM-categorisation
   // wrapper (épic 6) can chain on top, and so tests can stub directly.
   categoriseAfterCreate(userId: string, candidate: Transaction): Promise<Transaction>;
+  /**
+   * Story 5-6 T21 — bulk import from a provider with dedup pre-flight on
+   * (userId, provider, providerTransactionId). Runs `categoriseAfterCreate`
+   * per persisted row non-fatally (warn-only), mirroring `importCsv`.
+   */
+  importFromProvider(
+    userId: string,
+    provider: string,
+    rows: ProviderTransactionImportRow[],
+  ): Promise<{ persisted: number; skipped: number }>;
 }
 
 function generateTransferPairId(): string {
@@ -218,6 +244,59 @@ export function createTransactionsService(deps: {
 
     async categoriseAfterCreate(userId, candidate) {
       return categoriseAfterCreateImpl({ userId, candidate, repository: deps.repository });
+    },
+
+    async importFromProvider(userId, provider, rows) {
+      // 5-6 T21 — dedup pre-flight + bulk insert + per-row categorise (warn).
+      // The bank-aggregator service has already resolved accountId via
+      // accounts.service.findOrCreateAutoFromProvider, so we trust the
+      // accountId column here (no ownership probe needed — auto-create
+      // stamps userId on every accounts row).
+      if (rows.length === 0) return { persisted: 0, skipped: 0 };
+      const ids = rows.map((r) => r.providerTransactionId);
+      const existing = await deps.repository.findExistingProviderTxIds(userId, provider, ids);
+      const fresh = rows.filter((r) => !existing.has(r.providerTransactionId));
+      if (fresh.length === 0) {
+        return { persisted: 0, skipped: existing.size };
+      }
+      const insertRows = fresh.map((r) => ({
+        accountId: r.accountId,
+        occurredOn: r.occurredOn,
+        label: r.label,
+        amount: r.amount,
+        type: r.type,
+        category: r.category,
+        provider,
+        providerTransactionId: r.providerTransactionId,
+      }));
+      try {
+        const { persisted, rows: persistedRows } = await deps.repository.bulkCreateFromProvider(
+          userId,
+          insertRows,
+        );
+        for (const row of persistedRows) {
+          try {
+            await categoriseAfterCreateImpl({
+              userId,
+              candidate: row,
+              repository: deps.repository,
+            });
+          } catch (err) {
+            console.warn(
+              `[5-6] categoriseAfterCreate failed for provider tx ${row.id}: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            );
+          }
+        }
+        return { persisted, skipped: existing.size };
+      } catch (err) {
+        if (err instanceof PekuloError) throw err;
+        throw new PekuloError(
+          "TRANSACTION_FAILED",
+          err instanceof Error ? err.message : "provider bulk insert failed",
+        );
+      }
     },
   };
 }

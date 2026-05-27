@@ -122,6 +122,12 @@ function stubRepo(seed?: {
       // instead. Throw loudly if a future test reaches this branch.
       throw new Error("stubRepo.recordBalanceChange not implemented — use stubAccountRepository()");
     },
+    async findByProviderKey() {
+      throw new Error("stubRepo.findByProviderKey not implemented — use stubAccountRepository()");
+    },
+    async createAuto() {
+      throw new Error("stubRepo.createAuto not implemented — use stubAccountRepository()");
+    },
   };
 }
 
@@ -155,6 +161,10 @@ function stubAccountRepository(): AccountRepository {
     recordBalanceChange: fail(
       "recordBalanceChange",
     ) as unknown as AccountRepository["recordBalanceChange"],
+    findByProviderKey: fail(
+      "findByProviderKey",
+    ) as unknown as AccountRepository["findByProviderKey"],
+    createAuto: fail("createAuto") as unknown as AccountRepository["createAuto"],
   };
 }
 
