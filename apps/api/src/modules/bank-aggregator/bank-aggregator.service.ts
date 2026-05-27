@@ -104,17 +104,33 @@ export function createBankAggregatorService(deps: {
   // signature for the future case where another provider may still rely on
   // email (Powens — TBD).
   async function resolveProviderUserUuid(userId: string): Promise<string> {
+    console.log(`[bank-aggregator] resolveProviderUserUuid start userId=${userId}`);
     const existing = await deps.repository.findProviderUserUuid(userId, "bridge");
-    if (existing) return existing;
+    if (existing) {
+      console.log(`[bank-aggregator] resolveProviderUserUuid hit cache uuid=${existing}`);
+      return existing;
+    }
+    console.log(
+      `[bank-aggregator] resolveProviderUserUuid cache miss, calling provider.createUser`,
+    );
     const created = await deps.provider.createUser({ externalUserId: userId });
+    console.log(
+      `[bank-aggregator] resolveProviderUserUuid provider returned uuid=${created.providerUserUuid}`,
+    );
     try {
       await deps.repository.persistProviderUserUuid(userId, "bridge", created.providerUserUuid);
+      console.log(`[bank-aggregator] resolveProviderUserUuid persisted OK`);
     } catch (err) {
+      console.error(`[bank-aggregator] persistProviderUserUuid threw:`, err);
       // Concurrent-init race: another request just inserted the row. Re-read
       // and trust the second-write fallback. If even the re-read returns
       // null, surface the original error.
       const retry = await deps.repository.findProviderUserUuid(userId, "bridge");
-      if (!retry) throw err;
+      if (!retry) {
+        console.error(`[bank-aggregator] re-read after persist failure returned null, re-throwing`);
+        throw err;
+      }
+      console.log(`[bank-aggregator] re-read after persist failure returned uuid=${retry}`);
       return retry;
     }
     return created.providerUserUuid;
