@@ -38,6 +38,14 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
     OTEL_SERVICE_NAME: "pekulo-api-test",
     OTEL_EXPORTER_OTLP_ENDPOINT: undefined,
     OTEL_LOG_LEVEL: "error",
+    // Bridge defaults match envSchema (story 5-6) — keep makeEnv complete.
+    BRIDGE_CLIENT_ID: undefined,
+    BRIDGE_CLIENT_SECRET: undefined,
+    BRIDGE_WEBHOOK_SIGNING_SECRET: undefined,
+    BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS: undefined,
+    BRIDGE_API_BASE: "https://api.bridgeapi.io",
+    BRIDGE_API_VERSION: "2025-01-15",
+    BRIDGE_REFRESH_CRON_HOURS: 6,
     ...overrides,
   };
 }

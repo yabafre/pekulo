@@ -35,6 +35,17 @@ const envSchema = z.object({
   OTEL_SERVICE_NAME: z.string().min(1).default("pekulo-api"),
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString(z.string().url()),
   OTEL_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("error"),
+  // Bridge bank-aggregator (story 5-6 — ADR-0015). All required for the
+  // module to function; the webhook router falls back to "no-secrets-configured"
+  // when SIGNING_SECRET is empty so dev runs without Bridge wired won't crash.
+  // BRIDGE_CLIENT_SECRET lives ONLY in Dokploy env — never on apps/web.
+  BRIDGE_CLIENT_ID: optionalString(z.string().min(1)),
+  BRIDGE_CLIENT_SECRET: optionalString(z.string().min(1)),
+  BRIDGE_WEBHOOK_SIGNING_SECRET: optionalString(z.string().min(1)),
+  BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS: optionalString(z.string().min(1)),
+  BRIDGE_API_BASE: z.string().url().default("https://api.bridgeapi.io"),
+  BRIDGE_API_VERSION: z.string().min(1).default("2025-01-15"),
+  BRIDGE_REFRESH_CRON_HOURS: z.coerce.number().int().positive().max(168).default(6),
 });
 
 export type Env = z.infer<typeof envSchema>;
