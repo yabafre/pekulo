@@ -242,9 +242,9 @@ test("refreshConnection persists fetched + skipped + lastRefreshedAt (AC-2)", as
     latestUpdatedAt: new Date("2026-05-26T10:00Z"),
   });
   transactionsService.importFromProvider = async () => ({ persisted: 1, skipped: 0 });
-  let stamped: Date | null = null;
+  const stamped: { at: Date | null } = { at: null };
   repo.setLastRefreshedAt = async (_u, _c, at) => {
-    stamped = at;
+    stamped.at = at;
   };
   const svc = createBankAggregatorService({
     repository: repo,
@@ -256,7 +256,7 @@ test("refreshConnection persists fetched + skipped + lastRefreshedAt (AC-2)", as
   const out = await svc.refreshConnection("u", { connectionId: "bnk_x" });
   expect(out.fetched).toBe(1);
   expect(out.persisted).toBe(1);
-  expect(stamped?.toISOString()).toBe("2026-05-26T10:00:00.000Z");
+  expect(stamped.at?.toISOString()).toBe("2026-05-26T10:00:00.000Z");
 });
 
 test("refreshAll swallows per-connection failure non-fatally (AC-6)", async () => {
@@ -315,9 +315,11 @@ test("handleWebhookEvent ignores non-item.refreshed events", async () => {
 
 test("handleWebhookEvent on status_code=1010 flips sca_required (AC-5)", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
-  let calledWith: { provider: string; itemId: string; status: string } | null = null;
+  const calledWith: { value: { provider: string; itemId: string; status: string } | null } = {
+    value: null,
+  };
   repo.setStatusByProviderItemId = async (p, i, s) => {
-    calledWith = { provider: p, itemId: i, status: s };
+    calledWith.value = { provider: p, itemId: i, status: s };
   };
   const svc = createBankAggregatorService({
     repository: repo,
@@ -330,7 +332,7 @@ test("handleWebhookEvent on status_code=1010 flips sca_required (AC-5)", async (
     type: "item.refreshed",
     content: { item_id: 42, status_code: 1010 },
   });
-  expect(calledWith).toEqual({ provider: "bridge", itemId: "42", status: "sca_required" });
+  expect(calledWith.value).toEqual({ provider: "bridge", itemId: "42", status: "sca_required" });
 });
 
 test("handleWebhookEvent on status_code=0 triggers transaction fetch for owners", async () => {
