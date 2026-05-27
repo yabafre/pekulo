@@ -29,6 +29,26 @@ interface PersistedConnectionRow {
 }
 
 export interface BankAggregatorRepository {
+  /**
+   * Story 5-6 FIX (2026-05-27) — Bridge v3 user mapping.
+   * Look up the persisted bridge_user_uuid for this Pekulo userId, or null
+   * if none yet. Service does the create-on-miss path because the create
+   * must call the BankProvider, not the repo.
+   */
+  findProviderUserUuid(userId: string, provider: BankProviderName): Promise<string | null>;
+
+  /**
+   * Story 5-6 FIX — persist the bridge_user_uuid mapping (one-shot insert).
+   * Idempotent at the DB level via the PRIMARY KEY (user_id) — a concurrent
+   * race surfaces as a unique-violation P2002 which the service swallows
+   * (re-reads via findProviderUserUuid).
+   */
+  persistProviderUserUuid(
+    userId: string,
+    provider: BankProviderName,
+    providerUserUuid: string,
+  ): Promise<void>;
+
   createConnection(args: {
     userId: string;
     provider: BankProviderName;
@@ -126,6 +146,23 @@ export function createBankAggregatorRepository(deps: {
   }
 
   return {
+    async findProviderUserUuid(userId, _provider) {
+      // V1 only supports Bridge — _provider is the placeholder for the
+      // multi-provider future (Powens etc.) per ADR-0015. The bridge_users
+      // table is dedicated to Bridge today; once Powens lands, this becomes
+      // a `provider_users` table with a discriminator column.
+      const row = (await db.bridgeUser.findUnique({ where: { userId } })) as {
+        bridgeUserUuid: string;
+      } | null;
+      return row ? row.bridgeUserUuid : null;
+    },
+
+    async persistProviderUserUuid(userId, _provider, providerUserUuid) {
+      await db.bridgeUser.create({
+        data: { userId, bridgeUserUuid: providerUserUuid },
+      });
+    },
+
     async createConnection({ userId, provider, providerItemId, displayName, tokens }) {
       const accessId = await createVaultSecret(`bnk_${providerItemId}_access`, tokens.accessToken);
       const refreshId = await createVaultSecret(

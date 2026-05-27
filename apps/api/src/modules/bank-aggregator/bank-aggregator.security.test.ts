@@ -50,6 +50,7 @@ function makeCapturedSink(): CapturedSink {
 
 function makeFakeProvider(): BankProvider {
   return {
+    createUser: async () => ({ providerUserUuid: "bridge-uuid-1" }),
     createConnectSession: async () => ({ connectUrl: "u", sessionId: "s" }),
     exchangeCode: async () => ({
       providerItemId: "item-1",
@@ -98,6 +99,8 @@ function makeRepo(): BankAggregatorRepository {
     refreshToken: string;
   } | null = null;
   return {
+    findProviderUserUuid: async () => null,
+    persistProviderUserUuid: async () => undefined,
     createConnection: async ({ tokens }) => {
       // The repository would write the tokens to Vault here — we capture
       // them in-memory and DO NOT include them in the returned DTO.

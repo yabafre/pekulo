@@ -60,8 +60,19 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
   }
 
   return {
-    async createConnectSession({ userEmail, redirectUri, itemId, forceReauthentication }) {
-      const body: Record<string, unknown> = { user_email: userEmail };
+    async createUser({ externalUserId }) {
+      const data = await req<{ uuid: string; external_user_id: string }>(`/v3/aggregation/users`, {
+        method: "POST",
+        body: JSON.stringify({ external_user_id: externalUserId }),
+      });
+      return { providerUserUuid: data.uuid };
+    },
+
+    async createConnectSession({ userUuid, redirectUri, itemId, forceReauthentication }) {
+      // Bridge v3 — connect-session takes user_uuid (provider-side UUID,
+      // produced by createUser). Older docs / training data may show
+      // user_email — that shape returns 401 in v3.
+      const body: Record<string, unknown> = { user_uuid: userUuid };
       if (redirectUri) body.callback_url = redirectUri;
       if (itemId) body.item_id = itemId;
       if (forceReauthentication) body.force_reauthentication = true;

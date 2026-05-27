@@ -97,10 +97,34 @@ export function createBankAggregatorService(deps: {
     return map;
   }
 
+  // Story 5-6 FIX (post-smoke-test): Bridge v3 connect-sessions take
+  // user_uuid (provider-side), not user_email. We persist the Pekulo userId ↔
+  // bridge_user_uuid mapping in bridge_users so the create-user POST only
+  // runs once per Pekulo user. The `_userEmail` argument is retained on the
+  // signature for the future case where another provider may still rely on
+  // email (Powens — TBD).
+  async function resolveProviderUserUuid(userId: string): Promise<string> {
+    const existing = await deps.repository.findProviderUserUuid(userId, "bridge");
+    if (existing) return existing;
+    const created = await deps.provider.createUser({ externalUserId: userId });
+    try {
+      await deps.repository.persistProviderUserUuid(userId, "bridge", created.providerUserUuid);
+    } catch (err) {
+      // Concurrent-init race: another request just inserted the row. Re-read
+      // and trust the second-write fallback. If even the re-read returns
+      // null, surface the original error.
+      const retry = await deps.repository.findProviderUserUuid(userId, "bridge");
+      if (!retry) throw err;
+      return retry;
+    }
+    return created.providerUserUuid;
+  }
+
   return {
-    async initiateConnection(_userId, userEmail, input) {
+    async initiateConnection(userId, _userEmail, input) {
+      const userUuid = await resolveProviderUserUuid(userId);
       const session = await deps.provider.createConnectSession({
-        userEmail,
+        userUuid,
         redirectUri: input.redirectUri,
       });
       return { connectUrl: session.connectUrl, sessionId: session.sessionId };
@@ -250,11 +274,12 @@ export function createBankAggregatorService(deps: {
       }
     },
 
-    async getReconnectUrl(userId, userEmail, connectionId) {
+    async getReconnectUrl(userId, _userEmail, connectionId) {
       const found = await deps.repository.findByIdForUser(userId, connectionId);
       if (!found) throw bankConnectionNotFound(connectionId);
+      const userUuid = await resolveProviderUserUuid(userId);
       const session = await deps.provider.createConnectSession({
-        userEmail,
+        userUuid,
         itemId: found.connection.providerItemId,
         forceReauthentication: false,
       });

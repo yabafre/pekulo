@@ -43,11 +43,21 @@ export interface ProviderItemState {
 
 export interface BankProvider {
   /**
-   * Build the Bridge-hosted Connect widget URL. `userEmail` is required by
-   * Bridge — pass the authenticated user's Supabase email.
+   * Create a provider-side user (Bridge v3 requires this BEFORE any
+   * user-scoped call). `externalUserId` is the Pekulo userId (Supabase auth
+   * UUID); Bridge enforces it as unique per app, so callers MUST cache the
+   * returned `providerUserUuid` (lazy-create-once pattern, persisted in the
+   * `bridge_users` mapping table — story 5-6 FIX 2026-05-27).
+   */
+  createUser(args: { externalUserId: string }): Promise<{ providerUserUuid: string }>;
+
+  /**
+   * Build the Bridge-hosted Connect widget URL. `userUuid` is the provider-side
+   * user UUID returned by `createUser` (NOT the Pekulo userId, NOT the user
+   * email — Bridge v3 dropped the email-based connect-session shape).
    */
   createConnectSession(args: {
-    userEmail: string;
+    userUuid: string;
     redirectUri?: string;
     itemId?: string;
     forceReauthentication?: boolean;

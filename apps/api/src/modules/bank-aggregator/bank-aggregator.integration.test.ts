@@ -38,7 +38,12 @@ function makeInMemoryRepo(): BankAggregatorRepository {
     }
   >();
   let nextId = 0;
+  const providerUsers = new Map<string, string>();
   return {
+    findProviderUserUuid: async (userId) => providerUsers.get(userId) ?? null,
+    persistProviderUserUuid: async (userId, _provider, uuid) => {
+      providerUsers.set(userId, uuid);
+    },
     createConnection: async ({ userId, provider, providerItemId, displayName, tokens }) => {
       const id = `bnk_${String(++nextId).padStart(21, "0")}`;
       const row = {
@@ -143,6 +148,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
 
 function makeFakeProvider(): BankProvider {
   return {
+    createUser: async () => ({ providerUserUuid: "bridge-uuid-fixture" }),
     createConnectSession: async () => ({ connectUrl: "https://x", sessionId: "session-1" }),
     exchangeCode: async () => ({
       providerItemId: "item-42",

@@ -22,6 +22,8 @@ import { createBankAggregatorService } from "./bank-aggregator.service";
 
 function makeStubs() {
   const repo: BankAggregatorRepository = {
+    findProviderUserUuid: async () => null,
+    persistProviderUserUuid: async () => undefined,
     createConnection: async () => ({
       id: "bnk_x",
       userId: "u",
@@ -40,6 +42,7 @@ function makeStubs() {
     setStatusByProviderItemId: async () => undefined,
   };
   const provider: BankProvider = {
+    createUser: async () => ({ providerUserUuid: "bridge-uuid-1" }),
     createConnectSession: async () => ({ connectUrl: "u", sessionId: "s" }),
     exchangeCode: async () => ({
       providerItemId: "i",
