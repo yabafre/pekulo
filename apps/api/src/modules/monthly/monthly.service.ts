@@ -31,13 +31,28 @@ export interface MonthlyServiceClock {
   now: { year: number; monthNum: number };
 }
 
+/** Date clock seam — distinct from `MonthlyServiceClock` which carries
+ *  a year/monthNum pair for listMonthly's window walk. signOff needs a
+ *  full Date for the inclusive ms-precision close-window check (review
+ *  F3 — restored after the PEKULO_DEV_NOW_ISO revert so integration
+ *  tests pin "now" deterministically instead of bailing wall-clock). */
+export interface MonthlyServiceDateClock {
+  now: Date;
+}
+
 export interface MonthlyService {
   getMonthly(userId: string, input: GetMonthlyInput): Promise<GetMonthlyOutput>;
   upsertMonthly(userId: string, input: UpsertMonthlyInput): Promise<MonthlyRecord>;
-  /** Atomic upsert + freeze. Throws MONTHLY_OUT_OF_WINDOW (409) if today
-   *  is outside [(last_day - 4) UTC, (last_day + 5) UTC]; throws
-   *  MONTHLY_SIGNED_OFF (409) if the row is already signed. */
-  signOff(userId: string, input: SignOffMonthlyInput): Promise<MonthlyRecord>;
+  /** Atomic upsert + freeze (single Prisma round-trip per review F1).
+   *  Throws MONTHLY_SIGNED_OFF (409) if the row is already signed (checked
+   *  first per review F5); throws MONTHLY_OUT_OF_WINDOW (409) if `clock.now`
+   *  (or `new Date()` when omitted) falls outside [(last_day - 4) UTC,
+   *  (last_day + 5) UTC]. */
+  signOff(
+    userId: string,
+    input: SignOffMonthlyInput,
+    clock?: MonthlyServiceDateClock,
+  ): Promise<MonthlyRecord>;
   /** Clears signedOffAt. Throws MONTHLY_NOT_FOUND (404) if no row exists. */
   reopen(userId: string, input: ReopenMonthlyInput): Promise<MonthlyRecord>;
   /** Optional clock seam — defaults to `new Date()` UTC. Test path pins it. */
@@ -48,7 +63,15 @@ export interface MonthlyService {
   ): Promise<ListMonthlyOutput>;
 }
 
-export function createMonthlyService(deps: { repository: MonthlyRepository }): MonthlyService {
+export function createMonthlyService(deps: {
+  repository: MonthlyRepository;
+  /** Optional factory-level clock — used by integration tests to pin "now"
+   *  for the whole HTTP boot so wall-clock-dependent scenarios don't bail
+   *  silently (review F3). Production omits this and falls back to
+   *  `new Date()`. The per-call `clock?` on signOff/listMonthly still wins
+   *  over this dep when both are provided. */
+  clock?: () => Date;
+}): MonthlyService {
   return {
     async getMonthly(userId, input) {
       const persisted = await deps.repository.findByMonth(userId, input.year, input.monthNum);
@@ -91,14 +114,11 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
       return deps.repository.upsertByMonth(userId, input);
     },
 
-    async signOff(userId, input) {
-      const nowDate = new Date();
-      if (!isWithinCloseWindow(input.year, input.monthNum, nowDate)) {
-        throw new PekuloError(
-          "MONTHLY_OUT_OF_WINDOW",
-          `Sign-off rejected: outside close window for ${input.year}-${String(input.monthNum).padStart(2, "0")}`,
-        );
-      }
+    async signOff(userId, input, clock) {
+      // Review F5: check already-signed BEFORE close-window. A user
+      // re-clicking sign-off on an already-frozen month should see the
+      // more actionable "already signed" error rather than the temporal
+      // "out of window" — both surface as 409 but the message differs.
       const existing = await deps.repository.findByMonth(userId, input.year, input.monthNum);
       if (existing && existing.signedOffAt !== null) {
         throw new PekuloError(
@@ -106,21 +126,34 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
           `Month ${input.year}-${String(input.monthNum).padStart(2, "0")} already signed off`,
         );
       }
-      // Atomic upsert + freeze. The repository's upsertByMonth preserves
-      // signedOffAt on the update branch (no field in the update payload),
-      // so we explicitly call setSignedOffAt right after to stamp the freeze
-      // timestamp. Both calls fan-out within the same logical operation —
-      // the race window is ≤ 1 ms in V1 (a) (single-writer per user); codify
-      // a $transaction wrapper if shared accounts ship in V2+.
-      await deps.repository.upsertByMonth(userId, {
-        year: input.year,
-        monthNum: input.monthNum,
-        incomeEur: input.incomeEur,
-        spendingEur: input.spendingEur,
-        transfersEur: input.transfersEur,
-        netChangeEur: input.netChangeEur,
-      });
-      return deps.repository.setSignedOffAt(userId, input.year, input.monthNum, nowDate);
+      // Review F3: clock seam restored — per-call clock wins over factory
+      // dep wins over wall clock. Integration tests pin "now" to a
+      // deterministic mid-window value so they don't silently no-op outside
+      // the wall-clock window.
+      const nowDate = clock?.now ?? deps.clock?.() ?? new Date();
+      if (!isWithinCloseWindow(input.year, input.monthNum, nowDate)) {
+        throw new PekuloError(
+          "MONTHLY_OUT_OF_WINDOW",
+          `Sign-off rejected: outside close window for ${input.year}-${String(input.monthNum).padStart(2, "0")}`,
+        );
+      }
+      // Review F1: atomic upsert+freeze in ONE Prisma call. The previous
+      // sequential pair (upsertByMonth then setSignedOffAt) had a race
+      // window of the full second round-trip during which a failed
+      // setSignedOffAt left a row with the user's overrides but
+      // signedOffAt: null — invisible per the AC-4 discriminator.
+      return deps.repository.upsertByMonth(
+        userId,
+        {
+          year: input.year,
+          monthNum: input.monthNum,
+          incomeEur: input.incomeEur,
+          spendingEur: input.spendingEur,
+          transfersEur: input.transfersEur,
+          netChangeEur: input.netChangeEur,
+        },
+        { signedOffAt: nowDate },
+      );
     },
 
     async reopen(userId, input) {
@@ -139,7 +172,20 @@ export function createMonthlyService(deps: { repository: MonthlyRepository }): M
       if (existing.signedOffAt === null) {
         return existing;
       }
-      return deps.repository.setSignedOffAt(userId, input.year, input.monthNum, null);
+      // Review F4: catch P2025 (row vanished between findByMonth and
+      // setSignedOffAt — e.g. concurrent delete) and re-throw as the
+      // typed MONTHLY_NOT_FOUND the repository docstring promises.
+      try {
+        return await deps.repository.setSignedOffAt(userId, input.year, input.monthNum, null);
+      } catch (err) {
+        if ((err as { code?: string } | null)?.code === "P2025") {
+          throw new PekuloError(
+            "MONTHLY_NOT_FOUND",
+            `Cannot reopen ${input.year}-${String(input.monthNum).padStart(2, "0")}: row vanished`,
+          );
+        }
+        throw err;
+      }
     },
 
     async listMonthly(userId, input, clock) {

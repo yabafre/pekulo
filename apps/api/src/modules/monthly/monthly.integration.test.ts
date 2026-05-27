@@ -52,9 +52,15 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
     async findByMonth(userId, year, monthNum) {
       return rows.get(`${userId}|${year}|${monthNum}`) ?? null;
     },
-    async upsertByMonth(userId, input) {
+    async upsertByMonth(userId, input, opts) {
       const key = `${userId}|${input.year}|${input.monthNum}`;
       const existing = rows.get(key);
+      // Review F1: opts.signedOffAt folds the freeze into the same write —
+      // the in-memory repo honors it identically to the real Prisma path.
+      const signedOffAt =
+        opts?.signedOffAt !== undefined
+          ? opts.signedOffAt.toISOString()
+          : (existing?.signedOffAt ?? null);
       const created: MonthlyRecord = {
         id: existing?.id ?? "mr_int000000000000000000",
         year: input.year,
@@ -63,7 +69,7 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
         spendingEur: input.spendingEur,
         transfersEur: input.transfersEur,
         netChangeEur: input.netChangeEur,
-        signedOffAt: existing?.signedOffAt ?? null,
+        signedOffAt,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
       };
       rows.set(key, created);
@@ -110,10 +116,17 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
 
 let appHandle: { stop: () => Promise<void> } | undefined;
 let baseUrl = "";
+// Review F3: factory-level clock seam pins "now" deterministically so the
+// AC-1 / AC-2 / AC-3 signOff scenarios don't silently no-op on CI runs
+// whose wall-clock falls outside the natural close window. Mutable
+// reference so individual tests can override before invoking the route.
+const TARGET_YEAR = 2026;
+const TARGET_MONTH = 5; // May 2026 → close window May 27 → Jun 5 inclusive
+const mockClock = { now: new Date("2026-05-29T12:00:00.000Z") };
 
 beforeAll(async () => {
   const repository = inMemoryMonthlyRepository();
-  const service = createMonthlyService({ repository });
+  const service = createMonthlyService({ repository, clock: () => mockClock.now });
   const router = createMonthlyRouter({ service });
   const orpcRouter: PekuloRpcRouter = { monthly: router };
   const jwtVerifier = createJwtVerifier({
@@ -266,11 +279,10 @@ describe("monthly bridge (integration)", () => {
   });
 
   // ─── 5-5 sign-off / reopen scenarios (T11) ──────────────────────────────
-  // Note: the close-window check uses `new Date()` against the real wall
-  // clock. We target the calendar month-of-now for the happy-path tests so
-  // the window contains today by definition (assuming the test runs in the
-  // back half of the month — true in CI cron + dev). When the wall-clock
-  // happens to fall before window-start, AC-1 / AC-2 / AC-3 short-circuit.
+  // Review F3: factory-level clock seam pins `mockClock.now` to a date
+  // inside the May 2026 close window so AC-1 / AC-2 / AC-3 exercise the
+  // happy paths deterministically on every CI run (the previous wall-clock
+  // bail-outs silently no-op'd 24 days/month).
 
   test("AC-1: signOffMonthly inside window → 200, signedOffAt set, getMonthly = persisted", async () => {
     const token = await signValid();
@@ -278,23 +290,14 @@ describe("monthly bridge (integration)", () => {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     };
-    const now = new Date();
-    const targetYear = now.getUTCFullYear();
-    const targetMonth = now.getUTCMonth() + 1;
-    const lastDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
-    const dayOfMonth = now.getUTCDate();
-    // Skip when wall-clock is outside the window (defensive — happy path
-    // would 409 otherwise; the OUT_OF_WINDOW scenario covers the negative
-    // branch deterministically). Window = [lastDay-4, lastDay+5].
-    if (dayOfMonth < lastDay - 4 || dayOfMonth > lastDay + 5) return;
 
     const res = await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         json: {
-          year: targetYear,
-          monthNum: targetMonth,
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
           incomeEur: 5000,
           spendingEur: 2000,
           transfersEur: 0,
@@ -310,7 +313,7 @@ describe("monthly bridge (integration)", () => {
     const getRes = await fetch(`${baseUrl}/rpc/v1/monthly/getMonthly`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ json: { year: targetYear, monthNum: targetMonth } }),
+      body: JSON.stringify({ json: { year: TARGET_YEAR, monthNum: TARGET_MONTH } }),
     });
     expect(getRes.status).toBe(200);
     const getBody = (await getRes.json()) as { json: GetMonthlyOutput };
@@ -323,10 +326,8 @@ describe("monthly bridge (integration)", () => {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     };
-    // Pick a month +6 months in the future — its window starts ~5 months out
-    // and certainly does NOT include today.
-    const now = new Date();
-    const future = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 6, 15));
+    // Target month +6 from mockClock.now → certainly outside its close window.
+    const future = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH - 1 + 6, 15));
     const res = await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
       method: "POST",
       headers,
@@ -352,22 +353,17 @@ describe("monthly bridge (integration)", () => {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     };
-    const now = new Date();
-    const targetYear = now.getUTCFullYear();
-    const targetMonth = now.getUTCMonth() + 1;
-    const lastDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
-    const dayOfMonth = now.getUTCDate();
-    if (dayOfMonth < lastDay - 4 || dayOfMonth > lastDay + 5) return;
-
-    // Sign off the current month first (idempotent against the AC-1 test
-    // above; in-memory repo state persists across tests within the describe).
+    // Sign off TARGET (idempotent against AC-1 if it ran first — the AC-1
+    // test seeds the same key; subsequent signOff sees signedOffAt and 409s
+    // SIGNED_OFF, which we swallow — the goal is "state is signed" before
+    // the upsert attempt below).
     await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         json: {
-          year: targetYear,
-          monthNum: targetMonth,
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
           incomeEur: 5000,
           spendingEur: 2000,
           transfersEur: 0,
@@ -380,8 +376,8 @@ describe("monthly bridge (integration)", () => {
       headers,
       body: JSON.stringify({
         json: {
-          year: targetYear,
-          monthNum: targetMonth,
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
           incomeEur: 9999,
           spendingEur: 1,
           transfersEur: 0,
@@ -400,36 +396,26 @@ describe("monthly bridge (integration)", () => {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     };
-    const now = new Date();
-    const targetYear = now.getUTCFullYear();
-    const targetMonth = now.getUTCMonth() + 1;
-    const lastDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
-    const dayOfMonth = now.getUTCDate();
-    if (dayOfMonth < lastDay - 4 || dayOfMonth > lastDay + 5) return;
-
-    // Ensure the month is signed off (idempotent — runs only if prior tests
-    // didn't already do so).
+    // Idempotent ensure-signed (swallow already-signed 409).
     await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         json: {
-          year: targetYear,
-          monthNum: targetMonth,
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
           incomeEur: 5000,
           spendingEur: 2000,
           transfersEur: 0,
           netChangeEur: 3000,
         },
       }),
-    }).catch(() => {
-      /* MONTHLY_SIGNED_OFF — already signed, fine */
     });
 
     const res = await fetch(`${baseUrl}/rpc/v1/monthly/reopenMonthly`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ json: { year: targetYear, monthNum: targetMonth } }),
+      body: JSON.stringify({ json: { year: TARGET_YEAR, monthNum: TARGET_MONTH } }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { json: MonthlyRecord };
@@ -438,7 +424,7 @@ describe("monthly bridge (integration)", () => {
     const getRes = await fetch(`${baseUrl}/rpc/v1/monthly/getMonthly`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ json: { year: targetYear, monthNum: targetMonth } }),
+      body: JSON.stringify({ json: { year: TARGET_YEAR, monthNum: TARGET_MONTH } }),
     });
     const getBody = (await getRes.json()) as { json: GetMonthlyOutput };
     expect(getBody.json.source).toBe("derived");
