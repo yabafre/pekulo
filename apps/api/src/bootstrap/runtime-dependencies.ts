@@ -5,6 +5,7 @@ import { createReadiness, type Readiness } from "./readiness";
 import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
 import { createAccountsModule } from "../modules/accounts/accounts.module";
+import { createBankAggregatorModule } from "../modules/bank-aggregator/bank-aggregator.module";
 import { createCompassModule } from "../modules/compass/compass.module";
 import { createHoldingsModule } from "../modules/holdings/holdings.module";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
@@ -21,6 +22,7 @@ export interface RuntimeDeps {
   jwtVerifier: JwtVerifier;
   orpcRouter: PekuloRpcRouter;
   milestonePresenceProbe: MilestonePresenceProbe;
+  bankAggregatorModule: ReturnType<typeof createBankAggregatorModule>;
 }
 
 // F10 (carry-over from 0-3): single transient probe failure should not yank
@@ -145,6 +147,13 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
 
   const monthlyModule = createMonthlyModule({ prismaService });
 
+  const bankAggregatorModule = createBankAggregatorModule({
+    prismaService,
+    env: input.env,
+    transactionsService: transactionsModule.service,
+    accountsService: accountsModule.service,
+  });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -154,6 +163,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     realestate: realestateModule.router,
     transactions: transactionsModule.router,
     monthly: monthlyModule.router,
+    bankaggregator: bankAggregatorModule.router,
   };
 
   return {
@@ -163,5 +173,6 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     jwtVerifier,
     orpcRouter,
     milestonePresenceProbe,
+    bankAggregatorModule,
   };
 }

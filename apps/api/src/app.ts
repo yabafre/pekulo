@@ -93,14 +93,29 @@ export async function startServer(): Promise<ServerHandle> {
       });
       return mapped.body;
     })
-    .use(healthModule.router);
+    .use(healthModule.router)
+    // Story 5-6 — Bridge webhook receiver mounted BEFORE mountOrpc so the
+    // /internal/bridge/webhook path resolves before the oRPC catch-all.
+    // Raw body capture happens inside the router (onParse) ; HMAC verification
+    // gates every dispatch (NFR-33).
+    .use(deps.bankAggregatorModule.webhookRouter);
 
   mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
+
+  // Story 5-6 — start the bank-refresh cron after Elysia is wired but before
+  // listen() returns. Stop is registered on lifecycle teardown below.
+  deps.bankAggregatorModule.scheduledTask.start();
 
   await registerLifecycle(
     app,
     { shutdownTimeoutMs: env.SHUTDOWN_TIMEOUT_MS },
-    { prismaService: deps.prismaService, shutdownOtel },
+    {
+      prismaService: deps.prismaService,
+      shutdownOtel,
+      onShutdown: async () => {
+        deps.bankAggregatorModule.scheduledTask.stop();
+      },
+    },
   );
 
   app.listen({ port: env.PORT, hostname: env.HOST }, (server) => {
