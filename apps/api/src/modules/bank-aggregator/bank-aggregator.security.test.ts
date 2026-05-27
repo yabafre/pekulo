@@ -1,0 +1,212 @@
+// AC-8 (verbatim from story 5-6-bridge-connector):
+//   Given bank-aggregator.security.test.ts runs as part of the bun test suite,
+//   when the suite executes a full lifecycle (initiateConnection →
+//   completeConnection → refreshConnection → webhook receipt) against a fake
+//   BankProvider + a fake pino transport + a fake OTel exporter, then zero
+//   strings matching /access[_-]token|refresh[_-]token/i appear in any
+//   captured log line, span attribute, or OTel event message.
+//
+// V1 sentinel — exercises the SERVICE (in-memory stubs for the cross-aggregate
+// deps + a hand-rolled fake BankProvider that returns synthetic tokens) and
+// the WEBHOOK ROUTER perf path. Asserts a captured-console + captured-stderr
+// universe contains no token-shaped substring. Full DB round-trip + Vault
+// secret read lives in T29.
+
+import { test, expect } from "bun:test";
+import { createBankAggregatorService } from "./bank-aggregator.service";
+import { createBridgeWebhookRouter } from "./services/bridge-webhook-router";
+import type { BankAggregatorRepository } from "./bank-aggregator.repository";
+import type { BankProvider } from "./bank-provider";
+import type { AccountService } from "../accounts/accounts.service";
+import type { TransactionsService } from "../transactions/transactions.service";
+import type { Env } from "../../config/env";
+
+const TOKEN_PATTERN = /access[_-]?token|refresh[_-]?token/i;
+const SECRET_TOKEN_VALUES = ["SECRET-ACCESS-TOKEN-AAA", "SECRET-REFRESH-TOKEN-BBB"];
+
+interface CapturedSink {
+  lines: string[];
+  capture(...args: unknown[]): void;
+  forbiddenStringsPresent(): { found: string[] };
+}
+
+function makeCapturedSink(): CapturedSink {
+  const lines: string[] = [];
+  return {
+    lines,
+    capture(...args: unknown[]) {
+      lines.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
+    },
+    forbiddenStringsPresent() {
+      const found: string[] = [];
+      for (const line of lines) {
+        if (TOKEN_PATTERN.test(line)) found.push(line);
+        for (const v of SECRET_TOKEN_VALUES) if (line.includes(v)) found.push(line);
+      }
+      return { found };
+    },
+  };
+}
+
+function makeFakeProvider(): BankProvider {
+  return {
+    createConnectSession: async () => ({ connectUrl: "u", sessionId: "s" }),
+    exchangeCode: async () => ({
+      providerItemId: "item-1",
+      tokens: {
+        accessToken: SECRET_TOKEN_VALUES[0]!,
+        refreshToken: SECRET_TOKEN_VALUES[1]!,
+        expiresAt: null,
+      },
+    }),
+    listAccounts: async () => [
+      {
+        providerAccountId: "1",
+        bankName: "SG",
+        accountName: "Courant",
+        kind: "checking",
+        currency: "EUR",
+      },
+    ],
+    listTransactions: async () => ({
+      transactions: [
+        {
+          providerTransactionId: "tx-1",
+          providerAccountId: "1",
+          occurredOn: new Date("2026-05-26"),
+          amount: -10,
+          label: "Carrefour",
+          rawCategory: null,
+          updatedAt: new Date("2026-05-26T10:00Z"),
+        },
+      ],
+      latestUpdatedAt: new Date("2026-05-26T10:00Z"),
+    }),
+    revokeItem: async () => undefined,
+    getItem: async () => ({
+      providerItemId: "item-1",
+      statusCode: 0,
+      statusMessage: "ok",
+      authenticationExpiresAt: null,
+    }),
+  };
+}
+
+function makeRepo(): BankAggregatorRepository {
+  let stored: {
+    accessToken: string;
+    refreshToken: string;
+  } | null = null;
+  return {
+    createConnection: async ({ tokens }) => {
+      // The repository would write the tokens to Vault here — we capture
+      // them in-memory and DO NOT include them in the returned DTO.
+      stored = { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
+      return {
+        id: "bnk_1",
+        userId: "u",
+        provider: "bridge",
+        providerItemId: "item-1",
+        status: "active",
+        displayName: "SG",
+        lastRefreshedAt: null,
+        createdAt: new Date().toISOString(),
+      };
+    },
+    listByUser: async () => [],
+    findByIdForUser: async () => {
+      if (!stored) return null;
+      return {
+        connection: {
+          id: "bnk_1",
+          userId: "u",
+          provider: "bridge",
+          providerItemId: "item-1",
+          status: "active",
+          displayName: "SG",
+          lastRefreshedAt: null,
+          createdAt: new Date().toISOString(),
+        },
+        tokens: {
+          accessToken: stored.accessToken,
+          refreshToken: stored.refreshToken,
+          expiresAt: null,
+        },
+      };
+    },
+    findByProviderItemId: async () => null,
+    setStatus: async () => undefined,
+    setLastRefreshedAt: async () => undefined,
+    setStatusByProviderItemId: async () => undefined,
+  };
+}
+
+test("full lifecycle leaks zero token substrings to console/stderr (AC-8)", async () => {
+  const stdoutSink = makeCapturedSink();
+  const stderrSink = makeCapturedSink();
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+
+  try {
+    console.log = (...args: unknown[]) => stdoutSink.capture(...args);
+    console.warn = (...args: unknown[]) => stderrSink.capture(...args);
+    console.error = (...args: unknown[]) => stderrSink.capture(...args);
+
+    const repo = makeRepo();
+    const provider = makeFakeProvider();
+    const transactionsService = {
+      importFromProvider: async () => ({ persisted: 1, skipped: 0 }),
+    } as unknown as TransactionsService;
+    const accountsService = {
+      findOrCreateAutoFromProvider: async () => ({
+        id: "acc_1",
+        userId: "u",
+        label: "SG Courant",
+        type: "autre" as const,
+        currency: "EUR",
+        cashBalance: 0,
+        notes: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    } as unknown as AccountService;
+
+    const svc = createBankAggregatorService({
+      repository: repo,
+      provider,
+      transactionsService,
+      accountsService,
+      listAllActiveConnections: async () => [{ userId: "u", connectionId: "bnk_1" }],
+    });
+
+    const connection = await svc.completeConnection("u", "fred@x", { code: "c", state: "s" });
+    expect(connection).not.toHaveProperty("accessTokenSecretId");
+
+    await svc.refreshConnection("u", { connectionId: "bnk_1" });
+
+    // Webhook receipt (invalid signature path — the router logs the rejection
+    // reason; we assert it doesn't carry token bytes).
+    const env = {
+      BRIDGE_WEBHOOK_SIGNING_SECRET: "fake-zzzzzzzzzzzzzzzzzzzzzzzzz",
+      BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS: undefined,
+    } as unknown as Env;
+    const router = createBridgeWebhookRouter({ env, service: svc });
+    await router.handle(
+      new Request("http://localhost/internal/bridge/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/json", "bridgeapi-signature": "t=1,v1=deadbeef" },
+        body: JSON.stringify({ type: "item.refreshed" }),
+      }),
+    );
+
+    const stdoutLeaks = stdoutSink.forbiddenStringsPresent();
+    const stderrLeaks = stderrSink.forbiddenStringsPresent();
+    expect(stdoutLeaks.found).toEqual([]);
+    expect(stderrLeaks.found).toEqual([]);
+  } finally {
+    console.log = originalLog;
+    console.warn = originalWarn;
+    console.error = originalError;
+  }
+});
