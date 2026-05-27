@@ -6,10 +6,9 @@
 // destructive (reversible) — Confirm button stays primary, not danger.
 
 import { useState } from "react";
-import { PekuloButton, PekuloDialog } from "@pekulo/ui";
+import { PekuloButton, PekuloDialog, PekuloDialogCloseX as DialogCloseX } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import { useReopenMonthly } from "../_hooks/use-reopen-monthly";
-import { DialogCloseX } from "./dialog-close-x";
 
 const MONTH_LABELS_FR = [
   "janvier",

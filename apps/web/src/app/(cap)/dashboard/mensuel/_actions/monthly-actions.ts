@@ -17,7 +17,6 @@ import {
 } from "@pekulo/validators";
 import { monthlyClient } from "@/lib/orpc/modules";
 import { ensureRequestContext } from "@/lib/orpc/request-context";
-import { monthlyTags } from "@/lib/zapaction/keys";
 import type { ActionContext } from "@/lib/zapaction/context";
 import "@/lib/zapaction/context";
 
@@ -29,6 +28,13 @@ import "@/lib/zapaction/context";
 // ({ok:true}|{ok:false}) — `output:` is OMITTED for the same reason. The
 // error codes mirror the API's PekuloError taxonomy; any unexpected
 // ORPCError bubbles to the hook's onError.
+//
+// Review F14: client-side cache invalidation lives EXCLUSIVELY on the
+// hooks via `useActionMutation(..., { invalidateWithTags: [monthlyTags.all()] })`
+// (lesson 2026-05-24 — `defineAction({ tags })` is server-only and ineffective
+// on the consumed action). The mensuel feature has no Next.js fetch-cache
+// reader today, so the server-side `tags:` was dead code; dropped to avoid
+// a future maintainer mis-pattern-matching to the May-24 bug.
 
 export const getMonthly = defineAction<GetMonthlyInput, GetMonthlyOutput, ActionContext>({
   name: "getMonthly",
@@ -63,7 +69,6 @@ export const signOffMonthly = defineAction<
 >({
   name: "signOffMonthly",
   input: signOffMonthlyInputSchema,
-  tags: [monthlyTags.all()],
   handler: async ({ input }) => {
     await ensureRequestContext();
     try {
@@ -84,7 +89,6 @@ export const signOffMonthly = defineAction<
 export const reopenMonthly = defineAction<ReopenMonthlyInput, ReopenMonthlyResult, ActionContext>({
   name: "reopenMonthly",
   input: reopenMonthlyInputSchema,
-  tags: [monthlyTags.all()],
   handler: async ({ input }) => {
     await ensureRequestContext();
     try {

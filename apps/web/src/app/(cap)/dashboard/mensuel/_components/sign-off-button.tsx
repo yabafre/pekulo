@@ -77,6 +77,13 @@ export function SignOffButton({
         <View
           render="button"
           disabled
+          // Review F12 belt-and-suspenders: Tamagui v2 RC's `disabled` prop
+          // forwarding on `render="button"` is reliable but not byte-equal
+          // to native HTML. Explicit `aria-disabled` + `tabIndex={-1}` makes
+          // the disabled state SR-visible AND keyboard-skippable regardless
+          // of internal Pressable mapping.
+          aria-disabled={true}
+          tabIndex={-1}
           alignSelf="flex-start"
           flexDirection="row"
           alignItems="center"

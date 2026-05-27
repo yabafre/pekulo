@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import {
   PekuloButton,
   PekuloDialog,
+  PekuloDialogCloseX as DialogCloseX,
   PekuloField,
   PekuloFieldGroup,
   PekuloFieldLabel,
@@ -25,7 +26,6 @@ import {
 } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import { useSignOffMonthly } from "../_hooks/use-sign-off-monthly";
-import { DialogCloseX } from "./dialog-close-x";
 
 const MONTH_LABELS_FR = [
   "janvier",
@@ -70,21 +70,23 @@ export function ClotureModal({
   const monthName = MONTH_LABELS_FR[monthNum - 1];
   const { mutate, isPending, reset } = useSignOffMonthly();
 
-  // Pre-fill from derived values; re-sync when the modal opens (the user
-  // might re-open later in the close window with different live aggregates).
-  const [incomeStr, setIncomeStr] = useState(String(derivedIncomeEur));
-  const [spendingStr, setSpendingStr] = useState(String(derivedSpendingEur));
-  const [transfersStr, setTransfersStr] = useState(String(derivedTransfersEur));
-  const [netChangeStr, setNetChangeStr] = useState(String(derivedNetChangeEur));
+  // Review F9: pre-fill via toFixed(2) so float arithmetic drift from
+  // derive (e.g. 0.1 + 0.2 → 0.30000000000000004) never surfaces in the
+  // input. Two decimals = centime precision, matches the AC ack on amounts.
+  const fmt = (v: number) => v.toFixed(2);
+  const [incomeStr, setIncomeStr] = useState(fmt(derivedIncomeEur));
+  const [spendingStr, setSpendingStr] = useState(fmt(derivedSpendingEur));
+  const [transfersStr, setTransfersStr] = useState(fmt(derivedTransfersEur));
+  const [netChangeStr, setNetChangeStr] = useState(fmt(derivedNetChangeEur));
   const [validationError, setValidationError] = useState<string | null>(null);
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
-      setIncomeStr(String(derivedIncomeEur));
-      setSpendingStr(String(derivedSpendingEur));
-      setTransfersStr(String(derivedTransfersEur));
-      setNetChangeStr(String(derivedNetChangeEur));
+      setIncomeStr(fmt(derivedIncomeEur));
+      setSpendingStr(fmt(derivedSpendingEur));
+      setTransfersStr(fmt(derivedTransfersEur));
+      setNetChangeStr(fmt(derivedNetChangeEur));
       setValidationError(null);
       setEnvelopeError(null);
       reset();
@@ -95,10 +97,16 @@ export function ClotureModal({
     e.preventDefault();
     setValidationError(null);
     setEnvelopeError(null);
-    const income = Number(incomeStr);
-    const spending = Number(spendingStr);
-    const transfers = Number(transfersStr);
-    const netChange = Number(netChangeStr);
+    // Review F6: FR-locale comma normalize. Alex pastes amounts from her
+    // bank statement which uses "1234,56" (FR format) — without the swap
+    // Number(",") returns NaN and the form rejects with a generic
+    // "invalide" error that obscures the comma issue. Strip whitespace
+    // too (export sources occasionally insert thousand-separator spaces).
+    const parseAmount = (s: string) => Number(s.replace(/\s/g, "").replace(",", "."));
+    const income = parseAmount(incomeStr);
+    const spending = parseAmount(spendingStr);
+    const transfers = parseAmount(transfersStr);
+    const netChange = parseAmount(netChangeStr);
     if (!Number.isFinite(income) || income < 0) {
       setValidationError("Entrées invalides (≥ 0)");
       return;
