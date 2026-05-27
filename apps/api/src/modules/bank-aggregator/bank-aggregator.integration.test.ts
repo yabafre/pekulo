@@ -224,7 +224,7 @@ function makeStubAccountsService(): AccountService {
         userId,
         label: input.label,
         type: input.type,
-        currency: input.currency,
+        currency: input.currency as Account["currency"],
         cashBalance: 0,
         notes: null,
         createdAt: new Date(),
