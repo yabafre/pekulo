@@ -47,6 +47,9 @@ export const ID_PREFIXES = {
   // LLM (story 6-1 — registered upfront)
   LlmCallLog: "llm",
   LlmOptIn: "llmo",
+
+  // Bank-aggregator (story 5-6 — ADR-0015)
+  BankConnection: "bnk",
 } as const satisfies Record<string, string | null>;
 
 export type ModelName = keyof typeof ID_PREFIXES;
