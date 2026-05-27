@@ -5,7 +5,7 @@ communication_language: french
 document_output_language: english
 aped_path: .aped
 output_path: docs
-aped_version: 6.12.4
+aped_version: 6.12.5
 
 # Integrations
 ticket_system: github-issues

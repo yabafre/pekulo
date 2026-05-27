@@ -11,7 +11,7 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.12.4
+  version: 6.12.5
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
