@@ -42,7 +42,7 @@ export interface AccountService {
     userId: string,
     provider: string,
     providerAccountKey: string,
-    input: { label: string; type: Account["type"]; currency: string },
+    input: { label: string; type: Account["type"]; currency: string; cashBalance?: number },
   ): Promise<Account>;
 }
 
@@ -114,6 +114,7 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
         label: input.label,
         type: input.type,
         currency: input.currency,
+        cashBalance: input.cashBalance ?? 0,
         provider,
         providerAccountKey,
       });

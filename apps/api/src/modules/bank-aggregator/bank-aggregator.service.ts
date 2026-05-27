@@ -161,6 +161,7 @@ export function createBankAggregatorService(deps: {
             label: `Bridge — ${a.bankName} — ${a.accountName}`,
             type: mapBridgeAccountKind(a.kind),
             currency: a.currency,
+            cashBalance: a.balance,
           },
         );
       }

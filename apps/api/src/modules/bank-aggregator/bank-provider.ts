@@ -15,6 +15,8 @@ export interface ProviderBankAccount {
   accountName: string;
   kind: "checking" | "savings" | "other";
   currency: string;
+  /** Current balance from Bridge (story 5-6 FIX 2026-05-27 — initially missed). */
+  balance: number;
 }
 
 export interface ProviderTransaction {

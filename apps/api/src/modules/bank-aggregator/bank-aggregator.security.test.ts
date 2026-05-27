@@ -59,6 +59,7 @@ function makeFakeProvider(): BankProvider {
         accountName: "Courant",
         kind: "checking",
         currency: "EUR",
+        balance: 100,
       },
     ],
     listTransactions: async () => ({

@@ -54,6 +54,7 @@ function makeStubs() {
         accountName: "Courant",
         kind: "checking",
         currency: "EUR",
+        balance: 1234.56,
       },
     ],
     listTransactions: async () => ({ transactions: [], latestUpdatedAt: null }),

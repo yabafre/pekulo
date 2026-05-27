@@ -145,6 +145,7 @@ function makeFakeProvider(): BankProvider {
         accountName: "Courant",
         kind: "checking",
         currency: "EUR",
+        balance: 1500,
       },
       {
         providerAccountId: "sg-2",
@@ -152,6 +153,7 @@ function makeFakeProvider(): BankProvider {
         accountName: "Livret A",
         kind: "savings",
         currency: "EUR",
+        balance: 5000,
       },
     ],
     listTransactions: async () => ({

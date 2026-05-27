@@ -154,15 +154,17 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
     },
 
     async listAccounts({ userUuid, providerItemId }) {
-      // Bridge v3 — flat REST: GET /v3/aggregation/accounts?item_id=<id>
-      // (the v2-style nested /items/{id}/accounts returns 404 in v3).
+      // Bridge v3 — flat REST: GET /v3/aggregation/accounts?item_id=<id>.
+      // Schema verified against the official Postman collection (2026-05-27):
+      // accounts carry { id, name, balance, type, currency_code, item_id, ... }
+      // — no `bank_name` field at the account level (bank identity lives via
+      // provider_id, which we don't resolve at V1).
       const bearer = await mintUserAccessToken(userUuid);
       const data = await reqJson<{
         resources: Array<{
           id: number;
           name: string;
-          bank_id?: number;
-          bank_name?: string;
+          balance: number | null;
           type: string;
           currency_code: string;
         }>;
@@ -174,10 +176,11 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         (r) =>
           ({
             providerAccountId: String(r.id),
-            bankName: r.bank_name ?? "Banque",
+            bankName: "Banque",
             accountName: r.name,
             kind: r.type === "savings" ? "savings" : r.type === "checking" ? "checking" : "other",
             currency: r.currency_code,
+            balance: typeof r.balance === "number" ? r.balance : 0,
           }) satisfies ProviderBankAccount,
       );
     },
@@ -192,29 +195,40 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
           id: number;
           account_id: number;
           amount: number;
-          description: string;
+          clean_description?: string;
+          provider_description?: string;
           category_id: number | null;
           date: string;
           updated_at: string;
+          deleted?: boolean;
         }>;
       }>(`/v3/aggregation/transactions?${params.toString()}`, {
         method: "GET",
         bearer,
       });
       let latest: Date | null = null;
-      const transactions = data.resources.map((r) => {
-        const updatedAt = new Date(r.updated_at);
-        if (!latest || updatedAt > latest) latest = updatedAt;
-        return {
-          providerTransactionId: String(r.id),
-          providerAccountId: String(r.account_id),
-          occurredOn: new Date(r.date),
-          amount: r.amount,
-          label: r.description,
-          rawCategory: r.category_id !== null ? String(r.category_id) : null,
-          updatedAt,
-        } satisfies ProviderTransaction;
-      });
+      // Bridge v3 — `clean_description` is the friendly label ("CB Carrefour"),
+      // `provider_description` is the raw bank string ("PAIEMENT CB ..."). Both
+      // can be empty for some operation_types — fall back to "Transaction
+      // bancaire" so Prisma's non-null `label` constraint never trips. We also
+      // skip deleted=true rows (Bridge soft-deletes via this flag).
+      const transactions = data.resources
+        .filter((r) => !r.deleted)
+        .map((r) => {
+          const updatedAt = new Date(r.updated_at);
+          if (!latest || updatedAt > latest) latest = updatedAt;
+          const label =
+            r.clean_description?.trim() || r.provider_description?.trim() || "Transaction bancaire";
+          return {
+            providerTransactionId: String(r.id),
+            providerAccountId: String(r.account_id),
+            occurredOn: new Date(r.date),
+            amount: r.amount,
+            label,
+            rawCategory: r.category_id !== null ? String(r.category_id) : null,
+            updatedAt,
+          } satisfies ProviderTransaction;
+        });
       return { transactions, latestUpdatedAt: latest };
     },
 
