@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-27 — Every new page route under `(cap)/dashboard/*` (NOT `(cap)/*` directly) so the CapShell layout (`apps/web/src/app/(cap)/dashboard/layout.tsx`) inherits — the cap-view sidebar / nav / breadcrumb stack is mounted at `dashboard/layout.tsx`, not at the `(cap)` group root, so routes that land under `(cap)/anything-but-dashboard/...` render bare without the shell wrappers, which the user catches visually only after the route ships (Scope: aped-arch, aped-dev, aped-review — every new page route in apps/web)
+
+- **Date:** 2026-05-27
+- **Mistake:** Story 5-6's step-04 v1 placed the Bridge OAuth callback at `(cap)/parametres/bank/callback/page.tsx`. That path is OUTSIDE the dashboard subtree — the CapShell layout doesn't apply, so the rendered callback page would have shown a bare `<main>` with no sidebar / nav / branding chrome. Same trap would catch any future onboarding / settings / billing page placed at the `(cap)` group root.
+- **Correction:** The route lives at `(cap)/dashboard/parametres/bank/callback/page.tsx`. Every Server Component / Client page under `(cap)/dashboard/*` inherits the CapShell wrappers automatically. Codified in story 5-6 T27 and as this lesson for future stories.
+- **Rule:** Every NEW route in apps/web targeting the cap-view (logged-in shell) MUST land under `(cap)/dashboard/<feature>/...`. The `(cap)` group root carries auth gating only — it does NOT carry the visual shell. Reviewers MUST grep new `page.tsx` files for the `(cap)/dashboard/` segment; any route landing under `(cap)/` directly (without the dashboard hop) is a [BLOCKER] finding unless explicitly justified.
+
 ### 2026-05-26 — Tamagui `Section` `className` prop doesn't reliably reach the rendered DOM on the `render="section"` path ; the parent-side CSS-selector approach (`.parent > section { height: 100% }`) bypasses the merge entirely and is the bulletproof shape for forcing layout primitives to fill a grid/flex cell (Scope: aped-arch, aped-dev, aped-review — every apps/web layout that needs a `@pekulo/ui#Section` to fill its parent's stretch axis on lg)
 
 - **Date:** 2026-05-26
