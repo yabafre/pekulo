@@ -32,6 +32,7 @@ import {
   realestateContract,
   transactionsContract,
   monthlyContract,
+  bankAggregatorContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -66,3 +67,8 @@ export const monthlyClient: ContractRouterClient<typeof monthlyContract> = creat
   orpcLink,
   { path: ["monthly"] },
 );
+// Story 5-6 — bank-aggregator (Bridge OAuth + refresh). Mount path is
+// `/rpc/v1/bankaggregator` (lowercase, no separator — see pekuloContract
+// in @pekulo/contracts).
+export const bankAggregatorClient: ContractRouterClient<typeof bankAggregatorContract> =
+  createORPCClient(orpcLink, { path: ["bankaggregator"] });
