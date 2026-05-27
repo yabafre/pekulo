@@ -1,10 +1,9 @@
 "use client";
 
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, PekuloSkeleton } from "@pekulo/ui";
+import { PekuloDialog, PekuloDialogCloseX as DialogCloseX, PekuloSkeleton } from "@pekulo/ui";
 import type { RealEstate } from "@pekulo/types";
 import { useListValuations } from "../_hooks/use-list-valuations";
-import { DialogCloseX } from "./dialog-close-x";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",

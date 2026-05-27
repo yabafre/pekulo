@@ -2,10 +2,14 @@
 
 import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
-import { PekuloDialog, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
+import {
+  PekuloDialog,
+  PekuloDialogCloseX as DialogCloseX,
+  pekuloFontSizes,
+  pekuloRadius,
+} from "@pekulo/ui";
 import type { RealEstate } from "@pekulo/types";
 import { useDeleteProperty } from "../_hooks/use-delete-property";
-import { DialogCloseX } from "./dialog-close-x";
 
 const NOT_FOUND_MESSAGE = "Bien introuvable (déjà supprimé ?). Recharge la page.";
 
