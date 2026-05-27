@@ -154,17 +154,19 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
     },
 
     async listAccounts({ userUuid, providerItemId }) {
+      // Bridge v3 — flat REST: GET /v3/aggregation/accounts?item_id=<id>
+      // (the v2-style nested /items/{id}/accounts returns 404 in v3).
       const bearer = await mintUserAccessToken(userUuid);
       const data = await reqJson<{
         resources: Array<{
           id: number;
           name: string;
-          bank_id: number;
-          bank_name: string;
+          bank_id?: number;
+          bank_name?: string;
           type: string;
           currency_code: string;
         }>;
-      }>(`/v3/aggregation/items/${providerItemId}/accounts`, {
+      }>(`/v3/aggregation/accounts?item_id=${encodeURIComponent(providerItemId)}`, {
         method: "GET",
         bearer,
       });
@@ -172,7 +174,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         (r) =>
           ({
             providerAccountId: String(r.id),
-            bankName: r.bank_name,
+            bankName: r.bank_name ?? "Banque",
             accountName: r.name,
             kind: r.type === "savings" ? "savings" : r.type === "checking" ? "checking" : "other",
             currency: r.currency_code,
@@ -181,8 +183,9 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
     },
 
     async listTransactions({ userUuid, providerItemId, since }) {
+      // Bridge v3 — flat REST: GET /v3/aggregation/transactions?item_id=...&since=...
       const bearer = await mintUserAccessToken(userUuid);
-      const params = new URLSearchParams({ limit: "500" });
+      const params = new URLSearchParams({ limit: "500", item_id: providerItemId });
       if (since) params.set("since", since.toISOString());
       const data = await reqJson<{
         resources: Array<{
@@ -194,7 +197,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
           date: string;
           updated_at: string;
         }>;
-      }>(`/v3/aggregation/items/${providerItemId}/transactions?${params.toString()}`, {
+      }>(`/v3/aggregation/transactions?${params.toString()}`, {
         method: "GET",
         bearer,
       });
