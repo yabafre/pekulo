@@ -1,54 +1,264 @@
 // apps/api/src/modules/bank-aggregator/bank-aggregator.service.ts
 // Bank-aggregator domain service (story 5-6 + ADR-0015).
 //
-// THIS FILE: interface declaration. Implementation (createBankAggregatorService
-// factory) lands in T15-T17 once the repository + BridgeProvider are in place.
-// Carrying the interface here unblocks T12 (the webhook router imports the
-// type without depending on the impl).
+// Composition root: createBankAggregatorService injects repository + provider
+// + transactionsService + accountsService + an optional clock seam (lesson
+// 2026-05-27 — factory-level clock, no PEKULO_DEV_NOW_ISO env var).
+//
+// AC-1: completeConnection persists via Vault-encrypted token storage.
+// AC-2: refreshConnection runs the dedup pre-flight inside importFromProvider.
+// AC-5: SCA expiry (status_code=1010) flips status without retrying refresh.
+// AC-6: refreshAll iterates per-user sequentially, swallows per-conn failure.
+// AC-7: completeConnection auto-creates one Account per remote Bridge account.
+// NFR-31: every method returns the DTO from the repository — token columns
+//         are dropped at the boundary.
 
-import type { BankConnection } from "@pekulo/validators";
+import type {
+  BankConnection,
+  BankProviderName,
+  CompleteConnectionInput,
+  InitiateConnectionInput,
+  InitiateConnectionOutput,
+  RefreshConnectionInput,
+  RefreshConnectionOutput,
+} from "@pekulo/validators";
+import type { AccountService } from "../accounts/accounts.service";
+import type {
+  ProviderTransactionImportRow,
+  TransactionsService,
+} from "../transactions/transactions.service";
+import {
+  bankConnectionAlreadyExists,
+  bankConnectionNotFound,
+  bankScaRequired,
+} from "./bank-aggregator.errors";
+import type { BankProvider, ProviderBankAccount, ProviderTransaction } from "./bank-provider";
+import type { BankAggregatorRepository } from "./bank-aggregator.repository";
 
 export interface BankAggregatorService {
   initiateConnection(
     userId: string,
-    input: { redirectUri?: string },
-    ctx: { userEmail: string },
-  ): Promise<{ connectUrl: string; sessionId: string }>;
-
+    userEmail: string,
+    input: InitiateConnectionInput,
+  ): Promise<InitiateConnectionOutput>;
   completeConnection(
     userId: string,
-    input: { code: string; state: string },
-    ctx: { userEmail: string },
+    userEmail: string,
+    input: CompleteConnectionInput,
   ): Promise<BankConnection>;
-
   listConnections(userId: string): Promise<BankConnection[]>;
-
   refreshConnection(
     userId: string,
-    input: { connectionId: string },
-  ): Promise<{
-    fetched: number;
-    persisted: number;
-    skipped: number;
-    lastRefreshedAt: string;
-  }>;
-
-  /**
-   * Iterate active connections across all users — invoked by the Bun cron
-   * scheduler. Skips sca_required + revoked. Per-user iteration serialises
-   * the per-connection refresh to avoid hammering Bridge with parallel calls.
-   */
+    input: RefreshConnectionInput,
+  ): Promise<RefreshConnectionOutput>;
   refreshAll(): Promise<void>;
-
-  /**
-   * Dispatch an inbound webhook event. The router has already verified the
-   * HMAC + body cap — by the time we land here the payload is trusted.
-   */
   handleWebhookEvent(event: unknown): Promise<void>;
+  getReconnectUrl(userId: string, userEmail: string, connectionId: string): Promise<string>;
+}
 
-  /**
-   * Return the Bridge reconnect URL for a connection in sca_required —
-   * consumed by 5-7's "Reconnecter" CTA. Implementation lands in T16.
-   */
-  getReconnectUrl(userId: string, connectionId: string): Promise<string>;
+function mapBridgeAccountKind(kind: ProviderBankAccount["kind"]): "livret" | "autre" {
+  // V1 brownfield enum: livret | pea | cto | av | autre. checking maps to
+  // "autre" (no courant value in V1); savings maps to "livret"; other → "autre".
+  return kind === "savings" ? "livret" : "autre";
+}
+
+export function createBankAggregatorService(deps: {
+  repository: BankAggregatorRepository;
+  provider: BankProvider;
+  transactionsService: TransactionsService;
+  accountsService: AccountService;
+  listAllActiveConnections: () => Promise<Array<{ userId: string; connectionId: string }>>;
+  clock?: () => Date;
+}): BankAggregatorService {
+  const now = () => (deps.clock ? deps.clock() : new Date());
+
+  async function resolveAccountIds(
+    userId: string,
+    transactions: ProviderTransaction[],
+  ): Promise<Map<string, string>> {
+    // For each unique providerAccountId, resolve the local accountId via the
+    // idempotent findOrCreateAutoFromProvider. The map is keyed by remote
+    // providerAccountId for O(1) lookup in the row-mapping loop.
+    const uniqueRemote = Array.from(new Set(transactions.map((t) => t.providerAccountId)));
+    const map = new Map<string, string>();
+    for (const remote of uniqueRemote) {
+      const account = await deps.accountsService.findOrCreateAutoFromProvider(
+        userId,
+        "bridge",
+        remote,
+        {
+          label: `Bridge — account ${remote}`,
+          type: "autre",
+          currency: "EUR",
+        },
+      );
+      map.set(remote, account.id);
+    }
+    return map;
+  }
+
+  return {
+    async initiateConnection(_userId, userEmail, input) {
+      const session = await deps.provider.createConnectSession({
+        userEmail,
+        redirectUri: input.redirectUri,
+      });
+      return { connectUrl: session.connectUrl, sessionId: session.sessionId };
+    },
+
+    async completeConnection(userId, _userEmail, input) {
+      const exchange = await deps.provider.exchangeCode({ code: input.code, state: input.state });
+      const existing = await deps.repository.findByProviderItemId(
+        userId,
+        "bridge",
+        exchange.providerItemId,
+      );
+      if (existing) throw bankConnectionAlreadyExists(exchange.providerItemId);
+
+      const remoteAccounts = await deps.provider.listAccounts({
+        tokens: exchange.tokens,
+        providerItemId: exchange.providerItemId,
+      });
+      for (const a of remoteAccounts) {
+        await deps.accountsService.findOrCreateAutoFromProvider(
+          userId,
+          "bridge",
+          a.providerAccountId,
+          {
+            label: `Bridge — ${a.bankName} — ${a.accountName}`,
+            type: mapBridgeAccountKind(a.kind),
+            currency: a.currency,
+          },
+        );
+      }
+
+      const created = await deps.repository.createConnection({
+        userId,
+        provider: "bridge" as BankProviderName,
+        providerItemId: exchange.providerItemId,
+        displayName: remoteAccounts[0]?.bankName ?? null,
+        tokens: exchange.tokens,
+      });
+      return created;
+    },
+
+    async listConnections(userId) {
+      return deps.repository.listByUser(userId);
+    },
+
+    async refreshConnection(userId, input) {
+      const found = await deps.repository.findByIdForUser(userId, input.connectionId);
+      if (!found) throw bankConnectionNotFound(input.connectionId);
+      if (found.connection.status === "sca_required") throw bankScaRequired(input.connectionId);
+      if (found.connection.status === "revoked") throw bankConnectionNotFound(input.connectionId);
+
+      const since = found.connection.lastRefreshedAt
+        ? new Date(found.connection.lastRefreshedAt)
+        : null;
+      const { transactions, latestUpdatedAt } = await deps.provider.listTransactions({
+        tokens: found.tokens,
+        providerItemId: found.connection.providerItemId,
+        since,
+      });
+
+      const accountIdMap = await resolveAccountIds(userId, transactions);
+      const rows: ProviderTransactionImportRow[] = transactions
+        .map((t) => {
+          const accountId = accountIdMap.get(t.providerAccountId);
+          if (!accountId) return null;
+          const type = t.amount >= 0 ? ("inflow" as const) : ("outflow" as const);
+          return {
+            accountId,
+            occurredOn: t.occurredOn,
+            label: t.label,
+            amount: Math.abs(t.amount),
+            type,
+            category: "autre",
+            providerTransactionId: t.providerTransactionId,
+          };
+        })
+        .filter((r): r is ProviderTransactionImportRow => r !== null);
+
+      const { persisted, skipped } = await deps.transactionsService.importFromProvider(
+        userId,
+        "bridge",
+        rows,
+      );
+      const stamp = latestUpdatedAt ?? now();
+      await deps.repository.setLastRefreshedAt(userId, input.connectionId, stamp);
+
+      return {
+        fetched: transactions.length,
+        persisted,
+        skipped,
+        lastRefreshedAt: stamp.toISOString(),
+      };
+    },
+
+    async refreshAll() {
+      const all = await deps.listAllActiveConnections();
+      for (const c of all) {
+        try {
+          await this.refreshConnection(c.userId, { connectionId: c.connectionId });
+        } catch (err) {
+          // Non-fatal — one user's Bridge outage MUST NOT poison another
+          // user's refresh. AC-6.
+          console.warn(
+            `[bank-aggregator] refreshAll skip ${c.connectionId}: ${
+              err instanceof Error ? err.message : "unknown"
+            }`,
+          );
+        }
+      }
+    },
+
+    async handleWebhookEvent(event) {
+      if (!event || typeof event !== "object") return;
+      const evt = event as {
+        type?: string;
+        content?: { item_id?: number | string; status_code?: number };
+      };
+      if (evt.type !== "item.refreshed") return;
+      const providerItemId =
+        evt.content?.item_id !== undefined ? String(evt.content.item_id) : null;
+      const statusCode = evt.content?.status_code;
+      if (!providerItemId) return;
+      if (statusCode === 1010) {
+        // AC-5 — SCA expired; flip status, no transaction-fetch side-effect.
+        await deps.repository.setStatusByProviderItemId("bridge", providerItemId, "sca_required");
+        return;
+      }
+      if (statusCode === 0) {
+        // Bridge scheduler refreshed the item — pull new transactions if we
+        // own this provider_item_id locally. Iterate active connections and
+        // probe the providerItemId match.
+        const all = await deps.listAllActiveConnections();
+        for (const c of all) {
+          const found = await deps.repository.findByIdForUser(c.userId, c.connectionId);
+          if (found && found.connection.providerItemId === providerItemId) {
+            try {
+              await this.refreshConnection(c.userId, { connectionId: c.connectionId });
+            } catch (err) {
+              console.warn(
+                `[bank-aggregator] webhook refresh skip ${c.connectionId}: ${
+                  err instanceof Error ? err.message : "unknown"
+                }`,
+              );
+            }
+          }
+        }
+      }
+    },
+
+    async getReconnectUrl(userId, userEmail, connectionId) {
+      const found = await deps.repository.findByIdForUser(userId, connectionId);
+      if (!found) throw bankConnectionNotFound(connectionId);
+      const session = await deps.provider.createConnectSession({
+        userEmail,
+        itemId: found.connection.providerItemId,
+        forceReauthentication: false,
+      });
+      return session.connectUrl;
+    },
+  };
 }
