@@ -9,6 +9,7 @@
 import { pekuloSpacing } from "@pekulo/ui";
 import { CompassEditForm } from "./_components/compass-edit-form";
 import { CompassHistoryPanel } from "./_components/compass-history-panel";
+import { ConnectBankButton } from "./_components/connect-bank-button";
 
 export default function ParametresPage() {
   return (
@@ -30,6 +31,7 @@ export default function ParametresPage() {
         }}
       >
         <CompassEditForm />
+        <ConnectBankButton />
         <CompassHistoryPanel />
       </div>
     </div>
