@@ -52,9 +52,15 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
     async findByMonth(userId, year, monthNum) {
       return rows.get(`${userId}|${year}|${monthNum}`) ?? null;
     },
-    async upsertByMonth(userId, input) {
+    async upsertByMonth(userId, input, opts) {
       const key = `${userId}|${input.year}|${input.monthNum}`;
       const existing = rows.get(key);
+      // Review F1: opts.signedOffAt folds the freeze into the same write —
+      // the in-memory repo honors it identically to the real Prisma path.
+      const signedOffAt =
+        opts?.signedOffAt !== undefined
+          ? opts.signedOffAt.toISOString()
+          : (existing?.signedOffAt ?? null);
       const created: MonthlyRecord = {
         id: existing?.id ?? "mr_int000000000000000000",
         year: input.year,
@@ -63,7 +69,7 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
         spendingEur: input.spendingEur,
         transfersEur: input.transfersEur,
         netChangeEur: input.netChangeEur,
-        signedOffAt: existing?.signedOffAt ?? null,
+        signedOffAt,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
       };
       rows.set(key, created);
@@ -91,15 +97,36 @@ function inMemoryMonthlyRepository(): MonthlyRepository {
           return y * 12 + (m - 1) >= fromOrdinal;
         });
     },
+    async setSignedOffAt(userId, year, monthNum, value) {
+      const key = `${userId}|${year}|${monthNum}`;
+      const existing = rows.get(key);
+      if (!existing) {
+        // Mirror Prisma P2025 — service translates to MONTHLY_NOT_FOUND.
+        throw Object.assign(new Error("Record to update not found."), { code: "P2025" });
+      }
+      const updated: MonthlyRecord = {
+        ...existing,
+        signedOffAt: value ? value.toISOString() : null,
+      };
+      rows.set(key, updated);
+      return updated;
+    },
   };
 }
 
 let appHandle: { stop: () => Promise<void> } | undefined;
 let baseUrl = "";
+// Review F3: factory-level clock seam pins "now" deterministically so the
+// AC-1 / AC-2 / AC-3 signOff scenarios don't silently no-op on CI runs
+// whose wall-clock falls outside the natural close window. Mutable
+// reference so individual tests can override before invoking the route.
+const TARGET_YEAR = 2026;
+const TARGET_MONTH = 5; // May 2026 → close window May 27 → Jun 5 inclusive
+const mockClock = { now: new Date("2026-05-29T12:00:00.000Z") };
 
 beforeAll(async () => {
   const repository = inMemoryMonthlyRepository();
-  const service = createMonthlyService({ repository });
+  const service = createMonthlyService({ repository, clock: () => mockClock.now });
   const router = createMonthlyRouter({ service });
   const orpcRouter: PekuloRpcRouter = { monthly: router };
   const jwtVerifier = createJwtVerifier({
@@ -202,8 +229,10 @@ describe("monthly bridge (integration)", () => {
     };
     expect(body.json.items).toHaveLength(6);
     const apr = body.json.items.find((i) => i.record.year === 2026 && i.record.monthNum === 4);
-    expect(apr?.source).toBe("persisted");
-    expect(apr?.record.incomeEur).toBe(4200);
+    // 5-5 AC-4: signedOffAt-null persisted rows fall back to derive on read.
+    // The 4200 upsert is invisible until the month is signed off.
+    expect(apr?.source).toBe("derived");
+    expect(apr?.record.incomeEur).toBe(0);
   });
 
   test("AC-2: upsert persists + subsequent get returns source:'persisted'", async () => {
@@ -239,9 +268,165 @@ describe("monthly bridge (integration)", () => {
     });
     expect(getRes.status).toBe(200);
     const getBody = (await getRes.json()) as { json: GetMonthlyOutput };
+    // 5-5 AC-4: discriminator is signedOffAt-based. Bare upsert leaves
+    // signedOffAt null → re-read returns derived (NOT persisted). The
+    // persisted shape only surfaces post-signOff.
+    expect(getBody.json.source).toBe("derived");
+    if (getBody.json.source !== "derived") throw new Error("unreachable");
+    // Derived from zero transactions (the in-memory repository's transactions
+    // map is empty in this test) — incomeEur 0, NOT the 3943 that was upserted.
+    expect(getBody.json.record.incomeEur).toBe(0);
+  });
+
+  // ─── 5-5 sign-off / reopen scenarios (T11) ──────────────────────────────
+  // Review F3: factory-level clock seam pins `mockClock.now` to a date
+  // inside the May 2026 close window so AC-1 / AC-2 / AC-3 exercise the
+  // happy paths deterministically on every CI run (the previous wall-clock
+  // bail-outs silently no-op'd 24 days/month).
+
+  test("AC-1: signOffMonthly inside window → 200, signedOffAt set, getMonthly = persisted", async () => {
+    const token = await signValid();
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    const res = await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        json: {
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
+          incomeEur: 5000,
+          spendingEur: 2000,
+          transfersEur: 0,
+          netChangeEur: 3000,
+        },
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: MonthlyRecord };
+    expect(body.json.signedOffAt).not.toBeNull();
+    expect(body.json.spendingEur).toBe(2000);
+
+    const getRes = await fetch(`${baseUrl}/rpc/v1/monthly/getMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ json: { year: TARGET_YEAR, monthNum: TARGET_MONTH } }),
+    });
+    expect(getRes.status).toBe(200);
+    const getBody = (await getRes.json()) as { json: GetMonthlyOutput };
     expect(getBody.json.source).toBe("persisted");
-    if (getBody.json.source !== "persisted") throw new Error("unreachable");
-    expect(getBody.json.record.spendingEur).toBe(2500);
-    expect(getBody.json.record.netChangeEur).toBe(1443);
+  });
+
+  test("AC-5: signOffMonthly outside window → 409 MONTHLY_OUT_OF_WINDOW", async () => {
+    const token = await signValid();
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+    // Target month +6 from mockClock.now → certainly outside its close window.
+    const future = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH - 1 + 6, 15));
+    const res = await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        json: {
+          year: future.getUTCFullYear(),
+          monthNum: future.getUTCMonth() + 1,
+          incomeEur: 100,
+          spendingEur: 50,
+          transfersEur: 0,
+          netChangeEur: 50,
+        },
+      }),
+    });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { json: { code: string } };
+    expect(body.json.code).toBe("MONTHLY_OUT_OF_WINDOW");
+  });
+
+  test("AC-2: upsertMonthly on signed-off month → 409 MONTHLY_SIGNED_OFF", async () => {
+    const token = await signValid();
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+    // Sign off TARGET (idempotent against AC-1 if it ran first — the AC-1
+    // test seeds the same key; subsequent signOff sees signedOffAt and 409s
+    // SIGNED_OFF, which we swallow — the goal is "state is signed" before
+    // the upsert attempt below).
+    await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        json: {
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
+          incomeEur: 5000,
+          spendingEur: 2000,
+          transfersEur: 0,
+          netChangeEur: 3000,
+        },
+      }),
+    });
+    const res = await fetch(`${baseUrl}/rpc/v1/monthly/upsertMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        json: {
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
+          incomeEur: 9999,
+          spendingEur: 1,
+          transfersEur: 0,
+          netChangeEur: 9998,
+        },
+      }),
+    });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { json: { code: string } };
+    expect(body.json.code).toBe("MONTHLY_SIGNED_OFF");
+  });
+
+  test("AC-3: reopenMonthly clears signedOffAt → subsequent get = derived", async () => {
+    const token = await signValid();
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+    // Idempotent ensure-signed (swallow already-signed 409).
+    await fetch(`${baseUrl}/rpc/v1/monthly/signOffMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        json: {
+          year: TARGET_YEAR,
+          monthNum: TARGET_MONTH,
+          incomeEur: 5000,
+          spendingEur: 2000,
+          transfersEur: 0,
+          netChangeEur: 3000,
+        },
+      }),
+    });
+
+    const res = await fetch(`${baseUrl}/rpc/v1/monthly/reopenMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ json: { year: TARGET_YEAR, monthNum: TARGET_MONTH } }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: MonthlyRecord };
+    expect(body.json.signedOffAt).toBeNull();
+
+    const getRes = await fetch(`${baseUrl}/rpc/v1/monthly/getMonthly`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ json: { year: TARGET_YEAR, monthNum: TARGET_MONTH } }),
+    });
+    const getBody = (await getRes.json()) as { json: GetMonthlyOutput };
+    expect(getBody.json.source).toBe("derived");
   });
 });

@@ -9,6 +9,7 @@ export * from "./PekuloCard";
 export * from "./PekuloCheckbox";
 export * from "./PekuloDatePicker";
 export * from "./PekuloDialog";
+export * from "./PekuloDialogCloseX";
 export * from "./PekuloDrawer";
 export * from "./PekuloEmpty";
 export * from "./PekuloField";

@@ -87,6 +87,34 @@ function makeFakeClient() {
   };
 }
 
+function attachUpdate(client: ReturnType<typeof makeFakeClient>) {
+  // T5: minimal `update` shim mirroring Prisma's `update` signature used by
+  // setSignedOffAt. Throws a P2025-like error when the row is missing so the
+  // service-layer error mapping (MONTHLY_NOT_FOUND) can be exercised.
+  (
+    client.monthlyRecord as unknown as {
+      update: (args: {
+        where: {
+          userId: string;
+          userId_year_monthNum: { userId: string; year: number; monthNum: number };
+        };
+        data: { signedOffAt: Date | null; updatedAt: Date };
+      }) => Promise<FakeMonthlyRow>;
+    }
+  ).update = async (args) => {
+    const key = args.where.userId_year_monthNum;
+    const row = client.rows.find(
+      (r) => r.userId === key.userId && r.year === key.year && r.monthNum === key.monthNum,
+    );
+    if (!row) {
+      throw Object.assign(new Error("Record to update not found."), { code: "P2025" });
+    }
+    row.signedOffAt = args.data.signedOffAt;
+    row.updatedAt = args.data.updatedAt;
+    return row;
+  };
+}
+
 describe("monthly.repository", () => {
   let client: ReturnType<typeof makeFakeClient>;
   let repository: MonthlyRepository;
@@ -142,6 +170,41 @@ describe("monthly.repository", () => {
     expect(out.year).toBe(2026);
     expect(out.signedOffAt).toBeNull();
     expect(client.rows).toHaveLength(1);
+  });
+
+  it("setSignedOffAt — stamps signedOffAt on existing row (5-5 AC-1)", async () => {
+    attachUpdate(client);
+    await repository.upsertByMonth(USER_A, {
+      year: 2026,
+      monthNum: 5,
+      incomeEur: 100,
+      spendingEur: 50,
+      transfersEur: 0,
+      netChangeEur: 50,
+    });
+    const now = new Date("2026-05-27T10:00:00.000Z");
+    const out = await repository.setSignedOffAt(USER_A, 2026, 5, now);
+    expect(out.signedOffAt).toBe("2026-05-27T10:00:00.000Z");
+  });
+
+  it("setSignedOffAt — null clears signedOffAt (5-5 AC-3 reopen path)", async () => {
+    attachUpdate(client);
+    await repository.upsertByMonth(USER_A, {
+      year: 2026,
+      monthNum: 5,
+      incomeEur: 100,
+      spendingEur: 50,
+      transfersEur: 0,
+      netChangeEur: 50,
+    });
+    await repository.setSignedOffAt(USER_A, 2026, 5, new Date("2026-05-27T10:00:00.000Z"));
+    const out = await repository.setSignedOffAt(USER_A, 2026, 5, null);
+    expect(out.signedOffAt).toBeNull();
+  });
+
+  it("setSignedOffAt — throws P2025-like error on missing row", async () => {
+    attachUpdate(client);
+    await expect(repository.setSignedOffAt(USER_A, 2026, 5, new Date())).rejects.toThrow();
   });
 
   it("upsertByMonth — update preserves signedOffAt set elsewhere", async () => {

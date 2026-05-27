@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
+  PekuloDialogCloseX as DialogCloseX,
   PekuloDonut,
   PekuloPopover,
   Section,
@@ -23,7 +24,6 @@ import { RentalForm } from "./rental-form";
 import { ValuationUpdateForm } from "./valuation-update-form";
 import { ValuationHistoryDialog } from "./valuation-history-dialog";
 import { PropertyDeleteConfirm } from "./property-delete-confirm";
-import { DialogCloseX } from "./dialog-close-x";
 import { useProperty } from "../_hooks/use-property";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {

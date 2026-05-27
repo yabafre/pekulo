@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
+  PekuloDialogCloseX as DialogCloseX,
   PekuloLoadingItem,
   PekuloSkeleton,
   Section,
@@ -16,7 +17,6 @@ import { useProperties } from "../_hooks/use-properties";
 import { useListPropertyDerives } from "../_hooks/use-list-property-derives";
 import { PropertyCreateForm } from "./property-create-form";
 import { PropertyCard } from "./property-card";
-import { DialogCloseX } from "./dialog-close-x";
 import styles from "./realestate.module.css";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
