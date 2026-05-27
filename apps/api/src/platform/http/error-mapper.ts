@@ -37,6 +37,18 @@ export interface MappedErrorResponse {
  */
 const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   BAD_REQUEST: 400,
+  // Bank-aggregator domain (story 5-6, FR-60/61/62 + NFR-31/32/33).
+  // _NOT_FOUND → 404 (cross-user probe / stale id on refreshConnection).
+  // _ALREADY_EXISTS → 409 (re-completeConnection of an active item).
+  // _PROVIDER_UNAVAILABLE → 503 (Bridge upstream 5xx surfaces as 503 to the
+  // caller). _SCA_REQUIRED → 409 (state-shape conflict: refresh blocked
+  // until user reconnects via 5-7 CTA). _WEBHOOK_INVALID_SIGNATURE → 401
+  // (HMAC-verified path; NFR-33 mandates 401 < 100 ms).
+  BANK_CONNECTION_NOT_FOUND: 404,
+  BANK_CONNECTION_ALREADY_EXISTS: 409,
+  BANK_PROVIDER_UNAVAILABLE: 503,
+  BANK_SCA_REQUIRED: 409,
+  BANK_WEBHOOK_INVALID_SIGNATURE: 401,
   // Compass domain validation (story 1-1, FR-5): both surface as 400 — they
   // signal invalid client input to computeProgress (capitalTarget <= 0 /
   // currentWealth < 0). Keep distinct codes so clients can localise messages.
