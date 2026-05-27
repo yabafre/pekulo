@@ -284,28 +284,43 @@ export function createTransactionsRepository(deps: {
       // bulkCreate so the prefixed-ids extension fires (ADR-0012). The two
       // extra columns (provider, providerTransactionId) feed the partial
       // UNIQUE index `transactions_user_provider_txid_uq` (T3 migration).
+      //
+      // Chunked at 50 rows / transaction to stay under Prisma's default 5s
+      // interactive-transaction timeout on the Supabase pooler (smoke-test
+      // 2026-05-27 — fresh Bridge sync returned ~80 transactions and hit the
+      // timeout). Each chunk wraps an interactive tx so prefixedIds fires;
+      // chunk boundaries are safe because the dedup pre-flight ensures no
+      // duplicate rows arrive here and the partial UNIQUE index protects
+      // against retries.
+      const CHUNK_SIZE = 50;
       const inserted: TransactionRow[] = [];
-      await deps.client.$transaction(async (tx) => {
-        for (const row of rows) {
-          const created = (await tx.transaction.create({
-            data: {
-              userId,
-              accountId: row.accountId,
-              occurredOn: row.occurredOn,
-              label: row.label,
-              amount: row.amount,
-              type: row.type,
-              category: row.category,
-              isImprevu: false,
-              notes: null,
-              transferPairId: null,
-              provider: row.provider,
-              providerTransactionId: row.providerTransactionId,
-            } as unknown as Parameters<typeof tx.transaction.create>[0]["data"],
-          })) as TransactionRow;
-          inserted.push(created);
-        }
-      });
+      for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+        const chunk = rows.slice(i, i + CHUNK_SIZE);
+        await deps.client.$transaction(
+          async (tx) => {
+            for (const row of chunk) {
+              const created = (await tx.transaction.create({
+                data: {
+                  userId,
+                  accountId: row.accountId,
+                  occurredOn: row.occurredOn,
+                  label: row.label,
+                  amount: row.amount,
+                  type: row.type,
+                  category: row.category,
+                  isImprevu: false,
+                  notes: null,
+                  transferPairId: null,
+                  provider: row.provider,
+                  providerTransactionId: row.providerTransactionId,
+                } as unknown as Parameters<typeof tx.transaction.create>[0]["data"],
+              })) as TransactionRow;
+              inserted.push(created);
+            }
+          },
+          { timeout: 30_000 },
+        );
+      }
       return { persisted: inserted.length, rows: inserted.map(toDto) };
     },
 
