@@ -52,12 +52,16 @@ export interface BankProvider {
   createUser(args: { externalUserId: string }): Promise<{ providerUserUuid: string }>;
 
   /**
-   * Build the Bridge-hosted Connect widget URL. `userUuid` is the provider-side
-   * user UUID returned by `createUser` (NOT the Pekulo userId, NOT the user
-   * email — Bridge v3 dropped the email-based connect-session shape).
+   * Build the Bridge-hosted Connect widget URL. Bridge v3 requires a 3-step
+   * auth: app credentials (Client-Id/Secret) + user-level Bearer (minted
+   * from `userUuid` via `/authorization/token`) + body `{user_email}` for
+   * the SCA contact channel. The `userUuid` argument identifies the user
+   * for token minting; the `userEmail` lands in the body. Implementation
+   * mints the Bearer internally — callers don't manage user tokens.
    */
   createConnectSession(args: {
     userUuid: string;
+    userEmail: string;
     redirectUri?: string;
     itemId?: string;
     forceReauthentication?: boolean;

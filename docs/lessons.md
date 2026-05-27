@@ -13,6 +13,34 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-27 (correction) — Bridge v3 connect-sessions need a 3-step auth: app credentials (Client-Id/Secret) + user-level Bearer (minted from `POST /v3/aggregation/authorization/token { user_uuid }`) + body `{user_email}` — the second smoke-test (after the user_uuid-in-body hypothesis returned 400 "Invalid body content") confirmed the Bearer-on-user-scoped-endpoint pattern that mirrors Plaid / Stripe Connect's app/user/item auth tiers (Scope: aped-arch, aped-dev, aped-review, aped-debug — supersedes the earlier "user_uuid in body" lesson same day; codify the 3-tier auth model as the Bridge v3 truth)
+
+- **Date:** 2026-05-27
+- **Mistake:** Even after the first FIX (POST /v3/aggregation/users to mint a Bridge UUID + POST /v3/aggregation/connect-sessions { user_uuid }), the live call still returned 401 (with body) then 400 "Invalid body content" (with Bearer + body{user_uuid}). The body shape was wrong AND the auth was incomplete. Bridge v3 uses a 3-tier auth model identical to Plaid Link / Stripe Connect — Client-Id/Secret in headers is APP-level auth only; user-scoped endpoints (connect-sessions, listItems for that user) require ALSO a user-level Bearer minted via `/authorization/token { user_uuid }`. The same `/authorization/token` endpoint also handles item-level token exchange (body `{code}` after OAuth callback) — the body discriminator is `user_uuid` vs `code`. The user UUID in the body of connect-sessions is rejected as 400 because the Bearer already identifies the user; the body should describe the SESSION only (`user_email` for SCA contact + optional `callback_url`, `item_id`, `force_reauthentication`).
+- **Correction:** Two iterative curls against live sandbox identified the right shape (paste both in story / PR description for next time):
+
+  ```bash
+  # Step 1 — mint user-level access token
+  POST /v3/aggregation/authorization/token
+    Headers: Client-Id, Client-Secret, Bridge-Version
+    Body: { user_uuid: "<bridge-user-uuid>" }
+    → { access_token, expires_at, user: {uuid, external_user_id} }
+
+  # Step 2 — create connect session with Bearer + user_email
+  POST /v3/aggregation/connect-sessions
+    Headers: Client-Id, Client-Secret, Bridge-Version, Authorization: Bearer <access_token>
+    Body: { user_email, callback_url?, item_id?, force_reauthentication? }
+    → { id, url }
+  ```
+
+  `BridgeProvider.createConnectSession` mints the Bearer internally on every call (no caching at V1 — 1 extra HTTP per initiate, negligible). The interface accepts both `userUuid` (for token mint) AND `userEmail` (body); the service threads both from `initiateConnection(userId, userEmail, input)`.
+
+- **Rule:** When integrating a third-party aggregator API (Bridge, Plaid, Powens, Tink, Salt Edge, GoCardless BAD), map the auth tiers BEFORE writing the client:
+  1. **App-level** — static credentials, fine to send as raw headers
+  2. **User-level** — Bearer minted from app-level creds + user identifier (uuid / external_id); typically short-lived (≤ 2h), no caching at V1
+  3. **Item-level** — Bearer minted via OAuth code exchange; long-lived (refresh-token-protected), one per item, MUST be persisted (Vault for Pekulo)
+     Then for EACH endpoint of the API surface, identify which tier it needs and code the client to assemble the corresponding header stack. The Bridge v3 docs surface this in a "Authentication" section that's easy to miss because of the appendix placement — checking 3 sandbox curls per endpoint (varying app/user/item Bearer combos) is the brute-force way to discover the right tier. Belongs in `aped-story` step 04 (auth-tier matrix as a Dev Notes section) for every third-party-aggregator story going forward.
+
 ### 2026-05-27 — Bridge v3 connect-sessions take `user_uuid` in the body, NOT `user_email` — Bridge's v3 model mandates a 2-step setup (POST /v3/aggregation/users to mint a Bridge UUID per external_user_id, THEN POST /v3/aggregation/connect-sessions with that user_uuid) and the older `user_email`-only shape returns HTTP 401 even when Client-Id/Secret/Bridge-Version are valid ; context7's `/websites/bridgeapi_io` doc cache surfaced the older shape on 2026-05-27, the smoke-test against the live sandbox surfaced the gap (Scope: aped-arch, aped-dev, aped-review, aped-debug — every story integrating a versioned third-party API where the doc cache may lag)
 
 - **Date:** 2026-05-27

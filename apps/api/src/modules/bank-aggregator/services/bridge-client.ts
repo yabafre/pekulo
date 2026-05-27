@@ -102,17 +102,32 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       return { providerUserUuid: createResult.data.uuid };
     },
 
-    async createConnectSession({ userUuid, redirectUri, itemId, forceReauthentication }) {
-      // Bridge v3 — connect-session takes user_uuid (provider-side UUID,
-      // produced by createUser). Older docs / training data may show
-      // user_email — that shape returns 401 in v3.
-      const body: Record<string, unknown> = { user_uuid: userUuid };
+    async createConnectSession({
+      userUuid,
+      userEmail,
+      redirectUri,
+      itemId,
+      forceReauthentication,
+    }) {
+      // Bridge v3 — 3-step auth on user-scoped endpoints (smoke-test 2026-05-27):
+      //   1. App auth (Client-Id/Secret in headers — set by authHeaders)
+      //   2. Mint user access token via /authorization/token { user_uuid }
+      //   3. POST /connect-sessions with Bearer + body { user_email, ... }
+      // The previous shapes (user_email in body without Bearer, OR user_uuid
+      // in body with Bearer) BOTH return 401/400 respectively. Codified
+      // verbatim from the live sandbox call.
+      const tokenResult = await reqJson<{ access_token: string; expires_at: string | null }>(
+        `/v3/aggregation/authorization/token`,
+        { method: "POST", body: JSON.stringify({ user_uuid: userUuid }) },
+      );
+      const body: Record<string, unknown> = { user_email: userEmail };
       if (redirectUri) body.callback_url = redirectUri;
       if (itemId) body.item_id = itemId;
       if (forceReauthentication) body.force_reauthentication = true;
       const data = await reqJson<{ id: string; url: string }>(`/v3/aggregation/connect-sessions`, {
         method: "POST",
         body: JSON.stringify(body),
+        bearer: tokenResult.access_token,
       });
       return { connectUrl: data.url, sessionId: data.id } satisfies ProviderConnectSession;
     },

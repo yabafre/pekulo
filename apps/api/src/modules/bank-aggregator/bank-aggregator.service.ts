@@ -121,10 +121,11 @@ export function createBankAggregatorService(deps: {
   }
 
   return {
-    async initiateConnection(userId, _userEmail, input) {
+    async initiateConnection(userId, userEmail, input) {
       const userUuid = await resolveProviderUserUuid(userId);
       const session = await deps.provider.createConnectSession({
         userUuid,
+        userEmail,
         redirectUri: input.redirectUri,
       });
       return { connectUrl: session.connectUrl, sessionId: session.sessionId };
@@ -274,12 +275,13 @@ export function createBankAggregatorService(deps: {
       }
     },
 
-    async getReconnectUrl(userId, _userEmail, connectionId) {
+    async getReconnectUrl(userId, userEmail, connectionId) {
       const found = await deps.repository.findByIdForUser(userId, connectionId);
       if (!found) throw bankConnectionNotFound(connectionId);
       const userUuid = await resolveProviderUserUuid(userId);
       const session = await deps.provider.createConnectSession({
         userUuid,
+        userEmail,
         itemId: found.connection.providerItemId,
         forceReauthentication: false,
       });

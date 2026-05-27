@@ -77,7 +77,10 @@ afterAll(() => {
 
 test("createConnectSession returns connectUrl + sessionId", async () => {
   const p = createBridgeProvider({ env });
-  const session = await p.createConnectSession({ userUuid: "bridge-user-uuid-1" });
+  const session = await p.createConnectSession({
+    userUuid: "bridge-user-uuid-1",
+    userEmail: "fred@x",
+  });
   expect(session.connectUrl).toContain("connect.bridgeapi.io");
   expect(session.sessionId).toBe("session-1");
 });
@@ -106,5 +109,7 @@ test("listTransactions returns rows + latestUpdatedAt", async () => {
 test("createBridgeProvider throws bank-provider-unavailable when CLIENT_ID missing", async () => {
   const noEnv = { ...env, BRIDGE_CLIENT_ID: undefined } as unknown as Env;
   const p = createBridgeProvider({ env: noEnv });
-  await expect(p.createConnectSession({ userUuid: "x" })).rejects.toThrow(/not configured/i);
+  await expect(p.createConnectSession({ userUuid: "x", userEmail: "y@z" })).rejects.toThrow(
+    /not configured/i,
+  );
 });
