@@ -76,23 +76,23 @@ export function createBankAggregatorService(deps: {
     userId: string,
     transactions: ProviderTransaction[],
   ): Promise<Map<string, string>> {
-    // For each unique providerAccountId, resolve the local accountId via the
-    // idempotent findOrCreateAutoFromProvider. The map is keyed by remote
-    // providerAccountId for O(1) lookup in the row-mapping loop.
+    // Story 5-6 FIX12 (2026-05-27): LOOKUP-ONLY, no auto-create. The proper
+    // accounts were already created by completeConnection.listAccounts. If
+    // a transaction references an unknown account_id, that's a Bridge sandbox
+    // race / data anomaly (we observed transient orphan IDs during sync); we
+    // skip the offending transactions instead of polluting the local accounts
+    // table with placeholder rows that would never reconcile back.
     const uniqueRemote = Array.from(new Set(transactions.map((t) => t.providerAccountId)));
     const map = new Map<string, string>();
     for (const remote of uniqueRemote) {
-      const account = await deps.accountsService.findOrCreateAutoFromProvider(
-        userId,
-        "bridge",
-        remote,
-        {
-          label: `Bridge — account ${remote}`,
-          type: "autre",
-          currency: "EUR",
-        },
-      );
-      map.set(remote, account.id);
+      const account = await deps.accountsService.findByProviderKey(userId, "bridge", remote);
+      if (account) {
+        map.set(remote, account.id);
+      } else {
+        console.warn(
+          `[bank-aggregator] transaction account_id=${remote} not in local accounts for user=${userId} — skipping ${transactions.filter((t) => t.providerAccountId === remote).length} transaction(s)`,
+        );
+      }
     }
     return map;
   }

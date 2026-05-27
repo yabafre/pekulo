@@ -44,6 +44,17 @@ export interface AccountService {
     providerAccountKey: string,
     input: { label: string; type: Account["type"]; currency: string; cashBalance?: number },
   ): Promise<Account>;
+  /**
+   * Story 5-6 FIX12 (2026-05-27) — look up only, no auto-create. Used by
+   * the bank-aggregator refresh path to map transaction.account_id → local
+   * Account.id WITHOUT creating orphans when the provider's transaction
+   * endpoint returns an unknown account_id (Bridge sandbox race observed).
+   */
+  findByProviderKey(
+    userId: string,
+    provider: string,
+    providerAccountKey: string,
+  ): Promise<Account | null>;
 }
 
 export interface AccountServiceDeps {
@@ -118,6 +129,10 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
         provider,
         providerAccountKey,
       });
+    },
+
+    async findByProviderKey(userId, provider, providerAccountKey) {
+      return deps.repository.findByProviderKey(userId, provider, providerAccountKey);
     },
   };
 }

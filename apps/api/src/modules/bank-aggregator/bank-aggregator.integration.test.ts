@@ -225,6 +225,10 @@ function makeStubAccountsService(): AccountService {
       cache.set(k, account);
       return account;
     },
+    findByProviderKey: async (userId, provider, providerAccountKey) => {
+      const k = `${userId}|${provider}|${providerAccountKey}`;
+      return cache.get(k) ?? null;
+    },
   };
 }
 

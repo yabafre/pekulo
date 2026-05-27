@@ -139,6 +139,9 @@ function inMemoryService(opts?: { fkLockedIds?: ReadonlySet<string> }): AccountS
       // covers this entry point through bank-aggregator.integration.test.ts.
       throw new Error("inMemoryService.findOrCreateAutoFromProvider not implemented");
     },
+    async findByProviderKey() {
+      throw new Error("inMemoryService.findByProviderKey not implemented");
+    },
   };
 }
 
