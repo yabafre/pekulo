@@ -13,8 +13,8 @@ import { describe, expect, it } from "bun:test";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 18 model entries (ADR-0012 + story 2-2 abl + story 4-1 resm + story 5-4 mr + story 5-6 bnk)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(18);
+  it("exposes exactly 19 model entries (ADR-0012 + 2-2 abl + 4-1 resm + 5-4 mr + 5-6 bnk + 5-6-FIX BridgeUser:null)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(19);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -56,6 +56,7 @@ describe("id-prefixes.config", () => {
       "LlmCallLog",
       "LlmOptIn",
       "BankConnection",
+      "BridgeUser",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
   });

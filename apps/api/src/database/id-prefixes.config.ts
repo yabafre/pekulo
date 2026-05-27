@@ -50,6 +50,11 @@ export const ID_PREFIXES = {
 
   // Bank-aggregator (story 5-6 — ADR-0015)
   BankConnection: "bnk",
+
+  // BridgeUser (story 5-6 FIX, 2026-05-27) — PK is `user_id` (UUID FK to
+  // auth.users), so the prefixed-ids extension MUST NOT inject. Same opt-out
+  // shape as Hypothesis. The bridge_users table has no synthetic id column.
+  BridgeUser: null,
 } as const satisfies Record<string, string | null>;
 
 export type ModelName = keyof typeof ID_PREFIXES;
