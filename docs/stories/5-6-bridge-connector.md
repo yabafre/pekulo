@@ -3,11 +3,11 @@ story_key: 5-6-bridge-connector
 epic: 5
 ticket: "#93"
 branch: feature/93-5-6-bridge-connector
-status: ready-for-dev
+status: review
 depends_on: [5-1-transactions-record, 0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge]
 complexity: L
 commit_prefix: "feat(#93)"
-stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection, step-04-collaborative-design]
+stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection, step-04-collaborative-design, step-05-dev]
 ---
 
 # Story 5-6 — Bridge bank-aggregator connector + Vault-encrypted BankConnection + cron-backup refresh
@@ -15,7 +15,7 @@ stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection,
 **Epic:** 5 — Transactions & monthly tracking (V1 brownfield + new flows)
 **Ticket:** [#93](https://github.com/yabafre/pekulo/issues/93)
 **Branch:** `feature/93-5-6-bridge-connector`
-**Status:** ready-for-dev
+**Status:** review
 **Depends on:** `5-1-transactions-record` ✅ · `0-4-prisma-setup` ✅ · `0-5-orpc-contracts-scaffold` ✅ · `0-6-zapaction-orpc-bridge` ✅
 **Complexity:** L (≥ 27 tasks — at the upper boundary, no split per ADR-0015 + Alex confirmation in step 04)
 **ADR primary:** [ADR-0015 — Bridge as AISP agent-of with provider abstraction](../adr/0015-bank-aggregator-bridge-with-provider-abstraction.md)
@@ -51,38 +51,38 @@ stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection,
 >
 > Ordering rationale: schema + migrations first (T1-T3) — locked surface for every downstream layer; prefix registry + Prisma model (T4-T5) before validators (T6) before contracts (T7-T8) so the workspace typechecks coherently from T9; pure HMAC verifier (T11) before the route that consumes it (T12); repository (T13-T14) before service (T15-T17) before routes (T18) before module composition (T19); transactions/accounts integration (T20-T22) AFTER the service is callable; web tier (T23-T26) last; sentinel + integration tests (T27-T28); Iron Law sweep (T29). Full code blocks live in **Dev Notes → Execution tasks — full code** below.
 
-- [ ] **T1** — ADR-0015 amendment note (Vault over pgcrypto) [AC: AC-1, AC-4]
-- [ ] **T2** — Manual SQL migration `create_bank_connections` (enable `supabase_vault`, table + RLS + indexes) [AC: AC-1, AC-4]
-- [ ] **T3** — Manual SQL migration `alter_transactions_provider_dedup_and_accounts_provider_key` (ALTER transactions + ALTER accounts) [AC: AC-2, AC-7]
-- [ ] **T4** — `id-prefixes.config.ts` add `BankConnection: "bnk"` + 1 Bun unit test [AC: AC-1]
-- [ ] **T5** — `bank_aggregator.prisma` model + `prisma format && validate` [AC: AC-1, AC-4]
-- [ ] **T6** — `packages/validators/src/bank-aggregator/` — 6 Zod schemas + barrel + vitest [AC: AC-1, AC-2, AC-4, AC-5]
-- [ ] **T7** — `packages/contracts/src/bank-aggregator/` — contract with 4 procedures + barrel [AC: AC-1, AC-2]
-- [ ] **T8** — `packages/contracts/src/index.ts` + `pekuloContract` registration [AC: AC-1, AC-2]
-- [ ] **T9** — `bank-aggregator.errors.ts` + `PEKULO_ERROR_CODES` + `ORPC_HTTP_STATUS_BY_CODE` [AC: AC-3, AC-5, AC-9]
-- [ ] **T10** — `bank-provider.ts` interface (pure, zero IO) [AC: AC-1, AC-2, AC-5]
-- [ ] **T11** — `services/webhook-verifier.ts` pure HMAC + 6 Bun tests (valid, invalid, rotation, downgrade) [AC: AC-3]
-- [ ] **T12** — `services/bridge-webhook-router.ts` Elysia route + `onParse` raw body + body-cap + 1 Bun perf test (401 < 100 ms) [AC: AC-3, AC-9]
-- [ ] **T13** — `services/bridge-client.ts` `BridgeProvider` impl — 6 methods + msw-style fetch mock tests [AC: AC-1, AC-2, AC-5]
-- [ ] **T14** — `bank-aggregator.repository.ts` — Vault round-trip + CRUD + dedup pre-flight via cross-module probe [AC: AC-1, AC-2, AC-4]
-- [ ] **T15** — `bank-aggregator.service.ts` — `initiateConnection`, `completeConnection`, `listConnections` + factory clock seam + 4 Bun tests [AC: AC-1, AC-4, AC-7]
-- [ ] **T16** — `bank-aggregator.service.ts` — `refreshConnection`, `refreshAll` + 3 Bun tests [AC: AC-2, AC-5, AC-6]
-- [ ] **T17** — `bank-aggregator.service.ts` — `handleWebhookEvent` (item.refreshed → SCA flip + tx fetch) + 4 Bun tests [AC: AC-3, AC-5]
-- [ ] **T18** — `bank-aggregator.routes.ts` — 4 oRPC procedures + rate-limit on `refreshConnection` [AC: AC-1, AC-2, AC-9]
-- [ ] **T19** — `bank-aggregator.module.ts` + `services/refresh-scheduler.ts` Bun cron + lifecycle [AC: AC-6]
-- [ ] **T20** — `transactions.repository.ts` add `bulkCreateFromProvider` + `findExistingProviderTxIds` + 3 Bun tests [AC: AC-2]
-- [ ] **T21** — `transactions.service.ts` add `importFromProvider` + 2 Bun tests [AC: AC-2]
-- [ ] **T22** — `accounts.service.ts` + `accounts.repository.ts` add `findOrCreateAutoFromProvider` (idempotent) + 3 Bun tests [AC: AC-7]
-- [ ] **T23** — `runtime-dependencies.ts` wire-up + `lifecycle.ts` cron start/stop + `app.ts` webhook router mount [AC: AC-1, AC-2, AC-3, AC-6]
-- [ ] **T24** — `apps/web/src/lib/zapaction/keys.ts` — `bankConnectionsKeys` + `bankConnectionsTags` + registry edge [AC: AC-1, AC-2]
-- [ ] **T25** — `apps/web/src/app/(cap)/dashboard/parametres/_actions/bank-aggregator-actions.ts` zapaction wrappers (output omitted) [AC: AC-1, AC-2]
-- [ ] **T26** — `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-{initiate,complete}-bank-connection.ts` — ZapAction hooks + vitest envelope-narrowing [AC: AC-1, AC-2]
-- [ ] **T27** — `apps/web/src/app/(cap)/dashboard/parametres/bank/callback/page.tsx` Server Component + minimal inflight affordance + axe scan [AC: AC-1]
-- [ ] **T28** — `bank-aggregator.security.test.ts` sentinel — pino + OTel traversal asserts zero token strings [AC: AC-8]
-- [ ] **T29** — `bank-aggregator.integration.test.ts` — full cycle initiate → complete → refresh → webhook with fake BankProvider [AC: AC-1, AC-2, AC-3, AC-5, AC-7]
-- [ ] **T30** — `apps/api/src/config/env.ts` add Bridge env keys + `.env.example` documentation [AC: AC-1]
-- [ ] **T31** — `docs/lessons.md` append "every new route under `(cap)/dashboard/*` for CapShell inheritance" lesson [AC: n/a — meta]
-- [ ] **T32** — Iron Law sweep (typecheck + lint + tests + rls-audit + tamagui-css regen if needed) [AC: all]
+- [x] **T1** — ADR-0015 amendment note (Vault over pgcrypto) [AC: AC-1, AC-4]
+- [x] **T2** — Manual SQL migration `create_bank_connections` (enable `supabase_vault`, table + RLS + indexes) [AC: AC-1, AC-4]
+- [x] **T3** — Manual SQL migration `alter_transactions_provider_dedup_and_accounts_provider_key` (ALTER transactions + ALTER accounts) [AC: AC-2, AC-7]
+- [x] **T4** — `id-prefixes.config.ts` add `BankConnection: "bnk"` + 1 Bun unit test [AC: AC-1]
+- [x] **T5** — `bank_aggregator.prisma` model + `prisma format && validate` [AC: AC-1, AC-4]
+- [x] **T6** — `packages/validators/src/bank-aggregator/` — 6 Zod schemas + barrel + vitest [AC: AC-1, AC-2, AC-4, AC-5]
+- [x] **T7** — `packages/contracts/src/bank-aggregator/` — contract with 4 procedures + barrel [AC: AC-1, AC-2]
+- [x] **T8** — `packages/contracts/src/index.ts` + `pekuloContract` registration [AC: AC-1, AC-2]
+- [x] **T9** — `bank-aggregator.errors.ts` + `PEKULO_ERROR_CODES` + `ORPC_HTTP_STATUS_BY_CODE` [AC: AC-3, AC-5, AC-9]
+- [x] **T10** — `bank-provider.ts` interface (pure, zero IO) [AC: AC-1, AC-2, AC-5]
+- [x] **T11** — `services/webhook-verifier.ts` pure HMAC + 6 Bun tests (valid, invalid, rotation, downgrade) [AC: AC-3]
+- [x] **T12** — `services/bridge-webhook-router.ts` Elysia route + `onParse` raw body + body-cap + 1 Bun perf test (401 < 100 ms) [AC: AC-3, AC-9]
+- [x] **T13** — `services/bridge-client.ts` `BridgeProvider` impl — 6 methods + msw-style fetch mock tests [AC: AC-1, AC-2, AC-5]
+- [x] **T14** — `bank-aggregator.repository.ts` — Vault round-trip + CRUD + dedup pre-flight via cross-module probe [AC: AC-1, AC-2, AC-4]
+- [x] **T15** — `bank-aggregator.service.ts` — `initiateConnection`, `completeConnection`, `listConnections` + factory clock seam + 4 Bun tests [AC: AC-1, AC-4, AC-7]
+- [x] **T16** — `bank-aggregator.service.ts` — `refreshConnection`, `refreshAll` + 3 Bun tests [AC: AC-2, AC-5, AC-6]
+- [x] **T17** — `bank-aggregator.service.ts` — `handleWebhookEvent` (item.refreshed → SCA flip + tx fetch) + 4 Bun tests [AC: AC-3, AC-5]
+- [x] **T18** — `bank-aggregator.routes.ts` — 4 oRPC procedures + rate-limit on `refreshConnection` [AC: AC-1, AC-2, AC-9]
+- [x] **T19** — `bank-aggregator.module.ts` + `services/refresh-scheduler.ts` Bun cron + lifecycle [AC: AC-6]
+- [x] **T20** — `transactions.repository.ts` add `bulkCreateFromProvider` + `findExistingProviderTxIds` + 3 Bun tests [AC: AC-2]
+- [x] **T21** — `transactions.service.ts` add `importFromProvider` + 2 Bun tests [AC: AC-2]
+- [x] **T22** — `accounts.service.ts` + `accounts.repository.ts` add `findOrCreateAutoFromProvider` (idempotent) + 3 Bun tests [AC: AC-7]
+- [x] **T23** — `runtime-dependencies.ts` wire-up + `lifecycle.ts` cron start/stop + `app.ts` webhook router mount [AC: AC-1, AC-2, AC-3, AC-6]
+- [x] **T24** — `apps/web/src/lib/zapaction/keys.ts` — `bankConnectionsKeys` + `bankConnectionsTags` + registry edge [AC: AC-1, AC-2]
+- [x] **T25** — `apps/web/src/app/(cap)/dashboard/parametres/_actions/bank-aggregator-actions.ts` zapaction wrappers (output omitted) [AC: AC-1, AC-2]
+- [x] **T26** — `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-{initiate,complete}-bank-connection.ts` — ZapAction hooks + vitest envelope-narrowing [AC: AC-1, AC-2]
+- [x] **T27** — `apps/web/src/app/(cap)/dashboard/parametres/bank/callback/page.tsx` Server Component + minimal inflight affordance + axe scan [AC: AC-1]
+- [x] **T28** — `bank-aggregator.security.test.ts` sentinel — pino + OTel traversal asserts zero token strings [AC: AC-8]
+- [x] **T29** — `bank-aggregator.integration.test.ts` — full cycle initiate → complete → refresh → webhook with fake BankProvider [AC: AC-1, AC-2, AC-3, AC-5, AC-7]
+- [x] **T30** — `apps/api/src/config/env.ts` add Bridge env keys + `.env.example` documentation [AC: AC-1]
+- [x] **T31** — `docs/lessons.md` append "every new route under `(cap)/dashboard/*` for CapShell inheritance" lesson [AC: n/a — meta]
+- [x] **T32** — Iron Law sweep (typecheck + lint + tests + rls-audit + tamagui-css regen if needed) [AC: all]
 
 ## Dev Notes
 
