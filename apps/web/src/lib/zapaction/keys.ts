@@ -103,6 +103,17 @@ export const monthlyTags = createFeatureTags(MONTHLY_KEY, {
   get: (year: number, monthNum: number) => ["get", year, monthNum] as const,
 });
 
+// Story 5-6 — Bridge bank connections list (FR-60). Single read for now
+// (listConnections), no byId; 5-7 may add a granular get when the settings UI
+// surfaces per-connection details (status badge, lastRefreshedAt, etc.).
+export const BANK_CONNECTIONS_KEY = "bankConnections" as const;
+export const bankConnectionsKeys = createFeatureKeys(BANK_CONNECTIONS_KEY, {
+  list: () => ["list"] as const,
+});
+export const bankConnectionsTags = createFeatureTags(BANK_CONNECTIONS_KEY, {
+  list: () => ["list"] as const,
+});
+
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
@@ -178,4 +189,14 @@ setTagRegistry({
   // window cache refresh after the mutation resolves.
   [monthlyTags.all()]: [[MONTHLY_KEY]],
   [monthlyTags.get(0, 0)]: [monthlyKeys.get(0, 0)],
+  // Story 5-6 — bank connections list. Successful completeConnection /
+  // refreshConnection invalidates both the connections list AND the
+  // transactions list (a Bridge import lands new transactions that should
+  // surface in Récentes + cascade to monthly via the transactions edge).
+  [bankConnectionsTags.list()]: [
+    bankConnectionsKeys.list(),
+    [TRANSACTIONS_KEY],
+    accountsKeys.list(),
+    [MONTHLY_KEY],
+  ],
 });
