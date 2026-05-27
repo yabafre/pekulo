@@ -8,6 +8,9 @@ enum AccountType {
   cto
   av
   autre
+  // Story 5-6 FEAT13 (2026-05-27): Bridge `checking` accounts (compte courant,
+  // sous-comptes Revolut Pocket) — distinct from the catch-all `autre`.
+  banque
 
   @@map("account_type")
 }

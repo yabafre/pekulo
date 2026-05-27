@@ -29,6 +29,7 @@ const TYPE_LABEL: Record<AccountType, string> = {
   cto: "CTO",
   av: "Assurance vie",
   autre: "Autre",
+  banque: "Compte courant",
 };
 
 const eur0 = new Intl.NumberFormat("fr-FR", {

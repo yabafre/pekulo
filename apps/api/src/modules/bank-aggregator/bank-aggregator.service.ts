@@ -56,10 +56,19 @@ export interface BankAggregatorService {
   getReconnectUrl(userId: string, userEmail: string, connectionId: string): Promise<string>;
 }
 
-function mapBridgeAccountKind(kind: ProviderBankAccount["kind"]): "livret" | "autre" {
-  // V1 brownfield enum: livret | pea | cto | av | autre. checking maps to
-  // "autre" (no courant value in V1); savings maps to "livret"; other → "autre".
-  return kind === "savings" ? "livret" : "autre";
+function mapBridgeAccountKind(kind: ProviderBankAccount["kind"]): "banque" | "livret" | "autre" {
+  // Story 5-6 FEAT13 (2026-05-27). Mapping Bridge → Pekulo account_type:
+  //   checking      → banque  (compte courant + Revolut Pocket)
+  //   savings       → livret  (livret épargne)
+  //   card / loan / other → autre  (dette ou type non reconnu)
+  // The richer Bridge taxonomy (lifeinsurance, securities, pee, …) doesn't
+  // surface through ProviderBankAccount.kind yet — only checking/savings/other
+  // — because BridgeProvider.listAccounts narrows the type in bridge-client.ts.
+  // Extending requires widening the kind union + adapting the bridge-client
+  // map. Live-sandbox sees the 3-kind subset only.
+  if (kind === "checking") return "banque";
+  if (kind === "savings") return "livret";
+  return "autre";
 }
 
 export function createBankAggregatorService(deps: {

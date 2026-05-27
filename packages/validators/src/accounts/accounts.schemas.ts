@@ -35,7 +35,8 @@ export type AccountCurrency = (typeof ACCOUNT_CURRENCIES)[number];
 // MIRROR of @pekulo/types#ACCOUNT_TYPES — kept inline because validators cannot
 // import from types (would create a Turbo workspace cycle). Reviewer-enforced
 // invariant: this literal MUST equal @pekulo/types#ACCOUNT_TYPES exactly.
-const ACCOUNT_TYPES_MIRROR = ["livret", "pea", "cto", "av", "autre"] as const;
+// Story 5-6 FEAT13 (2026-05-27) adds "banque" for Bridge checking accounts.
+const ACCOUNT_TYPES_MIRROR = ["livret", "pea", "cto", "av", "autre", "banque"] as const;
 
 export const accountIdSchema = z
   .string()
