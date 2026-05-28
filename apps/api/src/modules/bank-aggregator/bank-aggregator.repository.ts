@@ -175,8 +175,11 @@ export function createBankAggregatorRepository(deps: {
     },
 
     async listByUser(userId) {
+      // Story 5-7 (AC-4): soft-deleted (revoked) connections disappear from
+      // the management list. The row stays in the table for audit; revoke
+      // flips status to 'revoked' (bank-aggregator.service.revokeConnection).
       const rows = (await db.bankConnection.findMany({
-        where: { userId },
+        where: { userId, status: { not: "revoked" } },
         orderBy: { createdAt: "desc" },
       })) as PrismaBankConnectionRow[];
       return rows.map(rowToDto);
