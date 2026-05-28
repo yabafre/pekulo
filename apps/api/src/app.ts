@@ -31,9 +31,15 @@ export async function startServer(): Promise<ServerHandle> {
     // documentation would require either (a) declaring procedures in @pekulo/contracts with
     // .route({ method, path }) annotations and switching to oRPC's OpenAPIHandler, or
     // (b) emitting a sister spec from the contracts at codegen time. Both are deferred.
-    // V1 (a) perso — playground exposed publicly ; gate behind auth at the (b) public ramp.
+    // security-perimeter-hardening — the Scalar/OpenAPI playground is an
+    // info-disclosure surface (enumerates routes + error shapes), so it is
+    // gated to local dev via the plugin's own `enabled` flag (confirmed on
+    // @elysiajs/openapi@1.4.15). Non-dev envs (Dokploy prod, test) expose no
+    // /openapi route at all. Revisit when the (b) public ramp wants an
+    // authenticated playground.
     .use(
       openapi({
+        enabled: env.NODE_ENV === "development",
         path: "/openapi",
         provider: "scalar",
         documentation: {
