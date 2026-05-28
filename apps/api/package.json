@@ -21,7 +21,8 @@
     "prisma:format": "prisma format",
     "prisma:validate": "prisma validate",
     "prisma:check": "prisma format --check && prisma validate",
-    "db:rls-audit": "bun run scripts/rls-audit.ts"
+    "db:rls-audit": "bun run scripts/rls-audit.ts",
+    "db:rls-migration-audit": "bun run scripts/rls-migration-audit.ts"
   },
   "dependencies": {
     "@elysiajs/openapi": "^1.4.15",
