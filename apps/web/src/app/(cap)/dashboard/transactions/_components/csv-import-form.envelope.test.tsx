@@ -16,7 +16,7 @@ vi.mock("../_hooks/use-preview-import-csv", () => ({
 vi.mock("../_hooks/use-import-transactions-csv-form", () => ({
   useImportTransactionsCsvForm: () => ({ mutate: importCsvMock, isPending: false }),
 }));
-vi.mock("../../parametres/_actions/accounts-actions", () => ({
+vi.mock("../../_accounts/_actions/accounts-actions", () => ({
   listAccounts: vi.fn(async () => []),
 }));
 

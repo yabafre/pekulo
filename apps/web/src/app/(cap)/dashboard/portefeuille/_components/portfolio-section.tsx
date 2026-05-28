@@ -22,7 +22,7 @@ import { useHoldings } from "../_hooks/use-holdings";
 // header). The boundary on this line is convention-enforced; the lint
 // gate will catch a future `*-actions.ts` cross-import once the rule's
 // resolver is extended to App-Router paths.
-import { useAccounts } from "../../parametres/_hooks/use-accounts";
+import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { HoldingCreateForm } from "./holding-create-form";
 import { LotForm } from "./lot-form";
 import { HoldingCloseConfirm } from "./holding-close-confirm";

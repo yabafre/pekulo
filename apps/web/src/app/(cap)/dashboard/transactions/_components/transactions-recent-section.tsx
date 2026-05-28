@@ -16,7 +16,7 @@ import {
 import { ArrowLeftRight, MoreHorizontal, Search, Upload } from "lucide-react";
 import { TRANSACTION_CATEGORY_LABELS, type Transaction } from "@pekulo/validators";
 import type { Activity } from "@pekulo/types";
-import { useAccounts } from "../../parametres/_hooks/use-accounts";
+import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { useTransactions } from "../_hooks/use-transactions";
 import { CsvImportForm } from "./csv-import-form";
 import { TransactionEditForm } from "./transaction-edit-form";

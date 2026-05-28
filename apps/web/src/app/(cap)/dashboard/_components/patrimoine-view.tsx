@@ -8,8 +8,8 @@
 // stories 3-x / 4-x (breakdown) + 5-x (transactions).
 
 import { View, Text } from "@pekulo/ui/client";
-import { useAccounts } from "../parametres/_hooks/use-accounts";
-import { AccountsSection } from "../parametres/_components/accounts-section";
+import { useAccounts } from "../_accounts/_hooks/use-accounts";
+import { AccountsSection } from "../_accounts/_components/accounts-section";
 import { BankConnectionsSection } from "../parametres/_components/bank-connections-section";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
