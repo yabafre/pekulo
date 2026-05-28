@@ -1,6 +1,6 @@
 "use server";
 
-// apps/web/src/app/(cap)/dashboard/parametres/_actions/bank-aggregator-actions.ts
+// apps/web/src/app/(cap)/dashboard/_bank/_actions/bank-aggregator-actions.ts
 // Server-action wrappers around bankAggregatorClient (story 5-6).
 //
 // Lesson 2026-05-20 — discriminated-union envelopes OMIT the `output:` slot
@@ -97,7 +97,7 @@ export const completeBankConnection = defineAction<
   },
 });
 
-/** Read — connections list for the parametres/patrimoine connections section. */
+/** Read — connections list for the Patrimoine connections section. */
 export const listBankConnections = defineAction<void, BankConnection[], ActionContext>({
   name: "listBankConnections",
   input: z.void(),

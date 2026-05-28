@@ -53,7 +53,7 @@ export function BankConnectionsSection() {
     setConnectError(null);
     const redirectUri =
       typeof window !== "undefined"
-        ? `${window.location.origin}/dashboard/parametres/bank/callback`
+        ? `${window.location.origin}/dashboard/bank/callback`
         : undefined;
     initiate.mutate(
       { redirectUri },

@@ -1,4 +1,4 @@
-// apps/web/src/app/(cap)/dashboard/parametres/bank/callback/page.tsx
+// apps/web/src/app/(cap)/dashboard/bank/callback/page.tsx
 // Story 5-6 — Bridge Connect callback (v3 stateful-widget model).
 // Story 5-7 — graceful cancellation handling + redirect target fixed to the
 // Patrimoine view (where the connections section now lives).
@@ -14,7 +14,7 @@ import { redirect } from "next/navigation";
 import { type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
-import { completeBankConnection } from "../../_actions/bank-aggregator-actions";
+import { completeBankConnection } from "../../_bank/_actions/bank-aggregator-actions";
 import { classifyBridgeCallback, type BridgeCallbackParams } from "./classify-callback";
 
 // Connections live in the Patrimoine view since 5-7 (T13) — NOT /parametres,

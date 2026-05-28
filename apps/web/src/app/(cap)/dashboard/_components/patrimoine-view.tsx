@@ -10,7 +10,7 @@
 import { View, Text } from "@pekulo/ui/client";
 import { useAccounts } from "../_accounts/_hooks/use-accounts";
 import { AccountsSection } from "../_accounts/_components/accounts-section";
-import { BankConnectionsSection } from "../parametres/_components/bank-connections-section";
+import { BankConnectionsSection } from "../_bank/_components/bank-connections-section";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
