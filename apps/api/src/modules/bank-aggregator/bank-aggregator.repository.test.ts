@@ -171,3 +171,66 @@ test("findProviderUserUuid + persistProviderUserUuid round-trip through bridge_u
   await repo.persistProviderUserUuid("u_a", "bridge", "bridge-uuid-1");
   expect(await repo.findProviderUserUuid("u_a", "bridge")).toBe("bridge-uuid-1");
 });
+
+// ───── Story 5-7 (T3) — setDisplayName + revoked exclusion ────────────────
+
+test("setDisplayName scopes updateMany on { id, userId } and returns the refreshed DTO (AC-3, ADR-0013)", async () => {
+  const captured: Array<{ where: unknown; data: unknown }> = [];
+  const updateMany = mock(async (args: { where: unknown; data: unknown }) => {
+    captured.push(args);
+    return { count: 1 };
+  });
+  const findFirst = mock(async () =>
+    makeRow({ id: "bnk_1", userId: "u_a", displayName: "New Name" }),
+  );
+  const repo = createBankAggregatorRepository({
+    prismaService: makeFakePrisma({
+      bankConnection: {
+        updateMany,
+        findFirst,
+      } as unknown as PrismaService["client"]["bankConnection"],
+    }),
+  });
+  const updated = await repo.setDisplayName("u_a", "bnk_1", "New Name");
+  expect(updated?.connection.displayName).toBe("New Name");
+  // ADR-0013 — the write is scoped by the owning userId, never id alone.
+  expect(captured[0]?.where).toEqual({ id: "bnk_1", userId: "u_a" });
+  expect(captured[0]?.data).toEqual({ displayName: "New Name" });
+  // DTO mapper still strips the secret-id columns.
+  expect(Object.keys(updated!.connection)).not.toContain("accessTokenSecretId");
+  expect(Object.keys(updated!.connection)).not.toContain("refreshTokenSecretId");
+});
+
+test("setDisplayName returns null when no row matched (unknown / cross-user id)", async () => {
+  const updateMany = mock(async () => ({ count: 0 }));
+  const findFirst = mock(async () => null);
+  const repo = createBankAggregatorRepository({
+    prismaService: makeFakePrisma({
+      bankConnection: {
+        updateMany,
+        findFirst,
+      } as unknown as PrismaService["client"]["bankConnection"],
+    }),
+  });
+  const res = await repo.setDisplayName("u_a", "bnk_does_not_exist", "X");
+  expect(res).toBeNull();
+  // No second query when nothing matched — count===0 short-circuits.
+  expect(findFirst).not.toHaveBeenCalled();
+});
+
+test("listByUser filters out revoked connections (AC-4 soft-delete)", async () => {
+  const captured: Array<{ where: { userId: string; status?: unknown } }> = [];
+  const findMany = mock(async (args: { where: { userId: string; status?: unknown } }) => {
+    captured.push(args);
+    return [makeRow({ id: "bnk_active", status: "active" })];
+  });
+  const repo = createBankAggregatorRepository({
+    prismaService: makeFakePrisma({
+      bankConnection: { findMany } as unknown as PrismaService["client"]["bankConnection"],
+    }),
+  });
+  const list = await repo.listByUser("u_a");
+  // The query MUST exclude revoked rows at the DB layer, not in JS.
+  expect(captured[0]?.where).toEqual({ userId: "u_a", status: { not: "revoked" } });
+  expect(list.every((c) => c.status !== "revoked")).toBe(true);
+});

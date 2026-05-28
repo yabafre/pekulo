@@ -68,6 +68,17 @@ export interface BankAggregatorRepository {
     connectionId: string,
   ): Promise<{ connection: BankConnection } | null>;
 
+  /**
+   * Story 5-7 (FR-62) — rename a connection's user-facing display name.
+   * Scoped by userId (ADR-0013). Returns the refreshed DTO, or null if no
+   * row matched (deleted / cross-user) — the service maps null → NOT_FOUND.
+   */
+  setDisplayName(
+    userId: string,
+    connectionId: string,
+    displayName: string,
+  ): Promise<{ connection: BankConnection } | null>;
+
   findByProviderItemId(
     userId: string,
     provider: BankProviderName,
@@ -191,6 +202,18 @@ export function createBankAggregatorRepository(deps: {
       })) as PrismaBankConnectionRow | null;
       if (!r) return null;
       return { connection: rowToDto(r) };
+    },
+
+    async setDisplayName(userId, connectionId, displayName) {
+      const res = await db.bankConnection.updateMany({
+        where: { id: connectionId, userId },
+        data: { displayName },
+      });
+      if (res.count === 0) return null;
+      const r = (await db.bankConnection.findFirst({
+        where: { userId, id: connectionId },
+      })) as PrismaBankConnectionRow | null;
+      return r ? { connection: rowToDto(r) } : null;
     },
 
     async findByProviderItemId(userId, provider, providerItemId) {
