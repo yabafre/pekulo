@@ -45,7 +45,7 @@ function CallbackState({ title, description }: { title: string; description: str
         {description}
       </Text>
       <Link href={CONNECTIONS_HREF} style={ctaPill}>
-        Retour à mes comptes
+        Retour à mes connexions
       </Link>
     </View>
   );

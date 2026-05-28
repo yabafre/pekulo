@@ -273,7 +273,12 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       while (nextPath && pages < MAX_PAGES) {
         const page: TxnPage = await reqJson<TxnPage>(nextPath, { method: "GET", bearer });
         rows.push(...page.resources);
-        nextPath = page.pagination?.next_uri ?? null;
+        // Bridge sometimes returns the STRING "null" for next_uri rather than
+        // JSON null (see docs/ressources/Bridge API.postman_collection.json) —
+        // a non-empty string is truthy, so guard it explicitly or we'd follow
+        // "/...null" → 404 and abort an otherwise-successful refresh.
+        const next = page.pagination?.next_uri;
+        nextPath = next && next !== "null" ? next : null;
         pages += 1;
       }
       if (nextPath) {

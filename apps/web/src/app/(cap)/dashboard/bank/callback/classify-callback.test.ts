@@ -35,6 +35,17 @@ describe("classifyBridgeCallback", () => {
     });
   });
 
+  test("error_code present with success=true → error (hard failure wins over completion)", () => {
+    expect(
+      classifyBridgeCallback({
+        success: "true",
+        item_id: "item-1",
+        user_uuid: "uuid-1",
+        error_code: "SCA_FAILED",
+      }),
+    ).toEqual({ kind: "error", errorCode: "SCA_FAILED" });
+  });
+
   test("success=true but missing item_id (partial) → cancelled, not complete", () => {
     expect(classifyBridgeCallback({ success: "true", user_uuid: "uuid-1" }).kind).toBe("cancelled");
   });

@@ -3,7 +3,7 @@ story_key: 5-7-bridge-ui
 epic: 5
 ticket: "#94"
 branch: feature/94-5-7-bridge-ui
-status: review-queued
+status: done
 depends_on: [5-6-bridge-connector, 0-10-pekulo-ui-migration]
 complexity: M
 commit_prefix: "feat(#94)"
@@ -15,7 +15,7 @@ stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection,
 **Epic:** 5 — Transactions & monthly tracking (V1 brownfield + new flows)
 **Ticket:** [#94](https://github.com/yabafre/pekulo/issues/94)
 **Branch:** `feature/94-5-7-bridge-ui`
-**Status:** ready-for-dev
+**Status:** done
 **Depends on:** `5-6-bridge-connector` ✅ · `0-10-pekulo-ui-migration` ✅
 **Complexity:** M (14 tasks — 5 backend, 9 web)
 **ADR primary:** [ADR-0015 — Bridge as AISP agent-of with provider abstraction](../adr/0015-bank-aggregator-bridge-with-provider-abstraction.md)
@@ -2065,3 +2065,53 @@ Latest full sweep after all post-dev fixes, all green:
 - `@pekulo/web` typecheck: exit 0 · test: **113 pass / 0 fail** (60 files) · lint: 0 errors.
 - `generate:tamagui-css` → `git diff --exit-code`: clean (no styled-primitive drift).
 - Security review (multi-agent, branch diff): **clean** — no HIGH/MEDIUM findings. Verified: userId-scoped writes (no IDOR), JWT gating on all 3 procedures, server-controlled+URL-validated reconnect redirect, DTO token-stripping, zod input validation, no raw SQL, no `dangerouslySetInnerHTML`.
+
+## Review Record
+
+**Date:** 2026-05-28
+**Auditors:** Spec, Code, Edge & Hallucination, Aria (visual)
+**Verdict:** done
+
+All four auditors returned APPROVED; no BLOCKER/MAJOR. 8 findings (3 MINOR / 5 NIT) — 7 resolved (6 fixed + 1 accepted structurally), 1 dismissed. ACs 1–6 IMPLEMENTED (AC-5 satisfied by construction — zero bank coupling on the compass/dashboard path), 15/15 tasks evidenced, 41 identifiers checked / 0 hallucinations.
+
+### Findings
+
+#### Resolved
+
+- [MINOR] Optimistic rename rollback replaced the whole-list snapshot, so a concurrent revoke on another row could be resurrected when a rename failed [apps/web/src/app/(cap)/dashboard/_bank/_hooks/use-rename-bank-connection.ts:14-50]
+  - Source: Edge & Hallucination
+  - Resolution: surgical `restoreDisplayName(connectionId, previousName)` mirroring `use-revoke-bank-connection.ts` — only the renamed row's `displayName` is restored, on both `onError` and the `{ ok: false }` envelope path.
+- [MINOR] Rename dialog (Portal-mounted) was never axe-scanned via `document.body` (lesson 2026-05-27 / 5-5 F2) [apps/web/src/app/(cap)/dashboard/_bank/_components/bank-connections-section.a11y.test.tsx]
+  - Source: Edge & Hallucination
+  - Resolution: added a test that opens the rename dialog then asserts `axe(document.body)`. web suite 113 → 115, green.
+- [NIT] Bridge pagination followed the string `"null"` as a `next_uri` path → 404 abort of a successful refresh [apps/api/src/modules/bank-aggregator/services/bridge-client.ts:280]
+  - Source: Code
+  - Resolution: guard `next && next !== "null" ? next : null`.
+- [NIT] `bridgeAccountKey` card fallback `pid:{provider_id}:{name}` breaks dedup if Bridge renames the account [apps/api/src/modules/bank-aggregator/services/bridge-client.ts:127-135]
+  - Source: Code
+  - Resolution: documented caveat in `docs/lessons.md` (out of V1 scope — SG/Revolut are IBAN-bearing; revisit for card/loan support).
+- [NIT] `classify-callback` misclassified `success=true` + `error_code` as `complete`, masking a hard failure [apps/web/src/app/(cap)/dashboard/bank/callback/classify-callback.ts:25-35]
+  - Source: Edge & Hallucination
+  - Resolution: `error_code` checked first; +1 test asserting the combo → `error`.
+- [NIT] Callback CTA copy "Retour à mes comptes" on every state [apps/web/src/app/(cap)/dashboard/bank/callback/page.tsx:48]
+  - Source: Aria
+  - Resolution: → "Retour à mes connexions".
+- [NIT] Cancelled callback state ("Connexion annulée") never rendered live — React Grab MCP unavailable [apps/web/src/app/(cap)/dashboard/bank/callback/page.tsx:62-69]
+  - Source: Aria
+  - Resolution: accepted structural verification (Alex) — the shared `CallbackState` component guarantees style parity across the 3 states and no raw `success`/`step`/`error_code` is rendered. Live tunnel spot-check left to Alex (non-blocking).
+
+#### Dismissed
+
+- [MINOR] Light-mode SCA contrast: `$warning #d97706` on `$backgroundMuted #f2f2f2` = **2.84:1** (< WCAG-AA 4.5:1); dark mode = 10.8:1 (OK) [apps/web/src/app/(cap)/dashboard/_bank/_components/bank-reconnect-button.tsx:10-24 + bank-connection-row.tsx SCA badge]
+  - Source: Aria
+  - Rationale (Alex): V1 ships dark-first (flagship "flawless", 10.8:1 OK); light is "offered". The clean fix retunes the `$warning` brand token (SSOT `index.css` + `colors.ts`, kept iso), which also shifts every LLM-confidence label toward brown — needs design sign-off. Tracked as a dedicated a11y/theming follow-up.
+
+### Verification
+
+- Test commands: `bun --filter='@pekulo/api' run test` · `bun --filter='@pekulo/web' run test` · typecheck both workspaces.
+- Test output (final pass): api **636 pass / 0 fail** (68 files); web **115 pass / 0 fail** (60 files, +2 from review); api + web typecheck **exit 0**. bank-aggregator subset re-run after fixes: **66 pass**.
+- Visual verification: **deferred — React Grab MCP unavailable at 2026-05-28.** Static design-DNA review clean (tokens, banned-chrome, emerald discipline, responsive `$lg` gating, a11y contract). Two visual items gated on a live spot-check: F3 dismissed (design decision), F7 accepted structurally.
+
+### Operational prerequisite (carry to deploy)
+
+⚠️ The callback route moved to `/dashboard/bank/callback` — Bridge dashboard **"Allowed redirect URIs"** must include `<origin>/dashboard/bank/callback` before deploy, else AC-1 (connect) fails at Bridge.

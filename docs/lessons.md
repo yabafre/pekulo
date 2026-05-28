@@ -13,6 +13,13 @@ Patterns from user corrections — so the same mistake isn't made twice.
 
 <!-- Add new entries at the top -->
 
+### 2026-05-28 — Bridge `bridgeAccountKey` card fallback `pid:{provider_id}:{name}` is only as stable as the display `name`: for IBAN-less accounts (cards) the stable cross-reconnect identity falls back to `provider_id` + `name` (the masked card number). If Bridge ever re-labels the account (localized name, formatting change), the key shifts and the already-synced guard + refresh mapping treat it as a NEW account — reintroducing the duplicate the key was built to prevent; two cards at the same institution sharing an identical Bridge `name` also collapse to one local account. Surfaced in aped-review of story 5-7; out of V1 scope (SG + Revolut are IBAN-bearing), so left as a documented caveat rather than patched. (Scope: aped-arch, aped-dev, aped-review — revisit when card/loan account support lands: prefer a Bridge-stable discriminator (`data_id` / last4) over the display `name` if one is exposed)
+
+- **Date:** 2026-05-28
+- **Mistake:** N/A — latent fragility flagged in review, not a shipped bug.
+- **Correction:** Documented as a caveat; no code change in 5-7 (V1 banks carry IBANs, so the card fallback is never exercised).
+- **Rule:** A "stable key" derived from a third-party's human-facing label (account name, masked PAN) is only stable until that provider re-renders the label. When extending Bridge to cards/loans, validate that the chosen card discriminator survives a reconnect on a real multi-card user before relying on it for dedup.
+
 ### 2026-05-28 — Bridge v3 `GET /v3/aggregation/transactions` IGNORES `item_id`: it returns the user's FULL transaction set across every connected item regardless of the `item_id` query param. The honored filter is `account_id` (the `/accounts` endpoint DOES honor `item_id`). Supersedes the transactions half of the 2026-05-27 "flat REST `?item_id=`" lesson — that was validated on a single-item sandbox user, which masked the bug. Confirmed live 2026-05-28: a bogus `item_id` still returned 200 + the full set, and a multi-item user returned 1800 txns across ~30 accounts when only 360 belonged to the queried item. (Scope: aped-arch, aped-dev, aped-review, aped-debug — every Bridge transactions read; general rule for any third-party list endpoint)
 
 - **Date:** 2026-05-28

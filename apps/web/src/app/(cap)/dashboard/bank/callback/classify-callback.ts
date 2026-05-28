@@ -23,11 +23,13 @@ export type BridgeCallbackOutcome =
   | { kind: "error"; errorCode: string };
 
 export function classifyBridgeCallback(params: BridgeCallbackParams): BridgeCallbackOutcome {
-  if (params.success === "true" && params.item_id && params.user_uuid) {
-    return { kind: "complete", itemId: params.item_id, userUuid: params.user_uuid };
-  }
+  // A hard failure wins over any other signal: Bridge may send success=true
+  // alongside an error_code, and a completion must never mask that error.
   if (params.error_code) {
     return { kind: "error", errorCode: params.error_code };
+  }
+  if (params.success === "true" && params.item_id && params.user_uuid) {
+    return { kind: "complete", itemId: params.item_id, userUuid: params.user_uuid };
   }
   return { kind: "cancelled" };
 }

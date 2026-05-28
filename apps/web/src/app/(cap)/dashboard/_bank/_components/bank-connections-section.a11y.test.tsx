@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../../test/setup";
@@ -69,6 +69,20 @@ describe("BankConnectionsSection (AC-1/2/3/4 + AC-6)", () => {
       </Wrap>,
     );
     const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  test("axe: no violations with the rename dialog open (Portal escapes container — lesson 2026-05-27)", async () => {
+    renderWithTamagui(
+      <Wrap>
+        <BankConnectionsSection />
+      </Wrap>,
+    );
+    // The inline "Renommer" button carries an aria-label scoped to the row; the
+    // popover variant only has text, so getByLabelText hits the inline one.
+    fireEvent.click(screen.getByLabelText("Renommer Société Générale"));
+    await screen.findByText(/Renommer «/);
+    const results = await axe(document.body);
     expect(results).toHaveNoViolations();
   });
 
