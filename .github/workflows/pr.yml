@@ -69,12 +69,19 @@ jobs:
       - name: prisma format --check && prisma validate
         run: bun run prisma:check
 
-  # rls-audit: removed 2026-05-24 to free Actions quota — the
-  # RLS_AUDIT_DATABASE_URL secret was never configured, so this job
-  # always immediately skipped while still consuming runner startup
-  # time (~10-20s per PR). Re-add when Supabase is provisioned and
-  # the secret is set (full job body in git history at chore/
-  # tamagui-css-fresh-guard~1).
+  # rls-audit: static gate over the committed migration SQL (story 11-3, AC-1).
+  # No DB / no RLS_AUDIT_DATABASE_URL secret needed — it parses the migration
+  # files and fails if any public user-data table was created without RLS DDL.
+  # The DB-backed exact-count probe (scripts/rls-audit.ts) stays a local/
+  # post-deploy check, not a CI gate (it needs a provisioned Supabase).
+  rls-audit:
+    name: rls-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-bun
+      - name: static RLS migration gate
+        run: bun --filter=@pekulo/api run db:rls-migration-audit
 
   test-unit:
     name: test-unit
