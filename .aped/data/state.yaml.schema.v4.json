@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://aped-method.dev/schema/state.yaml.v4.json",
+  "title": "APED state.yaml — schema v4",
+  "description": "Schema v4 extends v3 with sprint.mode (parallel | sequential) and sprint.stack_order (ordered list of story keys for sequential mode). WARN-only in 6.7.5 (rollout grace window); escalates to ERROR in 7.0.0 alongside v3. Existing v3 state files continue to validate against v3 — the migrate-state.sh v3→v4 hop is idempotent and adds the defaults (mode: parallel, stack_order: []).",
+
+  "type": "object",
+  "required": ["schema_version", "pipeline", "sprint"],
+  "additionalProperties": false,
+
+  "properties": {
+    "schema_version": { "const": 4 },
+
+    "corrections_pointer": { "type": "string", "minLength": 1 },
+    "corrections_count": { "type": "integer", "minimum": 0 },
+
+    "pipeline": { "$ref": "#/$defs/pipeline" },
+    "sprint":   { "$ref": "#/$defs/sprint" },
+
+    "ticket_sync":          { "$ref": "#/$defs/ticketSync" },
+    "backlog_future_scope": { "$ref": "#/$defs/backlogFutureScope" }
+  },
+
+  "$defs": {
+    "pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current_phase", "phases"],
+      "properties": {
+        "current_phase": {
+          "type": "string",
+          "enum": ["none", "analyze", "context", "prd", "ux", "architecture", "epics", "sprint"]
+        },
+        "phases": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/phase" }
+        }
+      }
+    },
+
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status":              { "type": "string", "enum": ["not-started", "in-progress", "ready-for-dev", "review", "complete", "done", "blocked"] },
+        "output":              { "type": "string", "minLength": 1 },
+        "started_at":          { "type": "string" },
+        "last_updated":        { "type": "string" },
+        "completed_at":        { "type": "string" },
+        "current_subphase":    { "type": "string", "minLength": 1 },
+        "completed_subphases": { "type": "array", "items": { "type": "string" } },
+
+        "generated":    { "type": "boolean" },
+        "path":         { "type": "string", "minLength": 1 },
+        "type":         { "type": "string", "enum": ["brownfield", "greenfield", "hybrid"] },
+        "generated_at": { "type": "string" },
+        "refreshed_at": { "type": "string" },
+
+        "mode": { "type": "string", "enum": ["interactive", "headless"] },
+        "fr_count": { "type": "integer", "minimum": 0 },
+
+        "councils_dispatched": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/councilDispatch" }
+        },
+        "adrs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/adr" }
+        },
+        "watch_items":       { "type": "array", "items": { "type": "string" } },
+        "residual_gaps":     { "type": "array", "items": { "type": "string" } },
+        "epic_zero_stories": { "type": "array", "items": { "type": "string" } },
+
+        "epic_count":  { "type": "integer", "minimum": 0 },
+        "story_count": { "type": "integer", "minimum": 0 },
+        "fr_coverage": {
+          "type": "object",
+          "additionalProperties": { "type": ["array", "string", "integer"] }
+        },
+
+        "ticket_sync": { "type": "string", "enum": ["synced", "skipped", "failed"] },
+        "synced_at":   { "type": "string" }
+      }
+    },
+
+    "councilDispatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subject", "specialists", "verdict"],
+      "properties": {
+        "id":          { "type": "string", "minLength": 1 },
+        "subject":     { "type": "string", "minLength": 1 },
+        "specialists": { "type": "array", "items": { "type": "string" } },
+        "verdict":     { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "adr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subject", "path"],
+      "properties": {
+        "id":      { "type": "string", "minLength": 1 },
+        "subject": { "type": "string", "minLength": 1 },
+        "path":    { "type": "string", "minLength": 1 },
+        "author":  { "type": "string" }
+      }
+    },
+
+    "sprint": {
+      "description": "Sprint state. v4 adds `mode` (parallel default) and `stack_order` (ordered list of story keys for sequential mode; ignored when mode is parallel).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project", "active_epic", "stories"],
+      "properties": {
+        "project":         { "type": "string" },
+        "active_epic":     { "type": ["integer", "null"], "minimum": 0 },
+        "umbrella_branch": { "type": ["string", "null"] },
+        "mode":            { "type": "string", "enum": ["parallel", "sequential"] },
+        "stack_order":     { "type": "array", "items": { "type": "string" } },
+        "shared_worktree": { "type": ["string", "null"] },
+        "stories": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/story" }
+        }
+      },
+      "not": {
+        "anyOf": [
+          { "required": ["parallel_limit"] },
+          { "required": ["review_limit"] }
+        ]
+      }
+    },
+
+    "story": {
+      "description": "Per-story runtime state. Strict shape: invented fields (review_requested_at, note, verdict, …) error here — those are not written by any APED script and signal a hand-edited state.yaml. The runtime-written transient fields are explicitly allow-listed: completed_at (mark-story-done), ticket_sync_status + ticket_sync_error (aped-sprint deferred-sync bookkeeping, cleared by aped-lead on retry).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "ready-for-dev", "in-progress", "dev-done", "review-queued", "review", "review-done", "done"]
+        },
+        "ticket":               { "type": ["string", "null"] },
+        "worktree":             { "type": ["string", "null"] },
+        "branch":               { "type": ["string", "null"] },
+        "depends_on":           { "type": "array", "items": { "type": "string" } },
+        "started_at":           { "type": ["string", "null"] },
+        "completed_at":         { "type": ["string", "null"] },
+        "merged_into_umbrella": { "type": "boolean" },
+        "ticket_sync_status":   { "type": ["string", "null"], "enum": ["synced", "skipped", "failed", null] },
+        "ticket_sync_error":    { "type": ["string", "null"] }
+      }
+    },
+
+    "ticketSync": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "provider":          { "type": "string", "enum": ["linear", "github", "gitlab", "jira"] },
+        "sync_id":           { "type": "string" },
+        "synced_at":         { "type": "string" },
+        "sync_log":          { "type": "string" },
+        "directive_version": { "type": "string" },
+        "projects":          { "type": "object" },
+        "milestones":        { "type": "object" },
+        "modified_tickets":  { "type": "array", "items": { "type": "object" } },
+        "totals":            { "type": "object" }
+      }
+    },
+
+    "backlogFutureScope": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "project_id": { "type": "string" },
+        "tickets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id":       { "type": "string", "minLength": 1 },
+              "category": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
