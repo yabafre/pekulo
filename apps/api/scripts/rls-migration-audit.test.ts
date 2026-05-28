@@ -48,4 +48,12 @@ describe("rls-migration-audit (AC-1)", () => {
     const qualified = `CREATE TABLE "vault"."secrets" ("id" UUID);`;
     expect(driftedTables(qualified)).toEqual([]);
   });
+
+  test("unquoted CREATE TABLE without RLS → still flagged by name", () => {
+    // Hand-appended RLS migrations are free-form SQL; an unquoted name must not
+    // slip past the gate (regression guard for the quotes-optional capture).
+    expect(driftedTables(`CREATE TABLE leaky_unquoted ("user_id" UUID NOT NULL);`)).toEqual([
+      "leaky_unquoted",
+    ]);
+  });
 });

@@ -25,6 +25,20 @@ const NON_USER_TABLES = new Set<string>([]);
 // asserts the floor; exact 2-vs-4 counts are the runtime rls-audit's job.
 const MIN_POLICIES = 2;
 
+// Bare (public-schema) CREATE TABLE capture. Quotes optional so a hand-appended
+// unquoted `CREATE TABLE leaky (...)` is still caught; the trailing `\s*\(` keeps
+// schema-qualified names like "vault"."secrets" out (no paren follows the name).
+// NOT captured (Prisma never emits them): `PARTITION OF` — inherits the parent's
+// RLS — and `CREATE TABLE ... AS SELECT` — no paren. A hand-migration using either
+// must assert its RLS via the DB-backed rls-audit; this static gate can't see it.
+const CREATE_TABLE_RE = /CREATE TABLE (?:IF NOT EXISTS )?"?([a-z0-9_]+)"?\s*\(/gi;
+
+function createdTables(sql: string): Set<string> {
+  const created = new Set<string>();
+  for (const m of sql.matchAll(CREATE_TABLE_RE)) created.add(m[1]!);
+  return created;
+}
+
 export interface RlsDrift {
   table: string;
   reason: string;
@@ -40,10 +54,7 @@ export function auditMigrationSql(
   const nonUser = opts.nonUser ?? NON_USER_TABLES;
   const minPolicies = opts.minPolicies ?? MIN_POLICIES;
 
-  const created = new Set<string>();
-  for (const m of sql.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?"([a-z0-9_]+)"\s*\(/gi)) {
-    created.add(m[1]!);
-  }
+  const created = createdTables(sql);
   const rlsEnabled = new Set<string>();
   for (const m of sql.matchAll(/ALTER TABLE "([a-z0-9_]+)"\s+ENABLE ROW LEVEL SECURITY/gi)) {
     rlsEnabled.add(m[1]!);
@@ -86,9 +97,15 @@ function main(): number {
   const migrationsDir = resolve(here, "..", "prisma", "migrations");
   // Aggregate across ALL migration files — a table may be created in one and
   // have its RLS enabled in a later one (e.g. reenable_rls_drifted_tables).
-  const sql = migrationSqlFiles(migrationsDir)
-    .map((f) => readFileSync(f, "utf8"))
-    .join("\n");
+  const files = migrationSqlFiles(migrationsDir);
+  if (files.length === 0) {
+    // Fail closed: an empty corpus must never report a green ("0 tables OK"),
+    // which would silently pass if the migrations dir is ever excluded from a
+    // checkout or the path regresses.
+    console.error(`[rls-migration-audit] no migration.sql found under ${migrationsDir}`);
+    return 1;
+  }
+  const sql = files.map((f) => readFileSync(f, "utf8")).join("\n");
 
   const drift = auditMigrationSql(sql);
   if (drift.length > 0) {
@@ -100,11 +117,7 @@ function main(): number {
     console.error("or add the table to NON_USER_TABLES with a justification.");
     return 1;
   }
-  const created = new Set<string>();
-  for (const m of sql.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?"([a-z0-9_]+)"\s*\(/gi)) {
-    created.add(m[1]!);
-  }
-  const checked = [...created].filter((t) => !NON_USER_TABLES.has(t)).length;
+  const checked = [...createdTables(sql)].filter((t) => !NON_USER_TABLES.has(t)).length;
   console.log(`[rls-migration-audit] OK — ${checked} user-data tables, all RLS-guarded.`);
   return 0;
 }
