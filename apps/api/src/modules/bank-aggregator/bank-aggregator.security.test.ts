@@ -146,6 +146,7 @@ function makeRepo(): BankAggregatorRepository {
       };
     },
     findByProviderItemId: async () => null,
+    setDisplayName: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
     findOwnersByProviderItemId: async () => [],

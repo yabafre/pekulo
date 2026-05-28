@@ -31,6 +31,7 @@ import {
   bankConnectionAlreadyExists,
   bankConnectionNotFound,
   bankConnectionRevoked,
+  bankProviderUnavailable,
   bankScaRequired,
 } from "./bank-aggregator.errors";
 import type { BankProvider, ProviderBankAccount, ProviderTransaction } from "./bank-provider";

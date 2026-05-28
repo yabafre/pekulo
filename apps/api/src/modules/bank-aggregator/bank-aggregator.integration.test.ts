@@ -99,6 +99,23 @@ function makeInMemoryRepo(): BankAggregatorRepository {
         },
       };
     },
+    setDisplayName: async (userId, id, displayName) => {
+      const r = store.get(id);
+      if (!r || r.userId !== userId) return null;
+      r.displayName = displayName;
+      return {
+        connection: {
+          id,
+          userId: r.userId,
+          provider: r.provider as "bridge",
+          providerItemId: r.providerItemId,
+          status: r.status,
+          displayName,
+          lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
+          createdAt: r.createdAt.toISOString(),
+        },
+      };
+    },
     findByProviderItemId: async (userId, provider, providerItemId) => {
       for (const [id, r] of store) {
         if (r.userId === userId && r.provider === provider && r.providerItemId === providerItemId) {

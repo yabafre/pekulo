@@ -39,6 +39,7 @@ function makeStubs() {
     }),
     listByUser: async () => [],
     findByIdForUser: async () => null,
+    setDisplayName: async () => null,
     findByProviderItemId: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
@@ -450,4 +451,89 @@ test("handleWebhookEvent rejects malformed event silently (no throw)", async () 
   await svc.handleWebhookEvent("nope");
   await svc.handleWebhookEvent({ type: "item.refreshed" });
   // No throw — assertion-free.
+});
+
+// ───── Story 5-7 (T4) — renameConnection + revokeConnection ───────────────
+
+const baseConn = {
+  id: "bnk_x",
+  userId: "u",
+  provider: "bridge" as const,
+  providerItemId: "i",
+  status: "active" as const,
+  displayName: "SG",
+  lastRefreshedAt: null,
+  createdAt: new Date().toISOString(),
+};
+
+test("renameConnection returns the updated DTO (AC-3)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.setDisplayName = async (_u, _id, displayName) => ({
+    connection: { ...baseConn, displayName },
+  });
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  const out = await svc.renameConnection("u", "bnk_x", "Banque Pro");
+  expect(out.displayName).toBe("Banque Pro");
+});
+
+test("renameConnection throws NOT_FOUND when setDisplayName returns null (AC-3)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.setDisplayName = async () => null;
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  await expect(svc.renameConnection("u", "bnk_missing", "X")).rejects.toThrow(/not found/i);
+});
+
+test("revokeConnection calls provider.revokeItem then flips status to revoked (AC-4)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  const calls: string[] = [];
+  repo.findByIdForUser = async () => ({ connection: { ...baseConn, status: "active" } });
+  repo.findProviderUserUuid = async () => "bridge-uuid";
+  repo.setStatus = async (_u, _id, status) => {
+    calls.push(`status:${status}`);
+  };
+  provider.revokeItem = async () => {
+    calls.push("revokeItem");
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  const out = await svc.revokeConnection("u", "bnk_x");
+  expect(out).toEqual({ ok: true });
+  // Order matters — Bridge revoke MUST succeed before the local soft-delete.
+  expect(calls).toEqual(["revokeItem", "status:revoked"]);
+});
+
+test("revokeConnection is idempotent on an already-revoked connection (no Bridge call) (AC-4)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  let revokeCalled = false;
+  repo.findByIdForUser = async () => ({ connection: { ...baseConn, status: "revoked" } });
+  provider.revokeItem = async () => {
+    revokeCalled = true;
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  const out = await svc.revokeConnection("u", "bnk_x");
+  expect(out).toEqual({ ok: true });
+  expect(revokeCalled).toBe(false);
 });
