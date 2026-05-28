@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, PekuloSkeleton, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import type { BankConnection } from "@pekulo/validators";
 import { useBankConnections } from "../_hooks/use-bank-connections";
 import { useInitiateBankConnection } from "../_hooks/use-initiate-bank-connection";
@@ -26,10 +26,27 @@ const addPill: CSSProperties = {
   fontWeight: 500,
 };
 
+const refreshBtn = (busy: boolean): CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 32,
+  height: 32,
+  borderRadius: pekuloRadius.full,
+  backgroundColor: "transparent",
+  color: "var(--colorTertiary)",
+  border: "none",
+  cursor: busy ? "default" : "pointer",
+  opacity: busy ? 0.5 : 1,
+});
+
 type DialogKind = "rename" | "revoke" | null;
 
 export function BankConnectionsSection() {
-  const { data, isLoading, error } = useBankConnections();
+  // `refetch` re-reads the connections list (status + lastRefreshedAt the
+  // cron/webhook already updated server-side) without a full page reload —
+  // story 5-7 follow-up. Live push (SSE) is deferred to a dedicated story.
+  const { data, isLoading, error, isFetching, refetch } = useBankConnections();
   const initiate = useInitiateBankConnection();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [active, setActive] = useState<BankConnection | null>(null);
@@ -90,16 +107,27 @@ export function BankConnectionsSection() {
         >
           Connexions bancaires
         </Text>
-        <button
-          type="button"
-          onClick={onConnect}
-          disabled={initiate.isPending}
-          style={addPill}
-          aria-label="Connecter une banque"
-        >
-          <Plus size={12} strokeWidth={2.25} aria-hidden />
-          {initiate.isPending ? "Ouverture…" : "Connecter une banque"}
-        </button>
+        <View flexDirection="row" alignItems="center" gap="$2">
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            style={refreshBtn(isFetching)}
+            aria-label={isFetching ? "Rafraîchissement…" : "Rafraîchir les connexions"}
+          >
+            <RefreshCw size={16} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={onConnect}
+            disabled={initiate.isPending}
+            style={addPill}
+            aria-label="Connecter une banque"
+          >
+            <Plus size={12} strokeWidth={2.25} aria-hidden />
+            {initiate.isPending ? "Ouverture…" : "Connecter une banque"}
+          </button>
+        </View>
       </View>
 
       {connectError && (

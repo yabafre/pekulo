@@ -28,7 +28,13 @@ const connections = [
 ];
 
 vi.mock("../_hooks/use-bank-connections", () => ({
-  useBankConnections: () => ({ data: connections, isLoading: false, error: null }),
+  useBankConnections: () => ({
+    data: connections,
+    isLoading: false,
+    error: null,
+    isFetching: false,
+    refetch: vi.fn(),
+  }),
 }));
 vi.mock("../_hooks/use-initiate-bank-connection", () => ({
   useInitiateBankConnection: () => ({ mutate: vi.fn(), isPending: false }),
