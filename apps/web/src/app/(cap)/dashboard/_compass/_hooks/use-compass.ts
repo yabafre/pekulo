@@ -2,7 +2,7 @@
 
 import { useActionQuery } from "@zapaction/query";
 import { compassKeys } from "@/lib/zapaction/keys";
-import { getCompass } from "../../_actions/compass-actions";
+import { getCompass } from "../_actions/compass-actions";
 
 // Parametres-scoped read of the compass row. Mirrors the dashboard hook
 // (`useDashboardCompass.compass`) but lives next to the parametres-only

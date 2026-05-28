@@ -8,7 +8,7 @@ import { compassKeys, compassTags, milestonesKeys } from "@/lib/zapaction/keys";
 // `compassTags.current()` is mapped in lib/zapaction/keys.ts to the full
 // compass aggregate AND `milestonesKeys.list()` (status badges depend on
 // the objectif).
-vi.mock("../../_actions/compass-actions", () => ({
+vi.mock("../_actions/compass-actions", () => ({
   updateCompass: Object.assign(
     vi.fn(async (input: { objectif: number; horizonYears: number }) => ({
       objectif: input.objectif,

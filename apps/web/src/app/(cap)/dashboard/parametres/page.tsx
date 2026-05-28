@@ -7,12 +7,13 @@
 // without a server round-trip.
 
 import { pekuloSpacing } from "@pekulo/ui";
-import { CompassEditForm } from "./_components/compass-edit-form";
-import { CompassHistoryPanel } from "./_components/compass-history-panel";
+import { CompassEditForm } from "../_compass/_components/compass-edit-form";
+import { CompassHistoryPanel } from "../_compass/_components/compass-history-panel";
 
-// The bank-connections management UI (story 5-7) lives in the Patrimoine view
-// (/dashboard?tab=patrimoine) via <BankConnectionsSection/>, co-located under
-// parametres/_components/. This route shell carries compass-only.
+// Feature code is co-located by mount: accounts → dashboard/_accounts,
+// bank connections → dashboard/_bank (+ the bank/callback route), compass →
+// dashboard/_compass. This route shell renders the compass editor (interim
+// home until the real Settings screen lands in story 8-2).
 
 export default function ParametresPage() {
   return (
