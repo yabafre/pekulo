@@ -232,7 +232,7 @@ sprint:
     # Epic 11 — Public-ramp readiness (backlog; 11-3 priorité)
     11-1-data-export: {status: pending, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#48", worktree: null}
     11-2-account-deletion: {status: pending, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#49", worktree: null}
-    11-3-rls-audit-and-encryption-doc: {status: review, depends_on: [0-3-api-scaffold, 0-12-custom-oxlint-rules], ticket: "#50", worktree: null, started_at: "2026-05-29T00:00:00Z"}
+    11-3-rls-audit-and-encryption-doc: {status: done, depends_on: [0-3-api-scaffold, 0-12-custom-oxlint-rules], ticket: "#50", worktree: null, started_at: "2026-05-29T00:00:00Z"}
     11-4-axe-and-wcag-gates: {status: pending, depends_on: [0-8-github-actions-pr, 0-10-pekulo-ui-migration], ticket: "#51", worktree: null}
     11-5-ai-transparency-notice: {status: pending, depends_on: [6-3-llm-opt-in, 6-4-llm-suggestion-ui], ticket: "#52", worktree: null}
     11-6-restore-drill-and-glitchtip: {status: pending, depends_on: [0-7-otel-three-runtimes, 0-3-api-scaffold], ticket: "#53", worktree: null}
