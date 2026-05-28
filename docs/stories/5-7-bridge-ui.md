@@ -2027,6 +2027,7 @@ See § File List above. All planned files landed. Additionally touched (not in t
 - **gitleaks allowlist:** the integration-test fake-JWT allowlist regex used `[a-z]+`, which excludes the hyphenated `bank-aggregator` dir; generalised to `[a-z-]+`.
 - **T12 a11y test:** `getByRole("button", { name: … })` was brittle under the test env's accessible-name computation for the reconnect CTA; switched to `getByText("Reconnecter")` (axe already proves the a11y tree is clean).
 - No new Tamagui primitive introduced (SCA badge is inline `View`+`Text`) — `generate:tamagui-css` produced no diff, as predicted.
+- **Out-of-story 5-6 fix landed here (Alex direction):** a live Bridge smoke (prompted by Alex's Postman-conformance question) proved `GET /v3/aggregation/transactions` **ignores `item_id`** — a real multi-item Bridge user returned 1800 txns across ~30 accounts when only 360 belong to the queried item, and the old `limit=500`/no-`next_uri` client truncated. Rewrote `bridge-client.listTransactions` to resolve the item's account ids (via `/accounts`, which honors `item_id`), paginate `next_uri`, and keep only the item's rows. Added 2 regression tests + corrective lesson (2026-05-28) + committed the Postman collection at `docs/ressources/`. Also hardened the T5 integration suite to an OS-assigned port (removed full-suite random-port flakiness). Reviewer note: this touches story 5-6's connector, not 5-7's surface.
 
 ### Test output
 
