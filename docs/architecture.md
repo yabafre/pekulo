@@ -125,7 +125,7 @@ phases_planned:
   - Wire-level: oRPC client → React Query bridge via zapaction `@zapaction/query`. RQ keys are the single source of truth for client cache invalidation ; tag registry retained for invalidation graph hints across feature mutations.
   - Service-level (Elysia `apps/api`): in-memory `Map` cache for price quotes (60 s, key `ticker|kind|currency`) ported from current `apps/web/src/lib/services/prices.ts`. Satisfies FR-17, NFR-2.
   - DB-level: Prisma's per-request connection ; no second-level cache at V1.
-- **Schema migrations: Prisma Migrate** (`apps/api/prisma/migrations/<timestamp>_<verb_noun>/`). Local: `prisma migrate dev` ; production: `prisma migrate deploy` in the Dokploy deploy hook. Forward-only ; baseline collapse from the brownfield `apps/web/supabase-schema.sql` via `prisma db pull`. RLS policy DDL appended manually to migration files (Prisma does not introspect Postgres policies) ; `rls-audit` CI probe re-asserts after every deploy. **See ADR-0014 (supersedes ADR-0006).**
+- **Schema migrations: Prisma Migrate** (`apps/api/prisma/migrations/<timestamp>_<verb_noun>/`). Local: `prisma migrate dev` ; production: `prisma migrate deploy` in the Dokploy deploy hook. Forward-only ; baseline collapse from the brownfield `apps/web/supabase-schema.sql` via `prisma db pull`. RLS policy DDL appended manually to migration files (Prisma does not introspect Postgres policies) ; the static `rls-migration-audit` CI gate (every PR) catches a forgotten RLS DDL on a new table, and the DB-backed `rls-audit` probe re-asserts exact policy counts locally / post-deploy. **See ADR-0014 (supersedes ADR-0006).**
 - **Audit history pattern (D5): sister tables** — `compass_history`, `real_estate_valuations` are append-only siblings of `hypotheses` and `real_estate`, indexed on `(userId, valuedOn desc)`. RLS policies: `INSERT` + `SELECT` only ; `UPDATE` and `DELETE` intentionally omitted. **See ADR-0001.**
 - **Pagination convention (D2): cursor-based** — every user-scoped list endpoint with potential row count > 100 (`transactions`, `llm_call_log`, `holding_lots`) uses `(createdAt desc, id desc)` keyset pagination with a `nextCursor` in the response. Offset pagination forbidden. Satisfies NFR-16.
 - **Validation: Zod v4 via `@pekulo/validators`** (camelCase + `Schema` suffix — `createCompassSchema`, `recordValuationSchema`, `attestLlmCallSchema`). Schemas consumed by oRPC contracts (`@pekulo/contracts`), TanStack Form on the web, and env validation at boot. Derived TS types via `z.infer<typeof Schema>` re-exported from `@pekulo/types`.
@@ -136,10 +136,10 @@ phases_planned:
 - **Authorization (NFR-8 amended — defense in depth):**
   - **Primary enforcement** — `apps/api` services use a mandatory `requireUserContext(request)` helper that verifies the Supabase JWT (using `SUPABASE_JWT_SECRET`) and returns `{ userId, email, jwtClaims }` or throws `UnauthorizedError`. Every Prisma query touching a user-scoped table MUST include `where: { userId: ctx.userId, … }`. Lint-enforced by `no-prisma-query-without-user-id` rule in `@pekulo/oxlint-config`.
   - **`apps/api` connects with the Supabase service role** (bypasses RLS) — connection string only on Dokploy ; never in `apps/web` env or any public surface.
-  - **Defense in depth** — RLS stays active on every user-scoped table. Every table carries `user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE` + four `auth.uid() = user_id` policies (SELECT, INSERT, UPDATE, DELETE), except audit tables (`compass_history`, `real_estate_valuations`, `llm_call_log`) which omit UPDATE / DELETE policies (append-only). If `apps/web` ever bypasses `apps/api` or a repository accidentally omits the `userId` guard, RLS catches the bug.
+  - **Defense in depth** — RLS stays active on every user-scoped table. Every table carries `user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE` + four `auth.uid() = user_id` policies (SELECT, INSERT, UPDATE, DELETE), except audit tables (`compass_history`, `real_estate_valuations`, `llm_call_log`) which omit UPDATE / DELETE policies (append-only). RLS is the safety net for the **`apps/web` direct path** (anon key) only; the `apps/api` service-role connection **bypasses RLS**, so a repository that omits the `userId` guard is caught by the `no-prisma-query-without-user-id` lint rule, **not** by RLS. Isolation on the `apps/api` path is single-layer (lint rule + `where: { userId }`), and that layer is the one to protect. (Corrected 2026-05-29, story 11-3 — see ADR-0013.)
   - **`apps/web` direct queries** are limited to Supabase Auth API only ; data reads/writes go through `apps/api` via oRPC. The Supabase anon key (in `NEXT_PUBLIC_*`) talks to RLS-protected endpoints.
   - **See ADR-0013.**
-- **RLS coverage automation: build-failing CI check** — a SQL probe iterates `pg_tables WHERE schemaname='public'` and asserts every user-scoped table has RLS enabled with the appropriate policy quartet (full quartet for domain tables, INSERT+SELECT only for audit tables). Build fails on any drift. Satisfies NFR-8 + DR-4.
+- **RLS coverage automation: build-failing CI check** — the CI gate (`rls-migration-audit`, every PR) statically parses the committed migration SQL and fails if any public user-data table is created without `ENABLE ROW LEVEL SECURITY` + policies (no DB needed — catches a forgotten RLS DDL on a new table). A complementary DB-backed probe (`rls-audit`) iterates `pg_tables WHERE schemaname='public'` and asserts exact per-table policy counts (full quartet for domain tables, INSERT+SELECT only for audit tables), run locally / post-deploy until Supabase is provisioned in CI. Build fails on any drift. Satisfies NFR-8 + DR-4. (Story 11-3.)
 - **Secrets management (D8):**
   - V1 (a): single root `.env` + `.env.local`, gitignored, loaded via `dotenv -e .env -e .env.local --` (existing convention).
   - Pre-(b): **Vercel project secrets** for `apps/web` + **Dokploy environment** for `apps/api`, `apps/prices` and Ollama. Rotate `PRICES_SERVICE_TOKEN` at the (b) flip.
@@ -236,7 +236,7 @@ phases_planned:
   - `typecheck` (`tsc --noEmit` per app + per package)
   - `test:unit` (vitest for web/packages, **bun test** for `apps/api`)
   - `test:e2e` (playwright, smoke tier on PR; full tier on main)
-  - `rls-audit` (SQL probe — fails build on any user-scoped table without RLS or with policy drift — NFR-8)
+  - `rls-audit` (static migration-SQL gate — fails build if a new public user-data table is created without RLS DDL; DB-backed exact-count probe runs local/post-deploy — NFR-8)
   - `prisma:check` (`prisma format --check` + `prisma validate` + `prisma migrate diff --exit-code` against deployed schema)
   - `lighthouse-ci` (NFR-3 budgets)
   - `axe-a11y` (NFR-22, on representative routes)
@@ -635,7 +635,7 @@ modules/<name>/
 - Every schema-touching PR includes a Prisma migration generated by `prisma migrate dev --name <verb_noun>` (forward-only).
 - Manual edits to the baseline collapse migration are forbidden after merge.
 - Every new user-scoped table includes 4 RLS policies appended manually to the migration SQL (Prisma does not introspect policies). Audit tables (`compass_history`, `real_estate_valuations`, `llm_call_log`) include only INSERT + SELECT policies (append-only enforcement).
-- The `rls-audit` CI job re-asserts policy coverage after every migration deploy ; build fails otherwise (NFR-8).
+- The `rls-migration-audit` CI gate statically verifies every new public user-data table ships its RLS DDL (every PR) ; the DB-backed `rls-audit` probe re-asserts exact policy coverage locally / post-deploy ; build fails otherwise (NFR-8).
 - The `prisma:check` job runs `prisma format --check`, `prisma validate`, and `prisma migrate diff --exit-code` against the deployed schema.
 
 **Prefixed-IDs discipline:**
