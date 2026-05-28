@@ -412,3 +412,40 @@ Shipped the RLS gate as a static migration-SQL check (no DB) wired into CI, the 
 
 `cd apps/api && bun test` → **642 pass, 0 fail**, 1549 expect() calls, exit 0. New: `rls-migration-audit.test.ts` (5) + cross-tenant isolation (1).
 Static gate: `bun --filter=@pekulo/api run db:rls-migration-audit` → `OK — 17 user-data tables, all RLS-guarded`, exit 0.
+
+## Review Record
+
+**Date:** 2026-05-29
+**Auditors:** Spec, Code, Edge & Hallucination (no Aria — backend/infra/docs surface, no preview app)
+**Verdict:** done — all findings resolved or dismissed-with-rationale
+
+### Findings
+
+#### Resolved
+
+- [BLOCKER] AC-4 incomplete — `docs/architecture.md:139` still claimed *"RLS catches the bug"* on the `apps/api` path (false on the service-role connection), and the CI-job description (lines 128/142/239/638) still described a `pg_tables` SQL probe as the CI gate. [docs/architecture.md]
+  - Source: Spec, Code, Edge (all three) + manual scope audit (architecture.md declared in File List but absent from the diff)
+  - Resolution: landed via **aped-course** (the upstream-lock hook blocks architecture.md writes mid-sprint — same guard the dev hit; unlocked through the coordinated scope-change, correction logged in `docs/state-corrections.yaml`). `cf4a78a` — line 139 now states the service-role **bypasses RLS** and isolation is single-layer (lint rule + `where:{userId}`); CI description synced to the static `rls-migration-audit` gate (DB probe = local/post-deploy). ADR-0013's own stale CI sentence also corrected — `864045c`.
+- [MINOR] Static gate false-negative — an unquoted `CREATE TABLE leaky (...)` slipped the quote-requiring regex; an empty migrations corpus printed a false green. [apps/api/scripts/rls-migration-audit.ts]
+  - Source: Code, Edge
+  - Resolution: `92e6a23` — quotes made optional (schema-qualified `"vault"."secrets"` still excluded, verified), empty-dir now fails closed, duplicated scan DRY'd into `createdTables()`. Mutation-verified: reverting the regex turns the new unquoted test RED; live gate still reports exactly 17 tables. `PARTITION OF` / CTAS left documented out-of-scope (Prisma never emits them; DB probe covers them).
+- [MINOR] AC-5 cross-tenant test had no teeth on the `where:{userId}` write-guard — distinct providerItemIds isolate by item alone, so the per-owner userId scoping was never exercised. [apps/api/src/modules/bank-aggregator/bank-aggregator.integration.test.ts]
+  - Source: Code (raised HIGH; reconciled to MINOR by the Lead — the AC-5 *literal* guarantee was already proven, and Edge confirmed the test goes RED if the providerItemId filter breaks)
+  - Resolution: `a0f5bd4` — added a shared-providerItemId multi-owner fan-out test. Mutation-verified: cross-assigning the userId in the production webhook loop (`service.ts handleWebhookEvent`) turns the new test RED while the distinct-item test stays green — the userId scoping is now load-bearing.
+
+#### Dismissed
+
+- [NIT] Empty `NON_USER_TABLES` allow-list + `MIN_POLICIES = 2` floor. [apps/api/scripts/rls-migration-audit.ts]
+  - Source: Code, Edge
+  - Rationale: by-design — the static gate asserts the *floor*; exact 2-vs-4 counts are the DB-backed runtime probe's job. An empty allow-list forces a conscious, reviewable decision the moment a genuinely non-user table lands.
+- [NIT] Story T2 prose (4 tests / duplicated in-test parser) diverges from shipped reality (6 tests / exported pure `auditMigrationSql`). [story Tasks / Dev Agent Record]
+  - Source: Spec
+  - Rationale: the shipped design is the improvement the story itself warned against (single source of truth for the regex, no drift between two copies); disclosed in the Dev Record. Historical task prose left intact rather than rewritten.
+
+### Verification
+
+- Test command: `cd apps/api && bun test`
+- Test output (final pass): **644 pass, 0 fail** across 69 files (rls-migration-audit 6 pass + cross-tenant isolation 2). Static gate: `OK — 17 user-data tables, all RLS-guarded`, exit 0.
+- AC-4 at HEAD: `git show HEAD:docs/architecture.md | grep "RLS catches the bug"` → 0 occurrences; corrected clause present; `docs/adr/0013-…` corrected.
+- All fix commits adversarially re-verified by the Code + Edge auditors via mutation (RED-on-break, GREEN-on-revert), working tree clean.
+- Visual verification: n/a — no frontend surface.
