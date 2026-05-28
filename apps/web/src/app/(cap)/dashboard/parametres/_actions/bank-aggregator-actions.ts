@@ -17,13 +17,21 @@
 
 import { defineAction } from "@zapaction/core";
 import { ORPCError } from "@orpc/client";
+import { z } from "@pekulo/zod";
 import {
   completeConnectionInputSchema,
   initiateConnectionInputSchema,
+  listConnectionsOutputSchema,
+  reconnectConnectionInputSchema,
+  renameConnectionInputSchema,
+  revokeConnectionInputSchema,
   type BankConnection,
   type CompleteConnectionInput,
   type InitiateConnectionInput,
   type InitiateConnectionOutput,
+  type ReconnectConnectionInput,
+  type RenameConnectionInput,
+  type RevokeConnectionInput,
 } from "@pekulo/validators";
 import { bankAggregatorClient } from "@/lib/orpc/modules";
 import { ensureRequestContext } from "@/lib/orpc/request-context";
@@ -81,6 +89,109 @@ export const completeBankConnection = defineAction<
       if (
         err instanceof ORPCError &&
         (err.code === "BANK_CONNECTION_ALREADY_EXISTS" || err.code === "BANK_PROVIDER_UNAVAILABLE")
+      ) {
+        return { ok: false as const, code: err.code, message: err.message };
+      }
+      throw err;
+    }
+  },
+});
+
+/** Read — connections list for the parametres/patrimoine connections section. */
+export const listBankConnections = defineAction<void, BankConnection[], ActionContext>({
+  name: "listBankConnections",
+  input: z.void(),
+  output: listConnectionsOutputSchema,
+  handler: async () => {
+    await ensureRequestContext();
+    return bankAggregatorClient.listConnections();
+  },
+});
+
+/** Envelope for renameConnection — NOT_FOUND survives the SA boundary. */
+export type RenameBankConnectionResult =
+  | { ok: true; connection: BankConnection }
+  | { ok: false; code: "BANK_CONNECTION_NOT_FOUND"; message: string };
+
+export const renameBankConnection = defineAction<
+  RenameConnectionInput,
+  RenameBankConnectionResult,
+  ActionContext
+>({
+  name: "renameBankConnection",
+  input: renameConnectionInputSchema,
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    try {
+      const connection = await bankAggregatorClient.renameConnection(input);
+      return { ok: true as const, connection };
+    } catch (err) {
+      if (err instanceof ORPCError && err.code === "BANK_CONNECTION_NOT_FOUND") {
+        return { ok: false as const, code: err.code, message: err.message };
+      }
+      throw err;
+    }
+  },
+});
+
+/** Envelope for revokeConnection — NOT_FOUND + PROVIDER_UNAVAILABLE survive the SA boundary. */
+export type RevokeBankConnectionResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code: "BANK_CONNECTION_NOT_FOUND" | "BANK_PROVIDER_UNAVAILABLE";
+      message: string;
+    };
+
+export const revokeBankConnection = defineAction<
+  RevokeConnectionInput,
+  RevokeBankConnectionResult,
+  ActionContext
+>({
+  name: "revokeBankConnection",
+  input: revokeConnectionInputSchema,
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    try {
+      await bankAggregatorClient.revokeConnection(input);
+      return { ok: true as const };
+    } catch (err) {
+      if (
+        err instanceof ORPCError &&
+        (err.code === "BANK_CONNECTION_NOT_FOUND" || err.code === "BANK_PROVIDER_UNAVAILABLE")
+      ) {
+        return { ok: false as const, code: err.code, message: err.message };
+      }
+      throw err;
+    }
+  },
+});
+
+/** Envelope for reconnectConnection (SCA re-auth) — same error surface as revoke. */
+export type ReconnectBankConnectionResult =
+  | { ok: true; connectUrl: string }
+  | {
+      ok: false;
+      code: "BANK_CONNECTION_NOT_FOUND" | "BANK_PROVIDER_UNAVAILABLE";
+      message: string;
+    };
+
+export const reconnectBankConnection = defineAction<
+  ReconnectConnectionInput,
+  ReconnectBankConnectionResult,
+  ActionContext
+>({
+  name: "reconnectBankConnection",
+  input: reconnectConnectionInputSchema,
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    try {
+      const { connectUrl } = await bankAggregatorClient.reconnectConnection(input);
+      return { ok: true as const, connectUrl };
+    } catch (err) {
+      if (
+        err instanceof ORPCError &&
+        (err.code === "BANK_CONNECTION_NOT_FOUND" || err.code === "BANK_PROVIDER_UNAVAILABLE")
       ) {
         return { ok: false as const, code: err.code, message: err.message };
       }
