@@ -1,65 +1,99 @@
 // apps/web/src/app/(cap)/dashboard/parametres/bank/callback/page.tsx
 // Story 5-6 — Bridge Connect callback (v3 stateful-widget model).
+// Story 5-7 — graceful cancellation handling + redirect target fixed to the
+// Patrimoine view (where the connections section now lives).
 //
 // Bridge v3 redirects back with:
 //   ?source=connect&success=true&user_uuid=<uuid>&step=sync_success&item_id=<id>
-// NOT the classic OAuth ?code=&state= shape. The widget handles SCA + token
-// exchange server-side ; we just receive the finalized item_id + user_uuid.
-//
-// Failure shapes (Bridge docs):
-//   - success=false&error_code=<code>
-//   - step ≠ sync_success while success=true (rare partial; treat as error)
+// On abandon the user comes back with success=false (no error_code) — a
+// cancellation, NOT an error. Classification is delegated to the pure
+// classifyBridgeCallback helper so the three outcomes stay unit-tested.
 
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { type CSSProperties } from "react";
+import { Text, View } from "@pekulo/ui/client";
+import { pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import { completeBankConnection } from "../../_actions/bank-aggregator-actions";
+import { classifyBridgeCallback, type BridgeCallbackParams } from "./classify-callback";
 
-interface CallbackPageProps {
-  searchParams: Promise<{
-    source?: string;
-    success?: string;
-    step?: string;
-    user_uuid?: string;
-    item_id?: string;
-    error_code?: string;
-  }>;
+// Connections live in the Patrimoine view since 5-7 (T13) — NOT /parametres,
+// which is compass-only now.
+const CONNECTIONS_HREF = "/dashboard?tab=patrimoine";
+
+const ctaPill: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  alignSelf: "flex-start",
+  height: 40,
+  padding: "0 16px",
+  borderRadius: pekuloRadius.full,
+  backgroundColor: "var(--backgroundMuted)",
+  color: "var(--color)",
+  textDecoration: "none",
+  fontSize: pekuloFontSizes.bodySm,
+  fontWeight: 500,
+};
+
+function CallbackState({ title, description }: { title: string; description: string }) {
+  return (
+    <View render="section" aria-label={title} flexDirection="column" gap="$3" paddingVertical="$6">
+      <Text render="h1" color="$color" fontSize="$h2" fontWeight="600">
+        {title}
+      </Text>
+      <Text color="$colorTertiary" fontSize="$bodySm">
+        {description}
+      </Text>
+      <Link href={CONNECTIONS_HREF} style={ctaPill}>
+        Retour à mes comptes
+      </Link>
+    </View>
+  );
 }
 
-export default async function BridgeCallbackPage({ searchParams }: CallbackPageProps) {
+export default async function BridgeCallbackPage({
+  searchParams,
+}: {
+  searchParams: Promise<BridgeCallbackParams>;
+}) {
   const params = await searchParams;
+  const outcome = classifyBridgeCallback(params);
 
-  if (params.success !== "true" || !params.item_id || !params.user_uuid) {
+  if (outcome.kind === "cancelled") {
     return (
-      <main aria-label="Erreur callback Bridge">
-        <h1>Connexion bancaire interrompue</h1>
-        <p>
-          La connexion n&apos;a pas abouti côté Bridge (success={params.success ?? "—"}, step=
-          {params.step ?? "—"}). Réessaie depuis les paramètres.
-        </p>
-        {params.error_code ? (
-          <p>
-            Code d&apos;erreur Bridge : <code>{params.error_code}</code>
-          </p>
-        ) : null}
-      </main>
+      <CallbackState
+        title="Connexion annulée"
+        description="Tu as fermé la fenêtre Bridge avant la fin — aucune banque n'a été ajoutée. Tu peux réessayer quand tu veux."
+      />
+    );
+  }
+
+  if (outcome.kind === "error") {
+    return (
+      <CallbackState
+        title="Connexion bancaire échouée"
+        description="La connexion n'a pas pu aboutir côté Bridge. Réessaie dans un instant ; si le problème persiste, contacte ta banque."
+      />
     );
   }
 
   const result = await completeBankConnection({
-    itemId: params.item_id,
-    userUuid: params.user_uuid,
+    itemId: outcome.itemId,
+    userUuid: outcome.userUuid,
   });
 
   if (result.ok) {
-    redirect("/dashboard/parametres");
+    redirect(CONNECTIONS_HREF);
   }
 
   return (
-    <main aria-label="Erreur callback Bridge">
-      <h1>Connexion bancaire échouée</h1>
-      <p>{result.message}</p>
-      <p>
-        Code d&apos;erreur : <code>{result.code}</code>
-      </p>
-    </main>
+    <CallbackState
+      title="Connexion bancaire échouée"
+      description={
+        result.code === "BANK_CONNECTION_ALREADY_EXISTS"
+          ? "Cette banque est déjà connectée à Pekulo."
+          : "La connexion n'a pas pu être finalisée. Réessaie dans un instant."
+      }
+    />
   );
 }
