@@ -2006,6 +2006,32 @@ _Populated by aped-dev as files land. Planned surface:_
 **Deleted — apps/web**
 - `apps/web/src/app/(cap)/dashboard/_components/connect-bank-button.tsx`
 
+### Actual final state (after the post-dev relocations + fixes)
+
+> The `parametres/_*` paths above were the AS-BUILT locations for T6–T13. A
+> later IA reorg (Alex direction) moved every web file to a feature folder —
+> the canonical locations are now:
+
+**apps/web — relocated**
+- bank UI → `apps/web/src/app/(cap)/dashboard/_bank/_{components,hooks,actions}/` (all `bank-*` + `use-*bank*` + `bank-aggregator-actions.ts`; section gained a **refresh button**, post-dev)
+- accounts → `apps/web/src/app/(cap)/dashboard/_accounts/_{components,hooks,actions}/`
+- compass → `apps/web/src/app/(cap)/dashboard/_compass/_{components,hooks,actions}/`
+- Bridge OAuth callback route → `apps/web/src/app/(cap)/dashboard/bank/callback/{page.tsx,classify-callback.ts(+test)}` (moved from `parametres/bank/callback`; redirect URL now `/dashboard/bank/callback` — **⚠️ update Bridge "Allowed redirect URIs"**)
+- `apps/web/src/app/(cap)/dashboard/parametres/page.tsx` — now imports compass from `_compass/`; holds the interim compass editor only
+
+**apps/api — post-dev fixes (story 5-6 connector, landed here)**
+- `bank-provider.ts` — `ProviderBankAccount.accountKey` + `ProviderTransaction.accountKey` (stable IBAN-based identity)
+- `services/bridge-client.ts` (+ `.test.ts`) — `bridgeAccountKey()`, `fetchItemAccounts()`, `listTransactions` filters by item accounts + follows `next_uri`, stamps `accountKey`
+- `bank-aggregator.service.ts` (+ `.test.ts`) — `completeConnection` keys accounts on `accountKey` + already-synced guard; `resolveAccountIds` maps via `accountKey`
+- `bank-aggregator.integration.test.ts` — T5 HTTP-boundary suite (OS-assigned port) + fixtures
+- `bank-aggregator.security.test.ts`, `services/bridge-webhook-router.test.ts` — fixtures
+
+**New — tooling / docs**
+- `apps/api/scripts/cleanup-bridge-dupes.ts` — one-shot dedup cleanup (dry-run default; `--apply` ran 2026-05-28: deleted 728 txns + 12 accounts + 2 connections, kept `bridge_users`)
+- `docs/ressources/Bridge API.postman_collection.json` — canonical Bridge API reference (committed)
+- `docs/lessons.md` — corrective lesson 2026-05-28 (transactions `item_id` ignored → `account_id`)
+- `.gitleaks.toml` — integration-test allowlist regex generalised for hyphenated module dirs
+
 ## Dev Agent Record
 
 ### Summary
@@ -2029,11 +2055,13 @@ See § File List above. All planned files landed. Additionally touched (not in t
 - No new Tamagui primitive introduced (SCA badge is inline `View`+`Text`) — `generate:tamagui-css` produced no diff, as predicted.
 - **Out-of-story IA reorg landed here (Alex direction):** `parametres/` was a catch-all mixing compass + accounts + bank, while accounts/bank actually mount in PatrimoineView (proto: AccountsSection ∈ Patrimoine — so the mount was right, the file location wasn't). Relocated, co-located by mount, in 3 verified commits: accounts → `dashboard/_accounts`, bank → `dashboard/_bank` (+ callback route `parametres/bank/callback` → `dashboard/bank/callback`, redirect URL updated — **⚠️ Bridge "Allowed redirect URIs" must add `<origin>/dashboard/bank/callback`**), compass → `dashboard/_compass`. `parametres/` now holds only the interim compass editor (real Settings = story 8-2). Reviewer note: spans compass (1-x) / accounts (2-3) / bank (5-7) — pure `git mv` + import path swaps, no behaviour change; web 113 tests green throughout.
 - **Out-of-story 5-6 fix landed here (Alex direction):** a live Bridge smoke (prompted by Alex's Postman-conformance question) proved `GET /v3/aggregation/transactions` **ignores `item_id`** — a real multi-item Bridge user returned 1800 txns across ~30 accounts when only 360 belong to the queried item, and the old `limit=500`/no-`next_uri` client truncated. Rewrote `bridge-client.listTransactions` to resolve the item's account ids (via `/accounts`, which honors `item_id`), paginate `next_uri`, and keep only the item's rows. Added 2 regression tests + corrective lesson (2026-05-28) + committed the Postman collection at `docs/ressources/`. Also hardened the T5 integration suite to an OS-assigned port (removed full-suite random-port flakiness). Reviewer note: this touches story 5-6's connector, not 5-7's surface.
+- **Out-of-story 5-6 fix #2 — duplicate accounts on reconnect (Alex direction):** each "connect" mints a NEW Bridge item (new account ids), and accounts were keyed on that volatile id → reconnecting the same bank duplicated every account (demo user had 2 connections × 6 accounts = 12 dupes + 728 txns). Introduced a STABLE `accountKey` (IBAN, else `pid:{provider_id}:{name}` for cards): `completeConnection` keys accounts on it AND rejects a re-connect whose accounts already exist (`BANK_CONNECTION_ALREADY_EXISTS` = "already synced"); refresh maps txns via it. Shipped `apps/api/scripts/cleanup-bridge-dupes.ts` (dry-run default) and **ran `--apply`** to remove the existing dupes (kept `bridge_users`). Reviewer note: connector (5-6) change.
+- **Refresh button (Alex feedback):** the connections section header gained an icon refresh button → `refetch()` of the list (re-reads server state the cron/webhook already updated) without a page reload. Live push (SSE) was explicitly deferred to a dedicated story (not built).
 
 ### Test output
 
-Iron Law sweep (T14), all green:
-- `@pekulo/api` typecheck: exit 0 · test: **633 pass / 0 fail** (68 files) · lint: 0 errors (10 pre-existing `no-await-in-loop` warnings on the intentional refresh serialisation) · `db:rls-audit`: OK, 17 tables (`bank_connections`=4 policies, `bridge_users`=2) — no new table.
-- `@pekulo/web` typecheck: exit 0 · test: **108 pass / 0 fail** (59 files) · lint: 0 errors.
+Latest full sweep after all post-dev fixes, all green:
+- `@pekulo/api` typecheck: exit 0 · test: **636 pass / 0 fail** (68 files) · lint: 0 errors (10 pre-existing `no-await-in-loop` warnings on the intentional refresh serialisation) · `db:rls-audit`: OK, 17 tables (`bank_connections`=4 policies, `bridge_users`=2) — no new table.
+- `@pekulo/web` typecheck: exit 0 · test: **113 pass / 0 fail** (60 files) · lint: 0 errors.
 - `generate:tamagui-css` → `git diff --exit-code`: clean (no styled-primitive drift).
 - Security review (multi-agent, branch diff): **clean** — no HIGH/MEDIUM findings. Verified: userId-scoped writes (no IDOR), JWT gating on all 3 procedures, server-controlled+URL-validated reconnect redirect, DTO token-stripping, zod input validation, no raw SQL, no `dangerouslySetInnerHTML`.
