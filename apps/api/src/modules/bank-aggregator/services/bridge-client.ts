@@ -37,19 +37,27 @@ function authHeaders(env: Env, bearer?: string): Record<string, string> {
   return h;
 }
 
+// Story 5-6 FIX (post-review aped-review): every Bridge HTTP call carries an
+// AbortSignal so a hung upstream does not block the cron loop indefinitely.
+// 10s budget covers the slowest happy-path seen on the sandbox; any longer is
+// a Bridge outage by V1's NFR-18 budget (provider fallback within 500ms after
+// 10s upstream timeout is the safe shape — we surface bankProviderUnavailable).
+const BRIDGE_FETCH_TIMEOUT_MS = 10_000;
+
 export function createBridgeProvider(args: { env: Env }): BankProvider {
   const { env } = args;
   const base = env.BRIDGE_API_BASE.replace(/\/$/, "");
 
   async function req<T>(
     path: string,
-    init: RequestInit & { bearer?: string; allowStatuses?: number[] },
+    init: RequestInit & { bearer?: string; allowStatuses?: number[]; timeoutMs?: number },
   ): Promise<{ data: T; status: number }> {
-    const { bearer, headers: extra, allowStatuses = [], ...rest } = init;
+    const { bearer, headers: extra, allowStatuses = [], timeoutMs, ...rest } = init;
     const url = `${base}${path}`;
     const headers = { ...authHeaders(env, bearer), ...(extra ?? {}) };
+    const signal = AbortSignal.timeout(timeoutMs ?? BRIDGE_FETCH_TIMEOUT_MS);
     try {
-      const res = await fetch(url, { ...rest, headers });
+      const res = await fetch(url, { ...rest, headers, signal });
       if (!res.ok && !allowStatuses.includes(res.status)) {
         throw bankProviderUnavailable(`bridge ${rest.method ?? "GET"} ${path} → ${res.status}`);
       }
@@ -57,6 +65,13 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       return { data, status: res.status };
     } catch (err) {
       if (err instanceof Error && err.message.startsWith("bank provider unavailable")) throw err;
+      // AbortError ⇒ explicit timeout. Surface as bankProviderUnavailable per
+      // the contract so callers stay inside the typed-error envelope.
+      if (err instanceof Error && err.name === "TimeoutError") {
+        throw bankProviderUnavailable(
+          `bridge ${rest.method ?? "GET"} ${path} timed out after ${timeoutMs ?? BRIDGE_FETCH_TIMEOUT_MS}ms`,
+        );
+      }
       const reason = err instanceof Error ? err.message : "unknown";
       throw bankProviderUnavailable(`bridge ${rest.method ?? "GET"} ${path} threw: ${reason}`);
     }
@@ -207,6 +222,16 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         bearer,
       });
       let latest: Date | null = null;
+      // Story 5-6 V1 known limitation (post-review aped-review): we ask for
+      // limit=500 and do NOT follow Bridge's `next_uri` cursor. At Pekulo's V1
+      // perso scale (≤10 users, single SG + Revolut), one tick rarely returns
+      // >500 transactions. Warn loudly when the cap is hit so we know to
+      // implement cursor pagination in a follow-up story (5-7 likely owns it).
+      if (data.resources.length >= 500) {
+        console.warn(
+          `[bridge-client] listTransactions hit 500-row cap for item_id=${providerItemId} since=${since?.toISOString() ?? "<null>"} — implement cursor follow-through (V1 known limitation)`,
+        );
+      }
       // Bridge v3 — `clean_description` is the friendly label ("CB Carrefour"),
       // `provider_description` is the raw bank string ("PAIEMENT CB ..."). Both
       // can be empty for some operation_types — fall back to "Transaction

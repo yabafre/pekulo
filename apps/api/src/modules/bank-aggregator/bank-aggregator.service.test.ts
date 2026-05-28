@@ -42,7 +42,7 @@ function makeStubs() {
     findByProviderItemId: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
-    setStatusByProviderItemId: async () => undefined,
+    findOwnersByProviderItemId: async () => [],
   };
   const provider: BankProvider = {
     createUser: async () => ({ providerUserUuid: "bridge-uuid-1" }),
@@ -291,7 +291,6 @@ test("refreshAll swallows per-connection failure non-fatally (AC-6)", async () =
         lastRefreshedAt: null,
         createdAt: new Date().toISOString(),
       },
-      tokens: { accessToken: "a", refreshToken: "r", expiresAt: null },
     };
   };
   provider.listTransactions = async () => ({ transactions: [], latestUpdatedAt: null });
@@ -314,7 +313,7 @@ test("refreshAll swallows per-connection failure non-fatally (AC-6)", async () =
 test("handleWebhookEvent ignores non-item.refreshed events", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
   let setStatusCalled = false;
-  repo.setStatusByProviderItemId = async () => {
+  repo.setStatus = async () => {
     setStatusCalled = true;
   };
   const svc = createBankAggregatorService({
@@ -328,13 +327,23 @@ test("handleWebhookEvent ignores non-item.refreshed events", async () => {
   expect(setStatusCalled).toBe(false);
 });
 
-test("handleWebhookEvent on status_code=1010 flips sca_required (AC-5)", async () => {
+test("handleWebhookEvent on status_code=1010 flips sca_required via userId-scoped setStatus (AC-5 + ADR-0013)", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
-  const calledWith: { value: { provider: string; itemId: string; status: string } | null } = {
-    value: null,
+  // Post-review aped-review: the webhook handler MUST resolve the owning
+  // userId via findOwnersByProviderItemId, then call the userId-scoped
+  // setStatus(userId, connectionId, ...) — never the cross-user mass-update
+  // pattern that prior versions used.
+  repo.findOwnersByProviderItemId = async (providerName, providerItemId) => {
+    if (providerName === "bridge" && providerItemId === "42") {
+      return [{ userId: "u", connectionId: "bnk_42" }];
+    }
+    return [];
   };
-  repo.setStatusByProviderItemId = async (p, i, s) => {
-    calledWith.value = { provider: p, itemId: i, status: s };
+  const calledWith: {
+    value: { userId: string; connectionId: string; status: string } | null;
+  } = { value: null };
+  repo.setStatus = async (userId, connectionId, status) => {
+    calledWith.value = { userId, connectionId, status };
   };
   const svc = createBankAggregatorService({
     repository: repo,
@@ -347,11 +356,21 @@ test("handleWebhookEvent on status_code=1010 flips sca_required (AC-5)", async (
     type: "item.refreshed",
     content: { item_id: 42, status_code: 1010 },
   });
-  expect(calledWith.value).toEqual({ provider: "bridge", itemId: "42", status: "sca_required" });
+  expect(calledWith.value).toEqual({
+    userId: "u",
+    connectionId: "bnk_42",
+    status: "sca_required",
+  });
 });
 
 test("handleWebhookEvent on status_code=0 triggers transaction fetch for owners", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.findOwnersByProviderItemId = async (providerName, providerItemId) => {
+    if (providerName === "bridge" && providerItemId === "42") {
+      return [{ userId: "u", connectionId: "bnk_x" }];
+    }
+    return [];
+  };
   repo.findByIdForUser = async () => ({
     connection: {
       id: "bnk_x",
@@ -382,6 +401,40 @@ test("handleWebhookEvent on status_code=0 triggers transaction fetch for owners"
     content: { item_id: 42, status_code: 0 },
   });
   expect(imported).toBe(true);
+});
+
+test("handleWebhookEvent on unknown status_code logs warning + no DB write (post-review)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  let setStatusCalled = false;
+  let findOwnersCalled = false;
+  repo.setStatus = async () => {
+    setStatusCalled = true;
+  };
+  repo.findOwnersByProviderItemId = async () => {
+    findOwnersCalled = true;
+    return [];
+  };
+  const warns: string[] = [];
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => warns.push(args.map(String).join(" "));
+  try {
+    const svc = createBankAggregatorService({
+      repository: repo,
+      provider,
+      transactionsService,
+      accountsService,
+      listAllActiveConnections: async () => [],
+    });
+    await svc.handleWebhookEvent({
+      type: "item.refreshed",
+      content: { item_id: 99, status_code: 1003 }, // WRONG_CREDENTIALS — not 0/1010
+    });
+    expect(setStatusCalled).toBe(false);
+    expect(findOwnersCalled).toBe(false);
+    expect(warns.some((w) => w.includes("status_code=1003"))).toBe(true);
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test("handleWebhookEvent rejects malformed event silently (no throw)", async () => {

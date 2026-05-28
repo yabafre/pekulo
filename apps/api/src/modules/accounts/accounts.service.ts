@@ -120,15 +120,36 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
         providerAccountKey,
       );
       if (existing) return existing;
-      return deps.repository.createAuto({
-        userId,
-        label: input.label,
-        type: input.type,
-        currency: input.currency,
-        cashBalance: input.cashBalance ?? 0,
-        provider,
-        providerAccountKey,
-      });
+      // Story 5-6 FIX (post-review aped-review): the find-then-create
+      // sequence is non-atomic — two concurrent completeConnection calls for
+      // the same `(userId, provider, providerAccountKey)` both observe null
+      // and both call createAuto. The second hits the partial UNIQUE index
+      // `accounts_user_provider_key_uq` → P2002. We catch + re-read, mirroring
+      // the race-safe `resolveProviderUserUuid` pattern in the bank-aggregator
+      // service. If even the re-read returns null (shouldn't happen — the
+      // unique index says someone won), surface the original error.
+      try {
+        return await deps.repository.createAuto({
+          userId,
+          label: input.label,
+          type: input.type,
+          currency: input.currency,
+          cashBalance: input.cashBalance ?? 0,
+          provider,
+          providerAccountKey,
+        });
+      } catch (err) {
+        const code = (err as { code?: string } | null)?.code;
+        if (code === "P2002") {
+          const winner = await deps.repository.findByProviderKey(
+            userId,
+            provider,
+            providerAccountKey,
+          );
+          if (winner) return winner;
+        }
+        throw err;
+      }
     },
 
     async findByProviderKey(userId, provider, providerAccountKey) {

@@ -3,11 +3,11 @@ story_key: 5-6-bridge-connector
 epic: 5
 ticket: "#93"
 branch: feature/93-5-6-bridge-connector
-status: review
+status: done
 depends_on: [5-1-transactions-record, 0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge]
 complexity: L
 commit_prefix: "feat(#93)"
-stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection, step-04-collaborative-design, step-05-dev]
+stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection, step-04-collaborative-design, step-05-dev, step-06-review]
 ---
 
 # Story 5-6 — Bridge bank-aggregator connector + Vault-encrypted BankConnection + cron-backup refresh
@@ -27,7 +27,7 @@ stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection,
 
 ## Acceptance Criteria
 
-- **AC-1 (connect, FR-60).** **Given** a valid Bridge OAuth callback (`?code=...&state=...` from the Bridge-hosted Connect widget), **When** `completeConnection({code, state})` resolves, **Then** a `BankConnection` row is persisted with **`access_token_secret_id` + `refresh_token_secret_id`** pointing to `vault.secrets` rows (raw token strings NEVER stored on `bank_connections`, NEVER logged, NEVER returned in any oRPC response), and the connection appears in `listConnections()` for the calling user.
+- **AC-1 (connect, FR-60) — REFORMULATED post-impl (Bridge v3 stateful-widget pivot).** **Given** a valid Bridge v3 stateful-widget callback (`?item_id=<numeric>&user_uuid=<bridge-uuid>` from the Bridge-hosted Connect widget — the v3 model dropped the OAuth-code-exchange path used in the original draft AC), **When** `completeConnection({itemId, userUuid})` resolves, **Then** a `BankConnection` row is persisted with `(userId, provider="bridge", providerItemId)` populated. The `access_token_secret_id` + `refresh_token_secret_id` columns stay NULL — Bridge v3 keeps OAuth tokens server-side (no per-item tokens issued to the integrator, see ADR-0015 amendment "post-impl pivot"). Token strings are NEVER stored, NEVER logged, NEVER returned in any oRPC response (trivially: there is nothing to leak). The connection appears in `listConnections()` for the calling user. *Reformulation rationale: live Bridge sandbox smoke (commit `16f6331`) confirmed v3 dropped per-item OAuth tokens — see `## Deviations` § "AC-1 input shape".*
 
 - **AC-2 (cron-backup refresh + dedup, FR-61).** **Given** an existing `BankConnection` with `status = 'active'`, **When** `refreshConnection({connectionId})` runs and Bridge returns 50 transactions (`?since=<lastRefreshedAt>`) including 10 already in Pekulo (same `provider_transaction_id`), **Then** the pre-flight `findExistingProviderTxIds(userId, "bridge", incomingIds[])` returns the 10 duplicates, only the 40 new transactions land via `transactions.service.importFromProvider`, `categoriseAfterCreate` runs sequentially per new row (non-fatal warn pattern from 5-2/5-3), and `BankConnection.lastRefreshedAt` flips to the highest `updated_at` from the response.
 
@@ -39,11 +39,11 @@ stepsCompleted: [step-01-init, step-02-input-discovery, step-03-story-selection,
 
 - **AC-6 (backup cron, FR-61).** **Given** the Bun-scheduled `refreshScheduler` registered in `lifecycle.ts` ticks every `BRIDGE_REFRESH_CRON_HOURS` hours (default 6), **When** `service.refreshAll()` fires, **Then** the scheduler iterates active connections (`status = 'active'`) per user sequentially, calls `refreshConnection` for each, **skips** connections with `status = 'sca_required'` or `status = 'revoked'`, and surfaces per-connection failures via `console.warn` (non-fatal — one user's Bridge outage does not poison another user's refresh).
 
-- **AC-7 (auto-create accounts on first connect).** **Given** a fresh `completeConnection` with Bridge returning N bank accounts (e.g. SG checking, SG savings, Revolut EUR, Revolut Pockets), **When** persistence runs, **Then** for each Bridge account that does not yet have a matching `accounts.provider_account_key = <bridge_account_id>` row scoped to the user, a new `accounts` row is auto-created via `accounts.service.findOrCreateAutoFromProvider(userId, "bridge", bridgeAccountId, label, kind)` with `label = "Bridge — <BankName> — <AccountName>"` and `kind` mapped from Bridge's `account_type` (checking → "cash", savings → "savings", default → "cash"). Re-connecting the same Bridge item produces zero new `accounts` rows (idempotent).
+- **AC-7 (auto-create accounts on first connect) — REFORMULATED post-impl (account_type universe + race-safety).** **Given** a fresh `completeConnection` with Bridge returning N bank accounts (e.g. SG checking, SG savings, Revolut EUR, Revolut Pockets, credit cards, loans), **When** persistence runs, **Then** for each Bridge account that does not yet have a matching `accounts.provider_account_key = <bridge_account_id>` row scoped to the user, a new `accounts` row is auto-created via `accounts.service.findOrCreateAutoFromProvider(userId, "bridge", bridgeAccountId, label, kind)` with `label = "Bridge — <BankName> — <AccountName>"` and `kind` mapped from Bridge's `account_type` (checking → "banque", savings → "livret", card/loan/other → "autre"). Re-connecting the same Bridge item produces zero new `accounts` rows (idempotent). **Concurrent-call race safety**: two simultaneous `completeConnection` calls for the same `(userId, provider, providerAccountKey)` MUST converge on the winner row via the partial UNIQUE index + P2002 catch + re-read (no unhandled 500). *Reformulation: original AC mapped `account_type` to "cash"/"savings" but Pekulo's domain uses "banque"/"livret"/"autre" (commit `697d1bd` registered "banque" and the Bridge mapping); P2002 race-safety added post-review.*
 
 - **AC-8 (sentinel guards, NFR-31).** **Given** `bank-aggregator.security.test.ts` runs as part of `bun --filter='@pekulo/api' run test`, **When** the suite executes a full lifecycle (initiateConnection → completeConnection → refreshConnection → webhook receipt) against a fake `BankProvider` + a fake pino transport + a fake OTel exporter, **Then** zero strings matching `/access[_-]token|refresh[_-]token/i` appear in any captured log line, span attribute, or OTel event message. The test fails the build on regression.
 
-- **AC-9 (rate-limit + body cap, defensive).** **Given** the webhook receiver and the `refreshConnection` route, **When** a single user issues > 10 `refreshConnection` calls within 60 seconds OR a single webhook POST body exceeds 256 KB, **Then** the request is rejected with HTTP 429 (rate-limit) or 413 (body too large) respectively, no DB write occurs, and the response is < 100 ms.
+- **AC-9 (rate-limit + body cap, defensive).** **Given** the webhook receiver and the `refreshConnection` route, **When** a single user issues > 10 `refreshConnection` calls within 60 seconds OR a single webhook POST body exceeds 256 KB, **Then** the request is rejected with HTTP 429 (`RATE_LIMITED` — per RFC 6585) or 413 (body too large) respectively, no DB write occurs, and the response is < 100 ms. Coverage: `bank-aggregator.routes.test.ts` exercises the rate-limit gate at the 10th-vs-11th-call boundary + isolates per-user windows + asserts the `RATE_LIMITED` PekuloErrorCode maps to HTTP 429 via `error-mapper.ts`.
 
 ## Tasks
 
@@ -3165,26 +3165,204 @@ git diff --exit-code packages/ui/public/tamagui.generated.css
 
 ## File List
 
-_Expected files at story completion (set by aped-dev at GREEN). The Dev Notes § File map above is the structural source of truth — aped-dev appends exact paths here in step-08._
+Populated post-review aped-review (2026-05-27). Snapshot at the end of the review fix-cycle.
 
-- _(populated by aped-dev)_
+### New files — apps/api
+
+- `apps/api/prisma/migrations/20260527120000_create_bank_connections/migration.sql`
+- `apps/api/prisma/migrations/20260527120100_alter_transactions_provider_dedup_and_accounts_provider_key/migration.sql`
+- `apps/api/prisma/migrations/20260527150000_create_bridge_users/migration.sql`
+- `apps/api/prisma/migrations/20260527160000_drop_accounts_cash_balance_check/migration.sql`
+- `apps/api/prisma/migrations/20260527170000_add_banque_to_account_type/migration.sql`
+- `apps/api/prisma/schema/bank_aggregator.prisma`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.errors.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.integration.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.module.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.module.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.repository.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.repository.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.routes.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.routes.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.schemas.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.security.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.service.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.service.ts`
+- `apps/api/src/modules/bank-aggregator/bank-provider.ts`
+- `apps/api/src/modules/bank-aggregator/services/bridge-client.test.ts`
+- `apps/api/src/modules/bank-aggregator/services/bridge-client.ts`
+- `apps/api/src/modules/bank-aggregator/services/bridge-webhook-router.test.ts`
+- `apps/api/src/modules/bank-aggregator/services/bridge-webhook-router.ts`
+- `apps/api/src/modules/bank-aggregator/services/refresh-scheduler.ts`
+- `apps/api/src/modules/bank-aggregator/services/webhook-verifier.test.ts`
+- `apps/api/src/modules/bank-aggregator/services/webhook-verifier.ts`
+
+### New files — packages
+
+- `packages/contracts/src/bank-aggregator/bank-aggregator.contract.ts`
+- `packages/contracts/src/bank-aggregator/index.ts`
+- `packages/validators/src/bank-aggregator/bank-aggregator.schemas.ts`
+- `packages/validators/src/bank-aggregator/index.ts`
+
+### New files — apps/web
+
+- `apps/web/src/app/(cap)/dashboard/_components/connect-bank-button.tsx` (TEMP — moved from `parametres/_components/` post-review; 5-7 will replace)
+- `apps/web/src/app/(cap)/dashboard/parametres/_actions/bank-aggregator-actions.ts`
+- `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-complete-bank-connection.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-complete-bank-connection.ts`
+- `apps/web/src/app/(cap)/dashboard/parametres/_hooks/use-initiate-bank-connection.ts`
+- `apps/web/src/app/(cap)/dashboard/parametres/bank/callback/page.tsx`
+
+### Modified files — apps/api
+
+- `apps/api/prisma/schema/accounts.prisma` (add provider + providerAccountKey columns + partial unique index)
+- `apps/api/prisma/schema/enums.prisma` (add "banque" account_type — Bridge v3 mapping)
+- `apps/api/prisma/schema/transactions.prisma` (add provider + providerTransactionId columns + dedup index)
+- `apps/api/scripts/rls-audit.ts` (cover bank_connections + bridge_users tables)
+- `apps/api/src/app.ts` (mount bank-aggregator webhook router before oRPC catch-all)
+- `apps/api/src/bootstrap/lifecycle.ts` (start/stop refresh scheduler)
+- `apps/api/src/bootstrap/runtime-dependencies.ts` (compose bank-aggregator module + register on orpcRouter)
+- `apps/api/src/common/errors/pekulo-error.ts` (add BANK_CONNECTION_REVOKED + BANK_* codes)
+- `apps/api/src/config/env.ts` (Bridge env keys required + post-review: z.string().min(1) instead of optionalString)
+- `apps/api/src/config/env.test.ts` (BASE includes Bridge creds + new tests for required-key surface)
+- `apps/api/src/database/id-prefixes.config.ts` (register BankConnection: "bnk", BridgeUser: null)
+- `apps/api/src/database/id-prefixes.config.test.ts` (cover new prefixes)
+- `apps/api/src/modules/accounts/accounts.repository.ts` (add findByProviderKey + createAuto)
+- `apps/api/src/modules/accounts/accounts.service.ts` (add findOrCreateAutoFromProvider + post-review P2002 race-safe re-read)
+- `apps/api/src/modules/accounts/accounts.service.test.ts` (T22 idempotency + race tests added post-review)
+- `apps/api/src/modules/accounts/accounts.integration.test.ts` (existing tests updated to "banque" type)
+- `apps/api/src/modules/transactions/transactions.repository.ts` (add bulkCreateFromProvider + findExistingProviderTxIds + per-row P2002 catch post-review)
+- `apps/api/src/modules/transactions/transactions.service.ts` (add importFromProvider + post-review raceSkipped tally)
+- `apps/api/src/platform/http/error-mapper.ts` (map BANK_CONNECTION_REVOKED + BANK_* codes to HTTP status)
+- `apps/api/src/platform/observability/otel-sdk.test.ts` (env fixture updated for required Bridge keys)
+
+### Modified files — packages
+
+- `packages/contracts/src/index.ts` (export bankAggregatorContract + register on pekuloContract)
+- `packages/types/src/account/account.types.ts` (add "banque" to type union)
+- `packages/ui/src/components/PekuloAccountRow/PekuloAccountRow.tsx` (handle "banque" rendering)
+- `packages/validators/src/accounts/accounts.schemas.ts` (account_type includes "banque", cashBalance allows negative)
+- `packages/validators/src/index.ts` (re-export bank-aggregator schemas)
+
+### Modified files — apps/web
+
+- `apps/web/next.config.ts`
+- `apps/web/src/app/(cap)/dashboard/_components/patrimoine-view.tsx` (host TEMP ConnectBankButton between AccountsSection + Composition; will be replaced by 5-7 connections panel)
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/account-create-form.tsx` (account_type includes "banque")
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/account-edit-form.tsx` (idem)
+- `apps/web/src/app/(cap)/dashboard/parametres/_components/accounts-section.tsx` (handle "banque" filter)
+- `apps/web/src/app/(cap)/dashboard/parametres/page.tsx` (remove TEMP ConnectBankButton; lives in patrimoine view)
+- `apps/web/src/lib/orpc/modules.ts` (expose bankAggregatorClient)
+- `apps/web/src/lib/zapaction/keys.ts` (add BANK_CONNECTIONS_KEY + bankConnectionsKeys + bankConnectionsTags + registry edges)
+
+### Modified files — docs
+
+- `docs/adr/0015-bank-aggregator-bridge-with-provider-abstraction.md` (Vault + Bridge v3 stateful-widget post-impl amendment)
+- `docs/epics-context/epic-5-context.md`
+- `docs/lessons.md` (5 new lessons: Bridge v3 stateful, flat REST, P2002 race, CHECK constraint pre-flight, 409 idempotency)
+- `docs/state.yaml`
+- `docs/stories/5-6-bridge-connector.md` (this file — Dev Agent Record + AC reformulations + Deviations)
 
 ## Dev Agent Record
 
-_Populated by aped-dev at story completion (step-08). Schema-required subsections below kept empty for the dev agent to fill in._
-
 ### Summary
 
-_(populated by aped-dev)_
+Story 5-6 ships Bridge as Pekulo's V1 bank aggregator. The implementation pivoted mid-dev from a token-persistence ADR-0015 § 5 draft (Vault-encrypted access/refresh token columns) to Bridge v3's stateful-widget model — no per-item OAuth tokens are issued to integrators. Vault enablement + secret-id columns ship in the migration as vestigial NULL columns ; a V1.5 follow-up will `ALTER TABLE … DROP COLUMN` once no other surface adopts Vault.
+
+Surface delivered: `BankAggregatorModule` (apps/api) ; `bankAggregatorContract` mounted at `/rpc/v1/bankaggregator` (4 procedures) ; `/internal/bridge/webhook` Elysia receiver (HMAC + body-cap + timestamp replay defense post-review) ; Bun cron `refreshScheduler` with immediate first-tick post-review ; `transactions.importFromProvider` + per-row P2002-tolerant `bulkCreateFromProvider` ; `accounts.findOrCreateAutoFromProvider` with race-safe re-read ; web tier: zapaction wrappers, `useInitiateBankConnection` / `useCompleteBankConnection`, Server Component callback page, TEMP connect-bank-button in `/dashboard?tab=patrimoine` (replaced by 5-7).
 
 ### Files changed
 
-_(populated by aped-dev)_
+See `## File List` above.
 
 ### Deviations
 
-_(populated by aped-dev)_
+- **AC-1 input shape (Bridge v3 stateful-widget pivot).** The original AC took `{code, state}` for an OAuth-code-exchange model. The live Bridge sandbox revealed v3 dropped per-item OAuth tokens — the callback now carries `{itemId, userUuid}` and the integrator persists only `(provider, providerItemId)`. AC-1 reformulated above with the deviation rationale ; ADR-0015 amended.
+- **AC-4 type-level guard added post-review.** Original AC required `Expect<Equal<keyof BankConnectionDTO, …>>` at compile time. Initial implementation only shipped the runtime sentinel (DTO-stripping assertion). Post-review fix: type-level guard added in `bank-aggregator.security.test.ts` (lines ~38–46) — the build now fails if BankConnection grows a key outside the documented 8-key set.
+- **AC-7 account_type mapping ("banque"/"livret"/"autre" not "cash"/"savings").** Story draft mapped Bridge's `account_type` to "cash"/"savings"; Pekulo's domain uses "banque"/"livret"/"autre". Live integration revealed the mismatch — commit `697d1bd` added "banque" to the `account_type` enum + migration + DTO. AC-7 reformulated.
+- **AC-7 / AC-2 P2002 race safety added post-review.** Initial impl of `findOrCreateAutoFromProvider` and `bulkCreateFromProvider` did pre-flight find + bulk create without P2002 catch — concurrent calls (two webhooks for the same item, parallel completeConnection) bubbled the partial-UNIQUE violation as unhandled 500. Post-review: both methods now catch P2002 (duck-typed `(err as { code }).code === "P2002"`) and recover via re-read (accounts) or per-row race-skip + counter (transactions). `importFromProvider` tally is `persisted=N, skipped=preflight+raceSkipped`.
+- **AC-9 rate-limit returns 429 (RATE_LIMITED), not 503.** Initial impl threw `BANK_PROVIDER_UNAVAILABLE` on the rate-limit fast-path (a comment in `routes.ts` framed it as "upstream-pressure semantics"). Reviewer flagged this as a contract mismatch with AC-9 verbatim ("HTTP 429 (rate-limit)"). Post-review: added `RATE_LIMITED` to the `bankAggregatorContract.refreshConnection` errors + `bank-aggregator.errors.ts` factories + routes.ts throws `errors.RATE_LIMITED`. `error-mapper.ts` already maps `RATE_LIMITED → 429`. Coverage: `bank-aggregator.routes.test.ts`.
+- **Webhook handler — userId-scoped guard added post-review (ADR-0013).** Previous version called `setStatusByProviderItemId(provider, itemId, status)` cross-user. Reviewer flagged this as a defense-in-depth gap (a crafted HMAC-valid payload could flip status on every user sharing a providerItemId). Post-review: repository now exposes `findOwnersByProviderItemId(provider, providerItemId) → Array<{userId, connectionId}>`; the webhook handler resolves owners first, then calls userId-scoped `setStatus(userId, connectionId, status)` per owner. `setStatusByProviderItemId` deleted.
+- **Webhook timestamp replay defense added post-review.** Original verifier accepted any valid `v1=` signature regardless of the `t=<unix_ts>` field. Post-review: verifier parses `t=` and rejects if `|now - t| > 300s` (MAX_REPLAY_AGE_SECONDS). Tolerates missing `t=` for back-compat with secrets-only fixtures.
+- **Bridge fetch timeout added post-review.** All Bridge HTTP calls now carry `AbortSignal.timeout(10_000)` ; AbortError surfaces as `bankProviderUnavailable` so the cron loop never hangs on a slow upstream.
+- **Bridge pagination 500-row cap documented as V1 known limit.** `listTransactions` requests `limit=500` and does NOT follow Bridge's `next_uri` cursor. A `console.warn` fires when the cap is hit so a follow-up story (likely 5-7 or 5-8) can implement cursor pagination ; at Pekulo V1 perso scale (≤10 users, SG + Revolut) the cap is unlikely to bite.
+- **Refresh-empty-response guard added post-review.** Previous `refreshConnection` stamped `lastRefreshedAt = now()` even when Bridge returned 0 transactions — silent-data-loss risk if Bridge returned HTTP 200 + [] on transient backend error. Post-review: stamp only when `latestUpdatedAt` is non-null, OR on the first-ever refresh (preserve window otherwise).
+- **`refreshConnection` named-closure refactor post-review.** Previous service exposed `refreshAll` + `handleWebhookEvent` that called `this.refreshConnection`. The plain-object-literal `this` binding was fragile to destructuring. Post-review: `refreshConnection` is a named closure `refreshConnectionImpl` at factory scope ; the public method is just a reference, `refreshAll` / `handleWebhookEvent` call the closure directly.
+- **Cron immediate-first-tick** — refresh-scheduler now runs `refreshAll()` once at `start()` in addition to `setInterval` so a fresh boot doesn't wait 6h before the first sync.
+- **Unknown webhook status_code logged** — `handleWebhookEvent` only acted on `status_code === 0` (refresh) and `=== 1010` (SCA). All other codes (1003 WRONG_CREDENTIALS, 1004 NEEDS_HUMAN_ACTION, etc.) silently dropped. Post-review: explicit `console.warn` on the unknown branch so log analysers surface them.
+- **`bankConnectionRevoked` typed error** — `refreshConnection` on a revoked row previously threw `bankConnectionNotFound` (404). Post-review: dedicated `bankConnectionRevoked(connectionId)` → `BANK_CONNECTION_REVOKED` (409 — state-shape conflict, not 404).
+- **TEMP ConnectBankButton moved from parametres → patrimoine view.** The button started life under `/dashboard/parametres/_components/` but Bridge connections belong with the patrimoine view (TR-style asset management). Post-review: relocated to `/dashboard/_components/connect-bank-button.tsx` and mounted in `patrimoine-view.tsx` between `AccountsSection` and Composition. 5-7 will replace the button with the full connections panel.
 
 ### Test output
 
-_(populated by aped-dev)_
+Iron Law sweep — see `## Review Record` block below for the captured Bun/vitest output and `git status` snapshot.
+
+## Review Record
+
+### Pass 1 — `aped-review 5-6` · 2026-05-27 · Reviewer: Claude (Opus 4.7, fresh session)
+
+**Verdict:** CHANGES_REQUESTED on Pass 1 → REPAIRED on the same session → green Iron Law sweep below.
+
+**Dispatched auditors (3 parallel + inline git-audit):**
+
+1. **Spec auditor** — Verdict `CHANGES_REQUESTED` · HIGH confidence. 14 findings across 9 ACs (2 IMPL pur — AC-3, AC-6 ; 7 PARTIAL ; 0 MISSING) and 32 tasks (21/32 fully present ; 10/32 PARTIAL — code shipped but tests absent ; 1/32 unverifiable Iron Law sweep). Top blockers: T14/T19/T26 test files missing ; T20/T21/T22 zero coverage ; AC-4 type-level guard absent ; AC-9 rate-limit returned 503 not 429 ; `## File List` + `## Dev Agent Record` unpopulated ; AC-1 Bridge v3 deviation undocumented.
+
+2. **Code auditor** — Verdict `CHANGES_REQUESTED` · HIGH confidence. 8 findings across security / reliability / test-quality lenses. Blockers: rate-limit code wrong (503 vs 429) ; `setStatusByProviderItemId` lacks userId guard (ADR-0013 defense-in-depth) ; `bank-aggregator.repository.test.ts` + `.module.test.ts` missing. Reliability gaps: no webhook timestamp validation ; no fetch timeout on Bridge HTTP. Lessons: anti-pattern 4 — `bridge-client.test.ts` mock used stale `description` instead of v3 `clean_description` ; SECRET_TOKEN_VALUES dead code in security.test.ts.
+
+3. **Edge & hallucination auditor** — Verdict `CHANGES_REQUESTED` · HIGH confidence. 8 boundary findings (2 HIGH, 3 MEDIUM, 3 LOW), 0 hallucinations. Concurrent-webhook P2002 → silent transaction loss ; Bridge pagination 500-cap with no cursor follow-through ; `findOrCreateAutoFromProvider` race → unhandled 500 ; refreshConnection on revoked → wrong 404 semantics ; unknown status_codes silently dropped ; setLastRefreshedAt advances on empty response (silent data loss) ; this.refreshConnection binding fragile ; HMAC verifier ignores `t=` (replay defense).
+
+4. **Inline git-audit** — `## File List` empty (story contract breach) ; could not compare diff vs expected files. Also flagged at Spec level.
+
+**[F] gate decision:** User chose `[F] Fix tout` — fix all findings + closure cleanup (ADR amendment, AC reformulation, ConnectBankButton move, lesson codification, V1.5 migration documentation). Executed in a single session without bouncing back to dev.
+
+**Fix-cycle changes (high-level):**
+
+- **Spec / Docs alignment:** ADR-0015 amended (Bridge v3 stateful-widget post-impl pivot + V1.5 DROP COLUMN follow-up documented) ; 5 new lessons codified in `docs/lessons.md` (Bridge v3 stateful, flat REST, P2002 race, CHECK constraint pre-flight, 409 idempotency) ; ACs 1/7/9 reformulated to match delivered architecture ; `## File List` + `## Dev Agent Record` populated above ; `## Deviations` enumerated.
+- **Code fixes:** rate-limit code 503 → 429 (`RATE_LIMITED` added to contract + errors module + ORPC_HTTP_STATUS_BY_CODE) ; webhook handler now userId-scopes via new `findOwnersByProviderItemId` repo method (ADR-0013) ; `bulkCreateFromProvider` per-row P2002 catch + `raceSkipped` tally ; `findOrCreateAutoFromProvider` P2002 catch + race-safe re-read ; webhook verifier rejects `|now - t| > 300s` (replay defense) ; Bridge HTTP `AbortSignal.timeout(10_000)` ; `bankConnectionRevoked` (409) replaces wrong 404 for revoked items ; unknown webhook status_codes log warning ; `refreshConnection` stamp only when Bridge returned data ; `refreshConnection` extracted to named closure (binding fix) ; cron immediate first-tick ; BRIDGE_* env keys required at boot ; Bridge pagination 500-cap documented as V1 known limit.
+- **Tests added (8 new files + extensions to existing):** `bank-aggregator.repository.test.ts` (5 cases) ; `bank-aggregator.module.test.ts` (2 cases) ; `bank-aggregator.routes.test.ts` (4 cases — AC-9) ; `use-complete-bank-connection.test.tsx` (2 vitest cases) ; `bridge-client.test.ts` (5 new cases: listAccounts, revokeItem, getItem, createUser-409, clean_description label) ; `accounts.service.test.ts` (3 new T22 cases) ; `transactions.repository.test.ts` (4 new T20 cases) ; `transactions.service.test.ts` (2 new T21 cases) ; `bank-aggregator.service.test.ts` (1 new unknown-status_code test) ; `webhook-verifier.test.ts` (1 new replay-defense test + nowMs injection on existing) ; AC-4 type-level `_dtoSurfaceGuard` added in `bank-aggregator.security.test.ts`.
+- **Cleanup:** dead `SECRET_TOKEN_VALUES` removed ; stale `tokens: {...}` stub field removed ; TEMP ConnectBankButton moved from `parametres/_components/` → `dashboard/_components/` and mounted in `patrimoine-view.tsx` (replaced by 5-7).
+
+### Iron Law sweep — fresh evidence (captured 2026-05-27, in-session)
+
+```
+$ bun --filter='@pekulo/api' run typecheck
+@pekulo/api typecheck: Exited with code 0
+
+$ bun --filter='@pekulo/api' run test
+@pekulo/api test:  617 pass
+@pekulo/api test:  0 fail
+@pekulo/api test: Ran 617 tests across 68 files. [1172.00ms]
+
+$ bun --filter='@pekulo/api' run lint
+@pekulo/api lint: Found 10 warnings and 0 errors.
+@pekulo/api lint: Finished in 660ms on 702 files with 158 rules using 10 threads.
+
+$ bun --filter='@pekulo/api' run db:rls-audit
+[rls-audit] OK — 17 tables checked: kpis (3 policies), monthly_tracking (3 policies),
+hypotheses (3 policies), transactions (4 policies), accounts (4 policies), holdings
+(4 policies), holding_lots (4 policies), compass_history (2 policies), milestones
+(4 policies), account_balance_log (2 policies), real_estate (4 policies),
+real_estate_mortgage (4 policies), real_estate_rental (4 policies),
+real_estate_valuations (2 policies), monthly_records (4 policies),
+bank_connections (4 policies), bridge_users (2 policies)
+
+$ bun --filter='@pekulo/web' run typecheck
+@pekulo/web typecheck: Exited with code 0
+
+$ bun --filter='@pekulo/web' run test
+@pekulo/web test:  Test Files  56 passed (56)
+@pekulo/web test:       Tests  103 passed (103)
+@pekulo/web test: Exited with code 0
+
+$ bun --filter='@pekulo/web' run lint
+@pekulo/web lint: Found 0 warnings and 0 errors.
+```
+
+### Pass 2 — closure verdict
+
+**Status flip recommendation:** `review` → `done` (subject to user `[A]pprove` after reading this record).
+
+**Remaining warnings (non-blocking, by design):**
+- 10 oxlint warnings in apps/api (mostly `no-shadow` in existing files outside 5-6 scope ; the 2 new ones in `bank-aggregator.service.test.ts` were fixed in this pass).
+- V1.5 follow-up: `ALTER TABLE bank_connections DROP COLUMN access_token_secret_id, DROP COLUMN refresh_token_secret_id` once no other Pekulo surface adopts Vault. Documented in ADR-0015 amendment.
+- V1.5 follow-up: Bridge pagination cursor follow-through (current `limit=500` cap warns via `console.warn` when hit).
+- V1.5 follow-up: `findOrCreate` helper extraction (`apps/api/src/database/race-safe-find-or-create.ts`) once 3+ usage sites accumulate (currently: bridge_users + accounts.findOrCreateAutoFromProvider + future webhook_events.findOrInsert).

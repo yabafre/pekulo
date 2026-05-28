@@ -5,6 +5,11 @@ const BASE = {
   DATABASE_URL: "postgres://x:y@localhost:5432/db",
   SUPABASE_JWT_SECRET: "x".repeat(32),
   SUPABASE_URL: "https://example.supabase.co",
+  // Story 5-6 (post-review): BRIDGE_* triple is required at boot — test
+  // fixtures must populate them or `loadEnv` throws ConfigError.
+  BRIDGE_CLIENT_ID: "test-bridge-client-id",
+  BRIDGE_CLIENT_SECRET: "test-bridge-client-secret",
+  BRIDGE_WEBHOOK_SIGNING_SECRET: "test-bridge-webhook-secret",
 } as const;
 
 describe("loadEnv", () => {
@@ -59,5 +64,29 @@ describe("loadEnv", () => {
 
   test("rejects malformed FRANKFURTER_BASE_URL", () => {
     expect(() => loadEnv({ ...BASE, FRANKFURTER_BASE_URL: "not-a-url" })).toThrow(ConfigError);
+  });
+
+  // Story 5-6 — BRIDGE_CLIENT_ID / BRIDGE_CLIENT_SECRET / BRIDGE_WEBHOOK_SIGNING_SECRET
+  // are required at boot. Removing any of them must surface ConfigError so a
+  // missing-credentials deploy fails fast at start-up, not at the first user
+  // click.
+  test("rejects missing BRIDGE_CLIENT_ID", () => {
+    const { BRIDGE_CLIENT_ID: _, ...rest } = BASE;
+    expect(() => loadEnv(rest)).toThrow(ConfigError);
+  });
+
+  test("rejects missing BRIDGE_CLIENT_SECRET", () => {
+    const { BRIDGE_CLIENT_SECRET: _, ...rest } = BASE;
+    expect(() => loadEnv(rest)).toThrow(ConfigError);
+  });
+
+  test("rejects missing BRIDGE_WEBHOOK_SIGNING_SECRET", () => {
+    const { BRIDGE_WEBHOOK_SIGNING_SECRET: _, ...rest } = BASE;
+    expect(() => loadEnv(rest)).toThrow(ConfigError);
+  });
+
+  test("accepts BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS as optional (24h rotation window)", () => {
+    const env = loadEnv({ ...BASE, BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS: "old-secret" });
+    expect(env.BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS).toBe("old-secret");
   });
 });

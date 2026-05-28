@@ -30,6 +30,7 @@ import type {
 import {
   bankConnectionAlreadyExists,
   bankConnectionNotFound,
+  bankConnectionRevoked,
   bankScaRequired,
 } from "./bank-aggregator.errors";
 import type { BankProvider, ProviderBankAccount, ProviderTransaction } from "./bank-provider";
@@ -129,6 +130,83 @@ export function createBankAggregatorService(deps: {
     return created.providerUserUuid;
   }
 
+  // Story 5-6 FIX (post-review aped-review): extract refreshConnection into a
+  // named closure at factory scope so refreshAll / handleWebhookEvent call it
+  // directly instead of via `this`. The plain-object-literal returned below
+  // exposes `this` only when the caller invokes via `svc.refreshConnection()`
+  // — destructuring (`const { refreshAll } = svc; refreshAll()`) would lose
+  // the binding. Named closure keeps the cron + webhook paths binding-safe.
+  async function refreshConnectionImpl(
+    userId: string,
+    input: RefreshConnectionInput,
+  ): Promise<RefreshConnectionOutput> {
+    const found = await deps.repository.findByIdForUser(userId, input.connectionId);
+    if (!found) throw bankConnectionNotFound(input.connectionId);
+    if (found.connection.status === "sca_required") throw bankScaRequired(input.connectionId);
+    if (found.connection.status === "revoked") throw bankConnectionRevoked(input.connectionId);
+
+    const userUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
+    if (!userUuid) throw bankConnectionNotFound(input.connectionId);
+
+    const since = found.connection.lastRefreshedAt
+      ? new Date(found.connection.lastRefreshedAt)
+      : null;
+    const { transactions, latestUpdatedAt } = await deps.provider.listTransactions({
+      userUuid,
+      providerItemId: found.connection.providerItemId,
+      since,
+    });
+
+    const accountIdMap = await resolveAccountIds(userId, transactions);
+    const rows: ProviderTransactionImportRow[] = transactions
+      .map((t) => {
+        const accountId = accountIdMap.get(t.providerAccountId);
+        if (!accountId) return null;
+        const type = t.amount >= 0 ? ("inflow" as const) : ("outflow" as const);
+        return {
+          accountId,
+          occurredOn: t.occurredOn,
+          label: t.label,
+          amount: Math.abs(t.amount),
+          type,
+          category: "autre",
+          providerTransactionId: t.providerTransactionId,
+        };
+      })
+      .filter((r): r is ProviderTransactionImportRow => r !== null);
+
+    const { persisted, skipped } = await deps.transactionsService.importFromProvider(
+      userId,
+      "bridge",
+      rows,
+    );
+
+    // Story 5-6 FIX (post-review aped-review): only stamp lastRefreshedAt
+    // when Bridge actually returned data. On an empty response, leave the
+    // stamp unchanged so the next tick re-queries the same window — protects
+    // against the silent-data-loss case where Bridge returns HTTP 200 + [] on
+    // a transient backend error.
+    let stampIso: string | null = found.connection.lastRefreshedAt;
+    if (latestUpdatedAt) {
+      await deps.repository.setLastRefreshedAt(userId, input.connectionId, latestUpdatedAt);
+      stampIso = latestUpdatedAt.toISOString();
+    } else if (transactions.length === 0 && !since) {
+      // First-ever refresh that returned 0 transactions — stamp now() to
+      // anchor the window. Subsequent empty responses will re-query the same
+      // window forever otherwise.
+      const anchor = now();
+      await deps.repository.setLastRefreshedAt(userId, input.connectionId, anchor);
+      stampIso = anchor.toISOString();
+    }
+
+    return {
+      fetched: transactions.length,
+      persisted,
+      skipped,
+      lastRefreshedAt: stampIso,
+    };
+  }
+
   return {
     async initiateConnection(userId, userEmail, input) {
       const userUuid = await resolveProviderUserUuid(userId);
@@ -188,63 +266,13 @@ export function createBankAggregatorService(deps: {
       return deps.repository.listByUser(userId);
     },
 
-    async refreshConnection(userId, input) {
-      const found = await deps.repository.findByIdForUser(userId, input.connectionId);
-      if (!found) throw bankConnectionNotFound(input.connectionId);
-      if (found.connection.status === "sca_required") throw bankScaRequired(input.connectionId);
-      if (found.connection.status === "revoked") throw bankConnectionNotFound(input.connectionId);
-
-      const userUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
-      if (!userUuid) throw bankConnectionNotFound(input.connectionId);
-
-      const since = found.connection.lastRefreshedAt
-        ? new Date(found.connection.lastRefreshedAt)
-        : null;
-      const { transactions, latestUpdatedAt } = await deps.provider.listTransactions({
-        userUuid,
-        providerItemId: found.connection.providerItemId,
-        since,
-      });
-
-      const accountIdMap = await resolveAccountIds(userId, transactions);
-      const rows: ProviderTransactionImportRow[] = transactions
-        .map((t) => {
-          const accountId = accountIdMap.get(t.providerAccountId);
-          if (!accountId) return null;
-          const type = t.amount >= 0 ? ("inflow" as const) : ("outflow" as const);
-          return {
-            accountId,
-            occurredOn: t.occurredOn,
-            label: t.label,
-            amount: Math.abs(t.amount),
-            type,
-            category: "autre",
-            providerTransactionId: t.providerTransactionId,
-          };
-        })
-        .filter((r): r is ProviderTransactionImportRow => r !== null);
-
-      const { persisted, skipped } = await deps.transactionsService.importFromProvider(
-        userId,
-        "bridge",
-        rows,
-      );
-      const stamp = latestUpdatedAt ?? now();
-      await deps.repository.setLastRefreshedAt(userId, input.connectionId, stamp);
-
-      return {
-        fetched: transactions.length,
-        persisted,
-        skipped,
-        lastRefreshedAt: stamp.toISOString(),
-      };
-    },
+    refreshConnection: refreshConnectionImpl,
 
     async refreshAll() {
       const all = await deps.listAllActiveConnections();
       for (const c of all) {
         try {
-          await this.refreshConnection(c.userId, { connectionId: c.connectionId });
+          await refreshConnectionImpl(c.userId, { connectionId: c.connectionId });
         } catch (err) {
           // Non-fatal — one user's Bridge outage MUST NOT poison another
           // user's refresh. AC-6.
@@ -268,31 +296,45 @@ export function createBankAggregatorService(deps: {
         evt.content?.item_id !== undefined ? String(evt.content.item_id) : null;
       const statusCode = evt.content?.status_code;
       if (!providerItemId) return;
+
+      // Story 5-6 FIX (post-review): resolve the owning userId(s) FIRST via
+      // findOwnersByProviderItemId — ADR-0013 mandates a userId-scoped guard
+      // on every write. The cross-user setStatusByProviderItemId pattern
+      // previously used was a defense-in-depth gap (a crafted HMAC-valid
+      // payload could flip status across every user sharing the providerItemId).
       if (statusCode === 1010) {
-        // AC-5 — SCA expired; flip status, no transaction-fetch side-effect.
-        await deps.repository.setStatusByProviderItemId("bridge", providerItemId, "sca_required");
+        const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
+        for (const o of owners) {
+          await deps.repository.setStatus(o.userId, o.connectionId, "sca_required");
+        }
         return;
       }
       if (statusCode === 0) {
-        // Bridge scheduler refreshed the item — pull new transactions if we
-        // own this provider_item_id locally. Iterate active connections and
-        // probe the providerItemId match.
-        const all = await deps.listAllActiveConnections();
-        for (const c of all) {
-          const found = await deps.repository.findByIdForUser(c.userId, c.connectionId);
-          if (found && found.connection.providerItemId === providerItemId) {
-            try {
-              await this.refreshConnection(c.userId, { connectionId: c.connectionId });
-            } catch (err) {
-              console.warn(
-                `[bank-aggregator] webhook refresh skip ${c.connectionId}: ${
-                  err instanceof Error ? err.message : "unknown"
-                }`,
-              );
-            }
+        // Bridge scheduler refreshed the item — pull new transactions for
+        // every owning user (in practice, exactly one).
+        const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
+        for (const o of owners) {
+          try {
+            await refreshConnectionImpl(o.userId, { connectionId: o.connectionId });
+          } catch (err) {
+            console.warn(
+              `[bank-aggregator] webhook refresh skip ${o.connectionId}: ${
+                err instanceof Error ? err.message : "unknown"
+              }`,
+            );
           }
         }
+        return;
       }
+      // Story 5-6 FIX (post-review): surface unknown Bridge status_codes
+      // through pino so we can observe-and-decide instead of silently
+      // dropping them. Bridge can send 1003 / 1004 / 1005 / etc. — V1
+      // doesn't act on them, but invisible failure modes were a top-3 finding.
+      console.warn(
+        `[bank-aggregator] webhook item.refreshed unknown status_code=${
+          statusCode ?? "<missing>"
+        } for providerItemId=${providerItemId} — no action taken`,
+      );
     },
 
     async getReconnectUrl(userId, userEmail, connectionId) {

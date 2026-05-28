@@ -17,7 +17,12 @@ import { verifyBridgeSignature } from "./webhook-verifier";
 const SECRET = "fake-aaaaaaaaaaaaaaaaaaaaaaaa";
 const SECRET_PREVIOUS = "fake-bbbbbbbbbbbbbbbbbbbbbbbbb";
 
-function makeHeader(body: Uint8Array, secret: string, ts = "1700000000"): string {
+// Fixture timestamp pinned to a known epoch ; tests inject `nowMs` to keep the
+// pair within the MAX_REPLAY_AGE_SECONDS window without coupling to wall-clock.
+const TS = 1700000000;
+const NOW_MS = TS * 1000;
+
+function makeHeader(body: Uint8Array, secret: string, ts = String(TS)): string {
   const hex = createHmac("sha256", secret).update(Buffer.from(body)).digest("hex");
   return `t=${ts},v1=${hex}`;
 }
@@ -28,6 +33,7 @@ test("valid v1 signature passes", () => {
     rawBody: body,
     header: makeHeader(body, SECRET),
     secrets: [SECRET],
+    nowMs: NOW_MS,
   });
   expect(result.valid).toBe(true);
 });
@@ -54,8 +60,9 @@ test("signature mismatch is rejected", () => {
   const body = new TextEncoder().encode("x");
   const result = verifyBridgeSignature({
     rawBody: body,
-    header: "t=1700000000,v1=deadbeef",
+    header: `t=${TS},v1=deadbeef`,
     secrets: [SECRET],
+    nowMs: NOW_MS,
   });
   expect(result.valid).toBe(false);
   expect(result.reason).toBe("signature-mismatch");
@@ -67,6 +74,7 @@ test("rotation overlap — previous secret still validates", () => {
     rawBody: body,
     header: makeHeader(body, SECRET_PREVIOUS),
     secrets: [SECRET, SECRET_PREVIOUS],
+    nowMs: NOW_MS,
   });
   expect(result.valid).toBe(true);
 });
@@ -76,8 +84,23 @@ test("multiple v1 signatures — one valid is enough", () => {
   const validHex = createHmac("sha256", SECRET).update(Buffer.from(body)).digest("hex");
   const result = verifyBridgeSignature({
     rawBody: body,
-    header: `t=1700000000,v1=deadbeef,v1=${validHex}`,
+    header: `t=${TS},v1=deadbeef,v1=${validHex}`,
     secrets: [SECRET],
+    nowMs: NOW_MS,
   });
   expect(result.valid).toBe(true);
+});
+
+// Story 5-6 post-review aped-review — replay defense
+test("timestamp older than MAX_REPLAY_AGE_SECONDS is rejected (replay defense)", () => {
+  const body = new TextEncoder().encode("replay");
+  const result = verifyBridgeSignature({
+    rawBody: body,
+    header: makeHeader(body, SECRET),
+    secrets: [SECRET],
+    // 10 minutes after the signed timestamp ⇒ 600 s > 300 s budget.
+    nowMs: NOW_MS + 600_000,
+  });
+  expect(result.valid).toBe(false);
+  expect(result.reason).toBe("timestamp-too-old");
 });

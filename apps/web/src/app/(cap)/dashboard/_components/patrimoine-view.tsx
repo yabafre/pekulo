@@ -10,6 +10,7 @@
 import { View, Text } from "@pekulo/ui/client";
 import { useAccounts } from "../parametres/_hooks/use-accounts";
 import { AccountsSection } from "../parametres/_components/accounts-section";
+import { ConnectBankButton } from "./connect-bank-button";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -91,6 +92,10 @@ export function PatrimoineView() {
       </View>
 
       <AccountsSection />
+
+      {/* TEMP 5-6 — replaced by the 5-7 connections panel. Sits between
+          accounts and composition because Bridge connections feed accounts. */}
+      <ConnectBankButton />
 
       <View render="section" aria-labelledby="comp-h" flexDirection="column">
         <Text

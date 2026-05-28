@@ -126,10 +126,14 @@ function makeInMemoryRepo(): BankAggregatorRepository {
       const r = store.get(id);
       if (r && r.userId === userId) r.lastRefreshedAt = at;
     },
-    setStatusByProviderItemId: async (provider, providerItemId, status) => {
-      for (const r of store.values()) {
-        if (r.provider === provider && r.providerItemId === providerItemId) r.status = status;
+    findOwnersByProviderItemId: async (provider, providerItemId) => {
+      const owners: Array<{ userId: string; connectionId: string }> = [];
+      for (const [id, r] of store) {
+        if (r.provider === provider && r.providerItemId === providerItemId) {
+          owners.push({ userId: r.userId, connectionId: id });
+        }
       }
+      return owners;
     },
   };
 }

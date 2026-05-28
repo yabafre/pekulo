@@ -35,13 +35,21 @@ const envSchema = z.object({
   OTEL_SERVICE_NAME: z.string().min(1).default("pekulo-api"),
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString(z.string().url()),
   OTEL_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("error"),
-  // Bridge bank-aggregator (story 5-6 — ADR-0015). All required for the
-  // module to function; the webhook router falls back to "no-secrets-configured"
-  // when SIGNING_SECRET is empty so dev runs without Bridge wired won't crash.
-  // BRIDGE_CLIENT_SECRET lives ONLY in Dokploy env — never on apps/web.
-  BRIDGE_CLIENT_ID: optionalString(z.string().min(1)),
-  BRIDGE_CLIENT_SECRET: optionalString(z.string().min(1)),
-  BRIDGE_WEBHOOK_SIGNING_SECRET: optionalString(z.string().min(1)),
+  // Bridge bank-aggregator (story 5-6 — ADR-0015). The three credentials are
+  // REQUIRED — boot fails fast when missing (post-review aped-review: silent
+  // start-without-credentials would only surface as 503 on the first user
+  // click, by which point the deploy is live). BRIDGE_CLIENT_SECRET lives
+  // ONLY in Dokploy env — never on apps/web.
+  //
+  // Local dev / NODE_ENV=test: set placeholder values in .env or pass them
+  // via process.env when running `bun test` ; the spec test
+  // `apps/api/src/config/env.test.ts` documents the required surface.
+  // PREVIOUS_SECRET stays optional — only set during the 24h rotation overlap.
+  BRIDGE_CLIENT_ID: z.string().min(1, "BRIDGE_CLIENT_ID is required (Bridge developer Client-Id)"),
+  BRIDGE_CLIENT_SECRET: z.string().min(1, "BRIDGE_CLIENT_SECRET is required (Dokploy env only)"),
+  BRIDGE_WEBHOOK_SIGNING_SECRET: z
+    .string()
+    .min(1, "BRIDGE_WEBHOOK_SIGNING_SECRET is required (HMAC-SHA256 webhook secret)"),
   BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS: optionalString(z.string().min(1)),
   BRIDGE_API_BASE: z.string().url().default("https://api.bridgeapi.io"),
   BRIDGE_API_VERSION: z.string().min(1).default("2025-01-15"),

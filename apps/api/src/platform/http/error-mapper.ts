@@ -46,6 +46,12 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // (HMAC-verified path; NFR-33 mandates 401 < 100 ms).
   BANK_CONNECTION_NOT_FOUND: 404,
   BANK_CONNECTION_ALREADY_EXISTS: 409,
+  // Story 5-6 post-review aped-review: revoked items reject refreshConnection
+  // with a distinct typed error code (state-shape conflict, 409) instead of
+  // collapsing into the generic 404 NOT_FOUND. Clients can branch on the
+  // code to surface "re-initiate via initiateConnection" instead of
+  // "connection vanished".
+  BANK_CONNECTION_REVOKED: 409,
   BANK_PROVIDER_UNAVAILABLE: 503,
   BANK_SCA_REQUIRED: 409,
   BANK_WEBHOOK_INVALID_SIGNATURE: 401,

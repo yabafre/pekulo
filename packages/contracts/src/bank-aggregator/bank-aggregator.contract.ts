@@ -25,6 +25,10 @@ const bankConnectionAlreadyExistsError = {
   status: 409 as const,
   message: "bank connection already exists for this item",
 };
+const bankConnectionRevokedError = {
+  status: 409 as const,
+  message: "bank connection is revoked — re-initiate via initiateConnection",
+};
 const bankProviderUnavailableError = {
   status: 503 as const,
   message: "bank provider unavailable",
@@ -32,6 +36,10 @@ const bankProviderUnavailableError = {
 const bankScaRequiredError = {
   status: 409 as const,
   message: "SCA refresh required — user must reconnect",
+};
+const rateLimitedError = {
+  status: 429 as const,
+  message: "rate limit exceeded — retry in 60s",
 };
 
 export const bankAggregatorContractV1 = {
@@ -53,8 +61,10 @@ export const bankAggregatorContractV1 = {
   refreshConnection: oc
     .errors({
       BANK_CONNECTION_NOT_FOUND: bankConnectionNotFoundError,
+      BANK_CONNECTION_REVOKED: bankConnectionRevokedError,
       BANK_PROVIDER_UNAVAILABLE: bankProviderUnavailableError,
       BANK_SCA_REQUIRED: bankScaRequiredError,
+      RATE_LIMITED: rateLimitedError,
     })
     .input(refreshConnectionInputSchema)
     .output(refreshConnectionOutputSchema),

@@ -9,7 +9,11 @@
 import { pekuloSpacing } from "@pekulo/ui";
 import { CompassEditForm } from "./_components/compass-edit-form";
 import { CompassHistoryPanel } from "./_components/compass-history-panel";
-import { ConnectBankButton } from "./_components/connect-bank-button";
+
+// Story 5-6 (post-review aped-review): the TEMP bank-connection affordance
+// moved to /dashboard?tab=patrimoine (see _components/connect-bank-button.tsx
+// + patrimoine-view.tsx). Parametres carries compass-only — the connections
+// management UI lands in 5-7.
 
 export default function ParametresPage() {
   return (
@@ -31,7 +35,6 @@ export default function ParametresPage() {
         }}
       >
         <CompassEditForm />
-        <ConnectBankButton />
         <CompassHistoryPanel />
       </div>
     </div>

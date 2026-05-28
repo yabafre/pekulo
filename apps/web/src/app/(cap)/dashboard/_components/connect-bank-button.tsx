@@ -6,9 +6,16 @@
 // per-item status badge (active / sca_required / revoked), Reconnecter CTA
 // on SCA expiry, rename + revoke actions. Until then, this button is the
 // only UI entry point to exercise the connect flow end-to-end during dev.
+//
+// Story 5-6 (post-review aped-review): moved out of /dashboard/parametres
+// into the patrimoine tab — Bridge connections belong with the patrimoine
+// view (AccountsSection sibling), not with compass settings. The 5-7
+// connections panel will fully replace this button when it lands. The
+// cross-feature hook import below (`../parametres/_hooks/...`) is
+// intentional for the TEMP window — 5-7 owns the proper hooks placement.
 
 import { useState } from "react";
-import { useInitiateBankConnection } from "../_hooks/use-initiate-bank-connection";
+import { useInitiateBankConnection } from "../parametres/_hooks/use-initiate-bank-connection";
 
 export function ConnectBankButton() {
   const mutation = useInitiateBankConnection();

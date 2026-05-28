@@ -2,11 +2,9 @@
 // oRPC router binding bankAggregatorContract to the service (story 5-6).
 //
 // AC-9 — refreshConnection carries a per-user rate limit (10 calls / 60s).
-// Beyond the budget we surface BANK_PROVIDER_UNAVAILABLE so the wire shape
-// stays inside the declared error union (the contract intentionally omits a
-// dedicated RATE_LIMITED code for this route — the practical cause is
-// "too many refresh probes, try again in a minute" which maps cleanly to the
-// upstream-pressure semantics of BANK_PROVIDER_UNAVAILABLE).
+// Beyond the budget we surface RATE_LIMITED (HTTP 429) per RFC 6585 — the
+// canonical wire semantics for "too many refresh probes, try again later".
+// The contract declares RATE_LIMITED on refreshConnection only.
 //
 // Identity propagation: $context<{ userId, email }> mirrors the rest of the
 // modules. requireUserId / requireEmail guard the entry points.
@@ -41,7 +39,7 @@ const REFRESH_WINDOW_MS = 60_000;
 const REFRESH_MAX_PER_WINDOW = 10;
 const refreshRateLimit = new Map<string, { count: number; resetAt: number }>();
 
-function checkRefreshRate(userId: string): boolean {
+export function checkRefreshRate(userId: string): boolean {
   const now = Date.now();
   const slot = refreshRateLimit.get(userId);
   if (!slot || slot.resetAt < now) {
@@ -51,6 +49,12 @@ function checkRefreshRate(userId: string): boolean {
   if (slot.count >= REFRESH_MAX_PER_WINDOW) return false;
   slot.count++;
   return true;
+}
+
+// Test-only helper — reset the rate-limit map between runs so the > 10
+// calls / 60s assertion in routes.test.ts starts from a clean slot.
+export function __resetRefreshRateLimitForTests(): void {
+  refreshRateLimit.clear();
 }
 
 export function createBankAggregatorRouter(deps: { service: BankAggregatorService }) {
@@ -94,8 +98,8 @@ export function createBankAggregatorRouter(deps: { service: BankAggregatorServic
     refreshConnection: impl.refreshConnection.handler(async ({ context, input, errors }) => {
       requireUserId(context.userId);
       if (!checkRefreshRate(context.userId)) {
-        throw errors.BANK_PROVIDER_UNAVAILABLE({
-          message: "rate limit exceeded — retry in 60s",
+        throw errors.RATE_LIMITED({
+          message: "refresh rate limit exceeded — retry in 60s",
         });
       }
       try {
@@ -104,6 +108,9 @@ export function createBankAggregatorRouter(deps: { service: BankAggregatorServic
         if (err instanceof BankAggregatorError) {
           if (err.code === "BANK_CONNECTION_NOT_FOUND") {
             throw errors.BANK_CONNECTION_NOT_FOUND({ message: err.message });
+          }
+          if (err.code === "BANK_CONNECTION_REVOKED") {
+            throw errors.BANK_CONNECTION_REVOKED({ message: err.message });
           }
           if (err.code === "BANK_SCA_REQUIRED") {
             throw errors.BANK_SCA_REQUIRED({ message: err.message });

@@ -6,13 +6,19 @@
 //   strings matching /access[_-]token|refresh[_-]token/i appear in any
 //   captured log line, span attribute, or OTel event message.
 //
+// AC-4 type-level guard (post-review aped-review): BankConnection DTO surface
+// MUST stay at the documented 8 keys. The `_dtoSurfaceGuard` below is a
+// compile-time assertion (no runtime cost). Adding or removing a key on the
+// BankConnection schema breaks the build before the runtime DTO-stripping
+// sentinel even runs.
+//
 // V1 sentinel — exercises the SERVICE (in-memory stubs for the cross-aggregate
-// deps + a hand-rolled fake BankProvider that returns synthetic tokens) and
-// the WEBHOOK ROUTER perf path. Asserts a captured-console + captured-stderr
-// universe contains no token-shaped substring. Full DB round-trip + Vault
-// secret read lives in T29.
+// deps + a hand-rolled fake BankProvider) and the WEBHOOK ROUTER perf path.
+// Asserts a captured-console + captured-stderr universe contains no
+// token-shaped substring. Full DB round-trip lives in T29 (integration).
 
 import { test, expect } from "bun:test";
+import type { BankConnection } from "@pekulo/validators";
 import { createBankAggregatorService } from "./bank-aggregator.service";
 import { createBridgeWebhookRouter } from "./services/bridge-webhook-router";
 import type { BankAggregatorRepository } from "./bank-aggregator.repository";
@@ -22,7 +28,24 @@ import type { TransactionsService } from "../transactions/transactions.service";
 import type { Env } from "../../config/env";
 
 const TOKEN_PATTERN = /access[_-]?token|refresh[_-]?token/i;
-const SECRET_TOKEN_VALUES = ["SECRET-ACCESS-TOKEN-AAA", "SECRET-REFRESH-TOKEN-BBB"];
+
+// AC-4 compile-time type-level guard. Adding/removing any DTO key that isn't
+// in the explicit literal union below breaks the build with TS2322 — the
+// most reliable defense against a future drift that re-exposes a secret-bearing
+// column on the wire. Pekulo's `Expect<Equal<>>` helper is inlined here to
+// avoid a cross-package test-only dep.
+type AllowedBankConnectionKeys =
+  | "id"
+  | "userId"
+  | "provider"
+  | "providerItemId"
+  | "status"
+  | "displayName"
+  | "lastRefreshedAt"
+  | "createdAt";
+type _BothWaysEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _dtoSurfaceGuard: _BothWaysEqual<keyof BankConnection, AllowedBankConnectionKeys> = true;
 
 interface CapturedSink {
   lines: string[];
@@ -41,7 +64,6 @@ function makeCapturedSink(): CapturedSink {
       const found: string[] = [];
       for (const line of lines) {
         if (TOKEN_PATTERN.test(line)) found.push(line);
-        for (const v of SECRET_TOKEN_VALUES) if (line.includes(v)) found.push(line);
       }
       return { found };
     },
@@ -126,7 +148,7 @@ function makeRepo(): BankAggregatorRepository {
     findByProviderItemId: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
-    setStatusByProviderItemId: async () => undefined,
+    findOwnersByProviderItemId: async () => [],
   };
 }
 

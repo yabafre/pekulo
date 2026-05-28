@@ -78,11 +78,21 @@ export interface BankAggregatorRepository {
 
   setLastRefreshedAt(userId: string, connectionId: string, at: Date): Promise<void>;
 
-  setStatusByProviderItemId(
+  /**
+   * Cross-user lookup keyed by (provider, providerItemId). Used by the webhook
+   * handler to resolve the owning userId(s) before applying any userId-scoped
+   * mutation — ADR-0013 defense-in-depth requires the userId on every write.
+   *
+   * Returns an array because the unique constraint on bank_connections is
+   * (user_id, provider, provider_item_id) — Bridge mints distinct item_ids per
+   * user, so in practice the array carries 0 or 1 entry, but the schema does
+   * not forbid a collision and the webhook MUST handle the multi-owner case
+   * gracefully (apply per row).
+   */
+  findOwnersByProviderItemId(
     provider: BankProviderName,
     providerItemId: string,
-    status: BankConnectionStatus,
-  ): Promise<void>;
+  ): Promise<Array<{ userId: string; connectionId: string }>>;
 }
 
 function toDto(row: PersistedConnectionRow): BankConnection {
@@ -202,11 +212,12 @@ export function createBankAggregatorRepository(deps: {
       });
     },
 
-    async setStatusByProviderItemId(provider, providerItemId, status) {
-      await db.bankConnection.updateMany({
+    async findOwnersByProviderItemId(provider, providerItemId) {
+      const rows = (await db.bankConnection.findMany({
         where: { provider, providerItemId },
-        data: { status },
-      });
+        select: { id: true, userId: true },
+      })) as Array<{ id: string; userId: string }>;
+      return rows.map((r) => ({ userId: r.userId, connectionId: r.id }));
     },
   };
 }

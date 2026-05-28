@@ -270,10 +270,11 @@ export function createTransactionsService(deps: {
         providerTransactionId: r.providerTransactionId,
       }));
       try {
-        const { persisted, rows: persistedRows } = await deps.repository.bulkCreateFromProvider(
-          userId,
-          insertRows,
-        );
+        const {
+          persisted,
+          raceSkipped,
+          rows: persistedRows,
+        } = await deps.repository.bulkCreateFromProvider(userId, insertRows);
         for (const row of persistedRows) {
           try {
             await categoriseAfterCreateImpl({
@@ -289,7 +290,13 @@ export function createTransactionsService(deps: {
             );
           }
         }
-        return { persisted, skipped: existing.size };
+        // Story 5-6 FIX (post-review aped-review): the dedup pre-flight and
+        // the per-row insert are non-atomic. Concurrent webhook handlers can
+        // both pass the pre-flight then race the insert ; the partial UNIQUE
+        // index makes the loser's row P2002 — `raceSkipped` carries that
+        // count up so observers see "skipped = pre-flight-dedup + race-dedup"
+        // as one number.
+        return { persisted, skipped: existing.size + raceSkipped };
       } catch (err) {
         if (err instanceof PekuloError) throw err;
         throw new PekuloError(

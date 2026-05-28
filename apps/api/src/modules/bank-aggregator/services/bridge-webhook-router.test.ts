@@ -68,10 +68,17 @@ test("valid signature → 204 + service dispatch", async () => {
     content: { item_id: 1, status_code: 0 },
   });
   const hex = createHmac("sha256", SECRET).update(bodyStr).digest("hex");
+  // Story 5-6 post-review aped-review: webhook verifier rejects timestamps
+  // older than MAX_REPLAY_AGE_SECONDS (300s). Test uses the wall-clock now so
+  // the signed timestamp stays in the live window.
+  const nowSec = Math.floor(Date.now() / 1000);
   const res = await router.handle(
     new Request("http://localhost/internal/bridge/webhook", {
       method: "POST",
-      headers: { "content-type": "application/json", "bridgeapi-signature": `t=1,v1=${hex}` },
+      headers: {
+        "content-type": "application/json",
+        "bridgeapi-signature": `t=${nowSec},v1=${hex}`,
+      },
       body: bodyStr,
     }),
   );

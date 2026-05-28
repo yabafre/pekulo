@@ -75,13 +75,15 @@ export interface TransactionsRepository {
   ): Promise<{ persisted: number; rows: Transaction[] }>;
   /**
    * Story 5-6 T20 — bulk insert from a provider (Bridge) with pre-resolved
-   * accountIds. Wraps tx.transaction.create in a $transaction so prefixed-ids
-   * fires per row + atomic batch.
+   * accountIds. Per-row inserts so a single P2002 unique-violation (concurrent
+   * webhook race) skips the colliding row instead of rolling the chunk back.
+   * `raceSkipped` is the count of rows dropped because the partial UNIQUE
+   * index already had a winner — the caller sums it into the dedup tally.
    */
   bulkCreateFromProvider(
     userId: string,
     rows: ProviderTransactionInsertRow[],
-  ): Promise<{ persisted: number; rows: Transaction[] }>;
+  ): Promise<{ persisted: number; raceSkipped: number; rows: Transaction[] }>;
   /**
    * Story 5-6 T20 — single round-trip dedup pre-flight. Returns the subset of
    * providerTxIds that already exist for this user+provider.
@@ -288,40 +290,62 @@ export function createTransactionsRepository(deps: {
       // Chunked at 50 rows / transaction to stay under Prisma's default 5s
       // interactive-transaction timeout on the Supabase pooler (smoke-test
       // 2026-05-27 — fresh Bridge sync returned ~80 transactions and hit the
-      // timeout). Each chunk wraps an interactive tx so prefixedIds fires;
-      // chunk boundaries are safe because the dedup pre-flight ensures no
-      // duplicate rows arrive here and the partial UNIQUE index protects
-      // against retries.
+      // timeout).
+      //
+      // Race tolerance (post-review aped-review): the dedup pre-flight in
+      // transactions.service.importFromProvider is non-atomic with the insert.
+      // Concurrent webhook handlers can both see 0 existing IDs and both call
+      // here — the second batch hits P2002 on the partial UNIQUE index. We
+      // catch P2002 per-row and skip the colliding row instead of failing the
+      // whole batch — the partial UNIQUE index IS the source of truth for
+      // dedup ; the pre-flight is just a perf optimization.
       const CHUNK_SIZE = 50;
       const inserted: TransactionRow[] = [];
+      let raceSkipped = 0;
       for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
         const chunk = rows.slice(i, i + CHUNK_SIZE);
-        await deps.client.$transaction(
-          async (tx) => {
-            for (const row of chunk) {
-              const created = (await tx.transaction.create({
-                data: {
-                  userId,
-                  accountId: row.accountId,
-                  occurredOn: row.occurredOn,
-                  label: row.label,
-                  amount: row.amount,
-                  type: row.type,
-                  category: row.category,
-                  isImprevu: false,
-                  notes: null,
-                  transferPairId: null,
-                  provider: row.provider,
-                  providerTransactionId: row.providerTransactionId,
-                } as unknown as Parameters<typeof tx.transaction.create>[0]["data"],
-              })) as TransactionRow;
-              inserted.push(created);
+        // Each row gets its own short transaction so P2002 on a single row
+        // does not roll back successful peers in the same chunk. We trade the
+        // chunk-level atomicity for the race-safety property: the partial
+        // UNIQUE index makes per-row writes idempotent, so partial-batch
+        // rollback would only erase work other concurrent writers can re-do.
+        for (const row of chunk) {
+          try {
+            const created = (await deps.client.transaction.create({
+              data: {
+                userId,
+                accountId: row.accountId,
+                occurredOn: row.occurredOn,
+                label: row.label,
+                amount: row.amount,
+                type: row.type,
+                category: row.category,
+                isImprevu: false,
+                notes: null,
+                transferPairId: null,
+                provider: row.provider,
+                providerTransactionId: row.providerTransactionId,
+              } as unknown as Parameters<typeof deps.client.transaction.create>[0]["data"],
+            })) as TransactionRow;
+            inserted.push(created);
+          } catch (err) {
+            // Duck-typed P2002 (mirrors realestate.repository.ts:202) — avoids
+            // pulling Prisma as a runtime value import and stays compatible
+            // with the fake-realestate test double that emits `{ code: "P2002" }`.
+            if (
+              err !== null &&
+              typeof err === "object" &&
+              "code" in err &&
+              (err as { code?: string }).code === "P2002"
+            ) {
+              raceSkipped++;
+              continue;
             }
-          },
-          { timeout: 30_000 },
-        );
+            throw err;
+          }
+        }
       }
-      return { persisted: inserted.length, rows: inserted.map(toDto) };
+      return { persisted: inserted.length, raceSkipped, rows: inserted.map(toDto) };
     },
 
     async findExistingProviderTxIds(userId, provider, providerTxIds) {

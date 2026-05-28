@@ -70,6 +70,10 @@ export const refreshConnectionOutputSchema = z.object({
   fetched: z.number().int().nonnegative(),
   persisted: z.number().int().nonnegative(),
   skipped: z.number().int().nonnegative(),
-  lastRefreshedAt: z.string().datetime(),
+  // Story 5-6 post-review aped-review: nullable when Bridge returned 0 rows
+  // on a non-first refresh — the service intentionally does NOT advance the
+  // stamp so the next tick re-queries the same window (silent-data-loss
+  // defense). Mirrors the BankConnection DTO's lastRefreshedAt shape.
+  lastRefreshedAt: z.string().datetime().nullable(),
 });
 export type RefreshConnectionOutput = z.infer<typeof refreshConnectionOutputSchema>;
