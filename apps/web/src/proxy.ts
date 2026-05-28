@@ -1,7 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { buildSecurityHeaders } from "@/lib/security/headers";
 
 export async function proxy(request: NextRequest) {
+  // Apply edge security headers to EVERY exit path (pass-through + both
+  // redirects) so no response escapes unhardened.
+  const securityHeaders = buildSecurityHeaders({
+    dev: process.env.NODE_ENV === "development",
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  });
+  const withSecurity = (res: NextResponse): NextResponse => {
+    for (const [name, value] of Object.entries(securityHeaders)) {
+      res.headers.set(name, value);
+    }
+    return res;
+  };
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -33,14 +47,14 @@ export async function proxy(request: NextRequest) {
 
   if (!isStatic) {
     if (!user && !isAuthPage && !isApi && pathname !== "/") {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
+      return withSecurity(NextResponse.redirect(new URL("/auth/login", request.url)));
     }
     if (user && isAuthPage) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return withSecurity(NextResponse.redirect(new URL("/dashboard", request.url)));
     }
   }
 
-  return response;
+  return withSecurity(response);
 }
 
 export const config = {
