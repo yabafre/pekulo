@@ -55,6 +55,12 @@ export interface BankAggregatorService {
   refreshAll(): Promise<void>;
   handleWebhookEvent(event: unknown): Promise<void>;
   getReconnectUrl(userId: string, userEmail: string, connectionId: string): Promise<string>;
+  renameConnection(
+    userId: string,
+    connectionId: string,
+    displayName: string,
+  ): Promise<BankConnection>;
+  revokeConnection(userId: string, connectionId: string): Promise<{ ok: true }>;
 }
 
 function mapBridgeAccountKind(kind: ProviderBankAccount["kind"]): "banque" | "livret" | "autre" {
@@ -348,6 +354,34 @@ export function createBankAggregatorService(deps: {
         forceReauthentication: false,
       });
       return session.connectUrl;
+    },
+
+    async renameConnection(userId, connectionId, displayName) {
+      const updated = await deps.repository.setDisplayName(userId, connectionId, displayName);
+      if (!updated) throw bankConnectionNotFound(connectionId);
+      return updated.connection;
+    },
+
+    async revokeConnection(userId, connectionId) {
+      const found = await deps.repository.findByIdForUser(userId, connectionId);
+      if (!found) throw bankConnectionNotFound(connectionId);
+      // Idempotent: a connection that is already 'revoked' needs no Bridge
+      // call and no re-write — return ok so a double-confirm is harmless.
+      if (found.connection.status !== "revoked") {
+        const userUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
+        if (userUuid) {
+          try {
+            await deps.provider.revokeItem({
+              userUuid,
+              providerItemId: found.connection.providerItemId,
+            });
+          } catch (err) {
+            throw bankProviderUnavailable(err instanceof Error ? err.message : "revoke failed");
+          }
+        }
+        await deps.repository.setStatus(userId, connectionId, "revoked");
+      }
+      return { ok: true as const };
     },
   };
 }
