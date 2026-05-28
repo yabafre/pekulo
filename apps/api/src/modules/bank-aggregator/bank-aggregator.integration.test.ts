@@ -429,7 +429,6 @@ describe("bank-aggregator rename/revoke/reconnect HTTP boundary (T5)", () => {
     const jwtVerifier = createJwtVerifier({ secret: SECRET, issuer: ISSUER, audience: AUDIENCE });
     const router = createBankAggregatorRouter({ service: makeRouteService() });
     const orpcRouter: PekuloRpcRouter = { bankaggregator: router };
-    const port = 14600 + Math.floor(Math.random() * 200);
     const app = new Elysia().onError(({ error, set }) => {
       const requestId = extractRequestId(error) ?? crypto.randomUUID();
       const mapped = mapErrorToOrpcResponse(error, requestId);
@@ -437,10 +436,12 @@ describe("bank-aggregator rename/revoke/reconnect HTTP boundary (T5)", () => {
       return mapped.body;
     });
     mountOrpc(app, { jwtVerifier, orpcRouter });
+    // OS-assigned port (0) — avoids the random-port collisions that flake the
+    // full-suite run when several integration files boot Elysia concurrently.
     await new Promise<void>((resolve) => {
-      app.listen({ port, hostname: "127.0.0.1" }, () => resolve());
+      app.listen({ port: 0, hostname: "127.0.0.1" }, () => resolve());
     });
-    baseUrl = `http://127.0.0.1:${port}`;
+    baseUrl = `http://127.0.0.1:${app.server?.port}`;
     appHandle = { stop: async () => void (await app.stop()) };
     token = await signValid();
     await fetch(`${baseUrl}/rpc/v1/bankaggregator/listConnections`, {

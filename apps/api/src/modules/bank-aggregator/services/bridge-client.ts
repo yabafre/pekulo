@@ -109,6 +109,22 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
     return result.access_token;
   }
 
+  // Resolve the set of Bridge account ids that belong to one item. Unlike
+  // /transactions, the /accounts endpoint DOES honor `item_id` (confirmed live
+  // 2026-05-28), so this is the authoritative item→accounts mapping that
+  // listTransactions filters against.
+  async function fetchItemAccountIds(
+    userUuid: string,
+    providerItemId: string,
+  ): Promise<Set<string>> {
+    const bearer = await mintUserAccessToken(userUuid);
+    const data = await reqJson<{ resources: Array<{ id: number }> }>(
+      `/v3/aggregation/accounts?item_id=${encodeURIComponent(providerItemId)}`,
+      { method: "GET", bearer },
+    );
+    return new Set(data.resources.map((a) => String(a.id)));
+  }
+
   return {
     async createUser({ externalUserId }) {
       // Bridge enforces external_user_id unique per app. 409 = "user already
@@ -201,44 +217,63 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
     },
 
     async listTransactions({ userUuid, providerItemId, since }) {
-      // Bridge v3 — flat REST: GET /v3/aggregation/transactions?item_id=...&since=...
+      // Bridge v3 — GET /v3/aggregation/transactions does NOT honor `item_id`
+      // (confirmed live 2026-05-28: a bogus item_id still returns the user's
+      // FULL set across every item). The documented + working filter is
+      // `account_id`. So we resolve THIS item's account ids (/accounts honors
+      // item_id) and keep only transactions belonging to them — otherwise a
+      // user with ≥2 connected banks would see item A's refresh pull item B's
+      // transactions. We also follow the `next_uri` cursor so items with >500
+      // transactions are fully fetched (the old limit=500 cap silently
+      // truncated older rows).
       const bearer = await mintUserAccessToken(userUuid);
-      const params = new URLSearchParams({ limit: "500", item_id: providerItemId });
-      if (since) params.set("since", since.toISOString());
-      const data = await reqJson<{
-        resources: Array<{
-          id: number;
-          account_id: number;
-          amount: number;
-          clean_description?: string;
-          provider_description?: string;
-          category_id: number | null;
-          date: string;
-          updated_at: string;
-          deleted?: boolean;
-        }>;
-      }>(`/v3/aggregation/transactions?${params.toString()}`, {
-        method: "GET",
-        bearer,
-      });
-      let latest: Date | null = null;
-      // Story 5-6 V1 known limitation (post-review aped-review): we ask for
-      // limit=500 and do NOT follow Bridge's `next_uri` cursor. At Pekulo's V1
-      // perso scale (≤10 users, single SG + Revolut), one tick rarely returns
-      // >500 transactions. Warn loudly when the cap is hit so we know to
-      // implement cursor pagination in a follow-up story (5-7 likely owns it).
-      if (data.resources.length >= 500) {
+      const itemAccountIds = await fetchItemAccountIds(userUuid, providerItemId);
+
+      interface TxnRow {
+        id: number;
+        account_id: number;
+        amount: number;
+        clean_description?: string;
+        provider_description?: string;
+        category_id: number | null;
+        date: string;
+        updated_at: string;
+        deleted?: boolean;
+      }
+      interface TxnPage {
+        resources: TxnRow[];
+        pagination?: { next_uri?: string | null };
+      }
+
+      const PAGE_LIMIT = 500;
+      const MAX_PAGES = 100; // ≤ 50k rows/user (NFR-15) — guards an unbounded cursor.
+      const first = new URLSearchParams({ limit: String(PAGE_LIMIT) });
+      if (since) first.set("since", since.toISOString());
+      let nextPath: string | null = `/v3/aggregation/transactions?${first.toString()}`;
+
+      const rows: TxnRow[] = [];
+      let pages = 0;
+      while (nextPath && pages < MAX_PAGES) {
+        const page: TxnPage = await reqJson<TxnPage>(nextPath, { method: "GET", bearer });
+        rows.push(...page.resources);
+        nextPath = page.pagination?.next_uri ?? null;
+        pages += 1;
+      }
+      if (nextPath) {
         console.warn(
-          `[bridge-client] listTransactions hit 500-row cap for item_id=${providerItemId} since=${since?.toISOString() ?? "<null>"} — implement cursor follow-through (V1 known limitation)`,
+          `[bridge-client] listTransactions hit MAX_PAGES=${MAX_PAGES} for item_id=${providerItemId} — older transactions left unfetched this tick`,
         );
       }
+
       // Bridge v3 — `clean_description` is the friendly label ("CB Carrefour"),
       // `provider_description` is the raw bank string ("PAIEMENT CB ..."). Both
       // can be empty for some operation_types — fall back to "Transaction
-      // bancaire" so Prisma's non-null `label` constraint never trips. We also
-      // skip deleted=true rows (Bridge soft-deletes via this flag).
-      const transactions = data.resources
-        .filter((r) => !r.deleted)
+      // bancaire" so Prisma's non-null `label` constraint never trips. We skip
+      // deleted=true rows (Bridge soft-deletes via this flag) and rows whose
+      // account does not belong to this item (the item_id-ignored guard above).
+      let latest: Date | null = null;
+      const transactions = rows
+        .filter((r) => !r.deleted && itemAccountIds.has(String(r.account_id)))
         .map((r) => {
           const updatedAt = new Date(r.updated_at);
           if (!latest || updatedAt > latest) latest = updatedAt;
