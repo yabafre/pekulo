@@ -3298,71 +3298,57 @@ Iron Law sweep — see `## Review Record` block below for the captured Bun/vites
 
 ## Review Record
 
-### Pass 1 — `aped-review 5-6` · 2026-05-27 · Reviewer: Claude (Opus 4.7, fresh session)
+`aped-review 5-6` — Pass 1: 2026-05-27 · Reviewer: Claude (Opus 4.7, fresh session). 3 auditors dispatched in parallel (Spec + Code + Edge & hallucination) + inline git-audit. All three returned `CHANGES_REQUESTED` (HIGH confidence). User chose `[F] Fix tout` — every finding addressed in a single fix-cycle on the same branch, then status flipped `review → done`. Pass 2 (post-fix): verified green via the Iron Law sweep under `### Verification`.
 
-**Verdict:** CHANGES_REQUESTED on Pass 1 → REPAIRED on the same session → green Iron Law sweep below.
+### Findings
 
-**Dispatched auditors (3 parallel + inline git-audit):**
+#### Resolved
 
-1. **Spec auditor** — Verdict `CHANGES_REQUESTED` · HIGH confidence. 14 findings across 9 ACs (2 IMPL pur — AC-3, AC-6 ; 7 PARTIAL ; 0 MISSING) and 32 tasks (21/32 fully present ; 10/32 PARTIAL — code shipped but tests absent ; 1/32 unverifiable Iron Law sweep). Top blockers: T14/T19/T26 test files missing ; T20/T21/T22 zero coverage ; AC-4 type-level guard absent ; AC-9 rate-limit returned 503 not 429 ; `## File List` + `## Dev Agent Record` unpopulated ; AC-1 Bridge v3 deviation undocumented.
+- **[BLOCKER] AC-9 rate-limit returned HTTP 503, not 429** (Spec + Code) — `refreshConnection` threw `BANK_PROVIDER_UNAVAILABLE` on the rate-limit fast-path. Fixed: `RATE_LIMITED` added to `bankAggregatorContract.refreshConnection` errors + `bank-aggregator.errors.ts` factory + routes throw `errors.RATE_LIMITED` ; `error-mapper.ts` maps it to 429. Coverage: `bank-aggregator.routes.test.ts` (10th-vs-11th boundary, per-user isolation, 429 mapping).
+- **[BLOCKER] Webhook handler lacked userId-scoped guard** (Code, ADR-0013) — `setStatusByProviderItemId` mass-updated cross-user. Fixed: new `findOwnersByProviderItemId(provider, itemId) → [{userId, connectionId}]` repo method ; handler resolves owners first, then calls userId-scoped `setStatus` per owner. `setStatusByProviderItemId` deleted.
+- **[BLOCKER] Concurrent-webhook P2002 → silent transaction loss** (Edge) — dedup pre-flight non-atomic with insert. Fixed: `bulkCreateFromProvider` per-row P2002 catch + `raceSkipped` counter folded into the `skipped` tally. Coverage: `transactions.repository.test.ts` + `transactions.service.test.ts`.
+- **[BLOCKER] `findOrCreateAutoFromProvider` race → unhandled 500** (Edge) — parallel `completeConnection` both call `createAuto`. Fixed: P2002 catch + race-safe re-read (mirrors `resolveProviderUserUuid`). Coverage: `accounts.service.test.ts` T22 race test.
+- **[BLOCKER] AC-4 type-level guard absent** (Spec) — only the runtime DTO-stripping sentinel shipped. Fixed: compile-time `_dtoSurfaceGuard` (`keyof BankConnection` ≡ 8-key set) in `bank-aggregator.security.test.ts`.
+- **[BLOCKER] Test files missing — T14/T19/T26 + T20/T21/T22 zero coverage** (Spec) — Fixed: `bank-aggregator.repository.test.ts` (5), `bank-aggregator.module.test.ts` (2), `bank-aggregator.routes.test.ts` (4), `use-complete-bank-connection.test.tsx` (2 vitest), `accounts.service.test.ts` +3, `transactions.repository.test.ts` +4, `transactions.service.test.ts` +2.
+- **[BLOCKER] `## File List` + `## Dev Agent Record` unpopulated** (Spec + git-audit) — Fixed: both populated above + `## Deviations` enumerated.
+- **[MAJOR] AC-1 Bridge v3 deviation undocumented** (Spec) — `{itemId, userUuid}` vs draft `{code, state}`. Fixed: AC-1 reformulated + ADR-0015 amended (stateful-widget pivot) + `## Deviations`.
+- **[MAJOR] No webhook timestamp replay defense** (Code + Edge) — verifier ignored `t=`. Fixed: parse `t=` + reject `|now - t| > 300s` ; `nowMs` injectable. Coverage: `webhook-verifier.test.ts` replay test.
+- **[MAJOR] No fetch timeout on Bridge HTTP** (Code) — Fixed: `AbortSignal.timeout(10_000)` on every call ; AbortError → `bankProviderUnavailable`.
+- **[MAJOR] `bridge-client.test.ts` incomplete-mock (anti-pattern 4)** (Code) — mock used stale `description`. Fixed: switched to v3 `clean_description` + label assertion + 4 more method tests (listAccounts/revokeItem/getItem/createUser-409).
+- **[MINOR] refreshConnection on revoked → wrong 404** (Edge) — Fixed: `bankConnectionRevoked` → `BANK_CONNECTION_REVOKED` (409).
+- **[MINOR] Unknown webhook status_codes silently dropped** (Edge) — Fixed: `console.warn` on the unknown branch.
+- **[MINOR] setLastRefreshedAt advanced on empty response → silent data loss** (Edge) — Fixed: stamp only when Bridge returned data (or first-ever refresh).
+- **[MINOR] `this.refreshConnection` binding fragile** (Edge) — Fixed: extracted to named closure `refreshConnectionImpl` ; cron immediate first-tick added.
+- **[MINOR] Dead test code** (Code) — Fixed: `SECRET_TOKEN_VALUES` + stale `tokens:{}` stub removed.
+- **[MINOR] BRIDGE_* env keys optional** (Spec) — Fixed: `BRIDGE_CLIENT_ID`/`_SECRET`/`_WEBHOOK_SIGNING_SECRET` required at boot (`z.string().min(1)`).
+- **[MINOR] TEMP ConnectBankButton in wrong surface** — moved `parametres/_components/` → `dashboard/_components/` + mounted in `patrimoine-view.tsx` (5-7 replaces).
 
-2. **Code auditor** — Verdict `CHANGES_REQUESTED` · HIGH confidence. 8 findings across security / reliability / test-quality lenses. Blockers: rate-limit code wrong (503 vs 429) ; `setStatusByProviderItemId` lacks userId guard (ADR-0013 defense-in-depth) ; `bank-aggregator.repository.test.ts` + `.module.test.ts` missing. Reliability gaps: no webhook timestamp validation ; no fetch timeout on Bridge HTTP. Lessons: anti-pattern 4 — `bridge-client.test.ts` mock used stale `description` instead of v3 `clean_description` ; SECRET_TOKEN_VALUES dead code in security.test.ts.
+#### Dismissed
 
-3. **Edge & hallucination auditor** — Verdict `CHANGES_REQUESTED` · HIGH confidence. 8 boundary findings (2 HIGH, 3 MEDIUM, 3 LOW), 0 hallucinations. Concurrent-webhook P2002 → silent transaction loss ; Bridge pagination 500-cap with no cursor follow-through ; `findOrCreateAutoFromProvider` race → unhandled 500 ; refreshConnection on revoked → wrong 404 semantics ; unknown status_codes silently dropped ; setLastRefreshedAt advances on empty response (silent data loss) ; this.refreshConnection binding fragile ; HMAC verifier ignores `t=` (replay defense).
+- **[MEDIUM] Bridge pagination 500-row cap with no cursor follow-through** (Edge) — kept as a V1 known-limit (Pekulo perso scale ≤10 users, SG + Revolut rarely exceeds 500 tx/tick). Mitigation: `console.warn` fires when the cap is hit. Cursor follow-through deferred to a follow-up story (see `### Verification` follow-ups).
+- **[INFO] 10 oxlint `no-shadow` warnings in apps/api** — pre-existing in files outside 5-6 scope ; the 2 introduced by this pass in `bank-aggregator.service.test.ts` were fixed. Lint exits 0 (warnings, not errors).
 
-4. **Inline git-audit** — `## File List` empty (story contract breach) ; could not compare diff vs expected files. Also flagged at Spec level.
+#### Unresolved (story stays in `review`)
 
-**[F] gate decision:** User chose `[F] Fix tout` — fix all findings + closure cleanup (ADR amendment, AC reformulation, ConnectBankButton move, lesson codification, V1.5 migration documentation). Executed in a single session without bouncing back to dev.
+_None — all blockers + majors + minors resolved or explicitly dismissed. Story cleared to `done`._
 
-**Fix-cycle changes (high-level):**
+### Verification
 
-- **Spec / Docs alignment:** ADR-0015 amended (Bridge v3 stateful-widget post-impl pivot + V1.5 DROP COLUMN follow-up documented) ; 5 new lessons codified in `docs/lessons.md` (Bridge v3 stateful, flat REST, P2002 race, CHECK constraint pre-flight, 409 idempotency) ; ACs 1/7/9 reformulated to match delivered architecture ; `## File List` + `## Dev Agent Record` populated above ; `## Deviations` enumerated.
-- **Code fixes:** rate-limit code 503 → 429 (`RATE_LIMITED` added to contract + errors module + ORPC_HTTP_STATUS_BY_CODE) ; webhook handler now userId-scopes via new `findOwnersByProviderItemId` repo method (ADR-0013) ; `bulkCreateFromProvider` per-row P2002 catch + `raceSkipped` tally ; `findOrCreateAutoFromProvider` P2002 catch + race-safe re-read ; webhook verifier rejects `|now - t| > 300s` (replay defense) ; Bridge HTTP `AbortSignal.timeout(10_000)` ; `bankConnectionRevoked` (409) replaces wrong 404 for revoked items ; unknown webhook status_codes log warning ; `refreshConnection` stamp only when Bridge returned data ; `refreshConnection` extracted to named closure (binding fix) ; cron immediate first-tick ; BRIDGE_* env keys required at boot ; Bridge pagination 500-cap documented as V1 known limit.
-- **Tests added (8 new files + extensions to existing):** `bank-aggregator.repository.test.ts` (5 cases) ; `bank-aggregator.module.test.ts` (2 cases) ; `bank-aggregator.routes.test.ts` (4 cases — AC-9) ; `use-complete-bank-connection.test.tsx` (2 vitest cases) ; `bridge-client.test.ts` (5 new cases: listAccounts, revokeItem, getItem, createUser-409, clean_description label) ; `accounts.service.test.ts` (3 new T22 cases) ; `transactions.repository.test.ts` (4 new T20 cases) ; `transactions.service.test.ts` (2 new T21 cases) ; `bank-aggregator.service.test.ts` (1 new unknown-status_code test) ; `webhook-verifier.test.ts` (1 new replay-defense test + nowMs injection on existing) ; AC-4 type-level `_dtoSurfaceGuard` added in `bank-aggregator.security.test.ts`.
-- **Cleanup:** dead `SECRET_TOKEN_VALUES` removed ; stale `tokens: {...}` stub field removed ; TEMP ConnectBankButton moved from `parametres/_components/` → `dashboard/_components/` and mounted in `patrimoine-view.tsx` (replaced by 5-7).
-
-### Iron Law sweep — fresh evidence (captured 2026-05-27, in-session)
+Iron Law sweep — fresh evidence captured in-session (2026-05-27, re-confirmed at closure 2026-05-28):
 
 ```
-$ bun --filter='@pekulo/api' run typecheck
-@pekulo/api typecheck: Exited with code 0
-
-$ bun --filter='@pekulo/api' run test
-@pekulo/api test:  617 pass
-@pekulo/api test:  0 fail
-@pekulo/api test: Ran 617 tests across 68 files. [1172.00ms]
-
-$ bun --filter='@pekulo/api' run lint
-@pekulo/api lint: Found 10 warnings and 0 errors.
-@pekulo/api lint: Finished in 660ms on 702 files with 158 rules using 10 threads.
-
-$ bun --filter='@pekulo/api' run db:rls-audit
-[rls-audit] OK — 17 tables checked: kpis (3 policies), monthly_tracking (3 policies),
-hypotheses (3 policies), transactions (4 policies), accounts (4 policies), holdings
-(4 policies), holding_lots (4 policies), compass_history (2 policies), milestones
-(4 policies), account_balance_log (2 policies), real_estate (4 policies),
-real_estate_mortgage (4 policies), real_estate_rental (4 policies),
-real_estate_valuations (2 policies), monthly_records (4 policies),
-bank_connections (4 policies), bridge_users (2 policies)
-
-$ bun --filter='@pekulo/web' run typecheck
-@pekulo/web typecheck: Exited with code 0
-
-$ bun --filter='@pekulo/web' run test
-@pekulo/web test:  Test Files  56 passed (56)
-@pekulo/web test:       Tests  103 passed (103)
-@pekulo/web test: Exited with code 0
-
-$ bun --filter='@pekulo/web' run lint
-@pekulo/web lint: Found 0 warnings and 0 errors.
+$ bun --filter='@pekulo/api' run typecheck      → Exited with code 0
+$ bun --filter='@pekulo/api' run test           → 617 pass / 0 fail (68 files, 1172ms)
+$ bun --filter='@pekulo/api' run lint           → 10 warnings / 0 errors
+$ bun --filter='@pekulo/api' run db:rls-audit    → OK — 17 tables, incl. bank_connections (4 policies), bridge_users (2 policies)
+$ bun --filter='@pekulo/web' run typecheck       → Exited with code 0
+$ bun --filter='@pekulo/web' run test            → 103 pass / 0 fail (56 files)
+$ bun --filter='@pekulo/web' run lint            → 0 warnings / 0 errors
 ```
 
-### Pass 2 — closure verdict
+Doc-schema validation (post-fix): `validate-story.sh`, `validate-state.sh`, `validate-epic-context.sh`, `lint-placeholders.sh` all clean (run at closure).
 
-**Status flip recommendation:** `review` → `done` (subject to user `[A]pprove` after reading this record).
-
-**Remaining warnings (non-blocking, by design):**
-- 10 oxlint warnings in apps/api (mostly `no-shadow` in existing files outside 5-6 scope ; the 2 new ones in `bank-aggregator.service.test.ts` were fixed in this pass).
-- V1.5 follow-up: `ALTER TABLE bank_connections DROP COLUMN access_token_secret_id, DROP COLUMN refresh_token_secret_id` once no other Pekulo surface adopts Vault. Documented in ADR-0015 amendment.
-- V1.5 follow-up: Bridge pagination cursor follow-through (current `limit=500` cap warns via `console.warn` when hit).
-- V1.5 follow-up: `findOrCreate` helper extraction (`apps/api/src/database/race-safe-find-or-create.ts`) once 3+ usage sites accumulate (currently: bridge_users + accounts.findOrCreateAutoFromProvider + future webhook_events.findOrInsert).
+V1.5 follow-ups (out of 5-6 scope, tracked for the public ramp):
+- `ALTER TABLE bank_connections DROP COLUMN access_token_secret_id, DROP COLUMN refresh_token_secret_id` once no other Pekulo surface adopts Vault (documented in ADR-0015 amendment).
+- Bridge pagination cursor follow-through (current `limit=500` cap warns via `console.warn`).
+- `race-safe-find-or-create.ts` helper extraction once 3+ usage sites accumulate (bridge_users + accounts.findOrCreateAutoFromProvider + future webhook_events.findOrInsert).
