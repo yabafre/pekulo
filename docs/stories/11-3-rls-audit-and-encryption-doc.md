@@ -19,7 +19,7 @@
 
 ## Tasks
 
-- [ ] **T1 — Static migration RLS-lint script** [AC: AC-1]
+- [x] **T1 — Static migration RLS-lint script** [AC: AC-1]
   Create `apps/api/scripts/rls-migration-audit.ts` with the exact content below. It scans every `apps/api/prisma/migrations/**/migration.sql`, aggregates created public tables, RLS-enabled tables, and policy counts across **all** files (a table may be created in one migration and have RLS added in a later one), then fails — naming the table — if any created user-data table lacks `ENABLE ROW LEVEL SECURITY` or has fewer than the minimum policies. Non-user tables must be explicitly allow-listed in `NON_USER_TABLES` (forces a conscious decision when one is added).
 
   ```ts
@@ -124,7 +124,7 @@
   Expected: `[rls-migration-audit] OK — <N> user-data tables, all RLS-guarded.`, exit 0.
   Commit: `git add apps/api/scripts/rls-migration-audit.ts apps/api/package.json && git commit -m "feat(#50): static migration RLS-lint gate (AC-1)"`
 
-- [ ] **T2 — Test the static gate** [AC: AC-1]
+- [x] **T2 — Test the static gate** [AC: AC-1]
   Create `apps/api/scripts/rls-migration-audit.test.ts` with the content below. It writes two throwaway migration dirs to a tmp folder (one clean, one with a table missing RLS) and asserts the audit's drift detection by invoking the parse logic. Because the script `process.exit`s, the test re-implements the assertion against a small fixture string using the same regexes — keeping the test hermetic (no real migrations dependency).
 
   ```ts
@@ -185,7 +185,7 @@
   Expected: `4 pass`, `0 fail`, exit 0.
   Commit: `git add apps/api/scripts/rls-migration-audit.test.ts && git commit -m "test(#50): rls-migration-audit AC-1 cases"`
 
-- [ ] **T3 — Re-add the rls-audit CI gate (no DB)** [AC: AC-1]
+- [x] **T3 — Re-add the rls-audit CI gate (no DB)** [AC: AC-1]
   In `.github/workflows/pr.yml`, replace the removed-job comment block (lines 72-77, the `# rls-audit: removed 2026-05-24 ...` paragraph) with the job below. It runs the static gate — no Postgres, no `RLS_AUDIT_DATABASE_URL` secret, ~no extra quota.
   ```yaml
     rls-audit:
@@ -201,7 +201,7 @@
   Expected: exit 0 (the committed migrations are all RLS-guarded).
   Commit: `git add .github/workflows/pr.yml && git commit -m "ci(#50): re-add rls-audit as static migration gate (AC-1)"`
 
-- [ ] **T4 — Cross-tenant isolation test (webhook path)** [AC: AC-5]
+- [x] **T4 — Cross-tenant isolation test (webhook path)** [AC: AC-5]
   Append the `describe` block below to the END of `apps/api/src/modules/bank-aggregator/bank-aggregator.integration.test.ts` (after the existing lifecycle `test(...)`). It reuses the in-file fakes `makeInMemoryRepo()`, `makeFakeProvider()`, `makeStubAccountsService()`, `makeStubTransactionsService()` and the exact `createBankAggregatorService({...})` composition the lifecycle test uses (lines 290-303 — quoted in Dev Notes § Step-0). Seed two users with distinct `providerItemId`s, fire a webhook for user B's item, assert A is untouched.
   ```ts
   // Cross-tenant isolation (story 11-3, AC-5). A webhook for B's providerItemId
@@ -242,7 +242,7 @@
   Expected: all tests pass (existing + 1 new), `0 fail`, exit 0.
   Commit: `git add apps/api/src/modules/bank-aggregator/bank-aggregator.integration.test.ts && git commit -m "test(#50): cross-tenant isolation on webhook path (AC-5)"`
 
-- [ ] **T5 — Correct the "RLS catches the bug" wording** [AC: AC-4]
+- [x] **T5 — Correct the "RLS catches the bug" wording** [AC: AC-4]
   In `docs/adr/0013-prisma-rls-defense-in-depth.md`, replace the clause in the "Defense in depth" bullet (currently: _"Rationale: if `apps/web` ever bypasses `apps/api` ... or if an `apps/api` repository accidentally omits the `userId` guard, RLS catches the bug."_) with:
   > Rationale: RLS protects the **`apps/web` direct path only** (the anon/`authenticated` Supabase client used for Auth). It does **NOT** protect `apps/api` queries — that connection uses the **service role, which bypasses RLS** (and no table sets `FORCE ROW LEVEL SECURITY`). On the `apps/api` path, tenant isolation rests **solely** on the `no-prisma-query-without-user-id` lint rule + the `where: { userId }` discipline. RLS is a real safety net for the web-direct path and a documentation-of-intent for the DB, not a second enforcement layer behind Prisma.
 
@@ -252,7 +252,7 @@
   Run: `bun run format:check` (markdown is oxfmt-checked) — Expected: exit 0.
   Commit: `git add docs/adr/0013-prisma-rls-defense-in-depth.md docs/architecture.md && git commit -m "docs(#50): correct ADR-0013 + architecture RLS wording (AC-4)"`
 
-- [ ] **T6 — Write `docs/security.md`** [AC: AC-2, AC-3]
+- [x] **T6 — Write `docs/security.md`** [AC: AC-2, AC-3]
   Create `docs/security.md` with the content below (it documents at-rest encryption + verification steps + the encryption strategy + the corrected RLS reality + the cross-tenant guarantee).
   ```markdown
   # Pekulo — Security posture
@@ -382,14 +382,33 @@ const svc = createBankAggregatorService({
 
 ## Dev Agent Record
 
-- **Model:** _(set by aped-dev)_
+- **Model:** claude-opus-4-8 (1M context)
 - **Started:** 2026-05-28
-- **Completed:** _(set by aped-dev)_
+- **Completed:** 2026-05-29
 
 ### Summary
 
+Shipped the RLS gate as a static migration-SQL check (no DB) wired into CI, the two-user cross-tenant isolation test, `docs/security.md`, and the ADR-0013 wording fix. AC-1, AC-2, AC-3, AC-5 fully met; AC-4 met via ADR-0013 — the `architecture.md:139` mirror was blocked by the upstream-write guard and descoped to an `aped-course` follow-up per decision.
+
 ### Files changed
+
+- `apps/api/scripts/rls-migration-audit.ts` (new)
+- `apps/api/scripts/rls-migration-audit.test.ts` (new)
+- `apps/api/package.json` (registered `db:rls-migration-audit`)
+- `.github/workflows/pr.yml` (re-added `rls-audit` static job)
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.integration.test.ts` (cross-tenant describe)
+- `docs/security.md` (new)
+- `docs/adr/0013-prisma-rls-defense-in-depth.md` (RLS wording)
 
 ### Deviations
 
+- **Static migration-text gate** instead of a DB-backed CI job — the removed job needed a Supabase `auth` schema + a never-configured secret; the static parse catches the AC-1 case (forgotten RLS DDL on a new table) with zero DB. `rls-audit.ts` kept for post-deploy exact-count checks. (Locked at story design.)
+- **Exported pure `auditMigrationSql`** so the test exercises the real code, instead of the story's duplicated-parser-in-test (no drift between two copies).
+- **T4 is a characterization test** of already-correct isolation (no new production code) — witnessed teeth by temporarily sharing B's `providerItemId` with A (A flipped → RED), then reverted.
+- **AC-4 `architecture.md:139` DEFERRED** — the upstream-write guard blocked the edit mid-dev; descoped to an `aped-course` follow-up per user decision. ADR-0013 (the authoritative record) is corrected.
+- T1+T2 committed as one TDD unit (the test imports the script).
+
 ### Test output
+
+`cd apps/api && bun test` → **642 pass, 0 fail**, 1549 expect() calls, exit 0. New: `rls-migration-audit.test.ts` (5) + cross-tenant isolation (1).
+Static gate: `bun --filter=@pekulo/api run db:rls-migration-audit` → `OK — 17 user-data tables, all RLS-guarded`, exit 0.
