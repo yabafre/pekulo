@@ -10,7 +10,18 @@ export interface ProviderConnectSession {
 }
 
 export interface ProviderBankAccount {
+  /** Volatile per-item Bridge account id — changes on every reconnect. Kept
+   * for low-level mapping; NEVER use it as the local dedup key. */
   providerAccountId: string;
+  /**
+   * STABLE cross-reconnect identity (story 5-7 FIX 2026-05-28). Bridge mints a
+   * fresh `providerAccountId` for every new item even when the user reconnects
+   * the SAME real account, which duplicated local accounts. The IBAN is stable
+   * across reconnects; cards carry no IBAN so we fall back to
+   * `pid:{provider_id}:{name}`. This is the `providerAccountKey` the local
+   * accounts table dedups on (unique (userId, provider, providerAccountKey)).
+   */
+  accountKey: string;
   bankName: string;
   accountName: string;
   kind: "checking" | "savings" | "other";
@@ -21,7 +32,12 @@ export interface ProviderBankAccount {
 
 export interface ProviderTransaction {
   providerTransactionId: string;
+  /** Volatile per-item Bridge account id (raw `account_id` on the txn). */
   providerAccountId: string;
+  /** STABLE account key (matches ProviderBankAccount.accountKey) — resolved by
+   * the client from the item's accounts so refresh maps txns to the deduped
+   * local account, not the volatile id (story 5-7 FIX 2026-05-28). */
+  accountKey: string;
   occurredOn: Date;
   amount: number; // signed: positive for inflow, negative for outflow
   label: string;

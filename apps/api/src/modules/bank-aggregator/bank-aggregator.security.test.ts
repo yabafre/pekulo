@@ -77,6 +77,7 @@ function makeFakeProvider(): BankProvider {
     listAccounts: async () => [
       {
         providerAccountId: "1",
+        accountKey: "iban:FRSEC0001",
         bankName: "SG",
         accountName: "Courant",
         kind: "checking",
@@ -89,6 +90,7 @@ function makeFakeProvider(): BankProvider {
         {
           providerTransactionId: "tx-1",
           providerAccountId: "1",
+          accountKey: "iban:FRSEC0001",
           occurredOn: new Date("2026-05-26"),
           amount: -10,
           label: "Carrefour",
@@ -182,17 +184,10 @@ test("full lifecycle leaks zero token substrings to console/stderr (AC-8)", asyn
         createdAt: new Date(),
         updatedAt: new Date(),
       }),
-      findByProviderKey: async () => ({
-        id: "acc_1",
-        userId: "u",
-        label: "SG Courant",
-        type: "banque" as const,
-        currency: "EUR",
-        cashBalance: 0,
-        notes: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
+      // No pre-existing account → completeConnection's already-synced guard
+      // passes (story 5-7 FIX 2026-05-28). The token-leak assertions don't
+      // depend on transaction→account mapping.
+      findByProviderKey: async () => null,
     } as unknown as AccountService;
 
     const svc = createBankAggregatorService({

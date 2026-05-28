@@ -109,20 +109,45 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
     return result.access_token;
   }
 
-  // Resolve the set of Bridge account ids that belong to one item. Unlike
-  // /transactions, the /accounts endpoint DOES honor `item_id` (confirmed live
-  // 2026-05-28), so this is the authoritative item→accounts mapping that
-  // listTransactions filters against.
-  async function fetchItemAccountIds(
+  interface BridgeAccountRow {
+    id: number;
+    name: string;
+    iban?: string | null;
+    provider_id?: number | null;
+    balance: number | null;
+    type: string;
+    currency_code: string;
+  }
+
+  // STABLE cross-reconnect account identity (story 5-7 FIX 2026-05-28). Bridge
+  // mints a fresh `id` for the same real account on every new item, so the raw
+  // id duplicates local accounts on reconnect. The IBAN is stable; cards carry
+  // no IBAN, so fall back to provider_id (institution) + name (which holds the
+  // masked card number) — also stable across reconnects.
+  function bridgeAccountKey(a: {
+    iban?: string | null;
+    provider_id?: number | null;
+    name: string;
+  }): string {
+    const iban = a.iban?.trim();
+    if (iban) return `iban:${iban}`;
+    return `pid:${a.provider_id ?? "unknown"}:${a.name}`;
+  }
+
+  // Fetch the accounts attached to one item. Unlike /transactions, the
+  // /accounts endpoint DOES honor `item_id` (confirmed live 2026-05-28), so
+  // this is the authoritative item→accounts mapping that both listAccounts and
+  // listTransactions build on.
+  async function fetchItemAccounts(
     userUuid: string,
     providerItemId: string,
-  ): Promise<Set<string>> {
+  ): Promise<BridgeAccountRow[]> {
     const bearer = await mintUserAccessToken(userUuid);
-    const data = await reqJson<{ resources: Array<{ id: number }> }>(
+    const data = await reqJson<{ resources: BridgeAccountRow[] }>(
       `/v3/aggregation/accounts?item_id=${encodeURIComponent(providerItemId)}`,
       { method: "GET", bearer },
     );
-    return new Set(data.resources.map((a) => String(a.id)));
+    return data.resources;
   }
 
   return {
@@ -186,27 +211,16 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
 
     async listAccounts({ userUuid, providerItemId }) {
       // Bridge v3 — flat REST: GET /v3/aggregation/accounts?item_id=<id>.
-      // Schema verified against the official Postman collection (2026-05-27):
-      // accounts carry { id, name, balance, type, currency_code, item_id, ... }
-      // — no `bank_name` field at the account level (bank identity lives via
-      // provider_id, which we don't resolve at V1).
-      const bearer = await mintUserAccessToken(userUuid);
-      const data = await reqJson<{
-        resources: Array<{
-          id: number;
-          name: string;
-          balance: number | null;
-          type: string;
-          currency_code: string;
-        }>;
-      }>(`/v3/aggregation/accounts?item_id=${encodeURIComponent(providerItemId)}`, {
-        method: "GET",
-        bearer,
-      });
-      return data.resources.map(
+      // Schema verified against docs/ressources/Bridge API.postman_collection.json:
+      // accounts carry { id, name, iban, provider_id, balance, type,
+      // currency_code, item_id, ... }. `accountKey` is the stable dedup
+      // identity (IBAN / provider_id+name) — see bridgeAccountKey.
+      const rows = await fetchItemAccounts(userUuid, providerItemId);
+      return rows.map(
         (r) =>
           ({
             providerAccountId: String(r.id),
+            accountKey: bridgeAccountKey(r),
             bankName: "Banque",
             accountName: r.name,
             kind: r.type === "savings" ? "savings" : r.type === "checking" ? "checking" : "other",
@@ -227,7 +241,10 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       // transactions are fully fetched (the old limit=500 cap silently
       // truncated older rows).
       const bearer = await mintUserAccessToken(userUuid);
-      const itemAccountIds = await fetchItemAccountIds(userUuid, providerItemId);
+      const itemAccounts = await fetchItemAccounts(userUuid, providerItemId);
+      // accountId → STABLE accountKey: refresh maps txns to the deduped local
+      // account via this key, not the volatile Bridge id.
+      const accountKeyById = new Map(itemAccounts.map((a) => [String(a.id), bridgeAccountKey(a)]));
 
       interface TxnRow {
         id: number;
@@ -273,7 +290,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       // account does not belong to this item (the item_id-ignored guard above).
       let latest: Date | null = null;
       const transactions = rows
-        .filter((r) => !r.deleted && itemAccountIds.has(String(r.account_id)))
+        .filter((r) => !r.deleted && accountKeyById.has(String(r.account_id)))
         .map((r) => {
           const updatedAt = new Date(r.updated_at);
           if (!latest || updatedAt > latest) latest = updatedAt;
@@ -282,6 +299,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
           return {
             providerTransactionId: String(r.id),
             providerAccountId: String(r.account_id),
+            accountKey: accountKeyById.get(String(r.account_id))!,
             occurredOn: new Date(r.date),
             amount: r.amount,
             label,

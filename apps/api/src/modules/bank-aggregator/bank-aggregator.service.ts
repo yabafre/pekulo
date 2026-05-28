@@ -99,15 +99,18 @@ export function createBankAggregatorService(deps: {
     // race / data anomaly (we observed transient orphan IDs during sync); we
     // skip the offending transactions instead of polluting the local accounts
     // table with placeholder rows that would never reconcile back.
-    const uniqueRemote = Array.from(new Set(transactions.map((t) => t.providerAccountId)));
+    // Map the STABLE accountKey (set by the client from the item's accounts)
+    // → local account id. Keyed on accountKey, not the volatile Bridge id, so
+    // it matches the deduped local accounts (story 5-7 FIX 2026-05-28).
+    const uniqueKeys = Array.from(new Set(transactions.map((t) => t.accountKey)));
     const map = new Map<string, string>();
-    for (const remote of uniqueRemote) {
-      const account = await deps.accountsService.findByProviderKey(userId, "bridge", remote);
+    for (const key of uniqueKeys) {
+      const account = await deps.accountsService.findByProviderKey(userId, "bridge", key);
       if (account) {
-        map.set(remote, account.id);
+        map.set(key, account.id);
       } else {
         console.warn(
-          `[bank-aggregator] transaction account_id=${remote} not in local accounts for user=${userId} — skipping ${transactions.filter((t) => t.providerAccountId === remote).length} transaction(s)`,
+          `[bank-aggregator] transaction accountKey=${key} not in local accounts for user=${userId} — skipping ${transactions.filter((t) => t.accountKey === key).length} transaction(s)`,
         );
       }
     }
@@ -167,7 +170,7 @@ export function createBankAggregatorService(deps: {
     const accountIdMap = await resolveAccountIds(userId, transactions);
     const rows: ProviderTransactionImportRow[] = transactions
       .map((t) => {
-        const accountId = accountIdMap.get(t.providerAccountId);
+        const accountId = accountIdMap.get(t.accountKey);
         if (!accountId) return null;
         const type = t.amount >= 0 ? ("inflow" as const) : ("outflow" as const);
         return {
@@ -246,18 +249,29 @@ export function createBankAggregatorService(deps: {
         userUuid: input.userUuid,
         providerItemId: input.itemId,
       });
+
+      // Already-synced guard (story 5-7 FIX 2026-05-28). Bridge mints a NEW
+      // item (new account ids) every time the user clicks "connect" — even for
+      // a bank they already synced. We dedup local accounts on a STABLE key
+      // (IBAN / provider_id+name, see bridgeAccountKey), so if ANY of this
+      // item's accounts already exists locally, this is a re-connect of an
+      // already-synced bank: reject instead of duplicating the accounts.
+      const preexisting = await Promise.all(
+        remoteAccounts.map((a) =>
+          deps.accountsService.findByProviderKey(userId, "bridge", a.accountKey),
+        ),
+      );
+      if (preexisting.some((acc) => acc !== null)) {
+        throw bankConnectionAlreadyExists(input.itemId);
+      }
+
       for (const a of remoteAccounts) {
-        await deps.accountsService.findOrCreateAutoFromProvider(
-          userId,
-          "bridge",
-          a.providerAccountId,
-          {
-            label: `Bridge — ${a.bankName} — ${a.accountName}`,
-            type: mapBridgeAccountKind(a.kind),
-            currency: a.currency,
-            cashBalance: a.balance,
-          },
-        );
+        await deps.accountsService.findOrCreateAutoFromProvider(userId, "bridge", a.accountKey, {
+          label: `Bridge — ${a.bankName} — ${a.accountName}`,
+          type: mapBridgeAccountKind(a.kind),
+          currency: a.currency,
+          cashBalance: a.balance,
+        });
       }
 
       const created = await deps.repository.createConnection({

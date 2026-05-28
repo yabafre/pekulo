@@ -171,6 +171,7 @@ function makeFakeProvider(): BankProvider {
     listAccounts: async () => [
       {
         providerAccountId: "sg-1",
+        accountKey: "iban:FR-SG1",
         bankName: "SG",
         accountName: "Courant",
         kind: "checking",
@@ -179,6 +180,7 @@ function makeFakeProvider(): BankProvider {
       },
       {
         providerAccountId: "sg-2",
+        accountKey: "iban:FR-SG2",
         bankName: "SG",
         accountName: "Livret A",
         kind: "savings",
@@ -191,6 +193,7 @@ function makeFakeProvider(): BankProvider {
         {
           providerTransactionId: "tx-1",
           providerAccountId: "sg-1",
+          accountKey: "iban:FR-SG1",
           occurredOn: new Date("2026-05-25"),
           amount: -25.5,
           label: "Carrefour",
@@ -200,6 +203,7 @@ function makeFakeProvider(): BankProvider {
         {
           providerTransactionId: "tx-2",
           providerAccountId: "sg-2",
+          accountKey: "iban:FR-SG2",
           occurredOn: new Date("2026-05-25"),
           amount: 50,
           label: "Virement",

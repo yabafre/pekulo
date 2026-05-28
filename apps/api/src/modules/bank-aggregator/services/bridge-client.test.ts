@@ -52,6 +52,8 @@ const fetchMock = mock(async (url: string | URL | Request, init?: RequestInit) =
           {
             id: 11,
             name: "Compte courant SG",
+            iban: "FR7630003035411234567890144",
+            provider_id: 574,
             balance: 1234.56,
             type: "checking",
             currency_code: "EUR",
@@ -59,6 +61,8 @@ const fetchMock = mock(async (url: string | URL | Request, init?: RequestInit) =
           {
             id: 12,
             name: "Livret A",
+            iban: "FR7630003035419876543210188",
+            provider_id: 574,
             balance: 5000,
             type: "savings",
             currency_code: "EUR",
@@ -302,6 +306,9 @@ test("listAccounts maps Bridge v3 flat-REST response → ProviderBankAccount[]",
     currency: "EUR",
     balance: 1234.56,
   });
+  // Stable dedup key = IBAN (story 5-7 FIX 2026-05-28) — survives reconnects
+  // where the volatile providerAccountId changes.
+  expect(accounts[0]?.accountKey).toBe("iban:FR7630003035411234567890144");
   expect(accounts[1]?.kind).toBe("savings");
 });
 
