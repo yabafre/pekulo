@@ -565,4 +565,47 @@ describe("cross-tenant isolation (11-3 AC-5)", () => {
     expect(bAfter?.status).toBe("sca_required"); // B flipped by the webhook
     expect(aAfter?.status).toBe("active"); // A untouched — no cross-tenant leak
   });
+
+  test("webhook(1010) for a providerItemId shared by A and B flips each owner's OWN connection", async () => {
+    // The distinct-item case above isolates by providerItemId alone, so the
+    // per-owner `setStatus(o.userId, o.connectionId)` userId scoping is never
+    // exercised. This shared-item case makes it load-bearing: the webhook loop
+    // must pair each owner's userId with its OWN connectionId. A cross-assigned
+    // write (e.g. owners[0].userId with owners[1].connectionId) is rejected by
+    // the repo's userId guard → that connection stays "active" → RED. Mirrors
+    // ADR-0013's "userId-scoped guard on every write" (service.ts handleWebhookEvent).
+    const repo = makeInMemoryRepo();
+    const svc = createBankAggregatorService({
+      repository: repo,
+      provider: makeFakeProvider(),
+      transactionsService: makeStubTransactionsService().service,
+      accountsService: makeStubAccountsService(),
+      listAllActiveConnections: async () => [],
+    });
+    const A = "11111111-1111-4111-8111-111111111111";
+    const B = "22222222-2222-4222-8222-222222222222";
+    const SHARED = "item-shared";
+    const connA = await repo.createConnection({
+      userId: A,
+      provider: "bridge",
+      providerItemId: SHARED,
+      displayName: "A bank",
+    });
+    const connB = await repo.createConnection({
+      userId: B,
+      provider: "bridge",
+      providerItemId: SHARED,
+      displayName: "B bank",
+    });
+
+    await svc.handleWebhookEvent({
+      type: "item.refreshed",
+      content: { item_id: SHARED, status_code: 1010 },
+    });
+
+    const aAfter = (await repo.listByUser(A)).find((c) => c.id === connA.id);
+    const bAfter = (await repo.listByUser(B)).find((c) => c.id === connB.id);
+    expect(aAfter?.status).toBe("sca_required"); // A's own connection flipped under A's userId
+    expect(bAfter?.status).toBe("sca_required"); // B's own connection flipped under B's userId
+  });
 });
