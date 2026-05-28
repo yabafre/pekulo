@@ -2,7 +2,7 @@
 
 import { useActionMutation } from "@zapaction/query";
 import { compassTags } from "@/lib/zapaction/keys";
-import { updateCompass } from "../../_actions/compass-actions";
+import { updateCompass } from "../_actions/compass-actions";
 
 // invalidateWithTags explicit — see lessons.md 2026-05-24 entry
 // "defineAction tags is server-only" for the SA-boundary rationale.

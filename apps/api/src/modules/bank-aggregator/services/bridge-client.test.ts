@@ -52,6 +52,8 @@ const fetchMock = mock(async (url: string | URL | Request, init?: RequestInit) =
           {
             id: 11,
             name: "Compte courant SG",
+            iban: "FR7630003035411234567890144",
+            provider_id: 574,
             balance: 1234.56,
             type: "checking",
             currency_code: "EUR",
@@ -59,6 +61,8 @@ const fetchMock = mock(async (url: string | URL | Request, init?: RequestInit) =
           {
             id: 12,
             name: "Livret A",
+            iban: "FR7630003035419876543210188",
+            provider_id: 574,
             balance: 5000,
             type: "savings",
             currency_code: "EUR",
@@ -98,12 +102,15 @@ const fetchMock = mock(async (url: string | URL | Request, init?: RequestInit) =
     );
   }
   if (path.endsWith("/transactions")) {
+    // account_id 11 belongs to the item (the /accounts mock returns 11 + 12),
+    // so it survives listTransactions' account-set filter. No `pagination`
+    // field → single page.
     return new Response(
       JSON.stringify({
         resources: [
           {
             id: 1,
-            account_id: 2,
+            account_id: 11,
             amount: -25.5,
             clean_description: "CB Carrefour",
             provider_description: "PAIEMENT CB CARREFOUR 1234",
@@ -153,6 +160,138 @@ test("listTransactions mints user-Bearer + maps clean_description as label (inco
   expect(latestUpdatedAt?.toISOString()).toBe("2026-05-26T10:00:00.000Z");
 });
 
+// Regression — Bridge /transactions ignores item_id (confirmed live 2026-05-28).
+// listTransactions MUST keep only rows whose account_id belongs to the queried
+// item (resolved via /accounts, which honors item_id) — otherwise a 2-bank user
+// gets item B's transactions when refreshing item A.
+test("listTransactions filters out transactions from accounts that don't belong to the item", async () => {
+  const localFetch = mock(async (url: string | URL | Request) => {
+    const u = typeof url === "string" ? new URL(url) : new URL((url as Request).url);
+    if (u.pathname === "/v3/aggregation/authorization/token") {
+      return new Response(JSON.stringify({ access_token: "a", expires_at: null }), { status: 200 });
+    }
+    if (u.pathname === "/v3/aggregation/accounts") {
+      // Item 42 owns accounts 11 + 12 only.
+      return new Response(JSON.stringify({ resources: [{ id: 11 }, { id: 12 }] }), { status: 200 });
+    }
+    if (u.pathname === "/v3/aggregation/transactions") {
+      // Bridge returns the FULL user set regardless of item_id: 11 (ours),
+      // 999 (another item — must be dropped).
+      return new Response(
+        JSON.stringify({
+          resources: [
+            {
+              id: 1,
+              account_id: 11,
+              amount: -10,
+              clean_description: "Ours",
+              category_id: null,
+              date: "2026-05-26",
+              updated_at: "2026-05-26T10:00:00Z",
+            },
+            {
+              id: 2,
+              account_id: 999,
+              amount: -20,
+              clean_description: "Other item",
+              category_id: null,
+              date: "2026-05-26",
+              updated_at: "2026-05-26T11:00:00Z",
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response("", { status: 404 });
+  });
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const p = createBridgeProvider({ env });
+    const { transactions, latestUpdatedAt } = await p.listTransactions({
+      userUuid: "u",
+      providerItemId: "42",
+      since: null,
+    });
+    expect(transactions.map((t) => t.providerAccountId)).toEqual(["11"]);
+    // latestUpdatedAt is over the FILTERED rows only — the 11:00 row (account
+    // 999) must not leak into the connection's dedup cursor.
+    expect(latestUpdatedAt?.toISOString()).toBe("2026-05-26T10:00:00.000Z");
+  } finally {
+    globalThis.fetch = prev;
+  }
+});
+
+// Regression — the old client capped at limit=500 and ignored `next_uri`,
+// silently dropping older transactions. listTransactions MUST follow the cursor.
+test("listTransactions follows the next_uri cursor across pages", async () => {
+  let transactionsCalls = 0;
+  const localFetch = mock(async (url: string | URL | Request) => {
+    const u = typeof url === "string" ? new URL(url) : new URL((url as Request).url);
+    if (u.pathname === "/v3/aggregation/authorization/token") {
+      return new Response(JSON.stringify({ access_token: "a", expires_at: null }), { status: 200 });
+    }
+    if (u.pathname === "/v3/aggregation/accounts") {
+      return new Response(JSON.stringify({ resources: [{ id: 11 }, { id: 12 }] }), { status: 200 });
+    }
+    if (u.pathname === "/v3/aggregation/transactions") {
+      transactionsCalls += 1;
+      if (!u.searchParams.get("after")) {
+        return new Response(
+          JSON.stringify({
+            resources: [
+              {
+                id: 1,
+                account_id: 11,
+                amount: -10,
+                clean_description: "Page1",
+                category_id: null,
+                date: "2026-05-26",
+                updated_at: "2026-05-26T10:00:00Z",
+              },
+            ],
+            pagination: { next_uri: "/v3/aggregation/transactions?after=cursor1&limit=500" },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          resources: [
+            {
+              id: 2,
+              account_id: 12,
+              amount: -20,
+              clean_description: "Page2",
+              category_id: null,
+              date: "2026-05-27",
+              updated_at: "2026-05-27T10:00:00Z",
+            },
+          ],
+          pagination: { next_uri: null },
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response("", { status: 404 });
+  });
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const p = createBridgeProvider({ env });
+    const { transactions } = await p.listTransactions({
+      userUuid: "u",
+      providerItemId: "42",
+      since: null,
+    });
+    expect(transactionsCalls).toBe(2); // followed the cursor exactly once
+    expect(transactions.map((t) => t.providerTransactionId).sort()).toEqual(["1", "2"]);
+  } finally {
+    globalThis.fetch = prev;
+  }
+});
+
 test("listAccounts maps Bridge v3 flat-REST response → ProviderBankAccount[]", async () => {
   const p = createBridgeProvider({ env });
   const accounts = await p.listAccounts({
@@ -167,6 +306,9 @@ test("listAccounts maps Bridge v3 flat-REST response → ProviderBankAccount[]",
     currency: "EUR",
     balance: 1234.56,
   });
+  // Stable dedup key = IBAN (story 5-7 FIX 2026-05-28) — survives reconnects
+  // where the volatile providerAccountId changes.
+  expect(accounts[0]?.accountKey).toBe("iban:FR7630003035411234567890144");
   expect(accounts[1]?.kind).toBe("savings");
 });
 

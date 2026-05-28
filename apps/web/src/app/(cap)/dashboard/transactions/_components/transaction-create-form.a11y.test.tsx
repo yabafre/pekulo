@@ -9,7 +9,7 @@ vi.mock("../_actions/transactions-actions", () => ({
   deleteTransaction: vi.fn(),
   listTransactions: vi.fn(),
 }));
-vi.mock("../../parametres/_actions/accounts-actions", () => ({
+vi.mock("../../_accounts/_actions/accounts-actions", () => ({
   listAccounts: vi.fn(async () => []),
 }));
 

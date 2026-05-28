@@ -13,8 +13,14 @@ import {
   initiateConnectionInputSchema,
   initiateConnectionOutputSchema,
   listConnectionsOutputSchema,
+  reconnectConnectionInputSchema,
+  reconnectConnectionOutputSchema,
   refreshConnectionInputSchema,
   refreshConnectionOutputSchema,
+  renameConnectionInputSchema,
+  renameConnectionOutputSchema,
+  revokeConnectionInputSchema,
+  revokeConnectionOutputSchema,
 } from "@pekulo/validators";
 
 const bankConnectionNotFoundError = {
@@ -68,6 +74,27 @@ export const bankAggregatorContractV1 = {
     })
     .input(refreshConnectionInputSchema)
     .output(refreshConnectionOutputSchema),
+
+  renameConnection: oc
+    .errors({ BANK_CONNECTION_NOT_FOUND: bankConnectionNotFoundError })
+    .input(renameConnectionInputSchema)
+    .output(renameConnectionOutputSchema),
+
+  revokeConnection: oc
+    .errors({
+      BANK_CONNECTION_NOT_FOUND: bankConnectionNotFoundError,
+      BANK_PROVIDER_UNAVAILABLE: bankProviderUnavailableError,
+    })
+    .input(revokeConnectionInputSchema)
+    .output(revokeConnectionOutputSchema),
+
+  reconnectConnection: oc
+    .errors({
+      BANK_CONNECTION_NOT_FOUND: bankConnectionNotFoundError,
+      BANK_PROVIDER_UNAVAILABLE: bankProviderUnavailableError,
+    })
+    .input(reconnectConnectionInputSchema)
+    .output(reconnectConnectionOutputSchema),
 } as const;
 
 export const bankAggregatorContract = bankAggregatorContractV1;

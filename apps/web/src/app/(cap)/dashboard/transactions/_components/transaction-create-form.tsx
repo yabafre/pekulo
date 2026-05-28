@@ -21,7 +21,7 @@ import {
   type TransactionType,
 } from "@pekulo/validators";
 import { useAppForm } from "@/hooks/form-hook";
-import { useAccounts } from "../../parametres/_hooks/use-accounts";
+import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { useCreateTransaction } from "../_hooks/use-create-transaction";
 
 const TYPE_LABEL: Record<TransactionType, string> = {

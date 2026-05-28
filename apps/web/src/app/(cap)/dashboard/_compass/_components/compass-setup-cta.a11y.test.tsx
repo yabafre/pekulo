@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { axe } from "vitest-axe";
-import { renderWithTamagui } from "../../../../../test/setup";
+import { renderWithTamagui } from "../../../../../../test/setup";
 import { CompassSetupCta } from "./compass-setup-cta";
 
 describe("CompassSetupCta a11y", () => {

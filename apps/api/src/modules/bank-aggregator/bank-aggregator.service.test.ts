@@ -39,6 +39,7 @@ function makeStubs() {
     }),
     listByUser: async () => [],
     findByIdForUser: async () => null,
+    setDisplayName: async () => null,
     findByProviderItemId: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
@@ -50,6 +51,7 @@ function makeStubs() {
     listAccounts: async () => [
       {
         providerAccountId: "1",
+        accountKey: "iban:FRTEST0001",
         bankName: "SG",
         accountName: "Courant",
         kind: "checking",
@@ -84,18 +86,10 @@ function makeStubs() {
       createdAt: new Date(),
       updatedAt: new Date(),
     }),
-    // FEAT13 — resolveAccountIds is lookup-only at refresh time.
-    findByProviderKey: async () => ({
-      id: "acc_x",
-      userId: "u",
-      label: "Bridge — SG — Courant",
-      type: "banque" as const,
-      currency: "EUR",
-      cashBalance: 0,
-      notes: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
+    // Default: no pre-existing local account → completeConnection's
+    // already-synced guard passes. Refresh tests that need the lookup to
+    // resolve override this to return an account (story 5-7 FIX 2026-05-28).
+    findByProviderKey: async () => null,
   } as unknown as AccountService;
   return { repo, provider, transactionsService, accountsService };
 }
@@ -174,6 +168,35 @@ test("completeConnection rejects when the Bridge item is already connected", asy
   ).rejects.toThrow(/already exists/);
 });
 
+// Story 5-7 FIX 2026-05-28 — already-synced guard. A re-connect creates a NEW
+// Bridge item (findByProviderItemId null) but its accounts already exist
+// locally by stable key → reject instead of duplicating accounts.
+test("completeConnection rejects when the bank is already synced (account-key overlap)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.findByProviderItemId = async () => null; // brand-new item_id
+  accountsService.findByProviderKey = async () => ({
+    id: "acc_existing",
+    userId: "u",
+    label: "Bridge — SG — Courant",
+    type: "banque" as const,
+    currency: "EUR",
+    cashBalance: 0,
+    notes: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  await expect(
+    svc.completeConnection("u", "fred@x", { itemId: "new-item-99", userUuid: "bridge-uuid-1" }),
+  ).rejects.toThrow(/already exists/i);
+});
+
 test("listConnections delegates without leaking secret-id columns (AC-4)", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
   repo.listByUser = async () => [
@@ -247,6 +270,7 @@ test("refreshConnection persists fetched + skipped + lastRefreshedAt (AC-2)", as
       {
         providerTransactionId: "tx-1",
         providerAccountId: "1",
+        accountKey: "iban:FRTEST0001",
         occurredOn: new Date("2026-05-26"),
         amount: -10,
         label: "Carrefour",
@@ -255,6 +279,18 @@ test("refreshConnection persists fetched + skipped + lastRefreshedAt (AC-2)", as
       },
     ],
     latestUpdatedAt: new Date("2026-05-26T10:00Z"),
+  });
+  // resolveAccountIds maps the tx accountKey → a local account.
+  accountsService.findByProviderKey = async () => ({
+    id: "acc_x",
+    userId: "u",
+    label: "Bridge — SG — Courant",
+    type: "banque" as const,
+    currency: "EUR",
+    cashBalance: 0,
+    notes: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
   transactionsService.importFromProvider = async () => ({ persisted: 1, skipped: 0 });
   const stamped: { at: Date | null } = { at: null };
@@ -450,4 +486,89 @@ test("handleWebhookEvent rejects malformed event silently (no throw)", async () 
   await svc.handleWebhookEvent("nope");
   await svc.handleWebhookEvent({ type: "item.refreshed" });
   // No throw — assertion-free.
+});
+
+// ───── Story 5-7 (T4) — renameConnection + revokeConnection ───────────────
+
+const baseConn = {
+  id: "bnk_x",
+  userId: "u",
+  provider: "bridge" as const,
+  providerItemId: "i",
+  status: "active" as const,
+  displayName: "SG",
+  lastRefreshedAt: null,
+  createdAt: new Date().toISOString(),
+};
+
+test("renameConnection returns the updated DTO (AC-3)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.setDisplayName = async (_u, _id, displayName) => ({
+    connection: { ...baseConn, displayName },
+  });
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  const out = await svc.renameConnection("u", "bnk_x", "Banque Pro");
+  expect(out.displayName).toBe("Banque Pro");
+});
+
+test("renameConnection throws NOT_FOUND when setDisplayName returns null (AC-3)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.setDisplayName = async () => null;
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  await expect(svc.renameConnection("u", "bnk_missing", "X")).rejects.toThrow(/not found/i);
+});
+
+test("revokeConnection calls provider.revokeItem then flips status to revoked (AC-4)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  const calls: string[] = [];
+  repo.findByIdForUser = async () => ({ connection: { ...baseConn, status: "active" } });
+  repo.findProviderUserUuid = async () => "bridge-uuid";
+  repo.setStatus = async (_u, _id, status) => {
+    calls.push(`status:${status}`);
+  };
+  provider.revokeItem = async () => {
+    calls.push("revokeItem");
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  const out = await svc.revokeConnection("u", "bnk_x");
+  expect(out).toEqual({ ok: true });
+  // Order matters — Bridge revoke MUST succeed before the local soft-delete.
+  expect(calls).toEqual(["revokeItem", "status:revoked"]);
+});
+
+test("revokeConnection is idempotent on an already-revoked connection (no Bridge call) (AC-4)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  let revokeCalled = false;
+  repo.findByIdForUser = async () => ({ connection: { ...baseConn, status: "revoked" } });
+  provider.revokeItem = async () => {
+    revokeCalled = true;
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  const out = await svc.revokeConnection("u", "bnk_x");
+  expect(out).toEqual({ ok: true });
+  expect(revokeCalled).toBe(false);
 });

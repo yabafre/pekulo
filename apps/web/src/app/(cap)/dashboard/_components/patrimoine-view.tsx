@@ -8,9 +8,9 @@
 // stories 3-x / 4-x (breakdown) + 5-x (transactions).
 
 import { View, Text } from "@pekulo/ui/client";
-import { useAccounts } from "../parametres/_hooks/use-accounts";
-import { AccountsSection } from "../parametres/_components/accounts-section";
-import { ConnectBankButton } from "./connect-bank-button";
+import { useAccounts } from "../_accounts/_hooks/use-accounts";
+import { AccountsSection } from "../_accounts/_components/accounts-section";
+import { BankConnectionsSection } from "../_bank/_components/bank-connections-section";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -93,9 +93,7 @@ export function PatrimoineView() {
 
       <AccountsSection />
 
-      {/* TEMP 5-6 — replaced by the 5-7 connections panel. Sits between
-          accounts and composition because Bridge connections feed accounts. */}
-      <ConnectBankButton />
+      <BankConnectionsSection />
 
       <View render="section" aria-labelledby="comp-h" flexDirection="column">
         <Text

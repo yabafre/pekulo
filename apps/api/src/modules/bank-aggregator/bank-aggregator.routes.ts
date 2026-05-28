@@ -122,5 +122,61 @@ export function createBankAggregatorRouter(deps: { service: BankAggregatorServic
         throw err;
       }
     }),
+
+    renameConnection: impl.renameConnection.handler(async ({ context, input, errors }) => {
+      requireUserId(context.userId);
+      try {
+        return await deps.service.renameConnection(
+          context.userId,
+          input.connectionId,
+          input.displayName,
+        );
+      } catch (err) {
+        if (err instanceof BankAggregatorError && err.code === "BANK_CONNECTION_NOT_FOUND") {
+          throw errors.BANK_CONNECTION_NOT_FOUND({ message: err.message });
+        }
+        throw err;
+      }
+    }),
+
+    revokeConnection: impl.revokeConnection.handler(async ({ context, input, errors }) => {
+      requireUserId(context.userId);
+      try {
+        return await deps.service.revokeConnection(context.userId, input.connectionId);
+      } catch (err) {
+        if (err instanceof BankAggregatorError) {
+          if (err.code === "BANK_CONNECTION_NOT_FOUND") {
+            throw errors.BANK_CONNECTION_NOT_FOUND({ message: err.message });
+          }
+          if (err.code === "BANK_PROVIDER_UNAVAILABLE") {
+            throw errors.BANK_PROVIDER_UNAVAILABLE({ message: err.message });
+          }
+        }
+        throw err;
+      }
+    }),
+
+    reconnectConnection: impl.reconnectConnection.handler(async ({ context, input, errors }) => {
+      requireUserId(context.userId);
+      requireEmail(context.email);
+      try {
+        const connectUrl = await deps.service.getReconnectUrl(
+          context.userId,
+          context.email,
+          input.connectionId,
+        );
+        return { connectUrl };
+      } catch (err) {
+        if (err instanceof BankAggregatorError) {
+          if (err.code === "BANK_CONNECTION_NOT_FOUND") {
+            throw errors.BANK_CONNECTION_NOT_FOUND({ message: err.message });
+          }
+          if (err.code === "BANK_PROVIDER_UNAVAILABLE") {
+            throw errors.BANK_PROVIDER_UNAVAILABLE({ message: err.message });
+          }
+        }
+        throw err;
+      }
+    }),
   });
 }

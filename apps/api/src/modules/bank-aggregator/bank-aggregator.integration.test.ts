@@ -12,15 +12,24 @@
 // validated by the rls-audit pre-flight (16 tables, bank_connections=4 policies)
 // + manual smoke on Dokploy. This V1 test stays Bun-only for fast CI feedback.
 
-import { test, expect } from "bun:test";
-import type { Account } from "@pekulo/validators";
+import { test, expect, beforeAll, afterAll, describe } from "bun:test";
+import { Elysia } from "elysia";
+import { SignJWT } from "jose";
+import type { Account, BankConnection } from "@pekulo/validators";
 import type { AccountService } from "../accounts/accounts.service";
 import type {
   ProviderTransactionImportRow,
   TransactionsService,
 } from "../transactions/transactions.service";
+import { extractRequestId } from "../../common/errors";
+import { mapErrorToOrpcResponse } from "../../platform/http/error-mapper";
+import { mountOrpc, type PekuloRpcRouter } from "../../platform/http/orpc-mount";
+import { createJwtVerifier } from "../../platform/security";
+import { BankAggregatorError } from "./bank-aggregator.errors";
 import { createBankAggregatorService } from "./bank-aggregator.service";
+import { createBankAggregatorRouter } from "./bank-aggregator.routes";
 import type { BankAggregatorRepository } from "./bank-aggregator.repository";
+import type { BankAggregatorService } from "./bank-aggregator.service";
 import type { BankProvider } from "./bank-provider";
 
 function makeInMemoryRepo(): BankAggregatorRepository {
@@ -99,6 +108,23 @@ function makeInMemoryRepo(): BankAggregatorRepository {
         },
       };
     },
+    setDisplayName: async (userId, id, displayName) => {
+      const r = store.get(id);
+      if (!r || r.userId !== userId) return null;
+      r.displayName = displayName;
+      return {
+        connection: {
+          id,
+          userId: r.userId,
+          provider: r.provider as "bridge",
+          providerItemId: r.providerItemId,
+          status: r.status,
+          displayName,
+          lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
+          createdAt: r.createdAt.toISOString(),
+        },
+      };
+    },
     findByProviderItemId: async (userId, provider, providerItemId) => {
       for (const [id, r] of store) {
         if (r.userId === userId && r.provider === provider && r.providerItemId === providerItemId) {
@@ -145,6 +171,7 @@ function makeFakeProvider(): BankProvider {
     listAccounts: async () => [
       {
         providerAccountId: "sg-1",
+        accountKey: "iban:FR-SG1",
         bankName: "SG",
         accountName: "Courant",
         kind: "checking",
@@ -153,6 +180,7 @@ function makeFakeProvider(): BankProvider {
       },
       {
         providerAccountId: "sg-2",
+        accountKey: "iban:FR-SG2",
         bankName: "SG",
         accountName: "Livret A",
         kind: "savings",
@@ -165,6 +193,7 @@ function makeFakeProvider(): BankProvider {
         {
           providerTransactionId: "tx-1",
           providerAccountId: "sg-1",
+          accountKey: "iban:FR-SG1",
           occurredOn: new Date("2026-05-25"),
           amount: -25.5,
           label: "Carrefour",
@@ -174,6 +203,7 @@ function makeFakeProvider(): BankProvider {
         {
           providerTransactionId: "tx-2",
           providerAccountId: "sg-2",
+          accountKey: "iban:FR-SG2",
           occurredOn: new Date("2026-05-25"),
           amount: 50,
           label: "Virement",
@@ -314,4 +344,182 @@ test("full lifecycle: connect → refresh → dedup → webhook SCA flip → ref
   await expect(svc.refreshConnection("u", { connectionId: connection.id })).rejects.toThrow(
     /SCA refresh required/,
   );
+});
+
+// ───── Story 5-7 (T5) — rename / revoke / reconnect HTTP boundary ─────────
+//
+// Mirrors accounts.integration.test.ts: boots a real Elysia app with the real
+// mountOrpc + JWT verifier + bank-aggregator router pointed at an in-memory
+// service. Proves the 3 new handlers (a) delegate to the service, (b) gate on
+// JWT (requireUserId/requireEmail), and (c) re-throw BankAggregatorError as
+// typed oRPC errors that map to the right HTTP status on the wire.
+
+const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
+const ISSUER = "https://integration.supabase.co/auth/v1";
+const AUDIENCE = "authenticated";
+const HTTP_USER_ID = "55555555-5555-4555-8555-555555555555";
+
+function baseDto(over: Partial<BankConnection> = {}): BankConnection {
+  return {
+    id: "bnk_aaaaaaaaaaaaaaaaaaaaaa",
+    userId: HTTP_USER_ID,
+    provider: "bridge",
+    providerItemId: "item-1",
+    status: "active",
+    displayName: "Société Générale",
+    lastRefreshedAt: null,
+    createdAt: "2026-05-28T00:00:00.000Z",
+    ...over,
+  };
+}
+
+// Sentinel connectionIds drive the error branches without a stateful store.
+function makeRouteService(): BankAggregatorService {
+  const notImpl = (name: string) => () => {
+    throw new Error(`makeRouteService.${name} not exercised by the HTTP suite`);
+  };
+  return {
+    initiateConnection: notImpl(
+      "initiateConnection",
+    ) as BankAggregatorService["initiateConnection"],
+    completeConnection: notImpl(
+      "completeConnection",
+    ) as BankAggregatorService["completeConnection"],
+    listConnections: async () => [],
+    refreshConnection: notImpl("refreshConnection") as BankAggregatorService["refreshConnection"],
+    refreshAll: async () => undefined,
+    handleWebhookEvent: async () => undefined,
+    async renameConnection(_userId, connectionId, displayName) {
+      if (connectionId === "bnk_missing") {
+        throw new BankAggregatorError("BANK_CONNECTION_NOT_FOUND", "connection not found");
+      }
+      return baseDto({ id: connectionId, displayName });
+    },
+    async revokeConnection(_userId, connectionId) {
+      if (connectionId === "bnk_missing") {
+        throw new BankAggregatorError("BANK_CONNECTION_NOT_FOUND", "connection not found");
+      }
+      if (connectionId === "bnk_down") {
+        throw new BankAggregatorError("BANK_PROVIDER_UNAVAILABLE", "bridge down");
+      }
+      return { ok: true as const };
+    },
+    async getReconnectUrl(_userId, _email, connectionId) {
+      if (connectionId === "bnk_missing") {
+        throw new BankAggregatorError("BANK_CONNECTION_NOT_FOUND", "connection not found");
+      }
+      return "https://bridge/reconnect";
+    },
+  };
+}
+
+async function signValid(): Promise<string> {
+  return new SignJWT({ email: "alex@pekulo.app" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(HTTP_USER_ID)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
+    .sign(new TextEncoder().encode(SECRET));
+}
+
+describe("bank-aggregator rename/revoke/reconnect HTTP boundary (T5)", () => {
+  let appHandle: { stop: () => Promise<void> } | undefined;
+  let baseUrl = "";
+  let token = "";
+
+  beforeAll(async () => {
+    const jwtVerifier = createJwtVerifier({ secret: SECRET, issuer: ISSUER, audience: AUDIENCE });
+    const router = createBankAggregatorRouter({ service: makeRouteService() });
+    const orpcRouter: PekuloRpcRouter = { bankaggregator: router };
+    const app = new Elysia().onError(({ error, set }) => {
+      const requestId = extractRequestId(error) ?? crypto.randomUUID();
+      const mapped = mapErrorToOrpcResponse(error, requestId);
+      set.status = mapped.status;
+      return mapped.body;
+    });
+    mountOrpc(app, { jwtVerifier, orpcRouter });
+    // OS-assigned port (0) — avoids the random-port collisions that flake the
+    // full-suite run when several integration files boot Elysia concurrently.
+    await new Promise<void>((resolve) => {
+      app.listen({ port: 0, hostname: "127.0.0.1" }, () => resolve());
+    });
+    baseUrl = `http://127.0.0.1:${app.server?.port}`;
+    appHandle = { stop: async () => void (await app.stop()) };
+    token = await signValid();
+    await fetch(`${baseUrl}/rpc/v1/bankaggregator/listConnections`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: {} }),
+    }).catch(() => undefined);
+  });
+
+  afterAll(async () => {
+    await appHandle?.stop();
+    appHandle = undefined;
+  });
+
+  async function post(proc: string, json: unknown, withAuth = true): Promise<Response> {
+    return fetch(`${baseUrl}/rpc/v1/bankaggregator/${proc}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(withAuth ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ json }),
+    });
+  }
+
+  test("renameConnection happy path returns 200 + updated DTO (AC-3)", async () => {
+    const res = await post("renameConnection", {
+      connectionId: "bnk_aaaaaaaaaaaaaaaaaaaaaa",
+      displayName: "Banque Pro",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: BankConnection };
+    expect(body.json.displayName).toBe("Banque Pro");
+  });
+
+  test("renameConnection on unknown id maps to BANK_CONNECTION_NOT_FOUND 404 (AC-3)", async () => {
+    const { isORPCErrorJson, createORPCErrorFromJson } = await import("@orpc/client");
+    const res = await post("renameConnection", { connectionId: "bnk_missing", displayName: "X" });
+    expect(res.status).toBe(404);
+    const inner = ((await res.json()) as { json: unknown }).json;
+    expect(isORPCErrorJson(inner)).toBe(true);
+    expect(createORPCErrorFromJson(inner as never).code).toBe("BANK_CONNECTION_NOT_FOUND");
+  });
+
+  test("revokeConnection happy path returns 200 + { ok: true } (AC-4)", async () => {
+    const res = await post("revokeConnection", { connectionId: "bnk_aaaaaaaaaaaaaaaaaaaaaa" });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: { ok: true } };
+    expect(body.json).toEqual({ ok: true });
+  });
+
+  test("revokeConnection maps BANK_PROVIDER_UNAVAILABLE to 503 (AC-4)", async () => {
+    const { createORPCErrorFromJson } = await import("@orpc/client");
+    const res = await post("revokeConnection", { connectionId: "bnk_down" });
+    expect(res.status).toBe(503);
+    const inner = ((await res.json()) as { json: unknown }).json;
+    expect(createORPCErrorFromJson(inner as never).code).toBe("BANK_PROVIDER_UNAVAILABLE");
+  });
+
+  test("reconnectConnection returns the Bridge connectUrl (AC-2)", async () => {
+    const res = await post("reconnectConnection", { connectionId: "bnk_aaaaaaaaaaaaaaaaaaaaaa" });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: { connectUrl: string } };
+    expect(body.json.connectUrl).toBe("https://bridge/reconnect");
+  });
+
+  test("reconnectConnection without JWT returns 401 (requireUserId, NFR-9)", async () => {
+    const res = await post(
+      "reconnectConnection",
+      { connectionId: "bnk_aaaaaaaaaaaaaaaaaaaaaa" },
+      false,
+    );
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
+  });
 });

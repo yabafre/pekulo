@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloButton, PekuloDialog, PekuloSkeleton, useToast } from "@pekulo/ui";
 import type { PreviewedRow, ValidatedCsvRow } from "@pekulo/validators";
-import { useAccounts } from "../../parametres/_hooks/use-accounts";
+import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { useImportTransactionsCsvForm } from "../_hooks/use-import-transactions-csv-form";
 import { usePreviewImportCsv } from "../_hooks/use-preview-import-csv";
 import { CsvPreviewTable } from "./csv-preview-table";

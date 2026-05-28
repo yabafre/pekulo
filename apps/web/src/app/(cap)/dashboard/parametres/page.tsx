@@ -7,13 +7,13 @@
 // without a server round-trip.
 
 import { pekuloSpacing } from "@pekulo/ui";
-import { CompassEditForm } from "./_components/compass-edit-form";
-import { CompassHistoryPanel } from "./_components/compass-history-panel";
+import { CompassEditForm } from "../_compass/_components/compass-edit-form";
+import { CompassHistoryPanel } from "../_compass/_components/compass-history-panel";
 
-// Story 5-6 (post-review aped-review): the TEMP bank-connection affordance
-// moved to /dashboard?tab=patrimoine (see _components/connect-bank-button.tsx
-// + patrimoine-view.tsx). Parametres carries compass-only — the connections
-// management UI lands in 5-7.
+// Feature code is co-located by mount: accounts → dashboard/_accounts,
+// bank connections → dashboard/_bank (+ the bank/callback route), compass →
+// dashboard/_compass. This route shell renders the compass editor (interim
+// home until the real Settings screen lands in story 8-2).
 
 export default function ParametresPage() {
   return (

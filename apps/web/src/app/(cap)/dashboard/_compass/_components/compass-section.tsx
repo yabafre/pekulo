@@ -6,7 +6,7 @@ import { PekuloDonut, PekuloSkeleton, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useDashboardCompass } from "../_hooks/use-dashboard-compass";
 import { useCompassCurve } from "../_hooks/use-compass-curve";
-import { useAddMilestoneDialog } from "./add-milestone-dialog";
+import { useAddMilestoneDialog } from "../../_components/add-milestone-dialog";
 import { CompassSetupCta } from "./compass-setup-cta";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {

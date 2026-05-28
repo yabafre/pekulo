@@ -9,7 +9,7 @@ vi.mock("../_actions/holdings-actions", () => ({
   recordLot: vi.fn(),
   closeHolding: vi.fn(),
 }));
-vi.mock("../../parametres/_actions/accounts-actions", () => ({
+vi.mock("../../_accounts/_actions/accounts-actions", () => ({
   listAccounts: vi.fn().mockResolvedValue([]),
 }));
 

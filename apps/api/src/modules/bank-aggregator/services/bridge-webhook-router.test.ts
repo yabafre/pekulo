@@ -43,6 +43,17 @@ function makeFakeService(): BankAggregatorService {
     refreshAll: async () => undefined,
     handleWebhookEvent: async () => undefined,
     getReconnectUrl: async () => "https://x",
+    renameConnection: async () => ({
+      id: "bnk_x",
+      userId: "11111111-1111-4111-8111-111111111111",
+      provider: "bridge",
+      providerItemId: "x",
+      status: "active",
+      displayName: "renamed",
+      lastRefreshedAt: null,
+      createdAt: new Date().toISOString(),
+    }),
+    revokeConnection: async () => ({ ok: true as const }),
   };
 }
 

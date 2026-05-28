@@ -8,10 +8,10 @@
 import { View, Text } from "@pekulo/ui/client";
 import { PekuloDonut, PekuloSkeleton } from "@pekulo/ui";
 import { AddMilestoneDialogProvider } from "./add-milestone-dialog";
-import { CompassSection, useCapDashboardState } from "./compass-section";
+import { CompassSection, useCapDashboardState } from "../_compass/_components/compass-section";
 import { MilestonesSection } from "./milestones-section";
 import { PlaceholderCard } from "./placeholder-card";
-import { useDashboardCompass } from "../_hooks/use-dashboard-compass";
+import { useDashboardCompass } from "../_compass/_hooks/use-dashboard-compass";
 import styles from "./bento.module.css";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
