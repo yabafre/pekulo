@@ -77,3 +77,38 @@ export const refreshConnectionOutputSchema = z.object({
   lastRefreshedAt: z.string().datetime().nullable(),
 });
 export type RefreshConnectionOutput = z.infer<typeof refreshConnectionOutputSchema>;
+
+// ---------- renameConnection (story 5-7, FR-62) ----------
+
+export const renameConnectionInputSchema = z.object({
+  connectionId: z.string().min(1),
+  displayName: z.string().trim().min(1).max(60),
+});
+export type RenameConnectionInput = z.infer<typeof renameConnectionInputSchema>;
+
+export const renameConnectionOutputSchema = bankConnectionSchema;
+export type RenameConnectionOutput = z.infer<typeof renameConnectionOutputSchema>;
+
+// ---------- revokeConnection (story 5-7, FR-62) ----------
+
+export const revokeConnectionInputSchema = z.object({
+  connectionId: z.string().min(1),
+});
+export type RevokeConnectionInput = z.infer<typeof revokeConnectionInputSchema>;
+
+export const revokeConnectionOutputSchema = z.object({
+  ok: z.literal(true),
+});
+export type RevokeConnectionOutput = z.infer<typeof revokeConnectionOutputSchema>;
+
+// ---------- reconnectConnection (story 5-7, FR-63 — SCA re-auth) ----------
+
+export const reconnectConnectionInputSchema = z.object({
+  connectionId: z.string().min(1),
+});
+export type ReconnectConnectionInput = z.infer<typeof reconnectConnectionInputSchema>;
+
+export const reconnectConnectionOutputSchema = z.object({
+  connectUrl: z.string().url(),
+});
+export type ReconnectConnectionOutput = z.infer<typeof reconnectConnectionOutputSchema>;

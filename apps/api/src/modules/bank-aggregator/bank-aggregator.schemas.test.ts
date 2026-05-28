@@ -14,6 +14,10 @@ import {
   completeConnectionInputSchema,
   refreshConnectionInputSchema,
   initiateConnectionInputSchema,
+  renameConnectionInputSchema,
+  revokeConnectionInputSchema,
+  reconnectConnectionInputSchema,
+  reconnectConnectionOutputSchema,
 } from "@pekulo/validators";
 
 describe("bank-aggregator schemas", () => {
@@ -75,6 +79,48 @@ describe("bank-aggregator schemas", () => {
     );
     expect(
       initiateConnectionInputSchema.safeParse({ redirectUri: "https://app.pekulo/cb" }).success,
+    ).toBe(true);
+  });
+
+  // AC-3 (verbatim from story 5-7-bridge-ui:34):
+  //   Given an existing connection, When the user submits the rename form with
+  //   a non-empty `displayName` (≤ 60 chars), Then renameConnection(...)
+  //   resolves to the updated BankConnection [...].
+  test("renameConnectionInputSchema trims + rejects empty / > 60 chars", () => {
+    expect(
+      renameConnectionInputSchema.safeParse({ connectionId: "bnk_x", displayName: "" }).success,
+    ).toBe(false);
+    expect(
+      renameConnectionInputSchema.safeParse({ connectionId: "bnk_x", displayName: "  " }).success,
+    ).toBe(false);
+    expect(
+      renameConnectionInputSchema.safeParse({ connectionId: "bnk_x", displayName: "a".repeat(61) })
+        .success,
+    ).toBe(false);
+    const ok = renameConnectionInputSchema.safeParse({
+      connectionId: "bnk_x",
+      displayName: "  Crédit Mutuel  ",
+    });
+    expect(ok.success).toBe(true);
+    if (ok.success) expect(ok.data.displayName).toBe("Crédit Mutuel");
+  });
+
+  // AC-4 (verbatim from story 5-7-bridge-ui:36) + AC-2 (line 32):
+  //   revoke + reconnect are keyed by connectionId; reconnect resolves to
+  //   { connectUrl } that the browser redirects to.
+  test("revokeConnectionInputSchema + reconnectConnectionInputSchema require connectionId", () => {
+    expect(revokeConnectionInputSchema.safeParse({}).success).toBe(false);
+    expect(revokeConnectionInputSchema.safeParse({ connectionId: "bnk_x" }).success).toBe(true);
+    expect(reconnectConnectionInputSchema.safeParse({}).success).toBe(false);
+    expect(reconnectConnectionInputSchema.safeParse({ connectionId: "bnk_x" }).success).toBe(true);
+  });
+
+  test("reconnectConnectionOutputSchema requires a URL", () => {
+    expect(reconnectConnectionOutputSchema.safeParse({ connectUrl: "not-a-url" }).success).toBe(
+      false,
+    );
+    expect(
+      reconnectConnectionOutputSchema.safeParse({ connectUrl: "https://bridge/cb" }).success,
     ).toBe(true);
   });
 });
