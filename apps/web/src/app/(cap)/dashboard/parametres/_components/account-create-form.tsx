@@ -33,6 +33,7 @@ const TYPE_LABEL: Record<AccountType, string> = {
   cto: "CTO",
   av: "Assurance vie",
   autre: "Autre",
+  banque: "Compte courant",
 };
 
 export interface AccountCreateFormProps {

@@ -122,6 +122,12 @@ function stubRepo(seed?: {
       // instead. Throw loudly if a future test reaches this branch.
       throw new Error("stubRepo.recordBalanceChange not implemented — use stubAccountRepository()");
     },
+    async findByProviderKey() {
+      throw new Error("stubRepo.findByProviderKey not implemented — use stubAccountRepository()");
+    },
+    async createAuto() {
+      throw new Error("stubRepo.createAuto not implemented — use stubAccountRepository()");
+    },
   };
 }
 
@@ -155,6 +161,10 @@ function stubAccountRepository(): AccountRepository {
     recordBalanceChange: fail(
       "recordBalanceChange",
     ) as unknown as AccountRepository["recordBalanceChange"],
+    findByProviderKey: fail(
+      "findByProviderKey",
+    ) as unknown as AccountRepository["findByProviderKey"],
+    createAuto: fail("createAuto") as unknown as AccountRepository["createAuto"],
   };
 }
 
@@ -397,5 +407,93 @@ describe("recordBalanceChange", () => {
     if (!(caught instanceof AccountError)) throw new Error("type narrowing");
     expect(caught.code).toBe("ACCOUNT_NOT_FOUND");
     expect(caught.message).toBe("account not found");
+  });
+});
+
+// ─── T22 — findOrCreateAutoFromProvider (story 5-6 + post-review race fix) ────
+describe("findOrCreateAutoFromProvider (T22 + post-review race fix)", () => {
+  const PROVIDER = "bridge" as const;
+  const KEY = "sg-courant-1";
+  const BASE_ACCOUNT: Account = {
+    id: "acc_existing0000000000",
+    userId: USER_A,
+    label: "Bridge — SG — Courant",
+    type: "banque" as const,
+    currency: "EUR",
+    cashBalance: 1234,
+    notes: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  test("returns the existing row when findByProviderKey matches (idempotency)", async () => {
+    let createAutoCalls = 0;
+    const repo: AccountRepository = {
+      ...stubAccountRepository(),
+      findByProviderKey: async () => BASE_ACCOUNT,
+      createAuto: async () => {
+        createAutoCalls++;
+        throw new Error("createAuto must not be called when findByProviderKey matches");
+      },
+    };
+    const svc = createAccountService({ repository: repo });
+    const r = await svc.findOrCreateAutoFromProvider(USER_A, PROVIDER, KEY, {
+      label: "Bridge — SG — Courant",
+      type: "banque",
+      currency: "EUR",
+      cashBalance: 1234,
+    });
+    expect(r.id).toBe(BASE_ACCOUNT.id);
+    expect(createAutoCalls).toBe(0);
+  });
+
+  test("creates a new row when findByProviderKey returns null (first call)", async () => {
+    const created: Account = { ...BASE_ACCOUNT, id: "acc_new00000000000000000" };
+    const repo: AccountRepository = {
+      ...stubAccountRepository(),
+      findByProviderKey: async () => null,
+      createAuto: async () => created,
+    };
+    const svc = createAccountService({ repository: repo });
+    const r = await svc.findOrCreateAutoFromProvider(USER_A, PROVIDER, KEY, {
+      label: BASE_ACCOUNT.label,
+      type: "banque",
+      currency: "EUR",
+      cashBalance: 1234,
+    });
+    expect(r.id).toBe(created.id);
+  });
+
+  test("recovers from P2002 race via catch + re-read (winner row returned)", async () => {
+    // Simulates two concurrent completeConnection calls:
+    //   1. findByProviderKey → null on both
+    //   2. First createAuto wins, persists acc_winner
+    //   3. Second createAuto hits the partial UNIQUE → P2002
+    //   4. Service catches, re-reads via findByProviderKey, returns winner
+    const winner: Account = { ...BASE_ACCOUNT, id: "acc_winner0000000000000" };
+    let firstReadDone = false;
+    const repo: AccountRepository = {
+      ...stubAccountRepository(),
+      findByProviderKey: async () => {
+        if (!firstReadDone) {
+          firstReadDone = true;
+          return null; // race-loser sees no row yet
+        }
+        return winner; // re-read after P2002 catches the winner
+      },
+      createAuto: async () => {
+        const err = new Error("UNIQUE constraint failed") as Error & { code: string };
+        err.code = "P2002";
+        throw err;
+      },
+    };
+    const svc = createAccountService({ repository: repo });
+    const r = await svc.findOrCreateAutoFromProvider(USER_A, PROVIDER, KEY, {
+      label: BASE_ACCOUNT.label,
+      type: "banque",
+      currency: "EUR",
+      cashBalance: 1234,
+    });
+    expect(r.id).toBe(winner.id);
   });
 });

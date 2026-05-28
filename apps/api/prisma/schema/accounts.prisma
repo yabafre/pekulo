@@ -2,20 +2,23 @@
 // Maps the three brownfield tables `accounts`, `holdings`, `holding_lots`.
 
 model Account {
-  id          String      @id
-  userId      String      @map("user_id") @db.Uuid
-  label       String
-  type        AccountType
-  currency    String      @default("EUR")
-  cashBalance Decimal     @default(0) @map("cash_balance") @db.Decimal
-  notes       String?
-  createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
+  id                 String      @id
+  userId             String      @map("user_id") @db.Uuid
+  label              String
+  type               AccountType
+  currency           String      @default("EUR")
+  cashBalance        Decimal     @default(0) @map("cash_balance") @db.Decimal
+  notes              String?
+  provider           String?     @map("provider")
+  providerAccountKey String?     @map("provider_account_key")
+  createdAt          DateTime?   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
 
   holdings     Holding[]
   balanceLog   AccountBalanceLog[]
   transactions Transaction[]
 
+  @@unique([userId, provider, providerAccountKey], map: "accounts_user_provider_key_uq")
   @@map("accounts")
 }
 

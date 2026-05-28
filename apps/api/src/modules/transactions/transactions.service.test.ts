@@ -493,4 +493,121 @@ describe("transactionsService", () => {
       expect(unpairOrder).toBeLessThan(deleteOrder);
     }
   });
+
+  // ─── T21 — importFromProvider (story 5-6 + post-review race counter) ────
+  describe("importFromProvider (T21)", () => {
+    test("dedup pre-flight short-circuits when every row already exists", async () => {
+      const findExisting = mock(async (_u: string, _p: string, ids: string[]) => new Set(ids));
+      const bulkProvider = mock(async () => ({
+        persisted: 0,
+        raceSkipped: 0,
+        rows: [] as (typeof sampleTx)[],
+      }));
+      const repo = makeRepoMock({
+        findExistingProviderTxIds:
+          findExisting as unknown as TransactionsRepository["findExistingProviderTxIds"],
+        bulkCreateFromProvider:
+          bulkProvider as unknown as TransactionsRepository["bulkCreateFromProvider"],
+      });
+      const svc = createTransactionsService({
+        repository: repo,
+        accountOwnershipProbe: makeProbe(true),
+        accountResolver: makeResolver(),
+      });
+      const { persisted, skipped } = await svc.importFromProvider("u_a", "bridge", [
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "Carrefour",
+          amount: 25.5,
+          type: "outflow",
+          category: "autre",
+          providerTransactionId: "bridge-tx-1",
+        },
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-27"),
+          label: "Virement",
+          amount: 100,
+          type: "inflow",
+          category: "autre",
+          providerTransactionId: "bridge-tx-2",
+        },
+      ]);
+      expect(persisted).toBe(0);
+      expect(skipped).toBe(2);
+      expect(bulkProvider.mock.calls.length).toBe(0);
+    });
+
+    test("skipped tally folds pre-flight dedup + race-skip from bulkCreateFromProvider", async () => {
+      // Inputs = 4 rows ; pre-flight returns 1 already-existing ;
+      // bulkCreateFromProvider persists 2 and race-skips 1.
+      // Expected: persisted=2, skipped=2 (1 + 1).
+      const findExisting = mock(
+        async () => new Set(["bridge-tx-1"]), // 1 already present
+      );
+      const bulkProvider = mock(async (_u: string, rows: unknown[]) => ({
+        persisted: 2,
+        raceSkipped: 1,
+        rows: rows.slice(0, 2).map((_r, i) => ({
+          ...sampleTx,
+          id: `tx_imp${i}aaaaaaaaaaaaaaaaaa`.slice(0, 24),
+        })),
+      }));
+      const repo = makeRepoMock({
+        findExistingProviderTxIds:
+          findExisting as unknown as TransactionsRepository["findExistingProviderTxIds"],
+        bulkCreateFromProvider:
+          bulkProvider as unknown as TransactionsRepository["bulkCreateFromProvider"],
+      });
+      const svc = createTransactionsService({
+        repository: repo,
+        accountOwnershipProbe: makeProbe(true),
+        accountResolver: makeResolver(),
+      });
+      const { persisted, skipped } = await svc.importFromProvider("u_a", "bridge", [
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "R1",
+          amount: 10,
+          type: "inflow",
+          category: "autre",
+          providerTransactionId: "bridge-tx-1",
+        },
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "R2",
+          amount: 20,
+          type: "inflow",
+          category: "autre",
+          providerTransactionId: "bridge-tx-2",
+        },
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "R3",
+          amount: 30,
+          type: "inflow",
+          category: "autre",
+          providerTransactionId: "bridge-tx-3",
+        },
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "R4",
+          amount: 40,
+          type: "inflow",
+          category: "autre",
+          providerTransactionId: "bridge-tx-4",
+        },
+      ]);
+      expect(persisted).toBe(2);
+      expect(skipped).toBe(2);
+      // Only 3 fresh rows reached bulkCreateFromProvider (pre-flight stripped tx-1).
+      const bulkCallArgs = bulkProvider.mock.calls[0]?.[1] as unknown[];
+      expect(bulkCallArgs).toHaveLength(3);
+    });
+  });
 });

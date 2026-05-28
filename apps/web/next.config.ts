@@ -22,6 +22,14 @@ const nextConfig: NextConfig = {
   // The CI `typecheck` job runs against `apps/web/tsconfig.json` (with
   // `exclude: ["node_modules"]`) and catches everything we ship.
   typescript: { ignoreBuildErrors: true },
+  // Dev-only: allow cloudflared quick tunnels + named tunnels to reach the
+  // /_next/* dev resources (Next.js 16 blocks cross-origin to /_next by
+  // default — protects against malicious sites loading webpack-hmr from
+  // dev machines on shared networks). Quick tunnels regenerate their
+  // subdomain on each restart, hence the wildcard. Production builds
+  // (next start / Vercel) ignore this field — it's strictly dev.
+  // Story 5-6 — exercises Bridge OAuth through a public tunnel.
+  allowedDevOrigins: ["*.trycloudflare.com"],
   turbopack: {
     resolveAlias: {
       "react-native": "react-native-web",

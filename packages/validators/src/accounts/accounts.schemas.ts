@@ -12,7 +12,14 @@
 //     shape lives at @pekulo/types#AccountCardItem (renamed in story 2-1).
 //
 // Defense-in-depth at the validator layer (AC-9):
-//   - cashBalance >= 0 mirrors the brownfield CHECK (cash_balance >= 0).
+//   - cashBalance is unsigned at the DTO surface — Bridge cards/loans have
+//     negative balances (the dette amount). The brownfield CHECK
+//     (cash_balance >= 0) was dropped via the 20260527160000 migration after
+//     story 5-6 smoke-test. Manual-create / update keep cashBalance >= 0
+//     because user-entered accounts (livret/PEA/CTO/AV) shouldn't be
+//     negative; auto-created Bridge accounts bypass the validator on write
+//     (the repository's createAuto path) and the read-side accountSchema
+//     accepts whatever the DB returns.
 //   - label length 1..120 (matches brownfield TEXT NOT NULL guarded by app
 //     code — no DB-level length constraint).
 //   - notes optional, max 500.
@@ -28,7 +35,8 @@ export type AccountCurrency = (typeof ACCOUNT_CURRENCIES)[number];
 // MIRROR of @pekulo/types#ACCOUNT_TYPES — kept inline because validators cannot
 // import from types (would create a Turbo workspace cycle). Reviewer-enforced
 // invariant: this literal MUST equal @pekulo/types#ACCOUNT_TYPES exactly.
-const ACCOUNT_TYPES_MIRROR = ["livret", "pea", "cto", "av", "autre"] as const;
+// Story 5-6 FEAT13 (2026-05-27) adds "banque" for Bridge checking accounts.
+const ACCOUNT_TYPES_MIRROR = ["livret", "pea", "cto", "av", "autre", "banque"] as const;
 
 export const accountIdSchema = z
   .string()
@@ -43,7 +51,10 @@ export const accountSchema = z.object({
   label: z.string().min(1).max(MAX_ACCOUNT_LABEL_LENGTH),
   type: z.enum(ACCOUNT_TYPES_MIRROR),
   currency: z.enum(ACCOUNT_CURRENCIES),
-  cashBalance: z.number().min(0),
+  // Story 5-6 FIX (2026-05-27): Bridge cards/loans carry negative balances
+  // (debt amount). DTO accepts any finite number; manual-create input still
+  // gates >= 0 below.
+  cashBalance: z.number().finite(),
   notes: z.string().max(MAX_ACCOUNT_NOTES_LENGTH).nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),

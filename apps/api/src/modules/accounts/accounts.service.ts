@@ -31,6 +31,30 @@ export interface AccountService {
     userId: string,
     label: string,
   ): Promise<{ id: string | null; matchCount: number }>;
+  /**
+   * Story 5-6 T22 — idempotent auto-create on (userId, provider, providerAccountKey).
+   * AC-7: re-completeConnection of the same Bridge item produces zero new
+   * accounts rows. The bank-aggregator service calls this in completeConnection
+   * (per remote account) and reuses the returned accountId during refresh
+   * for transaction insertion.
+   */
+  findOrCreateAutoFromProvider(
+    userId: string,
+    provider: string,
+    providerAccountKey: string,
+    input: { label: string; type: Account["type"]; currency: string; cashBalance?: number },
+  ): Promise<Account>;
+  /**
+   * Story 5-6 FIX12 (2026-05-27) — look up only, no auto-create. Used by
+   * the bank-aggregator refresh path to map transaction.account_id → local
+   * Account.id WITHOUT creating orphans when the provider's transaction
+   * endpoint returns an unknown account_id (Bridge sandbox race observed).
+   */
+  findByProviderKey(
+    userId: string,
+    provider: string,
+    providerAccountKey: string,
+  ): Promise<Account | null>;
 }
 
 export interface AccountServiceDeps {
@@ -87,6 +111,49 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
 
     async findAccountIdByLabel(userId, label) {
       return deps.repository.findAccountIdByLabelForUser(userId, label);
+    },
+
+    async findOrCreateAutoFromProvider(userId, provider, providerAccountKey, input) {
+      const existing = await deps.repository.findByProviderKey(
+        userId,
+        provider,
+        providerAccountKey,
+      );
+      if (existing) return existing;
+      // Story 5-6 FIX (post-review aped-review): the find-then-create
+      // sequence is non-atomic — two concurrent completeConnection calls for
+      // the same `(userId, provider, providerAccountKey)` both observe null
+      // and both call createAuto. The second hits the partial UNIQUE index
+      // `accounts_user_provider_key_uq` → P2002. We catch + re-read, mirroring
+      // the race-safe `resolveProviderUserUuid` pattern in the bank-aggregator
+      // service. If even the re-read returns null (shouldn't happen — the
+      // unique index says someone won), surface the original error.
+      try {
+        return await deps.repository.createAuto({
+          userId,
+          label: input.label,
+          type: input.type,
+          currency: input.currency,
+          cashBalance: input.cashBalance ?? 0,
+          provider,
+          providerAccountKey,
+        });
+      } catch (err) {
+        const code = (err as { code?: string } | null)?.code;
+        if (code === "P2002") {
+          const winner = await deps.repository.findByProviderKey(
+            userId,
+            provider,
+            providerAccountKey,
+          );
+          if (winner) return winner;
+        }
+        throw err;
+      }
+    },
+
+    async findByProviderKey(userId, provider, providerAccountKey) {
+      return deps.repository.findByProviderKey(userId, provider, providerAccountKey);
     },
   };
 }

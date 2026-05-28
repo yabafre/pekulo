@@ -403,7 +403,16 @@ apply_patch() {
       # above for the hot-path mutations (better error messages, narrower
       # surface to misuse).
       [[ $# -eq 3 ]] || { echo "Usage: set-story-field <key> <field> <value>" >&2; return 3; }
+      # 6.12.5 — read_cmd's default-case word-split (`set -- $line`)
+      # preserves quotes typed by the caller verbatim in $3, because bash
+      # does not interpret quotes inside an expanded variable. Strip one
+      # caller-supplied layer before re-wrapping below, so both
+      # `set-story-field … ticket BON-550` and `… ticket "BON-550"` end up
+      # as the same yq expression instead of `= ""BON-550""` (lexer error).
+      # Same idempotent shape as set-sprint-field at the next case.
       local raw_value="$3"
+      raw_value="${raw_value#\"}"
+      raw_value="${raw_value%\"}"
       if [[ "$raw_value" == "null" || "$raw_value" == "true" || "$raw_value" == "false" ]]; then
         set_story_field "$1" "$2" "$raw_value"
       else

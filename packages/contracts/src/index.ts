@@ -24,6 +24,11 @@ export { dashboardContract, dashboardContractV1, dashboardContractMeta } from ".
 export { settingsContract, settingsContractV1, settingsContractMeta } from "./settings";
 export { hypothesisContract, hypothesisContractV1, hypothesisContractMeta } from "./hypothesis";
 export { llmContract, llmContractV1, llmContractMeta } from "./llm";
+export {
+  bankAggregatorContract,
+  bankAggregatorContractV1,
+  bankAggregatorContractMeta,
+} from "./bank-aggregator";
 
 import { authContract } from "./auth";
 import { compassContract } from "./compass";
@@ -37,6 +42,7 @@ import { dashboardContract } from "./dashboard";
 import { settingsContract } from "./settings";
 import { hypothesisContract } from "./hypothesis";
 import { llmContract } from "./llm";
+import { bankAggregatorContract } from "./bank-aggregator";
 
 /**
  * Top-level Pekulo oRPC contract aggregator.
@@ -61,6 +67,7 @@ export const pekuloContract = {
   settings: settingsContract,
   hypothesis: hypothesisContract,
   llm: llmContract,
+  bankaggregator: bankAggregatorContract,
 } as const;
 
 /**

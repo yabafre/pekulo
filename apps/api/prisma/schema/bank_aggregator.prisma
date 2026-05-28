@@ -1,0 +1,42 @@
+// bank_aggregator.prisma — Bank-aggregator domain (story 5-6 + ADR-0015).
+//
+// Token storage path: Supabase Vault — `access_token_secret_id` and
+// `refresh_token_secret_id` point to rows in `vault.secrets` (libsodium-backed
+// secret storage managed by Supabase). The repository writes secrets via
+// $queryRaw `INSERT INTO vault.secrets (...) RETURNING id` and reads via
+// the `vault.decrypted_secrets` view. Prisma sees only the `uuid` FK column.
+//
+// Provider abstraction (ADR-0015): the `provider` column today only carries
+// "bridge"; the CHECK constraint at SQL level is the gatekeeper. Future
+// implementations (Powens, etc.) add to the CHECK first, then to the union.
+
+// Bridge v3 user mapping (story 5-6 FIX, post-smoke-test). Bridge's v3
+// connect-sessions endpoint mandates user_uuid in the body (the Bridge-side
+// UUID). This table persists the Pekulo userId ↔ bridge_user_uuid mapping
+// so step 1 (POST /v3/aggregation/users) only runs once per Pekulo user.
+model BridgeUser {
+  userId         String   @id @map("user_id") @db.Uuid
+  bridgeUserUuid String   @unique @map("bridge_user_uuid")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("bridge_users")
+}
+
+model BankConnection {
+  id                   String    @id
+  userId               String    @map("user_id") @db.Uuid
+  provider             String
+  providerItemId       String    @map("provider_item_id")
+  accessTokenSecretId  String?   @map("access_token_secret_id") @db.Uuid
+  refreshTokenSecretId String?   @map("refresh_token_secret_id") @db.Uuid
+  status               String    @default("active")
+  displayName          String?   @map("display_name")
+  lastRefreshedAt      DateTime? @map("last_refreshed_at") @db.Timestamptz
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([userId, provider, providerItemId], map: "bank_connections_user_provider_item_uq")
+  @@index([userId, status], map: "bank_connections_user_status_idx")
+  @@map("bank_connections")
+}

@@ -54,6 +54,15 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // monthly_records — CRUD table for monthly aggregate overrides (story 5-4).
   // Full quartet. AC-3 of story 5-4 asserts per-row RLS isolation.
   monthly_records: 4,
+  // bank_connections — CRUD table for Bridge OAuth connections (story 5-6).
+  // Full quartet. NFR-8 + ADR-0013 — per-row isolation. Token columns are
+  // vault.secrets FKs, never exposed via oRPC DTO.
+  bank_connections: 4,
+  // bridge_users — mapping Pekulo userId ↔ Bridge user UUID (story 5-6 FIX,
+  // post-smoke-test). Immutable per-user row; SELECT + INSERT only (no
+  // UPDATE/DELETE use-case), so the audit shape is the 2-policy sister-table
+  // variant.
+  bridge_users: 2,
 };
 
 async function main(): Promise<number> {

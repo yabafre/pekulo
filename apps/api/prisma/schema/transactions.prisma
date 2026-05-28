@@ -7,24 +7,27 @@
 //   for models, not grouping columns.
 
 model Transaction {
-  id             String          @id
-  userId         String          @map("user_id") @db.Uuid
-  accountId      String          @map("account_id")
-  occurredOn     DateTime        @map("occurred_on") @db.Date
-  label          String
-  amount         Decimal         @db.Decimal
-  type           TransactionType
-  category       String
-  isImprevu      Boolean         @default(false) @map("is_imprevu")
-  notes          String?
-  transferPairId String?         @map("transfer_pair_id")
-  createdAt      DateTime?       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime?       @default(now()) @map("updated_at") @db.Timestamptz
+  id                    String          @id
+  userId                String          @map("user_id") @db.Uuid
+  accountId             String          @map("account_id")
+  occurredOn            DateTime        @map("occurred_on") @db.Date
+  label                 String
+  amount                Decimal         @db.Decimal
+  type                  TransactionType
+  category              String
+  isImprevu             Boolean         @default(false) @map("is_imprevu")
+  notes                 String?
+  transferPairId        String?         @map("transfer_pair_id")
+  provider              String?         @map("provider")
+  providerTransactionId String?         @map("provider_transaction_id")
+  createdAt             DateTime?       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime?       @default(now()) @map("updated_at") @db.Timestamptz
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([userId, occurredOn(sort: Desc)], map: "transactions_user_date_idx")
   @@index([userId, accountId, occurredOn(sort: Desc)], map: "transactions_user_account_date_idx")
   @@index([userId, transferPairId], map: "transactions_user_pair_idx")
+  @@index([userId, provider, providerTransactionId], map: "transactions_user_provider_txid_idx")
   @@map("transactions")
 }

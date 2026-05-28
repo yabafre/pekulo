@@ -38,6 +38,17 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
     OTEL_SERVICE_NAME: "pekulo-api-test",
     OTEL_EXPORTER_OTLP_ENDPOINT: undefined,
     OTEL_LOG_LEVEL: "error",
+    // Bridge defaults match envSchema (story 5-6, post-review aped-review).
+    // The three core keys are required at boot — test fixtures populate them
+    // with placeholder values. PREVIOUS_SECRET stays undefined (24h rotation
+    // overlap is optional).
+    BRIDGE_CLIENT_ID: "test-bridge-client-id",
+    BRIDGE_CLIENT_SECRET: "test-bridge-client-secret",
+    BRIDGE_WEBHOOK_SIGNING_SECRET: "test-bridge-webhook-secret",
+    BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS: undefined,
+    BRIDGE_API_BASE: "https://api.bridgeapi.io",
+    BRIDGE_API_VERSION: "2025-01-15",
+    BRIDGE_REFRESH_CRON_HOURS: 6,
     ...overrides,
   };
 }
@@ -111,6 +122,10 @@ describe("loadEnv with malformed OTEL_EXPORTER_OTLP_ENDPOINT (AC-4)", () => {
     SUPABASE_URL: "http://127.0.0.1:54321",
     OTEL_SERVICE_NAME: "pekulo-api-test",
     OTEL_LOG_LEVEL: "error",
+    // Story 5-6 post-review aped-review: BRIDGE_* triple now required at boot.
+    BRIDGE_CLIENT_ID: "test-bridge-client-id",
+    BRIDGE_CLIENT_SECRET: "test-bridge-client-secret",
+    BRIDGE_WEBHOOK_SIGNING_SECRET: "test-bridge-webhook-secret",
   };
 
   test("rejects a non-URL string with ConfigError naming the offending field", () => {

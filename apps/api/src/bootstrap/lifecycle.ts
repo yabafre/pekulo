@@ -8,6 +8,12 @@ export interface LifecycleOptions {
 export interface LifecycleDeps {
   prismaService: PrismaService;
   shutdownOtel: () => Promise<void>;
+  /**
+   * Story 5-6 — optional teardown hook invoked at the start of shutdown to
+   * stop background work (bank-refresh cron, future schedulers). Failures are
+   * logged but don't block the rest of the lifecycle.
+   */
+  onShutdown?: () => Promise<void>;
 }
 
 /**
@@ -61,6 +67,16 @@ export async function registerLifecycle(
     const elysiaBudget = Math.max(1, Math.floor(total * 0.3));
     const otelBudget = Math.max(1, Math.floor(total * 0.5));
     const prismaBudget = Math.max(1, total - elysiaBudget - otelBudget);
+
+    // Story 5-6 — stop scheduled background work (bank-refresh cron) BEFORE
+    // Elysia stop so the next tick doesn't race the drain. Failures are
+    // non-fatal — the timer is local in-process and Elysia/Prisma teardown
+    // is the real shutdown contract.
+    if (deps.onShutdown) {
+      await deps.onShutdown().catch((err) => {
+        console.error("[api] onShutdown hook failed:", err);
+      });
+    }
 
     if (!(await withTimeout("elysia.stop", app.stop(), elysiaBudget))) {
       exitCode = 1;

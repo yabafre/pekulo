@@ -589,4 +589,143 @@ describe("transactionsRepository", () => {
     expect(call.data.category).toBe("autre");
     expect(call.data.transferPairId).toBeNull();
   });
+
+  // ─── T20 — bulkCreateFromProvider + findExistingProviderTxIds (story 5-6) ───
+  describe("bulkCreateFromProvider + findExistingProviderTxIds (T20 + post-review race)", () => {
+    test("findExistingProviderTxIds returns empty Set on empty input (perf short-circuit)", async () => {
+      // Empty input → no DB call. Verified via the absence of findMany invocations.
+      const findManyMock = mock(async () => [] as Array<{ providerTransactionId: string | null }>);
+      const fakeClient = {
+        transaction: { findMany: findManyMock },
+      } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const set = await localRepo.findExistingProviderTxIds("u_a", "bridge", []);
+      expect(set.size).toBe(0);
+      expect(findManyMock.mock.calls.length).toBe(0);
+    });
+
+    test("findExistingProviderTxIds returns the subset already present", async () => {
+      const findManyMock = mock(
+        async () =>
+          [
+            { providerTransactionId: "bridge-tx-1" },
+            { providerTransactionId: "bridge-tx-3" },
+          ] as Array<{ providerTransactionId: string | null }>,
+      );
+      const fakeClient = {
+        transaction: { findMany: findManyMock },
+      } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const set = await localRepo.findExistingProviderTxIds("u_a", "bridge", [
+        "bridge-tx-1",
+        "bridge-tx-2",
+        "bridge-tx-3",
+      ]);
+      expect(set.size).toBe(2);
+      expect(set.has("bridge-tx-1")).toBe(true);
+      expect(set.has("bridge-tx-3")).toBe(true);
+      expect(set.has("bridge-tx-2")).toBe(false);
+    });
+
+    test("bulkCreateFromProvider stamps provider + providerTransactionId on every row", async () => {
+      const seenData: Array<Record<string, unknown>> = [];
+      const create = mock(async (args: { data: Record<string, unknown> }) => {
+        seenData.push(args.data);
+        return fakeRow({
+          id: `tx_${String(seenData.length).padStart(21, "0")}`,
+          provider: args.data.provider as string,
+          providerTransactionId: args.data.providerTransactionId as string,
+        } as Partial<FakeRow>);
+      });
+      const fakeClient = {
+        transaction: { create },
+      } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const result = await localRepo.bulkCreateFromProvider("u_a", [
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "CB Carrefour",
+          amount: 25.5,
+          type: "outflow" as const,
+          category: "autre",
+          provider: "bridge",
+          providerTransactionId: "bridge-tx-1",
+        },
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-27"),
+          label: "Virement reçu",
+          amount: 100,
+          type: "inflow" as const,
+          category: "autre",
+          provider: "bridge",
+          providerTransactionId: "bridge-tx-2",
+        },
+      ]);
+      expect(result.persisted).toBe(2);
+      expect(result.raceSkipped).toBe(0);
+      expect(seenData[0]?.provider).toBe("bridge");
+      expect(seenData[0]?.providerTransactionId).toBe("bridge-tx-1");
+      expect(seenData[1]?.providerTransactionId).toBe("bridge-tx-2");
+    });
+
+    test("bulkCreateFromProvider catches per-row P2002 (concurrent webhook race) and returns raceSkipped count", async () => {
+      // Race scenario: 3 rows submitted, the middle one collides with a
+      // concurrent insert that already persisted. Partial UNIQUE index throws
+      // P2002 → service skips + counts, does NOT roll the batch back.
+      let call = 0;
+      const create = mock(async (args: { data: Record<string, unknown> }) => {
+        call++;
+        if (call === 2) {
+          const err = new Error("UNIQUE constraint failed") as Error & { code: string };
+          err.code = "P2002";
+          throw err;
+        }
+        return fakeRow({
+          id: `tx_${String(call).padStart(21, "0")}`,
+          providerTransactionId: args.data.providerTransactionId as string,
+        } as Partial<FakeRow>);
+      });
+      const fakeClient = {
+        transaction: { create },
+      } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const result = await localRepo.bulkCreateFromProvider("u_a", [
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "Row 1",
+          amount: 10,
+          type: "inflow" as const,
+          category: "autre",
+          provider: "bridge",
+          providerTransactionId: "bridge-tx-1",
+        },
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "Row 2 (collides)",
+          amount: 20,
+          type: "inflow" as const,
+          category: "autre",
+          provider: "bridge",
+          providerTransactionId: "bridge-tx-2",
+        },
+        {
+          accountId: "acc_aaa111111111111111111",
+          occurredOn: new Date("2026-05-26"),
+          label: "Row 3",
+          amount: 30,
+          type: "inflow" as const,
+          category: "autre",
+          provider: "bridge",
+          providerTransactionId: "bridge-tx-3",
+        },
+      ]);
+      expect(result.persisted).toBe(2);
+      expect(result.raceSkipped).toBe(1);
+      expect(result.rows).toHaveLength(2);
+    });
+  });
 });

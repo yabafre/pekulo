@@ -11,7 +11,8 @@
 // Milestone, and Turbo refuses the reverse edge). Keep both sides in sync;
 // drift caught at code review.
 
-export const ACCOUNT_TYPES = ["livret", "pea", "cto", "av", "autre"] as const;
+// Story 5-6 FEAT13 (2026-05-27) adds "banque" for Bridge checking accounts.
+export const ACCOUNT_TYPES = ["livret", "pea", "cto", "av", "autre", "banque"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 /** UI prop shape consumed by PekuloAccountRow / PekuloAccountsSection. */

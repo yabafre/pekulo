@@ -4,7 +4,8 @@
 //         as expected. Story 2-2 widens the count to 15 by registering
 //         AccountBalanceLog → "abl". Story 4-1 widens to 16 by registering
 //         RealEstateMortgage → "resm". Story 5-4 widens to 17 by registering
-//         MonthlyRecord → "mr".
+//         MonthlyRecord → "mr". Story 5-6 widens to 18 by registering
+//         BankConnection → "bnk".
 //   AC-6: registry is unique and well-formed; the test computes
 //         Object.values(ID_PREFIXES).length === new Set(Object.values(ID_PREFIXES)).size.
 
@@ -12,8 +13,8 @@ import { describe, expect, it } from "bun:test";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 17 model entries (ADR-0012 + story 2-2 abl + story 4-1 resm + story 5-4 mr)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(17);
+  it("exposes exactly 19 model entries (ADR-0012 + 2-2 abl + 4-1 resm + 5-4 mr + 5-6 bnk + 5-6-FIX BridgeUser:null)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(19);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -54,6 +55,8 @@ describe("id-prefixes.config", () => {
       "RealEstateValuation",
       "LlmCallLog",
       "LlmOptIn",
+      "BankConnection",
+      "BridgeUser",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
   });
@@ -67,5 +70,14 @@ describe("id-prefixes.config", () => {
   it("getPrefix throws MissingPrefixError on an unknown model", () => {
     expect(() => getPrefix("FakeModel")).toThrow(MissingPrefixError);
     expect(() => getPrefix("FakeModel")).toThrow(/FakeModel/);
+  });
+
+  // AC-1 (verbatim from story 5-6-bridge-connector):
+  //   Given a valid Bridge OAuth callback, when completeConnection({code, state})
+  //   resolves, then a BankConnection row is persisted. The bnk prefix is the
+  //   ADR-0012 registration that lets the prefixed-ids extension stamp every
+  //   create with bnk_<base62> (story 5-6 — added 2026-05-27).
+  it("BankConnection prefix resolves to bnk (story 5-6)", () => {
+    expect(getPrefix("BankConnection")).toBe("bnk");
   });
 });

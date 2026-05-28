@@ -20,6 +20,7 @@ const TYPE_LABEL: Record<AccountType, string> = {
   cto: "CTO",
   av: "Assurance vie",
   autre: "Autre",
+  banque: "Compte courant",
 };
 
 export function PekuloAccountRow({ label, type, institution, balanceEur }: PekuloAccountRowProps) {

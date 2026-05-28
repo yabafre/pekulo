@@ -158,17 +158,23 @@ if (( invalid_found )); then
 fi
 
 # ── Strict schema validation (6.2.0+, WARN-only) ─────────────────────────
-# Validate state.yaml against the canonical JSON Schema v3 shipped at
-# ${APED_DIR}/data/state.yaml.schema.v3.json. Surfaces drift (invented
-# sub-blocks, free-form story fields, out-of-taxonomy phase shapes) as
-# stderr warnings. WARN-only in 6.2.0 — escalates to ERROR in 7.0.0
-# after one MINOR cycle of grace.
+# Validate state.yaml against the canonical JSON Schema shipped at
+# ${APED_DIR}/data/state.yaml.schema.v<N>.json, where <N> is the file's own
+# `schema_version`. Surfaces drift (invented sub-blocks, free-form story
+# fields, out-of-taxonomy phase shapes) as stderr warnings. WARN-only since
+# 6.2.0 — escalates to ERROR in 7.0.0 after the grace window.
+#
+# The version-keyed schema_file is the fix for the silent gap that opened in
+# 6.7.5: the canonical shape moved to v4 (sprint.mode / stack_order) but this
+# gate stayed pinned to `== 3` against the v3 file, so every v4 scaffold
+# skipped strict validation outright. Selecting by `.schema_version` lets v3
+# and v4 files each validate against their own contract.
 #
 # Lazy + optional dependencies: yq (YAML->JSON) + npx + ajv-cli. Any
 # missing piece triggers a skip with a one-line stderr note. CI pipelines
 # without yq or outbound npm access stay green.
-if [[ "$schema_version" == "3" ]]; then
-  schema_file="$PROJECT_ROOT/.aped/data/state.yaml.schema.v3.json"
+if [[ "$schema_version" == "3" || "$schema_version" == "4" ]]; then
+  schema_file="$PROJECT_ROOT/.aped/data/state.yaml.schema.v$schema_version.json"
   if [[ ! -f "$schema_file" ]]; then
     echo "WARN: schema check skipped ($schema_file not found - re-run \`aped-method --update\` to scaffold it)" >&2
   elif ! command -v yq >/dev/null 2>&1; then
@@ -194,7 +200,7 @@ if [[ "$schema_version" == "3" ]]; then
       if [[ "$ajv_status" == "127" ]]; then
         echo "WARN: schema check skipped (npx ajv-cli unavailable - offline or sandboxed)" >&2
       elif [[ "$ajv_status" != "0" ]]; then
-        echo "WARN: state.yaml does not match schema v3 (drift detected - see below). 6.2.0 is WARN-only; 7.0.0 will refuse to operate. Run \`aped-method --update\` to ship the latest schema; fix or re-route invented fields." >&2
+        echo "WARN: state.yaml does not match schema v$schema_version (drift detected - see below). WARN-only today; 7.0.0 will refuse to operate. Run \`aped-method --update\` to ship the latest schema; fix or re-route invented fields." >&2
         printf '%s\n' "$ajv_output" | head -40 >&2
       fi
     fi

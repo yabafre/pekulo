@@ -11,7 +11,7 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.12.4
+  version: 6.13.0
 ---
 
 Follow the instructions in `.aped/aped-brainstorm/workflow.md`.
