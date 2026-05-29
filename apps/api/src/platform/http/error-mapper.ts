@@ -68,6 +68,13 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // mismatch, or any malformed payload surface as 400 — the client sent
   // unparseable bytes.
   INVALID_CSV: 400,
+  // LLM module (story 6-1, FR-31/35 + DR-7).
+  // _OPT_IN_REQUIRED → 403 (third-party egress attempted without consent).
+  // _PROVIDER_UNAVAILABLE → 503 (Ollama/third-party upstream down or timeout).
+  // _ROUTING_ERROR → 502 (bad gateway: malformed route / prompt-cap breach).
+  LLM_OPT_IN_REQUIRED: 403,
+  LLM_PROVIDER_UNAVAILABLE: 503,
+  LLM_ROUTING_ERROR: 502,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
