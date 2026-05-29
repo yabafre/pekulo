@@ -3,12 +3,20 @@
 // zod entry point (R1). llmPromptEnvelopeSchema is the runtime guard behind
 // NFR-12 (allowlist via .strict()); attestLlmCallSchema validates the client
 // attestation POST to /internal/llm/attest.
+//
+// Closed-enum source of truth lives in @pekulo/types (#LLM_ROUTES / #LLM_OUTCOMES)
+// but @pekulo/validators CANNOT import @pekulo/types (one-way layering, R1 — a
+// runtime import creates a TDZ cycle). So the literals are mirrored inline here,
+// exactly like ACCOUNT_TYPES_MIRROR in accounts.schemas.ts. INVARIANT: these two
+// mirrors MUST stay equal to @pekulo/types#LLM_ROUTES / #LLM_OUTCOMES verbatim.
 
 import { z } from "@pekulo/zod";
-import { LLM_OUTCOMES, LLM_ROUTES } from "@pekulo/types";
 
-export const llmRouteSchema = z.enum(LLM_ROUTES);
-export const llmOutcomeSchema = z.enum(LLM_OUTCOMES);
+const LLM_ROUTES_MIRROR = ["foundation_models", "ollama", "third_party"] as const;
+const LLM_OUTCOMES_MIRROR = ["success", "failure"] as const;
+
+export const llmRouteSchema = z.enum(LLM_ROUTES_MIRROR);
+export const llmOutcomeSchema = z.enum(LLM_OUTCOMES_MIRROR);
 
 export const clientCapabilitiesSchema = z.object({
   iosFoundationModels: z.boolean(),
