@@ -104,7 +104,11 @@ export async function startServer(): Promise<ServerHandle> {
     // /internal/bridge/webhook path resolves before the oRPC catch-all.
     // Raw body capture happens inside the router (onParse) ; HMAC verification
     // gates every dispatch (NFR-33).
-    .use(deps.bankAggregatorModule.webhookRouter);
+    .use(deps.bankAggregatorModule.webhookRouter)
+    // Story 6-1 — /internal/llm/attest listener mounted BEFORE mountOrpc so the
+    // internal path resolves before the oRPC catch-all (parity with the Bridge
+    // webhook). JWT-verified inside the router (ADR-0008).
+    .use(deps.llmModule.attestRouter);
 
   mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
 
