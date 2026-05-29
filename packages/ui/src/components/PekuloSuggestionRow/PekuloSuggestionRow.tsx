@@ -3,14 +3,14 @@
 import { Text, View, styled } from "tamagui";
 import { ArrowDownRight, ArrowUpRight, Sparkles } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import type { LlmRoute, Suggestion } from "@pekulo/types";
+import type { LlmRouteBadge, Suggestion } from "@pekulo/types";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
   maximumFractionDigits: 0,
 });
-const ROUTE_LABEL: Record<LlmRoute, string> = {
+const ROUTE_LABEL: Record<LlmRouteBadge, string> = {
   ios: "iOS",
   ollama: "Ollama",
   cloud: "Cloud",

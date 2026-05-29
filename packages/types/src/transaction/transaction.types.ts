@@ -1,6 +1,6 @@
 // packages/types/src/transaction/transaction.types.ts
 // Transactions domain types — Zod-inferred DTO + inputs re-exported from
-// @pekulo/validators. UI-display shapes (Activity, Suggestion, LLM_ROUTES,
+// @pekulo/validators. UI-display shapes (Activity, Suggestion, LLM_ROUTE_BADGES,
 // TX_DIRECTIONS) preserved as inline interfaces consumed by @pekulo/ui rows.
 
 import type { Id } from "../shared/shared.types";
@@ -39,12 +39,14 @@ export interface Activity {
   amountEur: number;
 }
 
-// LLM routing labels — UI-display variant. Backend labels are
-// `'foundation_models' | 'ollama' | 'third_party'` (architecture L243 +
-// ADR-0008). The two surfaces are reconciled when transactions feature
-// epic 6-x wires the real router.
-export const LLM_ROUTES = ["ios", "ollama", "cloud"] as const;
-export type LlmRoute = (typeof LLM_ROUTES)[number];
+// LLM route badge labels — UI-display variant (the "iOS / Ollama / Cloud"
+// chip). The canonical backend routing enum is `LlmRoute`
+// (`'foundation_models' | 'ollama' | 'third_party'`) in `../llm`, iso with the
+// Prisma `LlmRoute` enum + `llmRouteSchema` (ADR-0008). Story 6-1 reconciled
+// the name clash by renaming this UI variant to `LlmRouteBadge`; the badge is
+// derived from the server `route_actual` at the row layer (story 6-4).
+export const LLM_ROUTE_BADGES = ["ios", "ollama", "cloud"] as const;
+export type LlmRouteBadge = (typeof LLM_ROUTE_BADGES)[number];
 
 export interface Suggestion {
   label: string;
@@ -54,5 +56,5 @@ export interface Suggestion {
   amountEur: number;
   suggestedCategory: string;
   confidence: number;
-  route: LlmRoute;
+  route: LlmRouteBadge;
 }

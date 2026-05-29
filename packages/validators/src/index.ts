@@ -6,6 +6,7 @@ export * from "./bank-aggregator";
 export * from "./compass";
 export * from "./holdings";
 export * from "./hypothesis";
+export * from "./llm";
 export * from "./milestones";
 export * from "./monthly";
 export * from "./realestate";
