@@ -236,5 +236,7 @@ sprint:
     11-4-axe-and-wcag-gates: {status: pending, depends_on: [0-8-github-actions-pr, 0-10-pekulo-ui-migration], ticket: "#51", worktree: null}
     11-5-ai-transparency-notice: {status: pending, depends_on: [6-3-llm-opt-in, 6-4-llm-suggestion-ui], ticket: "#52", worktree: null}
     11-6-restore-drill-and-glitchtip: {status: pending, depends_on: [0-7-otel-three-runtimes, 0-3-api-scaffold], ticket: "#53", worktree: null}
+    # Ingested from GitHub issue #104 via aped-from-ticket (2026-05-29). Registered, NOT added to active sprint (auto_add: false).
+    11-7-auth-hardening-httponly-csp: {status: review, depends_on: [], ticket: "#104", source: from_ticket, worktree: null, started_at: "2026-05-29T10:34:37Z", completed_at: "2026-05-29T11:04:11Z"}
   mode: parallel
   stack_order: []

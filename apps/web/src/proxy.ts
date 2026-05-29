@@ -1,14 +1,33 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { buildSecurityHeaders } from "@/lib/security/headers";
+import { buildSecurityHeaders, CSP_ENFORCED_HEADER } from "@/lib/security/headers";
 
 export async function proxy(request: NextRequest) {
-  // Apply edge security headers to EVERY exit path (pass-through + both
-  // redirects) so no response escapes unhardened.
+  // One nonce per request. Next extracts it from the CSP header on the REQUEST
+  // during SSR and auto-applies it to its framework/bundled scripts, so the
+  // enforced CSP must travel on both the request (for the render) and the
+  // response (for the browser).
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+
   const securityHeaders = buildSecurityHeaders({
     dev: process.env.NODE_ENV === "development",
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    nonce,
   });
+  const csp = securityHeaders[CSP_ENFORCED_HEADER];
+
+  // request.headers is immutable — clone it and thread the nonce + CSP into the
+  // RSC render. Rebuilt on each NextResponse.next so Supabase's refreshed auth
+  // cookies (set on `request` in setAll) ride along with the nonce headers.
+  const forwardedHeaders = (): Headers => {
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set(CSP_ENFORCED_HEADER, csp);
+    return headers;
+  };
+
+  // Apply edge security headers to EVERY exit path (pass-through + both
+  // redirects) so no response escapes unhardened.
   const withSecurity = (res: NextResponse): NextResponse => {
     for (const [name, value] of Object.entries(securityHeaders)) {
       res.headers.set(name, value);
@@ -16,19 +35,22 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
-  let response = NextResponse.next({ request });
+  let response = NextResponse.next({ request: { headers: forwardedHeaders() } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Match server.ts — a token refresh here must not downgrade the session
+      // cookie back to JS-readable (story 11-7, AC-1).
+      cookieOptions: { httpOnly: true },
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: { headers: forwardedHeaders() } });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

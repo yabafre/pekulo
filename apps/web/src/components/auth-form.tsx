@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Section, pekuloFontSizes, useToast } from "@pekulo/ui";
 import { Text, View, styled } from "@pekulo/ui/client";
-import { createClient } from "@/lib/supabase/client";
+import { signIn, signUp } from "@/app/auth/_actions/auth-actions";
 
 // Plain styled HTML input. `color` and `outline` are CSS-only (not in
 // Tamagui's StackStyle), so we apply them via inline style referencing
@@ -49,30 +49,25 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) {
-          toast.danger("Inscription refusée", error.message);
+        const result = await signUp(email, password);
+        if (!result.ok) {
+          toast.danger("Inscription refusée", result.message);
         } else {
           toast.success("Compte créé", "Vérifie tes emails pour confirmer.");
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          // Never echo raw Supabase error messages — they can leak rate-limit
-          // hints / server details. Surface "Invalid login credentials"
-          // explicitly (UX); collapse every other error to a generic line.
-          const friendly =
-            error.message === "Invalid login credentials"
-              ? "Email ou mot de passe incorrect"
-              : "Connexion impossible. Réessaie plus tard.";
-          toast.danger("Connexion refusée", friendly);
+        // Auth runs server-side now: the session is written as an httpOnly
+        // cookie the browser cannot read (story 11-7, AC-1). Errors arrive
+        // already sanitised from the action.
+        const result = await signIn(email, password);
+        if (!result.ok) {
+          toast.danger("Connexion refusée", result.message);
         } else {
           router.push("/dashboard");
           router.refresh();

@@ -5,12 +5,15 @@
 // context (theme switching, animation driver, media-query watcher) +
 // next-themes integration for SSR-correct first paint.
 //
-// Wire-up baselines (inherited from W2 spike retrofit, non-negotiable):
-//   - <NextThemeProvider skipNextHead defaultTheme="pekulo-dark"
+// Wire-up baselines (inherited from W2 spike retrofit):
+//   - <NextThemeProvider defaultTheme="pekulo-dark"
 //       themes={["pekulo-light", "pekulo-dark"]}>
 //     The themes prop MUST be explicit — omitting it defaults to ["light",
 //     "dark"] and the data-theme attribute never matches Pekulo's custom
-//     names.
+//     names. skipNextHead was REMOVED (story 11-7): its branch renders a bare
+//     inline <script> with no nonce, which the enforced nonce-based CSP blocks.
+//     Routing the anti-FOUC script through next/script <Script> instead lets
+//     Next attach the per-request nonce to it automatically.
 //   - <TamaguiProvider config={config} disableInjectCSS disableRootThemeClass>
 //     disableInjectCSS — the package ships a pre-generated CSS file that
 //     consumers import (apps/web/src/app/layout.tsx imports
@@ -31,11 +34,7 @@ import { PekuloToastViewport, ToastProvider } from "../toast";
 
 export function PekuloRootProvider({ children }: { children: ReactNode }) {
   return (
-    <NextThemeProvider
-      skipNextHead
-      defaultTheme="pekulo-dark"
-      themes={["pekulo-light", "pekulo-dark"]}
-    >
+    <NextThemeProvider defaultTheme="pekulo-dark" themes={["pekulo-light", "pekulo-dark"]}>
       {/* TamaguiProvider's TS contract requires `defaultTheme` (matches
           NextThemeProvider above). Both fall back to the same value at
           runtime — kept in sync by hand for now. When light is registered
