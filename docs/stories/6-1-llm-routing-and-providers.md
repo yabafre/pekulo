@@ -25,21 +25,21 @@
 
 > Every task is self-contained — the full code, the literal run command, the expected output and the literal commit live under **Dev Notes → Task-by-task implementation code**. Run each task on `feature/32-6-1-llm-routing-and-providers`. `apps/api` tests are `bun:test` (NOT vitest). Every workspace command uses the fully-qualified name `bun --filter='@pekulo/api'` (NEVER `=api`, NEVER `--cwd`).
 
-- [ ] **T1** — Shared LLM types (`@pekulo/types/llm`) + Zod validators (`@pekulo/validators/llm`) [AC: AC-1, AC-2, AC-3, AC-4]
-- [ ] **T2** — Add `LLM_OPT_IN_REQUIRED` / `LLM_PROVIDER_UNAVAILABLE` / `LLM_ROUTING_ERROR` to `PekuloErrorCode` + HTTP status map [AC: AC-2, AC-4]
-- [ ] **T3** — Prisma `LlmRoute` enum + `LlmCallLog` (append-only) + `LlmOptIn` models [AC: AC-1, AC-4]
-- [ ] **T4** — Hand-written migration: tables + keyset index + RLS DDL (append-only / quartet) + FKs [AC: AC-1, AC-4, AC-5]
-- [ ] **T5** — `llm.errors.ts` typed error factories [AC: AC-2, AC-4]
-- [ ] **T6** — `llm-prompt-builder.ts` zero-PII envelope + label hash (RED→GREEN) [AC: AC-3]
-- [ ] **T7** — `llm-provider.ts` interface + `services/ollama-client.ts` [AC: AC-2]
-- [ ] **T8** — `services/third-party-client.ts` [AC: AC-2]
-- [ ] **T9** — `llm.repository.ts` (sole append-only writer + opt-in read) [AC: AC-4]
-- [ ] **T10** — `opt-in-guard.ts` server-side third-party gate [AC: AC-2]
-- [ ] **T11** — `llm.service.ts` routing policy + audit authority [AC: AC-1, AC-2, AC-4]
-- [ ] **T12** — `/internal/llm/attest` Elysia listener (JWT) [AC: AC-1, AC-4]
-- [ ] **T13** — `llm.module.ts` composition root + wired module test [AC: AC-1, AC-4]
-- [ ] **T14** — Env vars + runtime wiring + mount attest listener [AC: AC-1]
-- [ ] **T15** — Full Iron-Law gate + push [AC: AC-5]
+- [x] **T1** — Shared LLM types (`@pekulo/types/llm`) + Zod validators (`@pekulo/validators/llm`) [AC: AC-1, AC-2, AC-3, AC-4]
+- [x] **T2** — Add `LLM_OPT_IN_REQUIRED` / `LLM_PROVIDER_UNAVAILABLE` / `LLM_ROUTING_ERROR` to `PekuloErrorCode` + HTTP status map [AC: AC-2, AC-4]
+- [x] **T3** — Prisma `LlmRoute` enum + `LlmCallLog` (append-only) + `LlmOptIn` models [AC: AC-1, AC-4]
+- [x] **T4** — Hand-written migration: tables + keyset index + RLS DDL (append-only / quartet) + FKs [AC: AC-1, AC-4, AC-5]
+- [x] **T5** — `llm.errors.ts` typed error factories [AC: AC-2, AC-4]
+- [x] **T6** — `llm-prompt-builder.ts` zero-PII envelope + label hash (RED→GREEN) [AC: AC-3]
+- [x] **T7** — `llm-provider.ts` interface + `services/ollama-client.ts` [AC: AC-2]
+- [x] **T8** — `services/third-party-client.ts` [AC: AC-2]
+- [x] **T9** — `llm.repository.ts` (sole append-only writer + opt-in read) [AC: AC-4]
+- [x] **T10** — `opt-in-guard.ts` server-side third-party gate [AC: AC-2]
+- [x] **T11** — `llm.service.ts` routing policy + audit authority [AC: AC-1, AC-2, AC-4]
+- [x] **T12** — `/internal/llm/attest` Elysia listener (JWT) [AC: AC-1, AC-4]
+- [x] **T13** — `llm.module.ts` composition root + wired module test [AC: AC-1, AC-4]
+- [x] **T14** — Env vars + runtime wiring + mount attest listener [AC: AC-1]
+- [x] **T15** — Full Iron-Law gate + push [AC: AC-5]
 
 ## Dev Notes
 
@@ -1689,22 +1689,82 @@ _Populated by aped-dev at implementation time. Expected creates/modifies:_
 
 ## Dev Agent Record
 
-- **Model:** _(set by aped-dev)_
-- **Started:** _(set by aped-dev)_
-- **Completed:** _(set by aped-dev)_
+- **Model:** claude-opus-4-8 (1M context)
+- **Started:** 2026-05-30
+- **Completed:** 2026-05-30
 
 ### Summary
 
-_(set by aped-dev)_
+Shipped FR-31 (routing policy) + FR-35 (per-call audit) backend-only: the LLM
+routing service (iOS→`foundation_models`, else `ollama`; `third_party` never
+auto-selected and opt-in-gated server-side), the sole append-only `llm_call_log`
+audit writer, the two server provider clients (Ollama, third-party), the
+zero-PII prompt builder (≤2 kb), the third-party opt-in read + DR-7 guard, and
+the JWT-verified `/internal/llm/attest` listener. No client-facing oRPC
+procedure and no UI — scope held exactly as locked at aped-story step 04.
 
 ### Files changed
 
-_(set by aped-dev)_
+- apps/api/prisma/migrations/20260530120000_create_llm_call_log_and_opt_in/migration.sql
+- apps/api/prisma/schema/enums.prisma
+- apps/api/prisma/schema/llm.prisma
+- apps/api/scripts/rls-audit.ts
+- apps/api/src/app.ts
+- apps/api/src/bootstrap/runtime-dependencies.ts
+- apps/api/src/common/errors/pekulo-error.ts
+- apps/api/src/config/env.ts
+- apps/api/src/modules/llm/llm-prompt-builder.ts (+ .test.ts)
+- apps/api/src/modules/llm/llm-provider.ts
+- apps/api/src/modules/llm/llm.attest-router.ts (+ .test.ts)
+- apps/api/src/modules/llm/llm.errors.ts
+- apps/api/src/modules/llm/llm.module.ts (+ .test.ts)
+- apps/api/src/modules/llm/llm.repository.ts (+ .test.ts)
+- apps/api/src/modules/llm/llm.service.ts (+ .test.ts)
+- apps/api/src/modules/llm/services/ollama-client.ts (+ .test.ts)
+- apps/api/src/modules/llm/services/third-party-client.ts (+ .test.ts)
+- apps/api/src/platform/http/error-mapper.ts
+- apps/api/src/platform/security/index.ts
+- apps/api/src/platform/security/opt-in-guard.ts (+ .test.ts)
+- packages/types/src/index.ts, packages/types/src/llm/{llm.types,index}.ts
+- packages/types/src/transaction/transaction.types.ts (LlmRouteBadge rename)
+- packages/ui/src/components/PekuloSuggestionRow/PekuloSuggestionRow.tsx (LlmRouteBadge rename)
+- packages/validators/src/index.ts, packages/validators/src/llm/{llm.schemas,index}.ts
 
 ### Deviations
 
-_(set by aped-dev)_
+- **`LlmRoute` name collision (user decision — Option A).** `@pekulo/types/transaction`
+  already exported `LLM_ROUTES`/`LlmRoute` as the UI badge variant (`ios|ollama|cloud`),
+  colliding with 6-1's backend enum. Per Alex: backend `LlmRoute` becomes canonical; the
+  UI variant was renamed `LlmRouteBadge`/`LLM_ROUTE_BADGES` (values unchanged). Touched 2
+  files outside the story File List (transaction.types.ts, PekuloSuggestionRow.tsx).
+- **validators→types TDZ cycle.** The story's T1 had `llm.schemas.ts` import `LLM_ROUTES`/
+  `LLM_OUTCOMES` from `@pekulo/types`; validators may not import types (R1 one-way layering),
+  and the runtime import broke 28 suites with "Cannot access 'LLM_ROUTES' before
+  initialization". Fixed by inline `*_MIRROR` literals (the `accounts.schemas.ts` pattern).
+- **T13 module test uses a fake Prisma, not a Postgres harness.** `apps/api/src/test/helpers/test-db.ts`
+  does not exist — every `*.module.test.ts` wires a duck-typed fake. Per-user isolation
+  asserts the `where:{userId}` guard (the single-layer api defence, ADR-0013); RLS-policy
+  coverage is verified by `db:rls-audit` instead.
+- **`rls-audit.ts` expected-counts map extended.** AC-5 requires the audit to report
+  `llm_call_log:2` / `llm_opt_in:4`, but the script uses a curated table list (not
+  auto-discovery), so the two tables were added to it.
+- **Attest-router test host.** The story's `http://x/...` does not route through Elysia
+  `.handle()`; switched to `http://localhost/...` (the bridge-webhook test pattern).
+- **Two `fix(#32)` commits.** A prefixed-id create cast + fetch-mock casts surfaced only at
+  the first full `typecheck` (T7-T9 per-task gates run `bun test`, which strips types). The
+  env-var declarations land in T14 per the story ordering, so `typecheck` is transiently red
+  on `OLLAMA_*`/`THIRD_PARTY_LLM_*` between T7 and T14 — green from T14 onward.
+- **Lint.** `apps/api` lint exits 0 with 11 warnings, all pre-existing in unrelated files;
+  the new LLM files add zero. (Story expected "0 warnings" — repo baseline already carries 11.)
 
 ### Test output
 
-_(set by aped-dev)_
+```
+$ bun --filter='@pekulo/api' run lint          → 0 errors (11 pre-existing warnings)
+$ bun --filter='@pekulo/api' run typecheck     → exit 0
+$ bun --filter='@pekulo/types' run typecheck   → exit 0
+$ bun --filter='@pekulo/validators' run typecheck → exit 0
+$ bun --filter='@pekulo/api' run test          → 668 pass, 0 fail (1592 expect, 77 files)
+$ bun --filter='@pekulo/api' run prisma:check  → schemas valid, exit 0
+$ bun --filter='@pekulo/api' run db:rls-audit  → exit 0; llm_call_log:2, llm_opt_in:4, 19 tables
+```
