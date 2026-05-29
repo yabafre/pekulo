@@ -1,0 +1,34 @@
+{
+  "sync_id": "github-issues-sync-2026-05-29T09-17-50Z",
+  "started_at": "2026-05-29T09:17:50Z",
+  "provider": "github-issues",
+  "operator": "fred@bonjour.email",
+  "directive_version": null,
+  "phases": {
+    "auth_check": {
+      "status": "complete"
+    },
+    "ticket_fetch": {
+      "status": "complete",
+      "calls": 1,
+      "ticket": "#104"
+    },
+    "story_drafted": {
+      "status": "complete",
+      "path": "docs/stories/11-7-auth-hardening-httponly-csp.md"
+    },
+    "state_registered": {
+      "status": "complete",
+      "story_key": "11-7-auth-hardening-httponly-csp"
+    },
+    "ticket_commented": {
+      "status": "complete",
+      "calls": 0,
+      "posted": false
+    }
+  },
+  "totals": {
+    "api_calls_total": 2
+  },
+  "ended_at": "2026-05-29T09:25:51Z"
+}

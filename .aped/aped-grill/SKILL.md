@@ -10,7 +10,7 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.13.0
+  version: 6.13.2
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
@@ -22,7 +22,7 @@ Pin down a half-formed product idea, plan, or refactor by asking ONE concrete qu
 
 ## On Activation
 
-Read `.aped/config.yaml` and resolve `{user_name}` / `{communication_language}` / `{document_output_language}`. ✅ YOU MUST speak in `{communication_language}` and write `grill-summary.md` in `{document_output_language}`. HALT if config is missing.
+Read `.aped/config.yaml` and resolve `{user_name}` / `{communication_language}` / `{document_output_language}`. ✅ YOU MUST speak `{communication_language}` in every message to the user (including short progress lines — this overrides your English default) and write `grill-summary.md` in `{document_output_language}`. HALT if config is missing.
 
 ## Inputs (consumed in this order)
 

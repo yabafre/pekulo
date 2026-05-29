@@ -81,7 +81,7 @@ If solo mode AND not in a sprint umbrella context, push the branch and create a 
 
 - `github`: `gh pr create --draft --title "feat({ticket}): {story-key}" --body "Fixes {ticket}"`.
 - `gitlab`: `glab mr create --draft --title "feat({ticket}): {story-key}" --description "Closes {ticket}"`.
-- Mark the PR/MR ready (`gh pr ready <n>` / `glab mr update --ready`) once you re-run the validation block locally and it stays green. The body shape (Summary / themed sections / Tests / Validation) is in `.aped/aped-skills/writing-discipline.md` § PRs.
+- Mark the PR/MR ready (`gh pr ready <n>` / `glab mr update --ready`) once you re-run the validation block locally and it stays green. The body shape (Summary / Problems / Solution / Verification / Notes) is in `.aped/aped-skills/writing-discipline.md` § PRs.
 
 If sprint mode (worktree present), the PR is created during `aped-review` (step 11) targeting the sprint umbrella, NOT base.
 
