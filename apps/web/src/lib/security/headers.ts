@@ -2,30 +2,40 @@
 // Edge security headers + CSP for apps/web, applied in proxy.ts on every
 // response. Pure (no Next imports) so it unit-tests in isolation.
 //
-// CSP ships in Report-Only first (CSP_REPORT_ONLY_HEADER): Tamagui's inline
-// styles and the inline theme script in layout.tsx need 'unsafe-inline'; a
-// nonce-based ENFORCED CSP is the tracked follow-up (flip after a dev smoke
-// test confirms no violation breaks the UI). apps/api is intentionally absent
-// from connect-src — the browser never calls it directly (oRPC runs in the
-// server tier, server-only). The browser only talks to Supabase (auth).
+// The CSP is ENFORCED with a per-request nonce on script-src (story 11-7): an
+// injected inline <script> without the nonce neither executes nor reads the
+// (now httpOnly) session, closing the XSS→session-theft chain. style-src keeps
+// 'unsafe-inline' because Tamagui injects <style> dynamically and cannot carry
+// a nonce — style injection is not script execution. apps/api is intentionally
+// absent from connect-src: the browser only talks to Supabase (auth); oRPC runs
+// server-only.
 
 export interface SecurityHeaderOptions {
-  /** NODE_ENV === "development" — loosens CSP for dev tooling (react-grab via unpkg, HMR websockets). */
+  /** NODE_ENV === "development" — loosens CSP for dev tooling (react-grab via unpkg, HMR websockets, React's eval-based dev overlay). */
   dev: boolean;
-  /** NEXT_PUBLIC_SUPABASE_URL — the browser Supabase client calls it directly for auth. */
+  /** NEXT_PUBLIC_SUPABASE_URL — the browser Supabase client calls it directly for auth/session refresh. */
   supabaseUrl?: string;
+  /** Per-request nonce (base64) from proxy.ts. Added to script-src so 'unsafe-inline' can be dropped. */
+  nonce: string;
 }
 
-export const CSP_REPORT_ONLY_HEADER = "Content-Security-Policy-Report-Only";
+export const CSP_ENFORCED_HEADER = "Content-Security-Policy";
 
 export function buildContentSecurityPolicy(opts: SecurityHeaderOptions): string {
   const supabase = opts.supabaseUrl?.trim() ? [opts.supabaseUrl.trim()] : [];
-  const scriptExtra = opts.dev ? ["https://unpkg.com"] : [];
+  // 'unsafe-eval' is dev-only — React reconstructs server-side error stacks via
+  // eval in the dev overlay (Next's CSP guide mandates it); production needs
+  // neither it nor the unpkg react-grab src.
+  const scriptExtra = opts.dev ? ["https://unpkg.com", "'unsafe-eval'"] : [];
   const connectExtra = opts.dev ? ["ws:", "https://unpkg.com"] : [];
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", ...scriptExtra],
+    // nonce replaces 'unsafe-inline' on scripts: an injected inline <script>
+    // without the per-request nonce is blocked (story 11-7, AC-3/AC-4).
+    "script-src": ["'self'", `'nonce-${opts.nonce}'`, ...scriptExtra],
+    // style-src keeps 'unsafe-inline' — Tamagui injects <style> dynamically and
+    // cannot carry a nonce; style injection is not script execution (AC-3 scope).
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", "https:"],
     "font-src": ["'self'", "data:"],
@@ -48,6 +58,8 @@ export function buildSecurityHeaders(opts: SecurityHeaderOptions): Record<string
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
-    [CSP_REPORT_ONLY_HEADER]: buildContentSecurityPolicy(opts),
+    // Flipped from Report-Only (#102 groundwork) to ENFORCED now the per-request
+    // nonce makes it safe (story 11-7, AC-3).
+    [CSP_ENFORCED_HEADER]: buildContentSecurityPolicy(opts),
   };
 }
