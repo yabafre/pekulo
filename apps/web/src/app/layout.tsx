@@ -1,5 +1,6 @@
 // apps/web/src/app/layout.tsx
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Script from "next/script";
 import "@pekulo/ui/reset.css";
 import "@pekulo/ui/generated.css";
@@ -29,11 +30,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Per-request nonce from proxy.ts — lets this hand-written inline theme
+  // script run under the enforced CSP (story 11-7, AC-3). Next auto-nonces its
+  // own bundled scripts; only this one needs the nonce set explicitly. The
+  // dev-only react-grab Script below is an external unpkg src, covered by
+  // script-src https://unpkg.com in dev — no nonce required.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               try {
