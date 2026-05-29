@@ -29,7 +29,7 @@ test("throws LLM_PROVIDER_UNAVAILABLE when no API key is configured", async () =
 test("returns raw text on a 200 response when keyed", async () => {
   globalThis.fetch = mock(
     async () => new Response(JSON.stringify({ content: [{ text: "transport" }] }), { status: 200 }),
-  ) as typeof fetch;
+  ) as unknown as typeof fetch;
   const client = createThirdPartyClient({
     env: { THIRD_PARTY_LLM_API_KEY: "sk-test" } as unknown as Env,
   });

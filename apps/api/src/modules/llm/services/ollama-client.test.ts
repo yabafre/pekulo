@@ -23,7 +23,7 @@ afterEach(() => {
 test("returns raw text + latency on a 200 response", async () => {
   globalThis.fetch = mock(
     async () => new Response(JSON.stringify({ response: "alimentation" }), { status: 200 }),
-  ) as typeof fetch;
+  ) as unknown as typeof fetch;
   const client = createOllamaClient({ env: fakeEnv });
   const out = await client.complete(envelope);
   expect(out.raw).toBe("alimentation");
@@ -31,7 +31,9 @@ test("returns raw text + latency on a 200 response", async () => {
 });
 
 test("throws LLM_PROVIDER_UNAVAILABLE on a non-2xx response", async () => {
-  globalThis.fetch = mock(async () => new Response(null, { status: 502 })) as typeof fetch;
+  globalThis.fetch = mock(
+    async () => new Response(null, { status: 502 }),
+  ) as unknown as typeof fetch;
   const client = createOllamaClient({ env: fakeEnv });
   try {
     await client.complete(envelope);

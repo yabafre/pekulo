@@ -25,7 +25,10 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
           labelHash: event.labelHash,
           latencyMs: event.phase === "outcome" ? event.latencyMs : null,
           outcome: event.phase === "outcome" ? event.outcome : null,
-        },
+          // `id` is injected at create time by the prefixed-ids extension
+          // (llm_<base62>), so it is intentionally absent here. The cast mirrors
+          // transactions.repository — Prisma's generated type still demands it.
+        } as unknown as Parameters<typeof db.llmCallLog.create>[0]["data"],
       });
     },
     async isThirdPartyOptedIn(userId) {
