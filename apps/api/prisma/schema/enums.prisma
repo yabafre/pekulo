@@ -51,3 +51,14 @@ enum MilestoneStatus {
 
   @@map("milestone_status")
 }
+
+// LlmRoute — LLM routing target (story 6-1, FR-31). Iso with LLM_ROUTES in
+// @pekulo/types and llmRouteSchema in @pekulo/validators. All values are
+// already snake_case (Postgres enum identifiers reject hyphens).
+enum LlmRoute {
+  foundation_models
+  ollama
+  third_party
+
+  @@map("llm_route")
+}

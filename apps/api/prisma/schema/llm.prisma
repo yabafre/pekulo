@@ -1,0 +1,36 @@
+// llm.prisma — LLM auto-categorisation domain (Epic 6, story 6-1).
+//   - LlmCallLog: APPEND-ONLY audit (NFR-26 / DR-6). One row per call phase
+//     (intent | outcome), correlated by callId. NEVER stores prompt content —
+//     only a short labelHash for de-dup. RLS = SELECT + INSERT only (no
+//     UPDATE/DELETE), mirroring compass_history (ADR-0001).
+//   - LlmOptIn: per-user third-party opt-in flag (default false). Full RLS
+//     quartet. The write/toggle UI ships in story 6-3; story 6-1 reads it.
+// Prefixes already registered in id-prefixes.config.ts: LlmCallLog→"llm",
+// LlmOptIn→"llmo" (story 0-4, "registered upfront for story 6-1").
+
+model LlmCallLog {
+  id         String   @id
+  callId     String   @map("call_id")
+  userId     String   @map("user_id") @db.Uuid
+  phase      String
+  route      LlmRoute
+  labelHash  String   @map("label_hash")
+  latencyMs  Int?     @map("latency_ms")
+  outcome    String?
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)], map: "llm_call_log_user_created_idx")
+  @@index([userId, callId], map: "llm_call_log_user_call_idx")
+  @@map("llm_call_log")
+}
+
+model LlmOptIn {
+  id         String   @id
+  userId     String   @unique @map("user_id") @db.Uuid
+  thirdParty Boolean  @default(false) @map("third_party")
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("llm_opt_in")
+}
