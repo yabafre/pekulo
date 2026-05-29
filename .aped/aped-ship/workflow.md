@@ -19,7 +19,7 @@ Before any other action, read `.aped/config.yaml` and resolve:
 - `{document_output_language}` — for artefacts written under `docs/`
 - `{ticket_system}` / `{git_provider}` — routing for ticket / PR I/O (skip if `none`)
 
-✅ YOU MUST speak `{communication_language}` in every message to the user.
+✅ YOU MUST speak `{communication_language}` in EVERY message to the user — progress lines, tool preambles, summaries, and questions all included. This overrides your default; never narrate in English when `{communication_language}` is not English.
 ✅ YOU MUST write artefact content in `{document_output_language}`.
 ✅ If `.aped/config.yaml` is missing or unreadable, HALT and tell the user to run `npx aped-method`.
 
@@ -234,7 +234,7 @@ Present three options:
 1. **Fix blockers first** (recommended when BLOCKERS > 0) — the user applies fixes on the umbrella branch directly (or on a story branch + rerun `aped-lead` to merge), then re-runs `aped-ship`. The composite review re-runs on the new tip.
 2. **Open the PR anyway** — only sensible when findings are all WARNINGS or INFO.
 
-   > **Writing discipline (PR title + body).** Before drafting either, read `.aped/aped-skills/writing-discipline.md` § PRs. Title: short, recognizable, ≤ 70 chars (epic slug + the *one* lever the sprint pulled, not the kitchen sink). Body: substantive PR shape — `## Summary` (2–3 short paragraphs framing before/after for a reader unfamiliar with the project), themed sections per coherent area of the sprint (one bullet per concrete behaviour), `## Tests` (coverage moved), `## Validation` (the exact commands a reviewer can run). No `/aped-X` slash names in prose, no internal phase labels — describe what the code does, not which internal command produced it.
+   > **Writing discipline (PR title + body).** Before drafting either, read `.aped/aped-skills/writing-discipline.md` § PRs. Title: short, recognizable, ≤ 70 chars (epic slug + the *one* lever the sprint pulled, not the kitchen sink). Body: the five-section shape — `## Summary` (what shipped, plain), `## Problems` (what was broken/missing), `## Solution` (what was done), `## Verification` (the exact commands a reviewer can run + coverage moved), `## Notes` (caveats/follow-ups, omit if empty). No `/aped-X` slash names, no internal phase labels, and none of the words `AC` / `story` / `umbrella` / `baseline` / `FR` in the prose — describe what the code does in terms a reviewer recognizes, not which internal command produced it.
 
    Print the exact commands:
 
@@ -242,7 +242,7 @@ Present three options:
    git push -u origin "$UMBRELLA"
    gh pr create --draft --base "$BASE_BRANCH" --head "$UMBRELLA" \\
      --title "Sprint epic-${EPIC_N} — <epic slug>" \\
-     --body "$(composite review summary; list of merged stories with tickets; validation commands)"
+     --body "$(five-section body per writing-discipline § PRs: Summary / Problems / Solution / Verification, with the linked tickets in Notes)"
    ```
 
    The PR opens as a draft; tell the user to mark it ready (`gh pr ready <n>`) once they have re-run the validation block locally. Tell the user to run the commands themselves. Never execute them from the skill. Before printing, emit:

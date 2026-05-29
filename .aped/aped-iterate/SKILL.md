@@ -11,7 +11,7 @@ disable-model-invocation: true
 license: MIT
 metadata:
   author: yabafre
-  version: 6.13.0
+  version: 6.13.2
 ---
 
 Follow the instructions in `.aped/aped-iterate/workflow.md`.

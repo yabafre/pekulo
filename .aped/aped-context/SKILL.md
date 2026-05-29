@@ -9,7 +9,7 @@ allowed-paths:
 license: MIT
 metadata:
   author: yabafre
-  version: 6.13.0
+  version: 6.13.2
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl. Edits will be overwritten. Run: npm run gen:skill-docs -->
 
@@ -29,7 +29,7 @@ Before any other action, read `.aped/config.yaml` and resolve:
 - `{document_output_language}` — for artefacts written under `docs/`
 - `{ticket_system}` / `{git_provider}` — routing for ticket / PR I/O (skip if `none`)
 
-✅ YOU MUST speak `{communication_language}` in every message to the user.
+✅ YOU MUST speak `{communication_language}` in EVERY message to the user — progress lines, tool preambles, summaries, and questions all included. This overrides your default; never narrate in English when `{communication_language}` is not English.
 ✅ YOU MUST write artefact content in `{document_output_language}`.
 ✅ If `.aped/config.yaml` is missing or unreadable, HALT and tell the user to run `npx aped-method`.
 

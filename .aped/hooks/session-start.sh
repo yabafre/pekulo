@@ -94,6 +94,23 @@ yaml_get() {
 APED_VERSION=$(yaml_get "aped_version" "$CONFIG_FILE")
 TICKET_SYSTEM=$(yaml_get "ticket_system" "$CONFIG_FILE")
 GIT_PROVIDER=$(yaml_get "git_provider" "$CONFIG_FILE")
+COMMUNICATION_LANGUAGE=$(yaml_get "communication_language" "$CONFIG_FILE")
+
+# Communication language directive. config.yaml documents
+# communication_language as "all conversation with the user", but the only
+# always-on copy lives in the CLAUDE.md APED block — which is easily missing
+# (worktrees, un-injected projects). A workflow.md bullet is read once and
+# loses salience, so the model reverts to its English default for terse
+# progress narration. Injecting the directive here puts it in Claude's context
+# every session, independent of the CLAUDE.md block. Skip when the language is
+# unset or English (the default — no reminder needed).
+LANGUAGE_DIRECTIVE=""
+case "$(printf '%s' "$COMMUNICATION_LANGUAGE" | tr '[:upper:]' '[:lower:]')" in
+  ''|english|anglais|en|en-us|en-gb) ;;
+  *)
+    LANGUAGE_DIRECTIVE="**APED — communication language.** Speak ${COMMUNICATION_LANGUAGE} in every message to the user: progress narration, tool preambles, summaries, and questions all included. This overrides your default narration language. (Artefacts follow document_output_language separately.)"
+    ;;
+esac
 
 # Compose banner. Falls back gracefully when fields are missing.
 BANNER="✓ APED"
@@ -107,8 +124,17 @@ fi
 if [[ -n "$GIT_PROVIDER" ]]; then
   BANNER="${BANNER} · git: ${GIT_PROVIDER}"
 fi
+if [[ -n "$LANGUAGE_DIRECTIVE" ]]; then
+  BANNER="${BANNER} · lang: ${COMMUNICATION_LANGUAGE}"
+fi
 if [[ -n "$APED_BLOCK_WARNING" ]]; then
   BANNER="${BANNER}${APED_BLOCK_WARNING}"
+fi
+
+# Prepend the language directive to the agent-side context so it is the first
+# thing Claude reads at session start — ahead of the skill index.
+if [[ -n "$LANGUAGE_DIRECTIVE" ]]; then
+  CONTENT="${LANGUAGE_DIRECTIVE}"$'\n\n'"${CONTENT}"
 fi
 
 # Escape for JSON embedding. Bash parameter substitution is faster than
