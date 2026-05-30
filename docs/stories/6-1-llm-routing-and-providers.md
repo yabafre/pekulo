@@ -1,7 +1,7 @@
 # Story: 6-1-llm-routing-and-providers — LLM routing policy + per-call audit + provider clients
 
 **Epic:** Epic 6 — LLM auto-categorisation
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#32](https://github.com/yabafre/pekulo/issues/32)
 **Branch:** feature/32-6-1-llm-routing-and-providers
 **Covered FRs:** FR-31 (routing policy), FR-35 (per-call audit)
@@ -1768,3 +1768,71 @@ $ bun --filter='@pekulo/api' run test          → 668 pass, 0 fail (1592 expect
 $ bun --filter='@pekulo/api' run prisma:check  → schemas valid, exit 0
 $ bun --filter='@pekulo/api' run db:rls-audit  → exit 0; llm_call_log:2, llm_opt_in:4, 19 tables
 ```
+
+## Review Record
+
+**Date:** 2026-05-30
+**Auditors:** Spec, Code, Edge & Hallucination (backend surface — Aria not dispatched, no preview app surface)
+**Verdict:** stays-review — all findings resolved inline (commit `d7bbcb7`); status held at `review` per Alex's decision (done-flip deferred, not auto-applied).
+
+> **Override:** Spec AC gap accepted — reason: "AC-2/AC-4 PARTIALs are consequences of the locked 6-1/6-2 scope split (step 04); the real defects are fixed inline and the story stays in review rather than bouncing to dev."
+
+### Findings
+
+#### Resolved (commit `d7bbcb7` — `fix(#32): harden /internal/llm/attest + LLM review findings [aped-review]`)
+
+- **[MAJOR] Forged route on `/internal/llm/attest`** — the attest body accepted the full `LlmRoute` enum, so an authenticated client could POST `route:"ollama"|"third_party"` and inject forged rows into the append-only audit, defeating ADR-0008 / architecture L307 ("client cannot forge FoundationModels to hide a 3rd-party call"). [`packages/validators/src/llm/llm.schemas.ts:60`, `apps/api/src/modules/llm/llm.attest-router.ts:28`]
+  - Source: Code + Edge (independent convergence)
+  - Resolution: `attestLlmCallSchema.route` pinned to `z.literal("foundation_models")`; non-FM bodies rejected `400` before any write. New negative test asserts forged `ollama`/`third_party` → 400 and zero rows written.
+- **[MEDIUM] Non-atomic attest double-write** — intent + outcome were two independent `await`s → orphan-intent row possible on a crash between them. [`apps/api/src/modules/llm/llm.attest-router.ts:30`]
+  - Source: Edge
+  - Resolution: new `repository.recordCallEvents()` (`$transaction`) + `service.recordLlmCallPair()` (validates both routes); attest router writes the pair atomically in one call. Single `llmCallLog.create` site preserved (`createCallEvent` helper).
+- **[MEDIUM] `occurredOn` accepted unreal dates** (`2026-13-45`, `2026-02-30`, non-leap `2026-02-29`). [`packages/validators/src/llm/llm.schemas.ts:33`]
+  - Source: Edge
+  - Resolution: `.refine` round-trips through `Date` with a NaN guard before `toISOString()` (so an Invalid Date yields a clean `ZodError`, not a `RangeError`/500). Tests cover reject + leap-year accept.
+- **[MEDIUM] Byte-cap vs char-cap mismatch** — the `.max(512)/.max(256)` char caps don't bound UTF-8 bytes; a multibyte envelope serialises to 2393 B > 2048 and is rejected at runtime, but the "worst-case" test only used ASCII. [`apps/api/src/modules/llm/llm-prompt-builder.ts:35`]
+  - Source: Edge
+  - Resolution: documented the UTF-8 byte cap as the authoritative NFR-12 guard; added the true multibyte (`中`×512+×256) worst-case test asserting it throws `/exceeds 2048B cap/`.
+- **[MINOR] Unguarded enum mirror drift** — `LLM_ROUTES_MIRROR`/`LLM_OUTCOMES_MIRROR` (validators) vs `@pekulo/types` source, no drift test. [`packages/validators/src/llm/llm.schemas.ts:15`]
+  - Source: Spec
+  - Resolution: new `llm-enum-iso.test.ts` asserts `llmRouteSchema.options`/`llmOutcomeSchema.options` equal `@pekulo/types#LLM_ROUTES`/`#LLM_OUTCOMES`.
+- **[MINOR] Dead `llmOptInRequired()` factory** duplicating the guard's error message. [`apps/api/src/modules/llm/llm.errors.ts:23`]
+  - Source: Code
+  - Resolution: factory removed; the opt-in guard's direct `PekuloError` is the single source.
+- **[MINOR] Stale test comment** claiming `llm.module.test.ts` runs real-DB RLS isolation. [`apps/api/src/modules/llm/llm.repository.test.ts:1`]
+  - Source: Code
+  - Resolution: comment corrected to state the fake-Prisma reality (RLS coverage is `db:rls-audit`).
+- **[MINOR] Attest test missing no-prompt-body assertion.** [`apps/api/src/modules/llm/llm.attest-router.test.ts`]
+  - Source: Spec
+  - Resolution: 204 test now asserts no `label`/`merchant`/`envelope` key reaches the recorded events.
+
+#### Dismissed
+
+- **[MINOR] `listRecentByUser` has no non-test caller in 6-1** [`apps/api/src/modules/llm/llm.repository.ts`]
+  - Source: Code
+  - Rationale: intentional forward-scaffold for the FR-36 activity log (story 6-5); the supporting keyset index (`llm_call_log_user_created_idx`) is already aligned. Removing it would force 6-5 to re-add it. Kept as a documented hook.
+
+#### Unresolved
+
+- None. All findings resolved or dismissed-with-rationale. Story is held at `review` per Alex (status not auto-flipped to `done`).
+
+### Scope annotations (6-1 / 6-2 split — recorded so 6-2 inherits them)
+
+- **AC-2 server-side third-party egress (403):** the DR-7 opt-in guard is unit-tested (`opt-in-guard.test.ts`) but is unreachable through `route()` because `decideRoute` never returns `third_party` at V1(a). The third-party-selecting policy + the integration test that drives the gated `providerCall()` land in **story 6-2**.
+- **AC-4 server-route outcome row:** `route()` writes only the `intent` row for `ollama`/`third_party`; the matching `outcome` row is written by 6-2's categorise pipeline via `recordLlmCall`. The end-to-end pair is fully exercised in 6-1 only for the FM/attest path. `recordLlmCall` is proven capable of both phases.
+- **ADR-0008 intent↔outcome route-mismatch flagging (F5):** forensic/OTel monitoring, deferred to 6-2+. The primary forge vector it guarded against is now closed at the schema layer (forged routes rejected 400).
+
+### Verification
+
+- Test command: `bun --filter='@pekulo/api' run test`
+- Test output (final pass): **676 pass / 0 fail** (1613 expect, 78 files); LLM-scoped: 32 pass / 0 fail (9 files).
+- Typecheck: `@pekulo/api` + `@pekulo/types` + `@pekulo/validators` → exit 0.
+- Lint: `@pekulo/api` → 0 errors, 11 pre-existing warnings (all in unrelated `bank-aggregator`/auth files; the LLM changes add 0).
+- Grep gates: `db.llmCallLog.create(` → 1 site (`llm.repository.ts`); prompt-builder zero-IO → clean.
+- `prisma:check` / `db:rls-audit`: untouched by the review fixes (no schema/migration/rls-audit file changed); last green in the Dev Agent Record (`llm_call_log:2`, `llm_opt_in:4`).
+- Visual verification: N/A — backend-only story, no preview-app surface.
+
+### Ticket sync
+
+- Ticket comment (#32): not posted — outward-facing, awaiting Alex's go-ahead (story held at `review`).
+- PR: none — PR creation is deferred to the `done` flip.
