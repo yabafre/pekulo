@@ -1767,3 +1767,51 @@ bun --filter='@pekulo/api' run lint        → 0 errors (11 pre-existing bank-ag
 bun --filter='@pekulo/api' run prisma:check → schemas valid 🚀, exit 0
 bun --filter='@pekulo/api' run db:rls-audit → exit 0; transactions (4 policies) unchanged, 19 tables, no new table
 ```
+
+## Review Record
+
+**Date:** 2026-05-30
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+Adversarial review dispatched three method-driven auditors in parallel. Implementation was sound — every architecture invariant held on the real files (sole `llm_call_log` writer, zero-PII audit / no prompt body, explicit `where: { userId }` on every Prisma query per ADR-0013, server-derived `route`/`outcome` enums, detached hot path, hard provider timeout). No hallucinated identifiers; the camel↔snake column matrix is consistent across schema / migration / repository / DTO. The blockers were **test-coverage gaps on explicit ACs**, not behavioural defects. All fixed; re-verified RESOLVED by re-dispatched Spec + Code auditors (HIGH confidence).
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] AC-6 — the hard-timeout boundary (AbortController → `LLM_PROVIDER_UNAVAILABLE`) was implemented but unasserted in both provider clients [apps/api/src/modules/llm/services/ollama-client.test.ts, third-party-client.test.ts]
+  - Source: Spec + Code
+  - Resolution: `63d1806` — added an aborted-fetch test per client asserting `err.code === "LLM_PROVIDER_UNAVAILABLE"`.
+- [MAJOR] AC-6 — the fire-and-forget non-blocking property of `createTransaction` was unasserted [apps/api/src/modules/transactions/transactions-suggest.test.ts]
+  - Source: Spec
+  - Resolution: `a6dda9e` — added a `createTransaction` test with a never-resolving categoriser; the create resolves first (category "autre", `categorise` fired, `saveSuggestion` not yet called), persistence lands only after the deferred resolve.
+- [MAJOR] AC-4 — the `saveSuggestion` isolation + anti-clobber guard (`where: { id, userId, category: "autre" }`) was mocked away in the only suggestion test [apps/api/src/modules/transactions/transactions.repository.ts:437]
+  - Source: Code + Spec
+  - Resolution: `ff6901c` — repository-level test against a fake Prisma client asserting the real `where` (userId + category:"autre") and `count 0 → { saved: false }`.
+- [MINOR] AC-4 — a detected transfer (`category: "transfer"`) was not directly asserted as never-suggested [transactions-suggest.test.ts]
+  - Source: Spec
+  - Resolution: `a6dda9e` — added a `category: "transfer"` case asserting `categorise` called 0 times (symmetric with the explicit-category skip).
+- [MINOR] `categorise()`'s "NEVER throws" contract was narrower than the impl — `routeDecision` (the intent-row write) was awaited outside the try [apps/api/src/modules/llm/llm.service.ts]
+  - Source: Code
+  - Resolution: `2824336` — wrapped `routeDecision` in try/catch returning a typed abstention; wrapped the failure-outcome write in its own try/catch; tightened the JSDoc. New test forces an intent-write failure and asserts abstain + zero events (no orphan row). No happy-path / AC-3 regression (verified by re-dispatched Code auditor).
+- [NIT] Story File List omitted `llm.attest-router.test.ts` (disclosed in Dev Record + Deviations) and `transactions.repository.test.ts`; header status was stale (`ready-for-dev`)
+  - Source: Spec + Lead
+  - Resolution: `c0ed402` — File List + header synced to `review`.
+
+#### Dismissed
+
+- [NIT] `parseCategorisation` drops a valid leading suggestion on multi-object / braces-in-prose completions (`indexOf("{")`..`lastIndexOf("}")` slice) [apps/api/src/modules/llm/llm-categoriser.ts:34]
+  - Source: Edge & Hallucination
+  - Rationale: the slice fails *closed* — it abstains gracefully (never crashes, never injects an out-of-enum category), so AC-1/AC-2 hold. Higher recall on malformed multi-object output is a future enhancement, not a correctness fix; the auditor flagged it "not required for this story".
+- [NIT] `confidence: 0` exactly is kept by the parser but dropped by the `<= 0` service guard [llm-categoriser.ts:32 + transactions.service.ts:188]
+  - Source: Edge & Hallucination
+  - Rationale: internally consistent — a zero-confidence guess is correctly not surfaced; the validator accepts the persisted (0,1] range. Auditor verdict: "behaviour is correct, none."
+- [NIT] The real categoriser adapter (EUR / `iosFoundationModels:false`) in `runtime-dependencies.ts` is exercised by no test
+  - Source: Code
+  - Rationale: matches the existing convention (no `runtime-dependencies` test harness exists); both sides of the seam are unit-tested. Instantiating the full runtime to cover one inline adapter is disproportionate for a NIT. Candidate for a future bootstrap-integration story.
+
+### Verification
+- Test command: `bun --filter='@pekulo/api' run test`
+- Test output (final pass): **700 pass, 0 fail, 82 files, exit 0** (was 693; +7 review tests). Typecheck (types/validators/api) exit 0; lint 0 errors; `prisma:check` valid 🚀; `db:rls-audit` exit 0 — `transactions` 4 policies unchanged, no new table.
+- Visual verification: N/A — backend-only story (no preview app; Aria not dispatched).
