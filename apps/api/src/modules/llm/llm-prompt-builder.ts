@@ -53,3 +53,23 @@ export function hashLabel(label: string): string {
   }
   return h.toString(16).padStart(8, "0");
 }
+
+/** Compose the full categorisation prompt (story 6-2, FR-32) from an
+ * ALREADY-validated zero-PII envelope (NFR-12) + the closed category list.
+ * Together with buildPromptEnvelope this is the SOLE site where any text sent
+ * to a provider is assembled (architecture L690). The instruction asks for
+ * STRICT JSON so llm-categoriser can parse deterministically. No PII enters
+ * here — `envelope` already passed the allowlist + the 2 kB cap. */
+export function buildCategorisationPrompt(
+  envelope: LlmPromptEnvelope,
+  categories: readonly string[],
+): string {
+  const allowed = categories.join(", ");
+  return [
+    "You are a personal-finance transaction categoriser.",
+    `Classify the transaction below into EXACTLY ONE of these categories: ${allowed}.`,
+    'Reply with STRICT JSON only, no prose: {"category":"<one-of-the-list>","confidence":<0..1>}.',
+    "If unsure, pick the closest category and lower the confidence.",
+    `Transaction: ${JSON.stringify(envelope)}`,
+  ].join("\n");
+}
