@@ -728,4 +728,56 @@ describe("transactionsRepository", () => {
       expect(result.rows).toHaveLength(2);
     });
   });
+
+  // ─── Story 6-2 (FR-32) — saveSuggestion: the SOLE suggestion writer ──────────
+  // The real WHERE clause carries the ADR-0013 isolation guard (`userId`) AND
+  // the anti-clobber guard (`category: "autre"`) — a late suggestion must never
+  // overwrite a category the user set meanwhile. The service-layer suite mocks
+  // saveSuggestion away, so these assert the actual query shape + `{ saved }`.
+  describe("saveSuggestion (story 6-2)", () => {
+    test("scopes by userId + category 'autre' and stamps the suggested_* columns", async () => {
+      const updateManyMock = mock(async () => ({ count: 1 }));
+      const fakeClient = {
+        transaction: { updateMany: updateManyMock },
+      } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const out = await localRepo.saveSuggestion("u_a", "tx_aaaaaaaaaaaaaaaaaaaaa", {
+        category: "courses",
+        confidence: 0.9,
+        route: "ollama",
+      });
+      expect(out).toEqual({ saved: true });
+      const firstCall = updateManyMock.mock.calls.at(0) as unknown as [
+        {
+          where: { id: string; userId: string; category: string };
+          data: { suggestedCategory: string; suggestedConfidence: number; suggestedRoute: string };
+        },
+      ];
+      const call = firstCall[0];
+      expect(call.where).toMatchObject({
+        id: "tx_aaaaaaaaaaaaaaaaaaaaa",
+        userId: "u_a",
+        category: "autre",
+      });
+      expect(call.data.suggestedCategory).toBe("courses");
+      expect(call.data.suggestedConfidence).toBe(0.9);
+      expect(call.data.suggestedRoute).toBe("ollama");
+    });
+
+    test("returns { saved: false } when the row was deleted or already recategorised (count 0)", async () => {
+      // A row whose category is no longer 'autre' (user confirmed/overrode) or
+      // was deleted matches nothing → updateMany count 0 → no clobber.
+      const updateManyMock = mock(async () => ({ count: 0 }));
+      const fakeClient = {
+        transaction: { updateMany: updateManyMock },
+      } as unknown as Parameters<typeof createTransactionsRepository>[0]["client"];
+      const localRepo = createTransactionsRepository({ client: fakeClient });
+      const out = await localRepo.saveSuggestion("u_a", "tx_aaaaaaaaaaaaaaaaaaaaa", {
+        category: "courses",
+        confidence: 0.9,
+        route: "ollama",
+      });
+      expect(out).toEqual({ saved: false });
+    });
+  });
 });

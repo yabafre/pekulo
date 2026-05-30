@@ -41,6 +41,10 @@ type TransactionRow = {
   isImprevu: boolean;
   notes: string | null;
   transferPairId: string | null;
+  suggestedCategory: string | null;
+  suggestedConfidence: number | null;
+  suggestedRoute: string | null;
+  suggestedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -109,6 +113,18 @@ export interface TransactionsRepository {
     pairId: string,
   ): Promise<{ paired: number }>;
   unpairAfterDelete(userId: string, pairId: string, idToExclude: string): Promise<void>;
+  /**
+   * Story 6-2 (FR-32) — persist the pending LLM suggestion. The ONLY writer of
+   * the suggested_* columns. `category` is left untouched (stays 'autre' until
+   * the user confirms in 6-4). The `category: "autre"` guard in the where makes
+   * a late suggestion idempotent against a category the user set meanwhile.
+   * Returns `{ saved }` — false when the row was deleted or already recategorised.
+   */
+  saveSuggestion(
+    userId: string,
+    txId: string,
+    suggestion: { category: string; confidence: number; route: string },
+  ): Promise<{ saved: boolean }>;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -123,6 +139,10 @@ function toDto(row: TransactionRow): Transaction {
     isImprevu: row.isImprevu,
     notes: row.notes,
     transferPairId: row.transferPairId,
+    suggestedCategory: (row.suggestedCategory as Transaction["suggestedCategory"]) ?? null,
+    suggestedConfidence: row.suggestedConfidence ?? null,
+    suggestedRoute: row.suggestedRoute ?? null,
+    suggestedAt: row.suggestedAt ? row.suggestedAt.toISOString() : null,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
   };
 }
@@ -410,6 +430,20 @@ export function createTransactionsRepository(deps: {
         where: { userId, transferPairId: pairId, id: { not: idToExclude } },
         data: { category: "autre", transferPairId: null, updatedAt: new Date() },
       });
+    },
+
+    async saveSuggestion(userId, txId, suggestion) {
+      const { count } = await deps.client.transaction.updateMany({
+        where: { id: txId, userId, category: "autre" },
+        data: {
+          suggestedCategory: suggestion.category,
+          suggestedConfidence: suggestion.confidence,
+          suggestedRoute: suggestion.route,
+          suggestedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      return { saved: count > 0 };
     },
   };
 }

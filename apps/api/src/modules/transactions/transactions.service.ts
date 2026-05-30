@@ -36,6 +36,7 @@ import type {
   Transaction,
   UpdateTransactionInput,
 } from "@pekulo/validators";
+import { TRANSACTION_CATEGORIES } from "@pekulo/validators";
 import { accountNotFound } from "../accounts/accounts.errors";
 import { PekuloError } from "../../common/errors";
 import { generateBase62Id } from "../../database";
@@ -69,6 +70,30 @@ export interface ProviderTransactionImportRow {
   providerTransactionId: string;
 }
 
+/**
+ * Story 6-2 (FR-32) — narrow categoriser port. The runtime wires this around
+ * llmModule.service.categorise (bootstrap/runtime-dependencies.ts) so the
+ * transactions module never imports LlmService directly (L1 — no cross-module
+ * type leak, mirrors AccountOwnershipProbe). `category` is null when the model
+ * abstained or the call failed; `route` is the server route_actual.
+ */
+export interface TransactionCategoriser {
+  categorise(input: {
+    userId: string;
+    label: string;
+    amountSigned: number;
+    occurredOn: string;
+    categories: readonly string[];
+  }): Promise<{ category: string | null; confidence: number; route: string }>;
+}
+
+// Categories the LLM may suggest — the closed transaction enum minus the two
+// system values: 'transfer' (rule-owned, story 5-3) and 'autre' (the fallback
+// the suggestion would replace).
+const SUGGESTABLE_CATEGORIES: readonly string[] = TRANSACTION_CATEGORIES.filter(
+  (c) => c !== "transfer" && c !== "autre",
+);
+
 export interface TransactionsService {
   createTransaction(userId: string, input: CreateTransactionInput): Promise<Transaction>;
   updateTransaction(userId: string, input: UpdateTransactionInput): Promise<Transaction>;
@@ -80,6 +105,13 @@ export interface TransactionsService {
   // Story 5-3 — exposed on the interface so a future LLM-categorisation
   // wrapper (épic 6) can chain on top, and so tests can stub directly.
   categoriseAfterCreate(userId: string, candidate: Transaction): Promise<Transaction>;
+  /**
+   * Story 6-2 (FR-32) — produce + persist a pending LLM category suggestion for
+   * a non-transfer, still-'autre' transaction. Awaitable (tests + callers);
+   * createTransaction invokes it fire-and-forget off the hot path (NFR-1). No-op
+   * when no categoriser is wired or the transaction is already categorised.
+   */
+  suggestCategory(userId: string, transaction: Transaction): Promise<void>;
   /**
    * Story 5-6 T21 — bulk import from a provider with dedup pre-flight on
    * (userId, provider, providerTransactionId). Runs `categoriseAfterCreate`
@@ -133,24 +165,67 @@ async function categoriseAfterCreateImpl(args: {
   return { ...candidate, category: "transfer", transferPairId: pairId };
 }
 
+// Story 6-2 (FR-32) — best-effort LLM suggestion. Awaitable so tests drive it
+// deterministically; createTransaction calls it fire-and-forget off the hot
+// path (NFR-1). Persists only when the model returned a category with non-zero
+// confidence; saveSuggestion is additionally guarded to stamp only 'autre' rows.
+async function suggestCategoryImpl(args: {
+  userId: string;
+  transaction: Transaction;
+  repository: TransactionsRepository;
+  categoriser: TransactionCategoriser;
+}): Promise<void> {
+  const { userId, transaction, repository, categoriser } = args;
+  if (transaction.category !== "autre") return;
+  const amountSigned = transaction.type === "outflow" ? -transaction.amount : transaction.amount;
+  const result = await categoriser.categorise({
+    userId,
+    label: transaction.label,
+    amountSigned,
+    occurredOn: transaction.occurredOn,
+    categories: SUGGESTABLE_CATEGORIES,
+  });
+  if (!result.category || result.confidence <= 0) return;
+  await repository.saveSuggestion(userId, transaction.id, {
+    category: result.category,
+    confidence: result.confidence,
+    route: result.route,
+  });
+}
+
 export function createTransactionsService(deps: {
   repository: TransactionsRepository;
   accountOwnershipProbe: AccountOwnershipProbe;
   accountResolver: AccountResolver;
+  categoriser?: TransactionCategoriser;
 }): TransactionsService {
   return {
     async createTransaction(userId, input) {
       const owns = await deps.accountOwnershipProbe.exists(userId, input.accountId);
       if (!owns) throw accountNotFound();
       const created = await deps.repository.create(userId, input);
-      // 5-3 — categorise inline. The helper short-circuits if not eligible
-      // OR if no sibling matches ; on match it stamps both rows and returns
-      // the candidate carrying the new tags.
-      return categoriseAfterCreateImpl({
+      const categorised = await categoriseAfterCreateImpl({
         userId,
         candidate: created,
         repository: deps.repository,
       });
+      // 6-2 (FR-32) — fire-and-forget LLM suggestion OFF the hot path (NFR-1):
+      // the create response is never blocked by the ≤5 s Ollama call. Only when
+      // the row is still 'autre' (not a detected transfer, no explicit category)
+      // and a categoriser is wired. categoriseImpl records its own audit outcome
+      // row, so the swallowed rejection here loses no durable signal.
+      if (deps.categoriser && categorised.category === "autre") {
+        const categoriser = deps.categoriser;
+        void suggestCategoryImpl({
+          userId,
+          transaction: categorised,
+          repository: deps.repository,
+          categoriser,
+        }).catch(() => {
+          /* best-effort; the llm_call_log outcome row is the durable record */
+        });
+      }
+      return categorised;
     },
 
     async updateTransaction(userId, input) {
@@ -244,6 +319,16 @@ export function createTransactionsService(deps: {
 
     async categoriseAfterCreate(userId, candidate) {
       return categoriseAfterCreateImpl({ userId, candidate, repository: deps.repository });
+    },
+
+    async suggestCategory(userId, transaction) {
+      if (!deps.categoriser) return;
+      await suggestCategoryImpl({
+        userId,
+        transaction,
+        repository: deps.repository,
+        categoriser: deps.categoriser,
+      });
     },
 
     async importFromProvider(userId, provider, rows) {

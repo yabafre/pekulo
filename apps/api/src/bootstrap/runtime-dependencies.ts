@@ -14,6 +14,7 @@ import { createMilestonesModule } from "../modules/milestones/milestones.module"
 import { createMonthlyModule } from "../modules/monthly/monthly.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
+import type { TransactionCategoriser } from "../modules/transactions/transactions.service";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
 
 export interface RuntimeDeps {
@@ -130,12 +131,38 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // findByIdForUser; module factory stays trivial.
   const realestateModule = createRealestateModule({ prismaService });
 
+  // Story 6-1 — LLM routing + audit module. No oRPC router (the only HTTP
+  // surface is the /internal/llm/attest listener mounted in app.ts). Built
+  // BEFORE transactionsModule (story 6-2) so the categorise pipeline can be
+  // wired as a narrow port into transactions.
+  const llmModule = createLlmModule({
+    prismaService,
+    env: input.env,
+    jwtVerifier,
+  });
+
+  // Story 6-2 (FR-32) — narrow categoriser adapter wrapping llmModule.service.
+  // The web tier never reports FoundationModels capability (iOS-only, V1.5), so
+  // clientCapabilities is pinned to { iosFoundationModels: false } → Ollama. V1
+  // transactions are EUR, so currency is pinned to "EUR".
+  const transactionCategoriser: TransactionCategoriser = {
+    categorise: async ({ userId, label, amountSigned, occurredOn, categories }) => {
+      const result = await llmModule.service.categorise({
+        userId,
+        clientCapabilities: { iosFoundationModels: false },
+        prompt: { label, amount: amountSigned, currency: "EUR", occurredOn },
+        categories,
+      });
+      return { category: result.category, confidence: result.confidence, route: result.route };
+    },
+  };
+
   // Story 5-1 — transactions domain. The cross-aggregate accountId guard is
   // injected as a narrow AccountOwnershipProbe adapter wrapping
   // accountsModule.service.accountExists — keeps L1 conformance (no
   // AccountsRepository type leak across modules) and avoids a wiring cycle.
-  // Story 5-2 extends the wiring with an AccountResolver adapter for CSV
-  // label→id resolution (findAccountIdByLabel).
+  // Story 5-2 extends with an AccountResolver adapter; story 6-2 with the
+  // TransactionCategoriser adapter above.
   const transactionsModule = createTransactionsModule({
     prismaService,
     accountOwnershipProbe: {
@@ -145,6 +172,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     accountResolver: {
       resolve: (userId, label) => accountsModule.service.findAccountIdByLabel(userId, label),
     },
+    categoriser: transactionCategoriser,
   });
 
   const monthlyModule = createMonthlyModule({ prismaService });
@@ -154,16 +182,6 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     env: input.env,
     transactionsService: transactionsModule.service,
     accountsService: accountsModule.service,
-  });
-
-  // Story 6-1 — LLM routing + audit module. No oRPC router (no client-facing
-  // procedure in 6-1); the only HTTP surface is the /internal/llm/attest
-  // Elysia listener mounted in app.ts. The service is consumed server-side by
-  // story 6-2's categorise pipeline (wired then).
-  const llmModule = createLlmModule({
-    prismaService,
-    env: input.env,
-    jwtVerifier,
   });
 
   const orpcRouter: PekuloRpcRouter = {

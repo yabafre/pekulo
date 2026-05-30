@@ -87,6 +87,15 @@ export const transactionSchema = z.object({
   isImprevu: z.boolean(),
   notes: z.string().max(500).nullable(),
   transferPairId: z.string().regex(TRANSFER_PAIR_ID_REGEX).nullable(),
+  // Story 6-2 (FR-32) — pending LLM suggestion. System-set; null until the
+  // categoriser runs. `.optional()` keeps pre-6-2 fixtures valid; reads always
+  // populate them (null or value). suggestedRoute mirrors the server route_actual
+  // ('ollama' | 'third_party' | 'foundation_models'); kept as a plain string to
+  // avoid coupling the transactions DTO to the LLM enum.
+  suggestedCategory: transactionCategorySchema.nullable().optional(),
+  suggestedConfidence: z.number().min(0).max(1).nullable().optional(),
+  suggestedRoute: z.string().nullable().optional(),
+  suggestedAt: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
