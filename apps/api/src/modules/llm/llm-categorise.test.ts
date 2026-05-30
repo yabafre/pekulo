@@ -7,10 +7,11 @@ import { createLlmService, type RouteIntent } from "./llm.service";
 
 const CATS = ["courses", "transport", "sorties"] as const;
 
-function makeService(opts: { raw?: string; throws?: boolean } = {}) {
+function makeService(opts: { raw?: string; throws?: boolean; intentThrows?: boolean } = {}) {
   const events: Array<{ userId: string; event: LlmCallEvent }> = [];
   const repository: LlmRepository = {
     recordCallEvent: async (userId, event) => {
+      if (opts.intentThrows && event.phase === "intent") throw new Error("audit db down");
       events.push({ userId, event });
     },
     recordCallEvents: async (userId, evs) => {
@@ -82,6 +83,18 @@ test("AC-2: provider failure abstains without throwing + records failure", async
   expect(out.confidence).toBe(0);
   const outcome = events[1]!.event;
   expect(outcome.phase === "outcome" && outcome.outcome).toBe("failure");
+});
+
+test("AC-2: an intent-row write failure abstains without throwing (no orphan row)", async () => {
+  // The audit DB rejects the intent write. categorise must honour its
+  // never-throws contract: abstain, persist nothing (no orphan intent row),
+  // and report the routed server route.
+  const { service, events } = makeService({ intentThrows: true });
+  const out = await service.categorise(intent());
+  expect(out.category).toBeNull();
+  expect(out.confidence).toBe(0);
+  expect(out.route).toBe("ollama");
+  expect(events).toHaveLength(0);
 });
 
 test("foundation_models abstains with no outcome row (client-owned)", async () => {

@@ -46,8 +46,11 @@ export interface LlmService {
    * audit row), invokes the server provider, parses {category, confidence},
    * writes the outcome audit row, and returns the suggestion. Server-route only
    * — foundation_models abstains here (the iOS client owns + attests it).
-   * NEVER throws on provider failure: abstains to {category: null} + records a
-   * failure outcome. */
+   * NEVER throws: a provider failure, timeout, opt-in refusal, OR a failed
+   * audit-row write all abstain to {category: null, confidence: 0} (a failure
+   * outcome row is recorded best-effort). The suggestion is fire-and-forget on
+   * the create hot path, so this contract is what keeps a slow/unreachable
+   * model or a degraded audit DB from surfacing to the caller. */
   categorise(intent: RouteIntent): Promise<LlmCategorisation>;
   recordLlmCall(userId: string, event: LlmCallEvent): Promise<void>;
   /** Write an intent+outcome pair atomically (ADR-0008 attest path). Both
@@ -125,7 +128,19 @@ export function createLlmService(deps: {
 
   async function categoriseImpl(intent: RouteIntent): Promise<LlmCategorisation> {
     const categories = intent.categories ?? [];
-    const decision = await routeDecision(intent);
+    // decideRoute is pure — resolve the fallback route up front so a routing /
+    // intent-row-write failure can still return a typed abstention instead of
+    // throwing (the `categorise` contract is best-effort, never-throws).
+    const fallbackRoute = decideRoute(intent.clientCapabilities);
+    let decision: LlmRouteDecision;
+    try {
+      decision = await routeDecision(intent);
+    } catch {
+      // The intent row write (or envelope build) failed BEFORE any provider
+      // call — nothing was persisted, so there is no orphan intent row. Abstain
+      // rather than surface the error to the (fire-and-forget) caller.
+      return { callId: "", route: fallbackRoute, category: null, confidence: 0 };
+    }
     // foundation_models (null providerCall) → the server cannot run the call;
     // the iOS client owns it and attests separately (ADR-0008). Abstain with
     // NO outcome row (no server call happened).
@@ -152,15 +167,21 @@ export function createLlmService(deps: {
     } catch {
       // Provider unavailable / timeout / opt-in refused → record a failure
       // outcome (latency unknown → 0) and abstain. NEVER rethrow: a suggestion
-      // is best-effort and must not fail the caller's create path.
-      await record(intent.userId, {
-        phase: "outcome",
-        callId: decision.callId,
-        route: decision.route,
-        labelHash: decision.labelHash,
-        latencyMs: 0,
-        outcome: "failure",
-      });
+      // is best-effort and must not fail the caller's create path. The outcome
+      // write is itself best-effort — if the audit DB is down it must still
+      // abstain (the intent row already attests the attempt).
+      try {
+        await record(intent.userId, {
+          phase: "outcome",
+          callId: decision.callId,
+          route: decision.route,
+          labelHash: decision.labelHash,
+          latencyMs: 0,
+          outcome: "failure",
+        });
+      } catch {
+        /* audit unavailable — the intent row already records the attempt */
+      }
       return { callId: decision.callId, route: decision.route, category: null, confidence: 0 };
     }
   }
