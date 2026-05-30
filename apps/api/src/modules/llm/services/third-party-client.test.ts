@@ -30,3 +30,21 @@ test("returns raw text on a 200 response when keyed", async () => {
   const out = await client.complete(prompt);
   expect(out.raw).toBe("transport");
 });
+
+// AC-6 (story 6-2) — the hard timeout (THIRD_PARTY_TIMEOUT_MS) bounds a slow
+// model: the AbortController fires → fetch rejects with an AbortError → the
+// client maps it to LLM_PROVIDER_UNAVAILABLE rather than hanging the caller.
+test("AC-6: an aborted fetch (hard timeout) maps to LLM_PROVIDER_UNAVAILABLE", async () => {
+  globalThis.fetch = mock(async () => {
+    throw Object.assign(new Error("The operation was aborted"), { name: "AbortError" });
+  }) as unknown as typeof fetch;
+  const client = createThirdPartyClient({
+    env: { THIRD_PARTY_LLM_API_KEY: "sk-test" } as unknown as Env,
+  });
+  try {
+    await client.complete(prompt);
+    throw new Error("expected throw");
+  } catch (err) {
+    expect(isPekuloError(err) && err.code === "LLM_PROVIDER_UNAVAILABLE").toBe(true);
+  }
+});

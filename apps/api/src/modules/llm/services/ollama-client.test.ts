@@ -36,3 +36,21 @@ test("throws LLM_PROVIDER_UNAVAILABLE on a non-2xx response", async () => {
     expect(isPekuloError(err) && err.code === "LLM_PROVIDER_UNAVAILABLE").toBe(true);
   }
 });
+
+// AC-6 (story 6-2) — a slow/unreachable model is bounded by the hard timeout
+// (OLLAMA_TIMEOUT_MS) rather than hanging the caller. The AbortController fires
+// → fetch rejects with an AbortError → the client maps it to the domain error.
+// This is the load-bearing branch of "bounded by a hard timeout"; without this
+// test a refactor that drops the AbortError mapping would pass CI silently.
+test("AC-6: an aborted fetch (hard timeout) maps to LLM_PROVIDER_UNAVAILABLE", async () => {
+  globalThis.fetch = mock(async () => {
+    throw Object.assign(new Error("The operation was aborted"), { name: "AbortError" });
+  }) as unknown as typeof fetch;
+  const client = createOllamaClient({ env: fakeEnv });
+  try {
+    await client.complete(prompt);
+    throw new Error("expected throw");
+  } catch (err) {
+    expect(isPekuloError(err) && err.code === "LLM_PROVIDER_UNAVAILABLE").toBe(true);
+  }
+});
