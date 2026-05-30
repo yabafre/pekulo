@@ -63,6 +63,12 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // UPDATE/DELETE use-case), so the audit shape is the 2-policy sister-table
   // variant.
   bridge_users: 2,
+  // llm_call_log — append-only audit sister table per ADR-0001 (NFR-26 / DR-6).
+  // SELECT + INSERT only, no UPDATE/DELETE. AC-5 of story 6-1 asserts this count.
+  llm_call_log: 2,
+  // llm_opt_in — per-user third-party opt-in (story 6-1). Mutable per-user
+  // state → full quartet. AC-5 of story 6-1 asserts this count.
+  llm_opt_in: 4,
 };
 
 async function main(): Promise<number> {

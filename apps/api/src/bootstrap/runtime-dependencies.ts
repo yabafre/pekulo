@@ -6,6 +6,7 @@ import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
 import { createAccountsModule } from "../modules/accounts/accounts.module";
 import { createBankAggregatorModule } from "../modules/bank-aggregator/bank-aggregator.module";
+import { createLlmModule } from "../modules/llm/llm.module";
 import { createCompassModule } from "../modules/compass/compass.module";
 import { createHoldingsModule } from "../modules/holdings/holdings.module";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
@@ -23,6 +24,7 @@ export interface RuntimeDeps {
   orpcRouter: PekuloRpcRouter;
   milestonePresenceProbe: MilestonePresenceProbe;
   bankAggregatorModule: ReturnType<typeof createBankAggregatorModule>;
+  llmModule: ReturnType<typeof createLlmModule>;
 }
 
 // F10 (carry-over from 0-3): single transient probe failure should not yank
@@ -154,6 +156,16 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     accountsService: accountsModule.service,
   });
 
+  // Story 6-1 — LLM routing + audit module. No oRPC router (no client-facing
+  // procedure in 6-1); the only HTTP surface is the /internal/llm/attest
+  // Elysia listener mounted in app.ts. The service is consumed server-side by
+  // story 6-2's categorise pipeline (wired then).
+  const llmModule = createLlmModule({
+    prismaService,
+    env: input.env,
+    jwtVerifier,
+  });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -174,5 +186,6 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     orpcRouter,
     milestonePresenceProbe,
     bankAggregatorModule,
+    llmModule,
   };
 }
