@@ -189,6 +189,8 @@ export function createLlmService(deps: {
   return {
     route: routeDecision,
     categorise: categoriseImpl,
+    getThirdPartyOptIn: getOptIn,
+    setThirdPartyOptIn: setOptIn,
     recordLlmCall: record,
     recordLlmCallPair: recordPair,
   };
