@@ -32,7 +32,11 @@ export function buildPromptEnvelope(input: PromptBuilderInput): LlmPromptEnvelop
   };
   // 2. Strict parse — .strict() rejects any leftover non-allowlisted key.
   const envelope = llmPromptEnvelopeSchema.parse(picked) as LlmPromptEnvelope;
-  // 3. Hard byte cap on the serialized blob (NFR-12).
+  // 3. Hard byte cap on the serialized blob (NFR-12). This UTF-8 byte cap — NOT
+  // the schema's per-field character caps (.max(512)/.max(256)) — is the
+  // authoritative NFR-12 guard: a multibyte label/merchant (e.g. CJK, 3 bytes
+  // per char) can pass the character caps yet exceed 2 kB once serialised, and
+  // is correctly rejected here. The two limits are deliberately not reconciled.
   const bytes = new TextEncoder().encode(JSON.stringify(envelope)).byteLength;
   if (bytes > MAX_ENVELOPE_BYTES) {
     throw llmRoutingError(`prompt envelope ${bytes}B exceeds ${MAX_ENVELOPE_BYTES}B cap`);

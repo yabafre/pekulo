@@ -33,7 +33,7 @@ test("keeps the optional merchant when present", () => {
   expect(env.merchant).toBe("SNCF");
 });
 
-test("the worst-case maximal envelope stays within the 2 kb cap (NFR-12)", () => {
+test("the ASCII worst-case maximal envelope stays within the 2 kb cap (NFR-12)", () => {
   const env = buildPromptEnvelope({
     label: "a".repeat(512),
     amount: -999999.99,
@@ -43,6 +43,34 @@ test("the worst-case maximal envelope stays within the 2 kb cap (NFR-12)", () =>
   });
   const bytes = new TextEncoder().encode(JSON.stringify(env)).byteLength;
   expect(bytes).toBeLessThanOrEqual(2048);
+});
+
+test("a multibyte envelope at the character caps can exceed the 2 kb byte cap (NFR-12)", () => {
+  // "中" is 1 UTF-16 code unit (passes .max(512)/.max(256)) but 3 UTF-8 bytes,
+  // so the byte cap — the authoritative NFR-12 guard — must reject it. This is
+  // the TRUE worst case the ASCII test above does not exercise.
+  expect(() =>
+    buildPromptEnvelope({
+      label: "中".repeat(512),
+      amount: -999999.99,
+      currency: "EUR",
+      occurredOn: "2026-05-15",
+      merchant: "中".repeat(256),
+    }),
+  ).toThrow(/exceeds 2048B cap/);
+});
+
+test("rejects a regex-valid but non-real calendar date (occurredOn)", () => {
+  for (const bad of ["2026-13-45", "2026-02-30", "0000-00-00"]) {
+    expect(() =>
+      buildPromptEnvelope({ label: "x", amount: 1, currency: "EUR", occurredOn: bad }),
+    ).toThrow();
+  }
+  // sanity: a real date still passes
+  expect(
+    buildPromptEnvelope({ label: "x", amount: 1, currency: "EUR", occurredOn: "2026-02-28" })
+      .occurredOn,
+  ).toBe("2026-02-28");
 });
 
 test("the schema strictly rejects a non-allowlisted key (NFR-12)", () => {

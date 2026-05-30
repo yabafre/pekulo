@@ -11,6 +11,9 @@ function makeService(overrides?: { optedIn?: boolean }) {
     recordCallEvent: async (userId, event) => {
       events.push({ userId, event });
     },
+    recordCallEvents: async (userId, evs) => {
+      for (const event of evs) events.push({ userId, event });
+    },
     isThirdPartyOptedIn: async () => overrides?.optedIn ?? false,
     listRecentByUser: async () => [],
   };
@@ -76,6 +79,40 @@ test("AC-4: recordLlmCall writes the intent → outcome pair, no prompt body", a
   });
   expect(events.map((e) => e.event.phase)).toEqual(["intent", "outcome"]);
   expect(JSON.stringify(events)).not.toContain("Carrefour");
+});
+
+test("AC-4: recordLlmCallPair writes both rows via one repository transaction call", async () => {
+  const { service, events } = makeService();
+  await service.recordLlmCallPair("u1", [
+    { phase: "intent", callId: "fm1", route: "foundation_models", labelHash: "h" },
+    {
+      phase: "outcome",
+      callId: "fm1",
+      route: "foundation_models",
+      labelHash: "h",
+      latencyMs: 480,
+      outcome: "success",
+    },
+  ]);
+  expect(events.map((e) => e.event.phase)).toEqual(["intent", "outcome"]);
+  expect(events.every((e) => e.event.route === "foundation_models")).toBe(true);
+});
+
+test("recordLlmCallPair rejects an unknown route in either event", async () => {
+  const { service } = makeService();
+  await expect(
+    service.recordLlmCallPair("u1", [
+      { phase: "intent", callId: "c1", route: "gpt" as never, labelHash: "h" },
+      {
+        phase: "outcome",
+        callId: "c1",
+        route: "gpt" as never,
+        labelHash: "h",
+        latencyMs: 1,
+        outcome: "success",
+      },
+    ]),
+  ).rejects.toThrow(/unknown route/);
 });
 
 test("recordLlmCall rejects an unknown route", async () => {

@@ -26,16 +26,12 @@ export function createLlmAttestRouter(deps: { jwtVerifier: JwtVerifier; service:
         return new Response(null, { status: 400 });
       }
       const { callId, route, latencyMs, outcome, labelHash } = parsed.data;
-      // FM is client-owned: emit the intent + outcome pair together (ADR-0008).
-      await deps.service.recordLlmCall(ctx.userId, { phase: "intent", callId, route, labelHash });
-      await deps.service.recordLlmCall(ctx.userId, {
-        phase: "outcome",
-        callId,
-        route,
-        labelHash,
-        latencyMs,
-        outcome,
-      });
+      // FM is client-owned: emit the intent + outcome pair together (ADR-0008),
+      // atomically so a crash between the two writes can't orphan an intent row.
+      await deps.service.recordLlmCallPair(ctx.userId, [
+        { phase: "intent", callId, route, labelHash },
+        { phase: "outcome", callId, route, labelHash, latencyMs, outcome },
+      ]);
       set.status = 204;
       return new Response(null, { status: 204 });
     },

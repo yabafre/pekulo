@@ -30,7 +30,22 @@ export const llmPromptEnvelopeSchema = z
     label: z.string().min(1).max(512),
     amount: z.number().finite(),
     currency: z.string().length(3),
-    occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "occurredOn must be ISO date YYYY-MM-DD"),
+    occurredOn: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "occurredOn must be ISO date YYYY-MM-DD")
+      // The regex only proves the SHAPE — "2026-13-45" / "2026-02-30" match it
+      // but are not real calendar dates. Round-trip through Date to reject
+      // out-of-range month/day before the value reaches the prompt envelope.
+      // The NaN guard MUST run before toISOString(): an Invalid Date would make
+      // toISOString() throw a RangeError (→ 500) instead of returning false here
+      // (→ a clean validation rejection).
+      .refine(
+        (d) => {
+          const dt = new Date(`${d}T00:00:00.000Z`);
+          return !Number.isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === d;
+        },
+        { message: "occurredOn must be a real calendar date" },
+      ),
     merchant: z.string().max(256).optional(),
   })
   .strict();
@@ -43,9 +58,17 @@ export const routeIntentSchema = z.object({
 // Client attestation body (/internal/llm/attest). The client reports the
 // on-device FoundationModels outcome; the server is the audit authority and
 // writes the intent + outcome pair (ADR-0008).
+//
+// SECURITY (ADR-0008 audit integrity / architecture L307 — "client cannot forge
+// FoundationModels to hide a 3rd-party call"): this endpoint exists ONLY for
+// client-owned FoundationModels calls. Ollama / third_party are server-initiated
+// AND server-logged (both rows written in llm.service), so a client must never be
+// able to inject an `ollama`/`third_party` row into the append-only audit. The
+// route is pinned to the FM literal — any other value is rejected (400) before a
+// row is written. Use `llmRouteSchema` only where the full enum is legitimate.
 export const attestLlmCallSchema = z.object({
   callId: z.string().min(1).max(64),
-  route: llmRouteSchema,
+  route: z.literal("foundation_models"),
   latencyMs: z.number().int().nonnegative().max(120_000),
   outcome: llmOutcomeSchema,
   labelHash: z.string().min(1).max(128),

@@ -8,28 +8,41 @@ import type { LlmCallEvent, LlmCallLogEntry } from "@pekulo/types";
 
 export interface LlmRepository {
   recordCallEvent(userId: string, event: LlmCallEvent): Promise<void>;
+  /** Append a set of events as a SINGLE transaction. Used by the attest path
+   * (ADR-0008) so an intent+outcome pair can never half-commit (orphan intent
+   * row on a crash between the two writes). */
+  recordCallEvents(userId: string, events: LlmCallEvent[]): Promise<void>;
   isThirdPartyOptedIn(userId: string): Promise<boolean>;
   listRecentByUser(userId: string, since: Date): Promise<LlmCallLogEntry[]>;
 }
 
 export function createLlmRepository(deps: { prismaService: PrismaService }): LlmRepository {
   const db = deps.prismaService.client;
+  // The ONLY `llmCallLog.create` call site (architecture L691). Both the single
+  // and the transactional writers funnel through this builder so the single-
+  // writer grep gate stays at one create call.
+  function createCallEvent(userId: string, event: LlmCallEvent) {
+    return db.llmCallLog.create({
+      data: {
+        userId,
+        callId: event.callId,
+        phase: event.phase,
+        route: event.route,
+        labelHash: event.labelHash,
+        latencyMs: event.phase === "outcome" ? event.latencyMs : null,
+        outcome: event.phase === "outcome" ? event.outcome : null,
+        // `id` is injected at create time by the prefixed-ids extension
+        // (llm_<base62>), so it is intentionally absent here. The cast mirrors
+        // transactions.repository — Prisma's generated type still demands it.
+      } as unknown as Parameters<typeof db.llmCallLog.create>[0]["data"],
+    });
+  }
   return {
     async recordCallEvent(userId, event) {
-      await db.llmCallLog.create({
-        data: {
-          userId,
-          callId: event.callId,
-          phase: event.phase,
-          route: event.route,
-          labelHash: event.labelHash,
-          latencyMs: event.phase === "outcome" ? event.latencyMs : null,
-          outcome: event.phase === "outcome" ? event.outcome : null,
-          // `id` is injected at create time by the prefixed-ids extension
-          // (llm_<base62>), so it is intentionally absent here. The cast mirrors
-          // transactions.repository — Prisma's generated type still demands it.
-        } as unknown as Parameters<typeof db.llmCallLog.create>[0]["data"],
-      });
+      await createCallEvent(userId, event);
+    },
+    async recordCallEvents(userId, events) {
+      await db.$transaction(events.map((event) => createCallEvent(userId, event)));
     },
     async isThirdPartyOptedIn(userId) {
       const row = await db.llmOptIn.findUnique({

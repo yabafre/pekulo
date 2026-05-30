@@ -20,12 +20,11 @@ export class LlmError extends PekuloError {
   }
 }
 
-export function llmOptInRequired(): LlmError {
-  return new LlmError(
-    "LLM_OPT_IN_REQUIRED",
-    "third-party LLM requires explicit user opt-in (DR-7)",
-  );
-}
+// NOTE: there is intentionally no `llmOptInRequired()` factory here. The DR-7
+// opt-in gate lives in platform/security/opt-in-guard.ts, which (one-way
+// layering) cannot import this module — so it throws the LLM_OPT_IN_REQUIRED
+// PekuloError directly. A factory here would be a dead, duplicate source for
+// the same message.
 
 export function llmProviderUnavailable(route: string, reason: string): LlmError {
   return new LlmError("LLM_PROVIDER_UNAVAILABLE", `LLM provider ${route} unavailable: ${reason}`);

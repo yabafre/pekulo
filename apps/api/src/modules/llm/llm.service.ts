@@ -30,6 +30,10 @@ export interface RouteIntent {
 export interface LlmService {
   route(intent: RouteIntent): Promise<LlmRouteDecision>;
   recordLlmCall(userId: string, event: LlmCallEvent): Promise<void>;
+  /** Write an intent+outcome pair atomically (ADR-0008 attest path). Both
+   * events are validated and persisted in one transaction so a crash can never
+   * leave an orphan intent row. */
+  recordLlmCallPair(userId: string, events: [LlmCallEvent, LlmCallEvent]): Promise<void>;
 }
 
 const VALID_ROUTES: ReadonlySet<LlmRoute> = new Set<LlmRoute>([
@@ -51,6 +55,15 @@ export function createLlmService(deps: {
       throw llmRoutingError(`unknown route ${String(event.route)}`);
     }
     await deps.repository.recordCallEvent(userId, event);
+  }
+
+  async function recordPair(userId: string, events: [LlmCallEvent, LlmCallEvent]): Promise<void> {
+    for (const event of events) {
+      if (!VALID_ROUTES.has(event.route)) {
+        throw llmRoutingError(`unknown route ${String(event.route)}`);
+      }
+    }
+    await deps.repository.recordCallEvents(userId, events);
   }
 
   // FR-31 routing policy. iOS-capable → on-device FoundationModels. Otherwise
@@ -86,5 +99,6 @@ export function createLlmService(deps: {
     },
 
     recordLlmCall: record,
+    recordLlmCallPair: recordPair,
   };
 }
