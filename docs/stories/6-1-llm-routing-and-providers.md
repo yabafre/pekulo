@@ -1,7 +1,7 @@
 # Story: 6-1-llm-routing-and-providers — LLM routing policy + per-call audit + provider clients
 
 **Epic:** Epic 6 — LLM auto-categorisation
-**Status:** review
+**Status:** done
 **Ticket:** [#32](https://github.com/yabafre/pekulo/issues/32)
 **Branch:** feature/32-6-1-llm-routing-and-providers
 **Covered FRs:** FR-31 (routing policy), FR-35 (per-call audit)
@@ -1773,7 +1773,7 @@ $ bun --filter='@pekulo/api' run db:rls-audit  → exit 0; llm_call_log:2, llm_o
 
 **Date:** 2026-05-30
 **Auditors:** Spec, Code, Edge & Hallucination (backend surface — Aria not dispatched, no preview app surface)
-**Verdict:** stays-review — all findings resolved inline (commit `d7bbcb7`); status held at `review` per Alex's decision (done-flip deferred, not auto-applied).
+**Verdict:** done — all findings resolved inline (commit `d7bbcb7`) and adversarially re-verified; story flipped to `done` on Alex's go-ahead.
 
 > **Override:** Spec AC gap accepted — reason: "AC-2/AC-4 PARTIALs are consequences of the locked 6-1/6-2 scope split (step 04); the real defects are fixed inline and the story stays in review rather than bouncing to dev."
 
@@ -1814,7 +1814,7 @@ $ bun --filter='@pekulo/api' run db:rls-audit  → exit 0; llm_call_log:2, llm_o
 
 #### Unresolved
 
-- None. All findings resolved or dismissed-with-rationale. Story is held at `review` per Alex (status not auto-flipped to `done`).
+- None. All findings resolved or dismissed-with-rationale.
 
 ### Scope annotations (6-1 / 6-2 split — recorded so 6-2 inherits them)
 
@@ -1834,5 +1834,5 @@ $ bun --filter='@pekulo/api' run db:rls-audit  → exit 0; llm_call_log:2, llm_o
 
 ### Ticket sync
 
-- Ticket comment (#32): not posted — outward-facing, awaiting Alex's go-ahead (story held at `review`).
-- PR: none — PR creation is deferred to the `done` flip.
+- Ticket comment (#32): posted — https://github.com/yabafre/pekulo/issues/32#issuecomment-4583235204
+- PR: draft #108 → base `main` (sprint `umbrella_branch`) — https://github.com/yabafre/pekulo/pull/108. `aped-lead` owns the merge; mark ready after the human-validation gate re-runs green.
