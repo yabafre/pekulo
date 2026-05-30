@@ -44,7 +44,22 @@ export interface LlmProviderCompletion {
 export interface LlmRouteDecision {
   callId: string;
   route: LlmRoute;
+  /** djb2 digest of the prompt label (NFR-26 de-dup key). Exposed so the
+   * categorise pipeline (story 6-2) can stamp the outcome row without
+   * rebuilding the envelope. NEVER the prompt body — only the hash. */
+  labelHash: string;
   providerCall: (() => Promise<LlmProviderCompletion>) | null;
+}
+
+/** Result of llm.service.categorise (FR-32, story 6-2). `category` is null when
+ * the model abstained or returned an unparseable / out-of-enum value — the
+ * caller then leaves the transaction uncategorised. `confidence ∈ [0, 1]`.
+ * `route` is the actual server route that produced the answer (route_actual). */
+export interface LlmCategorisation {
+  callId: string;
+  route: LlmRoute;
+  category: string | null;
+  confidence: number;
 }
 
 /** Audit events — the two phases of one logical LLM call (ADR-0008), both
