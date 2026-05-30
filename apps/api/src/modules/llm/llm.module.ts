@@ -30,5 +30,6 @@ export function createLlmModule(deps: {
     generateCallId: () => generateBase62Id(21),
   });
   const attestRouter = createLlmAttestRouter({ jwtVerifier: deps.jwtVerifier, service });
-  return { service, repository, attestRouter };
+  const router = createLlmRouter({ service });
+  return { service, repository, attestRouter, router };
 }
