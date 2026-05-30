@@ -20,6 +20,12 @@ model Transaction {
   transferPairId        String?         @map("transfer_pair_id")
   provider              String?         @map("provider")
   providerTransactionId String?         @map("provider_transaction_id")
+  // Story 6-2 (FR-32) — pending LLM suggestion. Null until the categoriser
+  // runs; `category` stays 'autre' until the user confirms in 6-4 (FR-33).
+  suggestedCategory     String?         @map("suggested_category")
+  suggestedConfidence   Float?          @map("suggested_confidence")
+  suggestedRoute        String?         @map("suggested_route")
+  suggestedAt           DateTime?       @map("suggested_at") @db.Timestamptz
   createdAt             DateTime?       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime?       @default(now()) @map("updated_at") @db.Timestamptz
 
@@ -29,5 +35,7 @@ model Transaction {
   @@index([userId, accountId, occurredOn(sort: Desc)], map: "transactions_user_account_date_idx")
   @@index([userId, transferPairId], map: "transactions_user_pair_idx")
   @@index([userId, provider, providerTransactionId], map: "transactions_user_provider_txid_idx")
+  // Story 6-2 — 6-4 lists pending suggestions (userId + suggestedCategory != null).
+  @@index([userId, suggestedCategory], map: "transactions_user_suggestion_idx")
   @@map("transactions")
 }
