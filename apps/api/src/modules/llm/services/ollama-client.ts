@@ -4,7 +4,7 @@
 // (architecture L232). Hard 5 s timeout as the failure boundary (NFR-5: Ollama
 // p95 ≤ 1.5 s). Iso-pattern with holdings price clients.
 import type { Env } from "../../../config/env";
-import type { LlmPromptEnvelope, LlmProviderCompletion } from "@pekulo/types";
+import type { LlmProviderCompletion } from "@pekulo/types";
 import type { LlmProvider } from "../llm-provider";
 import { LlmError, llmProviderUnavailable } from "../llm.errors";
 
@@ -15,7 +15,7 @@ export function createOllamaClient(deps: { env: Env }): LlmProvider {
   const model = deps.env.OLLAMA_MODEL ?? "llama3.2:3b";
   return {
     route: "ollama",
-    async complete(envelope: LlmPromptEnvelope): Promise<LlmProviderCompletion> {
+    async complete(prompt: string): Promise<LlmProviderCompletion> {
       const startedAt = performance.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
@@ -23,7 +23,7 @@ export function createOllamaClient(deps: { env: Env }): LlmProvider {
         const res = await fetch(`${baseUrl}/api/generate`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ model, prompt: JSON.stringify(envelope), stream: false }),
+          body: JSON.stringify({ model, prompt, stream: false }),
           signal: controller.signal,
         });
         if (!res.ok) {

@@ -5,7 +5,7 @@
 // itself only owns the transport. THIRD_PARTY_LLM_API_KEY lives ONLY in
 // Dokploy env. Hard 10 s timeout (NFR-5: third-party p95 ≤ 3 s).
 import type { Env } from "../../../config/env";
-import type { LlmPromptEnvelope, LlmProviderCompletion } from "@pekulo/types";
+import type { LlmProviderCompletion } from "@pekulo/types";
 import type { LlmProvider } from "../llm-provider";
 import { LlmError, llmProviderUnavailable } from "../llm.errors";
 
@@ -17,7 +17,7 @@ export function createThirdPartyClient(deps: { env: Env }): LlmProvider {
   const model = deps.env.THIRD_PARTY_LLM_MODEL ?? "claude-haiku-4-5";
   return {
     route: "third_party",
-    async complete(envelope: LlmPromptEnvelope): Promise<LlmProviderCompletion> {
+    async complete(prompt: string): Promise<LlmProviderCompletion> {
       if (!apiKey) {
         throw llmProviderUnavailable("third_party", "THIRD_PARTY_LLM_API_KEY not configured");
       }
@@ -35,7 +35,7 @@ export function createThirdPartyClient(deps: { env: Env }): LlmProvider {
           body: JSON.stringify({
             model,
             max_tokens: 64,
-            messages: [{ role: "user", content: JSON.stringify(envelope) }],
+            messages: [{ role: "user", content: prompt }],
           }),
           signal: controller.signal,
         });
