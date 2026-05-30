@@ -1,7 +1,7 @@
 # Story: 6-2-llm-categorise — LLM categorisation pipeline integrated into transactions
 
 **Epic:** Epic 6 — LLM auto-categorisation
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#33](https://github.com/yabafre/pekulo/issues/33)
 **Branch:** feature/33-6-2-llm-categorise
 **Covered FRs:** FR-32 (LLM-suggested category + confidence)
@@ -1712,9 +1712,10 @@ Commit: (no new commit — this task is the gate + push. If lint/format rewrote 
 - `apps/api/src/modules/llm/services/ollama-client.ts` (+ `ollama-client.test.ts`)
 - `apps/api/src/modules/llm/services/third-party-client.ts` (+ `third-party-client.test.ts`)
 - `apps/api/src/modules/llm/llm.service.ts`
+- `apps/api/src/modules/llm/llm.attest-router.test.ts` (6-1 mock widened for the `labelHash` + `categorise` additions — see Deviations T5)
 - `apps/api/prisma/schema/transactions.prisma`
 - `packages/validators/src/transactions/transactions.schemas.ts`
-- `apps/api/src/modules/transactions/transactions.repository.ts`
+- `apps/api/src/modules/transactions/transactions.repository.ts` (+ `transactions.repository.test.ts` — `saveSuggestion` guard, added at aped-review)
 - `apps/api/src/modules/transactions/transactions.service.ts`
 - `apps/api/src/modules/transactions/transactions.module.ts`
 - `apps/api/src/bootstrap/runtime-dependencies.ts`
