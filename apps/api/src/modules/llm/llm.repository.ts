@@ -13,6 +13,10 @@ export interface LlmRepository {
    * row on a crash between the two writes). */
   recordCallEvents(userId: string, events: LlmCallEvent[]): Promise<void>;
   isThirdPartyOptedIn(userId: string): Promise<boolean>;
+  /** Set the per-user third-party opt-in flag (story 6-3, FR-34). Upserts the
+   * single `llm_opt_in` row keyed on the UNIQUE(user_id) index and returns the
+   * persisted value. Sole opt-in writer. */
+  setThirdPartyOptIn(userId: string, value: boolean): Promise<boolean>;
   listRecentByUser(userId: string, since: Date): Promise<LlmCallLogEntry[]>;
 }
 
@@ -50,6 +54,37 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
         select: { thirdParty: true },
       });
       return row?.thirdParty ?? false;
+    },
+    async setThirdPartyOptIn(userId, value) {
+      try {
+        const row = await db.llmOptIn.upsert({
+          where: { userId },
+          // `id` is injected by the prefixed-ids extension at create time
+          // (llmo_<base62>), so it is intentionally absent here — same cast
+          // as createCallEvent. Prisma's generated type still demands it.
+          create: {
+            userId,
+            thirdParty: value,
+          } as unknown as Parameters<typeof db.llmOptIn.upsert>[0]["create"],
+          update: { thirdParty: value },
+          select: { thirdParty: true },
+        });
+        return row.thirdParty;
+      } catch (err) {
+        // Two concurrent first-time opt-ins both find no row and race the
+        // create branch; the loser hits the UNIQUE(user_id) index. Re-apply as
+        // an update (lesson 2026-05-27 — find-or-create P2002 re-read). Duck-typed
+        // code check mirrors realestate.repository.ts:203 / transactions:359.
+        if ((err as { code?: string }).code === "P2002") {
+          const row = await db.llmOptIn.update({
+            where: { userId },
+            data: { thirdParty: value },
+            select: { thirdParty: true },
+          });
+          return row.thirdParty;
+        }
+        throw err;
+      }
     },
     async listRecentByUser(userId, since) {
       const rows = await db.llmCallLog.findMany({
