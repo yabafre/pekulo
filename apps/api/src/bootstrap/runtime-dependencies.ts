@@ -194,6 +194,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     transactions: transactionsModule.router,
     monthly: monthlyModule.router,
     bankaggregator: bankAggregatorModule.router,
+    llm: llmModule.router,
   };
 
   return {
