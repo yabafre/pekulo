@@ -17,7 +17,8 @@ const failVerifier: JwtVerifier = {
 function makeService() {
   const events: Array<{ userId: string; event: LlmCallEvent }> = [];
   const service: LlmService = {
-    route: async () => ({ callId: "x", route: "ollama", providerCall: null }),
+    route: async () => ({ callId: "x", route: "ollama", labelHash: "x", providerCall: null }),
+    categorise: async () => ({ callId: "x", route: "ollama", category: null, confidence: 0 }),
     recordLlmCall: async (userId, event) => {
       events.push({ userId, event });
     },

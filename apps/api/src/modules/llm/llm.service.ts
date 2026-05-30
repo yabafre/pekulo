@@ -1,13 +1,16 @@
 // apps/api/src/modules/llm/llm.service.ts
-// LLM routing policy (FR-31) + per-call audit authority (FR-35 / ADR-0008).
-// route(intent) decides the endpoint and writes the INTENT audit row, then
-// returns a providerCall thunk the categorise pipeline (story 6-2) invokes.
+// LLM routing policy (FR-31) + per-call audit authority (FR-35 / ADR-0008) +
+// categorisation (FR-32, story 6-2). routeDecision(intent) decides the endpoint
+// and writes the INTENT audit row, then returns a providerCall thunk bound to a
+// composed prompt string. categorise(intent) invokes that thunk, parses the
+// completion, writes the OUTCOME audit row, and returns {category, confidence}.
 // recordLlmCall is the SOLE writer of llm_call_log (direct llmCallLog.create
 // outside the repository is forbidden — architecture L691). callId is injected
-// for deterministic tests (no PEKULO_DEV_NOW_ISO env seam — factory dep only).
+// for deterministic tests (factory dep, no env seam).
 import type {
   ClientCapabilities,
   LlmCallEvent,
+  LlmCategorisation,
   LlmPromptEnvelope,
   LlmRoute,
   LlmRouteDecision,
@@ -18,17 +21,34 @@ import {
   requireThirdPartyOptIn,
   type ThirdPartyOptInReader,
 } from "../../platform/security/opt-in-guard";
-import { buildPromptEnvelope, hashLabel, type PromptBuilderInput } from "./llm-prompt-builder";
+import {
+  buildCategorisationPrompt,
+  buildPromptEnvelope,
+  hashLabel,
+  type PromptBuilderInput,
+} from "./llm-prompt-builder";
+import { parseCategorisation } from "./llm-categoriser";
 import { llmRoutingError } from "./llm.errors";
 
 export interface RouteIntent {
   userId: string;
   clientCapabilities: ClientCapabilities;
   prompt: PromptBuilderInput;
+  /** Closed category list (story 6-2, FR-32). When present, route() composes the
+   * categorisation prompt via buildCategorisationPrompt; when absent, the raw
+   * envelope JSON is sent (back-compat with non-categorise callers). */
+  categories?: readonly string[];
 }
 
 export interface LlmService {
   route(intent: RouteIntent): Promise<LlmRouteDecision>;
+  /** Categorise a transaction (FR-32, story 6-2): routes (writes the intent
+   * audit row), invokes the server provider, parses {category, confidence},
+   * writes the outcome audit row, and returns the suggestion. Server-route only
+   * — foundation_models abstains here (the iOS client owns + attests it).
+   * NEVER throws on provider failure: abstains to {category: null} + records a
+   * failure outcome. */
+  categorise(intent: RouteIntent): Promise<LlmCategorisation>;
   recordLlmCall(userId: string, event: LlmCallEvent): Promise<void>;
   /** Write an intent+outcome pair atomically (ADR-0008 attest path). Both
    * events are validated and persisted in one transaction so a crash can never
@@ -49,7 +69,8 @@ export function createLlmService(deps: {
   optInReader: ThirdPartyOptInReader;
   generateCallId: () => string;
 }): LlmService {
-  // Free helper avoids `this`-binding fragility (lesson 5-3).
+  // Free helpers avoid `this`-binding fragility (lesson 5-3) — the factory
+  // returns a plain object literal where `this` is unreliable across closures.
   async function record(userId: string, event: LlmCallEvent): Promise<void> {
     if (!VALID_ROUTES.has(event.route)) {
       throw llmRoutingError(`unknown route ${String(event.route)}`);
@@ -68,36 +89,85 @@ export function createLlmService(deps: {
 
   // FR-31 routing policy. iOS-capable → on-device FoundationModels. Otherwise
   // Ollama is the default server route. third_party is NEVER auto-selected at
-  // V1 (a) — an ambiguity-escalation policy (story 6-2+) is the only thing that
-  // would return it, and even then the providerCall is opt-in-gated below.
+  // V1 (a); the opt-in guard below is the second line of defence.
   function decideRoute(caps: ClientCapabilities): LlmRoute {
     if (caps.iosFoundationModels) return "foundation_models";
     return "ollama";
   }
 
+  async function routeDecision(intent: RouteIntent): Promise<LlmRouteDecision> {
+    const envelope: LlmPromptEnvelope = buildPromptEnvelope(intent.prompt);
+    const labelHash = hashLabel(envelope.label);
+    const route = decideRoute(intent.clientCapabilities);
+    const callId = deps.generateCallId();
+    // Intent row written BEFORE the call (ADR-0008).
+    await record(intent.userId, { phase: "intent", callId, route, labelHash });
+
+    // Categorisation prompt when a closed list is supplied (story 6-2); else
+    // the raw envelope JSON. Composed by the sole NFR-12 site.
+    const promptString = intent.categories?.length
+      ? buildCategorisationPrompt(envelope, intent.categories)
+      : JSON.stringify(envelope);
+
+    let providerCall: LlmRouteDecision["providerCall"] = null;
+    if (route === "ollama") {
+      providerCall = () => deps.ollamaClient.complete(promptString);
+    } else if (route === "third_party") {
+      providerCall = async () => {
+        // DR-7 — server-side opt-in gate before any third-party egress.
+        await requireThirdPartyOptIn(deps.optInReader, intent.userId);
+        return deps.thirdPartyClient.complete(promptString);
+      };
+    }
+    // foundation_models → providerCall stays null (client-owned, attested).
+    return { callId, route, labelHash, providerCall };
+  }
+
+  async function categoriseImpl(intent: RouteIntent): Promise<LlmCategorisation> {
+    const categories = intent.categories ?? [];
+    const decision = await routeDecision(intent);
+    // foundation_models (null providerCall) → the server cannot run the call;
+    // the iOS client owns it and attests separately (ADR-0008). Abstain with
+    // NO outcome row (no server call happened).
+    if (!decision.providerCall) {
+      return { callId: decision.callId, route: decision.route, category: null, confidence: 0 };
+    }
+    try {
+      const completion = await decision.providerCall();
+      const parsed = parseCategorisation(completion.raw, categories);
+      await record(intent.userId, {
+        phase: "outcome",
+        callId: decision.callId,
+        route: decision.route,
+        labelHash: decision.labelHash,
+        latencyMs: completion.latencyMs,
+        outcome: parsed.category ? "success" : "failure",
+      });
+      return {
+        callId: decision.callId,
+        route: decision.route,
+        category: parsed.category,
+        confidence: parsed.confidence,
+      };
+    } catch {
+      // Provider unavailable / timeout / opt-in refused → record a failure
+      // outcome (latency unknown → 0) and abstain. NEVER rethrow: a suggestion
+      // is best-effort and must not fail the caller's create path.
+      await record(intent.userId, {
+        phase: "outcome",
+        callId: decision.callId,
+        route: decision.route,
+        labelHash: decision.labelHash,
+        latencyMs: 0,
+        outcome: "failure",
+      });
+      return { callId: decision.callId, route: decision.route, category: null, confidence: 0 };
+    }
+  }
+
   return {
-    async route(intent) {
-      const envelope: LlmPromptEnvelope = buildPromptEnvelope(intent.prompt);
-      const labelHash = hashLabel(envelope.label);
-      const route = decideRoute(intent.clientCapabilities);
-      const callId = deps.generateCallId();
-      // Intent row written BEFORE the call (ADR-0008).
-      await record(intent.userId, { phase: "intent", callId, route, labelHash });
-
-      let providerCall: LlmRouteDecision["providerCall"] = null;
-      if (route === "ollama") {
-        providerCall = () => deps.ollamaClient.complete(envelope);
-      } else if (route === "third_party") {
-        providerCall = async () => {
-          // DR-7 — server-side opt-in gate before any third-party egress.
-          await requireThirdPartyOptIn(deps.optInReader, intent.userId);
-          return deps.thirdPartyClient.complete(envelope);
-        };
-      }
-      // foundation_models → providerCall stays null (client-owned, attested).
-      return { callId, route, providerCall };
-    },
-
+    route: routeDecision,
+    categorise: categoriseImpl,
     recordLlmCall: record,
     recordLlmCallPair: recordPair,
   };
