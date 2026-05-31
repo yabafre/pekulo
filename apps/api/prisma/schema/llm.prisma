@@ -26,11 +26,12 @@ model LlmCallLog {
 }
 
 model LlmOptIn {
-  id         String   @id
-  userId     String   @unique @map("user_id") @db.Uuid
-  thirdParty Boolean  @default(false) @map("third_party")
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id             String    @id
+  userId         String    @unique @map("user_id") @db.Uuid
+  thirdParty     Boolean   @default(false) @map("third_party")
+  aiNoticeSeenAt DateTime? @map("ai_notice_seen_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("llm_opt_in")
 }

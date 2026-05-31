@@ -4,11 +4,14 @@
 // (write it). Mount under /rpc/v1/llm (ADR-0009). The /internal/llm/attest
 // listener (story 6-1) stays Elysia-native and is NOT part of this contract.
 import { oc } from "@orpc/contract";
-import { llmOptInSchema, updateLlmOptInSchema } from "@pekulo/validators";
+import { aiNoticeStateSchema, llmOptInSchema, updateLlmOptInSchema } from "@pekulo/validators";
 
 export const llmContractV1 = {
   getOptIn: oc.output(llmOptInSchema),
   setOptIn: oc.input(updateLlmOptInSchema).output(llmOptInSchema),
+  // Story 6-4 (DR-12 / AC-3) — AI transparency notice "seen once" flag.
+  getAiNotice: oc.output(aiNoticeStateSchema),
+  markAiNotice: oc.output(aiNoticeStateSchema),
 } as const;
 
 export const llmContract = llmContractV1;

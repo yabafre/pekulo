@@ -17,6 +17,10 @@ export interface LlmRepository {
    * single `llm_opt_in` row keyed on the UNIQUE(user_id) index and returns the
    * persisted value. Sole opt-in writer. */
   setThirdPartyOptIn(userId: string, value: boolean): Promise<boolean>;
+  /** Story 6-4 (DR-12) — has the user seen the AI transparency notice? */
+  getAiNoticeSeen(userId: string): Promise<boolean>;
+  /** Story 6-4 (DR-12) — stamp ai_notice_seen_at = now (P2002-safe upsert). */
+  markAiNoticeSeen(userId: string): Promise<void>;
   listRecentByUser(userId: string, since: Date): Promise<LlmCallLogEntry[]>;
 }
 
@@ -82,6 +86,31 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
             select: { thirdParty: true },
           });
           return row.thirdParty;
+        }
+        throw err;
+      }
+    },
+    async getAiNoticeSeen(userId) {
+      const row = await db.llmOptIn.findUnique({
+        where: { userId },
+        select: { aiNoticeSeenAt: true },
+      });
+      return row?.aiNoticeSeenAt != null;
+    },
+    async markAiNoticeSeen(userId) {
+      const now = new Date();
+      try {
+        await db.llmOptIn.upsert({
+          where: { userId },
+          create: { userId, aiNoticeSeenAt: now } as unknown as Parameters<
+            typeof db.llmOptIn.upsert
+          >[0]["create"],
+          update: { aiNoticeSeenAt: now },
+        });
+      } catch (err) {
+        if ((err as { code?: string }).code === "P2002") {
+          await db.llmOptIn.update({ where: { userId }, data: { aiNoticeSeenAt: now } });
+          return;
         }
         throw err;
       }

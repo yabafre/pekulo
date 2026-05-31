@@ -784,7 +784,9 @@ describe("transactionsRepository", () => {
 
 describe("confirmCategorisation (6-4)", () => {
   test("sets final category + nulls suggested_* under where {id,userId}", async () => {
-    const updateMany = mock(async () => ({ count: 1 }));
+    const updateMany = mock(async (_args: { where: unknown; data: Record<string, unknown> }) => ({
+      count: 1,
+    }));
     const findFirst = mock(async () => ({
       id: "tx_aaaaaaaaaaaaaaaaaaaaa",
       userId: "u1",
@@ -829,7 +831,7 @@ describe("confirmCategorisation (6-4)", () => {
   });
 
   test("listPendingByUser filters category=autre AND suggestedCategory!=null", async () => {
-    const findMany = mock(async () => []);
+    const findMany = mock(async (_args: { where: Record<string, unknown> }) => []);
     const client = { transaction: { findMany } } as never;
     const repo = createTransactionsRepository({ client });
     await repo.listPendingByUser("u1");

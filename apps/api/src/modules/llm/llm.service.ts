@@ -48,6 +48,8 @@ export interface LlmService {
   /** Set the per-user third-party opt-in flag (story 6-3, FR-34). Returns the
    * persisted value. */
   setThirdPartyOptIn(userId: string, value: boolean): Promise<boolean>;
+  getAiNoticeSeen(userId: string): Promise<boolean>;
+  markAiNoticeSeen(userId: string): Promise<void>;
   /** Categorise a transaction (FR-32, story 6-2): routes (writes the intent
    * audit row), invokes the server provider, parses {category, confidence},
    * writes the outcome audit row, and returns the suggestion. Server-route only
@@ -86,6 +88,13 @@ export function createLlmService(deps: {
 
   async function setOptIn(userId: string, value: boolean): Promise<boolean> {
     return deps.repository.setThirdPartyOptIn(userId, value);
+  }
+
+  async function getAiNotice(userId: string): Promise<boolean> {
+    return deps.repository.getAiNoticeSeen(userId);
+  }
+  async function markAiNotice(userId: string): Promise<void> {
+    return deps.repository.markAiNoticeSeen(userId);
   }
 
   async function record(userId: string, event: LlmCallEvent): Promise<void> {
@@ -205,6 +214,8 @@ export function createLlmService(deps: {
     categorise: categoriseImpl,
     getThirdPartyOptIn: getOptIn,
     setThirdPartyOptIn: setOptIn,
+    getAiNoticeSeen: getAiNotice,
+    markAiNoticeSeen: markAiNotice,
     recordLlmCall: record,
     recordLlmCallPair: recordPair,
   };

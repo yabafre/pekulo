@@ -657,7 +657,9 @@ function makeService(opts: {
 
 describe("confirmCategorisation (6-4)", () => {
   test("AC-1 accept (final === suggested) → NO override audit row", async () => {
-    const recordOverride = mock(async () => {});
+    const recordOverride = mock(
+      async (_input: { userId: string; route: string; label: string }) => {},
+    );
     const svc = makeService({
       before: txRow({ suggestedCategory: "courses" }),
       audit: { recordOverride },
@@ -667,7 +669,9 @@ describe("confirmCategorisation (6-4)", () => {
   });
 
   test("AC-2 override (final !== suggested) → records outcome overridden with route_actual", async () => {
-    const recordOverride = mock(async () => {});
+    const recordOverride = mock(
+      async (_input: { userId: string; route: string; label: string }) => {},
+    );
     const svc = makeService({
       before: txRow({ suggestedCategory: "courses", suggestedRoute: "ollama" }),
       audit: { recordOverride },

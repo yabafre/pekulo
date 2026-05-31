@@ -20,6 +20,8 @@ function makeService() {
     route: async () => ({ callId: "x", route: "ollama", labelHash: "x", providerCall: null }),
     getThirdPartyOptIn: async () => false,
     setThirdPartyOptIn: async () => false,
+    getAiNoticeSeen: async () => false,
+    markAiNoticeSeen: async () => {},
     categorise: async () => ({ callId: "x", route: "ollama", category: null, confidence: 0 }),
     recordLlmCall: async (userId, event) => {
       events.push({ userId, event });

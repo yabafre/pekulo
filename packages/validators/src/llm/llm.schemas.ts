@@ -99,3 +99,7 @@ export const updateLlmOptInSchema = z.object({
 
 export type LlmOptInState = z.infer<typeof llmOptInSchema>;
 export type UpdateLlmOptInInput = z.infer<typeof updateLlmOptInSchema>;
+
+// Story 6-4 (DR-12 / AC-3) — AI transparency notice "seen" state.
+export const aiNoticeStateSchema = z.object({ seen: z.boolean() });
+export type AiNoticeState = z.infer<typeof aiNoticeStateSchema>;
