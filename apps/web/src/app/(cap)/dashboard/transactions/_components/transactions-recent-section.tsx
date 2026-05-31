@@ -5,6 +5,7 @@ import { Text, View } from "@pekulo/ui/client";
 import {
   HeaderAction,
   PekuloActivityRow,
+  PekuloButton,
   PekuloDialog,
   PekuloPopover,
   PekuloSkeleton,
@@ -76,8 +77,17 @@ const popoverActionBtnDanger: CSSProperties = {
 
 type DialogKind = "edit" | "delete" | null;
 
+// "Récentes" grows the page in PAGE_STEP increments up to the listTransactions
+// contract cap (LIST_MAX=200) via "Charger plus" — the backend already paginates
+// (listByUser cursor-based, returns nextCursor). Browsing beyond 200 belongs to
+// the Filtrer/search screen. Stays within zapaction (useTransactions re-reads
+// with the bigger window — no raw react-query).
+const PAGE_STEP = 50;
+const LIST_MAX = 200;
+
 export function TransactionsRecentSection() {
-  const { data, isLoading, error } = useTransactions(50);
+  const [limit, setLimit] = useState(PAGE_STEP);
+  const { data, isLoading, isFetching, error } = useTransactions(limit);
   const { data: accounts } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeTx, setActiveTx] = useState<Transaction | null>(null);
@@ -108,6 +118,8 @@ export function TransactionsRecentSection() {
   };
 
   const items = data?.items ?? [];
+  // nextCursor present ⇒ more rows exist beyond the window; gated by LIST_MAX.
+  const hasMore = Boolean(data?.nextCursor) && limit < LIST_MAX;
 
   return (
     <Section
@@ -228,6 +240,18 @@ export function TransactionsRecentSection() {
               </View>
             );
           })}
+        </View>
+      )}
+
+      {!showLoading && hasMore && (
+        <View paddingTop="$3" alignItems="center">
+          <PekuloButton
+            variant="secondary"
+            loading={isFetching}
+            onPress={() => setLimit((l) => Math.min(LIST_MAX, l + PAGE_STEP))}
+          >
+            Charger plus
+          </PekuloButton>
         </View>
       )}
 
