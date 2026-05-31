@@ -1751,9 +1751,10 @@ Full Iron-Law gate (2026-05-31, repo root):
 - **Cost is a non-factor** at this scale (default Ollama = 0 €/token; cloud
   third-party ≈ cents/month). The deciding axes are FR-categorisation quality,
   JSON reliability, and RGPD — model choice is settled empirically by the
-  OpenRouter bench below. _(No formal decision-record ID: `prd.md` defines
-  DR-1…DR-10 + DR-12; DR-11 is an unused slot. Promote this to a real DR there
-  only if it needs a cross-cutting record — kept story-local for now.)_
+  OpenRouter bench below. _(No formal decision-record ID allocated: `prd.md`
+  already defines DR-1…DR-12 with no free slot (DR-11 = at-rest encryption) —
+  kept story-local. Promote to a real DR only if it later needs a cross-cutting
+  record.)_
 
 **Changes:**
 

@@ -1,5 +1,5 @@
 // apps/api/scripts/llm-bench.ts
-// DR-11 dev bench — compares third-party LLM models on French transaction
+// LLM model-selection bench — compares third-party LLM models on French transaction
 // labels through the REAL transport + prompt + parser, BYPASSING the routing
 // policy (prod traffic goes to Ollama; this hits the third-party client
 // directly). No DB / no opt-in needed — it only exercises the transport.
