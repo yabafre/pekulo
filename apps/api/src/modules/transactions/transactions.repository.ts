@@ -125,6 +125,19 @@ export interface TransactionsRepository {
     txId: string,
     suggestion: { category: string; confidence: number; route: string },
   ): Promise<{ saved: boolean }>;
+  /**
+   * Story 6-4 (FR-33) — set the FINAL category and clear all four suggested_*
+   * columns in one statement, scoped where { id, userId }. The inverse of
+   * saveSuggestion. Returns UpdateOutcome ("not-found" when the row is gone /
+   * not the caller's).
+   */
+  confirmCategorisation(userId: string, id: string, finalCategory: string): Promise<UpdateOutcome>;
+  /**
+   * Story 6-4 — the pending-suggestion list: rows still 'autre' that carry a
+   * suggestion. Backed by transactions_user_suggestion_idx (userId,
+   * suggestedCategory). Newest suggestion first.
+   */
+  listPendingByUser(userId: string): Promise<Transaction[]>;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -444,6 +457,33 @@ export function createTransactionsRepository(deps: {
         },
       });
       return { saved: count > 0 };
+    },
+
+    async confirmCategorisation(userId, id, finalCategory) {
+      const result = await deps.client.transaction.updateMany({
+        where: { id, userId },
+        data: {
+          category: finalCategory,
+          suggestedCategory: null,
+          suggestedConfidence: null,
+          suggestedRoute: null,
+          suggestedAt: null,
+          updatedAt: new Date(),
+        },
+      });
+      if (result.count === 0) return { outcome: "not-found" };
+      const row = (await deps.client.transaction.findFirst({
+        where: { id, userId },
+      })) as TransactionRow;
+      return { outcome: "ok", transaction: toDto(row) };
+    },
+
+    async listPendingByUser(userId) {
+      const rows = (await deps.client.transaction.findMany({
+        where: { userId, category: "autre", suggestedCategory: { not: null } },
+        orderBy: [{ suggestedAt: "desc" }, { id: "desc" }],
+      })) as TransactionRow[];
+      return rows.map(toDto);
     },
   };
 }
