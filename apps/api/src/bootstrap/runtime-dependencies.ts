@@ -1,6 +1,11 @@
-import type { CompassReader, MilestonePresenceProbe, WealthHistoryProvider } from "@pekulo/types";
+import type {
+  CompassReader,
+  LlmRoute,
+  MilestonePresenceProbe,
+  WealthHistoryProvider,
+} from "@pekulo/types";
 import type { Env } from "../config/env";
-import { createPrismaService, type PrismaService } from "../database";
+import { createPrismaService, generateBase62Id, type PrismaService } from "../database";
 import { createReadiness, type Readiness } from "./readiness";
 import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
@@ -14,7 +19,11 @@ import { createMilestonesModule } from "../modules/milestones/milestones.module"
 import { createMonthlyModule } from "../modules/monthly/monthly.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
-import type { TransactionCategoriser } from "../modules/transactions/transactions.service";
+import type {
+  LlmOverrideAuditPort,
+  TransactionCategoriser,
+} from "../modules/transactions/transactions.service";
+import { hashLabel } from "../modules/llm/llm-prompt-builder";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
 
 export interface RuntimeDeps {
@@ -157,6 +166,24 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     },
   };
 
+  // Story 6-4 (FR-33 / AC-2) — narrow override-audit adapter over the LLM
+  // module's SOLE llm_call_log writer (recordLlmCall; ADR-0008 / architecture
+  // L691). Keeps transactions free of LlmService/LlmRoute (L1, mirrors the
+  // categoriser port). `route` is the route_actual stored on the suggestion;
+  // hashLabel gives the NFR-26 de-dup digest (NEVER the prompt body). The
+  // recordLlmCall route guard backs the `as LlmRoute` cast.
+  const llmOverrideAudit: LlmOverrideAuditPort = {
+    recordOverride: ({ userId, route, label }) =>
+      llmModule.service.recordLlmCall(userId, {
+        phase: "outcome",
+        callId: generateBase62Id(21),
+        route: route as LlmRoute,
+        labelHash: hashLabel(label),
+        latencyMs: 0,
+        outcome: "overridden",
+      }),
+  };
+
   // Story 5-1 — transactions domain. The cross-aggregate accountId guard is
   // injected as a narrow AccountOwnershipProbe adapter wrapping
   // accountsModule.service.accountExists — keeps L1 conformance (no
@@ -173,6 +200,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
       resolve: (userId, label) => accountsModule.service.findAccountIdByLabel(userId, label),
     },
     categoriser: transactionCategoriser,
+    llmAudit: llmOverrideAudit,
   });
 
   const monthlyModule = createMonthlyModule({ prismaService });
