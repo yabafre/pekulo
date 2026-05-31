@@ -7,8 +7,19 @@ import { createLlmService, type RouteIntent } from "./llm.service";
 
 const CATS = ["courses", "transport", "sorties"] as const;
 
-function makeService(opts: { raw?: string; throws?: boolean; intentThrows?: boolean } = {}) {
+function makeService(
+  opts: {
+    raw?: string;
+    throws?: boolean;
+    intentThrows?: boolean;
+    // story 6-x fallback knobs:
+    optedIn?: boolean;
+    tpRaw?: string;
+    tpThrows?: boolean;
+  } = {},
+) {
   const events: Array<{ userId: string; event: LlmCallEvent }> = [];
+  const calls = { ollama: 0, thirdParty: 0 };
   const repository: LlmRepository = {
     recordCallEvent: async (userId, event) => {
       if (opts.intentThrows && event.phase === "intent") throw new Error("audit db down");
@@ -17,8 +28,8 @@ function makeService(opts: { raw?: string; throws?: boolean; intentThrows?: bool
     recordCallEvents: async (userId, evs) => {
       for (const event of evs) events.push({ userId, event });
     },
-    isThirdPartyOptedIn: async () => false,
-    setThirdPartyOptIn: async () => false,
+    isThirdPartyOptedIn: async () => opts.optedIn ?? false,
+    setThirdPartyOptIn: async () => opts.optedIn ?? false,
     getAiNoticeSeen: async () => false,
     markAiNoticeSeen: async () => {},
     listRecentByUser: async () => [],
@@ -26,13 +37,18 @@ function makeService(opts: { raw?: string; throws?: boolean; intentThrows?: bool
   const ollamaClient: LlmProvider = {
     route: "ollama",
     complete: async () => {
+      calls.ollama += 1;
       if (opts.throws) throw new Error("boom");
       return { raw: opts.raw ?? '{"category":"courses","confidence":0.88}', latencyMs: 12 };
     },
   };
   const thirdPartyClient: LlmProvider = {
     route: "third_party",
-    complete: async () => ({ raw: "{}", latencyMs: 1 }),
+    complete: async () => {
+      calls.thirdParty += 1;
+      if (opts.tpThrows) throw new Error("tp boom");
+      return { raw: opts.tpRaw ?? "{}", latencyMs: 1 };
+    },
   };
   let n = 0;
   const service = createLlmService({
@@ -42,7 +58,7 @@ function makeService(opts: { raw?: string; throws?: boolean; intentThrows?: bool
     optInReader: repository,
     generateCallId: () => `call_${++n}`,
   });
-  return { service, events };
+  return { service, events, calls };
 }
 
 const intent = (): RouteIntent => ({
@@ -98,6 +114,70 @@ test("AC-2: an intent-row write failure abstains without throwing (no orphan row
   expect(out.confidence).toBe(0);
   expect(out.route).toBe("ollama");
   expect(events).toHaveLength(0);
+});
+
+// ── Third-party fallback (user decision 2026-05-31) ────────────────────────
+// Ollama is local-first; on transport failure AND opt-in, escalate to third
+// party. Web traffic routes to ollama, so this is what the opt-in toggle drives.
+
+test("fallback: opted-in + Ollama throws → third_party categorises", async () => {
+  const { service, events, calls } = makeService({
+    throws: true,
+    optedIn: true,
+    tpRaw: '{"category":"transport","confidence":0.8}',
+  });
+  const out = await service.categorise(intent());
+  expect(out.route).toBe("third_party");
+  expect(out.category).toBe("transport");
+  expect(calls.ollama).toBe(1);
+  expect(calls.thirdParty).toBe(1);
+  // Audit: ollama intent+failure, then third_party intent+success (distinct callIds).
+  expect(events.map((e) => `${e.event.route}:${e.event.phase}`)).toEqual([
+    "ollama:intent",
+    "ollama:outcome",
+    "third_party:intent",
+    "third_party:outcome",
+  ]);
+  const tpOutcome = events[3]!.event;
+  expect(tpOutcome.phase === "outcome" && tpOutcome.outcome).toBe("success");
+});
+
+test("no fallback when NOT opted in (Ollama throws → abstain on ollama)", async () => {
+  const { service, calls } = makeService({ throws: true, optedIn: false });
+  const out = await service.categorise(intent());
+  expect(out.category).toBeNull();
+  expect(out.route).toBe("ollama");
+  expect(calls.thirdParty).toBe(0);
+});
+
+test("no fallback when Ollama succeeds, even if opted in", async () => {
+  const { service, calls } = makeService({ optedIn: true });
+  const out = await service.categorise(intent());
+  expect(out.route).toBe("ollama");
+  expect(out.category).toBe("courses");
+  expect(calls.thirdParty).toBe(0);
+});
+
+test("no fallback on a clean Ollama abstention (out-of-enum, opted in)", async () => {
+  // Ollama answered (no throw) but the category is out of the closed list → a
+  // clean abstention, NOT a transport failure → third party is NOT called.
+  const { service, calls } = makeService({
+    raw: '{"category":"crypto","confidence":0.9}',
+    optedIn: true,
+  });
+  const out = await service.categorise(intent());
+  expect(out.category).toBeNull();
+  expect(out.route).toBe("ollama");
+  expect(calls.thirdParty).toBe(0);
+});
+
+test("fallback: both Ollama and third_party fail → abstain on third_party", async () => {
+  const { service, calls } = makeService({ throws: true, optedIn: true, tpThrows: true });
+  const out = await service.categorise(intent());
+  expect(out.category).toBeNull();
+  expect(out.route).toBe("third_party");
+  expect(calls.ollama).toBe(1);
+  expect(calls.thirdParty).toBe(1);
 });
 
 test("foundation_models abstains with no outcome row (client-owned)", async () => {

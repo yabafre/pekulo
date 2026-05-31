@@ -54,6 +54,10 @@ export interface LlmService {
    * audit row), invokes the server provider, parses {category, confidence},
    * writes the outcome audit row, and returns the suggestion. Server-route only
    * — foundation_models abstains here (the iOS client owns + attests it).
+   * THIRD-PARTY FALLBACK (2026-05-31): when the primary Ollama route FAILS
+   * (transport error/timeout) AND the user opted in (FR-34/DR-7), the call
+   * escalates to the third-party route with its own intent+outcome rows. A clean
+   * Ollama abstention does NOT escalate.
    * NEVER throws: a provider failure, timeout, opt-in refusal, OR a failed
    * audit-row write all abstain to {category: null, confidence: 0} (a failure
    * outcome row is recorded best-effort). The suggestion is fire-and-forget on
@@ -121,10 +125,15 @@ export function createLlmService(deps: {
     return "ollama";
   }
 
-  async function routeDecision(intent: RouteIntent): Promise<LlmRouteDecision> {
+  async function routeDecision(
+    intent: RouteIntent,
+    forceRoute?: LlmRoute,
+  ): Promise<LlmRouteDecision> {
     const envelope: LlmPromptEnvelope = buildPromptEnvelope(intent.prompt);
     const labelHash = hashLabel(envelope.label);
-    const route = decideRoute(intent.clientCapabilities);
+    // forceRoute lets categorise() escalate to third_party on Ollama failure
+    // (opt-in only). decideRoute itself still NEVER auto-selects third_party.
+    const route = forceRoute ?? decideRoute(intent.clientCapabilities);
     const callId = deps.generateCallId();
     // Intent row written BEFORE the call (ADR-0008).
     await record(intent.userId, { phase: "intent", callId, route, labelHash });
@@ -149,31 +158,30 @@ export function createLlmService(deps: {
     return { callId, route, labelHash, providerCall };
   }
 
-  async function categoriseImpl(intent: RouteIntent): Promise<LlmCategorisation> {
-    const categories = intent.categories ?? [];
-    // decideRoute is pure — resolve the fallback route up front so a routing /
-    // intent-row-write failure can still return a typed abstention instead of
-    // throwing (the `categorise` contract is best-effort, never-throws).
-    const fallbackRoute = decideRoute(intent.clientCapabilities);
-    let decision: LlmRouteDecision;
-    try {
-      decision = await routeDecision(intent);
-    } catch {
-      // The intent row write (or envelope build) failed BEFORE any provider
-      // call — nothing was persisted, so there is no orphan intent row. Abstain
-      // rather than surface the error to the (fire-and-forget) caller.
-      return { callId: "", route: fallbackRoute, category: null, confidence: 0 };
+  // Run an already-routed decision end-to-end: invoke the provider, parse the
+  // completion, write the OUTCOME row. NEVER throws. `threw` distinguishes a
+  // transport failure (provider unavailable/timeout/opt-in refused — fallback-
+  // eligible) from a clean abstention (parsed category null, provider answered).
+  // The outcome write is best-effort; if the audit DB is down the intent row
+  // already attests the attempt.
+  async function runDecision(
+    userId: string,
+    decision: LlmRouteDecision,
+    categories: readonly string[],
+  ): Promise<{ result: LlmCategorisation; threw: boolean }> {
+    const providerCall = decision.providerCall;
+    if (!providerCall) {
+      // foundation_models — server can't run it; client owns + attests. No
+      // outcome row (no server call happened).
+      return {
+        result: { callId: decision.callId, route: decision.route, category: null, confidence: 0 },
+        threw: false,
+      };
     }
-    // foundation_models (null providerCall) → the server cannot run the call;
-    // the iOS client owns it and attests separately (ADR-0008). Abstain with
-    // NO outcome row (no server call happened).
-    if (!decision.providerCall) {
-      return { callId: decision.callId, route: decision.route, category: null, confidence: 0 };
-    }
     try {
-      const completion = await decision.providerCall();
+      const completion = await providerCall();
       const parsed = parseCategorisation(completion.raw, categories);
-      await record(intent.userId, {
+      await record(userId, {
         phase: "outcome",
         callId: decision.callId,
         route: decision.route,
@@ -182,19 +190,17 @@ export function createLlmService(deps: {
         outcome: parsed.category ? "success" : "failure",
       });
       return {
-        callId: decision.callId,
-        route: decision.route,
-        category: parsed.category,
-        confidence: parsed.confidence,
+        result: {
+          callId: decision.callId,
+          route: decision.route,
+          category: parsed.category,
+          confidence: parsed.confidence,
+        },
+        threw: false,
       };
     } catch {
-      // Provider unavailable / timeout / opt-in refused → record a failure
-      // outcome (latency unknown → 0) and abstain. NEVER rethrow: a suggestion
-      // is best-effort and must not fail the caller's create path. The outcome
-      // write is itself best-effort — if the audit DB is down it must still
-      // abstain (the intent row already attests the attempt).
       try {
-        await record(intent.userId, {
+        await record(userId, {
           phase: "outcome",
           callId: decision.callId,
           route: decision.route,
@@ -205,8 +211,59 @@ export function createLlmService(deps: {
       } catch {
         /* audit unavailable — the intent row already records the attempt */
       }
-      return { callId: decision.callId, route: decision.route, category: null, confidence: 0 };
+      return {
+        result: { callId: decision.callId, route: decision.route, category: null, confidence: 0 },
+        threw: true,
+      };
     }
+  }
+
+  async function categoriseImpl(intent: RouteIntent): Promise<LlmCategorisation> {
+    const categories = intent.categories ?? [];
+    // decideRoute is pure — resolve the fallback route up front so a routing /
+    // intent-row-write failure can still return a typed abstention instead of
+    // throwing (the `categorise` contract is best-effort, never-throws).
+    const fallbackRoute = decideRoute(intent.clientCapabilities);
+    let primaryDecision: LlmRouteDecision;
+    try {
+      primaryDecision = await routeDecision(intent);
+    } catch {
+      // The intent row write (or envelope build) failed BEFORE any provider
+      // call — nothing was persisted, so there is no orphan intent row. Abstain.
+      return { callId: "", route: fallbackRoute, category: null, confidence: 0 };
+    }
+
+    const primary = await runDecision(intent.userId, primaryDecision, categories);
+    if (primary.result.category || !primary.threw) {
+      // Success, OR a clean abstention / foundation_models: nothing to escalate.
+      return primary.result;
+    }
+
+    // FALLBACK (user decision 2026-05-31): Ollama is local-first; when it FAILS
+    // (unavailable/timeout) AND the user opted in to third-party (FR-34/DR-7),
+    // escalate to the third-party route. Only a transport failure escalates — a
+    // clean abstention does not. This is the failure-fallback slice of the
+    // FR-31 escalation (the low-confidence variant stays deferred). Web traffic
+    // routes to ollama by default, so this is the path the opt-in toggle drives.
+    if (primaryDecision.route !== "ollama") return primary.result;
+    let optedIn = false;
+    try {
+      optedIn = await deps.optInReader.isThirdPartyOptedIn(intent.userId);
+    } catch {
+      optedIn = false;
+    }
+    if (!optedIn) return primary.result;
+
+    let fbDecision: LlmRouteDecision;
+    try {
+      fbDecision = await routeDecision(intent, "third_party");
+    } catch {
+      // third-party intent-row write failed before any call — abstain on the
+      // primary (ollama) result; no orphan third-party row.
+      return primary.result;
+    }
+    const fb = await runDecision(intent.userId, fbDecision, categories);
+    return fb.result;
   }
 
   return {
