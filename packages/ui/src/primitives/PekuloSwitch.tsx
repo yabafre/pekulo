@@ -23,9 +23,16 @@ import { Switch as TamaSwitch, type SwitchProps } from "@tamagui/switch";
 // The default SwitchThumb base colour is already $color, so OFF needs no thumb
 // override; we set it explicitly anyway for clarity.
 //
-// Dims are explicit (52×30 track, 24px thumb, 3px inset) — bigger than the
-// token-derived default (was 42×21, too small) and independent of the $true
-// size-token math. The thumb slide is the library's own translateX flip
+// Dims are explicit (52×30 track, 24px thumb, 3px inset) and NOT the `size`
+// prop — on purpose. @tamagui/switch derives the thumb from the track as
+// thumbHeight = round(getSize(val) * 0.65) and trackHeight = thumbHeight
+// (Switch.tsx:42-45), i.e. thumb == track height → zero inset, the knob fills
+// the track edge-to-edge and stops reading as a switch. Verified: size="$10"
+// renders track 52×26 / thumb 26×26 (no margin). The ratio is fixed, so even
+// with `size` we'd still override padding + thumb size — no win. Pekulo's size
+// scale is also pekuloSpacing (no $true token, gaps 32/40/48), too coarse to
+// land a clean track height. Explicit width/height/padding give the 3px inset
+// independently. The thumb slide is the library's own translateX flip
 // (createSwitch.tsx:74), unaffected by explicit sizing.
 //
 // Animation: an inline CSS `transition` (the `style` prop), NOT Tamagui's
