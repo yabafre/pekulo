@@ -25,8 +25,23 @@ import { Switch as TamaSwitch, type SwitchProps } from "@tamagui/switch";
 //
 // Dims are explicit (52×30 track, 24px thumb, 3px inset) — bigger than the
 // token-derived default (was 42×21, too small) and independent of the $true
-// size-token math. The thumb slide is the library's own alignSelf flip
-// (flex-start ↔ flex-end), unaffected by explicit sizing.
+// size-token math. The thumb slide is the library's own translateX flip
+// (createSwitch.tsx:74), unaffected by explicit sizing.
+//
+// Animation: an inline CSS `transition` (the `style` prop), NOT Tamagui's
+// `animation="quick"` prop. The v5-css animation driver is a no-op in this build
+// (no DS component uses it; PekuloProgress documents the same "doesn't apply in
+// our setup" + falls back to plain CSS). The inline transition animates BOTH the
+// thumb's translateX slide and the track/thumb colour fade, survives prop
+// merging (verified in the snapshot — present even when ToggleRow adds opacity),
+// and is collapsed for `prefers-reduced-motion` by the global `!important` guard
+// in reset.css.
+const TRANSITION = {
+  transitionProperty: "transform, background-color",
+  transitionDuration: "160ms",
+  transitionTimingFunction: "ease",
+} as const;
+
 export function PekuloSwitch({ checked, ...props }: SwitchProps) {
   return (
     <TamaSwitch
@@ -39,6 +54,7 @@ export function PekuloSwitch({ checked, ...props }: SwitchProps) {
       cursor="pointer"
       backgroundColor="$backgroundMuted"
       activeStyle={{ backgroundColor: "$color" }}
+      style={TRANSITION}
       focusVisibleStyle={{
         outlineColor: "$borderFocus",
         outlineStyle: "solid",
@@ -53,6 +69,7 @@ export function PekuloSwitch({ checked, ...props }: SwitchProps) {
         borderRadius={1000}
         backgroundColor="$color"
         activeStyle={{ backgroundColor: "$background" }}
+        style={TRANSITION}
       />
     </TamaSwitch>
   );

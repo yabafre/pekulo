@@ -57,3 +57,18 @@ a.is_Button,
 .is_Anchor:has(.is_Button) {
   text-decoration: none;
 }
+
+/* Reduced-motion: collapse every transition/animation to ~instant — a11y
+   (NFR-22/23/24, WCAG 2.3.3). Global, with `!important` so it also overrides the
+   inline `transition` PekuloSwitch sets on its track + thumb (and any future CSS
+   transition) — no per-component guard needed. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
