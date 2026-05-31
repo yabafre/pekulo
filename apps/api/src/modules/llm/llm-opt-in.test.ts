@@ -62,6 +62,12 @@ const intent = (iosFoundationModels: boolean) => ({
   prompt: { label: "Carrefour", amount: -42.5, currency: "EUR", occurredOn: "2026-05-15" },
 });
 
+// AC-1 (verbatim from docs/stories/6-3-llm-opt-in.md:19):
+//   Given any client (iOS-capable or a web client), When the system decides
+//   which LLM endpoint to use for a categorisation, Then it selects on-device
+//   FoundationModels for an iOS-capable client and the self-hosted Ollama model
+//   otherwise, and never the third-party API. A build-failing test asserts the
+//   third-party route is never auto-selected for either client.
 test("AC-1: route() never returns third_party for any client capability", async () => {
   const mod = makeModule();
   const web = await mod.service.route(intent(false));
@@ -71,6 +77,11 @@ test("AC-1: route() never returns third_party for any client capability", async 
   expect([web.route, ios.route]).not.toContain("third_party");
 });
 
+// AC-3 (verbatim from docs/stories/6-3-llm-opt-in.md:21):
+//   Given the opt-in defaults to off (no stored preference), When the user turns
+//   it on, Then the preference is stored under their account; When they turn it
+//   off, Then the same single per-user preference is updated (not duplicated).
+//   Two concurrent first-time changes never surface a server error.
 test("AC-3: setThirdPartyOptIn upserts (create then update); default false", async () => {
   const mod = makeModule();
   expect(await mod.service.getThirdPartyOptIn("user-a")).toBe(false); // no row → false
@@ -80,6 +91,12 @@ test("AC-3: setThirdPartyOptIn upserts (create then update); default false", asy
   expect(await mod.service.getThirdPartyOptIn("user-a")).toBe(false);
 });
 
+// AC-2 (verbatim from docs/stories/6-3-llm-opt-in.md:20):
+//   Given a user who has not opted in, When the system is about to send a prompt
+//   to the third-party API, Then it refuses with an opt-in-required error (HTTP
+//   403) and sends nothing. Given the same user after opting in, When the same
+//   path runs, Then it is permitted. The opt-in state is read on the server,
+//   never trusted from the client.
 test("AC-2: guard rejects when opt-in false, resolves once persisted true", async () => {
   const mod = makeModule();
   // The repository is structurally a ThirdPartyOptInReader.

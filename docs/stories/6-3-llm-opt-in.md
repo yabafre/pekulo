@@ -1,7 +1,7 @@
 # Story: 6-3-llm-opt-in — Third-party LLM opt-in toggle + server-side guard
 
 **Epic:** Epic 6 — LLM auto-categorisation
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#34](https://github.com/yabafre/pekulo/issues/34)
 **Branch:** feature/34-6-3-llm-opt-in
 **Covered FRs:** FR-34 (third-party LLM opt-in toggle, default off)
