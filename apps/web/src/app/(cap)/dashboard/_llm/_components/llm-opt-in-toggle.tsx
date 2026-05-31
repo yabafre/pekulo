@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Text } from "@pekulo/ui/client";
+import { Text, View } from "@pekulo/ui/client";
 import { PekuloToggleRow, Section } from "@pekulo/ui";
 import { useLlmOptIn, useSetLlmOptIn } from "../_hooks/use-llm-opt-in";
 
@@ -26,6 +26,22 @@ export function LlmOptInToggle() {
         disabled={showLoading || setOptIn.isPending}
         onChange={(v) => setOptIn.mutate({ thirdParty: v })}
       />
+      {showLoading && (
+        // Visually-hidden live region so AT hears why the switch is inert while
+        // the server opt-in resolves (mirrors compass-history-panel.tsx).
+        <View
+          role="status"
+          aria-live="polite"
+          position="absolute"
+          width={1}
+          height={1}
+          overflow="hidden"
+        >
+          <Text color="$colorTertiary" fontSize="$caption">
+            Chargement…
+          </Text>
+        </View>
+      )}
       {error && !showLoading && (
         <Text role="alert" color="$danger" fontSize="$caption">
           {error.message}
