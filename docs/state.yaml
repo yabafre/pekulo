@@ -212,7 +212,7 @@ sprint:
     6-1-llm-routing-and-providers: {status: done, depends_on: [0-3-api-scaffold, 0-4-prisma-setup, 0-5-orpc-contracts-scaffold], ticket: "#32", worktree: null, started_at: "2026-05-30T00:00:00Z", completed_at: "2026-05-30T00:00:00Z"}
     6-2-llm-categorise: {status: done, depends_on: [5-1-transactions-record, 5-3-transfer-rule, 6-1-llm-routing-and-providers], ticket: "#33", worktree: null, started_at: "2026-05-30T17:15:41Z", completed_at: "2026-05-30T21:17:15Z"}
     6-3-llm-opt-in: {status: done, depends_on: [6-1-llm-routing-and-providers, 0-10-pekulo-ui-migration], ticket: "#34", worktree: null, started_at: "2026-05-30T23:55:50Z", completed_at: "2026-05-31T00:56:42Z"}
-    6-4-llm-suggestion-ui: {status: pending, depends_on: [5-1-transactions-record, 6-2-llm-categorise, 6-3-llm-opt-in, 0-10-pekulo-ui-migration], ticket: "#35", worktree: null}
+    6-4-llm-suggestion-ui: {status: review, depends_on: [5-1-transactions-record, 6-2-llm-categorise, 6-3-llm-opt-in, 0-10-pekulo-ui-migration], ticket: "#35", worktree: null, started_at: "2026-05-31T10:38:31Z", completed_at: "2026-05-31T11:50:10Z"}
     6-5-llm-activity-log: {status: pending, depends_on: [6-1-llm-routing-and-providers, 0-10-pekulo-ui-migration], ticket: "#36", worktree: null}
     6-6-llm-async-attestation: {status: pending, depends_on: [6-1-llm-routing-and-providers, 6-2-llm-categorise], ticket: "#37", worktree: null}
     # Epic 7 — Dashboard & projection (V1 — depends on 1-6)
