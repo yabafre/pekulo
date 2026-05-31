@@ -33,6 +33,7 @@ import {
   transactionsContract,
   monthlyContract,
   bankAggregatorContract,
+  llmContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -72,3 +73,9 @@ export const monthlyClient: ContractRouterClient<typeof monthlyContract> = creat
 // in @pekulo/contracts).
 export const bankAggregatorClient: ContractRouterClient<typeof bankAggregatorContract> =
   createORPCClient(orpcLink, { path: ["bankaggregator"] });
+// Story 6-3 — llm opt-in (FR-34). Mount path `/rpc/v1/llm`. First client-facing
+// llm procedures (getOptIn / setOptIn); the categorise/route surface stays
+// server-internal.
+export const llmClient: ContractRouterClient<typeof llmContract> = createORPCClient(orpcLink, {
+  path: ["llm"],
+});
