@@ -24,11 +24,13 @@
 //   - TRANSACTION_FAILED (bulk-insert rollback surfaced from $transaction)
 
 import type {
+  ConfirmCategorisationInput,
   CreateTransactionInput,
   DeleteTransactionInput,
   GetTransactionInput,
   ImportCsvInput,
   ImportCsvOutput,
+  ListPendingSuggestionsOutput,
   ListTransactionsInput,
   ListTransactionsOutput,
   PreviewImportCsvInput,
@@ -87,6 +89,17 @@ export interface TransactionCategoriser {
   }): Promise<{ category: string | null; confidence: number; route: string }>;
 }
 
+/**
+ * Story 6-4 (FR-33 / AC-2) — narrow override-audit port. The runtime wraps this
+ * around llmModule.service.recordLlmCall so the transactions module never
+ * imports LlmService / LlmRoute (L1 — mirrors TransactionCategoriser). Appends
+ * a single `outcome: "overridden"` row to the append-only llm_call_log. NEVER
+ * prompt content — only the route_actual + a label hash.
+ */
+export interface LlmOverrideAuditPort {
+  recordOverride(input: { userId: string; route: string; label: string }): Promise<void>;
+}
+
 // Categories the LLM may suggest — the closed transaction enum minus the two
 // system values: 'transfer' (rule-owned, story 5-3) and 'autre' (the fallback
 // the suggestion would replace).
@@ -112,6 +125,15 @@ export interface TransactionsService {
    * when no categoriser is wired or the transaction is already categorised.
    */
   suggestCategory(userId: string, transaction: Transaction): Promise<void>;
+  /**
+   * Story 6-4 (FR-33) — set the final category, clear the suggestion. When the
+   * final category differs from the row's suggestedCategory it is an OVERRIDE:
+   * a best-effort `outcome: "overridden"` audit row is appended (AC-2). Throws
+   * TRANSACTION_NOT_FOUND when the row is gone / not the caller's.
+   */
+  confirmCategorisation(userId: string, input: ConfirmCategorisationInput): Promise<Transaction>;
+  /** Story 6-4 — list the caller's pending-suggestion transactions. */
+  listPendingSuggestions(userId: string): Promise<ListPendingSuggestionsOutput>;
   /**
    * Story 5-6 T21 — bulk import from a provider with dedup pre-flight on
    * (userId, provider, providerTransactionId). Runs `categoriseAfterCreate`
@@ -198,6 +220,7 @@ export function createTransactionsService(deps: {
   accountOwnershipProbe: AccountOwnershipProbe;
   accountResolver: AccountResolver;
   categoriser?: TransactionCategoriser;
+  llmAudit?: LlmOverrideAuditPort;
 }): TransactionsService {
   return {
     async createTransaction(userId, input) {
@@ -329,6 +352,44 @@ export function createTransactionsService(deps: {
         repository: deps.repository,
         categoriser: deps.categoriser,
       });
+    },
+
+    async confirmCategorisation(userId, input) {
+      // Read BEFORE the write: confirm clears suggested_*, so the route_actual +
+      // suggestedCategory needed to detect an override and stamp the audit row
+      // must be captured first.
+      const before = await deps.repository.findByIdForUser(userId, input.id);
+      if (!before) throw transactionNotFound(input.id);
+      const outcome = await deps.repository.confirmCategorisation(userId, input.id, input.category);
+      if (outcome.outcome === "not-found") throw transactionNotFound(input.id);
+      // AC-2 — an OVERRIDE is a final category different from the machine's
+      // suggestion. Append `outcome: "overridden"` (best-effort; the category
+      // change already committed and is the user-facing truth). Skipped on a
+      // plain accept (final === suggested) and when there was no suggestion.
+      const isOverride =
+        before.suggestedCategory !== null &&
+        before.suggestedCategory !== undefined &&
+        input.category !== before.suggestedCategory;
+      if (isOverride && before.suggestedRoute && deps.llmAudit) {
+        try {
+          await deps.llmAudit.recordOverride({
+            userId,
+            route: before.suggestedRoute,
+            label: before.label,
+          });
+        } catch (err) {
+          console.warn(
+            `[6-4] override audit write failed for tx ${input.id}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
+      }
+      return outcome.transaction;
+    },
+
+    async listPendingSuggestions(userId) {
+      return { items: await deps.repository.listPendingByUser(userId) };
     },
 
     async importFromProvider(userId, provider, rows) {
