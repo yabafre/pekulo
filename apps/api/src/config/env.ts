@@ -30,9 +30,13 @@ const envSchema = z.object({
   // computes with `fxSource: 'fallback'` (1:1 identity, per NFR-19). No
   // default URL — explicit opt-in mirrors PRICES_SERVICE_URL.
   FRANKFURTER_BASE_URL: optionalString(z.string().url()),
-  // LLM providers (story 6-1, FR-31). All optional — Ollama defaults to the
-  // localhost Dokploy bind; the third-party key lives ONLY in Dokploy env and
-  // when unset the third-party route throws LLM_PROVIDER_UNAVAILABLE.
+  // LLM providers (story 6-1, FR-31 ; provider config extended in 6-4 on
+  // 2026-05-31). All optional. Ollama defaults to the localhost Dokploy bind +
+  // qwen2.5:3b. The third-party route is OpenAI-compatible and defaults to
+  // Mistral La Plateforme (EU-hosted, RGPD-friendly); its key lives ONLY in
+  // Dokploy env (unset → LLM_PROVIDER_UNAVAILABLE). For dev/test model
+  // comparison, point THIRD_PARTY_LLM_BASE_URL at OpenRouter
+  // (https://openrouter.ai/api/v1/chat/completions) and swap THIRD_PARTY_LLM_MODEL.
   OLLAMA_BASE_URL: optionalString(z.string().url()),
   OLLAMA_MODEL: optionalString(z.string().min(1)),
   THIRD_PARTY_LLM_API_KEY: optionalString(z.string().min(1)),

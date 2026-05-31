@@ -1731,3 +1731,97 @@ Full Iron-Law gate (2026-05-31, repo root):
 - `prisma:check` → format clean + **valid 🚀**.
 - `prisma:migrate:deploy` → applied `20260531000000_add_llm_opt_in_ai_notice_seen` (column add).
 - `db:rls-audit` → **exit 0**, 19 tables — `llm_opt_in: 4` (quartet unchanged), `llm_call_log: 2`, `transactions: 4` — every policy count unchanged (column add, not a table).
+
+---
+
+## Extension — LLM provider config + dev gateway (added 2026-05-31)
+
+> **Out of the original FR-33 scope.** Added on the user's explicit call (the
+> recommendation was a dedicated story; the user chose to extend 6-4). Recorded
+> here for traceability. Touches the transport tier (lineage of 6-1), not the
+> confirm/override UI of this story.
+
+**Decisions (user, 2026-05-31):**
+
+- **Gateway strategy:** OpenRouter for **dev/test** (one OpenAI-compatible key,
+  swap any model to A/B on real FR transactions); the in-house `llm` module
+  stays the **prod** gateway with a **direct EU provider**. Vercel AI Gateway
+  rejected here — the LLM runs in `apps/api` on Dokploy (not Vercel) and the
+  EU/RGPD constraint negates its in-stack benefit.
+- **Cost is a non-factor** at this scale (default Ollama = 0 €/token; cloud
+  third-party ≈ cents/month). The deciding axes are FR-categorisation quality,
+  JSON reliability, and RGPD — model choice is settled empirically by the
+  OpenRouter bench below. _(No formal decision-record ID: `prd.md` defines
+  DR-1…DR-10 + DR-12; DR-11 is an unused slot. Promote this to a real DR there
+  only if it needs a cross-cutting record — kept story-local for now.)_
+
+**Changes:**
+
+- `services/ollama-client.ts` — default model `llama3.2:3b` → **`qwen2.5:3b`**
+  (better FR + instruction-following at the same speed class); request body now
+  sends **`format: "json"`** so a small local model returns parseable JSON.
+  Bump to `qwen2.5:7b` via `OLLAMA_MODEL` only on a GPU host (a 7B on CPU
+  exceeds the NFR-5 5 s cap → every call would abstain).
+- `services/third-party-client.ts` — rewritten from the **Anthropic-native**
+  shape (`/v1/messages`, `x-api-key`) to **OpenAI-compatible**
+  (`/v1/chat/completions`, `Authorization: Bearer`, `choices[].message.content`,
+  `temperature: 0`). Default endpoint/model → **Mistral La Plateforme (EU)** /
+  `mistral-small-latest`. **Trade-off:** Claude is no longer reached via its
+  native API — reach it through OpenRouter (`anthropic/claude-haiku-4.5`).
+- `config/env.ts` + `.env.example` — documented the new defaults + an OpenRouter
+  dev/test recipe. **No env-schema change** (the `OLLAMA_*` / `THIRD_PARTY_LLM_*`
+  vars 6-1 shipped already cover it — provider/model swap is config-only).
+- Tests updated: `ollama-client.test.ts` asserts `format:"json"` + model in the
+  request body; `third-party-client.test.ts` asserts the OpenAI-compatible
+  response shape + Bearer auth.
+
+**Not changed (intentionally):** routing policy (`decideRoute`: iOS → FM, else
+Ollama; third-party stays opt-in), the single-writer audit (ADR-0008), the
+zero-PII prompt builder (NFR-12). The `ollama → third_party` low-confidence
+escalation stays deferred.
+
+### Model-selection bench (2026-05-31)
+
+Ran `apps/api/scripts/llm-bench.ts` (real third-party transport + zero-PII
+prompt + parser, routing bypassed) over 10 messy FR bank labels, scored by
+**human judgement on the 5 non-ambiguous cases** (EDF / Spotify / Uber Eats /
+FNAC are taxonomy gaps — no category fits — so excluded from the error count).
+"10/10 categorised" ≠ correct; it only means the model returned an in-list value.
+
+| Model | Errors (clear /5) | Avg latency | $/M (in/out) | EU |
+| --- | --- | --- | --- | --- |
+| **mistral-small-3.2-24b** | **0** | ~730 ms | 0.10 / 0.30 | **✓** |
+| gemini-2.5-flash | 0 | ~530 ms | 0.15 / 0.60 | ✗ |
+| gemini-2.5-flash-lite | 0 | ~570 ms | 0.10 / 0.40 | ✗ |
+| gpt-4o-mini | 0 | ~640 ms | 0.15 / 0.60 | ✗ |
+| gpt-4.1-nano | 0 | ~780 ms | 0.10 / 0.40 | ✗ |
+| qwen-2.5-7b (local proxy) | 0* | ~780 ms | cheap | ✗ |
+| llama-3.3-70b | 0* | ~750 ms | mid | ✗ |
+| deepseek-v3.1 | 0* | ~1730 ms | cheap | ✗ |
+| claude-haiku-4.5 | **1** (misses Carrefour) | ~1160 ms | **1 / 5** | ✗ |
+| ministral-8b | **1** (Uber→freelance) | ~540 ms | 0.10 / 0.10 | ✓ |
+| ministral-3b | **1** (Carrefour→transport) | ~420 ms | 0.04 / 0.04 | ✓ |
+| gpt-5-nano | **unusable** — empty output | ~3700 ms | — | ✗ |
+
+\* 0 hard errors but extra soft misses on the ambiguous cases (e.g. qwen-7b:
+DAB→transport, Uber→voyage).
+
+**Findings:**
+- **Mistral Small 24B wins** — the only model combining 0 hard errors + EU/RGPD
+  + low cost + sane latency. **Prod default `mistral-small-latest` confirmed; no
+  code change.**
+- **Pricier ≠ better:** Claude Haiku (10× the cost) is the only "premium" model
+  to miss the most trivial label (Carrefour Market → imprevu, reproducible).
+- **Reasoning models are a trap here:** `gpt-5-nano` burns the `max_tokens: 64`
+  budget on hidden reasoning and returns empty text → 0/10. Avoid for this task.
+- **Small models (3–8B) are fragile even on trivial labels** (Ministral 3b/8b
+  miss Carrefour). Since `qwen2.5:3b` is the *local* default, it will be the weak
+  link — which reinforces that the deferred `ollama → third_party` low-confidence
+  escalation is the real quality lever (Mistral EU rescues local misses for cents).
+
+**Open follow-ups:** confirm VPS hardware (CPU-only → keep `qwen2.5:3b`; GPU →
+`qwen2.5:7b`); re-run the bench on **real** user labels if the synthetic verdict
+needs hardening; revisit the bench when the taxonomy grows (the 4 "gap" labels
+above signal missing categories: factures/énergie, restauration, abonnements);
+keep the backfill path (CSV / first Bridge import) rules-only or batched to
+avoid per-tx LLM cost/latency on thousands of rows.

@@ -20,15 +20,22 @@ test("throws LLM_PROVIDER_UNAVAILABLE when no API key is configured", async () =
   }
 });
 
-test("returns raw text on a 200 response when keyed", async () => {
-  globalThis.fetch = mock(
-    async () => new Response(JSON.stringify({ content: [{ text: "transport" }] }), { status: 200 }),
-  ) as unknown as typeof fetch;
+test("returns raw text on an OpenAI-compatible 200 response + sends Bearer auth", async () => {
+  // Object capture (not a `let x = null`) so TS keeps the type `string | null`
+  // rather than control-flow-narrowing it to `null` at the assert site.
+  const seen: { authorization: string | null } = { authorization: null };
+  globalThis.fetch = mock(async (_url: string | URL, init?: RequestInit) => {
+    seen.authorization = new Headers(init?.headers).get("authorization");
+    return new Response(JSON.stringify({ choices: [{ message: { content: "transport" } }] }), {
+      status: 200,
+    });
+  }) as unknown as typeof fetch;
   const client = createThirdPartyClient({
     env: { THIRD_PARTY_LLM_API_KEY: "sk-test" } as unknown as Env,
   });
   const out = await client.complete(prompt);
   expect(out.raw).toBe("transport");
+  expect(seen.authorization).toBe("Bearer sk-test");
 });
 
 // AC-6 (story 6-2) — the hard timeout (THIRD_PARTY_TIMEOUT_MS) bounds a slow
