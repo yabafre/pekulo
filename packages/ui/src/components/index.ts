@@ -2,6 +2,7 @@
 // Pekulo* domain components barrel. Each component is added by its T5/T6
 // task — keep alphabetical order to make merge conflicts trivial.
 
+export * from "./CategoryPicker";
 export * from "./PekuloAccountRow";
 export * from "./PekuloAccountsSection";
 export * from "./PekuloActivityRow";
