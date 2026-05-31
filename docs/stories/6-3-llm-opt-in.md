@@ -901,6 +901,7 @@ Commit (if the visual-verification note is the only working-tree change): `git c
 
 - `apps/api/src/modules/llm/llm.routes.ts`
 - `apps/api/src/modules/llm/llm-opt-in.test.ts`
+- `apps/api/src/modules/llm/llm.integration.test.ts` *(added at aped-review — AC-5 router 401/isolation HTTP-boundary test)*
 - `apps/web/src/app/(cap)/dashboard/_llm/_actions/llm-actions.ts`
 - `apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.ts`
 - `apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.test.tsx`
@@ -914,6 +915,9 @@ Commit (if the visual-verification note is the only working-tree change): `git c
 - `apps/api/src/modules/llm/llm.service.ts`
 - `apps/api/src/modules/llm/llm.module.ts`
 - `apps/api/src/bootstrap/runtime-dependencies.ts`
+- `apps/api/src/modules/llm/llm-categorise.test.ts` *(test fake widened for the new `LlmService`/`LlmRepository` methods — recorded in Deviations, now in File List)*
+- `apps/api/src/modules/llm/llm.attest-router.test.ts` *(same — fake widened)*
+- `apps/api/src/modules/llm/llm.service.test.ts` *(same — fake widened)*
 - `apps/web/src/lib/orpc/modules.ts`
 - `apps/web/src/lib/zapaction/keys.ts`
 - `apps/web/src/app/(cap)/dashboard/parametres/page.tsx`
@@ -1010,3 +1014,55 @@ prisma:check                              → "The schemas at prisma/schema are 
 db:rls-audit                              → OK, 19 tables; llm_opt_in: 4, llm_call_log: 2 (quartet unchanged), exit 0
 # branch touches zero prisma/migration files → RLS policy counts provably unchanged
 ```
+
+## Review Record
+
+**Date:** 2026-05-31
+**Auditors:** Spec, Code, Edge & Hallucination, Aria (static fallback)
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] AC-5 — the client-facing oRPC router (`llm.routes.ts`) had no test for the missing-session 401 path or per-user isolation [apps/api/src/modules/llm/llm.routes.ts]
+  - Source: Spec + Code (converged)
+  - Resolution: commit `4e1485e` — new `apps/api/src/modules/llm/llm.integration.test.ts` boots a real Elysia app + `mountOrpc` + JWT verifier + error-mapper, mounting the real `createLlmModule(...).router`. Asserts get/setOptIn → 200 with a valid JWT, per-user isolation (user A sets `true` → user B reads `false`), and 401 `UNAUTHORIZED` < 100 ms (NFR-9) without a session for both procedures.
+  - Nuance: the 401 boundary is produced upstream by `requireUserContext` in `mountOrpc` (the JWT chokepoint); the router's `requireUserId` line is defense-in-depth not independently reachable via a valid JWT. AC-5's promise (401 on missing session + isolation) is fully covered at the boundary.
+
+- [MAJOR] AC-3 — the `setThirdPartyOptIn` P2002 catch+re-read concurrency branch was never exercised (the fake `upsert` never threw), yet AC-3 promises "two concurrent first-time changes never surface a server error" [apps/api/src/modules/llm/llm.repository.ts]
+  - Source: Code (MAJOR) · Edge (MINOR) · Spec (PARTIAL)
+  - Resolution: commit `4e1485e` — a repository test whose `upsert` throws `{code:"P2002"}` drives the `update` re-read; a second test asserts a non-P2002 error rethrows (narrow catch). Adversarial mutation confirmed genuine coverage: deleting the catch branch fails the concurrency test.
+
+- [MINOR] AC-2 — only the error code was asserted, not the HTTP 403 the AC text promises [apps/api/src/modules/llm/llm-opt-in.test.ts]
+  - Source: Spec
+  - Resolution: commit `4e1485e` — maps the `LLM_OPT_IN_REQUIRED` rejection through `mapErrorToOrpcResponse` and asserts `status === 403` (mutation-checked: 403→418 fails the test).
+
+- [NIT] a11y — the opt-in loading window was not announced to assistive tech [apps/web/src/app/(cap)/dashboard/_llm/_components/llm-opt-in-toggle.tsx]
+  - Source: Aria
+  - Resolution: commit `13a5588` — visually-hidden `role="status"`/`aria-live="polite"` region during `showLoading` (mirrors `compass-history-panel.tsx`).
+
+- [MINOR/doc] File List omitted the 3 widened test fakes [docs/stories/6-3-llm-opt-in.md § File List]
+  - Source: git-audit (Lead)
+  - Resolution: File List reconciled — added `llm-categorise.test.ts`, `llm.attest-router.test.ts`, `llm.service.test.ts` (Modified) + the new `llm.integration.test.ts` (Created).
+
+#### Dismissed
+
+- [NIT] the toggle `sub` copy names "Claude / Mistral" [llm-opt-in-toggle.tsx:24]
+  - Source: Aria
+  - Rationale: naming the actual third-party providers is deliberate AI-transparency (DR-12 spirit) and more honest than a vague "API tierce"; the dev chose it. Kept.
+
+- [NIT] `(err as { code?: string }).code` would TypeError if `err` were null/undefined [llm.repository.ts]
+  - Source: Edge
+  - Rationale: unreachable (Prisma always rejects with an Error carrying `.code`); the line is byte-identical to the two sanctioned siblings (`realestate.repository.ts:203`, `transactions.repository.ts:359`) — flagging the llm copy alone would be inconsistent.
+
+### Verification
+
+- Test command: `bun --filter='@pekulo/api' run test src/modules/llm/`
+- Test output (final pass): **57 pass / 0 fail / 122 expect() calls across 13 files, exit 0** (incl. the new integration test 6/6, P2002 race, 403 mapping). Web hook: 1 passed. api + web typecheck: exit 0. `bun run lint`: 0 errors (11 pre-existing warnings, unchanged).
+- Visual verification: Aria static fallback **PASS** — React Grab MCP unavailable this session (runtime capture deferred); switch a11y covered by `PekuloToggleRow`'s own tests + the new `aria-live` region. **Follow-up:** complete the react-grab capture at the next authenticated dev session (AC-4 "Verified visually at GREEN").
+
+### Ticket sync
+
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/34#issuecomment-4585317046
+- PR opened: https://github.com/yabafre/pekulo/pull/110 (draft — base `main`)
