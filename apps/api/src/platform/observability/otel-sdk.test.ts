@@ -49,6 +49,7 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
     BRIDGE_API_BASE: "https://api.bridgeapi.io",
     BRIDGE_API_VERSION: "2025-01-15",
     BRIDGE_REFRESH_CRON_HOURS: 6,
+    SUGGESTION_BACKFILL_CRON_HOURS: 1,
     ...overrides,
   };
 }

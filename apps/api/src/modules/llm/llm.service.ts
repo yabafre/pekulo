@@ -172,9 +172,15 @@ export function createLlmService(deps: {
     const providerCall = decision.providerCall;
     if (!providerCall) {
       // foundation_models — server can't run it; client owns + attests. No
-      // outcome row (no server call happened).
+      // outcome row (no server call happened). Not a transport failure.
       return {
-        result: { callId: decision.callId, route: decision.route, category: null, confidence: 0 },
+        result: {
+          callId: decision.callId,
+          route: decision.route,
+          category: null,
+          confidence: 0,
+          failed: false,
+        },
         threw: false,
       };
     }
@@ -195,6 +201,7 @@ export function createLlmService(deps: {
           route: decision.route,
           category: parsed.category,
           confidence: parsed.confidence,
+          failed: false,
         },
         threw: false,
       };
@@ -212,7 +219,13 @@ export function createLlmService(deps: {
         /* audit unavailable — the intent row already records the attempt */
       }
       return {
-        result: { callId: decision.callId, route: decision.route, category: null, confidence: 0 },
+        result: {
+          callId: decision.callId,
+          route: decision.route,
+          category: null,
+          confidence: 0,
+          failed: true,
+        },
         threw: true,
       };
     }
@@ -229,8 +242,10 @@ export function createLlmService(deps: {
       primaryDecision = await routeDecision(intent);
     } catch {
       // The intent row write (or envelope build) failed BEFORE any provider
-      // call — nothing was persisted, so there is no orphan intent row. Abstain.
-      return { callId: "", route: fallbackRoute, category: null, confidence: 0 };
+      // call — nothing was persisted, so there is no orphan intent row. Treat as
+      // a clean abstention (failed:false): a malformed row must not be retried
+      // forever by the backfill sweep.
+      return { callId: "", route: fallbackRoute, category: null, confidence: 0, failed: false };
     }
 
     const primary = await runDecision(intent.userId, primaryDecision, categories);

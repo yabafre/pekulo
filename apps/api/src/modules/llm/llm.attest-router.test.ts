@@ -22,7 +22,13 @@ function makeService() {
     setThirdPartyOptIn: async () => false,
     getAiNoticeSeen: async () => false,
     markAiNoticeSeen: async () => {},
-    categorise: async () => ({ callId: "x", route: "ollama", category: null, confidence: 0 }),
+    categorise: async () => ({
+      callId: "x",
+      route: "ollama",
+      category: null,
+      confidence: 0,
+      failed: false,
+    }),
     recordLlmCall: async (userId, event) => {
       events.push({ userId, event });
     },

@@ -19,6 +19,10 @@ import { createMilestonesModule } from "../modules/milestones/milestones.module"
 import { createMonthlyModule } from "../modules/monthly/monthly.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
+import {
+  createSuggestionBackfillScheduler,
+  type SuggestionBackfillScheduler,
+} from "../modules/transactions/services/suggestion-backfill-scheduler";
 import type {
   LlmOverrideAuditPort,
   TransactionCategoriser,
@@ -35,6 +39,7 @@ export interface RuntimeDeps {
   milestonePresenceProbe: MilestonePresenceProbe;
   bankAggregatorModule: ReturnType<typeof createBankAggregatorModule>;
   llmModule: ReturnType<typeof createLlmModule>;
+  suggestionBackfillTask: SuggestionBackfillScheduler;
 }
 
 // F10 (carry-over from 0-3): single transient probe failure should not yank
@@ -162,7 +167,12 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
         prompt: { label, amount: amountSigned, currency: "EUR", occurredOn },
         categories,
       });
-      return { category: result.category, confidence: result.confidence, route: result.route };
+      return {
+        category: result.category,
+        confidence: result.confidence,
+        route: result.route,
+        failed: result.failed,
+      };
     },
   };
 
@@ -212,6 +222,14 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     accountsService: accountsModule.service,
   });
 
+  // Backfill (épic 6) — hourly LLM-categorisation sweep over still-'autre',
+  // never-attempted rows (the safety net behind the post-sync backfill).
+  // Started in app.ts, stopped in lifecycle.ts (same shape as the bank cron).
+  const suggestionBackfillTask = createSuggestionBackfillScheduler({
+    env: input.env,
+    service: transactionsModule.service,
+  });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -234,5 +252,6 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     milestonePresenceProbe,
     bankAggregatorModule,
     llmModule,
+    suggestionBackfillTask,
   };
 }

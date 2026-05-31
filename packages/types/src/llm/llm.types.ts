@@ -57,12 +57,17 @@ export interface LlmRouteDecision {
 /** Result of llm.service.categorise (FR-32, story 6-2). `category` is null when
  * the model abstained or returned an unparseable / out-of-enum value — the
  * caller then leaves the transaction uncategorised. `confidence ∈ [0, 1]`.
- * `route` is the actual server route that produced the answer (route_actual). */
+ * `route` is the actual server route that produced the answer (route_actual).
+ * `failed` (épic 6 backfill) is true ONLY when the provider call itself errored
+ * (transport down / timeout / opt-in refused) — distinct from a clean
+ * abstention (`category: null, failed: false`). The backfill sweep retries
+ * `failed` rows and stamps abstentions as attempted so they are not retried. */
 export interface LlmCategorisation {
   callId: string;
   route: LlmRoute;
   category: string | null;
   confidence: number;
+  failed: boolean;
 }
 
 /** Audit events — the two phases of one logical LLM call (ADR-0008), both

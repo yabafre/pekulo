@@ -49,7 +49,12 @@ const resolver: AccountResolver = { resolve: mock(async () => ({ id: null, match
 test("AC-4: a confident suggestion is persisted; category stays 'autre'", async () => {
   const saveSuggestion = mock(async () => ({ saved: true }));
   const categoriser: TransactionCategoriser = {
-    categorise: mock(async () => ({ category: "courses", confidence: 0.9, route: "ollama" })),
+    categorise: mock(async () => ({
+      category: "courses",
+      confidence: 0.9,
+      route: "ollama",
+      failed: false,
+    })),
   };
   const service = createTransactionsService({
     repository: makeRepo({ saveSuggestion }),
@@ -68,7 +73,12 @@ test("AC-4: a confident suggestion is persisted; category stays 'autre'", async 
 test("AC-4: an abstention (null category) persists nothing", async () => {
   const saveSuggestion = mock(async () => ({ saved: true }));
   const categoriser: TransactionCategoriser = {
-    categorise: mock(async () => ({ category: null, confidence: 0, route: "ollama" })),
+    categorise: mock(async () => ({
+      category: null,
+      confidence: 0,
+      route: "ollama",
+      failed: false,
+    })),
   };
   const service = createTransactionsService({
     repository: makeRepo({ saveSuggestion }),
@@ -81,7 +91,12 @@ test("AC-4: an abstention (null category) persists nothing", async () => {
 });
 
 test("AC-4: an explicit-category transaction is never suggested", async () => {
-  const categorise = mock(async () => ({ category: "courses", confidence: 0.9, route: "ollama" }));
+  const categorise = mock(async () => ({
+    category: "courses",
+    confidence: 0.9,
+    route: "ollama",
+    failed: false,
+  }));
   const service = createTransactionsService({
     repository: makeRepo(),
     accountOwnershipProbe: probe,
@@ -95,7 +110,12 @@ test("AC-4: an explicit-category transaction is never suggested", async () => {
 test("AC-4: a detected transfer is never suggested", async () => {
   // A row already categorised "transfer" (the rule fired in 5-3) must not be
   // re-categorised by the LLM — symmetric with the explicit-category skip.
-  const categorise = mock(async () => ({ category: "courses", confidence: 0.9, route: "ollama" }));
+  const categorise = mock(async () => ({
+    category: "courses",
+    confidence: 0.9,
+    route: "ollama",
+    failed: false,
+  }));
   const service = createTransactionsService({
     repository: makeRepo(),
     accountOwnershipProbe: probe,
@@ -114,12 +134,15 @@ test("AC-6: createTransaction returns OFF the hot path — not blocked by the mo
     category: string | null;
     confidence: number;
     route: string;
+    failed: boolean;
   }) => void = () => {};
   const categorise = mock(
     () =>
-      new Promise<{ category: string | null; confidence: number; route: string }>((res) => {
-        resolveCategorise = res;
-      }),
+      new Promise<{ category: string | null; confidence: number; route: string; failed: boolean }>(
+        (res) => {
+          resolveCategorise = res;
+        },
+      ),
   );
   const saveSuggestion = mock(async () => ({ saved: true }));
   const service = createTransactionsService({
@@ -146,7 +169,7 @@ test("AC-6: createTransaction returns OFF the hot path — not blocked by the mo
   expect(saveSuggestion).toHaveBeenCalledTimes(0); // …but not awaited on the hot path
 
   // Let the suggestion finish; persistence lands after the response returned.
-  resolveCategorise({ category: "courses", confidence: 0.9, route: "ollama" });
+  resolveCategorise({ category: "courses", confidence: 0.9, route: "ollama", failed: false });
   await new Promise((r) => setTimeout(r, 0));
   expect(saveSuggestion).toHaveBeenCalledTimes(1);
 });

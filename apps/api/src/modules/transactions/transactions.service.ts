@@ -86,7 +86,7 @@ export interface TransactionCategoriser {
     amountSigned: number;
     occurredOn: string;
     categories: readonly string[];
-  }): Promise<{ category: string | null; confidence: number; route: string }>;
+  }): Promise<{ category: string | null; confidence: number; route: string; failed: boolean }>;
 }
 
 /**
@@ -106,6 +106,11 @@ export interface LlmOverrideAuditPort {
 const SUGGESTABLE_CATEGORIES: readonly string[] = TRANSACTION_CATEGORIES.filter(
   (c) => c !== "transfer" && c !== "autre",
 );
+
+// Backfill (épic 6) — how many freshly-imported 'autre' rows to LLM-categorise
+// immediately after a Bridge sync (fire-and-forget). The hourly sweep drains
+// anything beyond this bound, so a large import still gets fully categorised.
+const POST_SYNC_BACKFILL_LIMIT = 50;
 
 export interface TransactionsService {
   createTransaction(userId: string, input: CreateTransactionInput): Promise<Transaction>;
@@ -134,6 +139,28 @@ export interface TransactionsService {
   confirmCategorisation(userId: string, input: ConfirmCategorisationInput): Promise<Transaction>;
   /** Story 6-4 — list the caller's pending-suggestion transactions. */
   listPendingSuggestions(userId: string): Promise<ListPendingSuggestionsOutput>;
+  /**
+   * Backfill (épic 6) — categorise up to `limit` of the user's still-'autre',
+   * never-attempted transactions (the rows bulk import left uncategorised — it
+   * runs transfer-rules only, never the LLM). Bounded + sequential. A suggestion
+   * or a clean abstention stamps `suggested_attempted_at` (not retried); a
+   * transport FAILURE leaves it unstamped AND stops the batch early (the model
+   * is down — pointless to hammer it; the next sweep retries). Returns counts.
+   * Fire-and-forget by callers (post-sync + hourly sweep), off any hot path.
+   */
+  backfillSuggestions(
+    userId: string,
+    limit: number,
+  ): Promise<{ scanned: number; suggested: number; abstained: number; failed: number }>;
+  /**
+   * Backfill (épic 6) — the cross-user hourly sweep. Drains backlog for up to
+   * `maxUsers` users, `limitPerUser` rows each. The safety net that catches
+   * imports whose suggestion failed (LLM was down) or that predate this feature.
+   */
+  backfillAllUsers(
+    maxUsers: number,
+    limitPerUser: number,
+  ): Promise<{ users: number; suggested: number }>;
   /**
    * Story 5-6 T21 — bulk import from a provider with dedup pre-flight on
    * (userId, provider, providerTransactionId). Runs `categoriseAfterCreate`
@@ -213,6 +240,62 @@ async function suggestCategoryImpl(args: {
     confidence: result.confidence,
     route: result.route,
   });
+}
+
+// Backfill (épic 6) — categorise up to `limit` still-'autre', never-attempted
+// rows for one user. Free function (no `this`; mirrors suggestCategoryImpl).
+// Sequential + early-stop on transport failure so a down LLM isn't hammered.
+async function backfillSuggestionsImpl(args: {
+  userId: string;
+  limit: number;
+  repository: TransactionsRepository;
+  categoriser?: TransactionCategoriser;
+}): Promise<{ scanned: number; suggested: number; abstained: number; failed: number }> {
+  const { userId, limit, repository, categoriser } = args;
+  const counts = { scanned: 0, suggested: 0, abstained: 0, failed: 0 };
+  if (!categoriser) return counts;
+  const candidates = await repository.listAutreWithoutAttempt(userId, limit);
+  for (const tx of candidates) {
+    counts.scanned += 1;
+    const amountSigned = tx.type === "outflow" ? -tx.amount : tx.amount;
+    let result: Awaited<ReturnType<TransactionCategoriser["categorise"]>>;
+    try {
+      // eslint-disable-next-line no-await-in-loop -- sequential on purpose: bound LLM concurrency + stop early on transport failure
+      result = await categoriser.categorise({
+        userId,
+        label: tx.label,
+        amountSigned,
+        occurredOn: tx.occurredOn,
+        categories: SUGGESTABLE_CATEGORIES,
+      });
+    } catch {
+      // categorise() is contractually never-throws, but treat a thrown error as
+      // a transport failure too: leave unstamped + stop the batch.
+      counts.failed += 1;
+      break;
+    }
+    if (result.failed) {
+      // Provider down/timeout — DON'T stamp (retry next sweep) and stop: the
+      // rest of the batch would fail the same way.
+      counts.failed += 1;
+      break;
+    }
+    if (result.category && result.confidence > 0) {
+      // eslint-disable-next-line no-await-in-loop -- see above
+      await repository.saveSuggestion(userId, tx.id, {
+        category: result.category,
+        confidence: result.confidence,
+        route: result.route,
+      });
+      counts.suggested += 1;
+    } else {
+      // Clean abstention — stamp attempted so it is never re-swept.
+      // eslint-disable-next-line no-await-in-loop -- see above
+      await repository.stampSuggestionAttempt(userId, tx.id);
+      counts.abstained += 1;
+    }
+  }
+  return counts;
 }
 
 export function createTransactionsService(deps: {
@@ -392,6 +475,37 @@ export function createTransactionsService(deps: {
       return { items: await deps.repository.listPendingByUser(userId) };
     },
 
+    async backfillSuggestions(userId, limit) {
+      return backfillSuggestionsImpl({
+        userId,
+        limit,
+        repository: deps.repository,
+        categoriser: deps.categoriser,
+      });
+    },
+
+    async backfillAllUsers(maxUsers, limitPerUser) {
+      // Free-function delegation (NOT this.backfillSuggestions — `this` is
+      // unreliable on this object literal, lesson 5-3).
+      const summary = { users: 0, suggested: 0 };
+      const userIds = await deps.repository.listUserIdsWithBacklog(maxUsers);
+      for (const userId of userIds) {
+        // eslint-disable-next-line no-await-in-loop -- sequential: bound total LLM concurrency across users
+        const r = await backfillSuggestionsImpl({
+          userId,
+          limit: limitPerUser,
+          repository: deps.repository,
+          categoriser: deps.categoriser,
+        });
+        summary.users += 1;
+        summary.suggested += r.suggested;
+        // A transport failure means the LLM is down — stop the whole sweep; the
+        // next hourly tick retries every user.
+        if (r.failed > 0) break;
+      }
+      return summary;
+    },
+
     async importFromProvider(userId, provider, rows) {
       // 5-6 T21 — dedup pre-flight + bulk insert + per-row categorise (warn).
       // The bank-aggregator service has already resolved accountId via
@@ -442,6 +556,21 @@ export function createTransactionsService(deps: {
         // index makes the loser's row P2002 — `raceSkipped` carries that
         // count up so observers see "skipped = pre-flight-dedup + race-dedup"
         // as one number.
+        // Backfill (épic 6) — the bulk import above runs transfer-rules only
+        // (never the LLM). Fire-and-forget an LLM pass over the freshly-imported
+        // still-'autre' rows so suggestions appear after a sync without waiting
+        // for the hourly sweep. Bounded; OFF the import's response path (NFR-1).
+        if (deps.categoriser) {
+          const categoriser = deps.categoriser;
+          void backfillSuggestionsImpl({
+            userId,
+            limit: POST_SYNC_BACKFILL_LIMIT,
+            repository: deps.repository,
+            categoriser,
+          }).catch(() => {
+            /* best-effort; the hourly sweep retries any miss */
+          });
+        }
         return { persisted, skipped: existing.size + raceSkipped };
       } catch (err) {
         if (err instanceof PekuloError) throw err;

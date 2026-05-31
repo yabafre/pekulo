@@ -66,6 +66,9 @@ const envSchema = z.object({
   BRIDGE_API_BASE: z.string().url().default("https://api.bridgeapi.io"),
   BRIDGE_API_VERSION: z.string().min(1).default("2025-01-15"),
   BRIDGE_REFRESH_CRON_HOURS: z.coerce.number().int().positive().max(168).default(6),
+  // Backfill (épic 6) — hourly LLM-categorisation sweep cadence. Optional;
+  // default 1h. The safety net behind the post-sync backfill.
+  SUGGESTION_BACKFILL_CRON_HOURS: z.coerce.number().int().positive().max(168).default(1),
 });
 
 export type Env = z.infer<typeof envSchema>;
