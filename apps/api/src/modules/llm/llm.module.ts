@@ -1,9 +1,9 @@
 // apps/api/src/modules/llm/llm.module.ts
-// Composition root for the LLM module (story 6-1). Returns { service,
-// repository, attestRouter }. NO oRPC router — story 6-1 exposes no
-// client-facing oRPC procedure (route/recordLlmCall are internal, consumed by
-// story 6-2's categorise pipeline; the only HTTP surface is the Elysia-native
-// attest listener). L8: inferred return type, never annotate bare Elysia.
+// Composition root for the LLM module. Returns { service, repository,
+// attestRouter, router }. Story 6-1 shipped the service + repository + the
+// Elysia-native /internal/llm/attest listener; story 6-3 (FR-34) adds the
+// client-facing oRPC router (getOptIn/setOptIn) mounted under /rpc/v1/llm.
+// L8: inferred return type, never annotate bare Elysia.
 import type { Env } from "../../config/env";
 import type { PrismaService } from "../../database";
 import type { JwtVerifier } from "../../platform/security";
@@ -13,6 +13,7 @@ import { createLlmService } from "./llm.service";
 import { createOllamaClient } from "./services/ollama-client";
 import { createThirdPartyClient } from "./services/third-party-client";
 import { createLlmAttestRouter } from "./llm.attest-router";
+import { createLlmRouter } from "./llm.routes";
 
 export function createLlmModule(deps: {
   prismaService: PrismaService;

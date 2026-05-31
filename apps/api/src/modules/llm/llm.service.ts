@@ -42,6 +42,12 @@ export interface RouteIntent {
 
 export interface LlmService {
   route(intent: RouteIntent): Promise<LlmRouteDecision>;
+  /** Read the per-user third-party opt-in flag (story 6-3, FR-34). Default
+   * false when no row exists. */
+  getThirdPartyOptIn(userId: string): Promise<boolean>;
+  /** Set the per-user third-party opt-in flag (story 6-3, FR-34). Returns the
+   * persisted value. */
+  setThirdPartyOptIn(userId: string, value: boolean): Promise<boolean>;
   /** Categorise a transaction (FR-32, story 6-2): routes (writes the intent
    * audit row), invokes the server provider, parses {category, confidence},
    * writes the outcome audit row, and returns the suggestion. Server-route only
@@ -74,6 +80,14 @@ export function createLlmService(deps: {
 }): LlmService {
   // Free helpers avoid `this`-binding fragility (lesson 5-3) — the factory
   // returns a plain object literal where `this` is unreliable across closures.
+  async function getOptIn(userId: string): Promise<boolean> {
+    return deps.repository.isThirdPartyOptedIn(userId);
+  }
+
+  async function setOptIn(userId: string, value: boolean): Promise<boolean> {
+    return deps.repository.setThirdPartyOptIn(userId, value);
+  }
+
   async function record(userId: string, event: LlmCallEvent): Promise<void> {
     if (!VALID_ROUTES.has(event.route)) {
       throw llmRoutingError(`unknown route ${String(event.route)}`);
