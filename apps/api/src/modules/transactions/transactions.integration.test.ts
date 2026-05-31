@@ -666,3 +666,47 @@ describe("transactions HTTP boundary (AC-11)", () => {
     });
   });
 });
+
+// AC-6 (verbatim from story 6-4:24):
+//   Given the new confirmCategorisation / listPendingSuggestions endpoints,
+//   When a request arrives without a valid session, Then it is rejected with
+//   401 within the NFR-9 budget, and every query is scoped to the caller's own
+//   data (where: { userId }, ADR-0013).
+describe("confirmCategorisation HTTP boundary (6-4)", () => {
+  test("AC-6 — missing JWT → 401", async () => {
+    const res = await call("confirmCategorisation", {
+      id: "tx_aaaaaaaaaaaaaaaaaaaaa",
+      category: "courses",
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("AC-2/AC-6 — confirm on a stale/cross-user id → 404 TRANSACTION_NOT_FOUND", async () => {
+    probeExists = true;
+    const token = await signFor(USER_A);
+    const res = await call(
+      "confirmCategorisation",
+      { id: mintId("tx"), category: "voyage" },
+      token,
+    );
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { json: { code: string } };
+    expect(body.json.code).toBe("TRANSACTION_NOT_FOUND");
+  });
+
+  test("AC-1 — confirm own transaction → 200 + final category persisted", async () => {
+    probeExists = true;
+    const token = await signFor(USER_A);
+    const created = (await (await call("createTransaction", sampleCreate(), token)).json()) as {
+      json: { id: string };
+    };
+    const res = await call(
+      "confirmCategorisation",
+      { id: created.json.id, category: "voyage" },
+      token,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: { category: string } };
+    expect(body.json.category).toBe("voyage");
+  });
+});
