@@ -4,16 +4,20 @@ import { defineAction } from "@zapaction/core";
 import { z } from "@pekulo/zod";
 import { ORPCError } from "@orpc/client";
 import {
+  confirmCategorisationInputSchema,
   createTransactionInputSchema,
   deleteTransactionInputSchema,
   importCsvInputSchema,
+  listPendingSuggestionsOutputSchema,
   listTransactionsInputSchema,
   listTransactionsOutputSchema,
   previewImportCsvInputSchema,
   updateTransactionInputSchema,
+  type ConfirmCategorisationInput,
   type CreateTransactionInput,
   type DeleteTransactionInput,
   type ImportCsvInput,
+  type ListPendingSuggestionsOutput,
   type ListTransactionsInput,
   type ListTransactionsOutput,
   type PreviewImportCsvInput,
@@ -42,6 +46,10 @@ export type UpdateTransactionResult =
 
 export type DeleteTransactionResult =
   | { ok: true }
+  | { ok: false; code: "TRANSACTION_NOT_FOUND"; message: string };
+
+export type ConfirmCategorisationResult =
+  | { ok: true; transaction: Transaction }
   | { ok: false; code: "TRANSACTION_NOT_FOUND"; message: string };
 
 export const listTransactions = defineAction<
@@ -102,6 +110,46 @@ export const updateTransaction = defineAction<
       }
       throw err;
     }
+  },
+});
+
+// Story 6-4 (FR-33) — OMIT `output:` (discriminated-union envelope, lesson
+// 2026-05-20). tags drive Next revalidate; React Query invalidation comes via
+// the hook's invalidateWithTags (R12).
+export const confirmCategorisation = defineAction<
+  ConfirmCategorisationInput,
+  ConfirmCategorisationResult,
+  ActionContext
+>({
+  name: "confirmCategorisation",
+  input: confirmCategorisationInputSchema,
+  tags: [transactionsTags.list()],
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    try {
+      const transaction = await transactionsClient.confirmCategorisation(input);
+      return { ok: true as const, transaction };
+    } catch (err) {
+      if (err instanceof ORPCError && err.code === "TRANSACTION_NOT_FOUND") {
+        return { ok: false as const, code: err.code, message: err.message };
+      }
+      throw err;
+    }
+  },
+});
+
+// Read — keeps `output:` (no typed error to surface).
+export const listPendingSuggestions = defineAction<
+  void,
+  ListPendingSuggestionsOutput,
+  ActionContext
+>({
+  name: "listPendingSuggestions",
+  input: z.void(),
+  output: listPendingSuggestionsOutputSchema,
+  handler: async () => {
+    await ensureRequestContext();
+    return transactionsClient.listPendingSuggestions();
   },
 });
 
@@ -184,7 +232,3 @@ export const importCsv = defineAction<ImportCsvInput, ImportCsvResult, ActionCon
     }
   },
 });
-
-// Avoid `z.void()` import elision warning when only used in listTransactions —
-// no-op below to keep this file self-contained and `z` not orphaned.
-void z;
