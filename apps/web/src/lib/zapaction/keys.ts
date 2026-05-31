@@ -46,9 +46,11 @@ export const accountsTags = createFeatureTags("accounts", {
 // mutation invalidates it via the registry edge below.
 export const llmKeys = createFeatureKeys("llm", {
   optIn: () => ["optIn"] as const,
+  aiNotice: () => ["aiNotice"] as const,
 });
 export const llmTags = createFeatureTags("llm", {
   optIn: () => ["optIn"] as const,
+  aiNotice: () => ["aiNotice"] as const,
 });
 
 const HOLDINGS_KEY = "holdings" as const;
@@ -164,6 +166,8 @@ setTagRegistry({
   // optIn read so the toggle state survives a reload.
   [llmTags.all()]: [llmKeys.optIn()],
   [llmTags.optIn()]: [llmKeys.optIn()],
+  // Story 6-4 (DR-12) — markAiNotice invalidates the seen-state read.
+  [llmTags.aiNotice()]: [llmKeys.aiNotice()],
   // Holdings — `list` invalidates the holdings list. Once the portfolio
   // aggregate ships its own read path, the cross-feature edge to
   // portfolioKeys.holdings + portfolioKeys.snapshot lands back here.

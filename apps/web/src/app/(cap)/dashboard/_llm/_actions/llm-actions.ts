@@ -3,8 +3,10 @@
 import { defineAction } from "@zapaction/core";
 import { z } from "@pekulo/zod";
 import {
+  aiNoticeStateSchema,
   llmOptInSchema,
   updateLlmOptInSchema,
+  type AiNoticeState,
   type LlmOptInState,
   type UpdateLlmOptInInput,
 } from "@pekulo/validators";
@@ -37,5 +39,29 @@ export const setLlmOptIn = defineAction<UpdateLlmOptInInput, LlmOptInState, Acti
   handler: async ({ input }) => {
     await ensureRequestContext();
     return llmClient.setOptIn(input);
+  },
+});
+
+// Story 6-4 (DR-12 / AC-3) — AI transparency notice "seen once" flag. Both KEEP
+// `output:` (no typed error to surface). markAiNotice carries tags for Next
+// revalidate; React Query invalidation comes via the hook's invalidateWithTags.
+export const getAiNotice = defineAction<void, AiNoticeState, ActionContext>({
+  name: "getAiNotice",
+  input: z.void(),
+  output: aiNoticeStateSchema,
+  handler: async () => {
+    await ensureRequestContext();
+    return llmClient.getAiNotice();
+  },
+});
+
+export const markAiNotice = defineAction<void, AiNoticeState, ActionContext>({
+  name: "markAiNotice",
+  input: z.void(),
+  output: aiNoticeStateSchema,
+  tags: [llmTags.aiNotice()],
+  handler: async () => {
+    await ensureRequestContext();
+    return llmClient.markAiNotice();
   },
 });
