@@ -42,6 +42,15 @@ export const accountsTags = createFeatureTags("accounts", {
   list: () => ["list"] as const,
 });
 
+// Story 6-3 — third-party LLM opt-in (FR-34). Single `optIn` read; the toggle
+// mutation invalidates it via the registry edge below.
+export const llmKeys = createFeatureKeys("llm", {
+  optIn: () => ["optIn"] as const,
+});
+export const llmTags = createFeatureTags("llm", {
+  optIn: () => ["optIn"] as const,
+});
+
 const HOLDINGS_KEY = "holdings" as const;
 export const holdingsKeys = createFeatureKeys(HOLDINGS_KEY, {
   list: () => ["list"] as const,
@@ -147,6 +156,10 @@ setTagRegistry({
   [milestonesTags.list()]: [milestonesKeys.list(), compassKeys.setup()],
   [accountsTags.all()]: [accountsKeys.list()],
   [accountsTags.list()]: [accountsKeys.list()],
+  // Story 6-3 — llm opt-in. The setLlmOptIn mutation invalidates the single
+  // optIn read so the toggle state survives a reload.
+  [llmTags.all()]: [llmKeys.optIn()],
+  [llmTags.optIn()]: [llmKeys.optIn()],
   // Holdings — `list` invalidates the holdings list. Once the portfolio
   // aggregate ships its own read path, the cross-feature edge to
   // portfolioKeys.holdings + portfolioKeys.snapshot lands back here.

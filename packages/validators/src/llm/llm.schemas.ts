@@ -76,3 +76,19 @@ export const attestLlmCallSchema = z.object({
 
 export type RouteIntentInput = z.infer<typeof routeIntentSchema>;
 export type AttestLlmCallInput = z.infer<typeof attestLlmCallSchema>;
+
+// Third-party LLM opt-in (story 6-3, FR-34 / NFR-13 / DR-7). A single boolean
+// per user, default false. `llmOptInSchema` is the read DTO returned by
+// llm.getOptIn; `updateLlmOptInSchema` is the llm.setOptIn input. No PII — just
+// the flag. The inferred type is `LlmOptInState` (NOT `LlmOptIn`) to avoid
+// shadowing the Prisma `LlmOptIn` model name in api code that imports both.
+export const llmOptInSchema = z.object({
+  thirdParty: z.boolean(),
+});
+
+export const updateLlmOptInSchema = z.object({
+  thirdParty: z.boolean(),
+});
+
+export type LlmOptInState = z.infer<typeof llmOptInSchema>;
+export type UpdateLlmOptInInput = z.infer<typeof updateLlmOptInSchema>;

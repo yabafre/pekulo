@@ -18,6 +18,7 @@ function makeService(opts: { raw?: string; throws?: boolean; intentThrows?: bool
       for (const event of evs) events.push({ userId, event });
     },
     isThirdPartyOptedIn: async () => false,
+    setThirdPartyOptIn: async () => false,
     listRecentByUser: async () => [],
   };
   const ollamaClient: LlmProvider = {

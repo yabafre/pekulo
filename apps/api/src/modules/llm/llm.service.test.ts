@@ -15,6 +15,7 @@ function makeService(overrides?: { optedIn?: boolean }) {
       for (const event of evs) events.push({ userId, event });
     },
     isThirdPartyOptedIn: async () => overrides?.optedIn ?? false,
+    setThirdPartyOptIn: async () => false,
     listRecentByUser: async () => [],
   };
   const ollamaClient: LlmProvider = {
