@@ -9,7 +9,10 @@ import type { Id } from "../shared";
 export const LLM_ROUTES = ["foundation_models", "ollama", "third_party"] as const;
 export type LlmRoute = (typeof LLM_ROUTES)[number];
 
-export const LLM_OUTCOMES = ["success", "failure"] as const;
+// `overridden` is SERVER-WRITTEN only (story 6-4, FR-33 / AC-2): the user
+// overrode an LLM suggestion. Never client-attestable — the attest body schema
+// is held narrow (lesson 2026-05-30). success/failure are call outcomes (6-1/6-2).
+export const LLM_OUTCOMES = ["success", "failure", "overridden"] as const;
 export type LlmOutcome = (typeof LLM_OUTCOMES)[number];
 
 export type LlmCallLogId = Id<"LlmCallLogId">;
