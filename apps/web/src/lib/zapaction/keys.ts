@@ -93,6 +93,10 @@ export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
   // nondeterministic render. Mirrors `compassKeys.history(limit?)` pattern.
   list: (limit?: number) => ["list", limit ?? 50] as const,
   byId: (id: string) => ["byId", id] as const,
+  // Story 6-4 — pending-suggestion list. No new registry edge needed: the
+  // transactionsTags.list() edge invalidates the bare [TRANSACTIONS_KEY] prefix,
+  // which covers this key too (confirming refreshes Suggestions IA + Récentes).
+  pending: () => ["pending"] as const,
 });
 export const transactionsTags = createFeatureTags(TRANSACTIONS_KEY, {
   list: () => ["list"] as const,
