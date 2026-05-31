@@ -21,7 +21,7 @@ export function LlmOptInToggle() {
     <Section title="Intelligence artificielle" ariaLabel="Paramètres d'intelligence artificielle">
       <PekuloToggleRow
         label="Modèles d'IA tiers"
-        sub="Autoriser l'envoi de certaines transactions à une API tierce (Claude / Mistral) pour la catégorisation. Désactivé par défaut."
+        sub="Autoriser l'envoi de certaines transactions à une API tierce (Mistral, hébergée en UE) pour la catégorisation. Désactivé par défaut."
         checked={checked}
         disabled={showLoading || setOptIn.isPending}
         onChange={(v) => setOptIn.mutate({ thirdParty: v })}
