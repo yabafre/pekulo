@@ -7,6 +7,8 @@ import type { PrismaService } from "../../database";
 import type { Env } from "../../config/env";
 import type { JwtVerifier } from "../../platform/security";
 import { createLlmModule } from "./llm.module";
+import { createLlmRepository } from "./llm.repository";
+import { mapErrorToOrpcResponse } from "../../platform/http/error-mapper";
 import { requireThirdPartyOptIn } from "../../platform/security/opt-in-guard";
 
 function makeFakeDb(): PrismaService {
@@ -105,4 +107,65 @@ test("AC-2: guard rejects when opt-in false, resolves once persisted true", asyn
   });
   await mod.service.setThirdPartyOptIn("user-a", true);
   await expect(requireThirdPartyOptIn(mod.repository, "user-a")).resolves.toBeUndefined();
+});
+
+// AC-2 (review): the AC text promises the refusal is "an opt-in-required error
+// (HTTP 403)" — not merely an error code. Assert the wire status the Elysia
+// error mapper produces for LLM_OPT_IN_REQUIRED is 403 (error-mapper.ts:75), so
+// the "HTTP 403" half of the AC is covered, not just the code.
+test("AC-2: the opt-in-required refusal maps to HTTP 403 on the wire", async () => {
+  const mod = makeModule();
+  const err = await requireThirdPartyOptIn(mod.repository, "user-a").catch((e: unknown) => e);
+  const mapped = mapErrorToOrpcResponse(err, "req-test");
+  expect(mapped.status).toBe(403);
+  expect((mapped.body as { code: string }).code).toBe("LLM_OPT_IN_REQUIRED");
+});
+
+// AC-3 (review): the AC's concurrency sentence — "Two concurrent first-time
+// changes never surface a server error" — rests entirely on the repository's
+// P2002 catch+re-read branch (llm.repository.ts), which the fake above never
+// triggers. Drive it directly: an upsert that loses the UNIQUE(user_id) race
+// throws P2002; setThirdPartyOptIn must re-apply as an update and resolve, never
+// surfacing the violation (lesson 2026-05-27 — find-or-create P2002 re-read).
+test("AC-3 concurrency: setThirdPartyOptIn re-reads via update when the create branch loses the P2002 race", async () => {
+  const upsertAttempts: boolean[] = [];
+  const updateApplied: boolean[] = [];
+  const racingDb = {
+    client: {
+      llmOptIn: {
+        upsert: async ({ create }: { create: { thirdParty: boolean } }) => {
+          upsertAttempts.push(create.thirdParty);
+          throw { code: "P2002" }; // loser hits the UNIQUE(user_id) index
+        },
+        update: async ({ data }: { data: { thirdParty: boolean } }) => {
+          updateApplied.push(data.thirdParty);
+          return { thirdParty: data.thirdParty };
+        },
+      },
+    },
+  } as unknown as PrismaService;
+  const repo = createLlmRepository({ prismaService: racingDb });
+  expect(await repo.setThirdPartyOptIn("user-a", true)).toBe(true);
+  expect(upsertAttempts).toEqual([true]); // the create branch was attempted once
+  expect(updateApplied).toEqual([true]); // re-applied as an update — no server error surfaced
+});
+
+// AC-3 (review): a NON-P2002 error must NOT be swallowed by the race handler —
+// it rethrows so genuine failures still surface (the catch is narrow, not a
+// blanket swallow).
+test("AC-3: a non-P2002 upsert error is rethrown, not swallowed", async () => {
+  const failingDb = {
+    client: {
+      llmOptIn: {
+        upsert: async () => {
+          throw { code: "P2010", message: "raw query failed" };
+        },
+        update: async () => {
+          throw new Error("update must not be reached on a non-P2002 error");
+        },
+      },
+    },
+  } as unknown as PrismaService;
+  const repo = createLlmRepository({ prismaService: failingDb });
+  await expect(repo.setThirdPartyOptIn("user-a", true)).rejects.toMatchObject({ code: "P2010" });
 });
