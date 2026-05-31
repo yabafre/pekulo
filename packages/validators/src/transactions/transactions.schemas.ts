@@ -164,6 +164,43 @@ export type ListTransactionsOutput = z.infer<typeof listTransactionsOutputSchema
 // ─── Envelope ─────────────────────────────────────────────────────────────
 export const transactionsOkSchema = z.object({ ok: z.literal(true) });
 
+// ─── Suggestion confirm / override (story 6-4, FR-33) ────────────────────────
+// The user-facing categories a confirm/override may set: the closed enum minus
+// the two system values 'transfer' (rule-owned, 5-3) and 'autre' (the
+// un-categorised state being replaced). NARROWED per the 2026-05-30 lesson —
+// confirmCategorisation is a trusted write, so its input accepts only the
+// legitimate subset, never the full transactionCategorySchema.
+export const SUGGESTABLE_TRANSACTION_CATEGORIES = [
+  "salaire",
+  "freelance",
+  "remote",
+  "bonus",
+  "loyer",
+  "courses",
+  "transport",
+  "sorties",
+  "voyage",
+  "sante",
+  "imprevu",
+] as const;
+// Compile-time guard: every suggestable value is a real TransactionCategory.
+const _suggestableSubsetCheck: readonly TransactionCategory[] = SUGGESTABLE_TRANSACTION_CATEGORIES;
+void _suggestableSubsetCheck;
+
+export const suggestableTransactionCategorySchema = z.enum(SUGGESTABLE_TRANSACTION_CATEGORIES);
+export type SuggestableTransactionCategory = z.infer<typeof suggestableTransactionCategorySchema>;
+
+export const confirmCategorisationInputSchema = z.object({
+  id: z.string().regex(TRANSACTION_ID_REGEX, "id invalide"),
+  category: suggestableTransactionCategorySchema,
+});
+export type ConfirmCategorisationInput = z.infer<typeof confirmCategorisationInputSchema>;
+
+export const listPendingSuggestionsOutputSchema = z.object({
+  items: z.array(transactionSchema),
+});
+export type ListPendingSuggestionsOutput = z.infer<typeof listPendingSuggestionsOutputSchema>;
+
 // ─── CSV import (story 5-2) ──────────────────────────────────────────────
 // Positional 4-column CSV: date (YYYY-MM-DD), amount (signed), label, account-label.
 // Validation happens server-side via apps/api/src/modules/transactions/services/csv-parser.ts.
