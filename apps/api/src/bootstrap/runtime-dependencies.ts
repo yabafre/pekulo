@@ -39,6 +39,7 @@ export interface RuntimeDeps {
   milestonePresenceProbe: MilestonePresenceProbe;
   bankAggregatorModule: ReturnType<typeof createBankAggregatorModule>;
   llmModule: ReturnType<typeof createLlmModule>;
+  transactionsModule: ReturnType<typeof createTransactionsModule>;
   suggestionBackfillTask: SuggestionBackfillScheduler;
 }
 
@@ -252,6 +253,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     milestonePresenceProbe,
     bankAggregatorModule,
     llmModule,
+    transactionsModule,
     suggestionBackfillTask,
   };
 }
