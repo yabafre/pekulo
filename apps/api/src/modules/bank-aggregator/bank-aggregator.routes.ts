@@ -53,6 +53,7 @@ export function checkRefreshRate(userId: string): boolean {
 
 // Test-only helper — reset the rate-limit map between runs so the > 10
 // calls / 60s assertion in routes.test.ts starts from a clean slot.
+// oxlint-disable-next-line no-underscore-dangle -- deliberate test-only export marker (__ prefix); imported only by routes.test.ts
 export function __resetRefreshRateLimitForTests(): void {
   refreshRateLimit.clear();
 }

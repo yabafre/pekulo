@@ -271,6 +271,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       const rows: TxnRow[] = [];
       let pages = 0;
       while (nextPath && pages < MAX_PAGES) {
+        // oxlint-disable-next-line no-await-in-loop -- serial by design: cursor pagination follows next_uri from the previous response
         const page: TxnPage = await reqJson<TxnPage>(nextPath, { method: "GET", bearer });
         rows.push(...page.resources);
         // Bridge sometimes returns the STRING "null" for next_uri rather than

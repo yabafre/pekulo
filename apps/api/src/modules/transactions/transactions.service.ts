@@ -401,6 +401,7 @@ export function createTransactionsService(deps: {
         // a committed bulk.
         for (const row of rows) {
           try {
+            // oxlint-disable-next-line no-await-in-loop -- serial by design: pair detection depends on already-persisted siblings (5-3 AC-3)
             await categoriseAfterCreateImpl({
               userId,
               candidate: row,
@@ -553,6 +554,7 @@ export function createTransactionsService(deps: {
         } = await deps.repository.bulkCreateFromProvider(userId, insertRows);
         for (const row of persistedRows) {
           try {
+            // oxlint-disable-next-line no-await-in-loop -- serial by design: pair detection depends on already-persisted siblings (5-6 import)
             await categoriseAfterCreateImpl({
               userId,
               candidate: row,

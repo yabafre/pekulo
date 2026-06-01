@@ -318,6 +318,7 @@ export function createTransactionsRepository(deps: {
       const inserted: TransactionRow[] = [];
       await deps.client.$transaction(async (tx) => {
         for (const row of rows) {
+          // oxlint-disable-next-line no-await-in-loop -- serial by design: per-row create inside $transaction (ADR-0012 prefixed-ids extension)
           const created = (await tx.transaction.create({
             data: {
               userId,
@@ -367,6 +368,7 @@ export function createTransactionsRepository(deps: {
         // rollback would only erase work other concurrent writers can re-do.
         for (const row of chunk) {
           try {
+            // oxlint-disable-next-line no-await-in-loop -- serial by design: per-row create + per-row P2002 catch (idempotent dedup, ADR-0012)
             const created = (await deps.client.transaction.create({
               data: {
                 userId,

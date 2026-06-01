@@ -184,8 +184,8 @@ export const SUGGESTABLE_TRANSACTION_CATEGORIES = [
   "imprevu",
 ] as const;
 // Compile-time guard: every suggestable value is a real TransactionCategory.
-const _suggestableSubsetCheck: readonly TransactionCategory[] = SUGGESTABLE_TRANSACTION_CATEGORIES;
-void _suggestableSubsetCheck;
+const suggestableSubsetGuard: readonly TransactionCategory[] = SUGGESTABLE_TRANSACTION_CATEGORIES;
+void suggestableSubsetGuard;
 
 export const suggestableTransactionCategorySchema = z.enum(SUGGESTABLE_TRANSACTION_CATEGORIES);
 export type SuggestableTransactionCategory = z.infer<typeof suggestableTransactionCategorySchema>;
