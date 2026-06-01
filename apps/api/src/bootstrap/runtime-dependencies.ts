@@ -233,7 +233,8 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   const bankAggregatorModule = createBankAggregatorModule({
     prismaService,
     env: input.env,
-    provider: bankProvider, // share the provider (story 6-10; T14 also adds logos)
+    provider: bankProvider, // share the provider (story 6-10)
+    logos: logosModule.service, // story 6-10 — warm logo caches on bank refresh
     transactionsService: transactionsModule.service,
     accountsService: accountsModule.service,
   });

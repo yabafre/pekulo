@@ -11,6 +11,7 @@ import type { PrismaService } from "../../database";
 import type { AccountService } from "../accounts/accounts.service";
 import type { TransactionsService } from "../transactions/transactions.service";
 import type { BankProvider } from "./bank-provider";
+import type { LogosService } from "../logos/logos.service";
 import { createBankAggregatorRepository } from "./bank-aggregator.repository";
 import { createBankAggregatorRouter } from "./bank-aggregator.routes";
 import { createBankAggregatorService } from "./bank-aggregator.service";
@@ -28,6 +29,8 @@ export function createBankAggregatorModule(deps: {
   // provider (breaks the logos↔provider↔bank-aggregator cycle). Defaults to an
   // internal provider so existing unit tests construct the module unchanged.
   provider?: BankProvider;
+  // Story 6-10 — optional logo cache warm-up port (resolved on bank refresh).
+  logos?: Pick<LogosService, "resolveProviderLogo" | "resolveMerchantLogo">;
 }) {
   const repository = createBankAggregatorRepository({ prismaService: deps.prismaService });
   const provider = deps.provider ?? createBridgeProvider({ env: deps.env });
@@ -37,6 +40,7 @@ export function createBankAggregatorModule(deps: {
     transactionsService: deps.transactionsService,
     accountsService: deps.accountsService,
     clock: deps.clock,
+    logos: deps.logos,
     listAllActiveConnections: async () => {
       // Cross-user by design — the cron scheduler iterates ALL active
       // connections across users. RLS in the DB still applies (service-role
