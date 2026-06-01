@@ -1,7 +1,7 @@
 # Story: 6-8-category-taxonomy-expansion — Expand category taxonomy + category icons (DR-13)
 
 **Epic:** Epic 6 — LLM auto-categorisation
-**Status:** ready-for-dev
+**Status:** done
 **Ticket:** none — a GitHub issue is created when this story enters a sprint (`sprint.stories.6-8.ticket: null`)
 **Branch:** feature/none-6-8-category-taxonomy-expansion
 **Covered FRs:** none (implements **DR-13** — richer category taxonomy + per-category display icons; no compass/budget remap)
@@ -46,7 +46,7 @@
 - **Decisions locked at step 04 (this story):**
   - **Q1 — Where does the category→icon map live?** In **`@pekulo/ui`** (`CategoryIcon/CategoryIcon.tsx`), keyed by the **raw category value** (plain string literals). `@pekulo/ui` stays free of a `@pekulo/validators` import (the map carries no type dependency — it is a `Record<string, IconComponent>` with a `Tag` fallback), matching the CategoryPicker "presentation-only" rule. Rows receive the *label* (not the key) so the **consumer** resolves the icon from the raw DTO key and passes the element in; `CategoryPicker` and the form selects have the raw `value`/`c` so they resolve it themselves.
   - **Q2 — Suggestion chip placement (user choice).** Keep the **`Sparkles` AI marker AND add the category icon** before the label: `✨ 🛒 Courses`. Both 12 px grayscale (`var(--colorSecondary)`), TR-strict (no `$accent`/emerald on LLM chrome — lesson 2026-05-07).
-  - **Q3 — Icon mapping (user-confirmed, all 17 categories).** `salaire→Banknote · freelance→Laptop · remote→MonitorSmartphone · bonus→Gift · loyer→House · courses→ShoppingCart · transport→TramFront · sorties→Martini · voyage→Plane · sante→HeartPulse · imprevu→TriangleAlert · autre→Tag (= fallback) · transfer→ArrowLeftRight · factures→ReceiptText · restauration→Utensils · abonnements→RefreshCw · retrait→Landmark`. All names verified present in the installed `lucide-react@1.14.0`.
+  - **Q3 — Icon mapping (user-confirmed, all 17 categories).** `salaire→Banknote · freelance→Laptop · remote→MonitorSmartphone · bonus→Gift · loyer→House · courses→ShoppingCart · transport→TramFront · sorties→Martini · voyage→Plane · sante→HeartPulse · imprevu→TriangleAlert · autre→Tag (= fallback) · transfer→ArrowLeftRight · factures→ReceiptText · restauration→Utensils · abonnements→RefreshCw · retrait→Landmark`. All names verified present in the installed `lucide-react@1.11.0` (see Dev Agent Record → Deviations; `1.14.0` lives only in `docs/ux-preview/`).
   - **Q4 — Icons "partout" (user choice).** The create/edit transaction selects (raw `PekuloSelect`, not `CategoryPicker`) also get icons → `PekuloSelect.Item` grows an optional leading-`icon` slot (T3) used by `CategoryPicker` + both forms.
   - **Q5 — SSOT consolidation (proposed + validated).** `apps/api` `transactions.service.ts` currently re-derives `SUGGESTABLE_CATEGORIES = TRANSACTION_CATEGORIES.filter(c => c !== "transfer" && c !== "autre")`. Replace with an import of `SUGGESTABLE_TRANSACTION_CATEGORIES` from `@pekulo/validators` (identical set) so the LLM prompt allowlist can never drift from `confirmCategorisation`'s narrowed input. `TRANSACTION_CATEGORIES` was used only by that filter (line 42 import, line 107 use) — swap the import, no orphan.
 - **`llm-prompt-builder.ts` is NOT edited.** It is category-agnostic — `buildCategorisationPrompt(envelope, categories)` takes the allowlist as a parameter. The allowlist flows from `transactions.service.ts#SUGGESTABLE_CATEGORIES`, so adding to the enum (+ T6) threads the four new categories through automatically.
@@ -855,3 +855,61 @@ bun --filter='@pekulo/web' run test   → 146 passed (70 files)
 bun run prisma:check                  → format clean + schema valid (no schema change)
 bun run db:rls-audit                  → exit 0, 19 tables, policy counts unchanged
 ```
+
+## Review Record
+
+**Date:** 2026-06-01
+**Auditors:** Spec, Code, Edge & Hallucination (Aria — deferred, see Verification)
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+
+- **[MINOR] AC-2 — no call-site assertion that `CategoryPicker` renders each option's icon** [`packages/ui/src/components/CategoryPicker/CategoryPicker.tsx`]
+  - Source: Spec
+  - Resolution: `7d3be8f` — added `CategoryPicker.wiring.test.tsx`. The real items mount inside a Tamagui Select portal that does **not** mount in happy-dom (probe-confirmed: open via click or `open` prop yields 0 item SVGs), so the test stubs **our own** `PekuloSelect` wrapper (not Tamagui internals) to render items inline, then asserts the **real** `<CategoryIcon>` lucide SVG resolved per raw `opt.value` (`lucide-shopping-cart`/`lucide-refresh-cw`/`lucide-landmark`) + every glyph `aria-hidden` + the `Tag` fallback for an unmapped value. Verified a real-behaviour test (not mock-the-behaviour).
+
+- **[NIT] Category glyph rendered inside the running-text caption `<Text>`** [`packages/ui/src/components/PekuloActivityRow/PekuloActivityRow.tsx`]
+  - Source: Code
+  - Resolution: `b346af3` — moved the optional `categoryPrefix` glyph to a flex sibling between the account-separator span and the category span; reading order + the 5-3 AC-8 visual (glyph before the category label) preserved, icon stays `aria-hidden`. Updated `PekuloActivityRow` + `PekuloRecentActivityCard` snapshots (caption is now a 2-span flex row; visible text + colours unchanged).
+
+- **[NIT] Dev Notes cite `lucide-react@1.14.0`; installed version is `1.11.0`** [`docs/stories/6-8-category-taxonomy-expansion.md:49`]
+  - Source: Spec + Code + Edge (converged)
+  - Resolution: this doc commit — corrected the Q3 citation to `1.11.0`. All 17 icon names verified present in the installed version by direct package inspection (ESM exports + `.d.ts` + per-icon source files).
+
+- **[NIT] Story header `Status` said `ready-for-dev` while `state.yaml` (canonical) said `review`** [`docs/stories/6-8-category-taxonomy-expansion.md:3`]
+  - Source: Lead (git/state cross-check)
+  - Resolution: this doc commit — header set to `done` at finalize.
+
+#### Dismissed
+
+none
+
+#### Unresolved
+
+none — story flips to `done`.
+
+### Verification
+
+Fresh tool output captured in the review session (Iron-Law gate):
+
+```
+bun run lint                          → Found 0 warnings and 0 errors (788 files)
+turbo run typecheck                   → 8 successful, 8 total
+bun --filter='@pekulo/api' run test   → 745 pass, 0 fail (incl. taxonomy 5 pass)
+bun --filter='@pekulo/ui' run test    → 208 passed | 1 skipped (123 files; incl. CategoryIcon 4, PekuloSuggestionRow snapshot 3 + a11y 2, CategoryPicker wiring 2)
+bun --filter='@pekulo/web' run test   → 146 passed (70 files)
+bun run prisma:check                  → format clean + schema valid (no schema change — AC-3)
+bun run db:rls-audit                  → exit 0, 19 tables, policy counts unchanged (AC-3)
+```
+
+- **Auditor verdicts:** Spec APPROVED (HIGH), Code APPROVED (HIGH), Edge & Hallucination APPROVED (HIGH). The hallucination pass verified all 17 lucide icon imports are real named exports of the installed `lucide-react@1.11.0` (the four new: `ReceiptText`/`Utensils`/`RefreshCw`/`Landmark`). Git audit: every changed file ∈ the story File List, no out-of-scope code change, no missing expected change.
+- **Post-fix verification (HEAD `7d3be8f`):** both fixes RESOLVED, no regressions, fix #1 judged a real-behaviour test.
+- **Visual verification:** deferred — React Grab MCP unavailable at 2026-06-01T14:00Z (Aria waived by user, consistent with 6-3/6-4). Static design-law pass clean: TR-strict grayscale on all category chrome (`var(--colorSecondary)` / `var(--colorTertiary)`, no `$accent`/emerald — lesson 2026-05-07), icons `aria-hidden` at every call site, neutral `Tag` fallback, `transfer` glyph (5-3 AC-8) preserved. No new Tamagui token/variant → no `tamagui.generated.css` regen (lesson 2026-05-24; pre-commit regen produced no diff).
+- **Forced-fix note (user call):** the Lead flagged finding #1 as infeasible without a fake test (the Tamagui Select portal won't mount in happy-dom) and finding #3 as out of 6-8's scope (`PekuloActivityRow.tsx` is a shared 5-3 component, absent from this story's File List) with visual verification waived. The user directed fixing both anyway. #1 was implemented as an honest wrapper-seam wiring test; #3 restructured the shared caption and updated two consumer snapshots. **Residual risk:** #3's visual was not Aria-verified (MCP offline) — the snapshot diff confirms the text/colour/a11y are unchanged, but the rendered layout of the two-span flex caption was not visually confirmed in a browser.
+
+### Ticket sync
+
+- Ticket: none — story carries no GitHub issue (`sprint.stories.6-8.ticket: null`).
+- PR: #112 (base `main`) — title/body refreshed, marked ready.
