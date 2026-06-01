@@ -68,7 +68,10 @@
       "rules": {
         "pekulo/no-prisma-query-without-user-id": [
           "error",
-          { "prismaIdentifier": ["prisma", "tx", "client"] }
+          {
+            "prismaIdentifier": ["prisma", "tx", "client"],
+            "unscopedModels": ["merchantLogoCache", "providerLogoCache"]
+          }
         ]
       }
     },
