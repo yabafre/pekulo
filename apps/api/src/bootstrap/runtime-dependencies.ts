@@ -11,6 +11,8 @@ import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
 import { createAccountsModule } from "../modules/accounts/accounts.module";
 import { createBankAggregatorModule } from "../modules/bank-aggregator/bank-aggregator.module";
+import { createBridgeProvider } from "../modules/bank-aggregator/services/bridge-client";
+import { createLogosModule } from "../modules/logos/logos.module";
 import { createLlmModule } from "../modules/llm/llm.module";
 import { createCompassModule } from "../modules/compass/compass.module";
 import { createHoldingsModule } from "../modules/holdings/holdings.module";
@@ -40,6 +42,7 @@ export interface RuntimeDeps {
   bankAggregatorModule: ReturnType<typeof createBankAggregatorModule>;
   llmModule: ReturnType<typeof createLlmModule>;
   transactionsModule: ReturnType<typeof createTransactionsModule>;
+  logosModule: ReturnType<typeof createLogosModule>;
   suggestionBackfillTask: SuggestionBackfillScheduler;
 }
 
@@ -195,6 +198,17 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
       }),
   };
 
+  // Story 6-10 (FR-65) — ONE Bridge provider shared by bank-aggregator + logos
+  // (breaks the logos↔provider↔bank-aggregator cycle), then the logos module.
+  // Built BEFORE transactionsModule so the read-path logo enrich (T15) and the
+  // bank-refresh warm-up (T14) can be wired as narrow ports without a cycle.
+  const bankProvider = createBridgeProvider({ env: input.env });
+  const logosModule = createLogosModule({
+    prismaService,
+    env: input.env,
+    getBankLogo: async (providerId) => (await bankProvider.getProviderLogo(providerId)).logoUrl,
+  });
+
   // Story 5-1 — transactions domain. The cross-aggregate accountId guard is
   // injected as a narrow AccountOwnershipProbe adapter wrapping
   // accountsModule.service.accountExists — keeps L1 conformance (no
@@ -219,6 +233,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   const bankAggregatorModule = createBankAggregatorModule({
     prismaService,
     env: input.env,
+    provider: bankProvider, // share the provider (story 6-10; T14 also adds logos)
     transactionsService: transactionsModule.service,
     accountsService: accountsModule.service,
   });
@@ -254,6 +269,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     bankAggregatorModule,
     llmModule,
     transactionsModule,
+    logosModule,
     suggestionBackfillTask,
   };
 }

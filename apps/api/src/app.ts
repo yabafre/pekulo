@@ -109,7 +109,10 @@ export async function startServer(): Promise<ServerHandle> {
     // Story 6-1 — /internal/llm/attest listener mounted BEFORE mountOrpc so the
     // internal path resolves before the oRPC catch-all (parity with the Bridge
     // webhook). JWT-verified inside the router (ADR-0008).
-    .use(deps.llmModule.attestRouter);
+    .use(deps.llmModule.attestRouter)
+    // Story 6-10 — public logo proxy (GET /v1/logos?ref=). Elysia-native binary
+    // stream, mounted BEFORE the oRPC catch-all.
+    .use(deps.logosModule.routes);
 
   mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
 
