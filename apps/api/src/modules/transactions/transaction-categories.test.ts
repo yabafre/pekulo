@@ -10,6 +10,15 @@ import {
 
 const NEW_CATEGORIES = ["factures", "restauration", "abonnements", "retrait"] as const;
 
+// AC-1 (verbatim from story 6-8-category-taxonomy-expansion:19):
+//   Given the expanded taxonomy, When the LLM categorises a non-transfer
+//   transaction, Then factures / restauration / abonnements / retrait are valid
+//   suggestion targets — they appear in the categorisation prompt's allowed-
+//   category list.
+// AC-4 (verbatim from story 6-8-category-taxonomy-expansion:22):
+//   Then the taxonomy's compile-time guards hold for all 17 values — every
+//   category has a French label and every suggestable value is a member of the
+//   closed enum.
 describe("category taxonomy (story 6-8, DR-13)", () => {
   it("registers the four new categories in the closed enum", () => {
     for (const c of NEW_CATEGORIES) {

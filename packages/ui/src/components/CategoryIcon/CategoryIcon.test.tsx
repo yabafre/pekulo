@@ -2,6 +2,11 @@ import { describe, it, expect } from "vitest";
 import { renderWithTamagui } from "../../../test/setup.tsx";
 import { CategoryIcon, CATEGORY_ICONS } from "./CategoryIcon";
 
+// AC-2 (verbatim from story 6-8-category-taxonomy-expansion:20):
+//   When a category is displayed, Then its lucide icon is rendered aria-hidden
+//   (categories stay announced via their text label), with a neutral fallback
+//   glyph for any unmapped category. A `transfer` row still shows the left-right
+//   arrow (story 5-3 AC-8 caption glyph preserved).
 describe("CategoryIcon", () => {
   it("maps every known category (incl. the four new) to an icon", () => {
     const keys = [
