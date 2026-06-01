@@ -94,4 +94,16 @@ describe("TransactionsSuggestionsSection (6-4)", () => {
     expect(container.querySelector('[aria-label="Page 3"]')).not.toBeNull();
     expect(container.querySelector('[aria-label="Page 4"]')).toBeNull();
   });
+
+  // Regression (2026-06-01): navigating to an un-cached page makes `data`
+  // briefly undefined → totalCount 0 → pageCount 1. The clamp must NOT fire on
+  // that transient (it was bouncing the user back to page 1). Here we assert the
+  // undefined/loading branch renders the skeleton — not the empty state — and
+  // never surfaces "page 1 of 1" semantics that would strand navigation.
+  test("a loading page (data undefined) shows the skeleton, not the empty state", () => {
+    pendingMock.mockReturnValue({ data: undefined, isLoading: true, error: null });
+    renderWithTamagui(<TransactionsSuggestionsSection />);
+    expect(screen.queryByText("Tout est catégorisé")).toBeNull();
+    expect(screen.getByRole("status")).toBeTruthy();
+  });
 });

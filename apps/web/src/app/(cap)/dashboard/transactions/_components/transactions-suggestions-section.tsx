@@ -67,9 +67,13 @@ export function TransactionsSuggestionsSection() {
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
   // Clamp when the current page falls past the end — confirming the last row on
   // the last page shrinks the set; never leave the user stranded on a blank page.
+  // GUARD on `data`: each page is its own queryKey, so navigating to an
+  // un-cached page makes `data` briefly undefined → totalCount 0 → pageCount 1.
+  // Without the guard the clamp yanked the user back to page 1 on every new page
+  // (reported 2026-06-01). Only clamp once a real total has resolved.
   useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
+    if (data && page > pageCount) setPage(pageCount);
+  }, [data, page, pageCount]);
 
   const [overrideTx, setOverrideTx] = useState<Transaction | null>(null);
   const [overrideCategory, setOverrideCategory] = useState<string>("courses");
