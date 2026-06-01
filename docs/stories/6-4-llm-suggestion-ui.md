@@ -1699,6 +1699,35 @@ Commit (if a visual-verification note is the only working-tree change): `git com
 - `packages/ui/src/components/index.ts`
 - `docs/state.yaml`
 
+**Extension files (post-scope-lock — added after the step-04 lock; logged here to pay the lesson-2026-05-31 traceability debt the original list omitted)**
+
+_Created_
+
+- `apps/api/src/modules/transactions/services/suggestion-backfill-scheduler.ts`
+- `apps/api/scripts/run-suggestion-backfill.ts` · `apps/api/scripts/llm-bench.ts`
+- `apps/api/src/modules/llm/services/ollama-client.ts` (+ `.test.ts`) · `apps/api/src/modules/llm/services/third-party-client.ts` (+ `.test.ts`)
+- `apps/api/src/modules/transactions/transactions-backfill.test.ts` · `apps/api/src/modules/transactions/transactions-suggest.test.ts`
+- `apps/api/prisma/migrations/20260531120000_add_transaction_suggestion_attempt/migration.sql`
+
+_Modified_
+
+- `apps/api/src/modules/llm/llm.service.ts` (third-party failure-fallback) · `apps/api/src/modules/transactions/{transactions.repository,transactions.service,transactions.module}.ts` (backfill) · `apps/api/prisma/schema/transactions.prisma` (`suggested_attempted_at`)
+- `apps/api/src/config/env.ts` · `.env.example` · `apps/web/.../transactions/_components/transactions-recent-section.tsx` (pagination) · `apps/web/.../transactions/_hooks/use-create-transaction.ts`
+- `apps/web/src/lib/zapaction/context.ts` · `apps/web/src/lib/orpc/request-context.ts` (getClaims auth)
+- `docs/architecture.md` · `docs/adr/0008-llm-routing-server-audit-authority-async-attest.md` · `docs/epics-context/epic-6-context.md` · `docs/lessons.md`
+- Widened test fakes: `llm.attest-router.test.ts` · `llm.service.test.ts` · `llm-categorise.test.ts` · `otel-sdk.test.ts`
+
+**aped-review files (2026-06-01 — fixes applied during review)**
+
+- `apps/api/src/bootstrap/schedulers.ts` (+ `schedulers.test.ts`) — extracted, unit-tested scheduler wiring (BLOCKER fix)
+- `apps/api/src/app.ts` — boot both crons via the helper
+- `apps/web/.../dashboard/_llm/_components/ai-transparency-notice.test.tsx` — AC-3 once-logic (new)
+- `apps/api/src/modules/transactions/transactions.integration.test.ts` · `apps/api/src/modules/llm/llm.integration.test.ts` — AC-6 401 coverage
+- `packages/ui/.../PekuloSuggestionRow/PekuloSuggestionRow.tsx` (+ `.snapshot.test.tsx`) — AC-4 badge breakpoint `$md`→`$sm`
+- `apps/api/src/modules/transactions/{transactions.repository,transactions.service}.ts` — NIT null-guard + observable no-route override
+
+> _Branch-lineage note:_ `main` already carries 6-1/6-2/6-3 (the `llm` module + `PekuloToggleRow` are present on `main`); all 33 commits on this branch are `#35`, so the PR diff against `main` is pure 6-4. Some 6-3-originated files (`PekuloToggleRow`, `PekuloSwitch`, `reset.css`, `llm-opt-in-toggle.tsx`) appear in the branch diff because 6-4 work touched them — they are not new 6-4 files.
+
 ## Dev Agent Record
 
 - **Model:** claude-opus-4-8[1m] (Opus 4.8, 1M context)
@@ -1920,3 +1949,52 @@ needs hardening; revisit the bench when the taxonomy grows (the 4 "gap" labels
 above signal missing categories: factures/énergie, restauration, abonnements);
 keep the backfill path (CSV / first Bridge import) rules-only or batched to
 avoid per-tx LLM cost/latency on thousands of rows.
+
+## Review Record
+
+**Date:** 2026-06-01
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done — every code finding resolved; the visual gate was explicitly waived by the user (Aria's static design-law pass was clean; the live React-Grab pass is deferred).
+
+### Findings
+
+#### Resolved
+
+- **[BLOCKER] Hourly suggestion-backfill sweep constructed but never `.start()`ed** [apps/api/src/app.ts:117 · runtime-dependencies.ts:229]
+  - Source: Code + Edge (BLOCKER); Spec (MAJOR traceability — Extension §2 claimed "Started in app.ts" while the code never armed the timer).
+  - Resolution: `37c9090` — extracted the wiring to a unit-tested `startSchedulers`/`stopSchedulers` helper (`bootstrap/schedulers.ts`) that boots BOTH the bank-refresh cron and the backfill sweep; `app.ts` calls it on startup + teardown. New `schedulers.test.ts` asserts both `.start()`/`.stop()` — the regression guard whose absence let this ship.
+- **[MINOR] AC-3 client "appears once" logic untested** [ai-transparency-notice.tsx:22-26]
+  - Source: Spec. The server flag was covered; the notice's mark-on-appearance effect was not.
+  - Resolution: `c6d3843` — new `ai-transparency-notice.test.tsx`: hidden when seen, hidden while loading, shown + `markAiNotice` mutated exactly once when unseen.
+- **[MINOR] AC-6 named both new read endpoints but only `confirmCategorisation` had a 401 test** [transactions.integration.test.ts · llm.integration.test.ts]
+  - Source: Spec.
+  - Resolution: `c6d3843` — added missing-JWT → 401 tests for `listPendingSuggestions` (transactions) and `getAiNotice`/`markAiNotice` (llm).
+- **[MINOR] Route badge gated on `$md` (768 px) vs AC-4's "below 640 px"** [PekuloSuggestionRow.tsx:110]
+  - Source: Code, Edge, Spec, Aria. **NB — Aria's "inverted / 1020 px" reading was a FALSE POSITIVE**: she read the legacy `media.mjs` (max-width) table; the project imports `@tamagui/config/v5` where `md = minWidth:768`, so the direction was correct, only the threshold wrong (verified at `v5-media.mjs`).
+  - Resolution: `024f4ba` — `$md`→`$sm` (minWidth:640) on the badge; inline snapshots re-baselined (only `_dsp-_md_flex`→`_dsp-_sm_flex` changed). _Scope note:_ a deliberate one-line edit to the 0-10 `PekuloSuggestionRow`, which the story's "consume as-is" guard otherwise excludes — taken on the user's "fix tout" call to make AC-4 literally pass.
+- **[NIT] `confirmCategorisation` repo cast a post-write `findFirst` as non-null → 500 on a delete race** [transactions.repository.ts:495]
+  - Source: Code.
+  - Resolution: `1f2a474` — null-guard returns `{ outcome: "not-found" }`.
+- **[NIT] Override audit silently skipped when `suggestedRoute` is null** [transactions.service.ts:456]
+  - Source: Edge. Unreachable in practice (`saveSuggestion` always co-writes route+category) but silent.
+  - Resolution: `1f2a474` — `console.warn` makes the anomaly observable.
+- **[MINOR] Story `## File List` stale — ~30 post-scope-lock Extension files unlisted** (lesson 2026-05-31 traceability)
+  - Source: Lead (manual git-audit; `git-audit.sh` itself failed — it greps `### File List` but the story uses `## File List`, a level-2 heading → silent `set -e` exit. Flagged to aped-claude.)
+  - Resolution: this commit — File List extended with the Extension + aped-review files + a branch-lineage note.
+
+#### Dismissed
+
+- **[BLOCKER → waived] Live visual verification (T16a) could not run** — `react-grab-mcp` did not register this session and no Pekulo dev server was reachable (second consecutive deferral).
+  - Source: Aria.
+  - Rationale: **user explicitly waived the live gate (2026-06-01).** Aria's static design-law pass was conclusive — grayscale discipline, `$warning` gated on confidence < 75 %, Sparkles grayscale, notice `role="note"` + once-logic, keyboard-reachable override dialog all ✓. The live React-Grab pass folds naturally into story **11-5** (which owns the full transparency-notice surface).
+
+### Verification
+
+- Test commands (re-run this session): `bun --filter='@pekulo/api' run typecheck` · `bun --filter='@pekulo/web' run typecheck` · `bun run lint` · `bun --filter='@pekulo/api' run test {schedulers, transactions repo/service/integration, llm integration}` · `bun --filter='@pekulo/web' run test {ai-notice, section envelope+a11y, confirm-hook}` · `bun --filter='@pekulo/ui' run test {PekuloSuggestionRow snapshot}`.
+- Final pass: **api 81 pass / 0 fail** (incl. scheduler wiring-guard + `listPending`/`getAiNotice`/`markAiNotice` 401); **web 8 pass / 0 fail** (incl. AI-notice once-logic ×3); **ui** snapshot 2 updated + pass; typecheck api+web **exit 0**; lint **0 errors** (12 pre-existing warnings).
+- Visual verification: **deferred — React Grab MCP unavailable at 2026-06-01; static design-law pass clean (Aria); user-waived.**
+
+### Ticket sync
+
+- Ticket comment posted: #35 (see below)
+- PR opened: https://github.com/yabafre/pekulo/pull/111 (base `main` = sprint umbrella)
