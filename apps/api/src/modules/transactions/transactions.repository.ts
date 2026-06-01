@@ -492,10 +492,13 @@ export function createTransactionsRepository(deps: {
         },
       });
       if (result.count === 0) return { outcome: "not-found" };
-      const row = (await deps.client.transaction.findFirst({
+      const row = await deps.client.transaction.findFirst({
         where: { id, userId },
-      })) as TransactionRow;
-      return { outcome: "ok", transaction: toDto(row) };
+      });
+      // Defensive: a delete racing between the updateMany and this re-read would
+      // yield null — surface not-found rather than toDto(null) → 500 (6-4 review).
+      if (!row) return { outcome: "not-found" };
+      return { outcome: "ok", transaction: toDto(row as TransactionRow) };
     },
 
     async listPendingByUser(userId) {

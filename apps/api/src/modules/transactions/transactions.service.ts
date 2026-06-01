@@ -467,6 +467,14 @@ export function createTransactionsService(deps: {
             }`,
           );
         }
+      } else if (isOverride && deps.llmAudit && !before.suggestedRoute) {
+        // Invariant: saveSuggestion always writes suggestedRoute alongside
+        // suggestedCategory, so this is unreachable in practice — but make a
+        // data-integrity anomaly observable instead of silently dropping the
+        // override audit row (6-4 review NIT).
+        console.warn(
+          `[6-4] override on tx ${input.id} has a suggestion but no suggestedRoute — audit row skipped`,
+        );
       }
       return outcome.transaction;
     },
