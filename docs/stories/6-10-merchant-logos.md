@@ -1788,6 +1788,11 @@ FR-65 shipped as the 3-tier transaction logo fallback (merchant via Brandfetch �
 - **Task order.** T11 before T4 and T13 before T6, so every commit stays typecheck/lint-green (the env type and the lint exemption must precede their consumers).
 - **`.env.example`** documented (added on Fred's request — T11 had only touched the Zod schema).
 - **Visual verification (T21) waived** — `react-grab-mcp` offline (as in 6-3/6-4/6-8). Static design-law pass clean: grayscale `$backgroundMuted` chrome, no emerald, `aria-hidden` + `alt=""`; the axe test (T20) is green.
+- **Post-record fix (live-surfaced).** Running the app before the migration was deployed 500'd `listTransactions`/`listPendingSuggestions` — the read-path enrich hit the not-yet-created cache tables and the error propagated. Made `attachLogos` **best-effort** (catch → serve a logo-less page) so a logo-subsystem failure can never break a transaction read (NFR-1); added a regression test. The fake-repo unit tests didn't catch it (they don't model a missing table). Fix in commit after T21.
+
+### Deploy note
+
+The migration `20260601150000_add_logo_caches` must be applied to each environment (`bun --filter='@pekulo/api' run prisma:migrate:deploy`) before logos resolve — until then the read path degrades gracefully to the category icon. Not yet applied to the shared Supabase DB at dev time.
 
 ### Test output
 
