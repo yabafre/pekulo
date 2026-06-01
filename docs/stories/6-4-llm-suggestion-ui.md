@@ -1637,6 +1637,14 @@ git push -u origin feature/35-6-4-llm-suggestion-ui
 
 Commit (if a visual-verification note is the only working-tree change): `git commit --allow-empty -m "feat(#35): visual verification + Iron-Law gate green"`
 
+> **⚠️ Superseded 2026-05-31/06-01 (see Extension §"Post-review additions").**
+> Three items listed below as "out of scope / deferred" were SHIPPED after the
+> step-04 scope lock, on the user's explicit call, before review:
+> the `ollama → third_party` escalation (as a **failure-fallback**, commit
+> `0876f77`), the import **backfill** + hourly sweep (`ee674f5`/`e6b0e67`), and
+> **pagination** of the Récentes list (`2a43ef1`). The deferral notes are kept
+> verbatim below for history; the Extension section is the source of truth.
+
 ### Out of scope (explicitly deferred — do NOT implement here)
 
 - **Full EU-AI-Act AI transparency notice + opt-out→opt-in re-trigger** → story **11-5** (`11-5-ai-transparency-notice`, depends on 6-4). 6-4 ships only the minimal "appears once" notice + the server `ai_notice_seen_at` flag.
@@ -1776,10 +1784,11 @@ Full Iron-Law gate (2026-05-31, repo root):
   request body; `third-party-client.test.ts` asserts the OpenAI-compatible
   response shape + Bearer auth.
 
-**Not changed (intentionally):** routing policy (`decideRoute`: iOS → FM, else
-Ollama; third-party stays opt-in), the single-writer audit (ADR-0008), the
-zero-PII prompt builder (NFR-12). The `ollama → third_party` low-confidence
-escalation stays deferred.
+**Not changed by THIS commit (`478d305`):** routing policy (`decideRoute`: iOS →
+FM, else Ollama; third-party stays opt-in), the single-writer audit (ADR-0008),
+the zero-PII prompt builder (NFR-12). _(The failure-fallback escalation landed in
+a later commit — see "Post-review additions" below; the low-confidence variant
+is still deferred.)_
 
 ### Model-selection bench (2026-05-31)
 
@@ -1817,8 +1826,93 @@ DAB→transport, Uber→voyage).
   budget on hidden reasoning and returns empty text → 0/10. Avoid for this task.
 - **Small models (3–8B) are fragile even on trivial labels** (Ministral 3b/8b
   miss Carrefour). Since `qwen2.5:3b` is the *local* default, it will be the weak
-  link — which reinforces that the deferred `ollama → third_party` low-confidence
-  escalation is the real quality lever (Mistral EU rescues local misses for cents).
+  link — which is why the **failure-fallback** to Mistral EU (shipped below)
+  matters: when local Ollama is down/unreachable, the cloud rescues the miss.
+
+## Extension — Post-review additions (2026-05-31 / 06-01)
+
+> Shipped AFTER the step-04 scope lock, on the user's explicit call, before
+> review. They make the IA feature actually usable for Alex (whose data is
+> bulk-imported via Bridge), which the locked FR-33-only scope did not. The
+> "out of scope" notes earlier in this file are superseded for these four items.
+
+### 1. Third-party failure-fallback (commit `0876f77`, FR-31)
+
+The "Modèles d'IA tiers" toggle (6-3) was **inert**: `decideRoute` only ever
+returned `ollama` (web) / `foundation_models` (iOS), so opting in changed
+nothing. Now `categorise()` escalates to the **third-party** route when **both**:
+the primary Ollama route **fails** (transport error / timeout), **and** the user
+opted in (FR-34 / DR-7, re-checked server-side). A clean Ollama *abstention*
+(it answered, category out-of-list) does **NOT** escalate — only a transport
+failure does.
+
+- `decideRoute` is **unchanged** (still ollama-default, never auto-selects
+  third_party). The fallback lives in `categorise()` via `runDecision()` +
+  `routeDecision(intent, "third_party")`. Each attempt writes its own
+  intent+outcome audit rows (ADR-0008 single-writer preserved).
+- `LlmCategorisation` (and the `TransactionCategoriser` port) gained
+  **`failed: boolean`** to distinguish a transport failure (escalate / retry)
+  from a clean abstention (don't). Threaded from the provider-call outcome.
+- This is the **failure-fallback slice** of the FR-31 escalation. The
+  **low-confidence** variant (escalate when Ollama answers but with low
+  confidence) stays deferred.
+
+### 2. Auto-categorise imported transactions (commits `ee674f5`, `e6b0e67`)
+
+Bulk import (Bridge `importFromProvider` / CSV `importCsv`) runs transfer-rules
+only — it never called the LLM, so imported `autre` rows never got a suggestion.
+That made the whole IA surface empty for a Bridge-first user. Now they are
+categorised on **two triggers**:
+
+- **Post-sync:** `importFromProvider` fires a bounded LLM backfill
+  (fire-and-forget, off the response path, NFR-1) over freshly-imported `autre`
+  rows.
+- **Hourly sweep:** a Bun-interval scheduler
+  (`suggestion-backfill-scheduler.ts`, cadence `SUGGESTION_BACKFILL_CRON_HOURS`,
+  default 1 h) drains the cross-user backlog — the completeness net that also
+  retries rows whose categorisation failed (LLM was down) and catches imports
+  predating this feature. Started in `app.ts`, stopped in `lifecycle.ts` (same
+  shape as the bank-refresh cron).
+- **Idempotency:** new column **`suggested_attempted_at`** (migration
+  `20260531120000`) marks a row as processed. A suggestion OR a clean abstention
+  stamps it (never re-swept); a transport **failure** leaves it NULL **and**
+  stops the batch (LLM down → retried next sweep). This is why `failed` (item 1)
+  had to be plumbed through.
+- **On-demand:** `apps/api/scripts/run-suggestion-backfill.ts` triggers the same
+  `backfillAllUsers` path manually (used 2026-06-01 to drain the existing
+  ~387-row Bridge import in one pass).
+
+### 3. Pagination of the Récentes list (commit `2a43ef1`)
+
+`listTransactions` was already cursor-based server-side (returns `nextCursor`);
+the UI only showed the first 50 with no way to see more. Added a "Charger plus"
+button that grows the page by 50 up to the contract cap (200), gated by
+`nextCursor`. Stays within zapaction (no raw react-query). Browsing beyond 200
+belongs to the future Filtrer/search screen. _(The "no pagination at V1(a)" note
+above referred to `listPendingSuggestions`, which is still un-paginated — this
+change is on the **Récentes** list, a different read.)_
+
+### 4. Auth: verify identity via `getClaims` (commit `9992c97`)
+
+Every server action logged a Supabase warning ("Using the user object from
+getSession() could be insecure"). Root cause: auth-js wraps `session.user` in an
+`insecureUserWarningProxy`, so the warning fires on reading `session.user.id` /
+`.email` — not on `getSession()` itself, nor on `session.access_token`. Fix in
+the two hot-path sites (`zapaction/context.ts` + `ensureRequestContext`): keep
+`getSession()` for the raw access_token (forwarded as Bearer to `apps/api`),
+derive `userId`/`email` from **`getClaims(token)`** (local JWKS signature verify
+on ES256, no network round-trip; HS256 legacy falls back to `getUser()`).
+`session.user` is never read. `apps/api` still independently re-verifies every
+JWT (`requireUserContext`) — this only hardens the web-tier identity read +
+silences per-request log spam.
+
+### Gates (all green at 06-01)
+
+`typecheck` api + web exit 0 · `bun test` api 735 / web 140 · `oxlint` 0 errors ·
+`prisma validate` ok · migration `20260531120000` applied. **Caveat:** commits
+`9e1bb09` and `8f0762a` were initially pushed with a red typecheck (pre-commit
+hooks run gitleaks/oxlint/oxfmt but **not** `tsc`); both were amended green. See
+lessons.md 2026-06-01.
 
 **Open follow-ups:** confirm VPS hardware (CPU-only → keep `qwen2.5:3b`; GPU →
 `qwen2.5:7b`); re-run the bench on **real** user labels if the synthetic verdict
