@@ -55,6 +55,12 @@ export const ID_PREFIXES = {
   // auth.users), so the prefixed-ids extension MUST NOT inject. Same opt-out
   // shape as Hypothesis. The bridge_users table has no synthetic id column.
   BridgeUser: null,
+
+  // Logo caches (story 6-10, FR-65) — reference data with a natural-key PK
+  // (merchant_key / provider_id), no synthetic id column. Opt out of injection
+  // so the cache upsert's create branch doesn't trip MissingPrefixError.
+  MerchantLogoCache: null,
+  ProviderLogoCache: null,
 } as const satisfies Record<string, string | null>;
 
 export type ModelName = keyof typeof ID_PREFIXES;
