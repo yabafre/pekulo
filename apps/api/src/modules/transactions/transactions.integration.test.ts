@@ -709,4 +709,9 @@ describe("confirmCategorisation HTTP boundary (6-4)", () => {
     const body = (await res.json()) as { json: { category: string } };
     expect(body.json.category).toBe("voyage");
   });
+
+  test("AC-6 — listPendingSuggestions: missing JWT → 401 (the read endpoint is auth-gated too)", async () => {
+    const res = await call("listPendingSuggestions", {});
+    expect(res.status).toBe(401);
+  });
 });

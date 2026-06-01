@@ -188,4 +188,22 @@ describe("llm opt-in HTTP boundary (AC-5)", () => {
     const body = (await res.json()) as { code: string };
     expect(body.code).toBe("UNAUTHORIZED");
   });
+
+  test("POST /rpc/v1/llm/getAiNotice without JWT returns 401 (DR-12 read is auth-gated)", async () => {
+    const res = await fetch(`${baseUrl}/rpc/v1/llm/getAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("POST /rpc/v1/llm/markAiNotice without JWT returns 401 (no write reaches the service)", async () => {
+    const res = await fetch(`${baseUrl}/rpc/v1/llm/markAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(res.status).toBe(401);
+  });
 });
