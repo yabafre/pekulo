@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  CategoryIcon,
   PekuloDatePicker,
   PekuloField,
   PekuloFieldDescription,
@@ -217,7 +218,12 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
                       {TRANSACTION_CATEGORIES.map((c, i) => (
-                        <PekuloSelect.Item key={c} value={c} index={i}>
+                        <PekuloSelect.Item
+                          key={c}
+                          value={c}
+                          index={i}
+                          icon={<CategoryIcon category={c} size={16} />}
+                        >
                           {TRANSACTION_CATEGORY_LABELS[c]}
                         </PekuloSelect.Item>
                       ))}
