@@ -50,6 +50,10 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
     BRIDGE_API_VERSION: "2025-01-15",
     BRIDGE_REFRESH_CRON_HOURS: 6,
     SUGGESTION_BACKFILL_CRON_HOURS: 1,
+    // Story 6-10 — Brandfetch defaults match envSchema (the two *_BASE keys
+    // carry schema defaults so the Env type requires them).
+    BRANDFETCH_SEARCH_BASE: "https://api.brandfetch.io/v2/search",
+    BRANDFETCH_LOGO_BASE: "https://cdn.brandfetch.io",
     ...overrides,
   };
 }

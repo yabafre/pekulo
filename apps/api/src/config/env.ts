@@ -69,6 +69,14 @@ const envSchema = z.object({
   // Backfill (épic 6) — hourly LLM-categorisation sweep cadence. Optional;
   // default 1h. The safety net behind the post-sync backfill.
   SUGGESTION_BACKFILL_CRON_HOURS: z.coerce.number().int().positive().max(168).default(1),
+  // Story 6-10 (FR-65) — Brandfetch Brand Search + Logo Link. SERVER-SIDE ONLY:
+  // BRANDFETCH_API_KEY lives in Dokploy env (apps/api), never apps/web, never
+  // fixtures (gitleaks covers leaks). Unconfigured → the merchant tier is a
+  // no-op (bank logo / category icon still render).
+  BRANDFETCH_API_KEY: optionalString(z.string().min(1)),
+  BRANDFETCH_SEARCH_BASE: z.string().url().default("https://api.brandfetch.io/v2/search"),
+  BRANDFETCH_LOGO_BASE: z.string().url().default("https://cdn.brandfetch.io"),
+  BRANDFETCH_LOGO_CLIENT_ID: optionalString(z.string().min(1)),
 });
 
 export type Env = z.infer<typeof envSchema>;
