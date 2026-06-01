@@ -37,10 +37,22 @@ export function PekuloActivityRow({ tx, categoryPrefix }: PekuloActivityRowProps
         <Text color="$color" fontSize="$bodySm" fontWeight="500">
           {tx.label}
         </Text>
-        <Text color="$colorTertiary" fontSize="$xs">
-          {tx.account} · {categoryPrefix}
-          {tx.category}
-        </Text>
+        {/* Caption: account · [category glyph] category. Story 6-8 review —
+            the optional category glyph is a flex sibling BETWEEN the two text
+            spans, never nested inside a running-text Text, so the decorative
+            icon doesn't sit inside a typographic run. Reading order and the
+            5-3 AC-8 visual (glyph immediately before the category label) are
+            preserved; SR readers still announce only the text (the icon is
+            aria-hidden, set by the consumer). */}
+        <View flexDirection="row" alignItems="center">
+          <Text color="$colorTertiary" fontSize="$xs">
+            {tx.account} ·{" "}
+          </Text>
+          {categoryPrefix}
+          <Text color="$colorTertiary" fontSize="$xs">
+            {tx.category}
+          </Text>
+        </View>
       </View>
       <Text color={amountColor} fontSize="$bodySm" fontWeight="500">
         {sign}
