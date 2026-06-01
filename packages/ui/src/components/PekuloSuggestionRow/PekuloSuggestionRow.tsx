@@ -64,6 +64,9 @@ export interface PekuloSuggestionRowProps {
   // chip. The consumer resolves <CategoryIcon> from the raw category key (the
   // row's `tx.suggestedCategory` is the display label, not the key).
   categoryIcon?: ReactNode;
+  // Story 6-10 (FR-65) — leading logo avatar (merchant/bank/category). The
+  // consumer passes <TransactionLogo src={tx.logoUrl} category={rawCategory} />.
+  logo?: ReactNode;
 }
 
 export function PekuloSuggestionRow({
@@ -72,12 +75,14 @@ export function PekuloSuggestionRow({
   onEdit,
   disabled,
   categoryIcon,
+  logo,
 }: PekuloSuggestionRowProps) {
   const Arrow = tx.direction === "in" ? ArrowDownRight : ArrowUpRight;
   const sign = tx.direction === "in" ? "+" : "−";
   return (
     <View flexDirection="column" gap="$2" paddingVertical="$3">
       <View flexDirection="row" alignItems="center" gap="$3">
+        {logo}
         <Arrow size={18} color="var(--colorSecondary)" />
         <View flex={1}>
           <Text color="$color" fontSize="$bodySm" fontWeight="500">

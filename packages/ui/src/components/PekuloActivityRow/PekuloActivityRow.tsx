@@ -18,9 +18,12 @@ export interface PekuloActivityRowProps {
   // Consumers pass an `aria-hidden` lucide icon at 14 px tuned to the caption
   // colour so SR readers announce only the category label, not the glyph.
   categoryPrefix?: ReactNode;
+  // Story 6-10 (FR-65) — leading logo avatar (merchant/bank/category). The
+  // consumer passes <TransactionLogo src={tx.logoUrl} category={rawCategory} />.
+  logo?: ReactNode;
 }
 
-export function PekuloActivityRow({ tx, categoryPrefix }: PekuloActivityRowProps) {
+export function PekuloActivityRow({ tx, categoryPrefix, logo }: PekuloActivityRowProps) {
   const isInflow = tx.direction === "in";
   const Arrow = isInflow ? ArrowDownRight : ArrowUpRight;
   const arrowColor = isInflow ? "var(--success)" : "var(--colorTertiary)";
@@ -32,6 +35,7 @@ export function PekuloActivityRow({ tx, categoryPrefix }: PekuloActivityRowProps
   const sign = isInflow ? "+" : "−";
   return (
     <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
+      {logo}
       <Arrow size={18} color={arrowColor} />
       <View flex={1}>
         <Text color="$color" fontSize="$bodySm" fontWeight="500">
