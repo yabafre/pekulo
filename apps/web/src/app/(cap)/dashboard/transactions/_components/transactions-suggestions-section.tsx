@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
+  CategoryIcon,
   CategoryPicker,
   PekuloDialog,
   PekuloEmptyState,
@@ -161,6 +162,15 @@ export function TransactionsSuggestionsSection() {
                 <View key={tx.id} role="listitem">
                   <PekuloSuggestionRow
                     tx={suggestion}
+                    categoryIcon={
+                      tx.suggestedCategory ? (
+                        <CategoryIcon
+                          category={tx.suggestedCategory}
+                          size={12}
+                          color="var(--colorSecondary)"
+                        />
+                      ) : undefined
+                    }
                     disabled={confirm.isPending}
                     onConfirm={() =>
                       tx.suggestedCategory && runConfirm(tx.id, tx.suggestedCategory)
