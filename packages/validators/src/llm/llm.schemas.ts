@@ -13,10 +13,17 @@
 import { z } from "@pekulo/zod";
 
 const LLM_ROUTES_MIRROR = ["foundation_models", "ollama", "third_party"] as const;
-const LLM_OUTCOMES_MIRROR = ["success", "failure"] as const;
+const LLM_OUTCOMES_MIRROR = ["success", "failure", "overridden"] as const;
 
 export const llmRouteSchema = z.enum(LLM_ROUTES_MIRROR);
 export const llmOutcomeSchema = z.enum(LLM_OUTCOMES_MIRROR);
+
+// Outcomes a CLIENT may attest over /internal/llm/attest. `overridden` is
+// server-written only (story 6-4) — keeping the attest body narrow stops a
+// client forging a phantom override into the append-only audit (lesson
+// 2026-05-30; ADR-0008 audit integrity). Do NOT widen to llmOutcomeSchema.
+const ATTESTABLE_OUTCOMES = ["success", "failure"] as const;
+export const attestableOutcomeSchema = z.enum(ATTESTABLE_OUTCOMES);
 
 export const clientCapabilitiesSchema = z.object({
   iosFoundationModels: z.boolean(),
@@ -70,7 +77,7 @@ export const attestLlmCallSchema = z.object({
   callId: z.string().min(1).max(64),
   route: z.literal("foundation_models"),
   latencyMs: z.number().int().nonnegative().max(120_000),
-  outcome: llmOutcomeSchema,
+  outcome: attestableOutcomeSchema,
   labelHash: z.string().min(1).max(128),
 });
 
@@ -92,3 +99,7 @@ export const updateLlmOptInSchema = z.object({
 
 export type LlmOptInState = z.infer<typeof llmOptInSchema>;
 export type UpdateLlmOptInInput = z.infer<typeof updateLlmOptInSchema>;
+
+// Story 6-4 (DR-12 / AC-3) — AI transparency notice "seen" state.
+export const aiNoticeStateSchema = z.object({ seen: z.boolean() });
+export type AiNoticeState = z.infer<typeof aiNoticeStateSchema>;

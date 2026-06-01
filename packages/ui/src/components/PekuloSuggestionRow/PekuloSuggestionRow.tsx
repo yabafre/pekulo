@@ -107,7 +107,10 @@ export function PekuloSuggestionRow({ tx, onConfirm, onEdit, disabled }: PekuloS
         >
           {Math.round(tx.confidence * 100)}%
         </Text>
-        <Text color="$colorTertiary" fontSize="$xs" display="none" $md={{ display: "flex" }}>
+        {/* AC-4 (story 6-4): route badge hidden below 640 px. `$sm` is the
+            v5-media minWidth:640 key — shown ≥640, hidden under it. (Was `$md`
+            = minWidth:768 — corrected in 6-4 review to match the AC.) */}
+        <Text color="$colorTertiary" fontSize="$xs" display="none" $sm={{ display: "flex" }}>
           · {ROUTE_LABEL[tx.route]}
         </Text>
         <View flex={1} />

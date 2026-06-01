@@ -113,5 +113,24 @@ export function createTransactionsRouter(deps: { service: TransactionsService })
         throw err;
       }
     }),
+
+    confirmCategorisation: impl.confirmCategorisation.handler(
+      async ({ context, input, errors }) => {
+        requireUserId(context.userId);
+        try {
+          return await deps.service.confirmCategorisation(context.userId, input);
+        } catch (err) {
+          if (err instanceof PekuloError && err.code === "TRANSACTION_NOT_FOUND") {
+            throw errors.TRANSACTION_NOT_FOUND({ message: err.message });
+          }
+          throw err;
+        }
+      },
+    ),
+
+    listPendingSuggestions: impl.listPendingSuggestions.handler(async ({ context, input }) => {
+      requireUserId(context.userId);
+      return deps.service.listPendingSuggestions(context.userId, input);
+    }),
   });
 }

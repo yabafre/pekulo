@@ -781,3 +781,77 @@ describe("transactionsRepository", () => {
     });
   });
 });
+
+describe("confirmCategorisation (6-4)", () => {
+  test("sets final category + nulls suggested_* under where {id,userId}", async () => {
+    const updateMany = mock(async (_args: { where: unknown; data: Record<string, unknown> }) => ({
+      count: 1,
+    }));
+    const findFirst = mock(async () => ({
+      id: "tx_aaaaaaaaaaaaaaaaaaaaa",
+      userId: "u1",
+      accountId: "acc_aaaaaaaaaaaaaaaaaaaaa",
+      occurredOn: new Date("2026-05-01"),
+      label: "Carrefour",
+      amount: 0,
+      type: "outflow",
+      category: "courses",
+      isImprevu: false,
+      notes: null,
+      transferPairId: null,
+      suggestedCategory: null,
+      suggestedConfidence: null,
+      suggestedRoute: null,
+      suggestedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+    const client = { transaction: { updateMany, findFirst } } as never;
+    const repo = createTransactionsRepository({ client });
+    const out = await repo.confirmCategorisation("u1", "tx_aaaaaaaaaaaaaaaaaaaaa", "courses");
+    expect(out.outcome).toBe("ok");
+    const [arg] = updateMany.mock.calls[0] as [{ where: unknown; data: Record<string, unknown> }];
+    expect(arg.where).toMatchObject({ id: "tx_aaaaaaaaaaaaaaaaaaaaa", userId: "u1" });
+    expect(arg.data).toMatchObject({
+      category: "courses",
+      suggestedCategory: null,
+      suggestedConfidence: null,
+      suggestedRoute: null,
+      suggestedAt: null,
+    });
+  });
+
+  test("returns not-found when no row matches", async () => {
+    const client = {
+      transaction: { updateMany: mock(async () => ({ count: 0 })), findFirst: mock() },
+    } as never;
+    const repo = createTransactionsRepository({ client });
+    const out = await repo.confirmCategorisation("u1", "tx_aaaaaaaaaaaaaaaaaaaaa", "courses");
+    expect(out.outcome).toBe("not-found");
+  });
+
+  test("listPendingByUser offset-paginates (skip/take + count) scoped to the user", async () => {
+    const findMany = mock(async (_args: { where: Record<string, unknown> }) => []);
+    const count = mock(async (_args: { where: Record<string, unknown> }) => 23);
+    const client = { transaction: { findMany, count } } as never;
+    const repo = createTransactionsRepository({ client });
+    const out = await repo.listPendingByUser("u1", { page: 2, pageSize: 10 });
+    expect(out.totalCount).toBe(23);
+    const [findArg] = findMany.mock.calls[0] as [
+      { where: Record<string, unknown>; skip: number; take: number },
+    ];
+    expect(findArg.where).toMatchObject({
+      userId: "u1",
+      category: "autre",
+      suggestedCategory: { not: null },
+    });
+    expect(findArg.skip).toBe(10); // (page 2 - 1) * pageSize 10
+    expect(findArg.take).toBe(10);
+    const [countArg] = count.mock.calls[0] as [{ where: Record<string, unknown> }];
+    expect(countArg.where).toMatchObject({
+      userId: "u1",
+      category: "autre",
+      suggestedCategory: { not: null },
+    });
+  });
+});

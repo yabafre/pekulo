@@ -164,6 +164,59 @@ export type ListTransactionsOutput = z.infer<typeof listTransactionsOutputSchema
 // ─── Envelope ─────────────────────────────────────────────────────────────
 export const transactionsOkSchema = z.object({ ok: z.literal(true) });
 
+// ─── Suggestion confirm / override (story 6-4, FR-33) ────────────────────────
+// The user-facing categories a confirm/override may set: the closed enum minus
+// the two system values 'transfer' (rule-owned, 5-3) and 'autre' (the
+// un-categorised state being replaced). NARROWED per the 2026-05-30 lesson —
+// confirmCategorisation is a trusted write, so its input accepts only the
+// legitimate subset, never the full transactionCategorySchema.
+export const SUGGESTABLE_TRANSACTION_CATEGORIES = [
+  "salaire",
+  "freelance",
+  "remote",
+  "bonus",
+  "loyer",
+  "courses",
+  "transport",
+  "sorties",
+  "voyage",
+  "sante",
+  "imprevu",
+] as const;
+// Compile-time guard: every suggestable value is a real TransactionCategory.
+const suggestableSubsetGuard: readonly TransactionCategory[] = SUGGESTABLE_TRANSACTION_CATEGORIES;
+void suggestableSubsetGuard;
+
+export const suggestableTransactionCategorySchema = z.enum(SUGGESTABLE_TRANSACTION_CATEGORIES);
+export type SuggestableTransactionCategory = z.infer<typeof suggestableTransactionCategorySchema>;
+
+export const confirmCategorisationInputSchema = z.object({
+  id: z.string().regex(TRANSACTION_ID_REGEX, "id invalide"),
+  category: suggestableTransactionCategorySchema,
+});
+export type ConfirmCategorisationInput = z.infer<typeof confirmCategorisationInputSchema>;
+
+// Numbered (offset) pagination of the pending-suggestion triage list. NB: this
+// list deliberately uses OFFSET, not the keyset convention NFR-16 mandates for
+// the large append-only feeds (transactions list, llm_call_log). Numbered pages
+// with random page-jump need a total count + skip/take; the pending set is a
+// small bounded subset (category='autre' AND suggestedCategory != null), so the
+// offset is sound here. Recorded so aped-review treats it as a decision, not a
+// violation. (docs/quick-specs/2026-06-01-suggestions-ia-pagination.md)
+export const listPendingSuggestionsInputSchema = z.object({
+  page: z.number().int().min(1).optional().default(1),
+  pageSize: z.number().int().min(1).max(50).optional().default(10),
+});
+export type ListPendingSuggestionsInput = z.infer<typeof listPendingSuggestionsInputSchema>;
+
+export const listPendingSuggestionsOutputSchema = z.object({
+  items: z.array(transactionSchema),
+  totalCount: z.number().int().nonnegative(),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+});
+export type ListPendingSuggestionsOutput = z.infer<typeof listPendingSuggestionsOutputSchema>;
+
 // ─── CSV import (story 5-2) ──────────────────────────────────────────────
 // Positional 4-column CSV: date (YYYY-MM-DD), amount (signed), label, account-label.
 // Validation happens server-side via apps/api/src/modules/transactions/services/csv-parser.ts.

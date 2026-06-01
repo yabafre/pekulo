@@ -46,9 +46,11 @@ export const accountsTags = createFeatureTags("accounts", {
 // mutation invalidates it via the registry edge below.
 export const llmKeys = createFeatureKeys("llm", {
   optIn: () => ["optIn"] as const,
+  aiNotice: () => ["aiNotice"] as const,
 });
 export const llmTags = createFeatureTags("llm", {
   optIn: () => ["optIn"] as const,
+  aiNotice: () => ["aiNotice"] as const,
 });
 
 const HOLDINGS_KEY = "holdings" as const;
@@ -93,6 +95,12 @@ export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
   // nondeterministic render. Mirrors `compassKeys.history(limit?)` pattern.
   list: (limit?: number) => ["list", limit ?? 50] as const,
   byId: (id: string) => ["byId", id] as const,
+  // Story 6-4 — pending-suggestion list. `page` is part of the queryKey so the
+  // numbered pages cache independently (same reason as `list(limit)`). No new
+  // registry edge needed: the transactionsTags.list() edge invalidates the bare
+  // [TRANSACTIONS_KEY] prefix, which covers every ["pending", n] entry (confirming
+  // refreshes Suggestions IA + Récentes across all loaded pages).
+  pending: (page?: number) => ["pending", page ?? 1] as const,
 });
 export const transactionsTags = createFeatureTags(TRANSACTIONS_KEY, {
   list: () => ["list"] as const,
@@ -160,6 +168,8 @@ setTagRegistry({
   // optIn read so the toggle state survives a reload.
   [llmTags.all()]: [llmKeys.optIn()],
   [llmTags.optIn()]: [llmKeys.optIn()],
+  // Story 6-4 (DR-12) — markAiNotice invalidates the seen-state read.
+  [llmTags.aiNotice()]: [llmKeys.aiNotice()],
   // Holdings — `list` invalidates the holdings list. Once the portfolio
   // aggregate ships its own read path, the cross-feature edge to
   // portfolioKeys.holdings + portfolioKeys.snapshot lands back here.

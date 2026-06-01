@@ -38,5 +38,14 @@ export function createLlmRouter(deps: { service: LlmService }) {
       const thirdParty = await deps.service.setThirdPartyOptIn(context.userId, input.thirdParty);
       return { thirdParty };
     }),
+    getAiNotice: impl.getAiNotice.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return { seen: await deps.service.getAiNoticeSeen(context.userId) };
+    }),
+    markAiNotice: impl.markAiNotice.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      await deps.service.markAiNoticeSeen(context.userId);
+      return { seen: true };
+    }),
   });
 }

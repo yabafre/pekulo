@@ -26,6 +26,11 @@ model Transaction {
   suggestedConfidence   Float?          @map("suggested_confidence")
   suggestedRoute        String?         @map("suggested_route")
   suggestedAt           DateTime?       @map("suggested_at") @db.Timestamptz
+  // Backfill (épic 6) — set when the categoriser has RUN on this row, whatever
+  // the outcome. Idempotency guard for the post-sync + hourly sweep: a clean
+  // abstention stamps it (never retried); a transport failure leaves it NULL
+  // (retried next sweep). Migration 20260531120000.
+  suggestedAttemptedAt  DateTime?       @map("suggested_attempted_at") @db.Timestamptz
   createdAt             DateTime?       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime?       @default(now()) @map("updated_at") @db.Timestamptz
 
@@ -37,5 +42,7 @@ model Transaction {
   @@index([userId, provider, providerTransactionId], map: "transactions_user_provider_txid_idx")
   // Story 6-2 — 6-4 lists pending suggestions (userId + suggestedCategory != null).
   @@index([userId, suggestedCategory], map: "transactions_user_suggestion_idx")
+  // Backfill (épic 6) — probe still-'autre', never-attempted rows per user.
+  @@index([userId, suggestedAttemptedAt], map: "transactions_user_suggestion_backlog_idx")
   @@map("transactions")
 }

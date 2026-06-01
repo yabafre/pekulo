@@ -32,7 +32,7 @@ phases_planned:
 
 - **Compass core (FR-1 → FR-8)** — new `milestones` table sibling of `hypotheses`; compass-progress computation; compass audit trail (FR-2); compass-incomplete state surfaced as a distinct UI mode, not a misleading 0 % (FR-8).
 - **Provider chain (FR-16, FR-17)** — 4 tiers (`prices-service` → `yahoo-finance2` → Boursorama → Twelve Data) with 60 s in-memory cache keyed by `ticker|kind|currency`; already implemented in `apps/web/src/lib/services/prices.ts`; extended to `crypto` (Yahoo + Twelve Data both cover BTC/ETH).
-- **LLM routing hybrid (FR-31 → FR-34)** — three transports (Apple FoundationModels iOS / Ollama Dokploy / 3rd-party API opt-in); rule-based transfer bypass (FR-30); manual override always wins (FR-33); per-user opt-in for 3rd-party path (FR-34).
+- **LLM routing hybrid (FR-31 → FR-34)** — three transports (Apple FoundationModels iOS / Ollama Dokploy / 3rd-party API opt-in); rule-based transfer bypass (FR-30); manual override always wins (FR-33); per-user opt-in for 3rd-party path (FR-34). _(Shipped 2026-05-31, story 6-4 Extension: the 3rd-party route is now reached via a **failure-fallback** — when the primary Ollama route errors/times out AND the user opted in, `categorise()` escalates to third-party. `decideRoute` itself still never auto-selects it; the low-confidence escalation variant stays deferred. See ADR-0008 Consequences.)_
 - **Audit + GDPR (FR-2, FR-27, FR-35, FR-49, FR-50)** — three distinct audit trails (compass, real-estate valuations, LLM calls); one-action JSON export and cascade deletion within 60 s.
 - **PWA + DS unification (FR-53 → FR-56)** — install affordance, offline read-only on dashboard/portefeuille/immobilier; from V1.5, _zero_ Tailwind ↔ NativeWind divergence via `packages/ui`.
 
@@ -55,19 +55,19 @@ phases_planned:
 
 ### Integration points
 
-| System                                                | Role                                                       | Phase       | Required?                        |
-| ----------------------------------------------------- | ---------------------------------------------------------- | ----------- | -------------------------------- |
-| Supabase (Postgres + Auth)                            | Sole datastore + identity, RLS-only authz                  | V1          | yes                              |
-| `apps/prices` (Dokploy VPS)                           | Tier-1 quote provider, yfinance + curl_cffi Chrome session | V1          | optional (`PRICES_SERVICE_URL`)  |
-| Yahoo Finance (`yahoo-finance2` npm)                  | Tier-2 quote provider                                      | V1          | implicit fallback                |
-| Boursorama (HTML scraping)                            | Tier-3 quote provider, Euronext FR coverage                | V1          | implicit fallback                |
-| Twelve Data                                           | Tier-4 fallback, US-only, 800 req/day free                 | V1          | optional (`TWELVE_DATA_API_KEY`) |
-| frankfurter.app                                       | ECB FX rates, EUR-base, fallback 1:1                       | V1          | implicit                         |
-| Vercel                                                | `apps/web` hosting                                         | V1          | yes                              |
-| Dokploy VPS                                           | `apps/prices` hosting + future Ollama endpoint             | V1          | yes                              |
-| Apple FoundationModels                                | LLM on-device, iOS ≥ 15 Pro                                | V1.5 mobile | optional                         |
-| Ollama (Dokploy)                                      | LLM self-hosted server-side, default for web + Android     | V1          | yes (when LLM enabled)           |
-| 3rd-party LLM API (Claude Haiku 4.5 or Mistral Small) | LLM ambiguous-case fallback, **opt-in mandatory**          | V1          | optional                         |
+| System                                                                  | Role                                                           | Phase       | Required?                        |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------- | ----------- | -------------------------------- |
+| Supabase (Postgres + Auth)                                              | Sole datastore + identity, RLS-only authz                      | V1          | yes                              |
+| `apps/prices` (Dokploy VPS)                                             | Tier-1 quote provider, yfinance + curl_cffi Chrome session     | V1          | optional (`PRICES_SERVICE_URL`)  |
+| Yahoo Finance (`yahoo-finance2` npm)                                    | Tier-2 quote provider                                          | V1          | implicit fallback                |
+| Boursorama (HTML scraping)                                              | Tier-3 quote provider, Euronext FR coverage                    | V1          | implicit fallback                |
+| Twelve Data                                                             | Tier-4 fallback, US-only, 800 req/day free                     | V1          | optional (`TWELVE_DATA_API_KEY`) |
+| frankfurter.app                                                         | ECB FX rates, EUR-base, fallback 1:1                           | V1          | implicit                         |
+| Vercel                                                                  | `apps/web` hosting                                             | V1          | yes                              |
+| Dokploy VPS                                                             | `apps/prices` hosting + future Ollama endpoint                 | V1          | yes                              |
+| Apple FoundationModels                                                  | LLM on-device, iOS ≥ 15 Pro                                    | V1.5 mobile | optional                         |
+| Ollama (Dokploy)                                                        | LLM self-hosted server-side, default for web + Android         | V1          | yes (when LLM enabled)           |
+| 3rd-party LLM API (Mistral Small EU default — OpenAI-compatible client) | LLM failure-fallback when Ollama is down, **opt-in mandatory** | V1          | optional                         |
 
 ### Compliance
 
@@ -251,6 +251,7 @@ phases_planned:
     - Metrics → Prometheus scrape on `apps/api` + `apps/prices` ; Vercel native metrics on `apps/web`. Aggregated dashboards optional at (b), required at (c).
   - **LLM call audit log (NFR-26)** is a separate domain table `llm_call_log` (route*requested, route_actual, latency_ms, outcome — \_no prompt content*), retention ≤ 90 days, surfaced via Settings → IA → Journal d'activité (FR-36). Single ingestion writer = `apps/api/src/modules/llm/llm.service.ts#recordLlmCall(intent | outcome)`.
   - **See ADR-0005.**
+- **Background schedulers (Bun `setInterval`, started in `app.ts`, stopped in `lifecycle.ts`):** (1) **bank-refresh** — `refresh-scheduler.ts`, cadence `BRIDGE_REFRESH_CRON_HOURS` (default 6 h), calls `bankAggregator.refreshAll()`. (2) **suggestion-backfill** (added 2026-05-31, story 6-4 Extension) — `suggestion-backfill-scheduler.ts`, cadence `SUGGESTION_BACKFILL_CRON_HOURS` (default 1 h), calls `transactions.service.backfillAllUsers()` to LLM-categorise still-`autre`, never-attempted rows that bulk import (transfer-rules only) left uncategorised. Idempotent via the `transactions.suggested_attempted_at` column: a suggestion or clean abstention stamps it (never re-swept); a transport failure leaves it NULL and stops the batch (LLM down → retried next tick). On-demand trigger: `apps/api/scripts/run-suggestion-backfill.ts`. Both schedulers are best-effort (warn-on-tick-failure), single-process (no distributed lock at V1).
 - **Environments:** `dev` (local) + `prod` (Vercel + Dokploy). **No staging at V1 (a)** (single user). Staging branch + preview deploys promoted at (b).
 - **Restore drill (NFR-21):** scheduled before (b) flip — Supabase snapshot → fresh project → re-apply Prisma migrations → assert RLS coverage + auth round-trip + an oRPC happy-path call. Result documented in `docs/security.md`.
 

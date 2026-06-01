@@ -10,6 +10,7 @@ import {
   createTransactionsService,
   type AccountOwnershipProbe,
   type AccountResolver,
+  type LlmOverrideAuditPort,
 } from "./transactions.service";
 
 const sampleTx = {
@@ -609,5 +610,88 @@ describe("transactionsService", () => {
       const bulkCallArgs = bulkProvider.mock.calls[0]?.[1] as unknown[];
       expect(bulkCallArgs).toHaveLength(3);
     });
+  });
+});
+
+const txRow = (over: Partial<Record<string, unknown>> = {}) => ({
+  id: "tx_aaaaaaaaaaaaaaaaaaaaa",
+  accountId: "acc_aaaaaaaaaaaaaaaaaaaaa",
+  occurredOn: "2026-05-01",
+  label: "Carrefour",
+  amount: 42,
+  type: "outflow",
+  category: "autre",
+  isImprevu: false,
+  notes: null,
+  transferPairId: null,
+  suggestedCategory: "courses",
+  suggestedConfidence: 0.9,
+  suggestedRoute: "ollama",
+  suggestedAt: "2026-05-01T00:00:00.000Z",
+  createdAt: "2026-05-01T00:00:00.000Z",
+  ...over,
+});
+
+function makeService(opts: {
+  before: ReturnType<typeof txRow> | null;
+  audit?: LlmOverrideAuditPort;
+}) {
+  const repository = {
+    findByIdForUser: mock(async () => opts.before),
+    confirmCategorisation: mock(async (_u: string, _id: string, finalCategory: string) => ({
+      outcome: "ok" as const,
+      transaction: txRow({
+        category: finalCategory,
+        suggestedCategory: null,
+        suggestedRoute: null,
+      }),
+    })),
+  } as never;
+  return createTransactionsService({
+    repository,
+    accountOwnershipProbe: { exists: mock(), existsMany: mock() } as never,
+    accountResolver: { resolve: mock() } as never,
+    llmAudit: opts.audit,
+  });
+}
+
+describe("confirmCategorisation (6-4)", () => {
+  test("AC-1 accept (final === suggested) → NO override audit row", async () => {
+    const recordOverride = mock(
+      async (_input: { userId: string; route: string; label: string }) => {},
+    );
+    const svc = makeService({
+      before: txRow({ suggestedCategory: "courses" }),
+      audit: { recordOverride },
+    });
+    await svc.confirmCategorisation("u1", { id: "tx_aaaaaaaaaaaaaaaaaaaaa", category: "courses" });
+    expect(recordOverride).not.toHaveBeenCalled();
+  });
+
+  test("AC-2 override (final !== suggested) → records outcome overridden with route_actual", async () => {
+    const recordOverride = mock(
+      async (_input: { userId: string; route: string; label: string }) => {},
+    );
+    const svc = makeService({
+      before: txRow({ suggestedCategory: "courses", suggestedRoute: "ollama" }),
+      audit: { recordOverride },
+    });
+    await svc.confirmCategorisation("u1", {
+      id: "tx_aaaaaaaaaaaaaaaaaaaaa",
+      category: "transport",
+    });
+    expect(recordOverride).toHaveBeenCalledTimes(1);
+    expect(recordOverride.mock.calls[0]?.[0]).toMatchObject({
+      userId: "u1",
+      route: "ollama",
+      label: "Carrefour",
+    });
+  });
+
+  test("not-found → throws TRANSACTION_NOT_FOUND", async () => {
+    const svc = makeService({ before: null });
+    await expect(
+      svc.confirmCategorisation("u1", { id: "tx_aaaaaaaaaaaaaaaaaaaaa", category: "transport" }),
+    ).rejects.toMatchObject({ code: "TRANSACTION_NOT_FOUND" });
   });
 });

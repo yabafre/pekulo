@@ -45,6 +45,7 @@ type TransactionRow = {
   suggestedConfidence: number | null;
   suggestedRoute: string | null;
   suggestedAt: Date | null;
+  suggestedAttemptedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -125,6 +126,41 @@ export interface TransactionsRepository {
     txId: string,
     suggestion: { category: string; confidence: number; route: string },
   ): Promise<{ saved: boolean }>;
+  /**
+   * Story 6-4 (FR-33) — set the FINAL category and clear all four suggested_*
+   * columns in one statement, scoped where { id, userId }. The inverse of
+   * saveSuggestion. Returns UpdateOutcome ("not-found" when the row is gone /
+   * not the caller's).
+   */
+  confirmCategorisation(userId: string, id: string, finalCategory: string): Promise<UpdateOutcome>;
+  /**
+   * Story 6-4 — the pending-suggestion list: rows still 'autre' that carry a
+   * suggestion. Backed by transactions_user_suggestion_idx (userId,
+   * suggestedCategory). Newest suggestion first. OFFSET-paginated (page/pageSize)
+   * — see the NFR-16 deviation note on the schema. Returns the page slice + the
+   * full match count so the UI can render numbered pages.
+   */
+  listPendingByUser(
+    userId: string,
+    input: { page: number; pageSize: number },
+  ): Promise<{ items: Transaction[]; totalCount: number }>;
+  /**
+   * Backfill (épic 6) — still-'autre', no suggestion, NEVER attempted rows for
+   * one user, newest first, capped at `limit`. The categorisation sweep's
+   * candidate set (imports run transfer-rules only, never the LLM).
+   */
+  listAutreWithoutAttempt(userId: string, limit: number): Promise<Transaction[]>;
+  /**
+   * Backfill (épic 6) — stamp suggested_attempted_at WITHOUT writing a
+   * suggestion (used after a clean abstention so the row is never re-swept).
+   * Guarded to category='autre'.
+   */
+  stampSuggestionAttempt(userId: string, txId: string): Promise<void>;
+  /**
+   * Backfill (épic 6) — distinct userIds that still have backlog, for the
+   * cross-user hourly sweep. The ONLY cross-user query in this repo.
+   */
+  listUserIdsWithBacklog(limit: number): Promise<string[]>;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -282,6 +318,7 @@ export function createTransactionsRepository(deps: {
       const inserted: TransactionRow[] = [];
       await deps.client.$transaction(async (tx) => {
         for (const row of rows) {
+          // oxlint-disable-next-line no-await-in-loop -- serial by design: per-row create inside $transaction (ADR-0012 prefixed-ids extension)
           const created = (await tx.transaction.create({
             data: {
               userId,
@@ -331,6 +368,7 @@ export function createTransactionsRepository(deps: {
         // rollback would only erase work other concurrent writers can re-do.
         for (const row of chunk) {
           try {
+            // oxlint-disable-next-line no-await-in-loop -- serial by design: per-row create + per-row P2002 catch (idempotent dedup, ADR-0012)
             const created = (await deps.client.transaction.create({
               data: {
                 userId,
@@ -440,10 +478,86 @@ export function createTransactionsRepository(deps: {
           suggestedConfidence: suggestion.confidence,
           suggestedRoute: suggestion.route,
           suggestedAt: new Date(),
+          // A saved suggestion is also an attempt → never re-swept.
+          suggestedAttemptedAt: new Date(),
           updatedAt: new Date(),
         },
       });
       return { saved: count > 0 };
+    },
+
+    async confirmCategorisation(userId, id, finalCategory) {
+      const result = await deps.client.transaction.updateMany({
+        where: { id, userId },
+        data: {
+          category: finalCategory,
+          suggestedCategory: null,
+          suggestedConfidence: null,
+          suggestedRoute: null,
+          suggestedAt: null,
+          updatedAt: new Date(),
+        },
+      });
+      if (result.count === 0) return { outcome: "not-found" };
+      const row = await deps.client.transaction.findFirst({
+        where: { id, userId },
+      });
+      // Defensive: a delete racing between the updateMany and this re-read would
+      // yield null — surface not-found rather than toDto(null) → 500 (6-4 review).
+      if (!row) return { outcome: "not-found" };
+      return { outcome: "ok", transaction: toDto(row as TransactionRow) };
+    },
+
+    async listPendingByUser(userId, { page, pageSize }) {
+      // OFFSET pagination (deliberate NFR-16 deviation — see the schema note):
+      // numbered pages with random jump need skip/take + a total count, and the
+      // pending set is small + bounded. Still fully user-scoped (ADR-0013).
+      const where = { userId, category: "autre", suggestedCategory: { not: null } };
+      const [rows, totalCount] = await Promise.all([
+        deps.client.transaction.findMany({
+          where,
+          orderBy: [{ suggestedAt: "desc" }, { id: "desc" }],
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }) as Promise<TransactionRow[]>,
+        deps.client.transaction.count({ where }),
+      ]);
+      return { items: rows.map(toDto), totalCount };
+    },
+
+    async listAutreWithoutAttempt(userId, limit) {
+      const rows = (await deps.client.transaction.findMany({
+        where: {
+          userId,
+          category: "autre",
+          suggestedCategory: null,
+          suggestedAttemptedAt: null,
+        },
+        orderBy: [{ occurredOn: "desc" }, { id: "desc" }],
+        take: limit,
+      })) as TransactionRow[];
+      return rows.map(toDto);
+    },
+
+    async stampSuggestionAttempt(userId, txId) {
+      await deps.client.transaction.updateMany({
+        where: { id: txId, userId, category: "autre" },
+        data: { suggestedAttemptedAt: new Date(), updatedAt: new Date() },
+      });
+    },
+
+    async listUserIdsWithBacklog(limit) {
+      // Cross-user by design (the hourly sweep iterates all users). The
+      // scheduler then calls backfillSuggestions(userId, …) which is fully
+      // user-scoped. distinct on userId keeps the result small.
+      // oxlint-disable-next-line pekulo/no-prisma-query-without-user-id -- scheduler cross-user iteration
+      const rows = await deps.client.transaction.findMany({
+        where: { category: "autre", suggestedCategory: null, suggestedAttemptedAt: null },
+        select: { userId: true },
+        distinct: ["userId"],
+        take: limit,
+      });
+      return rows.map((r) => r.userId);
     },
   };
 }

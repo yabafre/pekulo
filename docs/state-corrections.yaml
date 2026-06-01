@@ -54,3 +54,16 @@ corrections:
       - docs/architecture.md
     affected_stories:
       - 11-3-rls-audit-and-encryption-doc
+  - date: "2026-06-01"
+    type: minor
+    reason: 'aped-course scope correction: auto-accept on bulk import (FR-33 amended + DR-12), category taxonomy +4 (factures/restauration/abonnements/retrait) + icons (DR-13), month navigator (FR-64), merchant logos (FR-65)'
+    artifacts_updated:
+      - docs/prd.md
+      - docs/epics.md
+      - docs/state.yaml
+    affected_stories:
+      - 6-4-llm-suggestion-ui
+      - 6-7-auto-categorise-on-import
+      - 6-8-category-taxonomy-expansion
+      - 6-9-month-navigator
+      - 6-10-merchant-logos

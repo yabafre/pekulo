@@ -105,6 +105,7 @@ export function createBankAggregatorService(deps: {
     const uniqueKeys = Array.from(new Set(transactions.map((t) => t.accountKey)));
     const map = new Map<string, string>();
     for (const key of uniqueKeys) {
+      // oxlint-disable-next-line no-await-in-loop -- serial by design: small account-key resolution map build
       const account = await deps.accountsService.findByProviderKey(userId, "bridge", key);
       if (account) {
         map.set(key, account.id);
@@ -266,6 +267,7 @@ export function createBankAggregatorService(deps: {
       }
 
       for (const a of remoteAccounts) {
+        // oxlint-disable-next-line no-await-in-loop -- serial by design: ordered find-or-create with P2002 race handling
         await deps.accountsService.findOrCreateAutoFromProvider(userId, "bridge", a.accountKey, {
           label: `Bridge — ${a.bankName} — ${a.accountName}`,
           type: mapBridgeAccountKind(a.kind),
@@ -293,6 +295,7 @@ export function createBankAggregatorService(deps: {
       const all = await deps.listAllActiveConnections();
       for (const c of all) {
         try {
+          // oxlint-disable-next-line no-await-in-loop -- serial by design: per-user error isolation (AC-6 — one outage must not poison others)
           await refreshConnectionImpl(c.userId, { connectionId: c.connectionId });
         } catch (err) {
           // Non-fatal — one user's Bridge outage MUST NOT poison another
@@ -326,6 +329,7 @@ export function createBankAggregatorService(deps: {
       if (statusCode === 1010) {
         const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
         for (const o of owners) {
+          // oxlint-disable-next-line no-await-in-loop -- serial by design: per-owner status write (userId-scoped, ADR-0013)
           await deps.repository.setStatus(o.userId, o.connectionId, "sca_required");
         }
         return;
@@ -336,6 +340,7 @@ export function createBankAggregatorService(deps: {
         const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
         for (const o of owners) {
           try {
+            // oxlint-disable-next-line no-await-in-loop -- serial by design: per-owner refresh with error isolation
             await refreshConnectionImpl(o.userId, { connectionId: o.connectionId });
           } catch (err) {
             console.warn(

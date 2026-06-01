@@ -218,7 +218,8 @@ These are the requirements `aped-arch` and `aped-epics` must satisfy or explicit
 - DR-9. The system shall introduce PSD2 / open-banking connectivity at V1 via Bridge as agent-of AISP, per ADR-0015 (2026-05-25). Pekulo operates under the tied-agent business-customer relationship documented in the Bridge B2B contract ; own AISP licence remains out of scope. Production traffic is gated on a signed Bridge production contract.
 - DR-10. The system shall not introduce crypto exchange or custody features (any feature that would place Pekulo inside the MiCA CASP perimeter) until an explicit `aped-course` correction promotes that scope.
 - DR-11. The system shall encrypt user data at rest via the Supabase project tier's standard mechanism, and the encryption posture shall be documented in `docs/security.md` before (b).
-- DR-12. The system shall surface an AI transparency notice the first time the LLM subsystem produces a user-visible suggestion, in compliance with EU AI Act transparency obligations; the notice shall be re-shown on opt-out → opt-in transitions.
+- DR-12. The system shall surface an AI transparency notice the first time the LLM subsystem produces or applies a user-visible category suggestion, informing the user that an AI categorised their transactions and that any category can be reviewed and corrected at any time, in compliance with EU AI Act transparency obligations; the notice shall be re-shown on opt-out → opt-in transitions. [Amended 2026-06-01 via aped-course — now covers auto-applied categories per the amended FR-33.]
+- DR-13. The transaction category taxonomy is a canonical closed set owned in `@pekulo/validators` — {salaire, freelance, remote, bonus, loyer, courses, transport, sorties, voyage, sante, imprevu, factures, restauration, abonnements, retrait} plus the system values {transfer, autre}; each category carries a display icon. Categories are display/grouping and LLM-suggestion targets only — they do NOT feed the compass (net-worth based) or the monthly aggregates (typed by inflow/outflow/transfer). Taxonomy additions go through an `aped-course` correction. [Added 2026-06-01 via aped-course — factures/restauration/abonnements/retrait new this correction; see story 6-8.]
 
 ## Functional Requirements
 
@@ -268,7 +269,7 @@ These are the requirements `aped-arch` and `aped-epics` must satisfy or explicit
 - FR-30: System can classify a transaction between two user-owned accounts as a transfer by rule, bypassing LLM categorisation.
 - FR-31: System can route a non-transfer transaction's categorisation request to an LLM endpoint chosen by the routing policy {Apple FoundationModels if iOS-capable, Ollama on Dokploy VPS otherwise, third-party API only when user opt-in is true and routing policy selects it}.
 - FR-32: System can return an LLM-suggested category plus a confidence score in the range [0, 1] for each non-transfer transaction.
-- FR-33: User can accept or override the suggested category before persistence, with the override persisted as the final category.
+- FR-33: System applies the LLM-suggested category automatically to transactions categorised in bulk (CSV import / bank sync); for interactive single-transaction creation the suggestion is shown for confirmation before persistence. The user can override any category at any time via transaction edit (manual override always wins). [Amended 2026-06-01 via aped-course — auto-apply on the bulk path supersedes the original "accept/override before persistence" gate; control preserved post-hoc per the user decision. See DR-12 + stories 6-7/6-8.]
 - FR-34: User can opt in or out of the third-party LLM API path from the settings page, with the opt-in defaulting to false.
 - FR-35: System can record per-LLM-call routing decision, latency, and outcome without persisting prompt content.
 - FR-36: User can view the LLM activity log for the last 90 days from the settings page.
@@ -276,6 +277,8 @@ These are the requirements `aped-arch` and `aped-epics` must satisfy or explicit
 - FR-61: System can pull bank transactions from Bridge automatically every N hours via a cron-refresh job, deduplicating against existing transactions on the (provider, provider_transaction_id) pair before persistence.
 - FR-62: User can view, rename, and revoke each bank connection from the settings connections page, with revocation cascading on Bridge (token revoked via API) and locally (`BankConnection` soft-deleted, future refresh disabled).
 - FR-63: System can surface an SCA-required state on a `BankConnection` when Bridge reports the consent has expired (90-day PSD2 default), presenting a "Reconnecter" CTA without blocking the dashboard compass-progress query.
+- FR-64: User can navigate the transactions view and its monthly stat cards by calendar month (previous / next), defaulting to the most recent month with recorded activity. [Added 2026-06-01 via aped-course — see story 6-9.]
+- FR-65: System can capture and display the merchant logo for an imported transaction when the bank provider supplies one (e.g. Bridge `logo_url`), falling back to the category icon when absent. [Added 2026-06-01 via aped-course — see story 6-10.]
 
 ### Group F — Monthly tracking (existing module)
 

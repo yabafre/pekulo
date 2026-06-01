@@ -1,7 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import { Text, View, styled } from "tamagui";
+import { Text, View } from "tamagui";
+import { PekuloSwitch } from "../../primitives/PekuloSwitch";
 
 export interface PekuloToggleRowProps {
   label: string;
@@ -11,42 +12,10 @@ export interface PekuloToggleRowProps {
   disabled?: boolean;
 }
 
-const Switch = styled(View, {
-  name: "PekuloToggleRowSwitch",
-  render: "button",
-  width: 44,
-  height: 26,
-  borderRadius: "$full",
-  cursor: "pointer",
-  focusVisibleStyle: {
-    outlineColor: "$borderFocus",
-    outlineStyle: "solid",
-    outlineWidth: 2,
-    outlineOffset: 2,
-  },
-  variants: {
-    checked: {
-      // TR-strict — chrome stays white. Reserve `$accent` (perf.gain) for
-      // ± monetary deltas only.
-      true: { backgroundColor: "$color" },
-      false: { backgroundColor: "$backgroundMuted" },
-    },
-    disabled: { true: { opacity: 0.5, cursor: "not-allowed" } },
-  } as const,
-});
-
-const Knob = styled(View, {
-  name: "PekuloToggleRowKnob",
-  width: 22,
-  height: 22,
-  borderRadius: "$full",
-  // Knob sits on top of the white track — needs the inverse (background bg
-  // = #000 in dark) so it stays visible.
-  backgroundColor: "$background",
-  position: "absolute",
-  top: 2,
-});
-
+// shadcn "Field orientation=horizontal" layout: label + description on the
+// left, the control on the right. The control is the shared PekuloSwitch
+// primitive — NOT a hand-rolled track/knob (ADR-0007, DRY). PekuloSwitch owns
+// the TR-strict grayscale track+thumb flip + its own thumb, so no child here.
 export function PekuloToggleRow({ label, sub, checked, onChange, disabled }: PekuloToggleRowProps) {
   const id = useId();
   return (
@@ -61,20 +30,16 @@ export function PekuloToggleRow({ label, sub, checked, onChange, disabled }: Pek
           </Text>
         )}
       </View>
-      <Switch
+      <PekuloSwitch
         id={id}
         checked={checked}
         disabled={disabled}
-        role="switch"
-        aria-checked={checked}
-        aria-disabled={disabled || undefined}
+        opacity={disabled ? 0.5 : 1}
         aria-label={label}
-        onPress={() => {
-          if (!disabled) onChange(!checked);
+        onCheckedChange={(v) => {
+          if (!disabled) onChange(v);
         }}
-      >
-        <Knob left={checked ? 20 : 2} />
-      </Switch>
+      />
     </View>
   );
 }

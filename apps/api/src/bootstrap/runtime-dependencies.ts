@@ -1,6 +1,11 @@
-import type { CompassReader, MilestonePresenceProbe, WealthHistoryProvider } from "@pekulo/types";
+import type {
+  CompassReader,
+  LlmRoute,
+  MilestonePresenceProbe,
+  WealthHistoryProvider,
+} from "@pekulo/types";
 import type { Env } from "../config/env";
-import { createPrismaService, type PrismaService } from "../database";
+import { createPrismaService, generateBase62Id, type PrismaService } from "../database";
 import { createReadiness, type Readiness } from "./readiness";
 import { createJwtVerifier, type JwtVerifier } from "../platform/security";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
@@ -14,7 +19,15 @@ import { createMilestonesModule } from "../modules/milestones/milestones.module"
 import { createMonthlyModule } from "../modules/monthly/monthly.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
-import type { TransactionCategoriser } from "../modules/transactions/transactions.service";
+import {
+  createSuggestionBackfillScheduler,
+  type SuggestionBackfillScheduler,
+} from "../modules/transactions/services/suggestion-backfill-scheduler";
+import type {
+  LlmOverrideAuditPort,
+  TransactionCategoriser,
+} from "../modules/transactions/transactions.service";
+import { hashLabel } from "../modules/llm/llm-prompt-builder";
 import { decimalToNumber } from "../common/derive/decimal-to-number";
 
 export interface RuntimeDeps {
@@ -26,6 +39,8 @@ export interface RuntimeDeps {
   milestonePresenceProbe: MilestonePresenceProbe;
   bankAggregatorModule: ReturnType<typeof createBankAggregatorModule>;
   llmModule: ReturnType<typeof createLlmModule>;
+  transactionsModule: ReturnType<typeof createTransactionsModule>;
+  suggestionBackfillTask: SuggestionBackfillScheduler;
 }
 
 // F10 (carry-over from 0-3): single transient probe failure should not yank
@@ -153,8 +168,31 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
         prompt: { label, amount: amountSigned, currency: "EUR", occurredOn },
         categories,
       });
-      return { category: result.category, confidence: result.confidence, route: result.route };
+      return {
+        category: result.category,
+        confidence: result.confidence,
+        route: result.route,
+        failed: result.failed,
+      };
     },
+  };
+
+  // Story 6-4 (FR-33 / AC-2) — narrow override-audit adapter over the LLM
+  // module's SOLE llm_call_log writer (recordLlmCall; ADR-0008 / architecture
+  // L691). Keeps transactions free of LlmService/LlmRoute (L1, mirrors the
+  // categoriser port). `route` is the route_actual stored on the suggestion;
+  // hashLabel gives the NFR-26 de-dup digest (NEVER the prompt body). The
+  // recordLlmCall route guard backs the `as LlmRoute` cast.
+  const llmOverrideAudit: LlmOverrideAuditPort = {
+    recordOverride: ({ userId, route, label }) =>
+      llmModule.service.recordLlmCall(userId, {
+        phase: "outcome",
+        callId: generateBase62Id(21),
+        route: route as LlmRoute,
+        labelHash: hashLabel(label),
+        latencyMs: 0,
+        outcome: "overridden",
+      }),
   };
 
   // Story 5-1 — transactions domain. The cross-aggregate accountId guard is
@@ -173,6 +211,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
       resolve: (userId, label) => accountsModule.service.findAccountIdByLabel(userId, label),
     },
     categoriser: transactionCategoriser,
+    llmAudit: llmOverrideAudit,
   });
 
   const monthlyModule = createMonthlyModule({ prismaService });
@@ -182,6 +221,14 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     env: input.env,
     transactionsService: transactionsModule.service,
     accountsService: accountsModule.service,
+  });
+
+  // Backfill (épic 6) — hourly LLM-categorisation sweep over still-'autre',
+  // never-attempted rows (the safety net behind the post-sync backfill).
+  // Started in app.ts, stopped in lifecycle.ts (same shape as the bank cron).
+  const suggestionBackfillTask = createSuggestionBackfillScheduler({
+    env: input.env,
+    service: transactionsModule.service,
   });
 
   const orpcRouter: PekuloRpcRouter = {
@@ -206,5 +253,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     milestonePresenceProbe,
     bankAggregatorModule,
     llmModule,
+    transactionsModule,
+    suggestionBackfillTask,
   };
 }

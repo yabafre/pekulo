@@ -14,6 +14,18 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
+test("sends the configured model + format:'json' in the request body", async () => {
+  let body: Record<string, unknown> = {};
+  globalThis.fetch = mock(async (_url: string | URL, init?: RequestInit) => {
+    body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(JSON.stringify({ response: "{}" }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const client = createOllamaClient({ env: fakeEnv });
+  await client.complete(prompt);
+  expect(body.model).toBe("test-model");
+  expect(body.format).toBe("json");
+});
+
 test("returns raw text + latency on a 200 response", async () => {
   globalThis.fetch = mock(
     async () => new Response(JSON.stringify({ response: "alimentation" }), { status: 200 }),

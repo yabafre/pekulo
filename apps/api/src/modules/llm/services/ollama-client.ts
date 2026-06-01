@@ -12,7 +12,11 @@ const OLLAMA_TIMEOUT_MS = 5_000;
 
 export function createOllamaClient(deps: { env: Env }): LlmProvider {
   const baseUrl = deps.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
-  const model = deps.env.OLLAMA_MODEL ?? "llama3.2:3b";
+  // Default qwen2.5:3b — instruction-tuned, strong FR + JSON-following for its
+  // size, and CPU-fast enough to hold NFR-5 (Ollama p95 ≤ 1.5 s / 5 s hard cap).
+  // Bump to qwen2.5:7b via OLLAMA_MODEL only on a GPU host — a 7B on CPU blows
+  // the 5 s cap and every call would abstain.
+  const model = deps.env.OLLAMA_MODEL ?? "qwen2.5:3b";
   return {
     route: "ollama",
     async complete(prompt: string): Promise<LlmProviderCompletion> {
@@ -23,7 +27,10 @@ export function createOllamaClient(deps: { env: Env }): LlmProvider {
         const res = await fetch(`${baseUrl}/api/generate`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ model, prompt, stream: false }),
+          // format:"json" constrains Ollama's decoding to valid JSON — the
+          // categoriser prompt asks for STRICT JSON, this makes it parseable
+          // even on a small local model (fewer abstentions from malformed text).
+          body: JSON.stringify({ model, prompt, stream: false, format: "json" }),
           signal: controller.signal,
         });
         if (!res.ok) {

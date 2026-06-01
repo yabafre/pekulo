@@ -5,11 +5,14 @@
 
 import { oc } from "@orpc/contract";
 import {
+  confirmCategorisationInputSchema,
   createTransactionInputSchema,
   deleteTransactionInputSchema,
   getTransactionInputSchema,
   importCsvInputSchema,
   importCsvOutputSchema,
+  listPendingSuggestionsInputSchema,
+  listPendingSuggestionsOutputSchema,
   listTransactionsInputSchema,
   listTransactionsOutputSchema,
   previewImportCsvInputSchema,
@@ -68,6 +71,16 @@ export const transactionsContractV1 = {
     .errors({ ACCOUNT_NOT_FOUND: accountNotFoundError })
     .input(importCsvInputSchema)
     .output(importCsvOutputSchema),
+  // Story 6-4 (FR-33) — set the final category + clear the pending suggestion.
+  confirmCategorisation: oc
+    .errors({ TRANSACTION_NOT_FOUND: transactionNotFoundError })
+    .input(confirmCategorisationInputSchema)
+    .output(transactionSchema),
+  // Story 6-4 — list the user's transactions awaiting suggestion confirmation
+  // (category === 'autre' AND suggestedCategory != null). No input.
+  listPendingSuggestions: oc
+    .input(listPendingSuggestionsInputSchema)
+    .output(listPendingSuggestionsOutputSchema),
 } as const;
 
 export const transactionsContract = transactionsContractV1;
