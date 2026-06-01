@@ -743,4 +743,34 @@ describe("transactionsService — logo enrichment (story 6-10 / FR-65)", () => {
     expect(items[0]?.logoUrl).toBe("/v1/logos?ref=MREF");
     expect(items[0]?.logoUrl?.startsWith("/v1/logos?ref=")).toBe(true);
   });
+
+  // NFR-1 / design principle — a logo subsystem failure (e.g. the cache table
+  // missing because the migration isn't deployed yet, Brandfetch/Bridge down)
+  // must NEVER 500 a transaction read: the page degrades to logo-less.
+  test("a logo-enrich failure degrades to logo-less; the list read never throws", async () => {
+    const throwingLogos = {
+      enrich: async () => {
+        throw new Error("merchant_logo_cache does not exist");
+      },
+    };
+    const failRepo = makeRepoMock({
+      listByUser: mock(async () => ({ items: [txA], nextCursor: null })),
+      listPendingByUser: mock(async () => ({ items: [txA], totalCount: 1 })),
+      listLogoContext: mock(async () => [
+        { id: txA.id, label: "x", provider: "bridge", providerAccountKey: "pid:574:x" },
+      ]),
+    });
+    const failSvc = createTransactionsService({
+      repository: failRepo,
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+      logos: throwingLogos,
+    });
+    // Degraded page carries no proxy URL (in prod toDto defaults logoUrl to
+    // null; the fixture leaves it unset — either way, no logo).
+    const recent = await failSvc.listTransactions("u1", { limit: 50 });
+    expect(recent.items[0]?.logoUrl ?? null).toBeNull();
+    const pending = await failSvc.listPendingSuggestions("u1", { page: 1, pageSize: 20 });
+    expect(pending.items[0]?.logoUrl ?? null).toBeNull();
+  });
 });

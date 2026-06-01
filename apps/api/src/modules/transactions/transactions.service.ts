@@ -335,15 +335,25 @@ export function createTransactionsService(deps: {
   // only logo surface).
   async function attachLogos(userId: string, items: Transaction[]): Promise<Transaction[]> {
     if (!deps.logos || items.length === 0) return items;
-    const ctx = await deps.repository.listLogoContext(
-      userId,
-      items.map((i) => i.id),
-    );
-    const refs = await deps.logos.enrich(ctx);
-    return items.map((it) => {
-      const ref = refs.get(it.id);
-      return { ...it, logoUrl: ref ? `/v1/logos?ref=${ref}` : null };
-    });
+    try {
+      const ctx = await deps.repository.listLogoContext(
+        userId,
+        items.map((i) => i.id),
+      );
+      const refs = await deps.logos.enrich(ctx);
+      return items.map((it) => {
+        const ref = refs.get(it.id);
+        return { ...it, logoUrl: ref ? `/v1/logos?ref=${ref}` : null };
+      });
+    } catch (err) {
+      // Best-effort: a logo subsystem failure (cache table not yet migrated,
+      // Brandfetch/Bridge down) must NEVER break a transaction read (NFR-1).
+      // Degrade to the un-enriched page — logoUrl stays null → category icon.
+      console.warn(
+        `[6-10] logo enrich failed, serving logo-less page: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return items;
+    }
   }
 
   return {
