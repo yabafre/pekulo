@@ -168,6 +168,7 @@ function makeFakeProvider(): BankProvider {
   return {
     createUser: async () => ({ providerUserUuid: "bridge-uuid-fixture" }),
     createConnectSession: async () => ({ connectUrl: "https://x", sessionId: "session-1" }),
+    getProviderLogo: async () => ({ logoUrl: null }),
     listAccounts: async () => [
       {
         providerAccountId: "sg-1",

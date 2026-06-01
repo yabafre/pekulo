@@ -114,4 +114,14 @@ export interface BankProvider {
    * items in `SCA_REQUIRED` (1010) without calling listTransactions.
    */
   getItem(args: { userUuid: string; providerItemId: string }): Promise<ProviderItemState>;
+
+  /**
+   * Story 6-10 (FR-65, tier 2) — the bank/institution logo for a Bridge
+   * `provider_id`. App-level auth (Client-Id/Secret only, NO user Bearer):
+   * Providers is the public bank directory (GET /v3/providers/:id). Returns
+   * null on 404 / missing `images.logo` so the caller negative-caches and
+   * falls through to the category icon. Shape validated against Providers/Get
+   * a single provider in docs/ressources/Bridge API.postman_collection.json.
+   */
+  getProviderLogo(providerId: string): Promise<{ logoUrl: string | null }>;
 }

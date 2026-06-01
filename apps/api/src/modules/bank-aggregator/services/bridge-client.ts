@@ -344,5 +344,18 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
           : null,
       } satisfies ProviderItemState;
     },
+
+    async getProviderLogo(providerId) {
+      // Bridge v3 — GET /v3/providers/:id (the public bank directory; NOT under
+      // /v3/aggregation, no user Bearer — authHeaders' Client-Id/Secret suffice).
+      // allowStatuses:[404] so an unknown provider_id resolves to null instead
+      // of throwing bankProviderUnavailable. Response: { id, images: { logo } }.
+      const { data, status } = await req<{ images?: { logo?: string | null } }>(
+        `/v3/providers/${encodeURIComponent(providerId)}`,
+        { method: "GET", allowStatuses: [404] },
+      );
+      if (status === 404) return { logoUrl: null };
+      return { logoUrl: data.images?.logo ?? null };
+    },
   };
 }
