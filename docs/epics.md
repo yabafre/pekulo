@@ -13,7 +13,7 @@
 - Group B — Accounts: FR-9, FR-10, FR-11, FR-12
 - Group C — Holdings & Portfolio: FR-13, FR-14, FR-15, FR-16, FR-17, FR-18, FR-19, FR-20
 - Group D — Real-estate: FR-21, FR-22, FR-23, FR-24, FR-25, FR-26, FR-27
-- Group E — Transactions & LLM categorisation: FR-28, FR-29, FR-30, FR-31, FR-32, FR-33, FR-34, FR-35, FR-36, FR-60, FR-61, FR-62, FR-63 (FR-60+ added 2026-05-25 per ADR-0015 — bank-aggregator promotion to V1)
+- Group E — Transactions & LLM categorisation: FR-28, FR-29, FR-30, FR-31, FR-32, FR-33, FR-34, FR-35, FR-36, FR-60, FR-61, FR-62, FR-63, FR-64, FR-65 (FR-60+ added 2026-05-25 per ADR-0015 — bank-aggregator promotion to V1; FR-64/FR-65 added 2026-06-01 via aped-course)
 - Group F — Monthly tracking: FR-37, FR-38, FR-39, FR-40
 - Group G — Dashboard & KPIs: FR-41, FR-42, FR-43, FR-44
 - Group H — Auth, settings, lifecycle: FR-45, FR-46, FR-47, FR-48, FR-49, FR-50, FR-51, FR-52
@@ -107,6 +107,8 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 | FR-61 | 5-6-bridge-connector          | 5    |
 | FR-62 | 5-7-bridge-ui                 | 5    |
 | FR-63 | 5-7-bridge-ui                 | 5    |
+| FR-64 | 6-9-month-navigator           | 6    |
+| FR-65 | 6-10-merchant-logos           | 6    |
 
 **Coverage:** 63/63 FRs owned by exactly one story. No orphans, no multi-cover. (FR-60/61 owned by 5-6-bridge-connector ; FR-62/63 owned by 5-7-bridge-ui ; both added 2026-05-25 per ADR-0015.)
 
@@ -970,6 +972,91 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 - **Given** a categorisation call where attestation fails, **When** the queue retries, **Then** the next online window flushes successfully and the metric records the recovery.
 - **Given** a 7-day rolling drop rate above 1 %, **When** the metric crosses the threshold, **Then** an alert is emitted (and W3 pivot is on the table).
+
+**Complexity:** M
+
+<!-- Stories 6-7 → 6-10 added 2026-06-01 via aped-course (scope correction). Epic 5
+     is closed, so the two transaction-enrichment stories (6-9 month-navigator,
+     6-10 merchant-logos) land here despite pushing Epic 6 to 10 stories — explicit
+     [O]verride of the ≤8 soft cap, on the user's call. -->
+
+#### Story 6-7-auto-categorise-on-import
+
+**Ticket:** TBD (created when scheduled)
+**Title:** Auto-apply LLM category on bulk import (FR-33 amended)
+
+**Depends on:** 6-2-llm-categorise, 6-4-llm-suggestion-ui
+
+**As a** Pekulo user importing many transactions, **I want** the LLM-suggested category applied automatically on bulk import/sync (correctable anytime) instead of confirming each by hand, **so that** I'm not stuck validating hundreds of rows one by one.
+
+**Summary:** On the bulk path (CSV import / Bridge sync), apply the suggested category directly (no pending `autre`+suggestion state) and surface the row in Récentes already categorised; interactive single-transaction creation keeps the manual confirm/override flow (6-4). Update the DR-12 transparency notice to "categories applied by AI — editable anytime". Manual override (transaction edit) always wins. Reuses 6-4's bulk/pagination surface.
+
+**Covered FRs:** FR-33 (amended path; owning story stays 6-4 for the interactive path).
+
+**Acceptance Criteria:**
+
+- **Given** a bulk import producing N suggestions, **When** ingestion completes, **Then** each transaction is persisted with its suggested category (no manual confirm) and appears in Récentes, editable.
+- **Given** the first auto-applied batch, **When** the transactions surface renders, **Then** the AI transparency notice states the categories were applied by AI and are correctable.
+
+**Complexity:** M
+
+#### Story 6-8-category-taxonomy-expansion
+
+**Ticket:** TBD (created when scheduled)
+**Title:** Expand category taxonomy + category icons (DR-13)
+
+**Depends on:** 6-2-llm-categorise, 6-4-llm-suggestion-ui
+
+**As a** Pekulo user, **I want** richer categories (factures, restauration, abonnements, retrait) each with an icon, **so that** the AI categorisation covers my real spending and the UI is readable.
+
+**Summary:** Extend the `transactionCategory` enum + `TRANSACTION_CATEGORY_LABELS` with `factures, restauration, abonnements, retrait`; thread them into the LLM prompt allowlist (`llm-prompt-builder`), `SUGGESTABLE_TRANSACTION_CATEGORIES`, and `CategoryPicker`. Add a per-category display icon (lucide) shown in `CategoryPicker` + `PekuloSuggestionRow` + activity rows. No compass/budget remap (DR-13). Verify no CHECK constraint blocks the new values.
+
+**Covered FRs:** (no own FR — implements DR-13.)
+
+**Acceptance Criteria:**
+
+- **Given** the expanded enum, **When** the LLM categorises, **Then** the four new categories are valid suggestion targets and render with their icon in the picker + rows.
+- **Given** `db:rls-audit` / `prisma:check`, **When** the gate runs, **Then** it passes (no category CHECK regression).
+
+**Complexity:** M
+
+#### Story 6-9-month-navigator
+
+**Ticket:** TBD (created when scheduled)
+**Title:** Month navigator for transactions + stats (FR-64)
+
+**Depends on:** 5-1-transactions-record, 5-4-monthly-tracking
+
+**As a** Pekulo user, **I want** to browse my transactions and monthly stat cards month by month, **so that** the Net/Entrées/Sorties reflect a chosen month instead of only the current (often empty) one.
+
+**Summary:** A month navigator (‹ prev / next ›) on `/dashboard/transactions` driving the `TransactionsStatsRow` aggregates AND the Récentes list; defaults to the most recent month with recorded activity. Replaces the hardcoded current-month filter.
+
+**Covered FRs:** FR-64.
+
+**Acceptance Criteria:**
+
+- **Given** transactions only in February while today is June, **When** the page loads, **Then** the navigator defaults to February and the stat cards show February's real Net/Entrées/Sorties.
+- **Given** the navigator, **When** I move prev/next, **Then** both the stat cards and the Récentes list re-scope to the selected month.
+
+**Complexity:** M
+
+#### Story 6-10-merchant-logos
+
+**Ticket:** TBD (created when scheduled)
+**Title:** Merchant logos on transactions (FR-65)
+
+**Depends on:** 5-6-bridge-connector, 5-1-transactions-record
+
+**As a** Pekulo user, **I want** the merchant's logo on each transaction, **so that** I recognise my spending at a glance.
+
+**Summary:** Capture the provider-supplied merchant logo (Bridge `logo_url`) in the bank-aggregator ingestion, thread it through the `Transaction` DTO, and display it in `PekuloSuggestionRow` + activity rows, falling back to the category icon (6-8) when absent. No logo persisted for manually-created transactions.
+
+**Covered FRs:** FR-65.
+
+**Acceptance Criteria:**
+
+- **Given** a Bridge transaction with a `logo_url`, **When** it renders, **Then** the merchant logo is shown; **When** absent, **Then** the category icon is shown instead.
+- **Given** the prompt builder, **When** a logo is captured, **Then** it never enters an LLM prompt (NFR-12 allowlist unchanged).
 
 **Complexity:** M
 
