@@ -43,3 +43,4 @@ export * from "./PekuloTopTabToggle";
 export * from "./PekuloTrajectoryChart";
 export * from "./PekuloTrajectoryCard";
 export * from "./PekuloUserDot";
+export * from "./TransactionLogo";
