@@ -5,13 +5,14 @@
 //   - 2 cards on mobile (Net + À confirmer)
 //   - 4 cards on desktop (+ Entrées + Sorties)
 // Aggregates are derived over the current month from useTransactions(200).
-// "À confirmer" is a placeholder (0) until story 6-x ships the LLM
-// suggestions surface (FR-33).
+// "À confirmer" is the LIVE count of pending LLM suggestions
+// (usePendingSuggestions().totalCount — FR-33 / story 6-4).
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { Section } from "@pekulo/ui";
 import { useTransactions } from "../_hooks/use-transactions";
+import { usePendingSuggestions } from "../_hooks/use-pending-suggestions";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -37,6 +38,11 @@ const PLACEHOLDER = "—";
 
 export function TransactionsStatsRow() {
   const { data } = useTransactions(200);
+  // "À confirmer" — the live pending-suggestion total. Only the count is needed,
+  // so page 1 suffices; totalCount is returned on every page and shares the
+  // pending(1) cache with the Suggestions IA section. Refreshes on confirm via
+  // the transactionsTags.list() invalidation (bare [TRANSACTIONS_KEY] prefix).
+  const { data: pendingData } = usePendingSuggestions();
 
   // Hydration guard — same pattern as transactions-recent-section.tsx.
   // SSR has no TanStack cache and renders "+0 €"; client first paint sees
@@ -78,8 +84,10 @@ export function TransactionsStatsRow() {
     inflowLabel = eur0.format(totalInflow);
     outflowLabel = eur0.format(totalOutflow);
   }
-  // Placeholder until 6-x — count of LLM suggestions awaiting confirmation.
-  const pendingCount = 0;
+  // Live count of LLM suggestions awaiting confirmation (story 6-4). Gated on
+  // hydration like the month aggregates: SSR + first client paint render 0 (no
+  // cache), the real total appears on the second paint — no React 19 mismatch.
+  const pendingCount = isHydrated ? (pendingData?.totalCount ?? 0) : 0;
 
   return (
     <>
