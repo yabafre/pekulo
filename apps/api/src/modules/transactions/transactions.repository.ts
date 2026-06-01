@@ -161,6 +161,20 @@ export interface TransactionsRepository {
    * cross-user hourly sweep. The ONLY cross-user query in this repo.
    */
   listUserIdsWithBacklog(limit: number): Promise<string[]>;
+  /**
+   * Story 6-10 (FR-65) — minimal context for logo enrichment: the merchant
+   * label + the transaction's OWN provider (the AC-3 manual-vs-provider gate:
+   * a manual row on a Bridge account stays provider=null → category icon) + the
+   * owning account's providerAccountKey (the bank-logo tier). Used by the
+   * service AFTER it has the DTO page, so the public DTO stays clean. Carries
+   * where:{userId} so the lint rule is satisfied.
+   */
+  listLogoContext(
+    userId: string,
+    txIds: string[],
+  ): Promise<
+    { id: string; label: string; provider: string | null; providerAccountKey: string | null }[]
+  >;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -561,6 +575,28 @@ export function createTransactionsRepository(deps: {
         take: limit,
       });
       return rows.map((r) => r.userId);
+    },
+
+    async listLogoContext(userId, txIds) {
+      if (txIds.length === 0) return [];
+      const rows = await deps.client.transaction.findMany({
+        where: { userId, id: { in: txIds } },
+        select: {
+          id: true,
+          label: true,
+          provider: true,
+          account: { select: { providerAccountKey: true } },
+        },
+      });
+      return rows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        // The transaction's own provider gates AC-3 (manual rows resolve no
+        // logo even on a Bridge-connected account); the account's key drives
+        // the bank-logo tier.
+        provider: r.provider ?? null,
+        providerAccountKey: r.account?.providerAccountKey ?? null,
+      }));
     },
   };
 }

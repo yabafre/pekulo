@@ -695,3 +695,52 @@ describe("confirmCategorisation (6-4)", () => {
     ).rejects.toMatchObject({ code: "TRANSACTION_NOT_FOUND" });
   });
 });
+
+// Story 6-10 (FR-65) — read-path logo enrichment. The service maps a page of
+// DTOs to the opaque /v1/logos?ref= proxy URL (or null → category icon).
+describe("transactionsService — logo enrichment (story 6-10 / FR-65)", () => {
+  const txA = { ...sampleTx, id: "tx_logoaaaaaaaaaaaaaaaaa" };
+  const txB = { ...sampleTx, id: "tx_logobbbbbbbbbbbbbbbbb" };
+
+  const logos = {
+    enrich: mock(
+      async (
+        rows: {
+          id: string;
+          label: string;
+          provider: string | null;
+          providerAccountKey: string | null;
+        }[],
+      ) => new Map(rows.map((r) => [r.id, r.provider ? "MREF" : null] as const)),
+    ),
+  };
+  const repo = makeRepoMock({
+    listByUser: mock(async () => ({ items: [txA, txB], nextCursor: null })),
+    listPendingByUser: mock(async () => ({ items: [txA], totalCount: 1 })),
+    listLogoContext: mock(async () => [
+      { id: txA.id, label: "CB Carrefour", provider: "bridge", providerAccountKey: "pid:574:x" },
+      { id: txB.id, label: "Café", provider: null, providerAccountKey: null },
+    ]),
+  });
+  const svc = createTransactionsService({
+    repository: repo,
+    accountOwnershipProbe: makeProbe(true),
+    accountResolver: makeResolver(),
+    logos,
+  });
+
+  // AC-1/AC-2 — a provider row with a resolved logo gets the proxy URL; AC-3 —
+  // a manual row (provider == null) stays logo-less (the UI falls to the icon).
+  test("listTransactions sets logoUrl to the opaque proxy URL, null for manual rows", async () => {
+    const { items } = await svc.listTransactions("u1", { limit: 50 });
+    expect(items.find((i) => i.id === txA.id)?.logoUrl).toBe("/v1/logos?ref=MREF");
+    expect(items.find((i) => i.id === txB.id)?.logoUrl).toBeNull();
+  });
+
+  // The wire value is ALWAYS the apps/api proxy — never a third-party URL.
+  test("listPendingSuggestions enriches with the /v1/logos proxy URL only", async () => {
+    const { items } = await svc.listPendingSuggestions("u1", { page: 1, pageSize: 20 });
+    expect(items[0]?.logoUrl).toBe("/v1/logos?ref=MREF");
+    expect(items[0]?.logoUrl?.startsWith("/v1/logos?ref=")).toBe(true);
+  });
+});

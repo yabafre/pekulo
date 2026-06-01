@@ -226,6 +226,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     },
     categoriser: transactionCategoriser,
     llmAudit: llmOverrideAudit,
+    logos: logosModule.service, // story 6-10 — enrich list reads with logoUrl
   });
 
   const monthlyModule = createMonthlyModule({ prismaService });

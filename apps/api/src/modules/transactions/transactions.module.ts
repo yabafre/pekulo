@@ -14,6 +14,7 @@ import {
   type AccountOwnershipProbe,
   type AccountResolver,
   type LlmOverrideAuditPort,
+  type LogosEnrichPort,
   type TransactionCategoriser,
   type TransactionsService,
 } from "./transactions.service";
@@ -29,6 +30,7 @@ export function createTransactionsModule(deps: {
   accountResolver: AccountResolver;
   categoriser?: TransactionCategoriser;
   llmAudit?: LlmOverrideAuditPort;
+  logos?: LogosEnrichPort;
 }): TransactionsModule {
   const repository = createTransactionsRepository({ client: deps.prismaService.client });
   const service = createTransactionsService({
@@ -37,6 +39,7 @@ export function createTransactionsModule(deps: {
     accountResolver: deps.accountResolver,
     categoriser: deps.categoriser,
     llmAudit: deps.llmAudit,
+    logos: deps.logos,
   });
   const router = createTransactionsRouter({ service });
   return { service, router };
