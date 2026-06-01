@@ -17,23 +17,29 @@ export type ActionContext = {
 
 setActionContext<ActionContext>(async () => {
   const supabase = await createClient();
+  // getSession() yields the raw access_token (forwarded as Bearer to apps/api);
+  // reading session.access_token is safe. IDENTITY (userId/email) comes from
+  // getClaims(token) — local JWKS signature verification, no network call, no
+  // "session.user is insecure" warning. NEVER read session.user here (that is
+  // what auth-js flags). Passing the token avoids a second getSession() call.
   const {
     data: { session },
   } = await supabase.auth.getSession();
   if (!session) {
     throw new Error("UNAUTHORIZED");
   }
-  // Seed the AsyncLocalStorage so the oRPC client (called from inside
-  // ported actions) can read the access token from getRequestContext().
-  // Pass the already-resolved session to skip a duplicate auth.getSession().
-  seedRequestContext({
-    accessToken: session.access_token,
-    userId: session.user.id,
-    email: session.user.email ?? null,
-  });
+  const { data: claimsData, error } = await supabase.auth.getClaims(session.access_token);
+  if (error || !claimsData) {
+    throw new Error("UNAUTHORIZED");
+  }
+  const userId = claimsData.claims.sub;
+  const email = claimsData.claims.email ?? null;
+  // Seed the AsyncLocalStorage so the oRPC client (called from inside ported
+  // actions) reads the access token from getRequestContext() without re-auth.
+  seedRequestContext({ accessToken: session.access_token, userId, email });
   return {
     supabase: supabase as unknown as SupabaseClient,
-    userId: session.user.id,
-    email: session.user.email ?? null,
+    userId,
+    email,
   };
 });

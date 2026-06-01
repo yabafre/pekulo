@@ -36,16 +36,26 @@ export async function ensureRequestContext(): Promise<RequestContext> {
   if (existing) return existing;
 
   const supabase = await createClient();
+  // getSession() provides the raw access_token (forwarded as Bearer to
+  // apps/api). Reading session.access_token is safe — auth-js only flags
+  // session.user as untrusted (it wraps it in insecureUserWarningProxy). For
+  // IDENTITY (userId/email) we verify the JWT locally via getClaims(token):
+  // signature-checked against the project JWKS, no network round-trip, no
+  // warning. Passing the token in avoids getClaims re-calling getSession.
   const {
     data: { session },
   } = await supabase.auth.getSession();
   if (!session) {
     throw new Error("UNAUTHORIZED");
   }
+  const { data: claimsData, error } = await supabase.auth.getClaims(session.access_token);
+  if (error || !claimsData) {
+    throw new Error("UNAUTHORIZED");
+  }
   const ctx: RequestContext = {
     accessToken: session.access_token,
-    userId: session.user.id,
-    email: session.user.email ?? null,
+    userId: claimsData.claims.sub,
+    email: claimsData.claims.email ?? null,
   };
   requestContextStore.enterWith(ctx);
   return ctx;
