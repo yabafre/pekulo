@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import { loadEnv } from "./config/env";
 import { createRuntimeDependencies } from "./bootstrap/runtime-dependencies";
 import { registerLifecycle } from "./bootstrap/lifecycle";
+import { startSchedulers, stopSchedulers } from "./bootstrap/schedulers";
 import { createHealthModule } from "./modules/health/health.module";
 import { mapErrorToOrpcResponse } from "./platform/http/error-mapper";
 import { mountOrpc } from "./platform/http/orpc-mount";
@@ -112,9 +113,12 @@ export async function startServer(): Promise<ServerHandle> {
 
   mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
 
-  // Story 5-6 — start the bank-refresh cron after Elysia is wired but before
-  // listen() returns. Stop is registered on lifecycle teardown below.
-  deps.bankAggregatorModule.scheduledTask.start();
+  // Start background schedulers after Elysia is wired but before listen()
+  // returns: the 5-6 bank-refresh cron AND the 6-4 suggestion-backfill sweep.
+  // Stop is registered on lifecycle teardown below. (Wiring extracted to a
+  // unit-tested helper — aped-review 6-4 caught the backfill sweep never being
+  // started when it lived inline here.)
+  startSchedulers(deps);
 
   await registerLifecycle(
     app,
@@ -123,7 +127,7 @@ export async function startServer(): Promise<ServerHandle> {
       prismaService: deps.prismaService,
       shutdownOtel,
       onShutdown: async () => {
-        deps.bankAggregatorModule.scheduledTask.stop();
+        stopSchedulers(deps);
       },
     },
   );
