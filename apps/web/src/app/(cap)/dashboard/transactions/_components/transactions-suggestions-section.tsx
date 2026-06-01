@@ -12,6 +12,7 @@ import {
   CategoryPicker,
   PekuloDialog,
   PekuloEmptyState,
+  PekuloPagination,
   PekuloSkeleton,
   PekuloSubmitButton,
   Section,
@@ -52,13 +53,23 @@ function formatDay(iso: string): string {
 }
 
 export function TransactionsSuggestionsSection() {
-  const { data, isLoading, error } = usePendingSuggestions();
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = usePendingSuggestions(page);
   const { data: accounts } = useAccounts();
   const confirm = useConfirmCategorisation();
   const toast = useToast();
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => setIsHydrated(true), []);
   const showLoading = !isHydrated || isLoading;
+
+  const totalCount = data?.totalCount ?? 0;
+  const pageSize = data?.pageSize ?? 10;
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
+  // Clamp when the current page falls past the end — confirming the last row on
+  // the last page shrinks the set; never leave the user stranded on a blank page.
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   const [overrideTx, setOverrideTx] = useState<Transaction | null>(null);
   const [overrideCategory, setOverrideCategory] = useState<string>("courses");
@@ -93,7 +104,7 @@ export function TransactionsSuggestionsSection() {
         <View flexDirection="row" alignItems="center" gap="$2">
           <Bot size={12} strokeWidth={2} aria-hidden />
           <Text color="$colorTertiary" fontSize="$caption">
-            {items.length} à valider
+            {totalCount} à valider
           </Text>
         </View>
       }
@@ -156,6 +167,12 @@ export function TransactionsSuggestionsSection() {
               );
             })}
           </View>
+          <PekuloPagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            ariaLabel="Pagination des suggestions"
+          />
         </>
       )}
 

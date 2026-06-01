@@ -196,8 +196,24 @@ export const confirmCategorisationInputSchema = z.object({
 });
 export type ConfirmCategorisationInput = z.infer<typeof confirmCategorisationInputSchema>;
 
+// Numbered (offset) pagination of the pending-suggestion triage list. NB: this
+// list deliberately uses OFFSET, not the keyset convention NFR-16 mandates for
+// the large append-only feeds (transactions list, llm_call_log). Numbered pages
+// with random page-jump need a total count + skip/take; the pending set is a
+// small bounded subset (category='autre' AND suggestedCategory != null), so the
+// offset is sound here. Recorded so aped-review treats it as a decision, not a
+// violation. (docs/quick-specs/2026-06-01-suggestions-ia-pagination.md)
+export const listPendingSuggestionsInputSchema = z.object({
+  page: z.number().int().min(1).optional().default(1),
+  pageSize: z.number().int().min(1).max(50).optional().default(10),
+});
+export type ListPendingSuggestionsInput = z.infer<typeof listPendingSuggestionsInputSchema>;
+
 export const listPendingSuggestionsOutputSchema = z.object({
   items: z.array(transactionSchema),
+  totalCount: z.number().int().nonnegative(),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
 });
 export type ListPendingSuggestionsOutput = z.infer<typeof listPendingSuggestionsOutputSchema>;
 

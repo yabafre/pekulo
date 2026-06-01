@@ -27,6 +27,7 @@ export * from "./PekuloMilestonesCard";
 export * from "./PekuloMobileBottomNav";
 export * from "./PekuloMonthlyRow";
 export * from "./PekuloNavRail";
+export * from "./PekuloPagination";
 export * from "./PekuloProjectionChart";
 export * from "./PekuloPropertyCard";
 export * from "./PekuloRecentActivityCard";

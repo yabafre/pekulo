@@ -136,9 +136,14 @@ export interface TransactionsRepository {
   /**
    * Story 6-4 — the pending-suggestion list: rows still 'autre' that carry a
    * suggestion. Backed by transactions_user_suggestion_idx (userId,
-   * suggestedCategory). Newest suggestion first.
+   * suggestedCategory). Newest suggestion first. OFFSET-paginated (page/pageSize)
+   * — see the NFR-16 deviation note on the schema. Returns the page slice + the
+   * full match count so the UI can render numbered pages.
    */
-  listPendingByUser(userId: string): Promise<Transaction[]>;
+  listPendingByUser(
+    userId: string,
+    input: { page: number; pageSize: number },
+  ): Promise<{ items: Transaction[]; totalCount: number }>;
   /**
    * Backfill (épic 6) — still-'autre', no suggestion, NEVER attempted rows for
    * one user, newest first, capped at `limit`. The categorisation sweep's
@@ -501,12 +506,21 @@ export function createTransactionsRepository(deps: {
       return { outcome: "ok", transaction: toDto(row as TransactionRow) };
     },
 
-    async listPendingByUser(userId) {
-      const rows = (await deps.client.transaction.findMany({
-        where: { userId, category: "autre", suggestedCategory: { not: null } },
-        orderBy: [{ suggestedAt: "desc" }, { id: "desc" }],
-      })) as TransactionRow[];
-      return rows.map(toDto);
+    async listPendingByUser(userId, { page, pageSize }) {
+      // OFFSET pagination (deliberate NFR-16 deviation — see the schema note):
+      // numbered pages with random jump need skip/take + a total count, and the
+      // pending set is small + bounded. Still fully user-scoped (ADR-0013).
+      const where = { userId, category: "autre", suggestedCategory: { not: null } };
+      const [rows, totalCount] = await Promise.all([
+        deps.client.transaction.findMany({
+          where,
+          orderBy: [{ suggestedAt: "desc" }, { id: "desc" }],
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }) as Promise<TransactionRow[]>,
+        deps.client.transaction.count({ where }),
+      ]);
+      return { items: rows.map(toDto), totalCount };
     },
 
     async listAutreWithoutAttempt(userId, limit) {

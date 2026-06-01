@@ -30,6 +30,7 @@ import type {
   GetTransactionInput,
   ImportCsvInput,
   ImportCsvOutput,
+  ListPendingSuggestionsInput,
   ListPendingSuggestionsOutput,
   ListTransactionsInput,
   ListTransactionsOutput,
@@ -137,8 +138,11 @@ export interface TransactionsService {
    * TRANSACTION_NOT_FOUND when the row is gone / not the caller's.
    */
   confirmCategorisation(userId: string, input: ConfirmCategorisationInput): Promise<Transaction>;
-  /** Story 6-4 — list the caller's pending-suggestion transactions. */
-  listPendingSuggestions(userId: string): Promise<ListPendingSuggestionsOutput>;
+  /** Story 6-4 — list the caller's pending-suggestion transactions, offset-paginated. */
+  listPendingSuggestions(
+    userId: string,
+    input: ListPendingSuggestionsInput,
+  ): Promise<ListPendingSuggestionsOutput>;
   /**
    * Backfill (épic 6) — categorise up to `limit` of the user's still-'autre',
    * never-attempted transactions (the rows bulk import left uncategorised — it
@@ -479,8 +483,12 @@ export function createTransactionsService(deps: {
       return outcome.transaction;
     },
 
-    async listPendingSuggestions(userId) {
-      return { items: await deps.repository.listPendingByUser(userId) };
+    async listPendingSuggestions(userId, input) {
+      const { items, totalCount } = await deps.repository.listPendingByUser(userId, {
+        page: input.page,
+        pageSize: input.pageSize,
+      });
+      return { items, totalCount, page: input.page, pageSize: input.pageSize };
     },
 
     async backfillSuggestions(userId, limit) {

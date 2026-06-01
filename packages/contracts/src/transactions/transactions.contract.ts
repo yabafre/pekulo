@@ -11,6 +11,7 @@ import {
   getTransactionInputSchema,
   importCsvInputSchema,
   importCsvOutputSchema,
+  listPendingSuggestionsInputSchema,
   listPendingSuggestionsOutputSchema,
   listTransactionsInputSchema,
   listTransactionsOutputSchema,
@@ -77,7 +78,9 @@ export const transactionsContractV1 = {
     .output(transactionSchema),
   // Story 6-4 — list the user's transactions awaiting suggestion confirmation
   // (category === 'autre' AND suggestedCategory != null). No input.
-  listPendingSuggestions: oc.output(listPendingSuggestionsOutputSchema),
+  listPendingSuggestions: oc
+    .input(listPendingSuggestionsInputSchema)
+    .output(listPendingSuggestionsOutputSchema),
 } as const;
 
 export const transactionsContract = transactionsContractV1;

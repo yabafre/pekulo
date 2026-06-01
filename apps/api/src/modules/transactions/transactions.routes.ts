@@ -128,9 +128,9 @@ export function createTransactionsRouter(deps: { service: TransactionsService })
       },
     ),
 
-    listPendingSuggestions: impl.listPendingSuggestions.handler(async ({ context }) => {
+    listPendingSuggestions: impl.listPendingSuggestions.handler(async ({ context, input }) => {
       requireUserId(context.userId);
-      return deps.service.listPendingSuggestions(context.userId);
+      return deps.service.listPendingSuggestions(context.userId, input);
     }),
   });
 }

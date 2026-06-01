@@ -22,10 +22,12 @@ export function armSuggestionPoll(): void {
   pollUntil = Date.now() + POLL_WINDOW_MS;
 }
 
-export function usePendingSuggestions() {
+// `page` is 1-based; `pageSize` defaults to 10 (the contract default). Each page
+// caches independently under transactionsKeys.pending(page).
+export function usePendingSuggestions(page = 1, pageSize = 10) {
   return useActionQuery(listPendingSuggestions, {
-    input: undefined,
-    queryKey: transactionsKeys.pending(),
+    input: { page, pageSize },
+    queryKey: transactionsKeys.pending(page),
     readPolicy: "read-only",
     staleTime: 30_000,
     // RQ re-evaluates this after every fetch → the poll self-terminates once the

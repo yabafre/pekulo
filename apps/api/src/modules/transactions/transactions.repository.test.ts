@@ -830,13 +830,25 @@ describe("confirmCategorisation (6-4)", () => {
     expect(out.outcome).toBe("not-found");
   });
 
-  test("listPendingByUser filters category=autre AND suggestedCategory!=null", async () => {
+  test("listPendingByUser offset-paginates (skip/take + count) scoped to the user", async () => {
     const findMany = mock(async (_args: { where: Record<string, unknown> }) => []);
-    const client = { transaction: { findMany } } as never;
+    const count = mock(async (_args: { where: Record<string, unknown> }) => 23);
+    const client = { transaction: { findMany, count } } as never;
     const repo = createTransactionsRepository({ client });
-    await repo.listPendingByUser("u1");
-    const [arg] = findMany.mock.calls[0] as [{ where: Record<string, unknown> }];
-    expect(arg.where).toMatchObject({
+    const out = await repo.listPendingByUser("u1", { page: 2, pageSize: 10 });
+    expect(out.totalCount).toBe(23);
+    const [findArg] = findMany.mock.calls[0] as [
+      { where: Record<string, unknown>; skip: number; take: number },
+    ];
+    expect(findArg.where).toMatchObject({
+      userId: "u1",
+      category: "autre",
+      suggestedCategory: { not: null },
+    });
+    expect(findArg.skip).toBe(10); // (page 2 - 1) * pageSize 10
+    expect(findArg.take).toBe(10);
+    const [countArg] = count.mock.calls[0] as [{ where: Record<string, unknown> }];
+    expect(countArg.where).toMatchObject({
       userId: "u1",
       category: "autre",
       suggestedCategory: { not: null },

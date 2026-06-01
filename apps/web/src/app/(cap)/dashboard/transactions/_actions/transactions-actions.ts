@@ -1,13 +1,13 @@
 "use server";
 
 import { defineAction } from "@zapaction/core";
-import { z } from "@pekulo/zod";
 import { ORPCError } from "@orpc/client";
 import {
   confirmCategorisationInputSchema,
   createTransactionInputSchema,
   deleteTransactionInputSchema,
   importCsvInputSchema,
+  listPendingSuggestionsInputSchema,
   listPendingSuggestionsOutputSchema,
   listTransactionsInputSchema,
   listTransactionsOutputSchema,
@@ -17,6 +17,7 @@ import {
   type CreateTransactionInput,
   type DeleteTransactionInput,
   type ImportCsvInput,
+  type ListPendingSuggestionsInput,
   type ListPendingSuggestionsOutput,
   type ListTransactionsInput,
   type ListTransactionsOutput,
@@ -138,18 +139,18 @@ export const confirmCategorisation = defineAction<
   },
 });
 
-// Read — keeps `output:` (no typed error to surface).
+// Read — keeps `output:` (no typed error to surface). Offset-paginated (10/page).
 export const listPendingSuggestions = defineAction<
-  void,
+  ListPendingSuggestionsInput,
   ListPendingSuggestionsOutput,
   ActionContext
 >({
   name: "listPendingSuggestions",
-  input: z.void(),
+  input: listPendingSuggestionsInputSchema,
   output: listPendingSuggestionsOutputSchema,
-  handler: async () => {
+  handler: async ({ input }) => {
     await ensureRequestContext();
-    return transactionsClient.listPendingSuggestions();
+    return transactionsClient.listPendingSuggestions(input);
   },
 });
 

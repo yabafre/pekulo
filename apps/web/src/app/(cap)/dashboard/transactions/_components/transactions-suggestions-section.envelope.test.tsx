@@ -77,4 +77,21 @@ describe("TransactionsSuggestionsSection (6-4)", () => {
     fireEvent.submit(submit.closest("form")!);
     expect(confirmMock).toHaveBeenCalled();
   });
+
+  // AC-3 (quick-spec 2026-06-01): 10/page with numbered pagination — when the
+  // server reports more than one page, PekuloPagination renders.
+  test("AC-3 pagination → numbered nav appears when totalCount exceeds the page size", async () => {
+    pendingMock.mockReturnValue({
+      data: { items: [pendingTx], totalCount: 25, page: 1, pageSize: 10 },
+      isLoading: false,
+      error: null,
+    });
+    const { container } = renderWithTamagui(<TransactionsSuggestionsSection />);
+    expect(
+      await screen.findByRole("navigation", { name: "Pagination des suggestions" }),
+    ).toBeTruthy();
+    // 25 / 10 → 3 pages; page 3 present, page 4 absent.
+    expect(container.querySelector('[aria-label="Page 3"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Page 4"]')).toBeNull();
+  });
 });
