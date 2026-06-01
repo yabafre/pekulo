@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import {
+  CategoryIcon,
   HeaderAction,
   PekuloActivityRow,
   PekuloButton,
@@ -14,7 +15,7 @@ import {
   pekuloRadius,
   useToast,
 } from "@pekulo/ui";
-import { ArrowLeftRight, MoreHorizontal, Search, Upload } from "lucide-react";
+import { MoreHorizontal, Search, Upload } from "lucide-react";
 import { TRANSACTION_CATEGORY_LABELS, type Transaction } from "@pekulo/validators";
 import type { Activity } from "@pekulo/types";
 import { useAccounts } from "../../_accounts/_hooks/use-accounts";
@@ -172,19 +173,18 @@ export function TransactionsRecentSection() {
               direction: tx.type === "inflow" ? "in" : "out",
               amountEur: tx.amount,
             };
-            // Story 5-3 AC-8 — inline ⇆ ArrowLeftRight glyph prefixed to the
-            // category text when the row was tagged `transfer` by the rule.
-            // 14 px / colorTertiary / aria-hidden so SR readers announce only
-            // the "Transfert" label, not the icon.
-            const categoryPrefix =
-              tx.category === "transfer" ? (
-                <ArrowLeftRight
-                  size={14}
-                  color="var(--colorTertiary)"
-                  aria-hidden
-                  style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}
-                />
-              ) : undefined;
+            // Story 6-8 (DR-13) — every row shows its category icon as an
+            // inline caption prefix (14 px / colorTertiary / aria-hidden so SR
+            // readers announce only the category label). 'transfer' resolves to
+            // ArrowLeftRight via CATEGORY_ICONS, preserving story 5-3 AC-8.
+            const categoryPrefix = (
+              <CategoryIcon
+                category={tx.category}
+                size={14}
+                color="var(--colorTertiary)"
+                style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}
+              />
+            );
             return (
               <View key={tx.id} role="listitem" flexDirection="row" alignItems="center" gap="$3">
                 <View flex={1} minWidth={0}>

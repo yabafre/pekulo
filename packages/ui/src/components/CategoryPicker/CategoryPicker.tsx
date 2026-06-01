@@ -1,6 +1,7 @@
 "use client";
 
 import { PekuloSelect } from "../../primitives";
+import { CategoryIcon } from "../CategoryIcon";
 
 export interface CategoryOption {
   value: string;
@@ -38,7 +39,12 @@ export function CategoryPicker({
       <PekuloSelect.Content>
         <PekuloSelect.Group>
           {options.map((opt, i) => (
-            <PekuloSelect.Item key={opt.value} value={opt.value} index={i}>
+            <PekuloSelect.Item
+              key={opt.value}
+              value={opt.value}
+              index={i}
+              icon={<CategoryIcon category={opt.value} size={16} />}
+            >
               {opt.label}
             </PekuloSelect.Item>
           ))}

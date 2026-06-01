@@ -39,7 +39,7 @@ import type {
   Transaction,
   UpdateTransactionInput,
 } from "@pekulo/validators";
-import { TRANSACTION_CATEGORIES } from "@pekulo/validators";
+import { SUGGESTABLE_TRANSACTION_CATEGORIES } from "@pekulo/validators";
 import { accountNotFound } from "../accounts/accounts.errors";
 import { PekuloError } from "../../common/errors";
 import { generateBase62Id } from "../../database";
@@ -101,12 +101,11 @@ export interface LlmOverrideAuditPort {
   recordOverride(input: { userId: string; route: string; label: string }): Promise<void>;
 }
 
-// Categories the LLM may suggest — the closed transaction enum minus the two
-// system values: 'transfer' (rule-owned, story 5-3) and 'autre' (the fallback
-// the suggestion would replace).
-const SUGGESTABLE_CATEGORIES: readonly string[] = TRANSACTION_CATEGORIES.filter(
-  (c) => c !== "transfer" && c !== "autre",
-);
+// Categories the LLM may suggest — the validators SSOT (the closed transaction
+// enum minus the two system values 'transfer'/'autre'). Story 6-8 stopped
+// re-deriving this here so the prompt allowlist can never drift from
+// confirmCategorisation's narrowed input schema.
+const SUGGESTABLE_CATEGORIES: readonly string[] = SUGGESTABLE_TRANSACTION_CATEGORIES;
 
 // Backfill (épic 6) — how many freshly-imported 'autre' rows to LLM-categorise
 // immediately after a Bridge sync (fire-and-forget). The hourly sweep drains

@@ -179,8 +179,9 @@ function Label(props: ComponentProps<typeof TamaSelect.Label>) {
 
 function Item({
   children,
+  icon,
   ...props
-}: ComponentProps<typeof TamaSelect.Item> & { children: ReactNode }) {
+}: ComponentProps<typeof TamaSelect.Item> & { children: ReactNode; icon?: ReactNode }) {
   return (
     <TamaSelect.Item
       data-slot="select-item"
@@ -196,6 +197,7 @@ function Item({
       focusStyle={{ backgroundColor: "$backgroundMuted" }}
       {...props}
     >
+      {icon}
       <TamaSelect.ItemText color="$color" fontSize="$bodySm">
         {children}
       </TamaSelect.ItemText>

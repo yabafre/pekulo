@@ -60,9 +60,19 @@ export interface PekuloSuggestionRowProps {
   onConfirm?: () => void;
   onEdit?: () => void;
   disabled?: boolean;
+  // Story 6-8 — category glyph rendered after the Sparkles AI marker in the
+  // chip. The consumer resolves <CategoryIcon> from the raw category key (the
+  // row's `tx.suggestedCategory` is the display label, not the key).
+  categoryIcon?: ReactNode;
 }
 
-export function PekuloSuggestionRow({ tx, onConfirm, onEdit, disabled }: PekuloSuggestionRowProps) {
+export function PekuloSuggestionRow({
+  tx,
+  onConfirm,
+  onEdit,
+  disabled,
+  categoryIcon,
+}: PekuloSuggestionRowProps) {
   const Arrow = tx.direction === "in" ? ArrowDownRight : ArrowUpRight;
   const sign = tx.direction === "in" ? "+" : "−";
   return (
@@ -95,6 +105,7 @@ export function PekuloSuggestionRow({ tx, onConfirm, onEdit, disabled }: PekuloS
           {/* Sparkles is chrome (icon next to a label), not a perf delta — TR-strict
               keeps it on the grayscale ramp. */}
           <Sparkles size={12} color="var(--colorSecondary)" />
+          {categoryIcon}
           <Text color="$colorSecondary" fontSize="$xs">
             {tx.suggestedCategory}
           </Text>

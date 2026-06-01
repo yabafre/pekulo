@@ -1,7 +1,7 @@
 // packages/validators/src/transactions/transactions.schemas.ts
 // Zod source of truth for the transactions aggregate (story 5-1). 9 schemas
 // covering the DTO + 5 inputs + cursor pagination + ok envelope. Categories
-// (12 closed enum) + French labels exported for UI consumers.
+// (17 closed enum) + French labels exported for UI consumers.
 //
 // R1: every zod import goes through @pekulo/zod (not "zod" direct).
 // Prefixed IDs (ADR-0012): transaction ids match /^tx_[0-9A-Za-z]{21}$/.
@@ -21,6 +21,10 @@ export const TRANSACTION_CATEGORIES = [
   "voyage",
   "sante",
   "imprevu",
+  "factures",
+  "restauration",
+  "abonnements",
+  "retrait",
   "autre",
   "transfer",
 ] as const;
@@ -38,6 +42,10 @@ export const TRANSACTION_CATEGORY_LABELS: Record<(typeof TRANSACTION_CATEGORIES)
     voyage: "Voyage",
     sante: "Santé",
     imprevu: "Imprévu",
+    factures: "Factures",
+    restauration: "Restauration",
+    abonnements: "Abonnements",
+    retrait: "Retrait",
     autre: "Autre",
     transfer: "Transfert",
   };
@@ -182,6 +190,10 @@ export const SUGGESTABLE_TRANSACTION_CATEGORIES = [
   "voyage",
   "sante",
   "imprevu",
+  "factures",
+  "restauration",
+  "abonnements",
+  "retrait",
 ] as const;
 // Compile-time guard: every suggestable value is a real TransactionCategory.
 const suggestableSubsetGuard: readonly TransactionCategory[] = SUGGESTABLE_TRANSACTION_CATEGORIES;
