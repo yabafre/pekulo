@@ -179,6 +179,9 @@ function toDto(row: TransactionRow): Transaction {
     suggestedConfidence: row.suggestedConfidence ?? null,
     suggestedRoute: row.suggestedRoute ?? null,
     suggestedAt: row.suggestedAt ? row.suggestedAt.toISOString() : null,
+    // Story 6-10 — null by default; transactions.service.enrich fills it on the
+    // list reads (the repository has no logo cache access — module boundary).
+    logoUrl: null,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
   };
 }

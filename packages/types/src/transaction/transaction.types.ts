@@ -37,6 +37,9 @@ export interface Activity {
   category: string;
   direction: TxDirection;
   amountEur: number;
+  // Story 6-10 — opaque Pekulo proxy URL for the merchant/bank logo, or
+  // null/undefined → row renders the category icon.
+  logoUrl?: string | null;
 }
 
 // LLM route badge labels — UI-display variant (the "iOS / Ollama / Cloud"
@@ -57,4 +60,7 @@ export interface Suggestion {
   suggestedCategory: string;
   confidence: number;
   route: LlmRouteBadge;
+  // Story 6-10 — opaque Pekulo proxy URL for the merchant/bank logo, or
+  // null/undefined → row renders the category icon.
+  logoUrl?: string | null;
 }
