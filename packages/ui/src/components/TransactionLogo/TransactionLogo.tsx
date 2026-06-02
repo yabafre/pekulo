@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "tamagui";
 import { CategoryIcon } from "../CategoryIcon/CategoryIcon";
 
@@ -21,6 +21,10 @@ export function TransactionLogo({ src, category, size = 28 }: TransactionLogoPro
   // A broken/404 proxy image swaps to the category icon (AC-3). useState keeps
   // the fallback in React's hands — no imperative DOM poke on the sibling node.
   const [failed, setFailed] = useState(false);
+  // Reset the error state when `src` changes — in a recycled/virtualised list a
+  // row whose previous logo 404'd must not stay on the category icon once a new
+  // logo URL arrives on the same mounted instance.
+  useEffect(() => setFailed(false), [src]);
   const showImg = Boolean(src) && !failed;
   return (
     <View
