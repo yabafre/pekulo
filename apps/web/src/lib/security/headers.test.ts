@@ -65,6 +65,18 @@ describe("buildContentSecurityPolicy", () => {
     expect(prod).not.toContain("fonts.gstatic.com");
   });
 
+  test("dev script-src drops the nonce for 'unsafe-inline' + react-grab; prod stays nonce-strict", () => {
+    const dev = buildContentSecurityPolicy({ dev: true, nonce: NONCE });
+    expect(dev).toMatch(/script-src[^;]*'unsafe-inline'/);
+    expect(dev).toContain("https://www.react-grab.com");
+    expect(dev).not.toContain(`'nonce-${NONCE}'`); // no per-script nonce in dev
+
+    const prod = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
+    expect(prod).toMatch(new RegExp(`script-src[^;]*'nonce-${NONCE}'`));
+    expect(prod).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+    expect(prod).not.toContain("react-grab.com");
+  });
+
   // AC-3/AC-4 (verbatim from story 11-7-auth-hardening-httponly-csp:31-32):
   //   script-src is 'self' 'nonce-<per-request>' with no 'unsafe-inline' ...
   //   the unit suite asserts script-src carries no 'unsafe-inline'.
