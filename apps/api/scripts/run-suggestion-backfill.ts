@@ -30,7 +30,7 @@ console.log(`[backfill] sweeping up to ${maxUsers} user(s) × ${limitPerUser} ro
 try {
   const summary = await deps.transactionsModule.service.backfillAllUsers(maxUsers, limitPerUser);
   console.log(
-    `[backfill] done — users swept: ${summary.users}, suggestions written: ${summary.suggested}`,
+    `[backfill] done — users swept: ${summary.users}, suggestions written: ${summary.suggested}, categories auto-applied (csv/bridge, 6-7): ${summary.applied}`,
   );
 } finally {
   // Don't start the scheduler in a one-shot; just drain the pool and exit.
