@@ -66,9 +66,9 @@ describe("logos.routes proxy (story 6-10 / AC-5)", () => {
     expect(fetched).toBe(false);
   });
 
-  // The proxy is an IMAGE proxy — a non-image body (e.g. a CDN HTML error page)
-  // is never relayed under the immutable cache header.
-  test("allowed host but non-image content-type → 404", async () => {
+  // The proxy relays binary bytes only — a text/HTML body (e.g. a CDN error
+  // page) is never relayed under the immutable cache header.
+  test("allowed host but text/html content-type → 404", async () => {
     globalThis.fetch = (async () =>
       new Response("<html>error</html>", {
         status: 200,
@@ -79,5 +79,20 @@ describe("logos.routes proxy (story 6-10 / AC-5)", () => {
     });
     const res = await app.handle(new Request("http://localhost/v1/logos?ref=YjU3NA"));
     expect(res.status).toBe(404);
+  });
+
+  // web.bridgeapi.io mis-serves bank-logo PNGs as application/octet-stream —
+  // the proxy must still relay them (the browser <img> sniffs the bytes).
+  test("allowed host serving application/octet-stream (bank logo) → 200", async () => {
+    globalThis.fetch = (async () =>
+      new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+        status: 200,
+        headers: { "content-type": "application/octet-stream" },
+      })) as unknown as typeof fetch;
+    const app = registerLogoRoutes({
+      service: svcWith(async () => "https://web.bridgeapi.io/img/banks-logo/fr/demo-bank.png"),
+    });
+    const res = await app.handle(new Request("http://localhost/v1/logos?ref=Yjo1NzQ"));
+    expect(res.status).toBe(200);
   });
 });

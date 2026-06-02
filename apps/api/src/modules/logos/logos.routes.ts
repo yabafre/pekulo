@@ -49,8 +49,14 @@ export function registerLogoRoutes(deps: { service: LogosService }) {
       }
       try {
         const res = await fetch(upstream, { signal: AbortSignal.timeout(PROXY_TIMEOUT_MS) });
-        const contentType = res.headers.get("content-type") ?? "";
-        if (!res.ok || !res.body || !contentType.startsWith("image/")) {
+        const contentType = res.headers.get("content-type") ?? "application/octet-stream";
+        // Relay binary logo bytes only — never an HTML/JSON error page under the
+        // immutable cache header. Some logo CDNs mis-serve PNGs as
+        // application/octet-stream (web.bridgeapi.io bank logos do), so accept
+        // image/* AND octet-stream; a text/* or json body is an error page → 404.
+        const servable =
+          contentType.startsWith("image/") || contentType.startsWith("application/octet-stream");
+        if (!res.ok || !res.body || !servable) {
           return new Response("logo not found", { status: 404 });
         }
         return new Response(res.body, {
