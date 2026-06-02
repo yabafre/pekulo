@@ -52,6 +52,15 @@
   ],
   "overrides": [
     {
+      // @pekulo/ui is a universal Tamagui package, not a Next app — next/image
+      // is unavailable, so the <img> guidance (TransactionLogo's onError
+      // fallback needs a native img) does not apply here.
+      "files": ["packages/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "nextjs/no-img-element": "off"
+      }
+    },
+    {
       "files": ["apps/web/src/components/ui/**/*.{ts,tsx}"],
       "rules": {
         "jsx-a11y/label-has-associated-control": "off"
@@ -68,7 +77,10 @@
       "rules": {
         "pekulo/no-prisma-query-without-user-id": [
           "error",
-          { "prismaIdentifier": ["prisma", "tx", "client"] }
+          {
+            "prismaIdentifier": ["prisma", "tx", "client"],
+            "unscopedModels": ["merchantLogoCache", "providerLogoCache"]
+          }
         ]
       }
     },

@@ -101,6 +101,26 @@ export interface LlmOverrideAuditPort {
   recordOverride(input: { userId: string; route: string; label: string }): Promise<void>;
 }
 
+/**
+ * Story 6-10 (FR-65) — narrow logo-enrich port. The runtime wires this around
+ * logosModule.service.enrich so the transactions module never imports
+ * LogosService directly (L1 — mirrors TransactionCategoriser). Maps a page of
+ * transactions to their opaque proxy ref (or null → category icon). Gated on
+ * the transaction's own `provider` (manual rows, provider == null, never
+ * resolve a logo — AC-3).
+ */
+export interface LogosEnrichPort {
+  enrich(
+    rows: {
+      id: string;
+      label: string;
+      provider: string | null;
+      providerAccountKey: string | null;
+      providerId?: string | null;
+    }[],
+  ): Promise<Map<string, string | null>>;
+}
+
 // Categories the LLM may suggest — the validators SSOT (the closed transaction
 // enum minus the two system values 'transfer'/'autre'). Story 6-8 stopped
 // re-deriving this here so the prompt allowlist can never drift from
@@ -142,6 +162,8 @@ export interface TransactionsService {
     userId: string,
     input: ListPendingSuggestionsInput,
   ): Promise<ListPendingSuggestionsOutput>;
+  /** Story 6-10 backfill — distinct merchant labels of the user's provider rows. */
+  listDistinctProviderLabels(userId: string, limit: number): Promise<string[]>;
   /**
    * Backfill (épic 6) — categorise up to `limit` of the user's still-'autre',
    * never-attempted transactions (the rows bulk import left uncategorised — it
@@ -307,7 +329,36 @@ export function createTransactionsService(deps: {
   accountResolver: AccountResolver;
   categoriser?: TransactionCategoriser;
   llmAudit?: LlmOverrideAuditPort;
+  logos?: LogosEnrichPort;
 }): TransactionsService {
+  // Story 6-10 — attach the resolved logo proxy URL to a page of DTOs. The
+  // repository already defaults logoUrl to null in toDto, so without a logos
+  // port (or for an empty page) the items pass through untouched. Only the
+  // list reads enrich; single-row reads stay logo-less (the UI lists are the
+  // only logo surface).
+  async function attachLogos(userId: string, items: Transaction[]): Promise<Transaction[]> {
+    if (!deps.logos || items.length === 0) return items;
+    try {
+      const ctx = await deps.repository.listLogoContext(
+        userId,
+        items.map((i) => i.id),
+      );
+      const refs = await deps.logos.enrich(ctx);
+      return items.map((it) => {
+        const ref = refs.get(it.id);
+        return { ...it, logoUrl: ref ? `/v1/logos?ref=${ref}` : null };
+      });
+    } catch (err) {
+      // Best-effort: a logo subsystem failure (cache table not yet migrated,
+      // Brandfetch/Bridge down) must NEVER break a transaction read (NFR-1).
+      // Degrade to the un-enriched page — logoUrl stays null → category icon.
+      console.warn(
+        `[6-10] logo enrich failed, serving logo-less page: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return items;
+    }
+  }
+
   return {
     async createTransaction(userId, input) {
       const owns = await deps.accountOwnershipProbe.exists(userId, input.accountId);
@@ -369,7 +420,8 @@ export function createTransactionsService(deps: {
     },
 
     async listTransactions(userId, input) {
-      return deps.repository.listByUser(userId, input);
+      const page = await deps.repository.listByUser(userId, input);
+      return { ...page, items: await attachLogos(userId, page.items) };
     },
 
     async previewImportCsv(userId, input) {
@@ -488,7 +540,16 @@ export function createTransactionsService(deps: {
         page: input.page,
         pageSize: input.pageSize,
       });
-      return { items, totalCount, page: input.page, pageSize: input.pageSize };
+      return {
+        items: await attachLogos(userId, items),
+        totalCount,
+        page: input.page,
+        pageSize: input.pageSize,
+      };
+    },
+
+    async listDistinctProviderLabels(userId, limit) {
+      return deps.repository.listDistinctProviderLabels(userId, limit);
     },
 
     async backfillSuggestions(userId, limit) {

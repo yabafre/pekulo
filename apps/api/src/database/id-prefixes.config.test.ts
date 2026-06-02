@@ -13,8 +13,8 @@ import { describe, expect, it } from "bun:test";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 19 model entries (ADR-0012 + 2-2 abl + 4-1 resm + 5-4 mr + 5-6 bnk + 5-6-FIX BridgeUser:null)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(19);
+  it("exposes exactly 21 model entries (… + 6-10 MerchantLogoCache:null + ProviderLogoCache:null)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(21);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -57,8 +57,19 @@ describe("id-prefixes.config", () => {
       "LlmOptIn",
       "BankConnection",
       "BridgeUser",
+      "MerchantLogoCache",
+      "ProviderLogoCache",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
+  });
+
+  // Story 6-10 (FR-65): the logo caches use a natural-key PK (merchantKey /
+  // providerId), no synthetic id — so they opt out of prefix injection (null),
+  // same shape as BridgeUser. Without this the upsert in logos.repository.ts
+  // would throw MissingPrefixError on the create branch.
+  it("logo caches are registered null (natural-key PK, opt-out)", () => {
+    expect(getPrefix("MerchantLogoCache")).toBeNull();
+    expect(getPrefix("ProviderLogoCache")).toBeNull();
   });
 
   it("getPrefix returns the registered prefix for a known model", () => {

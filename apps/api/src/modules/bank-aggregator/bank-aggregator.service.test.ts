@@ -48,6 +48,7 @@ function makeStubs() {
   const provider: BankProvider = {
     createUser: async () => ({ providerUserUuid: "bridge-uuid-1" }),
     createConnectSession: async () => ({ connectUrl: "u", sessionId: "s" }),
+    getProviderLogo: async () => ({ logoUrl: null }),
     listAccounts: async () => [
       {
         providerAccountId: "1",
@@ -57,6 +58,7 @@ function makeStubs() {
         kind: "checking",
         currency: "EUR",
         balance: 1234.56,
+        providerId: "574",
       },
     ],
     listTransactions: async () => ({ transactions: [], latestUpdatedAt: null }),
@@ -90,6 +92,8 @@ function makeStubs() {
     // already-synced guard passes. Refresh tests that need the lookup to
     // resolve override this to return an account (story 5-7 FIX 2026-05-28).
     findByProviderKey: async () => null,
+    // Story 6-10 — distinct bank provider_ids for the logo warm-up/backfill.
+    listProviderIds: async () => ["574"],
   } as unknown as AccountService;
   return { repo, provider, transactionsService, accountsService };
 }
@@ -571,4 +575,45 @@ test("revokeConnection is idempotent on an already-revoked connection (no Bridge
   const out = await svc.revokeConnection("u", "bnk_x");
   expect(out).toEqual({ ok: true });
   expect(revokeCalled).toBe(false);
+});
+
+// ───── Story 6-10 (FR-65) — historical logo backfill ─────────────────────
+test("backfillUserLogos warms the user's distinct provider labels (best-effort)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  transactionsService.listDistinctProviderLabels = async () => ["Cb Uber *eats", "Cb Naturalia"];
+  const warmed: string[] = [];
+  let warmedProviderIds: string[] = [];
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+    logos: {
+      warmMany: async ({ labels = [], providerIds = [] }) => {
+        warmed.push(...labels);
+        warmedProviderIds = providerIds;
+        return { merchants: labels.length, providers: providerIds.length };
+      },
+    },
+  });
+  const out = await svc.backfillUserLogos("u1");
+  expect(warmed).toEqual(["Cb Uber *eats", "Cb Naturalia"]);
+  // Bank tier is backfilled too — the original backfill warmed labels only
+  // (aped-review 6-10); IBAN accounts depend on the stored provider_id.
+  expect(warmedProviderIds).toEqual(["574"]);
+  expect(out.merchants).toBe(2);
+  expect(out.providers).toBe(1);
+});
+
+test("backfillUserLogos is a no-op when no logos port is wired", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  expect(await svc.backfillUserLogos("u1")).toEqual({ merchants: 0, providers: 0 });
 });

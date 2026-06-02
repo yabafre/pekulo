@@ -26,19 +26,34 @@ export function buildContentSecurityPolicy(opts: SecurityHeaderOptions): string 
   // 'unsafe-eval' is dev-only — React reconstructs server-side error stacks via
   // eval in the dev overlay (Next's CSP guide mandates it); production needs
   // neither it nor the unpkg react-grab src.
-  const scriptExtra = opts.dev ? ["https://unpkg.com", "'unsafe-eval'"] : [];
-  const connectExtra = opts.dev ? ["ws:", "https://unpkg.com"] : [];
+  // react-grab's dev inspector loads from our own bundle (pinned npm package, not
+  // a CDN) but still pings react-grab.com for its version; Next's dev overlay
+  // needs eval + HMR websockets. All DEV ONLY.
+  const scriptExtra = opts.dev ? ["https://www.react-grab.com", "'unsafe-eval'"] : [];
+  const connectExtra = opts.dev ? ["ws:", "https://www.react-grab.com"] : [];
+  // react-grab's overlay loads Geist from Google Fonts (stylesheet on googleapis,
+  // woff2 on gstatic). DEV ONLY — production self-hosts its fonts.
+  const styleExtra = opts.dev ? ["https://fonts.googleapis.com"] : [];
+  const fontExtra = opts.dev ? ["https://fonts.gstatic.com"] : [];
+
+  // PROD: nonce-strict, no 'unsafe-inline' — an injected inline <script> without
+  // the per-request nonce is blocked (story 11-7, AC-3/AC-4). DEV: the nonce is
+  // dropped in favour of 'unsafe-inline' so the dev tooling (react-grab's inline
+  // bootstrap, Next's dev overlay) runs without per-script nonces — which also
+  // removes the benign server/client nonce hydration mismatch. proxy.ts omits
+  // x-nonce in dev to match (the layout's inline theme script then carries none).
+  const scriptSrc = opts.dev
+    ? ["'self'", "'unsafe-inline'", ...scriptExtra]
+    : ["'self'", `'nonce-${opts.nonce}'`];
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    // nonce replaces 'unsafe-inline' on scripts: an injected inline <script>
-    // without the per-request nonce is blocked (story 11-7, AC-3/AC-4).
-    "script-src": ["'self'", `'nonce-${opts.nonce}'`, ...scriptExtra],
+    "script-src": scriptSrc,
     // style-src keeps 'unsafe-inline' — Tamagui injects <style> dynamically and
     // cannot carry a nonce; style injection is not script execution (AC-3 scope).
-    "style-src": ["'self'", "'unsafe-inline'"],
+    "style-src": ["'self'", "'unsafe-inline'", ...styleExtra],
     "img-src": ["'self'", "data:", "blob:", "https:"],
-    "font-src": ["'self'", "data:"],
+    "font-src": ["'self'", "data:", ...fontExtra],
     "connect-src": ["'self'", ...supabase, ...connectExtra],
     "frame-ancestors": ["'none'"],
     "base-uri": ["'self'"],

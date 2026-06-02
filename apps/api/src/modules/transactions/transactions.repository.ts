@@ -161,6 +161,33 @@ export interface TransactionsRepository {
    * cross-user hourly sweep. The ONLY cross-user query in this repo.
    */
   listUserIdsWithBacklog(limit: number): Promise<string[]>;
+  /**
+   * Story 6-10 (FR-65) — minimal context for logo enrichment: the merchant
+   * label + the transaction's OWN provider (the AC-3 manual-vs-provider gate:
+   * a manual row on a Bridge account stays provider=null → category icon) + the
+   * owning account's providerAccountKey (the bank-logo tier). Used by the
+   * service AFTER it has the DTO page, so the public DTO stays clean. Carries
+   * where:{userId} so the lint rule is satisfied.
+   */
+  listLogoContext(
+    userId: string,
+    txIds: string[],
+  ): Promise<
+    {
+      id: string;
+      label: string;
+      provider: string | null;
+      providerAccountKey: string | null;
+      providerId: string | null;
+    }[]
+  >;
+  /**
+   * Story 6-10 backfill — distinct merchant labels of a user's
+   * provider-sourced transactions (manual rows excluded), capped at `limit`.
+   * Feeds the logo warm-up over historical data so already-synced
+   * transactions get logos without waiting for an organic refresh.
+   */
+  listDistinctProviderLabels(userId: string, limit: number): Promise<string[]>;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -179,6 +206,9 @@ function toDto(row: TransactionRow): Transaction {
     suggestedConfidence: row.suggestedConfidence ?? null,
     suggestedRoute: row.suggestedRoute ?? null,
     suggestedAt: row.suggestedAt ? row.suggestedAt.toISOString() : null,
+    // Story 6-10 — null by default; transactions.service.enrich fills it on the
+    // list reads (the repository has no logo cache access — module boundary).
+    logoUrl: null,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
   };
 }
@@ -558,6 +588,40 @@ export function createTransactionsRepository(deps: {
         take: limit,
       });
       return rows.map((r) => r.userId);
+    },
+
+    async listLogoContext(userId, txIds) {
+      if (txIds.length === 0) return [];
+      const rows = await deps.client.transaction.findMany({
+        where: { userId, id: { in: txIds } },
+        select: {
+          id: true,
+          label: true,
+          provider: true,
+          account: { select: { providerAccountKey: true, providerId: true } },
+        },
+      });
+      return rows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        // The transaction's own provider gates AC-3 (manual rows resolve no
+        // logo even on a Bridge-connected account); the account's stored
+        // provider_id (or its key, for legacy rows) drives the bank-logo tier.
+        provider: r.provider ?? null,
+        providerAccountKey: r.account?.providerAccountKey ?? null,
+        providerId: r.account?.providerId ?? null,
+      }));
+    },
+
+    async listDistinctProviderLabels(userId, limit) {
+      const rows = await deps.client.transaction.findMany({
+        where: { userId, provider: { not: null } },
+        select: { label: true },
+        distinct: ["label"],
+        orderBy: [{ occurredOn: "desc" }],
+        take: limit,
+      });
+      return rows.map((r) => r.label);
     },
   };
 }

@@ -104,6 +104,12 @@ export const transactionSchema = z.object({
   suggestedConfidence: z.number().min(0).max(1).nullable().optional(),
   suggestedRoute: z.string().nullable().optional(),
   suggestedAt: z.string().nullable().optional(),
+  // Story 6-10 (FR-65) — resolved 3-tier logo as an OPAQUE Pekulo proxy URL
+  // (/v1/logos?ref=...). null = no merchant/bank logo resolved → UI falls to
+  // the category icon. System-set on read (logos.service.enrich); never an
+  // input field. NOT a real third-party URL on the wire — it points at
+  // apps/api's streaming proxy.
+  logoUrl: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;

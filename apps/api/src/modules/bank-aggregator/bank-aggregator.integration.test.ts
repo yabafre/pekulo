@@ -168,6 +168,7 @@ function makeFakeProvider(): BankProvider {
   return {
     createUser: async () => ({ providerUserUuid: "bridge-uuid-fixture" }),
     createConnectSession: async () => ({ connectUrl: "https://x", sessionId: "session-1" }),
+    getProviderLogo: async () => ({ logoUrl: null }),
     listAccounts: async () => [
       {
         providerAccountId: "sg-1",
@@ -177,6 +178,7 @@ function makeFakeProvider(): BankProvider {
         kind: "checking",
         currency: "EUR",
         balance: 1500,
+        providerId: "574",
       },
       {
         providerAccountId: "sg-2",
@@ -186,6 +188,7 @@ function makeFakeProvider(): BankProvider {
         kind: "savings",
         currency: "EUR",
         balance: 5000,
+        providerId: "574",
       },
     ],
     listTransactions: async () => ({
@@ -263,6 +266,7 @@ function makeStubAccountsService(): AccountService {
       const k = `${userId}|${provider}|${providerAccountKey}`;
       return cache.get(k) ?? null;
     },
+    listProviderIds: async () => [],
   };
 }
 
@@ -389,6 +393,7 @@ function makeRouteService(): BankAggregatorService {
     refreshConnection: notImpl("refreshConnection") as BankAggregatorService["refreshConnection"],
     refreshAll: async () => undefined,
     handleWebhookEvent: async () => undefined,
+    backfillUserLogos: async () => ({ merchants: 0, providers: 0 }),
     async renameConnection(_userId, connectionId, displayName) {
       if (connectionId === "bnk_missing") {
         throw new BankAggregatorError("BANK_CONNECTION_NOT_FOUND", "connection not found");

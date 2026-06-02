@@ -28,6 +28,9 @@ export interface ProviderBankAccount {
   currency: string;
   /** Current balance from Bridge (story 5-6 FIX 2026-05-27 — initially missed). */
   balance: number;
+  /** Story 6-10 — the Bridge institution provider_id (for the bank-logo tier).
+   * Present on every Bridge account row (IBAN or card); null if Bridge omits it. */
+  providerId: string | null;
 }
 
 export interface ProviderTransaction {
@@ -114,4 +117,14 @@ export interface BankProvider {
    * items in `SCA_REQUIRED` (1010) without calling listTransactions.
    */
   getItem(args: { userUuid: string; providerItemId: string }): Promise<ProviderItemState>;
+
+  /**
+   * Story 6-10 (FR-65, tier 2) — the bank/institution logo for a Bridge
+   * `provider_id`. App-level auth (Client-Id/Secret only, NO user Bearer):
+   * Providers is the public bank directory (GET /v3/providers/:id). Returns
+   * null on 404 / missing `images.logo` so the caller negative-caches and
+   * falls through to the category icon. Shape validated against Providers/Get
+   * a single provider in docs/ressources/Bridge API.postman_collection.json.
+   */
+  getProviderLogo(providerId: string): Promise<{ logoUrl: string | null }>;
 }

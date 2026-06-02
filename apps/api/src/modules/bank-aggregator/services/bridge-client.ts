@@ -61,7 +61,22 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       if (!res.ok && !allowStatuses.includes(res.status)) {
         throw bankProviderUnavailable(`bridge ${rest.method ?? "GET"} ${path} → ${res.status}`);
       }
-      const data = (await res.json()) as T;
+      // Parse defensively: an ALLOWED non-2xx (e.g. a 404 admitted via
+      // allowStatuses) may carry an empty or non-JSON body — return undefined
+      // data + the status so the caller branches on the status code instead of
+      // throwing. A 2xx with unparseable JSON is still a hard provider error.
+      const text = await res.text();
+      let data: T;
+      if (!text) {
+        data = undefined as T;
+      } else {
+        try {
+          data = JSON.parse(text) as T;
+        } catch (parseErr) {
+          if (res.ok) throw parseErr;
+          data = undefined as T;
+        }
+      }
       return { data, status: res.status };
     } catch (err) {
       if (err instanceof Error && err.message.startsWith("bank provider unavailable")) throw err;
@@ -226,6 +241,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
             kind: r.type === "savings" ? "savings" : r.type === "checking" ? "checking" : "other",
             currency: r.currency_code,
             balance: typeof r.balance === "number" ? r.balance : 0,
+            providerId: r.provider_id != null ? String(r.provider_id) : null,
           }) satisfies ProviderBankAccount,
       );
     },
@@ -343,6 +359,19 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
           ? new Date(data.authentication_expires_at)
           : null,
       } satisfies ProviderItemState;
+    },
+
+    async getProviderLogo(providerId) {
+      // Bridge v3 — GET /v3/providers/:id (the public bank directory; NOT under
+      // /v3/aggregation, no user Bearer — authHeaders' Client-Id/Secret suffice).
+      // allowStatuses:[404] so an unknown provider_id resolves to null instead
+      // of throwing bankProviderUnavailable. Response: { id, images: { logo } }.
+      const { data, status } = await req<{ images?: { logo?: string | null } }>(
+        `/v3/providers/${encodeURIComponent(providerId)}`,
+        { method: "GET", allowStatuses: [404] },
+      );
+      if (status === 404) return { logoUrl: null };
+      return { logoUrl: data.images?.logo ?? null };
     },
   };
 }

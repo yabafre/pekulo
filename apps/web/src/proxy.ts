@@ -7,10 +7,11 @@ export async function proxy(request: NextRequest) {
   // during SSR and auto-applies it to its framework/bundled scripts, so the
   // enforced CSP must travel on both the request (for the render) and the
   // response (for the browser).
+  const isDev = process.env.NODE_ENV === "development";
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
   const securityHeaders = buildSecurityHeaders({
-    dev: process.env.NODE_ENV === "development",
+    dev: isDev,
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     nonce,
   });
@@ -21,7 +22,11 @@ export async function proxy(request: NextRequest) {
   // cookies (set on `request` in setAll) ride along with the nonce headers.
   const forwardedHeaders = (): Headers => {
     const headers = new Headers(request.headers);
-    headers.set("x-nonce", nonce);
+    // DEV: the CSP is nonce-free ('unsafe-inline'), so omit x-nonce — threading
+    // it would only reintroduce the benign server/client nonce hydration
+    // mismatch (the layout reads x-nonce for its inline theme script). PROD:
+    // thread it so Next + the layout's script carry the per-request nonce.
+    if (!isDev) headers.set("x-nonce", nonce);
     headers.set(CSP_ENFORCED_HEADER, csp);
     return headers;
   };
@@ -36,6 +41,17 @@ export async function proxy(request: NextRequest) {
   };
 
   let response = NextResponse.next({ request: { headers: forwardedHeaders() } });
+
+  // Story 6-10 (FR-65) — the logo proxy (/v1/logos?ref=) is PUBLIC reference
+  // data (opaque ref, no PII), served by the route handler that forwards to
+  // apps/api. Skip the per-request Supabase getUser() here: a transactions page
+  // fires 20+ logo requests, and gating each on an auth round-trip would be
+  // both slow and pointless (the ref is an opaque cache index, not user data).
+  // EXACT path match (not startsWith) so the bypass can never widen to a future
+  // `/v1/logos*` sibling route (aped-review 6-10).
+  if (request.nextUrl.pathname === "/v1/logos") {
+    return withSecurity(response);
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

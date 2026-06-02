@@ -11,6 +11,7 @@ import {
   PekuloPopover,
   PekuloSkeleton,
   Section,
+  TransactionLogo,
   pekuloFontSizes,
   pekuloRadius,
   useToast,
@@ -188,7 +189,11 @@ export function TransactionsRecentSection() {
             return (
               <View key={tx.id} role="listitem" flexDirection="row" alignItems="center" gap="$3">
                 <View flex={1} minWidth={0}>
-                  <PekuloActivityRow tx={activity} categoryPrefix={categoryPrefix} />
+                  <PekuloActivityRow
+                    tx={activity}
+                    categoryPrefix={categoryPrefix}
+                    logo={<TransactionLogo src={tx.logoUrl} category={tx.category} />}
+                  />
                 </View>
                 <View
                   flexDirection="row"

@@ -18,6 +18,7 @@ import {
   PekuloSubmitButton,
   Section,
   PekuloSuggestionRow,
+  TransactionLogo,
   useToast,
 } from "@pekulo/ui";
 import { Bot, Check } from "lucide-react";
@@ -162,6 +163,12 @@ export function TransactionsSuggestionsSection() {
                 <View key={tx.id} role="listitem">
                   <PekuloSuggestionRow
                     tx={suggestion}
+                    logo={
+                      <TransactionLogo
+                        src={tx.logoUrl}
+                        category={tx.suggestedCategory ?? "autre"}
+                      />
+                    }
                     categoryIcon={
                       tx.suggestedCategory ? (
                         <CategoryIcon

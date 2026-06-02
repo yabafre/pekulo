@@ -42,17 +42,37 @@ describe("buildContentSecurityPolicy", () => {
     expect(csp).toMatch(/connect-src[^;]*https:\/\/abc\.supabase\.co/);
   });
 
-  test("unpkg + ws: + unsafe-eval are dev-only", () => {
+  test("ws: + unsafe-eval are dev-only", () => {
     const dev = buildContentSecurityPolicy({ dev: true, nonce: NONCE });
-    expect(dev).toContain("https://unpkg.com");
     expect(dev).toContain("ws:");
     // React's dev overlay needs eval; Next's CSP guide mandates it in dev only.
     expect(dev).toContain("'unsafe-eval'");
 
     const prod = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
-    expect(prod).not.toContain("unpkg.com");
     expect(prod).not.toContain("ws:");
     expect(prod).not.toContain("'unsafe-eval'");
+  });
+
+  test("Google Fonts (react-grab dev overlay) is dev-only", () => {
+    const dev = buildContentSecurityPolicy({ dev: true, nonce: NONCE });
+    expect(dev).toMatch(/style-src[^;]*https:\/\/fonts\.googleapis\.com/);
+    expect(dev).toMatch(/font-src[^;]*https:\/\/fonts\.gstatic\.com/);
+
+    const prod = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
+    expect(prod).not.toContain("fonts.googleapis.com");
+    expect(prod).not.toContain("fonts.gstatic.com");
+  });
+
+  test("dev script-src drops the nonce for 'unsafe-inline' + react-grab; prod stays nonce-strict", () => {
+    const dev = buildContentSecurityPolicy({ dev: true, nonce: NONCE });
+    expect(dev).toMatch(/script-src[^;]*'unsafe-inline'/);
+    expect(dev).toContain("https://www.react-grab.com");
+    expect(dev).not.toContain(`'nonce-${NONCE}'`); // no per-script nonce in dev
+
+    const prod = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
+    expect(prod).toMatch(new RegExp(`script-src[^;]*'nonce-${NONCE}'`));
+    expect(prod).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+    expect(prod).not.toContain("react-grab.com");
   });
 
   // AC-3/AC-4 (verbatim from story 11-7-auth-hardening-httponly-csp:31-32):

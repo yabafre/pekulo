@@ -142,6 +142,9 @@ function inMemoryService(opts?: { fkLockedIds?: ReadonlySet<string> }): AccountS
     async findByProviderKey() {
       throw new Error("inMemoryService.findByProviderKey not implemented");
     },
+    async listProviderIds() {
+      return [];
+    },
   };
 }
 

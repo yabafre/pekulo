@@ -368,3 +368,49 @@ test("createBridgeProvider throws bank-provider-unavailable when CLIENT_ID missi
     /not configured/i,
   );
 });
+
+// Story 6-10 (FR-65, AC-2) — the bank/institution logo. Providers is app-level
+// (Client-Id/Secret only, NO user Bearer) per docs/ressources/Bridge
+// API.postman_collection.json → "Get a single provider" GET /v3/providers/:id,
+// response { id, images: { logo } }. A 404 (unknown provider) → null so the
+// caller negative-caches and falls through to the category icon.
+test("getProviderLogo returns images.logo (app-level, no Bearer); 404 → null", async () => {
+  const calls: string[] = [];
+  const localFetch = mock(async (url: string | URL | Request) => {
+    const u = typeof url === "string" ? url : (url as Request).url;
+    calls.push(u);
+    if (u.endsWith("/v3/providers/574")) {
+      return new Response(JSON.stringify({ id: 574, images: { logo: "https://web/sg.png" } }), {
+        status: 200,
+      });
+    }
+    // Real Bridge 404 carries a JSON error envelope — `req` parses it.
+    return new Response(JSON.stringify({ errors: [{ code: "not_found" }] }), { status: 404 });
+  });
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const provider = createBridgeProvider({ env });
+    expect(await provider.getProviderLogo("574")).toEqual({ logoUrl: "https://web/sg.png" });
+    expect(await provider.getProviderLogo("999")).toEqual({ logoUrl: null });
+    // App-level: no user-Bearer mint round-trip on the Providers path.
+    expect(calls.some((u) => u.includes("/authorization/token"))).toBe(false);
+  } finally {
+    globalThis.fetch = prev;
+  }
+});
+
+test("getProviderLogo: a 404 with an EMPTY body resolves to null (not a throw)", async () => {
+  // Bridge can answer an unknown provider_id with a bodyless 404; `req` must not
+  // call res.json() unconditionally (that would throw → bankProviderUnavailable
+  // → the bank logo silently never caches). Defensive parse → { logoUrl: null }.
+  const localFetch = mock(async () => new Response("", { status: 404 }));
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const provider = createBridgeProvider({ env });
+    expect(await provider.getProviderLogo("404empty")).toEqual({ logoUrl: null });
+  } finally {
+    globalThis.fetch = prev;
+  }
+});

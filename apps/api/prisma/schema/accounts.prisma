@@ -11,6 +11,11 @@ model Account {
   notes              String?
   provider           String?     @map("provider")
   providerAccountKey String?     @map("provider_account_key")
+  // Story 6-10 (FR-65) — the Bridge institution provider_id, captured at import.
+  // The bank-logo tier (Providers/{id}.images.logo) needs it, and the dedup key
+  // only encodes it for IBAN-less (card) accounts (pid:{provider_id}:{name}) —
+  // IBAN accounts key on the IBAN, so this column is the stable source.
+  providerId         String?     @map("provider_id")
   createdAt          DateTime?   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime?   @default(now()) @map("updated_at") @db.Timestamptz
 

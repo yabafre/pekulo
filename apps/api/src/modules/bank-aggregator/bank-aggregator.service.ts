@@ -23,6 +23,7 @@ import type {
   RefreshConnectionOutput,
 } from "@pekulo/validators";
 import type { AccountService } from "../accounts/accounts.service";
+import type { LogosService } from "../logos/logos.service";
 import type {
   ProviderTransactionImportRow,
   TransactionsService,
@@ -62,7 +63,18 @@ export interface BankAggregatorService {
     displayName: string,
   ): Promise<BankConnection>;
   revokeConnection(userId: string, connectionId: string): Promise<{ ok: true }>;
+  /**
+   * Story 6-10 (FR-65) backfill — warm the logo caches for a user's already-
+   * synced transactions (the refresh warm-up only covers each fresh batch).
+   * Best-effort + idempotent (warmMany negative-caches misses). Returns the
+   * attempted counts. No-op when no logos port is wired.
+   */
+  backfillUserLogos(userId: string): Promise<{ merchants: number; providers: number }>;
 }
+
+// Story 6-10 — cap distinct labels warmed per backfill run (bounds Brandfetch
+// cost; a heavy account still fully warms across a few invocations).
+const LOGO_BACKFILL_LABEL_LIMIT = 1000;
 
 function mapBridgeAccountKind(kind: ProviderBankAccount["kind"]): "banque" | "livret" | "autre" {
   // Story 5-6 FEAT13 (2026-05-27). Mapping Bridge → Pekulo account_type:
@@ -86,6 +98,9 @@ export function createBankAggregatorService(deps: {
   accountsService: AccountService;
   listAllActiveConnections: () => Promise<Array<{ userId: string; connectionId: string }>>;
   clock?: () => Date;
+  // Story 6-10 (FR-65) — optional logo cache warm port (off the user hot path:
+  // the cron/webhook refresh warm-up + the historical backfill). Best-effort.
+  logos?: Pick<LogosService, "warmMany">;
 }): BankAggregatorService {
   const now = () => (deps.clock ? deps.clock() : new Date());
 
@@ -192,6 +207,23 @@ export function createBankAggregatorService(deps: {
       rows,
     );
 
+    // Story 6-10 (FR-65) — warm the logo caches off the user hot path (this is
+    // the cron/webhook refresh). Best-effort: a Brandfetch/Bridge failure must
+    // never fail a refresh. Warm the distinct new merchant labels + the user's
+    // distinct bank provider_ids (from the stored Account.providerId, so IBAN
+    // and multi-institution connections all warm — not just the first txn's
+    // card key). The read path only does cache lookups.
+    if (deps.logos) {
+      const logos = deps.logos;
+      const labels = [...new Set(transactions.map((t) => t.label))];
+      void (async () => {
+        const providerIds = await deps.accountsService.listProviderIds(userId);
+        await logos.warmMany({ labels, providerIds });
+      })().catch(() => {
+        /* best-effort cache warm-up; read path falls through to bank/category */
+      });
+    }
+
     // Story 5-6 FIX (post-review aped-review): only stamp lastRefreshedAt
     // when Bridge actually returned data. On an empty response, leave the
     // stamp unchanged so the next tick re-queries the same window — protects
@@ -273,6 +305,7 @@ export function createBankAggregatorService(deps: {
           type: mapBridgeAccountKind(a.kind),
           currency: a.currency,
           cashBalance: a.balance,
+          providerId: a.providerId,
         });
       }
 
@@ -402,6 +435,18 @@ export function createBankAggregatorService(deps: {
         await deps.repository.setStatus(userId, connectionId, "revoked");
       }
       return { ok: true as const };
+    },
+
+    async backfillUserLogos(userId) {
+      if (!deps.logos) return { merchants: 0, providers: 0 };
+      // Warm BOTH tiers for the user's history: distinct merchant labels AND the
+      // distinct bank provider_ids (the original backfill warmed labels only, so
+      // bank logos never populated for already-synced accounts — aped-review 6-10).
+      const [labels, providerIds] = await Promise.all([
+        deps.transactionsService.listDistinctProviderLabels(userId, LOGO_BACKFILL_LABEL_LIMIT),
+        deps.accountsService.listProviderIds(userId),
+      ]);
+      return deps.logos.warmMany({ labels, providerIds });
     },
   };
 }

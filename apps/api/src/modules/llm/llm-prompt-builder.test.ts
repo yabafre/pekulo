@@ -89,3 +89,31 @@ test("hashLabel is stable and reveals no body", () => {
   expect(hashLabel("Carrefour")).toBe(hashLabel("Carrefour"));
   expect(hashLabel("Carrefour")).not.toContain("Carrefour");
 });
+
+// AC-4 (verbatim from story 6-10-merchant-logos:41):
+//   Given a transaction that has a resolved logo, When it is sent for LLM
+//   categorisation, Then the prompt contains only the transaction's label,
+//   amount, currency, occurred-on date and optional merchant name — the logo
+//   is never included (NFR-12).
+// Regression guard: the allowlist pick + .strict() already strip logoUrl; this
+// locks it so a future field add can't leak the proxy URL into a prompt.
+test("FR-65/NFR-12 — a logoUrl on the source is stripped, never reaches the envelope", () => {
+  const envelope = buildPromptEnvelope({
+    label: "CB Carrefour",
+    amount: 12.5,
+    currency: "EUR",
+    occurredOn: "2026-06-01",
+    // smuggled field — must be dropped by the allowlist + .strict()
+    logoUrl: "/v1/logos?ref=bXNvbWV0aGluZw",
+    merchant: "Carrefour",
+  });
+  expect(JSON.stringify(envelope)).not.toContain("logoUrl");
+  expect(JSON.stringify(envelope)).not.toContain("/v1/logos");
+  expect(envelope).toEqual({
+    label: "CB Carrefour",
+    amount: 12.5,
+    currency: "EUR",
+    occurredOn: "2026-06-01",
+    merchant: "Carrefour",
+  });
+});

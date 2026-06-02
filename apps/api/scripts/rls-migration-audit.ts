@@ -18,7 +18,11 @@ import { fileURLToPath } from "node:url";
 
 // Public tables that legitimately hold NO user data (no RLS expected).
 // Adding an entry here is a conscious, reviewable decision.
-const NON_USER_TABLES = new Set<string>([]);
+//
+// Story 6-10 (FR-65): the logo caches are global brand/bank reference data
+// keyed by a normalised merchant key / Bridge provider_id — no user_id, no FK
+// to auth.users. Their protective layer is simply that they hold no PII.
+const NON_USER_TABLES = new Set<string>(["merchant_logo_cache", "provider_logo_cache"]);
 
 // Minimum policies a user-data table must declare. Audit sister tables
 // (append-only) ship 2 (INSERT+SELECT); CRUD tables ship 4. The static gate

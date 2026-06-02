@@ -128,6 +128,9 @@ function stubRepo(seed?: {
     async createAuto() {
       throw new Error("stubRepo.createAuto not implemented — use stubAccountRepository()");
     },
+    async listProviderIds() {
+      return [];
+    },
   };
 }
 
@@ -165,6 +168,7 @@ function stubAccountRepository(): AccountRepository {
       "findByProviderKey",
     ) as unknown as AccountRepository["findByProviderKey"],
     createAuto: fail("createAuto") as unknown as AccountRepository["createAuto"],
+    listProviderIds: fail("listProviderIds") as unknown as AccountRepository["listProviderIds"],
   };
 }
 
