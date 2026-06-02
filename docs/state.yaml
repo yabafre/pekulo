@@ -109,21 +109,21 @@ pipeline:
       status: "done"
       output: "docs/epics.md"
       completed_at: "2026-05-03"
-      epic_count: 12
-      story_count: 55
+      epic_count: 13
+      story_count: 59
       fr_coverage:
         ratio: "63/63"
       ticket_sync: "synced"
-      synced_at: "2026-05-03T19:43:00Z"
+      synced_at: "2026-06-02T12:38:14Z"
     dev:
       status: "review"
       started_at: "2026-05-09T15:00:00Z"
 # GitHub Issues sync (top-level, written by aped-epics step 8.7)
 ticket_sync:
   provider: "github"
-  sync_id: "github-issues-sync-2026-05-03T19-43-00Z"
-  synced_at: "2026-05-03T19:43:00Z"
-  sync_log: "docs/sync-logs/github-issues-sync-2026-05-03T19-43-00Z.json"
+  sync_id: "github-issues-sync-2026-06-02T12-38-14Z"
+  synced_at: "2026-06-02T12:38:14Z"
+  sync_log: "docs/sync-logs/github-issues-sync-2026-06-02T12-38-14Z.json"
   projects:
     pekulo:
       repo: "yabafre/pekulo"
@@ -141,9 +141,10 @@ ticket_sync:
     "epic-9": 10 # Epic 9: PWA install + offline
     "epic-10": 11 # Epic 10: Design system parity (V1.5)
     "epic-11": 12 # Epic 11: Public-ramp readiness
+    "epic-12": 13 # Epic 12: Private internal AI advisory tool (append 2026-06-02)
   modified_tickets: []
   totals:
-    api_calls_total: 89 # 1 auth + 1 projects + 22 labels + 12 milestones + 53 issues
+    api_calls_total: 95 # 1 auth + 1 projects + 22 labels + 12 milestones + 53 issues (+ epic-12 append 2026-06-02: 1 milestone + 1 label + 4 issues)
     labels_created: 22
     milestones_created: 12
     issues_created: 53
@@ -242,5 +243,10 @@ sprint:
     11-6-restore-drill-and-glitchtip: {status: pending, depends_on: [0-7-otel-three-runtimes, 0-3-api-scaffold], ticket: "#53", worktree: null}
     # Ingested from GitHub issue #104 via aped-from-ticket (2026-05-29). Registered, NOT added to active sprint (auto_add: false).
     11-7-auth-hardening-httponly-csp: {status: review, depends_on: [], ticket: "#104", source: from_ticket, worktree: null, started_at: "2026-05-29T10:34:37Z", completed_at: "2026-05-29T11:04:11Z"}
+    # Epic 12 — Private internal AI advisory tool (internal/non-product; ADR-0016). Registered via aped-epics append 2026-06-02; NOT added to active sprint (active_epic stays 6).
+    12-1-advisory-access-gate: {status: pending, depends_on: [], ticket: "#114", worktree: null}
+    12-2-advisory-analysis-engine: {status: pending, depends_on: [12-1-advisory-access-gate, 1-1-compass-domain, 3-1-holdings-orpc-port, 4-1-realestate-domain, 5-1-transactions-record], ticket: "#115", worktree: null}
+    12-3-advisory-llm-surface: {status: pending, depends_on: [12-2-advisory-analysis-engine, 6-1-llm-routing-and-providers], ticket: "#116", worktree: null}
+    12-4-advisory-private-page: {status: pending, depends_on: [12-1-advisory-access-gate, 12-3-advisory-llm-surface, 0-10-pekulo-ui-migration], ticket: "#117", worktree: null}
   mode: parallel
   stack_order: []

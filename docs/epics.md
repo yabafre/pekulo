@@ -1410,3 +1410,101 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 - **Given** an unhandled error in `apps/api`, **When** it fires, **Then** the trace lands in GlitchTip with PII scrubbed.
 
 **Complexity:** M
+
+## Epic 12: Private internal AI advisory tool — 🔒 internal / non-product
+
+**Goal:** A private, access-gated surface where the owner and a closed circle of name-authorized users get LLM analysis + recommendations (including instrument-level) over their own Pekulo data, backed by a deterministic analysis engine. This is **NOT** part of the public product.
+
+**Requirement source:** `docs/adr/0016-private-internal-ai-advisory-surface.md` — NOT the public PRD FR set. The public 63/63 FR coverage is unchanged; this epic introduces no public FR, no orphan, no phantom. The public **DR-3** ("no buy/sell recommendation, ever") and **NFR-12** ("0 amounts to LLM") remain fully in force everywhere else — ADR-0016 scopes the two exceptions to this surface only.
+
+**Regulatory guardrail (binding):** lawful only while the surface stays private / free / closed-circle / non-habitual. The allowlist + ban (story 12-1) is the **technical control** that enforces the boundary; opening to the public or growing the circle is the flip point → `conseil en investissement` → CIF/PSI or licensed partner (ADR-0016 §2, Pivot conditions).
+
+**Sequencing:** standalone, post-V1-foundation. Reuses done modules (epics 1-6) + the epic-6 LLM foundation. No forward dependency on pending epics (7/8). **Registered, NOT added to the active sprint** (active epic stays 6).
+
+**Tiering:** Internal tools (non-product) — outside the V1 / V1.5 / public-ramp tiering.
+
+#### Story 12-1-advisory-access-gate
+
+**Ticket:** [#114](https://github.com/yabafre/pekulo/issues/114)
+**Title:** Allowlist + ban access gate for the private advisory surface
+
+**Depends on:** none
+
+**As a** the advisory-surface owner, **I want** to authorize specific Pekulo users (and ban them) so the tool stays a closed private circle, **so that** the regulatory boundary of ADR-0016 is enforced in code, not by policy.
+
+**Summary:** New `advisory_access` RLS table (`user_id` → `auth.users(id) ON DELETE CASCADE`, `status: active | banned`, `granted_by`, `granted_at`, `banned_at`) + `apps/api/src/platform/security/advisory-access-guard.ts` (iso `opt-in-guard.ts`) enforcing membership server-side on every advisory request; ban takes effect on the next request. Creates the `apps/api/src/modules/advisory/` module skeleton + `advisoryContract` scaffold at `/rpc/v1/advisory`. This is the compliance control of ADR-0016 §2/§4. `advisory_access` ships its per-row RLS quartet (`auth.uid() = user_id` on SELECT/INSERT/UPDATE/DELETE) so the 11-3 RLS-audit CI gate passes. Reference: ADR-0013 (RLS + `where: { userId }` + `no-prisma-query-without-user-id`), ADR-0016.
+
+**Covered FRs:** (internal advisory surface — ADR-0016 §4 + §2 guardrail; no public-PRD FR)
+
+**Acceptance Criteria:**
+
+- **Given** a non-allowlisted user, **When** they hit any `/rpc/v1/advisory` route, **Then** the gate rejects with 403 in < 100 ms (iso NFR-9) and no advisory data is computed.
+- **Given** an allowlisted `active` user, **When** they hit an advisory route, **Then** the gate resolves and the request proceeds.
+- **Given** the owner bans a user, **When** that user makes their next request, **Then** the gate rejects immediately (no cached pass).
+- **Given** a previously banned user re-set to `active`, **When** they request again, **Then** access is restored.
+
+**Complexity:** M
+
+#### Story 12-2-advisory-analysis-engine
+
+**Ticket:** [#115](https://github.com/yabafre/pekulo/issues/115)
+**Title:** Deterministic advisory analysis engine (the numbers layer)
+
+**Depends on:** 12-1-advisory-access-gate, 1-1-compass-domain, 3-1-holdings-orpc-port, 4-1-realestate-domain, 5-1-transactions-record
+
+**As a** an authorized advisory user, **I want** a deterministic snapshot of my financial situation (wealth, allocation, gap-to-compass, cashflow, fiscalité signals), **so that** any recommendation is grounded in computed figures, never LLM-invented numbers.
+
+**Summary:** `apps/api/src/common/derive/advisory-*.ts` composes the existing done derives (`compass-progress`, `portfolio-fx`, `property-equity`, `monthly-aggregates`) into a structured advisory snapshot, exposed through the `advisory` module service. **The engine owns every number** (ADR-0016 §3 / NFR-12 exception); no LLM call in this story. Degrades gracefully when a domain is empty (no holdings / no real-estate). Reference: ADR-0016 §3.
+
+**Covered FRs:** (internal advisory surface — ADR-0016 §3; no public-PRD FR)
+
+**Acceptance Criteria:**
+
+- **Given** a user with compass + portfolio + accounts + real-estate + transactions, **When** the engine runs, **Then** it returns a deterministic snapshot with total wealth, allocation %, gap-to-cap, and monthly cashflow — every figure computed by the engine.
+- **Given** a user with no holdings, **When** the engine runs, **Then** the snapshot omits the portfolio block without error (graceful degradation).
+- **Given** the same inputs twice, **When** the engine runs, **Then** the snapshot is identical (deterministic).
+
+**Complexity:** L
+
+#### Story 12-3-advisory-llm-surface
+
+**Ticket:** [#116](https://github.com/yabafre/pekulo/issues/116)
+**Title:** Advisory LLM surface — analysis + recommendations over the deterministic snapshot
+
+**Depends on:** 12-2-advisory-analysis-engine, 6-1-llm-routing-and-providers
+
+**As a** an authorized advisory user, **I want** the LLM to analyse my deterministic snapshot and produce analysis + recommendations (including instrument-level), **so that** I get goal-aligned guidance on my own data — privately.
+
+**Summary:** Dedicated `apps/api/src/modules/advisory/advisory-prompt-builder.ts` (DISTINCT from `llm-prompt-builder.ts`, which keeps the NFR-12-strict categorisation allowlist untouched) + an advisory task that feeds 12-2's snapshot to the LLM and returns analysis + recommendations. Routes through the epic-6 LLM foundation (`LlmProvider`, routing); writes its own `llm_call_log` intent/outcome pairs through the single server-side writer (ADR-0008, server-as-authority). Advisory sessions persisted with per-user RLS + **field-level encryption at rest** (`advisory_session`, iso ADR-0015; ships its per-row RLS policies for the 11-3 RLS-audit gate). Provider posture: no-train default + EU region + ZDR. The DR-3 carve-out + NFR-12 exception (ADR-0016 §2/§3) live here. The LLM explains/recommends but never emits a figure absent from the snapshot. Reference: ADR-0008, ADR-0015, ADR-0016 §2/§3/§5.
+
+**Covered FRs:** (internal advisory surface — ADR-0016 §2 + §3 + §5; no public-PRD FR)
+
+**Acceptance Criteria:**
+
+- **Given** a deterministic snapshot, **When** the advisory task runs, **Then** the LLM returns analysis + recommendations and surfaces no monetary figure that is not present in the snapshot.
+- **Given** an advisory call, **When** it completes, **Then** an intent + outcome pair is written via the single LLM writer with no prompt content persisted (NFR-26 iso).
+- **Given** a persisted advisory session, **When** it is stored, **Then** it is per-user RLS-scoped and field-level encrypted at rest.
+- **Given** the configured provider, **When** the surface initialises, **Then** the no-train + EU-region posture is asserted (build/config check).
+
+**Complexity:** L
+
+#### Story 12-4-advisory-private-page
+
+**Ticket:** [#117](https://github.com/yabafre/pekulo/issues/117)
+**Title:** Private advisory page (gated route + UI + disclaimer)
+
+**Depends on:** 12-1-advisory-access-gate, 12-3-advisory-llm-surface, 0-10-pekulo-ui-migration
+
+**As a** an authorized advisory user, **I want** a private page that shows my advisory analysis + recommendations, **so that** I can use the tool through the app behind the access gate.
+
+**Summary:** Private route/page at `apps/web/src/app/(cap)/dashboard/advisory/` (under `dashboard/` so the CapShell layout applies — lesson 2026-05-27), gated by 12-1, rendering 12-3's analysis + recommendations plus a clear **"private internal tool — not regulated investment advice"** notice. UI sourced from `@pekulo/ui`; provider/route transparency surfaced iso the epic-6 badge. Reference: ADR-0016 §1/§2.
+
+**Covered FRs:** (internal advisory surface — ADR-0016 §1 + §2; no public-PRD FR)
+
+**Acceptance Criteria:**
+
+- **Given** an allowlisted user, **When** they open `/dashboard/advisory`, **Then** the analysis + recommendations render with the "not regulated advice" notice visible.
+- **Given** a non-allowlisted or banned user, **When** they navigate to `/dashboard/advisory`, **Then** they cannot reach the surface (server-side gate, no advisory data leaks to the client).
+- **Given** the rendered page, **When** a recommendation is shown, **Then** the active provider/route is surfaced for transparency.
+
+**Complexity:** M

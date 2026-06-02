@@ -1,0 +1,31 @@
+{
+  "sync_id": "github-issues-sync-2026-06-02T12-38-14Z",
+  "started_at": "2026-06-02T12:38:14Z",
+  "provider": "github-issues",
+  "operator": "fred@bonjour.email",
+  "directive_version": null,
+  "phases": {
+    "auth_check": {
+      "status": "complete"
+    },
+    "projects": {
+      "status": "complete",
+      "calls": 1
+    },
+    "milestones": {
+      "status": "complete",
+      "calls": 1,
+      "created": {
+        "epic-12": 13
+      }
+    },
+    "issues_created": {
+      "status": "complete",
+      "calls": 4
+    }
+  },
+  "totals": {
+    "api_calls_total": 7
+  },
+  "ended_at": "2026-06-02T12:38:17Z"
+}
