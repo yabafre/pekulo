@@ -49,6 +49,10 @@ vi.mock("./month-scope-context", () => ({
     goNext: () => {},
   }),
 }));
+vi.mock("nuqs", () => ({
+  parseAsInteger: { withDefault: () => null },
+  useQueryState: () => [1, () => {}],
+}));
 
 import { TransactionsRecentSection } from "./transactions-recent-section";
 

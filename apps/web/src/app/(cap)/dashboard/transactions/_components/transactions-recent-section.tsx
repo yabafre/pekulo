@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { parseAsInteger, useQueryState } from "nuqs";
 import { Text, View } from "@pekulo/ui/client";
 import {
   CategoryIcon,
   HeaderAction,
   PekuloActivityRow,
-  PekuloButton,
   PekuloDialog,
+  PekuloPagination,
   PekuloPopover,
   PekuloSkeleton,
   Section,
@@ -80,18 +81,16 @@ const popoverActionBtnDanger: CSSProperties = {
 
 type DialogKind = "edit" | "delete" | null;
 
-// "Récentes" grows the page in PAGE_STEP increments up to the listTransactions
-// contract cap (LIST_MAX=200) via "Charger plus" — the backend already paginates
-// (listByUser cursor-based, returns nextCursor). Browsing beyond 200 belongs to
-// the Filtrer/search screen. Stays within zapaction (useTransactions re-reads
-// with the bigger window — no raw react-query).
-const PAGE_STEP = 50;
-const LIST_MAX = 200;
+// "Récentes" uses numbered OFFSET pagination, 10 rows/page (story 6-9 ext),
+// mirroring the Suggestions IA section. The active page lives in the URL
+// (?page via nuqs) so it is shareable + back-button-correct; listTransactions
+// returns totalCount in page mode to derive the page count.
+const PAGE_SIZE = 10;
 
 export function TransactionsRecentSection() {
-  const [limit, setLimit] = useState(PAGE_STEP);
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const { month } = useMonthScope();
-  const { data, isLoading, isFetching, error } = useTransactions(limit, month ?? undefined);
+  const { data, isLoading, error } = useTransactions(PAGE_SIZE, month ?? undefined, page);
   const { data: accounts } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeTx, setActiveTx] = useState<Transaction | null>(null);
@@ -122,8 +121,15 @@ export function TransactionsRecentSection() {
   };
 
   const items = data?.items ?? [];
-  // nextCursor present ⇒ more rows exist beyond the window; gated by LIST_MAX.
-  const hasMore = Boolean(data?.nextCursor) && limit < LIST_MAX;
+  const totalCount = data?.totalCount ?? 0;
+  const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  // Clamp when the current page falls past the end (switching to a month with
+  // fewer pages, or deleting the last rows). Guard on `data`: an un-cached page
+  // is briefly undefined → totalCount 0 → pageCount 1, which would otherwise
+  // yank the user back to page 1 on every navigation.
+  useEffect(() => {
+    if (data && page > pageCount) void setPage(pageCount);
+  }, [data, page, pageCount, setPage]);
 
   return (
     <Section
@@ -250,16 +256,13 @@ export function TransactionsRecentSection() {
         </View>
       )}
 
-      {!showLoading && hasMore && (
-        <View paddingTop="$3" alignItems="center">
-          <PekuloButton
-            variant="secondary"
-            loading={isFetching}
-            onPress={() => setLimit((l) => Math.min(LIST_MAX, l + PAGE_STEP))}
-          >
-            Charger plus
-          </PekuloButton>
-        </View>
+      {!showLoading && pageCount > 1 && (
+        <PekuloPagination
+          page={page}
+          pageCount={pageCount}
+          onPageChange={(p) => void setPage(p)}
+          ariaLabel="Pagination des transactions"
+        />
       )}
 
       {activeTx && (
