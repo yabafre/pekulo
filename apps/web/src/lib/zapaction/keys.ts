@@ -99,7 +99,9 @@ export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
   // registry edge needed: the transactionsTags.list() edge invalidates the bare
   // [TRANSACTIONS_KEY] prefix, which covers every ["pending", n] entry (confirming
   // refreshes Suggestions IA + Récentes across all loaded pages).
-  pending: (page?: number) => ["pending", page ?? 1] as const,
+  // Story 6-9 ext — `month` joins the key so per-month pending caches separately
+  // (month ?? "all" = the unscoped backlog). Bare-prefix invalidation unchanged.
+  pending: (page?: number, month?: string) => ["pending", page ?? 1, month ?? "all"] as const,
   // Story 6-9 (FR-64) — month-scoped stat-card aggregate. month undefined =
   // the server-resolved default (latest activity month); keyed "default" so it
   // caches separately from explicit months and refreshes when activity changes.
