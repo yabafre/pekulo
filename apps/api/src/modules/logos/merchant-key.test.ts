@@ -23,4 +23,12 @@ describe("normalizeMerchantKey (story 6-10 / FR-65)", () => {
     const k = normalizeMerchantKey("CB PAIEMENT PAR CARTE 09/11");
     expect(isResolvableMerchantKey(k)).toBe(false);
   });
+
+  // Statement-line vocabulary must NOT resolve a merchant logo (the brand it
+  // would prefix-match is spurious — 6-10 review).
+  test("statement-line labels normalise to an unresolvable key", () => {
+    for (const label of ["Relevé Différé", "Cb Temporary Transaction", "Commission Paiement Par"]) {
+      expect(isResolvableMerchantKey(normalizeMerchantKey(label))).toBe(false);
+    }
+  });
 });

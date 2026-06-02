@@ -6,7 +6,9 @@
 // Deterministic: same label → same key (cache hit rate + reproducibility).
 
 // Tokens that are pure bank/card noise, never part of a merchant name. Stored
-// de-accented (matches the post-NFD token), lower-case.
+// de-accented (matches the post-NFD token), lower-case. The second block is
+// statement-line vocabulary (deferred statements, instalments, tax/admin debits)
+// that otherwise prefix-matches a random brand — see the 6-10 review dry-run.
 const NOISE = new Set([
   "cb",
   "paiement",
@@ -22,6 +24,16 @@ const NOISE = new Set([
   "sepa",
   "facture",
   "ref",
+  // non-merchant statement lines (kill false-positive logo matches)
+  "releve",
+  "differe",
+  "temporary",
+  "transaction",
+  "echeance",
+  "commission",
+  "direction",
+  "generale",
+  "inst",
 ]);
 
 // Strip leading "CB", card-payment prose, dates (dd/mm[/yy[yy]]), standalone
