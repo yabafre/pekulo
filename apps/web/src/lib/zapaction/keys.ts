@@ -89,11 +89,10 @@ export const realestateTags = createFeatureTags(REALESTATE_KEY, {
 // against `transactionsTags.list()` without further touching this file.
 export const TRANSACTIONS_KEY = "transactions" as const;
 export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
-  // `limit` is part of the queryKey because callers with different page sizes
-  // (Récentes section reads 50, Stats row reads 200 to compute monthly net)
-  // would otherwise collide on the same cache entry → first mount wins,
-  // nondeterministic render. Mirrors `compassKeys.history(limit?)` pattern.
-  list: (limit?: number) => ["list", limit ?? 50] as const,
+  // `limit` AND `month` are part of the queryKey: the Récentes section (50,
+  // month-scoped) and any unscoped caller must not collide. month ?? "all" =
+  // the pre-6-9 unscoped window. Mirrors compassKeys.history(limit?).
+  list: (limit?: number, month?: string) => ["list", limit ?? 50, month ?? "all"] as const,
   byId: (id: string) => ["byId", id] as const,
   // Story 6-4 — pending-suggestion list. `page` is part of the queryKey so the
   // numbered pages cache independently (same reason as `list(limit)`). No new
@@ -101,6 +100,10 @@ export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
   // [TRANSACTIONS_KEY] prefix, which covers every ["pending", n] entry (confirming
   // refreshes Suggestions IA + Récentes across all loaded pages).
   pending: (page?: number) => ["pending", page ?? 1] as const,
+  // Story 6-9 (FR-64) — month-scoped stat-card aggregate. month undefined =
+  // the server-resolved default (latest activity month); keyed "default" so it
+  // caches separately from explicit months and refreshes when activity changes.
+  monthSummary: (month?: string) => ["monthSummary", month ?? "default"] as const,
 });
 export const transactionsTags = createFeatureTags(TRANSACTIONS_KEY, {
   list: () => ["list"] as const,
