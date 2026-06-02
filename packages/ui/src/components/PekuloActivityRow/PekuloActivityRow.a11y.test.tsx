@@ -20,4 +20,24 @@ describe("PekuloActivityRow a11y", () => {
       (r.violations ?? []).filter((v) => v.impact === "serious" || v.impact === "critical"),
     ).toEqual([]);
   });
+
+  it("renders the grayscale IA provenance hint when aiApplied, with no serious/critical violations", async () => {
+    const { container } = renderWithTamagui(
+      <PekuloActivityRow
+        tx={{
+          label: "Carrefour",
+          account: "CC",
+          category: "Courses",
+          direction: "out",
+          amountEur: 42,
+        }}
+        aiApplied
+      />,
+    );
+    expect(container.textContent).toContain("IA");
+    const r = await axe(container);
+    expect(
+      (r.violations ?? []).filter((v) => v.impact === "serious" || v.impact === "critical"),
+    ).toEqual([]);
+  });
 });

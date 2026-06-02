@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Text, View } from "tamagui";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Sparkles } from "lucide-react";
 import type { Activity } from "@pekulo/types";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -21,9 +21,15 @@ export interface PekuloActivityRowProps {
   // Story 6-10 (FR-65) — leading logo avatar (merchant/bank/category). The
   // consumer passes <TransactionLogo src={tx.logoUrl} category={rawCategory} />.
   logo?: ReactNode;
+  // Story 6-7 (FR-33 amended) — the category was APPLIED by the LLM on a bulk
+  // import (not user-set). Renders a grayscale "· IA" provenance hint after the
+  // category. GRAYSCALE only — AI/control chrome never uses $accent/$success
+  // (lesson 2026-05-07). The Sparkles glyph is decorative (aria-hidden); the
+  // visible "IA" text carries the meaning for screen readers.
+  aiApplied?: boolean;
 }
 
-export function PekuloActivityRow({ tx, categoryPrefix, logo }: PekuloActivityRowProps) {
+export function PekuloActivityRow({ tx, categoryPrefix, logo, aiApplied }: PekuloActivityRowProps) {
   const isInflow = tx.direction === "in";
   const Arrow = isInflow ? ArrowDownRight : ArrowUpRight;
   const arrowColor = isInflow ? "var(--success)" : "var(--colorTertiary)";
@@ -58,6 +64,19 @@ export function PekuloActivityRow({ tx, categoryPrefix, logo }: PekuloActivityRo
           <Text color="$colorTertiary" fontSize="$xs" flexShrink={0} numberOfLines={1}>
             {tx.category}
           </Text>
+          {aiApplied ? (
+            <>
+              <Sparkles
+                size={11}
+                color="var(--colorTertiary)"
+                aria-hidden
+                style={{ marginLeft: 4, flexShrink: 0 }}
+              />
+              <Text color="$colorTertiary" fontSize="$xs" flexShrink={0} marginLeft="$1">
+                IA
+              </Text>
+            </>
+          ) : null}
         </View>
       </View>
       <Text color={amountColor} fontSize="$bodySm" fontWeight="500" flexShrink={0}>
