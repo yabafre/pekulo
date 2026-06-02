@@ -218,7 +218,7 @@ sprint:
     6-7-auto-categorise-on-import: {status: pending, depends_on: [6-2-llm-categorise, 6-4-llm-suggestion-ui], ticket: null, worktree: null}
     6-8-category-taxonomy-expansion: {status: done, depends_on: [6-2-llm-categorise, 6-4-llm-suggestion-ui], ticket: null, worktree: null, started_at: "2026-06-01T12:07:37Z", completed_at: "2026-06-01T12:31:41Z"}
     6-9-month-navigator: {status: pending, depends_on: [5-1-transactions-record, 5-4-monthly-tracking], ticket: null, worktree: null}
-    6-10-merchant-logos: {status: pending, depends_on: [5-6-bridge-connector, 5-1-transactions-record], ticket: null, worktree: null}
+    6-10-merchant-logos: {status: review, depends_on: [5-6-bridge-connector, 5-1-transactions-record], ticket: null, worktree: null, started_at: "2026-06-01T20:48:11Z"}
     # Epic 7 — Dashboard & projection (V1 — depends on 1-6)
     7-1-dashboard-orchestration: {status: pending, depends_on: [1-1-compass-domain, 2-1-accounts-orpc-port, 3-1-holdings-orpc-port, 4-1-realestate-domain], ticket: "#38", worktree: null}
     7-2-dashboard-cap-page: {status: pending, depends_on: [7-1-dashboard-orchestration, 1-4-compass-ui-cap, 0-10-pekulo-ui-migration], ticket: "#39", worktree: null}
