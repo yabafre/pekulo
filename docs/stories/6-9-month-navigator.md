@@ -1222,8 +1222,12 @@ See **File List** above — 28 files (validators + contract; api repository/serv
 
 Supersedes the locked "« À confirmer » / Suggestions IA are month-agnostic" decision. Both the **Suggestions IA list** AND the **« À confirmer » count** now re-scope to the active month: `month?` added to `listPendingSuggestionsInputSchema` → `listPendingByUser` (server `occurredOn` range, so >page-size months stay exact) → service → `usePendingSuggestions(page, pageSize, month)` → both surfaces. The shared `pending(page, month)` cache key keeps the list and the count consistent. Separately, the stat caption now shows the **full FR month name** (`formatMonthName`, e.g. « avril ») instead of the truncated « avri » (`formatMonthShort` removed). Next 16 best-practice pass (E10): `useSearchParams` (via nuqs) is correctly `<Suspense>`-wrapped — verified against the local App Router `use-search-params` doc; production build green with no CSR-bailout. Story scope note + epic-6 cache (L87) superseded in this change (lesson 2026-05-31).
 
+### Extension — Récentes numbered pagination (post-step-04, 2026-06-02, user call)
+
+Récentes moves from "Charger plus" (cursor load-more, 50→200) to **numbered pages, 10/page** (like Suggestions IA), with the page in the URL (`?page` via nuqs, under the same Suspense boundary). `listTransactions` gains an opt-in OFFSET mode: `page?` on the input → `listByUser` does `skip/take + count` and returns `totalCount` (null in the default cursor mode). This is a **documented deviation from D2/NFR-16** (offset forbidden for transactions) scoped to this bounded view — acceptable at Persona #1 scale (≤200 tx/month), to revisit if a user nears the 50k cap; the cursor path stays the default for every other caller. Architecture D2 amended. **Note:** auto-accept (story 6-7, still pending) is orthogonal — it applies suggestions server-side at import (all of them), so the 10/page limit is display-only and never caps auto-accept.
+
 ### Test output
 
-- `bun --filter='@pekulo/api' run test` → **790 pass, 0 fail** (incl. `transactions-month.test.ts`: repo month-scope + pending month-scope + `monthSummary` service).
+- `bun --filter='@pekulo/api' run test` → **792 pass, 0 fail** (incl. `transactions-month.test.ts`: repo month-scope + pending month-scope + offset pagination + `monthSummary` service).
 - `bun --filter='@pekulo/web' run test` → **159 pass, 0 fail** (incl. `month-key`, `month-navigator`, `transactions-stats-row`, recent-section ×2, suggestions-section ×2).
 - `bun run lint` → 0 warnings / 0 errors · `bun run typecheck` → 8/8 · `bun --filter='@pekulo/web' run build` → exit 0 (`/dashboard/transactions` = ƒ dynamic, no CSR bailout).
