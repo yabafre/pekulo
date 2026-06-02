@@ -11,6 +11,8 @@ import {
   listPendingSuggestionsOutputSchema,
   listTransactionsInputSchema,
   listTransactionsOutputSchema,
+  monthSummaryInputSchema,
+  monthSummaryOutputSchema,
   previewImportCsvInputSchema,
   updateTransactionInputSchema,
   type ConfirmCategorisationInput,
@@ -21,6 +23,8 @@ import {
   type ListPendingSuggestionsOutput,
   type ListTransactionsInput,
   type ListTransactionsOutput,
+  type MonthSummaryInput,
+  type MonthSummaryOutput,
   type PreviewImportCsvInput,
   type PreviewImportCsvOutput,
   type Transaction,
@@ -64,6 +68,16 @@ export const listTransactions = defineAction<
   handler: async ({ input }) => {
     await ensureRequestContext();
     return transactionsClient.listTransactions(input);
+  },
+});
+
+export const monthSummary = defineAction<MonthSummaryInput, MonthSummaryOutput, ActionContext>({
+  name: "monthSummary",
+  input: monthSummaryInputSchema,
+  output: monthSummaryOutputSchema,
+  handler: async ({ input }) => {
+    await ensureRequestContext();
+    return transactionsClient.monthSummary(input);
   },
 });
 

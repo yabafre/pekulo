@@ -37,8 +37,8 @@ export function PekuloActivityRow({ tx, categoryPrefix, logo }: PekuloActivityRo
     <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
       {logo}
       <Arrow size={18} color={arrowColor} />
-      <View flex={1}>
-        <Text color="$color" fontSize="$bodySm" fontWeight="500">
+      <View flex={1} minWidth={0}>
+        <Text color="$color" fontSize="$bodySm" fontWeight="500" numberOfLines={1}>
           {tx.label}
         </Text>
         {/* Caption: account · [category glyph] category. Story 6-8 review —
@@ -47,18 +47,20 @@ export function PekuloActivityRow({ tx, categoryPrefix, logo }: PekuloActivityRo
             icon doesn't sit inside a typographic run. Reading order and the
             5-3 AC-8 visual (glyph immediately before the category label) are
             preserved; SR readers still announce only the text (the icon is
-            aria-hidden, set by the consumer). */}
-        <View flexDirection="row" alignItems="center">
-          <Text color="$colorTertiary" fontSize="$xs">
+            aria-hidden, set by the consumer). Single line: the (often long
+            Bridge) account ellipsizes (flexShrink + min-w-0), the glyph +
+            category stay pinned (flexShrink:0) so the category never clips. */}
+        <View flexDirection="row" alignItems="center" minWidth={0}>
+          <Text color="$colorTertiary" fontSize="$xs" flexShrink={1} minWidth={0} numberOfLines={1}>
             {tx.account} ·{" "}
           </Text>
           {categoryPrefix}
-          <Text color="$colorTertiary" fontSize="$xs">
+          <Text color="$colorTertiary" fontSize="$xs" flexShrink={0} numberOfLines={1}>
             {tx.category}
           </Text>
         </View>
       </View>
-      <Text color={amountColor} fontSize="$bodySm" fontWeight="500">
+      <Text color={amountColor} fontSize="$bodySm" fontWeight="500" flexShrink={0}>
         {sign}
         {eur0.format(tx.amountEur)}
       </Text>

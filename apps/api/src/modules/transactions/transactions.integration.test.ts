@@ -116,7 +116,10 @@ function makeFakeClient() {
           userId: string;
           accountId?: string | { not: string };
           type?: "inflow" | "outflow";
-          occurredOn?: Date;
+          // Prisma accepts either an equality (a bare Date) or a range
+          // (`{ gte, lt }`) — the latter is the half-open month window the 6-9
+          // `listByUser(month)` / `listAllForMonth` queries pass.
+          occurredOn?: Date | { gte?: Date; lt?: Date };
           amount?: number;
           category?: string;
           transferPairId?: string | null;
@@ -135,8 +138,20 @@ function makeFakeClient() {
         }
         if (where.type !== undefined) out = out.filter((r) => r.type === where.type);
         if (where.occurredOn !== undefined) {
-          const target = where.occurredOn.getTime();
-          out = out.filter((r) => r.occurredOn.getTime() === target);
+          const oc = where.occurredOn;
+          if (oc instanceof Date) {
+            const target = oc.getTime();
+            out = out.filter((r) => r.occurredOn.getTime() === target);
+          } else {
+            // Half-open [gte, lt) range — the month-scope window.
+            out = out.filter((r) => {
+              const t = r.occurredOn.getTime();
+              return (
+                (oc.gte === undefined || t >= oc.gte.getTime()) &&
+                (oc.lt === undefined || t < oc.lt.getTime())
+              );
+            });
+          }
         }
         if (where.amount !== undefined) {
           const target = where.amount;
@@ -713,5 +728,35 @@ describe("confirmCategorisation HTTP boundary (6-4)", () => {
   test("AC-6 — listPendingSuggestions: missing JWT → 401 (the read endpoint is auth-gated too)", async () => {
     const res = await call("listPendingSuggestions", {});
     expect(res.status).toBe(401);
+  });
+});
+
+// Story 6-9 (FR-64) — `monthSummary` is a new authenticated read endpoint (the
+// navigator's stat-card aggregate). The per-user `where: { userId }` scope is
+// unit-tested at the repository layer (transactions-month.test.ts); here we
+// assert the HTTP boundary, mirroring the 401 coverage the 6-3/6-4 reviews added
+// for their new read endpoints: missing JWT → 401 (NFR-9), and an authenticated
+// caller gets a 200 + a well-formed aggregate (proving the procedure is mounted
+// and reachable — `implement(contract)` would TS-error on a missing handler, but
+// nothing else proved it answers over the wire).
+describe("monthSummary HTTP boundary (6-9)", () => {
+  test("AC-1/NFR-9 — missing JWT → 401", async () => {
+    const res = await call("monthSummary", {});
+    expect(res.status).toBe(401);
+  });
+
+  test("AC-1/AC-6 — authenticated → 200 + {month, income, spending, net} with net = income − spending", async () => {
+    const token = await signFor(USER_A);
+    const res = await call("monthSummary", {}, token);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      json: { month: string; incomeEur: number; spendingEur: number; netChangeEur: number };
+    };
+    expect(body.json.month).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
+    expect(typeof body.json.incomeEur).toBe("number");
+    expect(typeof body.json.spendingEur).toBe("number");
+    // Transfers excluded + Net = Entrées − Sorties (AC-6) — the derive invariant
+    // holds regardless of which rows the in-memory fake returns.
+    expect(body.json.netChangeEur).toBe(body.json.incomeEur - body.json.spendingEur);
   });
 });

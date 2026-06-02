@@ -86,17 +86,26 @@ export function PekuloMobileBottomNav({ activeKey, onSelect }: PekuloMobileBotto
               borderWidth={0}
               cursor="pointer"
               width="100%"
+              // min-w-0 lets the 1fr grid track ignore the label's nowrap
+              // min-content (WIG) — otherwise "Transactions"/"Portefeuille"
+              // floor each column wider than 1/5 and overflow on ≤393 px phones.
+              minWidth={0}
             >
               <Icon size={20} strokeWidth={1.75} color={iconColor(active)} />
+              {/* 10 px (inline, no token) so the longest 12-char labels fit a
+                  1/5 column at 360–393 px without truncating (ui-ux-pro-max:
+                  nav labels read in full); numberOfLines={1} is the ellipsis
+                  safety net on the very smallest widths. */}
               <Text
-                fontSize="$11"
                 lineHeight={12}
                 color={active ? "$color" : "$colorTertiary"}
                 fontWeight="500"
+                numberOfLines={1}
                 style={{
-                  whiteSpace: "nowrap",
+                  fontSize: 10,
                   letterSpacing: -0.1,
                   textAlign: "center",
+                  width: "100%",
                 }}
               >
                 {label}

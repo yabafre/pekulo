@@ -85,6 +85,11 @@ export function createTransactionsRouter(deps: { service: TransactionsService })
       return deps.service.listTransactions(context.userId, input);
     }),
 
+    monthSummary: impl.monthSummary.handler(async ({ context, input }) => {
+      requireUserId(context.userId);
+      return deps.service.monthSummary(context.userId, input);
+    }),
+
     previewImportCsv: impl.previewImportCsv.handler(async ({ context, input, errors }) => {
       requireUserId(context.userId);
       try {

@@ -39,6 +39,20 @@ const { transactionsMock } = vi.hoisted(() => ({ transactionsMock: vi.fn() }));
 vi.mock("../_hooks/use-transactions", () => ({
   useTransactions: transactionsMock,
 }));
+vi.mock("./month-scope-context", () => ({
+  useMonthScope: () => ({
+    month: "2026-02",
+    summary: undefined,
+    isLoading: false,
+    setMonth: () => {},
+    goPrev: () => {},
+    goNext: () => {},
+  }),
+}));
+vi.mock("nuqs", () => ({
+  parseAsInteger: { withDefault: () => null },
+  useQueryState: () => [1, () => {}],
+}));
 
 import { TransactionsRecentSection } from "./transactions-recent-section";
 

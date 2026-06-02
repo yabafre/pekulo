@@ -80,6 +80,18 @@ const isoDateString = (msg = "Date YYYY-MM-DD requise") =>
 // `.finite()` to surface as a clean 400.
 const amountSchema = (msg = "Montant ≥ 0") => z.number().finite("Montant invalide").min(0, msg);
 
+// ─── Month key (story 6-9, FR-64) ────────────────────────────────────────
+// Calendar-month key "YYYY-MM" — shape-validates the year + a 01–12 month.
+// The day is intentionally absent: the server expands it to a half-open
+// [monthStart, nextMonthStart) UTC range (mirrors monthly.repository's
+// firstDayOfMonthUTC / firstDayOfNextMonthUTC). Used by the month navigator.
+// Year 0000 is rejected (iso with the web `MONTH_KEY_REGEX` in month-key.ts) —
+// it is unreachable from any real occurredOn date and keeps the client-side
+// `shiftMonth` from ever stepping into a negative ordinal.
+const MONTH_KEY_REGEX = /^(?!0000)\d{4}-(0[1-9]|1[0-2])$/;
+export const monthKeySchema = z.string().regex(MONTH_KEY_REGEX, "Mois YYYY-MM requis");
+export type MonthKey = z.infer<typeof monthKeySchema>;
+
 // ─── DTO (row shape returned by reads) ───────────────────────────────────
 // transferPairId: nullable grouping tp_<base62> set by the service on the
 // rule-based transfer match (story 5-3, FR-30). System-set only — never on
@@ -166,14 +178,48 @@ export const listTransactionsInputSchema = z.object({
   limit: z.number().int().min(1).max(200).optional().default(50),
   cursor: z.string().optional(), // opaque base64url(`${occurredOnISO}|${id}`)
   accountId: z.string().regex(ACCOUNT_ID_REGEX).optional(),
+  // Story 6-9 (FR-64) — calendar-month scope. When present, listByUser filters
+  // occurredOn to [monthStart, nextMonthStart) UTC; cursor pagination still
+  // applies WITHIN the month. Absent = the unscoped recent window (pre-6-9
+  // behaviour — the pending-suggestions poll + any non-month caller keep it).
+  month: monthKeySchema.optional(),
+  // Story 6-9 ext — when present, listByUser switches to OFFSET pagination
+  // (1-based `page`, pageSize = `limit`) and returns `totalCount` for numbered
+  // pages. Absent = cursor pagination (the default, D2). A documented deviation
+  // from D2/NFR-16 scoped to the Récentes list: bounded at Persona #1 scale
+  // (≤200 tx/month); revisit if a user approaches the 50k cap.
+  page: z.number().int().min(1).optional(),
 });
 export type ListTransactionsInput = z.infer<typeof listTransactionsInputSchema>;
 
 export const listTransactionsOutputSchema = z.object({
   items: z.array(transactionSchema),
   nextCursor: z.string().nullable(),
+  // Story 6-9 ext — total match count for numbered (offset) pagination; absent
+  // in cursor mode (the default). The Récentes list derives pageCount from it.
+  totalCount: z.number().nullable().optional(),
 });
 export type ListTransactionsOutput = z.infer<typeof listTransactionsOutputSchema>;
+
+// ─── Month summary (story 6-9, FR-64) ────────────────────────────────────
+// The navigator's stat cards (Net / Entrées / Sorties), server-aggregated over
+// the WHOLE month so >200-tx months are exact (AC-4), reusing the /mensuel pure
+// derive so transfers are EXCLUDED (AC-6). `month` omitted on input = the server
+// resolves the most recent month with activity (current calendar month when the
+// user has none). The resolved month is echoed back so the client seeds the
+// navigator without a second round-trip.
+export const monthSummaryInputSchema = z.object({
+  month: monthKeySchema.optional(),
+});
+export type MonthSummaryInput = z.infer<typeof monthSummaryInputSchema>;
+
+export const monthSummaryOutputSchema = z.object({
+  month: monthKeySchema,
+  incomeEur: z.number(),
+  spendingEur: z.number(),
+  netChangeEur: z.number(),
+});
+export type MonthSummaryOutput = z.infer<typeof monthSummaryOutputSchema>;
 
 // ─── Envelope ─────────────────────────────────────────────────────────────
 export const transactionsOkSchema = z.object({ ok: z.literal(true) });
@@ -224,6 +270,11 @@ export type ConfirmCategorisationInput = z.infer<typeof confirmCategorisationInp
 export const listPendingSuggestionsInputSchema = z.object({
   page: z.number().int().min(1).optional().default(1),
   pageSize: z.number().int().min(1).max(50).optional().default(10),
+  // Story 6-9 ext (FR-64) — calendar-month scope. Present → listPendingByUser
+  // filters occurredOn to the [monthStart, nextMonth) UTC range so the
+  // Suggestions IA list + the "À confirmer" count reflect the active month.
+  // Absent = the unscoped pending backlog (pre-ext callers unchanged).
+  month: monthKeySchema.optional(),
 });
 export type ListPendingSuggestionsInput = z.infer<typeof listPendingSuggestionsInputSchema>;
 

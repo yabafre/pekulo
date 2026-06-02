@@ -84,15 +84,17 @@ export function PekuloSuggestionRow({
       <View flexDirection="row" alignItems="center" gap="$3">
         {logo}
         <Arrow size={18} color="var(--colorSecondary)" />
-        <View flex={1}>
-          <Text color="$color" fontSize="$bodySm" fontWeight="500">
+        <View flex={1} minWidth={0}>
+          <Text color="$color" fontSize="$bodySm" fontWeight="500" numberOfLines={1}>
             {tx.label}
           </Text>
-          <Text color="$colorTertiary" fontSize="$xs">
+          {/* Single line — the long Bridge account label ellipsizes instead of
+              wrapping to 3 lines (min-w-0 on the column + numberOfLines). */}
+          <Text color="$colorTertiary" fontSize="$xs" numberOfLines={1}>
             {tx.account} · {tx.dateLabel}
           </Text>
         </View>
-        <Text color="$color" fontSize="$bodySm" fontWeight="500">
+        <Text color="$color" fontSize="$bodySm" fontWeight="500" flexShrink={0}>
           {sign}
           {eur0.format(tx.amountEur)}
         </Text>

@@ -15,6 +15,8 @@ import {
   listPendingSuggestionsOutputSchema,
   listTransactionsInputSchema,
   listTransactionsOutputSchema,
+  monthSummaryInputSchema,
+  monthSummaryOutputSchema,
   previewImportCsvInputSchema,
   previewImportCsvOutputSchema,
   transactionSchema,
@@ -60,6 +62,7 @@ export const transactionsContractV1 = {
     .input(getTransactionInputSchema)
     .output(transactionSchema),
   listTransactions: oc.input(listTransactionsInputSchema).output(listTransactionsOutputSchema),
+  monthSummary: oc.input(monthSummaryInputSchema).output(monthSummaryOutputSchema),
   previewImportCsv: oc
     .errors({
       INVALID_CSV: invalidCsvError,

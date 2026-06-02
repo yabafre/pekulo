@@ -4,15 +4,18 @@
 // Mirrors ux-preview TransactionsScreen stat row (App.tsx L1297-1330):
 //   - 2 cards on mobile (Net + À confirmer)
 //   - 4 cards on desktop (+ Entrées + Sorties)
-// Aggregates are derived over the current month from useTransactions(200).
-// "À confirmer" is the LIVE count of pending LLM suggestions
-// (usePendingSuggestions().totalCount — FR-33 / story 6-4).
+// Story 6-9 (FR-64): Net/Entrées/Sorties come from the SERVER monthSummary for
+// the active month (MonthScopeProvider) — transfers excluded (/mensuel
+// semantics). The pre-6-9 client `new Date()` current-month filter over
+// useTransactions(200) is removed (no client clock dependency, no >200
+// truncation). "À confirmer" stays the live pending count (story 6-4).
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { Section } from "@pekulo/ui";
-import { useTransactions } from "../_hooks/use-transactions";
 import { usePendingSuggestions } from "../_hooks/use-pending-suggestions";
+import { formatMonthName } from "./month-key";
+import { useMonthScope } from "./month-scope-context";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -37,56 +40,31 @@ const gridStyleLg: CSSProperties = {
 const PLACEHOLDER = "—";
 
 export function TransactionsStatsRow() {
-  const { data } = useTransactions(200);
-  // "À confirmer" — the live pending-suggestion total. Only the count is needed,
-  // so page 1 suffices; totalCount is returned on every page and shares the
-  // pending(1) cache with the Suggestions IA section. Refreshes on confirm via
-  // the transactionsTags.list() invalidation (bare [TRANSACTIONS_KEY] prefix).
-  const { data: pendingData } = usePendingSuggestions();
+  const { summary, month } = useMonthScope();
+  // "À confirmer" — live pending-suggestion total, scoped to the active month
+  // (story 6-9 ext; shares the pending(1, month) cache with the Suggestions IA
+  // section so both reflect the same month).
+  const { data: pendingData } = usePendingSuggestions(1, undefined, month ?? undefined);
 
-  // Hydration guard — same pattern as transactions-recent-section.tsx.
-  // SSR has no TanStack cache and renders "+0 €"; client first paint sees
-  // cached data (when present) and renders real numbers → React 19 logs a
-  // recoverable hydration mismatch. Also gates `new Date()` so the
-  // current-month filter agrees across server / client at month boundaries.
+  // Hydration guard (R13) — the summary comes from the TanStack cache, so SSR
+  // renders the PLACEHOLDER and the client renders real numbers on the first
+  // cached paint → without the guard React 19 logs a hydration mismatch.
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => setIsHydrated(true), []);
 
-  const items = data?.items ?? [];
-
-  // All time-dependent + cache-dependent derivations live behind the hydration
-  // guard. Before mount we render a stable PLACEHOLDER so the SSR HTML matches
-  // the first client paint exactly.
   let monthLabel = PLACEHOLDER;
   let netLabel = PLACEHOLDER;
   let netColor: "$success" | "$danger" | "$color" = "$color";
   let inflowLabel = PLACEHOLDER;
   let outflowLabel = PLACEHOLDER;
 
-  if (isHydrated) {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    const inMonth = items.filter((t) => {
-      const d = new Date(t.occurredOn);
-      return d.getFullYear() === y && d.getMonth() === m;
-    });
-    const totalInflow = inMonth
-      .filter((t) => t.type === "inflow")
-      .reduce((s, t) => s + t.amount, 0);
-    const totalOutflow = inMonth
-      .filter((t) => t.type === "outflow")
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-    const net = totalInflow - totalOutflow;
-    monthLabel = now.toLocaleDateString("fr-FR", { month: "long" }).toLowerCase().slice(0, 3);
-    netLabel = signed(net);
-    netColor = net >= 0 ? "$success" : "$danger";
-    inflowLabel = eur0.format(totalInflow);
-    outflowLabel = eur0.format(totalOutflow);
+  if (isHydrated && summary) {
+    monthLabel = formatMonthName(summary.month);
+    netLabel = signed(summary.netChangeEur);
+    netColor = summary.netChangeEur >= 0 ? "$success" : "$danger";
+    inflowLabel = eur0.format(summary.incomeEur);
+    outflowLabel = eur0.format(summary.spendingEur);
   }
-  // Live count of LLM suggestions awaiting confirmation (story 6-4). Gated on
-  // hydration like the month aggregates: SSR + first client paint render 0 (no
-  // cache), the real total appears on the second paint — no React 19 mismatch.
   const pendingCount = isHydrated ? (pendingData?.totalCount ?? 0) : 0;
 
   return (
