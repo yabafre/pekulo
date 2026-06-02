@@ -34,6 +34,8 @@ import type {
   ListPendingSuggestionsOutput,
   ListTransactionsInput,
   ListTransactionsOutput,
+  MonthSummaryInput,
+  MonthSummaryOutput,
   PreviewImportCsvInput,
   PreviewImportCsvOutput,
   Transaction,
@@ -44,6 +46,7 @@ import { accountNotFound } from "../accounts/accounts.errors";
 import { PekuloError } from "../../common/errors";
 import { generateBase62Id } from "../../database";
 import { detectTransferPair } from "../../common/derive/transfer-rule";
+import { deriveMonthlyAggregates } from "../../common/derive/monthly-aggregates";
 import { parseCsvForPreview, type AccountResolver } from "./services/csv-parser";
 import { transactionNotFound } from "./transactions.errors";
 import type { TransactionsRepository } from "./transactions.repository";
@@ -138,6 +141,11 @@ export interface TransactionsService {
   deleteTransaction(userId: string, input: DeleteTransactionInput): Promise<{ ok: true }>;
   getTransaction(userId: string, input: GetTransactionInput): Promise<Transaction>;
   listTransactions(userId: string, input: ListTransactionsInput): Promise<ListTransactionsOutput>;
+  /** Story 6-9 (FR-64) — the navigator's stat-card aggregate for a month.
+   *  `input.month` omitted → resolve the most recent month with activity
+   *  (current UTC month when the user has none). Aggregates the WHOLE month
+   *  server-side via the shared /mensuel pure derive (transfers excluded). */
+  monthSummary(userId: string, input: MonthSummaryInput): Promise<MonthSummaryOutput>;
   previewImportCsv(userId: string, input: PreviewImportCsvInput): Promise<PreviewImportCsvOutput>;
   importCsv(userId: string, input: ImportCsvInput): Promise<ImportCsvOutput>;
   // Story 5-3 — exposed on the interface so a future LLM-categorisation
@@ -200,6 +208,13 @@ export interface TransactionsService {
 
 function generateTransferPairId(): string {
   return `tp_${generateBase62Id(21)}`;
+}
+
+// Story 6-9 — current calendar month as "YYYY-MM" in UTC (mirrors monthly's
+// currentMonthUTC). The empty-DB navigator default (AC-3).
+function currentMonthKeyUTC(): string {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 // Extracted so createTransaction + importCsv + the public method can call
@@ -422,6 +437,14 @@ export function createTransactionsService(deps: {
     async listTransactions(userId, input) {
       const page = await deps.repository.listByUser(userId, input);
       return { ...page, items: await attachLogos(userId, page.items) };
+    },
+
+    async monthSummary(userId, input) {
+      const month =
+        input.month ?? (await deps.repository.latestActivityMonth(userId)) ?? currentMonthKeyUTC();
+      const transactions = await deps.repository.listAllForMonth(userId, month);
+      const { incomeEur, spendingEur, netChangeEur } = deriveMonthlyAggregates({ transactions });
+      return { month, incomeEur, spendingEur, netChangeEur };
     },
 
     async previewImportCsv(userId, input) {
