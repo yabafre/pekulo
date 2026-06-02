@@ -2,24 +2,31 @@ import { describe, expect, test } from "bun:test";
 import { createLogosService, providerIdFromAccountKey } from "./logos.service";
 import type { LogosRepository } from "./logos.repository";
 
-function fakeRepo(seed?: {
-  merchant?: Record<string, string | null>;
-  provider?: Record<string, string | null>;
-}): LogosRepository {
-  const m = new Map(Object.entries(seed?.merchant ?? {}));
-  const p = new Map(Object.entries(seed?.provider ?? {}));
+function fakeRepo(
+  seed?: {
+    merchant?: Record<string, string | null>;
+    provider?: Record<string, string | null>;
+  },
+  clock: () => Date = () => new Date(),
+): LogosRepository {
+  const m = new Map<string, { logoUrl: string | null; fetchedAt: Date }>();
+  const p = new Map<string, { logoUrl: string | null; fetchedAt: Date }>();
+  for (const [k, v] of Object.entries(seed?.merchant ?? {}))
+    m.set(k, { logoUrl: v, fetchedAt: clock() });
+  for (const [k, v] of Object.entries(seed?.provider ?? {}))
+    p.set(k, { logoUrl: v, fetchedAt: clock() });
   return {
     async getMerchant(k) {
-      return m.has(k) ? { logoUrl: m.get(k) ?? null } : undefined;
+      return m.get(k);
     },
     async upsertMerchant(k, v) {
-      m.set(k, v);
+      m.set(k, { logoUrl: v, fetchedAt: clock() });
     },
     async getProvider(k) {
-      return p.has(k) ? { logoUrl: p.get(k) ?? null } : undefined;
+      return p.get(k);
     },
     async upsertProvider(k, v) {
-      p.set(k, v);
+      p.set(k, { logoUrl: v, fetchedAt: clock() });
     },
   };
 }
@@ -120,8 +127,35 @@ describe("logos.service (story 6-10 / FR-65)", () => {
     });
     const r = await svc.warmMany({ labels: ["Cb Uber *eats"], providerIds: ["574"] });
     expect(r).toEqual({ merchants: 1, providers: 1 });
-    expect(await repo.getMerchant("uber eats")).toEqual({ logoUrl: "https://x/uber.png" });
-    expect(await repo.getProvider("574")).toEqual({ logoUrl: "https://x/sg.png" });
+    expect((await repo.getMerchant("uber eats"))?.logoUrl).toBe("https://x/uber.png");
+    expect((await repo.getProvider("574"))?.logoUrl).toBe("https://x/sg.png");
+  });
+
+  // AC-5 refresh window — a negative cache entry must NOT be permanent: once the
+  // window elapses the merchant is re-resolved so a once-down brand can recover.
+  test("re-resolves a negative cache entry once its refresh window elapses (AC-5)", async () => {
+    let t = new Date("2026-01-01T00:00:00Z");
+    let calls = 0;
+    const repo = fakeRepo(undefined, () => t);
+    const svc = createLogosService({
+      repository: repo,
+      brandfetch: {
+        async resolveLogoUrl() {
+          calls += 1;
+          return null;
+        },
+      },
+      getBankLogo: async () => null,
+      clock: () => t,
+    });
+    expect(await svc.resolveMerchantLogo("Carrefour City")).toBeNull();
+    expect(calls).toBe(1); // first miss → one brandfetch hit + negative-cache
+    t = new Date("2026-01-10T00:00:00Z"); // +9 days — inside the 14-day window
+    expect(await svc.resolveMerchantLogo("Carrefour City")).toBeNull();
+    expect(calls).toBe(1); // served from the negative cache
+    t = new Date("2026-01-20T00:00:00Z"); // +19 days — past the window
+    expect(await svc.resolveMerchantLogo("Carrefour City")).toBeNull();
+    expect(calls).toBe(2); // re-resolved after the refresh window elapsed
   });
 
   // AC-2 — bank tier on an IBAN account: the key (iban:...) carries no

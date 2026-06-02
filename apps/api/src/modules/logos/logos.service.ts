@@ -10,6 +10,20 @@ import { isResolvableMerchantKey, normalizeMerchantKey } from "./merchant-key";
 import type { BrandfetchClient } from "./services/brandfetch-client";
 import type { LogosRepository } from "./logos.repository";
 
+// AC-5 refresh window — a cached row is NOT served forever. A negative entry
+// ("resolved, none found") is retried after NEGATIVE_TTL so a merchant that was
+// down / not-yet-indexed at first lookup can recover; a positive entry refreshes
+// on the longer POSITIVE_TTL (brand/bank logos rarely change). Before the window
+// elapses the row short-circuits the upstream call (bounds Brandfetch/Bridge cost
+// + protects AC-5's "not looked up again before its refresh window elapses").
+const NEGATIVE_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days — retry a miss
+const POSITIVE_TTL_MS = 1000 * 60 * 60 * 24 * 90; // 90 days — refresh a hit
+
+function isStale(row: { logoUrl: string | null; fetchedAt: Date }, now: Date): boolean {
+  const age = now.getTime() - row.fetchedAt.getTime();
+  return row.logoUrl === null ? age > NEGATIVE_TTL_MS : age > POSITIVE_TTL_MS;
+}
+
 // provider_id is encoded in account.providerAccountKey = "pid:{providerId}:{name}"
 // (bridge-client bridgeAccountKey). IBAN-keyed accounts ("iban:...") have no
 // provider_id here → no bank logo (tier-3 fallback). Pure parse, no I/O.
@@ -73,12 +87,19 @@ export function createLogosService(deps: {
   repository: LogosRepository;
   brandfetch: BrandfetchClient;
   getBankLogo: (providerId: string) => Promise<string | null>; // BankProvider.getProviderLogo
+  // Story 6-10 — factory-level clock seam (iso bank-aggregator) so the AC-5
+  // refresh window is testable without a real timer. Defaults to wall-clock.
+  clock?: () => Date;
 }): LogosService {
+  const now = (): Date => (deps.clock ? deps.clock() : new Date());
+
   async function resolveMerchantLogo(label: string): Promise<string | null> {
     const key = normalizeMerchantKey(label);
     if (!isResolvableMerchantKey(key)) return null;
     const cached = await deps.repository.getMerchant(key);
-    if (cached !== undefined) return cached.logoUrl; // hit (positive OR negative)
+    // Fresh hit (positive OR negative) short-circuits; a stale row falls through
+    // to a re-resolve so a once-failed merchant recovers after its window (AC-5).
+    if (cached !== undefined && !isStale(cached, now())) return cached.logoUrl;
     const resolved = await deps.brandfetch.resolveLogoUrl(key);
     await deps.repository.upsertMerchant(key, resolved); // negative-cache on null
     return resolved;
@@ -86,7 +107,7 @@ export function createLogosService(deps: {
 
   async function resolveProviderLogo(providerId: string): Promise<string | null> {
     const cached = await deps.repository.getProvider(providerId);
-    if (cached !== undefined) return cached.logoUrl;
+    if (cached !== undefined && !isStale(cached, now())) return cached.logoUrl;
     const resolved = await deps.getBankLogo(providerId);
     await deps.repository.upsertProvider(providerId, resolved);
     return resolved;

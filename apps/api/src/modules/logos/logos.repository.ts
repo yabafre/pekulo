@@ -10,10 +10,14 @@
 
 import type { ExtendedPrismaClient } from "../../database";
 
+// Story 6-10 — `fetchedAt` is selected on reads so the service can honour the
+// AC-5 refresh window (a stale row is re-resolved instead of served forever).
 export interface LogosRepository {
-  getMerchant(merchantKey: string): Promise<{ logoUrl: string | null } | undefined>;
+  getMerchant(
+    merchantKey: string,
+  ): Promise<{ logoUrl: string | null; fetchedAt: Date } | undefined>;
   upsertMerchant(merchantKey: string, logoUrl: string | null): Promise<void>;
-  getProvider(providerId: string): Promise<{ logoUrl: string | null } | undefined>;
+  getProvider(providerId: string): Promise<{ logoUrl: string | null; fetchedAt: Date } | undefined>;
   upsertProvider(providerId: string, logoUrl: string | null): Promise<void>;
 }
 
@@ -22,7 +26,7 @@ export function createLogosRepository(deps: { client: ExtendedPrismaClient }): L
     async getMerchant(merchantKey) {
       const row = await deps.client.merchantLogoCache.findUnique({
         where: { merchantKey },
-        select: { logoUrl: true },
+        select: { logoUrl: true, fetchedAt: true },
       });
       return row ?? undefined;
     },
@@ -36,7 +40,7 @@ export function createLogosRepository(deps: { client: ExtendedPrismaClient }): L
     async getProvider(providerId) {
       const row = await deps.client.providerLogoCache.findUnique({
         where: { providerId },
-        select: { logoUrl: true },
+        select: { logoUrl: true, fetchedAt: true },
       });
       return row ?? undefined;
     },
