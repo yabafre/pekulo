@@ -390,6 +390,7 @@ function makeRouteService(): BankAggregatorService {
     refreshConnection: notImpl("refreshConnection") as BankAggregatorService["refreshConnection"],
     refreshAll: async () => undefined,
     handleWebhookEvent: async () => undefined,
+    backfillUserLogos: async () => ({ merchants: 0, providers: 0 }),
     async renameConnection(_userId, connectionId, displayName) {
       if (connectionId === "bnk_missing") {
         throw new BankAggregatorError("BANK_CONNECTION_NOT_FOUND", "connection not found");

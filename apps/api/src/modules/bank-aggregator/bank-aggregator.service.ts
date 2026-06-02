@@ -63,7 +63,18 @@ export interface BankAggregatorService {
     displayName: string,
   ): Promise<BankConnection>;
   revokeConnection(userId: string, connectionId: string): Promise<{ ok: true }>;
+  /**
+   * Story 6-10 (FR-65) backfill — warm the logo caches for a user's already-
+   * synced transactions (the refresh warm-up only covers each fresh batch).
+   * Best-effort + idempotent (warmMany negative-caches misses). Returns the
+   * attempted counts. No-op when no logos port is wired.
+   */
+  backfillUserLogos(userId: string): Promise<{ merchants: number; providers: number }>;
 }
+
+// Story 6-10 — cap distinct labels warmed per backfill run (bounds Brandfetch
+// cost; a heavy account still fully warms across a few invocations).
+const LOGO_BACKFILL_LABEL_LIMIT = 1000;
 
 function mapBridgeAccountKind(kind: ProviderBankAccount["kind"]): "banque" | "livret" | "autre" {
   // Story 5-6 FEAT13 (2026-05-27). Mapping Bridge → Pekulo account_type:
@@ -422,6 +433,15 @@ export function createBankAggregatorService(deps: {
         await deps.repository.setStatus(userId, connectionId, "revoked");
       }
       return { ok: true as const };
+    },
+
+    async backfillUserLogos(userId) {
+      if (!deps.logos) return { merchants: 0, providers: 0 };
+      const labels = await deps.transactionsService.listDistinctProviderLabels(
+        userId,
+        LOGO_BACKFILL_LABEL_LIMIT,
+      );
+      return deps.logos.warmMany({ labels });
     },
   };
 }

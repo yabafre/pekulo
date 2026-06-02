@@ -54,6 +54,7 @@ function makeFakeService(): BankAggregatorService {
       createdAt: new Date().toISOString(),
     }),
     revokeConnection: async () => ({ ok: true as const }),
+    backfillUserLogos: async () => ({ merchants: 0, providers: 0 }),
   };
 }
 

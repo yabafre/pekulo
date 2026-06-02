@@ -573,3 +573,38 @@ test("revokeConnection is idempotent on an already-revoked connection (no Bridge
   expect(out).toEqual({ ok: true });
   expect(revokeCalled).toBe(false);
 });
+
+// ───── Story 6-10 (FR-65) — historical logo backfill ─────────────────────
+test("backfillUserLogos warms the user's distinct provider labels (best-effort)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  transactionsService.listDistinctProviderLabels = async () => ["Cb Uber *eats", "Cb Naturalia"];
+  const warmed: string[] = [];
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+    logos: {
+      warmMany: async ({ labels = [] }) => {
+        warmed.push(...labels);
+        return { merchants: labels.length, providers: 0 };
+      },
+    },
+  });
+  const out = await svc.backfillUserLogos("u1");
+  expect(warmed).toEqual(["Cb Uber *eats", "Cb Naturalia"]);
+  expect(out.merchants).toBe(2);
+});
+
+test("backfillUserLogos is a no-op when no logos port is wired", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  expect(await svc.backfillUserLogos("u1")).toEqual({ merchants: 0, providers: 0 });
+});
