@@ -1,25 +1,20 @@
 // apps/web/src/app/(cap)/dashboard/transactions/page.tsx
-// RSC shell — mirrors ux-preview TransactionsScreen (App.tsx L1284-1374):
-//   1. Stats row (Net / À confirmer / + Entrées + Sorties lg)
-//   2. Suggestions IA (placeholder until 6-4)
-//   3. Récentes (5-1 owner)
+// RSC shell — story 6-9 (FR-64) wraps the month-scoped subtree in the
+// MonthScopeProvider (URL ?month= via nuqs) under a single <Suspense> boundary.
+// The provider reads useSearchParams (through nuqs) → Next.js requires a
+// Suspense ancestor on the consuming subtree or the whole route bails to CSR
+// (lesson 2026-05-26; the cap-shell already consumes ?tab one layer up). The
+// pre-6-9 page wrapped only Récentes; now the navigator + stats + Récentes all
+// share the provider, so the boundary moves up to wrap all three. Stats + Récentes
+// already render placeholders/skeletons until hydration, so moving them under
+// Suspense is consistent with their existing SSR output. The Suggestions IA
+// section is month-agnostic but lives inside the provider for layout order.
 //
-// Padding: ZERO outer padding here. `bento.module.css .main` already
-// applies 24/20px mobile + 16/8px desktop ; doubling up via pekuloSpacing[4]
-// (parametres precedent) reads as inset on this page. Matches
-// portefeuille/immobilier shape — minimal padding on the inner wrapper.
-//
-// Suspense boundary required: cap-shell.tsx consumes useSearchParams
-// (tab=patrimoine query param threading) one layer up. Next.js requires
-// any route ancestor of a useSearchParams reader to render under Suspense,
-// otherwise the entire route bails to CSR (next-best-practices skill,
-// suspense-boundaries.md). Wrapping TransactionsRecentSection — the
-// heaviest data subtree below the shell — keeps SSR for the Stats and
-// Suggestions sections while satisfying the framework rule. Note: the
-// previous comment claimed `?new=1` deep-link was the trigger ; that
-// path was removed in 902f4d3 when the dialog lifted to cap-shell.
+// <NuqsAdapter> is installed once at the app root (layout.tsx).
 
 import { Suspense } from "react";
+import { MonthNavigator } from "./_components/month-navigator";
+import { MonthScopeProvider } from "./_components/month-scope-context";
 import { TransactionsRecentSection } from "./_components/transactions-recent-section";
 import { TransactionsStatsRow } from "./_components/transactions-stats-row";
 import { TransactionsSuggestionsSection } from "./_components/transactions-suggestions-section";
@@ -35,10 +30,13 @@ export default function TransactionsPage() {
         width: "100%",
       }}
     >
-      <TransactionsStatsRow />
-      <TransactionsSuggestionsSection />
       <Suspense fallback={null}>
-        <TransactionsRecentSection />
+        <MonthScopeProvider>
+          <MonthNavigator />
+          <TransactionsStatsRow />
+          <TransactionsSuggestionsSection />
+          <TransactionsRecentSection />
+        </MonthScopeProvider>
       </Suspense>
     </div>
   );
