@@ -99,6 +99,12 @@ export interface AccountRepository {
     providerAccountKey: string;
     providerId?: string | null;
   }): Promise<Account>;
+  /**
+   * Story 6-10 (FR-65) — the user's distinct Bridge provider_ids (bank-logo
+   * tier-2 source). Feeds the logo backfill + refresh warm-up so IBAN accounts
+   * (whose providerAccountKey carries no provider_id) still resolve a bank logo.
+   */
+  listProviderIds(userId: string): Promise<string[]>;
 }
 
 type AccountRow = {
@@ -352,6 +358,19 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
         } as unknown as Parameters<typeof deps.client.account.create>[0]["data"],
       });
       return rowToAccount(created as unknown as AccountRow);
+    },
+
+    async listProviderIds(userId) {
+      // `where: { userId }` keeps the no-prisma-query-without-user-id lint rule
+      // satisfied even though provider_id is reference data, not PII.
+      const rows = await deps.client.account.findMany({
+        where: { userId, providerId: { not: null } },
+        select: { providerId: true },
+        distinct: ["providerId"],
+      });
+      return rows
+        .map((r) => (r as { providerId: string | null }).providerId)
+        .filter((id): id is string => id != null);
     },
   };
 }

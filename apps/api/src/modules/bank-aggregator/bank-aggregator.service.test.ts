@@ -92,6 +92,8 @@ function makeStubs() {
     // already-synced guard passes. Refresh tests that need the lookup to
     // resolve override this to return an account (story 5-7 FIX 2026-05-28).
     findByProviderKey: async () => null,
+    // Story 6-10 — distinct bank provider_ids for the logo warm-up/backfill.
+    listProviderIds: async () => ["574"],
   } as unknown as AccountService;
   return { repo, provider, transactionsService, accountsService };
 }
@@ -580,6 +582,7 @@ test("backfillUserLogos warms the user's distinct provider labels (best-effort)"
   const { repo, provider, transactionsService, accountsService } = makeStubs();
   transactionsService.listDistinctProviderLabels = async () => ["Cb Uber *eats", "Cb Naturalia"];
   const warmed: string[] = [];
+  let warmedProviderIds: string[] = [];
   const svc = createBankAggregatorService({
     repository: repo,
     provider,
@@ -587,15 +590,20 @@ test("backfillUserLogos warms the user's distinct provider labels (best-effort)"
     accountsService,
     listAllActiveConnections: async () => [],
     logos: {
-      warmMany: async ({ labels = [] }) => {
+      warmMany: async ({ labels = [], providerIds = [] }) => {
         warmed.push(...labels);
-        return { merchants: labels.length, providers: 0 };
+        warmedProviderIds = providerIds;
+        return { merchants: labels.length, providers: providerIds.length };
       },
     },
   });
   const out = await svc.backfillUserLogos("u1");
   expect(warmed).toEqual(["Cb Uber *eats", "Cb Naturalia"]);
+  // Bank tier is backfilled too — the original backfill warmed labels only
+  // (aped-review 6-10); IBAN accounts depend on the stored provider_id.
+  expect(warmedProviderIds).toEqual(["574"]);
   expect(out.merchants).toBe(2);
+  expect(out.providers).toBe(1);
 });
 
 test("backfillUserLogos is a no-op when no logos port is wired", async () => {

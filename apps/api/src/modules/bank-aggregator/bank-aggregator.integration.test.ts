@@ -266,6 +266,7 @@ function makeStubAccountsService(): AccountService {
       const k = `${userId}|${provider}|${providerAccountKey}`;
       return cache.get(k) ?? null;
     },
+    listProviderIds: async () => [],
   };
 }
 

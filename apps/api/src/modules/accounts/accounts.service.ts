@@ -61,6 +61,12 @@ export interface AccountService {
     provider: string,
     providerAccountKey: string,
   ): Promise<Account | null>;
+  /**
+   * Story 6-10 (FR-65) — the user's distinct Bridge provider_ids, used by the
+   * bank-aggregator logo warm-up + backfill to resolve the tier-2 bank logo
+   * (incl. IBAN accounts whose key carries no provider_id).
+   */
+  listProviderIds(userId: string): Promise<string[]>;
 }
 
 export interface AccountServiceDeps {
@@ -161,6 +167,10 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
 
     async findByProviderKey(userId, provider, providerAccountKey) {
       return deps.repository.findByProviderKey(userId, provider, providerAccountKey);
+    },
+
+    async listProviderIds(userId) {
+      return deps.repository.listProviderIds(userId);
     },
   };
 }

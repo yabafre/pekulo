@@ -23,7 +23,7 @@ import type {
   RefreshConnectionOutput,
 } from "@pekulo/validators";
 import type { AccountService } from "../accounts/accounts.service";
-import { providerIdFromAccountKey, type LogosService } from "../logos/logos.service";
+import type { LogosService } from "../logos/logos.service";
 import type {
   ProviderTransactionImportRow,
   TransactionsService,
@@ -209,18 +209,19 @@ export function createBankAggregatorService(deps: {
 
     // Story 6-10 (FR-65) — warm the logo caches off the user hot path (this is
     // the cron/webhook refresh). Best-effort: a Brandfetch/Bridge failure must
-    // never fail a refresh. Resolve the connection's bank logo once + the
-    // distinct new merchant labels. The read path only does cache lookups.
+    // never fail a refresh. Warm the distinct new merchant labels + the user's
+    // distinct bank provider_ids (from the stored Account.providerId, so IBAN
+    // and multi-institution connections all warm — not just the first txn's
+    // card key). The read path only does cache lookups.
     if (deps.logos) {
-      const providerId = providerIdFromAccountKey(transactions[0]?.accountKey ?? null);
-      void deps.logos
-        .warmMany({
-          labels: [...new Set(transactions.map((t) => t.label))],
-          providerIds: providerId ? [providerId] : [],
-        })
-        .catch(() => {
-          /* best-effort cache warm-up; read path falls through to bank/category */
-        });
+      const logos = deps.logos;
+      const labels = [...new Set(transactions.map((t) => t.label))];
+      void (async () => {
+        const providerIds = await deps.accountsService.listProviderIds(userId);
+        await logos.warmMany({ labels, providerIds });
+      })().catch(() => {
+        /* best-effort cache warm-up; read path falls through to bank/category */
+      });
     }
 
     // Story 5-6 FIX (post-review aped-review): only stamp lastRefreshedAt
@@ -438,11 +439,14 @@ export function createBankAggregatorService(deps: {
 
     async backfillUserLogos(userId) {
       if (!deps.logos) return { merchants: 0, providers: 0 };
-      const labels = await deps.transactionsService.listDistinctProviderLabels(
-        userId,
-        LOGO_BACKFILL_LABEL_LIMIT,
-      );
-      return deps.logos.warmMany({ labels });
+      // Warm BOTH tiers for the user's history: distinct merchant labels AND the
+      // distinct bank provider_ids (the original backfill warmed labels only, so
+      // bank logos never populated for already-synced accounts — aped-review 6-10).
+      const [labels, providerIds] = await Promise.all([
+        deps.transactionsService.listDistinctProviderLabels(userId, LOGO_BACKFILL_LABEL_LIMIT),
+        deps.accountsService.listProviderIds(userId),
+      ]);
+      return deps.logos.warmMany({ labels, providerIds });
     },
   };
 }
