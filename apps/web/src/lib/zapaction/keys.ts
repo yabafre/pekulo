@@ -89,10 +89,12 @@ export const realestateTags = createFeatureTags(REALESTATE_KEY, {
 // against `transactionsTags.list()` without further touching this file.
 export const TRANSACTIONS_KEY = "transactions" as const;
 export const transactionsKeys = createFeatureKeys(TRANSACTIONS_KEY, {
-  // `limit` AND `month` are part of the queryKey: the Récentes section (50,
-  // month-scoped) and any unscoped caller must not collide. month ?? "all" =
-  // the pre-6-9 unscoped window. Mirrors compassKeys.history(limit?).
-  list: (limit?: number, month?: string) => ["list", limit ?? 50, month ?? "all"] as const,
+  // `limit`, `month` AND `page` are part of the queryKey: the Récentes section
+  // (10/page, month-scoped, numbered) and any unscoped caller must not collide.
+  // month ?? "all" = the pre-6-9 unscoped window; page ?? 1 = cursor mode / first
+  // page. Mirrors compassKeys.history(limit?).
+  list: (limit?: number, month?: string, page?: number) =>
+    ["list", limit ?? 50, month ?? "all", page ?? 1] as const,
   byId: (id: string) => ["byId", id] as const,
   // Story 6-4 — pending-suggestion list. `page` is part of the queryKey so the
   // numbered pages cache independently (same reason as `list(limit)`). No new
