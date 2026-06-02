@@ -42,15 +42,13 @@ describe("buildContentSecurityPolicy", () => {
     expect(csp).toMatch(/connect-src[^;]*https:\/\/abc\.supabase\.co/);
   });
 
-  test("unpkg + ws: + unsafe-eval are dev-only", () => {
+  test("ws: + unsafe-eval are dev-only", () => {
     const dev = buildContentSecurityPolicy({ dev: true, nonce: NONCE });
-    expect(dev).toContain("https://unpkg.com");
     expect(dev).toContain("ws:");
     // React's dev overlay needs eval; Next's CSP guide mandates it in dev only.
     expect(dev).toContain("'unsafe-eval'");
 
     const prod = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
-    expect(prod).not.toContain("unpkg.com");
     expect(prod).not.toContain("ws:");
     expect(prod).not.toContain("'unsafe-eval'");
   });

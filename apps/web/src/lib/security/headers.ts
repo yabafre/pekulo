@@ -26,12 +26,11 @@ export function buildContentSecurityPolicy(opts: SecurityHeaderOptions): string 
   // 'unsafe-eval' is dev-only — React reconstructs server-side error stacks via
   // eval in the dev overlay (Next's CSP guide mandates it); production needs
   // neither it nor the unpkg react-grab src.
-  // react-grab's dev inspector pings react-grab.com (version) + loads its overlay
-  // from unpkg; Next's dev overlay needs eval. All DEV ONLY.
-  const scriptExtra = opts.dev
-    ? ["https://unpkg.com", "https://www.react-grab.com", "'unsafe-eval'"]
-    : [];
-  const connectExtra = opts.dev ? ["ws:", "https://unpkg.com", "https://www.react-grab.com"] : [];
+  // react-grab's dev inspector loads from our own bundle (pinned npm package, not
+  // a CDN) but still pings react-grab.com for its version; Next's dev overlay
+  // needs eval + HMR websockets. All DEV ONLY.
+  const scriptExtra = opts.dev ? ["https://www.react-grab.com", "'unsafe-eval'"] : [];
+  const connectExtra = opts.dev ? ["ws:", "https://www.react-grab.com"] : [];
   // react-grab's overlay loads Geist from Google Fonts (stylesheet on googleapis,
   // woff2 on gstatic). DEV ONLY — production self-hosts its fonts.
   const styleExtra = opts.dev ? ["https://fonts.googleapis.com"] : [];
