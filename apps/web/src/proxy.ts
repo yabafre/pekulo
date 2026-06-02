@@ -42,7 +42,9 @@ export async function proxy(request: NextRequest) {
   // apps/api. Skip the per-request Supabase getUser() here: a transactions page
   // fires 20+ logo requests, and gating each on an auth round-trip would be
   // both slow and pointless (the ref is an opaque cache index, not user data).
-  if (request.nextUrl.pathname.startsWith("/v1/logos")) {
+  // EXACT path match (not startsWith) so the bypass can never widen to a future
+  // `/v1/logos*` sibling route (aped-review 6-10).
+  if (request.nextUrl.pathname === "/v1/logos") {
     return withSecurity(response);
   }
 
