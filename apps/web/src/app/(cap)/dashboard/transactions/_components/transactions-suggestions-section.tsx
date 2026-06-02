@@ -33,6 +33,7 @@ import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { usePendingSuggestions } from "../_hooks/use-pending-suggestions";
 import { useConfirmCategorisation } from "../_hooks/use-confirm-categorisation";
 import { AiTransparencyNotice } from "../../_llm/_components/ai-transparency-notice";
+import { useMonthScope } from "./month-scope-context";
 
 const ROUTE_BADGE: Record<string, LlmRouteBadge> = {
   foundation_models: "ios",
@@ -56,7 +57,10 @@ function formatDay(iso: string): string {
 
 export function TransactionsSuggestionsSection() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, error } = usePendingSuggestions(page);
+  // Story 6-9 ext — re-scope the pending list to the active month (shares the
+  // pending(page, month) cache with the "À confirmer" stat count).
+  const { month } = useMonthScope();
+  const { data, isLoading, error } = usePendingSuggestions(page, undefined, month ?? undefined);
   const { data: accounts } = useAccounts();
   const confirm = useConfirmCategorisation();
   const toast = useToast();

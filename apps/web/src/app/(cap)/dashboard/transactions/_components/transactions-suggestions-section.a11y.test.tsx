@@ -36,6 +36,16 @@ vi.mock("../../_accounts/_hooks/use-accounts", () => ({ useAccounts: () => ({ da
 vi.mock("../../_llm/_components/ai-transparency-notice", () => ({
   AiTransparencyNotice: () => null,
 }));
+vi.mock("./month-scope-context", () => ({
+  useMonthScope: () => ({
+    month: "2026-02",
+    summary: undefined,
+    isLoading: false,
+    setMonth: () => {},
+    goPrev: () => {},
+    goNext: () => {},
+  }),
+}));
 
 import { TransactionsSuggestionsSection } from "./transactions-suggestions-section";
 

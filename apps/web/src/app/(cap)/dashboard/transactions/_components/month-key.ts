@@ -32,7 +32,7 @@ export function formatMonthLong(month: string): string {
   return longFmt.format(monthDate(month));
 }
 
-/** "févr." — the stat-card caption suffix (matches the pre-6-9 3-char form). */
-export function formatMonthShort(month: string): string {
-  return shortFmt.format(monthDate(month)).slice(0, 4).replace(/\.$/, "");
+/** "avril" / "février" — full FR month name (no year) for the stat-card caption. */
+export function formatMonthName(month: string): string {
+  return shortFmt.format(monthDate(month));
 }

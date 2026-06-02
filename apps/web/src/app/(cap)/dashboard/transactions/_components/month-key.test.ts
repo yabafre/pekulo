@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatMonthLong, isMonthKey, shiftMonth } from "./month-key";
+import { formatMonthLong, formatMonthName, isMonthKey, shiftMonth } from "./month-key";
 
 describe("month-key (6-9)", () => {
   test("shiftMonth steps within a year", () => {
@@ -18,5 +18,10 @@ describe("month-key (6-9)", () => {
   });
   test("formatMonthLong renders the French month + year", () => {
     expect(formatMonthLong("2026-02")).toBe("février 2026");
+  });
+  test("formatMonthName renders the full French month name (no truncation)", () => {
+    expect(formatMonthName("2026-04")).toBe("avril");
+    expect(formatMonthName("2026-02")).toBe("février");
+    expect(formatMonthName("2026-09")).toBe("septembre");
   });
 });

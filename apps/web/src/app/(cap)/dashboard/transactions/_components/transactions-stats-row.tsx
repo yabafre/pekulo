@@ -14,7 +14,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { Section } from "@pekulo/ui";
 import { usePendingSuggestions } from "../_hooks/use-pending-suggestions";
-import { formatMonthShort } from "./month-key";
+import { formatMonthName } from "./month-key";
 import { useMonthScope } from "./month-scope-context";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -40,9 +40,11 @@ const gridStyleLg: CSSProperties = {
 const PLACEHOLDER = "—";
 
 export function TransactionsStatsRow() {
-  const { summary } = useMonthScope();
-  // "À confirmer" — live pending-suggestion total (story 6-4), month-agnostic.
-  const { data: pendingData } = usePendingSuggestions();
+  const { summary, month } = useMonthScope();
+  // "À confirmer" — live pending-suggestion total, scoped to the active month
+  // (story 6-9 ext; shares the pending(1, month) cache with the Suggestions IA
+  // section so both reflect the same month).
+  const { data: pendingData } = usePendingSuggestions(1, undefined, month ?? undefined);
 
   // Hydration guard (R13) — the summary comes from the TanStack cache, so SSR
   // renders the PLACEHOLDER and the client renders real numbers on the first
@@ -57,7 +59,7 @@ export function TransactionsStatsRow() {
   let outflowLabel = PLACEHOLDER;
 
   if (isHydrated && summary) {
-    monthLabel = formatMonthShort(summary.month);
+    monthLabel = formatMonthName(summary.month);
     netLabel = signed(summary.netChangeEur);
     netColor = summary.netChangeEur >= 0 ? "$success" : "$danger";
     inflowLabel = eur0.format(summary.incomeEur);
