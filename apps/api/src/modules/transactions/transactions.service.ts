@@ -161,6 +161,8 @@ export interface TransactionsService {
     userId: string,
     input: ListPendingSuggestionsInput,
   ): Promise<ListPendingSuggestionsOutput>;
+  /** Story 6-10 backfill — distinct merchant labels of the user's provider rows. */
+  listDistinctProviderLabels(userId: string, limit: number): Promise<string[]>;
   /**
    * Backfill (épic 6) — categorise up to `limit` of the user's still-'autre',
    * never-attempted transactions (the rows bulk import left uncategorised — it
@@ -543,6 +545,10 @@ export function createTransactionsService(deps: {
         page: input.page,
         pageSize: input.pageSize,
       };
+    },
+
+    async listDistinctProviderLabels(userId, limit) {
+      return deps.repository.listDistinctProviderLabels(userId, limit);
     },
 
     async backfillSuggestions(userId, limit) {

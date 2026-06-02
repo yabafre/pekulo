@@ -53,6 +53,16 @@ export interface LogosService {
   enrich(rows: EnrichRow[]): Promise<Map<string, string | null>>;
   /** Proxy path — opaque ref → server-resolved upstream URL (anti-SSRF), or null. */
   refToUpstreamUrl(ref: string): Promise<string | null>;
+  /**
+   * Warm the caches for a set of merchant labels + provider ids (the bank
+   * refresh warm-up AND the historical backfill both funnel here). Serial +
+   * best-effort: each miss negative-caches; a single failure is swallowed so a
+   * warm run never aborts the rest. Returns how many of each were attempted.
+   */
+  warmMany(input: {
+    labels?: string[];
+    providerIds?: string[];
+  }): Promise<{ merchants: number; providers: number }>;
 }
 
 export function createLogosService(deps: {
@@ -115,6 +125,25 @@ export function createLogosService(deps: {
           ? await deps.repository.getMerchant(decoded.key)
           : await deps.repository.getProvider(decoded.key);
       return row?.logoUrl ?? null;
+    },
+    async warmMany({ labels = [], providerIds = [] }) {
+      for (const label of labels) {
+        try {
+          // oxlint-disable-next-line no-await-in-loop -- serial best-effort warm: bounded set, each miss negative-caches
+          await resolveMerchantLogo(label);
+        } catch {
+          /* one label's failure must never abort the warm batch */
+        }
+      }
+      for (const providerId of providerIds) {
+        try {
+          // oxlint-disable-next-line no-await-in-loop -- serial best-effort warm
+          await resolveProviderLogo(providerId);
+        } catch {
+          /* swallow — best-effort */
+        }
+      }
+      return { merchants: labels.length, providers: providerIds.length };
     },
   };
 }

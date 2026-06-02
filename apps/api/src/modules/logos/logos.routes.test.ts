@@ -8,6 +8,7 @@ function svcWith(refResolver: (ref: string) => Promise<string | null>): LogosSer
     resolveProviderLogo: async () => null,
     enrich: async () => new Map(),
     refToUpstreamUrl: refResolver,
+    warmMany: async () => ({ merchants: 0, providers: 0 }),
   };
 }
 

@@ -175,6 +175,13 @@ export interface TransactionsRepository {
   ): Promise<
     { id: string; label: string; provider: string | null; providerAccountKey: string | null }[]
   >;
+  /**
+   * Story 6-10 backfill — distinct merchant labels of a user's
+   * provider-sourced transactions (manual rows excluded), capped at `limit`.
+   * Feeds the logo warm-up over historical data so already-synced
+   * transactions get logos without waiting for an organic refresh.
+   */
+  listDistinctProviderLabels(userId: string, limit: number): Promise<string[]>;
 }
 
 function toDto(row: TransactionRow): Transaction {
@@ -597,6 +604,17 @@ export function createTransactionsRepository(deps: {
         provider: r.provider ?? null,
         providerAccountKey: r.account?.providerAccountKey ?? null,
       }));
+    },
+
+    async listDistinctProviderLabels(userId, limit) {
+      const rows = await deps.client.transaction.findMany({
+        where: { userId, provider: { not: null } },
+        select: { label: true },
+        distinct: ["label"],
+        orderBy: [{ occurredOn: "desc" }],
+        take: limit,
+      });
+      return rows.map((r) => r.label);
     },
   };
 }

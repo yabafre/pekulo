@@ -104,4 +104,23 @@ describe("logos.service (story 6-10 / FR-65)", () => {
     expect(await svc.refToUpstreamUrl("http://169.254.169.254/")).toBeNull(); // not a ref → no fetch
     expect(await svc.refToUpstreamUrl("garbage!!")).toBeNull();
   });
+
+  // Backfill/warm-up primitive — resolves + caches a batch so later reads are
+  // pure cache lookups. Best-effort: a single failure never aborts the batch.
+  test("warmMany resolves + caches merchant labels and provider ids", async () => {
+    const repo = fakeRepo();
+    const svc = createLogosService({
+      repository: repo,
+      brandfetch: {
+        async resolveLogoUrl(q) {
+          return q === "uber eats" ? "https://x/uber.png" : null;
+        },
+      },
+      getBankLogo: async (id) => (id === "574" ? "https://x/sg.png" : null),
+    });
+    const r = await svc.warmMany({ labels: ["Cb Uber *eats"], providerIds: ["574"] });
+    expect(r).toEqual({ merchants: 1, providers: 1 });
+    expect(await repo.getMerchant("uber eats")).toEqual({ logoUrl: "https://x/uber.png" });
+    expect(await repo.getProvider("574")).toEqual({ logoUrl: "https://x/sg.png" });
+  });
 });

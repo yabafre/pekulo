@@ -87,9 +87,9 @@ export function createBankAggregatorService(deps: {
   accountsService: AccountService;
   listAllActiveConnections: () => Promise<Array<{ userId: string; connectionId: string }>>;
   clock?: () => Date;
-  // Story 6-10 (FR-65) — optional logo cache warm-up port (off the user hot
-  // path; this runs inside the cron/webhook refresh). Best-effort.
-  logos?: Pick<LogosService, "resolveProviderLogo" | "resolveMerchantLogo">;
+  // Story 6-10 (FR-65) — optional logo cache warm port (off the user hot path:
+  // the cron/webhook refresh warm-up + the historical backfill). Best-effort.
+  logos?: Pick<LogosService, "warmMany">;
 }): BankAggregatorService {
   const now = () => (deps.clock ? deps.clock() : new Date());
 
@@ -201,18 +201,15 @@ export function createBankAggregatorService(deps: {
     // never fail a refresh. Resolve the connection's bank logo once + the
     // distinct new merchant labels. The read path only does cache lookups.
     if (deps.logos) {
-      const logos = deps.logos;
-      void (async () => {
-        const providerId = providerIdFromAccountKey(transactions[0]?.accountKey ?? null);
-        if (providerId) await logos.resolveProviderLogo(providerId);
-        const distinctLabels = [...new Set(transactions.map((t) => t.label))];
-        for (const label of distinctLabels) {
-          // oxlint-disable-next-line no-await-in-loop -- serial by design: bounded per-tick label set, best-effort warm-up
-          await logos.resolveMerchantLogo(label);
-        }
-      })().catch(() => {
-        /* best-effort cache warm-up; read path falls through to bank/category */
-      });
+      const providerId = providerIdFromAccountKey(transactions[0]?.accountKey ?? null);
+      void deps.logos
+        .warmMany({
+          labels: [...new Set(transactions.map((t) => t.label))],
+          providerIds: providerId ? [providerId] : [],
+        })
+        .catch(() => {
+          /* best-effort cache warm-up; read path falls through to bank/category */
+        });
     }
 
     // Story 5-6 FIX (post-review aped-review): only stamp lastRefreshedAt

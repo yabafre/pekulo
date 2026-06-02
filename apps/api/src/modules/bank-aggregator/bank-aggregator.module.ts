@@ -29,8 +29,8 @@ export function createBankAggregatorModule(deps: {
   // provider (breaks the logos↔provider↔bank-aggregator cycle). Defaults to an
   // internal provider so existing unit tests construct the module unchanged.
   provider?: BankProvider;
-  // Story 6-10 — optional logo cache warm-up port (resolved on bank refresh).
-  logos?: Pick<LogosService, "resolveProviderLogo" | "resolveMerchantLogo">;
+  // Story 6-10 — optional logo cache warm port (bank refresh + backfill).
+  logos?: Pick<LogosService, "warmMany">;
 }) {
   const repository = createBankAggregatorRepository({ prismaService: deps.prismaService });
   const provider = deps.provider ?? createBridgeProvider({ env: deps.env });
