@@ -26,6 +26,8 @@ import { useMonthScope } from "./month-scope-context";
 import { CsvImportForm } from "./csv-import-form";
 import { TransactionEditForm } from "./transaction-edit-form";
 import { TransactionDeleteConfirm } from "./transaction-delete-confirm";
+import { AiTransparencyNotice } from "../../_llm/_components/ai-transparency-notice";
+import { usePendingSuggestions } from "../_hooks/use-pending-suggestions";
 
 // Flat layout — mirrors ux-preview TransactionsScreen's "Récentes" section
 // (App.tsx:1360-1372): title + "Filtrer" HeaderAction (Search icon) — no
@@ -87,6 +89,17 @@ type DialogKind = "edit" | "delete" | null;
 // returns totalCount in page mode to derive the page count.
 const PAGE_SIZE = 10;
 
+// Story 6-7 (FR-33 amended) — an AUTO-APPLIED (not yet user-edited) row: the
+// final category still equals the machine suggestion. A manual edit changes
+// `category` (suggested_* untouched on edit) → the predicate goes false and the
+// "· IA" hint disappears (AC-6). 'autre' rows and pending suggestions
+// (category === 'autre') are excluded.
+function isAiApplied(tx: Transaction): boolean {
+  return (
+    tx.category !== "autre" && tx.suggestedCategory != null && tx.category === tx.suggestedCategory
+  );
+}
+
 export function TransactionsRecentSection() {
   const [rawPage, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   // A malformed ?page=0 / ?page=-3 clamps to page 1 rather than silently
@@ -94,6 +107,12 @@ export function TransactionsRecentSection() {
   const page = rawPage < 1 ? 1 : rawPage;
   const { month } = useMonthScope();
   const { data, isLoading, error } = useTransactions(PAGE_SIZE, month ?? undefined, page);
+  // Story 6-7 — the AI notice shows for an auto-applied batch ONLY when there
+  // are no pending suggestions (the suggestions section owns the notice in the
+  // pending case). This guarantees exactly one notice renders (no double-banner
+  // on a first visit that has both pending + applied rows).
+  const { data: pendingData } = usePendingSuggestions(1, undefined, month ?? undefined);
+  const pendingTotal = pendingData?.totalCount ?? 0;
   const { data: accounts } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeTx, setActiveTx] = useState<Transaction | null>(null);
@@ -190,87 +209,91 @@ export function TransactionsRecentSection() {
       )}
 
       {!showLoading && items.length > 0 && (
-        <View flexDirection="column" role="list" aria-label="Liste des transactions">
-          {items.map((tx) => {
-            const activity: Activity = {
-              label: tx.label,
-              account: accountLabelById.get(tx.accountId) ?? "—",
-              category: TRANSACTION_CATEGORY_LABELS[tx.category],
-              direction: tx.type === "inflow" ? "in" : "out",
-              amountEur: tx.amount,
-            };
-            // Story 6-8 (DR-13) — every row shows its category icon as an
-            // inline caption prefix (14 px / colorTertiary / aria-hidden so SR
-            // readers announce only the category label). 'transfer' resolves to
-            // ArrowLeftRight via CATEGORY_ICONS, preserving story 5-3 AC-8.
-            const categoryPrefix = (
-              <CategoryIcon
-                category={tx.category}
-                size={14}
-                color="var(--colorTertiary)"
-                style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}
-              />
-            );
-            return (
-              <View key={tx.id} role="listitem" flexDirection="row" alignItems="center" gap="$3">
-                <View flex={1} minWidth={0}>
-                  <PekuloActivityRow
-                    tx={activity}
-                    categoryPrefix={categoryPrefix}
-                    logo={<TransactionLogo src={tx.logoUrl} category={tx.category} />}
-                  />
-                </View>
-                <View
-                  flexDirection="row"
-                  gap="$2"
-                  marginLeft="$2"
-                  display="none"
-                  $lg={{ display: "flex" }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => openFor("edit", tx)}
-                    style={rowActionBtn}
-                    aria-label={`Modifier ${tx.label}`}
+        <>
+          {items.some(isAiApplied) && pendingTotal === 0 ? <AiTransparencyNotice /> : null}
+          <View flexDirection="column" role="list" aria-label="Liste des transactions">
+            {items.map((tx) => {
+              const activity: Activity = {
+                label: tx.label,
+                account: accountLabelById.get(tx.accountId) ?? "—",
+                category: TRANSACTION_CATEGORY_LABELS[tx.category],
+                direction: tx.type === "inflow" ? "in" : "out",
+                amountEur: tx.amount,
+              };
+              // Story 6-8 (DR-13) — every row shows its category icon as an
+              // inline caption prefix (14 px / colorTertiary / aria-hidden so SR
+              // readers announce only the category label). 'transfer' resolves to
+              // ArrowLeftRight via CATEGORY_ICONS, preserving story 5-3 AC-8.
+              const categoryPrefix = (
+                <CategoryIcon
+                  category={tx.category}
+                  size={14}
+                  color="var(--colorTertiary)"
+                  style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}
+                />
+              );
+              return (
+                <View key={tx.id} role="listitem" flexDirection="row" alignItems="center" gap="$3">
+                  <View flex={1} minWidth={0}>
+                    <PekuloActivityRow
+                      tx={activity}
+                      categoryPrefix={categoryPrefix}
+                      logo={<TransactionLogo src={tx.logoUrl} category={tx.category} />}
+                      aiApplied={isAiApplied(tx)}
+                    />
+                  </View>
+                  <View
+                    flexDirection="row"
+                    gap="$2"
+                    marginLeft="$2"
+                    display="none"
+                    $lg={{ display: "flex" }}
                   >
-                    Modifier
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openFor("delete", tx)}
-                    style={dangerRowActionBtn}
-                    aria-label={`Supprimer ${tx.label}`}
-                  >
-                    Supprimer
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => openFor("edit", tx)}
+                      style={rowActionBtn}
+                      aria-label={`Modifier ${tx.label}`}
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openFor("delete", tx)}
+                      style={dangerRowActionBtn}
+                      aria-label={`Supprimer ${tx.label}`}
+                    >
+                      Supprimer
+                    </button>
+                  </View>
+                  <View marginLeft="$2" $lg={{ display: "none" }}>
+                    <PekuloPopover>
+                      <PekuloPopover.Trigger style={kebabBtn} aria-label={`Actions ${tx.label}`}>
+                        <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
+                      </PekuloPopover.Trigger>
+                      <PekuloPopover.Content minWidth={180}>
+                        <button
+                          type="button"
+                          onClick={() => openFor("edit", tx)}
+                          style={popoverActionBtnNeutral}
+                        >
+                          Modifier
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openFor("delete", tx)}
+                          style={popoverActionBtnDanger}
+                        >
+                          Supprimer
+                        </button>
+                      </PekuloPopover.Content>
+                    </PekuloPopover>
+                  </View>
                 </View>
-                <View marginLeft="$2" $lg={{ display: "none" }}>
-                  <PekuloPopover>
-                    <PekuloPopover.Trigger style={kebabBtn} aria-label={`Actions ${tx.label}`}>
-                      <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
-                    </PekuloPopover.Trigger>
-                    <PekuloPopover.Content minWidth={180}>
-                      <button
-                        type="button"
-                        onClick={() => openFor("edit", tx)}
-                        style={popoverActionBtnNeutral}
-                      >
-                        Modifier
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openFor("delete", tx)}
-                        style={popoverActionBtnDanger}
-                      >
-                        Supprimer
-                      </button>
-                    </PekuloPopover.Content>
-                  </PekuloPopover>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+              );
+            })}
+          </View>
+        </>
       )}
 
       {!showLoading && pageCount > 1 && (

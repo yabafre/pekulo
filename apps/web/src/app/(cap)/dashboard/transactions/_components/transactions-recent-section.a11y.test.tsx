@@ -53,6 +53,9 @@ vi.mock("nuqs", () => ({
   parseAsInteger: { withDefault: () => null },
   useQueryState: () => [1, () => {}],
 }));
+vi.mock("../_hooks/use-pending-suggestions", () => ({
+  usePendingSuggestions: () => ({ data: { items: [], totalCount: 0, page: 1, pageSize: 10 } }),
+}));
 
 import { TransactionsRecentSection } from "./transactions-recent-section";
 
