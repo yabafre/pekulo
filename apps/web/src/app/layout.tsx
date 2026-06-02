@@ -5,6 +5,7 @@ import "@pekulo/ui/reset.css";
 import "@pekulo/ui/generated.css";
 import { Providers } from "@/components/providers";
 import { ReactGrabDev } from "@/components/react-grab-dev";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 export const metadata: Metadata = {
   title: { default: "Pekulo", template: "%s · Pekulo" },
@@ -58,7 +59,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <ReactGrabDev />
-        <Providers>{children}</Providers>
+        <NuqsAdapter>
+          <Providers>{children}</Providers>
+        </NuqsAdapter>
       </body>
     </html>
   );
