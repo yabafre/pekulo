@@ -53,4 +53,23 @@ describe("brandfetch-client (story 6-10 / FR-65)", () => {
     });
     expect(await c.resolveLogoUrl("carrefour")).toBeNull();
   });
+
+  // Brandfetch returns [] for over-specific bank-label queries; narrowing to the
+  // brand token recovers the logo (fixes the "wrong/missing logo" class).
+  test("narrows a too-specific multi-word query to the brand token", async () => {
+    const seen: string[] = [];
+    globalThis.fetch = (async (url: string) => {
+      seen.push(url);
+      const matched = url.endsWith("/carrefour"); // bare brand hits; full query is empty
+      return new Response(
+        JSON.stringify(
+          matched ? [{ name: "Carrefour", domain: "carrefour.fr", icon: "https://x/c.png" }] : [],
+        ),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+    const c = createBrandfetchClient({ env: baseEnv });
+    expect(await c.resolveLogoUrl("carrefour city")).toBe("https://x/c.png");
+    expect(seen.some((u) => u.endsWith("/carrefour%20city"))).toBe(true); // tried full first
+  });
 });
