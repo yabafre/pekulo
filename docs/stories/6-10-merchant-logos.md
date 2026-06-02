@@ -1,7 +1,7 @@
 # Story: 6-10-merchant-logos — Transaction logos (merchant → bank → category)
 
 **Epic:** Epic 6 — LLM auto-categorisation
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** none (assigned at ship time)
 **Branch:** feature/none-6-10-merchant-logos
 **Covered FR:** FR-65
