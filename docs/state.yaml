@@ -217,7 +217,7 @@ sprint:
     6-6-llm-async-attestation: {status: pending, depends_on: [6-1-llm-routing-and-providers, 6-2-llm-categorise], ticket: "#37", worktree: null}
     6-7-auto-categorise-on-import: {status: pending, depends_on: [6-2-llm-categorise, 6-4-llm-suggestion-ui], ticket: null, worktree: null}
     6-8-category-taxonomy-expansion: {status: done, depends_on: [6-2-llm-categorise, 6-4-llm-suggestion-ui], ticket: null, worktree: null, started_at: "2026-06-01T12:07:37Z", completed_at: "2026-06-01T12:31:41Z"}
-    6-9-month-navigator: {status: review, depends_on: [5-1-transactions-record, 5-4-monthly-tracking], ticket: null, worktree: null, started_at: "2026-06-02T12:57:55Z", completed_at: "2026-06-02T13:48:04Z"}
+    6-9-month-navigator: {status: done, depends_on: [5-1-transactions-record, 5-4-monthly-tracking], ticket: null, worktree: null, started_at: "2026-06-02T12:57:55Z", completed_at: "2026-06-02T13:48:04Z"}
     6-10-merchant-logos: {status: done, depends_on: [5-6-bridge-connector, 5-1-transactions-record], ticket: null, worktree: null, started_at: "2026-06-01T20:48:11Z", completed_at: "2026-06-02T12:00:00Z"}
     # Epic 7 — Dashboard & projection (V1 — depends on 1-6)
     7-1-dashboard-orchestration: {status: pending, depends_on: [1-1-compass-domain, 2-1-accounts-orpc-port, 3-1-holdings-orpc-port, 4-1-realestate-domain], ticket: "#38", worktree: null}

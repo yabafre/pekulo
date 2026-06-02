@@ -1,7 +1,7 @@
 # Story: 6-9-month-navigator — Month navigator for transactions + stat cards
 
 **Epic:** Epic 6 — LLM auto-categorisation (transaction-enrichment bucket)
-**Status:** ready-for-dev
+**Status:** done
 **Ticket:** none — assigned at scheduling / `aped-ship` time (per `epics.md`)
 **Branch:** feature/none-6-9-month-navigator
 **Covered FRs:** FR-64
@@ -1231,3 +1231,65 @@ Récentes moves from "Charger plus" (cursor load-more, 50→200) to **numbered p
 - `bun --filter='@pekulo/api' run test` → **792 pass, 0 fail** (incl. `transactions-month.test.ts`: repo month-scope + pending month-scope + offset pagination + `monthSummary` service).
 - `bun --filter='@pekulo/web' run test` → **159 pass, 0 fail** (incl. `month-key`, `month-navigator`, `transactions-stats-row`, recent-section ×2, suggestions-section ×2).
 - `bun run lint` → 0 warnings / 0 errors · `bun run typecheck` → 8/8 · `bun --filter='@pekulo/web' run build` → exit 0 (`/dashboard/transactions` = ƒ dynamic, no CSR bailout).
+
+## Review Record
+
+**Date:** 2026-06-02
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done
+
+> **Override:** AC gap accepted — reason: "Override directed by Alex ('fix tout') — all actionable findings fixed inline (epic-6 reviewer-fix pattern), not bounced to dev."
+
+Adversarial review of the `review`-status branch (cross-layer). Implementation was sound: userId isolation intact on every new repo query (`listByUser`/`listAllForMonth`/`latestActivityMonth`/pending month branch all carry `where: { userId }`, ADR-0013), the D2/NFR-16 offset deviation is genuinely bounded + doc-synced (architecture D2 + lessons 2026-06-02 + epic cache), transfer-exclusion reuses the `/mensuel` derive (AC-6), every introduced identifier resolves (all 8 packages typecheck), and the grayscale-chrome / R13-hydration / Suspense-for-useSearchParams lessons are honoured. Findings were coverage + boundary-hardening gaps, all closed inline.
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] `monthSummary` shipped with no HTTP-boundary test — 401/reachability uncovered despite the 6-3/6-4 precedent [apps/api/src/modules/transactions/transactions.integration.test.ts]
+  - Source: Spec, Code
+  - Resolution: `06b3f05` — added `missing JWT → 401` + `authenticated → 200 (net = income − spending)` boundary tests; extended the integration fake's `findMany` to honour the `{gte,lt}` month range it never modelled (the gap that hid the absence of any month-scoped integration coverage).
+- [MINOR] AC-5 (deep-link `?month=` + browser Back) had no automated test of any kind — visual T18 waived [apps/web/.../_components/month-scope-context.tsx:36-46]
+  - Source: Spec (Edge concurred)
+  - Resolution: `06b3f05` — new `month-scope-context.test.tsx` runs the REAL provider over nuqs `NuqsTestingAdapter`: deep-link read, server-default seed (AC-1), invalid `?month` ignored, and ‹/› writing the new month with `history:"push"` (the Back-button contract).
+- [NIT] Récentes `?page` was not reset on month change — prev/next could land on a deep page of the new month [apps/web/.../_components/transactions-recent-section.tsx]
+  - Source: Code
+  - Resolution: `06b3f05` — reset `?page→1` on month change via a previous-month ref (deep-link `?month=&page=` is preserved; the reset uses replace-history so Back still restores the prior month+page).
+- [NIT] `?page=0` silently degraded Récentes into cursor mode (falsy page dropped, no `totalCount`) [apps/web/.../_hooks/use-transactions.ts]
+  - Source: Edge
+  - Resolution: `06b3f05` — clamp `page≥1` at read.
+- [MINOR] `shiftMonth` produced malformed `"YYYY-00"` keys for negative ordinals (JS sign-preserving `%`) [apps/web/.../_components/month-key.ts:13-19]
+  - Source: Edge
+  - Resolution: `06b3f05` — sign-safe modulo `(((n % 12) + 12) % 12) + 1`; `MONTH_KEY_REGEX` rejects year `0000` in BOTH the web helper and the `@pekulo/validators` SSOT (kept iso); added a multi-month/negative-delta test.
+- [NIT] Story body still references the superseded `formatMonthShort`/"avri" truncation [apps/web/.../_components/month-key.ts:35-38]
+  - Source: Aria
+  - Resolution: code already ships `formatMonthName` (full FR name, no truncation), asserted in `month-key.test.ts`; supersession recorded here. The T10/T13 task snippets are left verbatim as historical TDD record (consistent with the story's prior supersession notes).
+
+#### Dismissed
+
+- [MINOR] AC-6 transfer-exclusion proven at the API service layer, not the stat-card component
+  - Source: Spec
+  - Rationale: correct architecture — the server owns the aggregate (`deriveMonthlyAggregates`); the component is a render contract over a pre-aggregated summary. AC-6 is genuinely covered by `transactions-month.test.ts:97-113`.
+- [NIT] File List "(extension)" supersession for the Suggestions month-scope
+  - Source: Spec
+  - Rationale: already recorded in the story's Extension section — lesson 2026-05-31 traceability satisfied.
+- [NIT] Live region wraps only the month label, not the ‹/› controls
+  - Source: Aria
+  - Rationale: the polite region IS the label text-swap — the correct + sufficient SR announcement on month change; no `aria-atomic` needed.
+
+#### Scope (git-audit)
+
+- [MEDIUM] Out-of-scope changes co-shipped on the 6-9 branch: commit `165f9a5` (RLS-on-no-policy for `merchant_logo_cache` / `provider_logo_cache` / `_prisma_migrations`, Supabase advisor 0013) touches `logos.prisma`, migration `20260602150000`, `rls-migration-audit.ts`, ADR-0007 — these belong to **6-10**, absent from 6-9's File List.
+  - Disposition: ACCEPTED (not reverted) — a live RLS hardening already validated + doc-synced on the branch (architecture L131, ADR-0015, lessons 2026-06-02). Flagged for attribution to the 6-10 follow-up at `aped-ship` time (PR split or commit note).
+
+### Verification
+
+- Test command: `bun run lint` · `bun run typecheck` · `bun --filter='@pekulo/api' run test` · `bun --filter='@pekulo/web' run test`
+- Test output (final pass, post-fix): lint **0 warnings / 0 errors**; typecheck **8/8**; api **794 pass / 0 fail** (+2 `monthSummary` boundary); web **165 passed / 74 files** (+6: `month-scope-context` ×5, `month-key` ×1). `format:check` clean for all 6-9 files.
+- Auditor re-dispatch: skipped in favour of the captured green gate above — all fixes are test-backed and the Iron-Law fresh evidence is the test output (bounded-run preference).
+- Visual verification: deferred (live) — `react-grab-mcp` offline, T18 waived by user (as 6-3/6-4/6-8/6-10). Aria static design-law pass clean (grayscale chrome, aria-labelled ‹/› buttons, `aria-live` month label, `$lg` media key, single Suspense boundary).
+
+### Ticket sync
+
+- Ticket: none (assigned at `aped-ship` per epics.md) — no comment posted.
+- PR: deferred to `aped-ship` (`umbrella_branch == main`; no dedicated umbrella — same disposition as 6-10).
