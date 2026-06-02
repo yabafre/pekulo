@@ -22,12 +22,14 @@ export function armSuggestionPoll(): void {
   pollUntil = Date.now() + POLL_WINDOW_MS;
 }
 
-// `page` is 1-based; `pageSize` defaults to 10 (the contract default). Each page
-// caches independently under transactionsKeys.pending(page).
-export function usePendingSuggestions(page = 1, pageSize = 10) {
+// `page` is 1-based; `pageSize` defaults to 10 (the contract default). Story 6-9
+// ext — `month` ("YYYY-MM") scopes the pending list + the "À confirmer" count to
+// the active month; each (page, month) caches independently under
+// transactionsKeys.pending(page, month). Absent = the unscoped backlog.
+export function usePendingSuggestions(page = 1, pageSize = 10, month?: string) {
   return useActionQuery(listPendingSuggestions, {
-    input: { page, pageSize },
-    queryKey: transactionsKeys.pending(page),
+    input: month ? { page, pageSize, month } : { page, pageSize },
+    queryKey: transactionsKeys.pending(page, month),
     readPolicy: "read-only",
     staleTime: 30_000,
     // RQ re-evaluates this after every fetch → the poll self-terminates once the
