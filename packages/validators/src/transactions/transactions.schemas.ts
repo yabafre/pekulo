@@ -258,6 +258,11 @@ export type ConfirmCategorisationInput = z.infer<typeof confirmCategorisationInp
 export const listPendingSuggestionsInputSchema = z.object({
   page: z.number().int().min(1).optional().default(1),
   pageSize: z.number().int().min(1).max(50).optional().default(10),
+  // Story 6-9 ext (FR-64) — calendar-month scope. Present → listPendingByUser
+  // filters occurredOn to the [monthStart, nextMonth) UTC range so the
+  // Suggestions IA list + the "À confirmer" count reflect the active month.
+  // Absent = the unscoped pending backlog (pre-ext callers unchanged).
+  month: monthKeySchema.optional(),
 });
 export type ListPendingSuggestionsInput = z.infer<typeof listPendingSuggestionsInputSchema>;
 
