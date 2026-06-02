@@ -29,7 +29,9 @@ const nextConfig: NextConfig = {
   // subdomain on each restart, hence the wildcard. Production builds
   // (next start / Vercel) ignore this field — it's strictly dev.
   // Story 5-6 — exercises Bridge OAuth through a public tunnel.
-  allowedDevOrigins: ["*.trycloudflare.com"],
+  // Story 6-10 — named Cloudflare tunnel (pekulo-dev) maps a stable
+  // pekulo-dev.trafijs.com hostname, so the named-tunnel zone is allowed too.
+  allowedDevOrigins: ["*.trycloudflare.com", "*.trafijs.com"],
   turbopack: {
     resolveAlias: {
       "react-native": "react-native-web",
