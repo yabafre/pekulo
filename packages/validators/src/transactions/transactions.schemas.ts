@@ -80,6 +80,15 @@ const isoDateString = (msg = "Date YYYY-MM-DD requise") =>
 // `.finite()` to surface as a clean 400.
 const amountSchema = (msg = "Montant ≥ 0") => z.number().finite("Montant invalide").min(0, msg);
 
+// ─── Month key (story 6-9, FR-64) ────────────────────────────────────────
+// Calendar-month key "YYYY-MM" — shape-validates the year + a 01–12 month.
+// The day is intentionally absent: the server expands it to a half-open
+// [monthStart, nextMonthStart) UTC range (mirrors monthly.repository's
+// firstDayOfMonthUTC / firstDayOfNextMonthUTC). Used by the month navigator.
+const MONTH_KEY_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+export const monthKeySchema = z.string().regex(MONTH_KEY_REGEX, "Mois YYYY-MM requis");
+export type MonthKey = z.infer<typeof monthKeySchema>;
+
 // ─── DTO (row shape returned by reads) ───────────────────────────────────
 // transferPairId: nullable grouping tp_<base62> set by the service on the
 // rule-based transfer match (story 5-3, FR-30). System-set only — never on
@@ -166,6 +175,11 @@ export const listTransactionsInputSchema = z.object({
   limit: z.number().int().min(1).max(200).optional().default(50),
   cursor: z.string().optional(), // opaque base64url(`${occurredOnISO}|${id}`)
   accountId: z.string().regex(ACCOUNT_ID_REGEX).optional(),
+  // Story 6-9 (FR-64) — calendar-month scope. When present, listByUser filters
+  // occurredOn to [monthStart, nextMonthStart) UTC; cursor pagination still
+  // applies WITHIN the month. Absent = the unscoped recent window (pre-6-9
+  // behaviour — the pending-suggestions poll + any non-month caller keep it).
+  month: monthKeySchema.optional(),
 });
 export type ListTransactionsInput = z.infer<typeof listTransactionsInputSchema>;
 
@@ -174,6 +188,26 @@ export const listTransactionsOutputSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 export type ListTransactionsOutput = z.infer<typeof listTransactionsOutputSchema>;
+
+// ─── Month summary (story 6-9, FR-64) ────────────────────────────────────
+// The navigator's stat cards (Net / Entrées / Sorties), server-aggregated over
+// the WHOLE month so >200-tx months are exact (AC-4), reusing the /mensuel pure
+// derive so transfers are EXCLUDED (AC-6). `month` omitted on input = the server
+// resolves the most recent month with activity (current calendar month when the
+// user has none). The resolved month is echoed back so the client seeds the
+// navigator without a second round-trip.
+export const monthSummaryInputSchema = z.object({
+  month: monthKeySchema.optional(),
+});
+export type MonthSummaryInput = z.infer<typeof monthSummaryInputSchema>;
+
+export const monthSummaryOutputSchema = z.object({
+  month: monthKeySchema,
+  incomeEur: z.number(),
+  spendingEur: z.number(),
+  netChangeEur: z.number(),
+});
+export type MonthSummaryOutput = z.infer<typeof monthSummaryOutputSchema>;
 
 // ─── Envelope ─────────────────────────────────────────────────────────────
 export const transactionsOkSchema = z.object({ ok: z.literal(true) });
