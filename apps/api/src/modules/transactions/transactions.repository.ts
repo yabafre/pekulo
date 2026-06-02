@@ -74,6 +74,14 @@ export interface TransactionsRepository {
   update(userId: string, input: UpdateTransactionInput): Promise<UpdateOutcome>;
   delete(userId: string, input: DeleteTransactionInput): Promise<{ deleted: boolean }>;
   listByUser(userId: string, input: ListTransactionsInput): Promise<ListTransactionsOutput>;
+  /** Story 6-9 (FR-64) — the most recent month with activity as "YYYY-MM",
+   *  null when the user has zero transactions. Drives the navigator default. */
+  latestActivityMonth(userId: string): Promise<string | null>;
+  /** Story 6-9 (FR-64) — ALL of a month's transactions (no pagination) for the
+   *  server-side stat aggregate. A month is bounded in practice (Persona #1
+   *  ≤200 tx/month); the whole-month read keeps the /mensuel pure-derive reuse
+   *  exact (semantic SSOT). */
+  listAllForMonth(userId: string, month: string): Promise<Transaction[]>;
   bulkCreate(
     userId: string,
     rows: ValidatedCsvRow[],
@@ -228,6 +236,15 @@ function decodeCursor(cursor: string): { occurredOn: string; id: string } | null
   }
 }
 
+// Story 6-9 — "YYYY-MM" → half-open UTC range [start, nextMonth). Mirrors
+// monthly.repository.firstDayOfMonthUTC / firstDayOfNextMonthUTC.
+function monthKeyToRange(month: string): { start: Date; end: Date } {
+  const [y, m] = month.split("-").map(Number) as [number, number];
+  const start = new Date(Date.UTC(y, m - 1, 1));
+  const end = m === 12 ? new Date(Date.UTC(y + 1, 0, 1)) : new Date(Date.UTC(y, m, 1));
+  return { start, end };
+}
+
 export function createTransactionsRepository(deps: {
   client: ExtendedPrismaClient;
 }): TransactionsRepository {
@@ -309,9 +326,11 @@ export function createTransactionsRepository(deps: {
         }
       }
 
+      const monthRange = input.month ? monthKeyToRange(input.month) : null;
       const where: Prisma.TransactionWhereInput = {
         userId,
         ...(input.accountId ? { accountId: input.accountId } : {}),
+        ...(monthRange ? { occurredOn: { gte: monthRange.start, lt: monthRange.end } } : {}),
         ...(decoded
           ? {
               OR: [
@@ -337,6 +356,24 @@ export function createTransactionsRepository(deps: {
       const nextCursor = hasMore && last ? encodeCursor(last.occurredOn, last.id) : null;
 
       return { items, nextCursor };
+    },
+
+    async latestActivityMonth(userId) {
+      const row = (await deps.client.transaction.findFirst({
+        where: { userId },
+        orderBy: [{ occurredOn: "desc" }, { id: "desc" }],
+        select: { occurredOn: true },
+      })) as { occurredOn: Date } | null;
+      return row ? row.occurredOn.toISOString().slice(0, 7) : null;
+    },
+
+    async listAllForMonth(userId, month) {
+      const { start, end } = monthKeyToRange(month);
+      const rows = (await deps.client.transaction.findMany({
+        where: { userId, occurredOn: { gte: start, lt: end } },
+        orderBy: [{ occurredOn: "asc" }, { id: "asc" }],
+      })) as TransactionRow[];
+      return rows.map(toDto);
     },
 
     async bulkCreate(userId, rows) {
