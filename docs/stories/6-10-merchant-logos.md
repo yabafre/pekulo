@@ -1880,3 +1880,13 @@ Three method-driven auditors + Aria ran in parallel against a fresh-read of the 
 
 - Ticket: `none` (assigned at ship time) — no ticket sync.
 - PR: deferred to `aped-ship` (sprint umbrella = `main`; opening a story PR against the base branch now is out of scope for review — the branch ships via the umbrella flow).
+
+### Post-record live fixes (2026-06-02, doc-synced per lesson 2026-05-31)
+
+Surfaced while running the app over a local Cloudflare tunnel (see memory `project-pekulo-dev-tunnel`); fixed in the same review session.
+
+- **Bank-logo tier 404'd (regression from the review's own SSRF hardening).** The `image/*`-only content-type guard added for AC-5 rejected the Bridge bank logos — `web.bridgeapi.io` serves its PNGs as `application/octet-stream`. The proxy now relays `image/*` AND `application/octet-stream` (the host allowlist still bounds the upstream); only `text/*`/JSON error pages are dropped. Fix `4eb07a7` + test (`logos.routes.test.ts` octet-stream → 200). `b:574` verified 200 end-to-end.
+- **Merchant recall — curated FR alias map.** Brandfetch misses when a known brand is buried past the 3-token cache key (`mcdonald` inside "Mad Cours Mcdonald S Agdal Oncf" → key "mad cours mcdonald" → `[]`). Added `merchant-domains.ts` (`curatedMerchantQuery` scans the FULL label, bigrams before unigrams, ~80 FR/global aliases → clean Brandfetch query); `resolveMerchantLogo` searches the clean brand when an alias hits, else the raw key. Fix `61dbc7e` + tests. McDonald's / TotalEnergies / Carrefour / Monoprix verified 200. Long-tail local merchants still fall to bank/category (expected — neither Brandfetch nor a curated map carries them); higher recall needs an LLM matcher (deferred follow-up).
+- **Ops:** `apps/api/scripts/rewarm-logos.ts` (`--clear-misses` purges negative rows so past misses re-resolve through the map; re-run after extending the alias map). Re-warmed the dev user: 23 negative rows cleared, 105 labels + 1 provider re-resolved.
+- **Dev CSP (not 6-10 scope, noted for the trail):** the enforced CSP blocked the `react-grab` dev overlay's Geist webfont (`fonts.googleapis.com`/`gstatic`). Added those two origins to `style-src`/`font-src` in DEV ONLY (`fix(web)` — production CSP unchanged, self-hosted fonts).
+- **Verification (post-fixes):** `bun --filter='@pekulo/api' run test` → 782 pass, exit 0; web headers suite 8 pass; api/web typecheck + oxlint clean.
