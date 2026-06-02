@@ -22,6 +22,7 @@ import type {
   ListTransactionsInput,
   ListTransactionsOutput,
   Transaction,
+  TransactionSource,
   UpdateTransactionInput,
   ValidatedCsvRow,
 } from "@pekulo/validators";
@@ -46,6 +47,7 @@ type TransactionRow = {
   suggestedRoute: string | null;
   suggestedAt: Date | null;
   suggestedAttemptedAt: Date | null;
+  source: string;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -135,6 +137,19 @@ export interface TransactionsRepository {
     suggestion: { category: string; confidence: number; route: string },
   ): Promise<{ saved: boolean }>;
   /**
+   * Story 6-7 (FR-33 amended) — APPLY the LLM suggestion as the FINAL category
+   * on a bulk-import row. Sets `category` = suggested AND keeps the suggested_*
+   * columns populated (provenance for the "· IA" hint) + stamps
+   * suggested_attempted_at. The bulk-path twin of saveSuggestion (which leaves
+   * category='autre' pending). Guarded `where { category: 'autre' }` so a user
+   * category set meanwhile ALWAYS wins (idempotent, AC-5). Returns { applied }.
+   */
+  applySuggestedCategory(
+    userId: string,
+    txId: string,
+    suggestion: { category: string; confidence: number; route: string },
+  ): Promise<{ applied: boolean }>;
+  /**
    * Story 6-4 (FR-33) — set the FINAL category and clear all four suggested_*
    * columns in one statement, scoped where { id, userId }. The inverse of
    * saveSuggestion. Returns UpdateOutcome ("not-found" when the row is gone /
@@ -157,7 +172,10 @@ export interface TransactionsRepository {
    * one user, newest first, capped at `limit`. The categorisation sweep's
    * candidate set (imports run transfer-rules only, never the LLM).
    */
-  listAutreWithoutAttempt(userId: string, limit: number): Promise<Transaction[]>;
+  listAutreWithoutAttempt(
+    userId: string,
+    limit: number,
+  ): Promise<Array<Transaction & { source: TransactionSource }>>;
   /**
    * Backfill (épic 6) — stamp suggested_attempted_at WITHOUT writing a
    * suggestion (used after a clean abstention so the row is never re-swept).
@@ -417,6 +435,7 @@ export function createTransactionsRepository(deps: {
               category: row.category,
               isImprevu: row.isImprevu,
               notes: row.notes,
+              source: "csv",
             } as unknown as Parameters<typeof tx.transaction.create>[0]["data"],
           })) as TransactionRow;
           inserted.push(created);
@@ -470,6 +489,7 @@ export function createTransactionsRepository(deps: {
                 transferPairId: null,
                 provider: row.provider,
                 providerTransactionId: row.providerTransactionId,
+                source: "bridge",
               } as unknown as Parameters<typeof deps.client.transaction.create>[0]["data"],
             })) as TransactionRow;
             inserted.push(created);
@@ -573,6 +593,23 @@ export function createTransactionsRepository(deps: {
       return { saved: count > 0 };
     },
 
+    async applySuggestedCategory(userId, txId, suggestion) {
+      const { count } = await deps.client.transaction.updateMany({
+        where: { id: txId, userId, category: "autre" },
+        data: {
+          category: suggestion.category,
+          suggestedCategory: suggestion.category,
+          suggestedConfidence: suggestion.confidence,
+          suggestedRoute: suggestion.route,
+          suggestedAt: new Date(),
+          // An applied suggestion is also an attempt → never re-swept.
+          suggestedAttemptedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      return { applied: count > 0 };
+    },
+
     async confirmCategorisation(userId, id, finalCategory) {
       const result = await deps.client.transaction.updateMany({
         where: { id, userId },
@@ -631,7 +668,10 @@ export function createTransactionsRepository(deps: {
         orderBy: [{ occurredOn: "desc" }, { id: "desc" }],
         take: limit,
       })) as TransactionRow[];
-      return rows.map(toDto);
+      return rows.map((r) => ({
+        ...toDto(r),
+        source: (r.source ?? "manual") as TransactionSource,
+      }));
     },
 
     async stampSuggestionAttempt(userId, txId) {
