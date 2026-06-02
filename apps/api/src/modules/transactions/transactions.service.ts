@@ -116,6 +116,7 @@ export interface LogosEnrichPort {
       label: string;
       provider: string | null;
       providerAccountKey: string | null;
+      providerId?: string | null;
     }[],
   ): Promise<Map<string, string | null>>;
 }

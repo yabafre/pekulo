@@ -44,6 +44,10 @@ export interface EnrichRow {
   label: string;
   provider: string | null;
   providerAccountKey: string | null;
+  // Story 6-10 — the account's stored Bridge provider_id (the tier-2 source for
+  // IBAN accounts, whose key carries none). Falls back to parsing the key for
+  // legacy card rows created before the column existed.
+  providerId?: string | null;
 }
 
 export interface LogosService {
@@ -106,7 +110,7 @@ export function createLogosService(deps: {
           if (m?.logoUrl) ref = encodeRef("m", key); // tier 1
         }
         if (!ref) {
-          const providerId = providerIdFromAccountKey(row.providerAccountKey);
+          const providerId = row.providerId ?? providerIdFromAccountKey(row.providerAccountKey);
           if (providerId) {
             // oxlint-disable-next-line no-await-in-loop -- serial by design: bounded page of rows, cache-only lookup
             const p = await deps.repository.getProvider(providerId);

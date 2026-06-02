@@ -718,8 +718,14 @@ describe("transactionsService — logo enrichment (story 6-10 / FR-65)", () => {
     listByUser: mock(async () => ({ items: [txA, txB], nextCursor: null })),
     listPendingByUser: mock(async () => ({ items: [txA], totalCount: 1 })),
     listLogoContext: mock(async () => [
-      { id: txA.id, label: "CB Carrefour", provider: "bridge", providerAccountKey: "pid:574:x" },
-      { id: txB.id, label: "Café", provider: null, providerAccountKey: null },
+      {
+        id: txA.id,
+        label: "CB Carrefour",
+        provider: "bridge",
+        providerAccountKey: "pid:574:x",
+        providerId: "574",
+      },
+      { id: txB.id, label: "Café", provider: null, providerAccountKey: null, providerId: null },
     ]),
   });
   const svc = createTransactionsService({
@@ -757,7 +763,13 @@ describe("transactionsService — logo enrichment (story 6-10 / FR-65)", () => {
       listByUser: mock(async () => ({ items: [txA], nextCursor: null })),
       listPendingByUser: mock(async () => ({ items: [txA], totalCount: 1 })),
       listLogoContext: mock(async () => [
-        { id: txA.id, label: "x", provider: "bridge", providerAccountKey: "pid:574:x" },
+        {
+          id: txA.id,
+          label: "x",
+          provider: "bridge",
+          providerAccountKey: "pid:574:x",
+          providerId: "574",
+        },
       ]),
     });
     const failSvc = createTransactionsService({

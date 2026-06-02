@@ -173,7 +173,13 @@ export interface TransactionsRepository {
     userId: string,
     txIds: string[],
   ): Promise<
-    { id: string; label: string; provider: string | null; providerAccountKey: string | null }[]
+    {
+      id: string;
+      label: string;
+      provider: string | null;
+      providerAccountKey: string | null;
+      providerId: string | null;
+    }[]
   >;
   /**
    * Story 6-10 backfill — distinct merchant labels of a user's
@@ -592,17 +598,18 @@ export function createTransactionsRepository(deps: {
           id: true,
           label: true,
           provider: true,
-          account: { select: { providerAccountKey: true } },
+          account: { select: { providerAccountKey: true, providerId: true } },
         },
       });
       return rows.map((r) => ({
         id: r.id,
         label: r.label,
         // The transaction's own provider gates AC-3 (manual rows resolve no
-        // logo even on a Bridge-connected account); the account's key drives
-        // the bank-logo tier.
+        // logo even on a Bridge-connected account); the account's stored
+        // provider_id (or its key, for legacy rows) drives the bank-logo tier.
         provider: r.provider ?? null,
         providerAccountKey: r.account?.providerAccountKey ?? null,
+        providerId: r.account?.providerId ?? null,
       }));
     },
 

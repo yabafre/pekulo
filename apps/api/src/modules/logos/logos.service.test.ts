@@ -123,4 +123,29 @@ describe("logos.service (story 6-10 / FR-65)", () => {
     expect(await repo.getMerchant("uber eats")).toEqual({ logoUrl: "https://x/uber.png" });
     expect(await repo.getProvider("574")).toEqual({ logoUrl: "https://x/sg.png" });
   });
+
+  // AC-2 — bank tier on an IBAN account: the key (iban:...) carries no
+  // provider_id, so enrich uses the stored EnrichRow.providerId instead.
+  test("enrich resolves the bank tier from the stored providerId (IBAN account)", async () => {
+    const repo = fakeRepo({ provider: { "574": "https://x/sg.png" } });
+    const svc = createLogosService({
+      repository: repo,
+      brandfetch: {
+        async resolveLogoUrl() {
+          return null;
+        },
+      },
+      getBankLogo: async () => null,
+    });
+    const map = await svc.enrich([
+      {
+        id: "tx_iban",
+        label: "Prlv Sepa Matmut",
+        provider: "bridge",
+        providerAccountKey: "iban:FR76xxxx", // unparseable for a provider_id
+        providerId: "574",
+      },
+    ]);
+    expect(map.get("tx_iban")).toBeTruthy(); // tier-2 via stored providerId
+  });
 });
