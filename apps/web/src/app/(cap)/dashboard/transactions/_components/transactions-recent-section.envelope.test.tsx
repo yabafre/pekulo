@@ -30,6 +30,16 @@ vi.mock("../_actions/transactions-actions", () => ({
 vi.mock("../../_accounts/_actions/accounts-actions", () => ({
   listAccounts: listAccountsMock,
 }));
+vi.mock("./month-scope-context", () => ({
+  useMonthScope: () => ({
+    month: "2026-02",
+    summary: undefined,
+    isLoading: false,
+    setMonth: () => {},
+    goPrev: () => {},
+    goNext: () => {},
+  }),
+}));
 
 import { TransactionsRecentSection } from "./transactions-recent-section";
 

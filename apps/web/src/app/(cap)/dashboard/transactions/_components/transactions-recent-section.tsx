@@ -21,6 +21,7 @@ import { TRANSACTION_CATEGORY_LABELS, type Transaction } from "@pekulo/validator
 import type { Activity } from "@pekulo/types";
 import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { useTransactions } from "../_hooks/use-transactions";
+import { useMonthScope } from "./month-scope-context";
 import { CsvImportForm } from "./csv-import-form";
 import { TransactionEditForm } from "./transaction-edit-form";
 import { TransactionDeleteConfirm } from "./transaction-delete-confirm";
@@ -89,7 +90,8 @@ const LIST_MAX = 200;
 
 export function TransactionsRecentSection() {
   const [limit, setLimit] = useState(PAGE_STEP);
-  const { data, isLoading, isFetching, error } = useTransactions(limit);
+  const { month } = useMonthScope();
+  const { data, isLoading, isFetching, error } = useTransactions(limit, month ?? undefined);
   const { data: accounts } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);
   const [activeTx, setActiveTx] = useState<Transaction | null>(null);
