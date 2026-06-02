@@ -1792,13 +1792,13 @@ FR-65 shipped as the 3-tier transaction logo fallback (merchant via Brandfetch �
 
 ### Deploy note
 
-The migration `20260601150000_add_logo_caches` must be applied to each environment (`bun --filter='@pekulo/api' run prisma:migrate:deploy`) before logos resolve — until then the read path degrades gracefully to the category icon. Not yet applied to the shared Supabase DB at dev time.
+Two migrations must be applied per environment (`bun --filter='@pekulo/api' run prisma:migrate:deploy`): `20260601150000_add_logo_caches` and `20260602100000_add_account_provider_id`. Both deployed to the shared Supabase DB at dev time. Until applied, the read path degrades gracefully to the category icon.
 
 ### Test output
 
 ```
 oxlint apps packages            0 warnings, 0 errors (800 files)
-@pekulo/api test                763 pass, 0 fail (92 files, 1839 expect)
+@pekulo/api test                768 pass, 0 fail (92 files)
 @pekulo/ui test                 pass, exit 0
 @pekulo/web test                pass, exit 0 (incl. transactions sections)
 @pekulo/api typecheck           exit 0
@@ -1808,3 +1808,12 @@ db:rls-migration-audit          OK — 19 user-data tables RLS-guarded (caches e
 db:rls-audit (live DB)          OK — 19 tables; logo caches absent = correctly not user-RLS'd (AC-6)
 prisma:check                    schemas valid
 ```
+
+### Extension (post-review, user-directed) — backfill + IBAN bank tier
+
+Live review surfaced two gaps the original scope missed; Fred chose to fix both (doc-synced per lesson 2026-05-31).
+
+- **Cold cache → historical backfill (T22–T23).** The refresh warm-up only covers each fresh batch, so already-synced transactions never got logos. Factored the resolve loop into `LogosService.warmMany({labels, providerIds})` (best-effort, used by both the warm-up and the backfill), added `listDistinctProviderLabels`, and a `bankAggregator.backfillUserLogos(userId)` orchestrator. Ran it for the dev user: 105 distinct labels → 46 merchant logos resolved via Brandfetch (the response shape was live-validated — the `icon` field of the top search hit).
+- **Bank tier broken on IBAN accounts → store provider_id (T24–T26).** The dedup key encodes `provider_id` only for cards (`pid:{id}:{name}`); IBAN accounts key on the IBAN, so `providerIdFromAccountKey` returned null and tier 2 never resolved. Added `Account.providerId` (migration `20260602100000`), threaded the Bridge account's `provider_id` through to the local account at import, and `enrich` now reads `Account.providerId` (falling back to the key parse for legacy rows). Backfilled provider_id onto the dev user's 6 existing accounts from Bridge `listAccounts` (all → 574) and warmed the bank logo.
+- **End-to-end verified on live data:** a 12-transaction sample resolved 4 merchant + 8 bank logos, 0 bare category icons (category icon now only for manual / truly-unresolvable rows).
+- **Follow-ups (not blocking):** the account provider_id fill + the merchant backfill were one-off runs for the dev user (new connections populate provider_id at import via the threading; new transactions warm via the refresh). A scheduled/triggered per-user backfill sweep (mirroring the 6-4 suggestion sweep) is a candidate if the feature ships to more users.
