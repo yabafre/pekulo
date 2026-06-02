@@ -31,4 +31,11 @@ describe("normalizeMerchantKey (story 6-10 / FR-65)", () => {
       expect(isResolvableMerchantKey(normalizeMerchantKey(label))).toBe(false);
     }
   });
+
+  // Transfer + civility title = a person, not a merchant (6-10 review).
+  test("person-to-person transfers don't resolve a merchant; org transfers still do", () => {
+    expect(isResolvableMerchantKey(normalizeMerchantKey("Vir Sepa M John Doe"))).toBe(false);
+    expect(isResolvableMerchantKey(normalizeMerchantKey("Vir Inst Mme Jane Doe"))).toBe(false);
+    expect(normalizeMerchantKey("Vir Sepa Matmut Rouen")).toBe("matmut rouen"); // no civility → kept
+  });
 });

@@ -39,10 +39,18 @@ const NOISE = new Set([
 // Strip leading "CB", card-payment prose, dates (dd/mm[/yy[yy]]), standalone
 // numbers/amounts and 1-char tokens, then keep the first 3 meaningful tokens.
 export function normalizeMerchantKey(label: string): string {
-  const cleaned = label
+  const deaccented = label
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // strip combining accents (NFD diacritics)
+    .replace(/[̀-ͯ]/g, ""); // strip combining accents (NFD diacritics)
+  // Person-to-person transfers ("Vir Sepa M John Doe", "Vir Inst Mme Jane Doe")
+  // name an individual, not a merchant — a civility title after a transfer verb
+  // is the tell. Never resolve a logo for them (the name would prefix-match a
+  // random brand, e.g. "John Doe Game").
+  if (/\b(vir|virement)\b/.test(deaccented) && /\b(m|mr|mme|mlle)\b/.test(deaccented)) {
+    return "";
+  }
+  const cleaned = deaccented
     .replace(/\d{1,2}\/\d{1,2}(?:\/\d{2,4})?/g, " ") // dates
     .replace(/[^a-z0-9\s]/g, " ") // punctuation → space
     .split(/\s+/)
