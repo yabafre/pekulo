@@ -562,6 +562,7 @@ export function createTransactionsService(deps: {
       const { items, totalCount } = await deps.repository.listPendingByUser(userId, {
         page: input.page,
         pageSize: input.pageSize,
+        month: input.month,
       });
       return {
         items: await attachLogos(userId, items),
