@@ -1,7 +1,7 @@
 # Story: 6-7-auto-categorise-on-import — Auto-apply LLM category on bulk import
 
 **Epic:** Epic 6 — LLM auto-categorisation (transaction-enrichment bucket)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** none — assigned at scheduling / `aped-ship` time (per `epics.md`)
 **Branch:** feature/none-6-7-auto-categorise-on-import
 **Covered FRs:** FR-33 (amended bulk path; the interactive confirm/override path stays owned by 6-4)
