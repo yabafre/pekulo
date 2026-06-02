@@ -72,4 +72,19 @@ describe("brandfetch-client (story 6-10 / FR-65)", () => {
     expect(await c.resolveLogoUrl("carrefour city")).toBe("https://x/c.png");
     expect(seen.some((u) => u.endsWith("/carrefour%20city"))).toBe(true); // tried full first
   });
+
+  // Relevance guard — the matched brand's name/domain must prefix-match the query
+  // or the hit is dropped. Without it, narrowing admits the documented false
+  // positives ("mad" → Steve Madden, "doe" → Dept of Energy).
+  test("drops a top hit whose name/domain does not prefix-match the query", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify([
+          { name: "Steve Madden", domain: "stevemadden.com", icon: "https://x/sm.png" },
+        ]),
+        { status: 200 },
+      )) as unknown as typeof fetch;
+    const c = createBrandfetchClient({ env: baseEnv });
+    expect(await c.resolveLogoUrl("mad")).toBeNull();
+  });
 });
