@@ -180,12 +180,21 @@ export const listTransactionsInputSchema = z.object({
   // applies WITHIN the month. Absent = the unscoped recent window (pre-6-9
   // behaviour — the pending-suggestions poll + any non-month caller keep it).
   month: monthKeySchema.optional(),
+  // Story 6-9 ext — when present, listByUser switches to OFFSET pagination
+  // (1-based `page`, pageSize = `limit`) and returns `totalCount` for numbered
+  // pages. Absent = cursor pagination (the default, D2). A documented deviation
+  // from D2/NFR-16 scoped to the Récentes list: bounded at Persona #1 scale
+  // (≤200 tx/month); revisit if a user approaches the 50k cap.
+  page: z.number().int().min(1).optional(),
 });
 export type ListTransactionsInput = z.infer<typeof listTransactionsInputSchema>;
 
 export const listTransactionsOutputSchema = z.object({
   items: z.array(transactionSchema),
   nextCursor: z.string().nullable(),
+  // Story 6-9 ext — total match count for numbered (offset) pagination; absent
+  // in cursor mode (the default). The Récentes list derives pageCount from it.
+  totalCount: z.number().nullable().optional(),
 });
 export type ListTransactionsOutput = z.infer<typeof listTransactionsOutputSchema>;
 
