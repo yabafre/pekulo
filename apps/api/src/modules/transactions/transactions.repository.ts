@@ -312,9 +312,32 @@ export function createTransactionsRepository(deps: {
 
     async listByUser(userId, input) {
       const limit = input.limit ?? 50;
-      // Cursor decode is fail-loud: a malformed/stale cursor surfaces as 400
-      // so paginating clients can react. Falling back to "no cursor" served
-      // page 1 silently and risked infinite loops.
+      const monthRange = input.month ? monthKeyToRange(input.month) : null;
+      const baseWhere: Prisma.TransactionWhereInput = {
+        userId,
+        ...(input.accountId ? { accountId: input.accountId } : {}),
+        ...(monthRange ? { occurredOn: { gte: monthRange.start, lt: monthRange.end } } : {}),
+      };
+
+      // Story 6-9 ext — OFFSET (numbered) mode for the Récentes list: random-
+      // access page N needs skip/take + a total count, which cursor pagination
+      // cannot give. Documented D2/NFR-16 deviation, bounded to Persona #1 scale.
+      if (input.page) {
+        const [rows, totalCount] = await Promise.all([
+          deps.client.transaction.findMany({
+            where: baseWhere,
+            orderBy: [{ occurredOn: "desc" }, { id: "desc" }],
+            skip: (input.page - 1) * limit,
+            take: limit,
+          }) as Promise<TransactionRow[]>,
+          deps.client.transaction.count({ where: baseWhere }),
+        ]);
+        return { items: rows.map(toDto), nextCursor: null, totalCount };
+      }
+
+      // Cursor mode (default, D2) — keyset pagination. Cursor decode is
+      // fail-loud: a malformed/stale cursor surfaces as 400 so paginating clients
+      // can react (a silent page-1 fallback risked infinite loops).
       let decoded: { occurredOn: string; id: string } | null = null;
       if (input.cursor) {
         decoded = decodeCursor(input.cursor);
@@ -326,11 +349,8 @@ export function createTransactionsRepository(deps: {
         }
       }
 
-      const monthRange = input.month ? monthKeyToRange(input.month) : null;
       const where: Prisma.TransactionWhereInput = {
-        userId,
-        ...(input.accountId ? { accountId: input.accountId } : {}),
-        ...(monthRange ? { occurredOn: { gte: monthRange.start, lt: monthRange.end } } : {}),
+        ...baseWhere,
         ...(decoded
           ? {
               OR: [

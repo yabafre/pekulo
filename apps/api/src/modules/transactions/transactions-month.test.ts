@@ -154,3 +154,35 @@ describe("repository — pending month scope (6-9 ext)", () => {
     expect(where.occurredOn).toBeUndefined();
   });
 });
+
+// ─── list offset (numbered) pagination (6-9 extension) ───────────────────
+// Récentes wants random-access numbered pages (10/page) like Suggestions IA.
+// listTransactions stays cursor-based by default (D2); `page` opts into a
+// documented offset path bounded to Persona #1 scale.
+describe("repository — list offset pagination (6-9 ext)", () => {
+  test("listByUser page mode uses skip/take + count, nulls the cursor", async () => {
+    const { client, findMany } = fakeClient([]);
+    const repo = createTransactionsRepository({ client });
+    const out = await repo.listByUser("u_a", { limit: 10, page: 3, month: "2026-02" });
+    const args = findMany.mock.calls[0]![0] as {
+      skip?: number;
+      take?: number;
+      where: { occurredOn?: { gte: Date; lt: Date } };
+    };
+    expect(args.skip).toBe(20); // (page 3 - 1) * 10
+    expect(args.take).toBe(10); // exact page, NOT limit + 1 (cursor mode)
+    expect(args.where.occurredOn?.gte).toEqual(new Date(Date.UTC(2026, 1, 1)));
+    expect(out.nextCursor).toBeNull();
+    expect(out.totalCount).toBe(0);
+  });
+
+  test("listByUser without page stays cursor mode (take = limit + 1, no totalCount)", async () => {
+    const { client, findMany } = fakeClient([]);
+    const repo = createTransactionsRepository({ client });
+    const out = await repo.listByUser("u_a", { limit: 10 });
+    const args = findMany.mock.calls[0]![0] as { skip?: number; take?: number };
+    expect(args.skip).toBeUndefined();
+    expect(args.take).toBe(11);
+    expect(out.totalCount ?? null).toBeNull();
+  });
+});
