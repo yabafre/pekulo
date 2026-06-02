@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { Text, View } from "@pekulo/ui/client";
 import {
@@ -88,7 +88,10 @@ type DialogKind = "edit" | "delete" | null;
 const PAGE_SIZE = 10;
 
 export function TransactionsRecentSection() {
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const [rawPage, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  // A malformed ?page=0 / ?page=-3 clamps to page 1 rather than silently
+  // dropping into cursor mode (a falsy page → unscoped window, no totalCount).
+  const page = rawPage < 1 ? 1 : rawPage;
   const { month } = useMonthScope();
   const { data, isLoading, error } = useTransactions(PAGE_SIZE, month ?? undefined, page);
   const { data: accounts } = useAccounts();
@@ -130,6 +133,20 @@ export function TransactionsRecentSection() {
   useEffect(() => {
     if (data && page > pageCount) void setPage(pageCount);
   }, [data, page, pageCount, setPage]);
+
+  // Reset to page 1 when the user navigates to a different month, so prev/next
+  // never lands them on a deep page of the newly-selected month. The ref tracks
+  // the previous month so the initial mount AND the null→server-resolved seed
+  // don't reset — a deep link `?month=2026-02&page=3` keeps page 3. The reset
+  // uses nuqs' default "replace" history mode, so Back still restores the prior
+  // month+page that setMonth pushed.
+  const prevMonthRef = useRef(month);
+  useEffect(() => {
+    if (prevMonthRef.current !== null && month !== null && month !== prevMonthRef.current) {
+      void setPage(1);
+    }
+    prevMonthRef.current = month;
+  }, [month, setPage]);
 
   return (
     <Section

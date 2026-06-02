@@ -85,7 +85,10 @@ const amountSchema = (msg = "Montant ≥ 0") => z.number().finite("Montant inval
 // The day is intentionally absent: the server expands it to a half-open
 // [monthStart, nextMonthStart) UTC range (mirrors monthly.repository's
 // firstDayOfMonthUTC / firstDayOfNextMonthUTC). Used by the month navigator.
-const MONTH_KEY_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+// Year 0000 is rejected (iso with the web `MONTH_KEY_REGEX` in month-key.ts) —
+// it is unreachable from any real occurredOn date and keeps the client-side
+// `shiftMonth` from ever stepping into a negative ordinal.
+const MONTH_KEY_REGEX = /^(?!0000)\d{4}-(0[1-9]|1[0-2])$/;
 export const monthKeySchema = z.string().regex(MONTH_KEY_REGEX, "Mois YYYY-MM requis");
 export type MonthKey = z.infer<typeof monthKeySchema>;
 

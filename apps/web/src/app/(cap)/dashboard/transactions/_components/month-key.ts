@@ -3,7 +3,10 @@
 // FR labels. No React / nuqs / clock — kept separate so the navigator logic is
 // testable without the nuqs adapter.
 
-export const MONTH_KEY_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+// Year 0000 is rejected (the `(?!0000)` guard): it is unreachable from real
+// `occurredOn` dates, and its absence keeps `shiftMonth` from ever yielding a
+// negative ordinal in practice (iso with `monthKeySchema` in @pekulo/validators).
+export const MONTH_KEY_REGEX = /^(?!0000)\d{4}-(0[1-9]|1[0-2])$/;
 
 export function isMonthKey(value: string | null | undefined): value is string {
   return typeof value === "string" && MONTH_KEY_REGEX.test(value);
@@ -14,7 +17,10 @@ export function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split("-").map(Number) as [number, number];
   const ordinal = y * 12 + (m - 1) + delta;
   const year = Math.floor(ordinal / 12);
-  const monthNum = (ordinal % 12) + 1;
+  // Sign-safe modulo — JS `%` keeps the dividend's sign, so a negative ordinal
+  // (delta stepping below January) would otherwise yield a 0 or negative month
+  // number ("YYYY-00"). `((n % 12) + 12) % 12` pins it to 0–11 → 01–12.
+  const monthNum = (((ordinal % 12) + 12) % 12) + 1;
   return `${String(year).padStart(4, "0")}-${String(monthNum).padStart(2, "0")}`;
 }
 
