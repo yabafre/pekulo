@@ -37,6 +37,15 @@ export async function proxy(request: NextRequest) {
 
   let response = NextResponse.next({ request: { headers: forwardedHeaders() } });
 
+  // Story 6-10 (FR-65) — the logo proxy (/v1/logos?ref=) is PUBLIC reference
+  // data (opaque ref, no PII), served by the route handler that forwards to
+  // apps/api. Skip the per-request Supabase getUser() here: a transactions page
+  // fires 20+ logo requests, and gating each on an auth round-trip would be
+  // both slow and pointless (the ref is an opaque cache index, not user data).
+  if (request.nextUrl.pathname.startsWith("/v1/logos")) {
+    return withSecurity(response);
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
