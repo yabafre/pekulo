@@ -7,6 +7,7 @@
 // Resolution NEVER throws; misses negative-cache and fall through.
 
 import { isResolvableMerchantKey, normalizeMerchantKey } from "./merchant-key";
+import { curatedMerchantQuery } from "./merchant-domains";
 import type { BrandfetchClient } from "./services/brandfetch-client";
 import type { LogosRepository } from "./logos.repository";
 
@@ -100,7 +101,12 @@ export function createLogosService(deps: {
     // Fresh hit (positive OR negative) short-circuits; a stale row falls through
     // to a re-resolve so a once-failed merchant recovers after its window (AC-5).
     if (cached !== undefined && !isStale(cached, now())) return cached.logoUrl;
-    const resolved = await deps.brandfetch.resolveLogoUrl(key);
+    // High-recall path: a curated alias anywhere in the label → search the CLEAN
+    // brand name (catches a merchant buried past the 3-token key, e.g. "mcdonald"
+    // inside "Mad Cours Mcdonald S Agdal Oncf"). Otherwise the raw key, with its
+    // prefix-narrowing + relevance guard. Cache stays keyed by the label's key.
+    const curated = curatedMerchantQuery(label);
+    const resolved = await deps.brandfetch.resolveLogoUrl(curated ?? key);
     await deps.repository.upsertMerchant(key, resolved); // negative-cache on null
     return resolved;
   }

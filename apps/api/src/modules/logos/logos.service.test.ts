@@ -131,6 +131,26 @@ describe("logos.service (story 6-10 / FR-65)", () => {
     expect((await repo.getProvider("574"))?.logoUrl).toBe("https://x/sg.png");
   });
 
+  // Curated map (high recall) — a known brand buried mid-label is searched by its
+  // CLEAN name, not the noisy 3-token key (else Brandfetch returns []).
+  test("resolveMerchantLogo searches the curated clean brand for a buried merchant", async () => {
+    const seen: string[] = [];
+    const repo = fakeRepo();
+    const svc = createLogosService({
+      repository: repo,
+      brandfetch: {
+        async resolveLogoUrl(q) {
+          seen.push(q);
+          return q === "mcdonalds" ? "https://x/mcd.png" : null;
+        },
+      },
+      getBankLogo: async () => null,
+    });
+    const url = await svc.resolveMerchantLogo("CB Mad Cours Mcdonald S Agdal Oncf");
+    expect(url).toBe("https://x/mcd.png");
+    expect(seen).toContain("mcdonalds"); // clean brand, not the "mad cours mcdonald" key
+  });
+
   // AC-5 refresh window — a negative cache entry must NOT be permanent: once the
   // window elapses the merchant is re-resolved so a once-down brand can recover.
   test("re-resolves a negative cache entry once its refresh window elapses (AC-5)", async () => {
