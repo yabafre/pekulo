@@ -17,10 +17,12 @@ import type { ExtendedPrismaClient } from "../../database";
 function fakeClient(rows: { occurredOn: Date }[] = []) {
   const findMany = mock(async (_args: { where?: unknown; take?: number }) => rows);
   const findFirst = mock(async (_args: unknown) => rows[0] ?? null);
+  const count = mock(async (_args: unknown) => rows.length);
   return {
-    client: { transaction: { findMany, findFirst } } as unknown as ExtendedPrismaClient,
+    client: { transaction: { findMany, findFirst, count } } as unknown as ExtendedPrismaClient,
     findMany,
     findFirst,
+    count,
   };
 }
 
@@ -126,5 +128,29 @@ describe("service — monthSummary (6-9)", () => {
     const expected = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
     const out = await svcWith(fakeRepo({})).monthSummary("u_a", {});
     expect(out).toEqual({ month: expected, incomeEur: 0, spendingEur: 0, netChangeEur: 0 });
+  });
+});
+
+// ─── pending-suggestions month scope (6-9 extension) ─────────────────────
+// The Suggestions IA list + the "À confirmer" count re-scope to the active
+// month, superseding the original month-agnostic decision (user call,
+// 2026-06-02). Server-side filter so >page-size months stay exact.
+describe("repository — pending month scope (6-9 ext)", () => {
+  test("listPendingByUser scopes occurredOn to the month range when month is given", async () => {
+    const { client, findMany } = fakeClient([]);
+    const repo = createTransactionsRepository({ client });
+    await repo.listPendingByUser("u_a", { page: 1, pageSize: 10, month: "2026-02" });
+    const where = (
+      findMany.mock.calls[0]![0] as { where: { occurredOn?: { gte: Date; lt: Date } } }
+    ).where;
+    expect(where.occurredOn?.gte).toEqual(new Date(Date.UTC(2026, 1, 1)));
+    expect(where.occurredOn?.lt).toEqual(new Date(Date.UTC(2026, 2, 1)));
+  });
+  test("listPendingByUser omits the occurredOn range when month is absent", async () => {
+    const { client, findMany } = fakeClient([]);
+    const repo = createTransactionsRepository({ client });
+    await repo.listPendingByUser("u_a", { page: 1, pageSize: 10 });
+    const where = (findMany.mock.calls[0]![0] as { where: { occurredOn?: unknown } }).where;
+    expect(where.occurredOn).toBeUndefined();
   });
 });

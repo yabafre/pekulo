@@ -150,7 +150,7 @@ export interface TransactionsRepository {
    */
   listPendingByUser(
     userId: string,
-    input: { page: number; pageSize: number },
+    input: { page: number; pageSize: number; month?: string },
   ): Promise<{ items: Transaction[]; totalCount: number }>;
   /**
    * Backfill (épic 6) — still-'autre', no suggestion, NEVER attempted rows for
@@ -575,11 +575,19 @@ export function createTransactionsRepository(deps: {
       return { outcome: "ok", transaction: toDto(row as TransactionRow) };
     },
 
-    async listPendingByUser(userId, { page, pageSize }) {
+    async listPendingByUser(userId, { page, pageSize, month }) {
       // OFFSET pagination (deliberate NFR-16 deviation — see the schema note):
       // numbered pages with random jump need skip/take + a total count, and the
       // pending set is small + bounded. Still fully user-scoped (ADR-0013).
-      const where = { userId, category: "autre", suggestedCategory: { not: null } };
+      // Story 6-9 ext — month scopes occurredOn to a half-open UTC range so the
+      // Suggestions IA list + "À confirmer" count reflect the active month.
+      const monthRange = month ? monthKeyToRange(month) : null;
+      const where: Prisma.TransactionWhereInput = {
+        userId,
+        category: "autre",
+        suggestedCategory: { not: null },
+        ...(monthRange ? { occurredOn: { gte: monthRange.start, lt: monthRange.end } } : {}),
+      };
       const [rows, totalCount] = await Promise.all([
         deps.client.transaction.findMany({
           where,
