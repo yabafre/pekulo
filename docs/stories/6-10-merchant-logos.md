@@ -1819,3 +1819,64 @@ Live review surfaced two gaps the original scope missed; Fred chose to fix both 
 - **Web-tier proxy (live-surfaced).** The DTO's `/v1/logos?ref=` is relative to the web origin, but `apps/web` had no forward for it → the browser got Next's own 404 (`text/html`) even though the api route returned the bytes correctly. Added a route handler (`apps/web/src/app/v1/logos/route.ts`) that streams from `apps/api`, plus a `proxy.ts` bypass so the public logo path skips the per-request Supabase `getUser()` (a transactions page fires 20+ logo requests). The api route alone was insufficient — the privacy model ("the browser only talks to apps/web") requires the web tier to forward the bytes.
 - **Matching precision (live-surfaced, user-directed).** First render showed the wrong logo on many rows: noisy bank labels over-specify and Brandfetch returned `[]`, so the merchant tier fell to the (repetitive) bank logo, while blind narrowing went the other way and matched garbage ("doe"→Dept of Energy, "mad"→Steve Madden). Settled on: query narrowing to shrinking prefixes + a **name/domain relevance guard**, a **stoplist** of statement-line vocabulary (relevé/différé/temporary/transaction/échéance/commission/…), and a **transfer+civility = person** rule. Re-warmed the dev user: merchant hits 46 → 71 with far fewer wrong matches. Residual false positives are mostly sandbox synthetic names ("To John Doe" collides with real brands); real names rarely collide. High precision AND recall needs a curated FR-merchant map or an LLM matcher — see follow-ups.
 - **Follow-ups (not blocking):** the account provider_id fill + the merchant backfill were one-off runs for the dev user (new connections populate provider_id at import via the threading; new transactions warm via the refresh). A scheduled/triggered per-user backfill sweep (mirroring the 6-4 suggestion sweep) is a candidate if the feature ships to more users.
+
+## Review Record
+
+**Date:** 2026-06-02
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done — all actionable findings resolved; NITs dismissed with rationale.
+
+Three method-driven auditors + Aria ran in parallel against a fresh-read of the branch (no implementation context). `git-audit.sh` flagged nothing out of scope; the hallucination pass cleared every introduced identifier. Strong cross-auditor convergence on two issues (AC-5 TTL, doc-sync); the user directed "fix all".
+
+### Findings — Resolved
+
+- **[MAJOR] AC-5 refresh window unimplemented — negative cache was permanent** [logos.service.ts, logos.repository.ts]
+  - Source: Spec (PARTIAL) + Code + Edge (3-way convergence)
+  - Resolution: `6861bdf` — `getMerchant`/`getProvider` now select `fetchedAt`; `createLogosService` gained a `clock` seam + per-tier TTL (14 d negative / 90 d positive); a stale row falls through to a re-resolve. New clock-driven test asserts re-fetch after the window elapses.
+- **[MAJOR] Doc-sync gap — architecture/ADR/lessons silent on the post-scope-lock extension** [docs/architecture.md, docs/adr/0015, docs/lessons.md]
+  - Source: Spec + Code (lesson 2026-05-31)
+  - Resolution: `3c6c270` — added the Brandfetch integration point, the two reference caches + the `Account.providerId` note, the public `/v1/logos` proxy auth-exception (architecture.md); the `getProviderLogo` + shared-provider + `provider_id` consequences (ADR-0015); a `fetched_at`-write-only / scoped-auth-bypass lesson.
+- **[MINOR] Residual server-side SSRF — proxy fetched a third-party-controlled URL unguarded** [logos.routes.ts]
+  - Source: Code + Edge
+  - Resolution: `8fc7661` — pin the resolved upstream to `https` + a Brandfetch/Bridge host allowlist; +tests (off-allowlist → 404, no fetch).
+- **[MINOR] Proxy relayed any content-type under an immutable cache** [logos.routes.ts]
+  - Source: Edge
+  - Resolution: `8fc7661` — `image/*`-only relay; non-image upstream → 404.
+- **[MINOR] Bank-logo warm-up/backfill missed IBAN + multi-provider; backfill warmed no providers** [bank-aggregator.service.ts]
+  - Source: Code + Edge
+  - Resolution: `0ca8257` — `AccountService.listProviderIds` (where:{userId}, distinct); warm-up + backfill now warm the user's distinct stored `provider_id`s.
+- **[MINOR] Relevance guard `isRelevant` had no direct test** [brandfetch-client.test.ts]
+  - Source: Code
+  - Resolution: `7badf7c` — test asserts an irrelevant top hit (no name/domain prefix match) → null.
+- **[MINOR] Web auth-bypass used `startsWith`; no test on the route/bypass** [proxy.ts]
+  - Source: Code
+  - Resolution: `fc25666` — bypass tightened to the EXACT `/v1/logos` path; web route test (404 on missing ref / unconfigured base; forwards only the opaque ref to a server-side `API_BASE_URL`).
+- **[MINOR] `bridge req` threw on an empty-body 404** [bridge-client.ts]
+  - Source: Edge
+  - Resolution: `8ff90d6` — defensive parse: an allowed-status non-2xx with empty/non-JSON body returns undefined data + status (a 2xx with bad JSON is still a hard error); +test.
+- **[MINOR] `TransactionLogo` never reset `failed` on `src` change** [TransactionLogo.tsx]
+  - Source: Edge
+  - Resolution: `db2a9f4` — `useEffect(() => setFailed(false), [src])` so a recycled row recovers when a new logo URL arrives.
+
+### Findings — Dismissed (NIT)
+
+- **Civility/transfer rule suppresses some legit merchant transfers** (merchant-key.ts) — Source: Edge. Rationale: deliberate precision tradeoff (a transfer verb + civility title = person-to-person), documented in the matching-precision Extension; keeping it avoids the larger false-positive class.
+- **T8 live smoke waived, no curl in the PR** (bridge-client.ts) — Source: Spec. Rationale: endpoint shape matches the canonical Postman collection (`/v3/providers/:id` → `images.logo`); sandbox creds are Dokploy-only; the response shape was live-validated during the dev-user backfill.
+- **Row snapshots don't exercise the logo slot** (Pekulo*Row.snapshot) — Source: Aria. Rationale: the `TransactionLogo` primitive has its own snapshot + a11y coverage; the slot is a plain flex sibling — low value vs. a deferred MCP visual pass.
+- **Tamagui atomic-class note** (tamagui.generated.css) — Source: Aria. Rationale: no regression — `$backgroundMuted` + `$full` radius vars resolve; shipped chrome uses the same tokens.
+- **`console.warn` on enrich failure** (transactions.service.ts) — Source: Code. Rationale: logs `err.message` only, no PII — consistent with the OTel-clean posture.
+
+### Verification (fresh, this session)
+
+- `bun --filter='@pekulo/api' run typecheck` → exit 0
+- `bun --filter='@pekulo/ui' run typecheck` → exit 0 · `bun --filter='@pekulo/web' run typecheck` → exit 0
+- `bun --filter='@pekulo/api' run test` → **776 pass**, exit 0 (was 768 + the review's new tests)
+- `bun --filter='@pekulo/ui' run test` → **212 pass / 1 skip**, exit 0
+- `bun --filter='@pekulo/web' run test` → **149 pass**, exit 0 (incl. the new `/v1/logos` route test)
+- `bunx oxlint <touched areas>` → 0 warnings, 0 errors
+- **Visual verification: deferred — React Grab MCP unavailable at ~2026-06-02T11:28** (consistent with the 6-3/6-4/6-8 waivers). Aria's static design-law pass clean (grayscale `$backgroundMuted` chrome, no emerald, `aria-hidden` + `alt=""`).
+
+### Ticket / PR
+
+- Ticket: `none` (assigned at ship time) — no ticket sync.
+- PR: deferred to `aped-ship` (sprint umbrella = `main`; opening a story PR against the base branch now is out of scope for review — the branch ships via the umbrella flow).
