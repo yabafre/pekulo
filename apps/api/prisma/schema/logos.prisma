@@ -3,10 +3,13 @@
 //
 // REFERENCE DATA, NOT user data: these tables hold public brand/bank logo URLs
 // keyed by a normalised merchant key / Bridge provider_id. They carry NO
-// user_id, NO FK to auth.users, and NO user-RLS (NFR-8 binds user-data tables
-// only; ADR-0013 service-role bypass applies). Both model names are listed in
-// .oxlintrc.json `unscopedModels` so no-prisma-query-without-user-id passes,
-// and in rls-migration-audit's NON_USER_TABLES so the static RLS gate passes.
+// user_id, NO FK to auth.users, and NO user-RLS POLICIES (NFR-8 binds user-data
+// tables only; ADR-0013 service-role bypass applies). RLS is nonetheless ENABLED
+// on both (migration 20260602150000) with no policies = deny-all to the anon
+// PostgREST role (Supabase linter 0013); the service-role connection bypasses it.
+// Both model names are listed in .oxlintrc.json `unscopedModels` so
+// no-prisma-query-without-user-id passes, and in rls-migration-audit's
+// NON_USER_TABLES so the static RLS gate passes.
 //
 // Natural-key PKs (merchantKey / providerId), no synthetic id column — so both
 // models are registered `null` in id-prefixes.config.ts (the prefixed-ids

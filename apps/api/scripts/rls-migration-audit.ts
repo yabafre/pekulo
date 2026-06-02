@@ -16,12 +16,17 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Public tables that legitimately hold NO user data (no RLS expected).
-// Adding an entry here is a conscious, reviewable decision.
+// Public tables that legitimately hold NO user data, so they carry no RLS
+// POLICIES and the audit skips them. Adding an entry here is a conscious,
+// reviewable decision.
 //
 // Story 6-10 (FR-65): the logo caches are global brand/bank reference data
 // keyed by a normalised merchant key / Bridge provider_id — no user_id, no FK
-// to auth.users. Their protective layer is simply that they hold no PII.
+// to auth.users. RLS is nonetheless ENABLED on them (migration 20260602150000)
+// with NO policies = deny-all to the anon PostgREST role (Supabase linter 0013);
+// apps/api's service-role connection bypasses RLS so reads/writes are unaffected.
+// They stay allow-listed here because deny-all (0 policies) is intentional — not
+// the >= 2 policies a user-data table must declare.
 const NON_USER_TABLES = new Set<string>(["merchant_logo_cache", "provider_logo_cache"]);
 
 // Minimum policies a user-data table must declare. Audit sister tables
