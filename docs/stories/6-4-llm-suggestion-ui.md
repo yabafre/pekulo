@@ -1644,6 +1644,8 @@ Commit (if a visual-verification note is the only working-tree change): `git com
 > `0876f77`), the import **backfill** + hourly sweep (`ee674f5`/`e6b0e67`), and
 > **pagination** of the Récentes list (`2a43ef1`). The deferral notes are kept
 > verbatim below for history; the Extension section is the source of truth.
+>
+> **Amended by 6-7 (2026-06-02):** the import backfill now APPLIES the suggested category for csv/bridge rows (no pending state) via TransactionsRepository.applySuggestedCategory + the new transactions.source column; manual-origin rows keep the pending suggestion.
 
 ### Out of scope (explicitly deferred — do NOT implement here)
 
