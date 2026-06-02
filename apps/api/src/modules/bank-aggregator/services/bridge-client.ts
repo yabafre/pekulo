@@ -61,7 +61,22 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       if (!res.ok && !allowStatuses.includes(res.status)) {
         throw bankProviderUnavailable(`bridge ${rest.method ?? "GET"} ${path} → ${res.status}`);
       }
-      const data = (await res.json()) as T;
+      // Parse defensively: an ALLOWED non-2xx (e.g. a 404 admitted via
+      // allowStatuses) may carry an empty or non-JSON body — return undefined
+      // data + the status so the caller branches on the status code instead of
+      // throwing. A 2xx with unparseable JSON is still a hard provider error.
+      const text = await res.text();
+      let data: T;
+      if (!text) {
+        data = undefined as T;
+      } else {
+        try {
+          data = JSON.parse(text) as T;
+        } catch (parseErr) {
+          if (res.ok) throw parseErr;
+          data = undefined as T;
+        }
+      }
       return { data, status: res.status };
     } catch (err) {
       if (err instanceof Error && err.message.startsWith("bank provider unavailable")) throw err;

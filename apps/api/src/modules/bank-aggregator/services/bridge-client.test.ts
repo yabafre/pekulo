@@ -399,3 +399,18 @@ test("getProviderLogo returns images.logo (app-level, no Bearer); 404 → null",
     globalThis.fetch = prev;
   }
 });
+
+test("getProviderLogo: a 404 with an EMPTY body resolves to null (not a throw)", async () => {
+  // Bridge can answer an unknown provider_id with a bodyless 404; `req` must not
+  // call res.json() unconditionally (that would throw → bankProviderUnavailable
+  // → the bank logo silently never caches). Defensive parse → { logoUrl: null }.
+  const localFetch = mock(async () => new Response("", { status: 404 }));
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const provider = createBridgeProvider({ env });
+    expect(await provider.getProviderLogo("404empty")).toEqual({ logoUrl: null });
+  } finally {
+    globalThis.fetch = prev;
+  }
+});
