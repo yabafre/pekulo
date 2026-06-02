@@ -15,19 +15,48 @@ import type { LogosService } from "./logos.service";
 
 const PROXY_TIMEOUT_MS = 5_000;
 
+// Defense in depth on top of the opaque-ref guard: even though `upstream` is a
+// SERVER-stored URL (never client-supplied), a poisoned cache row or a hostile
+// upstream response could otherwise point the proxy `fetch` at an arbitrary host
+// (incl. internal addresses). Pin the resolved URL to https + the only two CDNs
+// that legitimately serve logos (Brandfetch + Bridge bank directory), and only
+// relay image bytes — never an HTML error page under an immutable cache header.
+const ALLOWED_LOGO_HOSTS = [".brandfetch.io", "web.bridgeapi.io"];
+
+function isAllowedUpstream(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:") return false;
+  const host = url.hostname.toLowerCase();
+  return ALLOWED_LOGO_HOSTS.some((h) =>
+    h.startsWith(".") ? host === h.slice(1) || host.endsWith(h) : host === h,
+  );
+}
+
 export function registerLogoRoutes(deps: { service: LogosService }) {
   return new Elysia({ name: "logos" }).get(
     "/v1/logos",
     async ({ query }) => {
       const upstream = await deps.service.refToUpstreamUrl(query.ref);
-      if (!upstream) return new Response("logo not found", { status: 404 });
+      // 404 (no fetch) on an unresolvable ref OR a resolved URL outside the
+      // logo-CDN allowlist (anti-SSRF — AC-5).
+      if (!upstream || !isAllowedUpstream(upstream)) {
+        return new Response("logo not found", { status: 404 });
+      }
       try {
         const res = await fetch(upstream, { signal: AbortSignal.timeout(PROXY_TIMEOUT_MS) });
-        if (!res.ok || !res.body) return new Response("logo not found", { status: 404 });
+        const contentType = res.headers.get("content-type") ?? "";
+        if (!res.ok || !res.body || !contentType.startsWith("image/")) {
+          return new Response("logo not found", { status: 404 });
+        }
         return new Response(res.body, {
           status: 200,
           headers: {
-            "content-type": res.headers.get("content-type") ?? "image/png",
+            "content-type": contentType,
             // Reference data — long, immutable cache. The ref already pins the asset.
             "cache-control": "public, max-age=86400, immutable",
           },

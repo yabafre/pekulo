@@ -42,9 +42,42 @@ describe("logos.routes proxy (story 6-10 / AC-5)", () => {
         status: 200,
         headers: { "content-type": "image/svg+xml" },
       })) as unknown as typeof fetch;
-    const app = registerLogoRoutes({ service: svcWith(async () => "https://cdn/sg.svg") });
+    const app = registerLogoRoutes({
+      service: svcWith(async () => "https://web.bridgeapi.io/img/banks-logo/sg.svg"),
+    });
     const res = await app.handle(new Request("http://localhost/v1/logos?ref=YjU3NA"));
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("image");
+  });
+
+  // anti-SSRF defense in depth: even a (poisoned) resolved URL pointing off the
+  // logo-CDN allowlist or at http:// is 404'd WITHOUT any outbound fetch.
+  test("resolved URL outside the logo-CDN allowlist → 404, no fetch", async () => {
+    let fetched = false;
+    globalThis.fetch = (async () => {
+      fetched = true;
+      return new Response("", { status: 200 });
+    }) as unknown as typeof fetch;
+    const app = registerLogoRoutes({
+      service: svcWith(async () => "http://169.254.169.254/latest/meta-data"),
+    });
+    const res = await app.handle(new Request("http://localhost/v1/logos?ref=YjU3NA"));
+    expect(res.status).toBe(404);
+    expect(fetched).toBe(false);
+  });
+
+  // The proxy is an IMAGE proxy — a non-image body (e.g. a CDN HTML error page)
+  // is never relayed under the immutable cache header.
+  test("allowed host but non-image content-type → 404", async () => {
+    globalThis.fetch = (async () =>
+      new Response("<html>error</html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      })) as unknown as typeof fetch;
+    const app = registerLogoRoutes({
+      service: svcWith(async () => "https://cdn.brandfetch.io/carrefour.fr"),
+    });
+    const res = await app.handle(new Request("http://localhost/v1/logos?ref=YjU3NA"));
+    expect(res.status).toBe(404);
   });
 });
