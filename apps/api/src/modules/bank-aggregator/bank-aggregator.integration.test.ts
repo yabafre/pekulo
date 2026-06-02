@@ -178,6 +178,7 @@ function makeFakeProvider(): BankProvider {
         kind: "checking",
         currency: "EUR",
         balance: 1500,
+        providerId: "574",
       },
       {
         providerAccountId: "sg-2",
@@ -187,6 +188,7 @@ function makeFakeProvider(): BankProvider {
         kind: "savings",
         currency: "EUR",
         balance: 5000,
+        providerId: "574",
       },
     ],
     listTransactions: async () => ({

@@ -304,6 +304,7 @@ export function createBankAggregatorService(deps: {
           type: mapBridgeAccountKind(a.kind),
           currency: a.currency,
           cashBalance: a.balance,
+          providerId: a.providerId,
         });
       }
 

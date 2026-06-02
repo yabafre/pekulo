@@ -28,6 +28,9 @@ export interface ProviderBankAccount {
   currency: string;
   /** Current balance from Bridge (story 5-6 FIX 2026-05-27 — initially missed). */
   balance: number;
+  /** Story 6-10 — the Bridge institution provider_id (for the bank-logo tier).
+   * Present on every Bridge account row (IBAN or card); null if Bridge omits it. */
+  providerId: string | null;
 }
 
 export interface ProviderTransaction {

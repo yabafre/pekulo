@@ -42,7 +42,13 @@ export interface AccountService {
     userId: string,
     provider: string,
     providerAccountKey: string,
-    input: { label: string; type: Account["type"]; currency: string; cashBalance?: number },
+    input: {
+      label: string;
+      type: Account["type"];
+      currency: string;
+      cashBalance?: number;
+      providerId?: string | null;
+    },
   ): Promise<Account>;
   /**
    * Story 5-6 FIX12 (2026-05-27) — look up only, no auto-create. Used by
@@ -137,6 +143,7 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
           cashBalance: input.cashBalance ?? 0,
           provider,
           providerAccountKey,
+          providerId: input.providerId ?? null,
         });
       } catch (err) {
         const code = (err as { code?: string } | null)?.code;

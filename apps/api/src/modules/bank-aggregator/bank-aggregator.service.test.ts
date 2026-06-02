@@ -58,6 +58,7 @@ function makeStubs() {
         kind: "checking",
         currency: "EUR",
         balance: 1234.56,
+        providerId: "574",
       },
     ],
     listTransactions: async () => ({ transactions: [], latestUpdatedAt: null }),

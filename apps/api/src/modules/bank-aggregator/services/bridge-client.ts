@@ -226,6 +226,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
             kind: r.type === "savings" ? "savings" : r.type === "checking" ? "checking" : "other",
             currency: r.currency_code,
             balance: typeof r.balance === "number" ? r.balance : 0,
+            providerId: r.provider_id != null ? String(r.provider_id) : null,
           }) satisfies ProviderBankAccount,
       );
     },

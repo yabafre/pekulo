@@ -97,6 +97,7 @@ export interface AccountRepository {
     cashBalance: number;
     provider: string;
     providerAccountKey: string;
+    providerId?: string | null;
   }): Promise<Account>;
 }
 
@@ -327,7 +328,16 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
       return row ? rowToAccount(row as unknown as AccountRow) : null;
     },
 
-    async createAuto({ userId, label, type, currency, cashBalance, provider, providerAccountKey }) {
+    async createAuto({
+      userId,
+      label,
+      type,
+      currency,
+      cashBalance,
+      provider,
+      providerAccountKey,
+      providerId,
+    }) {
       const created = await deps.client.account.create({
         data: {
           userId,
@@ -338,6 +348,7 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
           notes: null,
           provider,
           providerAccountKey,
+          providerId: providerId ?? null,
         } as unknown as Parameters<typeof deps.client.account.create>[0]["data"],
       });
       return rowToAccount(created as unknown as AccountRow);
