@@ -28,6 +28,11 @@ export function buildContentSecurityPolicy(opts: SecurityHeaderOptions): string 
   // neither it nor the unpkg react-grab src.
   const scriptExtra = opts.dev ? ["https://unpkg.com", "'unsafe-eval'"] : [];
   const connectExtra = opts.dev ? ["ws:", "https://unpkg.com"] : [];
+  // react-grab's dev overlay loads Geist from Google Fonts (stylesheet on
+  // googleapis, woff2 on gstatic). Allow it in DEV ONLY — production self-hosts
+  // its fonts and must not reach an external font CDN.
+  const styleExtra = opts.dev ? ["https://fonts.googleapis.com"] : [];
+  const fontExtra = opts.dev ? ["https://fonts.gstatic.com"] : [];
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -36,9 +41,9 @@ export function buildContentSecurityPolicy(opts: SecurityHeaderOptions): string 
     "script-src": ["'self'", `'nonce-${opts.nonce}'`, ...scriptExtra],
     // style-src keeps 'unsafe-inline' — Tamagui injects <style> dynamically and
     // cannot carry a nonce; style injection is not script execution (AC-3 scope).
-    "style-src": ["'self'", "'unsafe-inline'"],
+    "style-src": ["'self'", "'unsafe-inline'", ...styleExtra],
     "img-src": ["'self'", "data:", "blob:", "https:"],
-    "font-src": ["'self'", "data:"],
+    "font-src": ["'self'", "data:", ...fontExtra],
     "connect-src": ["'self'", ...supabase, ...connectExtra],
     "frame-ancestors": ["'none'"],
     "base-uri": ["'self'"],

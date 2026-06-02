@@ -55,6 +55,16 @@ describe("buildContentSecurityPolicy", () => {
     expect(prod).not.toContain("'unsafe-eval'");
   });
 
+  test("Google Fonts (react-grab dev overlay) is dev-only", () => {
+    const dev = buildContentSecurityPolicy({ dev: true, nonce: NONCE });
+    expect(dev).toMatch(/style-src[^;]*https:\/\/fonts\.googleapis\.com/);
+    expect(dev).toMatch(/font-src[^;]*https:\/\/fonts\.gstatic\.com/);
+
+    const prod = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
+    expect(prod).not.toContain("fonts.googleapis.com");
+    expect(prod).not.toContain("fonts.gstatic.com");
+  });
+
   // AC-3/AC-4 (verbatim from story 11-7-auth-hardening-httponly-csp:31-32):
   //   script-src is 'self' 'nonce-<per-request>' with no 'unsafe-inline' ...
   //   the unit suite asserts script-src carries no 'unsafe-inline'.
