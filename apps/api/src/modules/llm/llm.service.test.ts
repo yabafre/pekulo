@@ -159,8 +159,8 @@ test("listActivityLog reads outcome rows since ~90 days ago and returns them ver
 
   const service = createLlmService({
     repository,
-    ollamaClient: { complete: async () => ({ raw: "", latencyMs: 0 }) },
-    thirdPartyClient: { complete: async () => ({ raw: "", latencyMs: 0 }) },
+    ollamaClient: { route: "ollama", complete: async () => ({ raw: "", latencyMs: 0 }) },
+    thirdPartyClient: { route: "third_party", complete: async () => ({ raw: "", latencyMs: 0 }) },
     optInReader: { isThirdPartyOptedIn: async () => false },
     generateCallId: () => "c1",
   });
