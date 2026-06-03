@@ -10,6 +10,7 @@ import { pekuloSpacing } from "@pekulo/ui";
 import { CompassEditForm } from "../_compass/_components/compass-edit-form";
 import { CompassHistoryPanel } from "../_compass/_components/compass-history-panel";
 import { LlmOptInToggle } from "../_llm/_components/llm-opt-in-toggle";
+import { LlmActivityLogLink } from "../_llm/_components/llm-activity-log-link";
 
 // Feature code is co-located by mount: accounts → dashboard/_accounts,
 // bank connections → dashboard/_bank (+ the bank/callback route), compass →
@@ -38,6 +39,7 @@ export default function ParametresPage() {
         <CompassEditForm />
         <CompassHistoryPanel />
         <LlmOptInToggle />
+        <LlmActivityLogLink />
       </div>
     </div>
   );
