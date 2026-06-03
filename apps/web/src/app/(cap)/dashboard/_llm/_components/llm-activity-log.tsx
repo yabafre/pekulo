@@ -94,7 +94,12 @@ export function LlmActivityLog() {
                 {entry.latencyMs == null ? "—" : `${entry.latencyMs} ms`}
               </Text>
               <Text color="$colorSecondary" fontSize="$caption">
-                {entry.outcome == null ? "—" : OUTCOME_LABEL[entry.outcome]}
+                {/* `outcome` is a free-form String column (llm.prisma), not a
+                    Prisma enum — a value outside LLM_OUTCOMES would key-miss the
+                    label map and render `undefined`. Unreachable via the real
+                    pipeline (the output schema validates the enum) but guarded
+                    belt-and-suspenders against an out-of-band DB write. */}
+                {entry.outcome == null ? "—" : (OUTCOME_LABEL[entry.outcome] ?? "—")}
               </Text>
               <Text color="$colorTertiary" fontSize="$caption">
                 {dateTimeFmt.format(new Date(entry.occurredAt))}
