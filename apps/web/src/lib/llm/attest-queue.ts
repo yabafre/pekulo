@@ -192,6 +192,9 @@ export function createAttestQueue(deps: AttestQueueDeps): AttestQueue {
       const db = await openAttestDb();
       await pruneOldMetrics(db);
       const records = await db.getAllFromIndex(EVENTS_STORE, "byUser", userId);
+      // oxlint-disable no-await-in-loop -- serial by design: one shared IDB
+      // connection, per-record backoff bookkeeping, and submits must NOT all
+      // fire at once on reconnect (thundering herd — see the jitter note).
       for (const record of records) {
         if (record.id === undefined) continue;
         // Drop-on-age: an event still undeliverable after 7 days is abandoned
@@ -230,6 +233,7 @@ export function createAttestQueue(deps: AttestQueueDeps): AttestQueue {
           });
         }
       }
+      // oxlint-enable no-await-in-loop
       await maybeAlert();
     } finally {
       flushing = false;
@@ -293,12 +297,15 @@ export function createAttestQueue(deps: AttestQueueDeps): AttestQueue {
 
   async function clearForUser(): Promise<void> {
     const db = await openAttestDb();
+    // oxlint-disable no-await-in-loop -- only two stores; serial keeps each
+    // store's purge transaction self-contained.
     for (const store of [EVENTS_STORE, METRICS_STORE] as const) {
       const keys = await db.getAllKeysFromIndex(store, "byUser", userId);
       const tx = db.transaction(store, "readwrite");
       await Promise.all(keys.map((k) => tx.store.delete(k)));
       await tx.done;
     }
+    // oxlint-enable no-await-in-loop
   }
 
   return { enqueue, flush, start, stop, getStats, clearForUser };
