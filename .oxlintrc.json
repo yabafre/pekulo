@@ -108,6 +108,12 @@
         "no-await-in-loop": "off",
         "no-underscore-dangle": "off"
       }
+    },
+    {
+      "files": ["apps/web/**/*.test.{ts,tsx}"],
+      "rules": {
+        "no-await-in-loop": "off"
+      }
     }
   ]
 }
