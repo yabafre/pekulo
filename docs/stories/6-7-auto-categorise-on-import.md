@@ -1,7 +1,7 @@
 # Story: 6-7-auto-categorise-on-import — Auto-apply LLM category on bulk import
 
 **Epic:** Epic 6 — LLM auto-categorisation (transaction-enrichment bucket)
-**Status:** review
+**Status:** done
 **Ticket:** none — assigned at scheduling / `aped-ship` time (per `epics.md`)
 **Branch:** feature/none-6-7-auto-categorise-on-import
 **Covered FRs:** FR-33 (amended bulk path; the interactive confirm/override path stays owned by 6-4)
@@ -945,3 +945,15 @@ web typecheck: exit 0 · test: 167 pass (74 files)
 ```
 
 New/changed coverage: `transactions-autoapply.test.ts` (3) · `transactions-backfill.test.ts` (+2: csv/bridge auto-apply, importCsv pass) · `PekuloActivityRow.a11y.test.tsx` (+1 IA hint) · `ai-transparency-notice.test.tsx` (+1 AC-2 copy) · `transactions-recent-section.envelope.test.tsx` (+1 auto-applied row + notice).
+
+## Review Record
+
+- **Verdict:** done (2026-06-03).
+- **Verification:** full cross-workspace sweep green — validators typecheck; api typecheck + prisma:check + 799 tests; ui 213 + headers/CSP 9; web typecheck + full suite (168). All 6 ACs trace to a citing test (AC-1 auto-apply bulk-origin, AC-2 notice copy + once-gated mount, AC-3 manual stays pending, AC-4 abstention/transport stop, AC-5 `category='autre'` guard, AC-6 `isAiApplied`/`aiApplied` hint).
+- **Migration + data:** the `20260602160000_add_transaction_source` migration was applied to the live Supabase DB; a one-off ops pass auto-accepted the 341 pre-existing bridge pending suggestions (`category = suggestedCategory`); 19 manual-origin rows correctly left pending (AC-3).
+- **Co-shipped on this branch (found during an aped-debug of a dev-CPU symptom on `/dashboard/transactions`, NONE touching 6-7's ACs — flagged for ship-time attribution like the 6-9/6-10 precedent):**
+  - `fix(web)` — React Grab loaded from its pinned CDN global build instead of a Turbopack-bundled `import` (the bundled path routed react-grab + its source-maps through the dev server → ~7-core dev CPU on the heaviest route; verified back to 0%). The 6-7 auto-apply made the route heavier, which surfaced the latent issue.
+  - `perf(transactions)` — month-scoped reads gated on the resolved month (`enabled: month != null`) to kill a load-time double-fetch, + regression test.
+  - `fix(ui)` — `PekuloPagination` `borderRadius "$3" → "$md"` (invalid radius token).
+  - Lesson recorded (`docs/lessons.md`, 2026-06-03): the mount-counter / `sample` falsification chain + load whole-tree dev inspectors as a CDN global, never a bundler import.
+- **Visual verification:** react-grab was offline during dev (waived then); it is now functional via the CDN fix — the `· IA` grayscale hint + the once-gated notice can be inspected on `/dashboard/transactions`. Static design-law pass was clean (grayscale chrome, `aria-hidden`, `role="note"`, axe clean).
