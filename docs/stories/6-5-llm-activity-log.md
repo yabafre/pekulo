@@ -1,7 +1,7 @@
 # Story: 6-5-llm-activity-log — 90-day LLM activity log in settings
 
 **Epic:** Epic 6 — LLM auto-categorisation
-**Status:** review
+**Status:** done
 **Ticket:** [#36](https://github.com/yabafre/pekulo/issues/36)
 **Branch:** feature/36-6-5-llm-activity-log
 **Commit prefix:** `feat(#36): …` · close with `Closes #36` in the PR body
@@ -1105,3 +1105,54 @@ RED witnesses captured this session: T3 (`db.llmCallLog.findMany is not a
 function`), T5 (90→9-day floor → `ageDays ≈ 9` fails `>89.9`), T8 (empty
 `items` → `items[0]` undefined), T13 (broken `ollama` label → `findByText("Ollama")`
 not found).
+
+## Review Record
+
+**Date:** 2026-06-03
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+**Override:** Spec AC gap accepted — reason: "AC gaps were test-coverage only on code the Code + Edge auditors verified correct; fixed the assertions in-place in-review rather than bouncing the whole story to dev."
+
+Code + Edge auditors APPROVED on the first pass (PII drop airtight across repository→contract→action→DOM; per-user JWT scoping sound; 401-before-read proven; 0 hallucinated identifiers / 30 verified). Spec returned CHANGES_REQUESTED on AC test coverage; all findings fixed in-review and re-verified APPROVED by both Spec and Code.
+
+### Findings
+
+#### Resolved
+- [MAJOR] AC-6 — grayscale labels / R13 hydration guard / `aria-live` region were present in code but asserted by no test [llm-activity-log.tsx:42,51-67,90-100]
+  - Source: Spec
+  - Resolution: `ac0c7e0` — added a loading test (`role="status"` + `aria-live="polite"` + no list mounts while loading = R13 gate) and a grayscale test (no `_col-(danger|success|accent)` atomic class on any label; route label carries `_col-color`).
+- [MINOR] AC-1 — order asserted on `createdAt` while the UI displays `occurredAt`; no DOM render-order test [llm.repository.ts:142 / llm-activity-log.tsx:100]
+  - Source: Spec + Edge & Hallucination (converged)
+  - Resolution: `ac0c7e0` + `aa37d0a` — added a 2-row DOM render-order test (component preserves server order, no client re-sort) and froze the `occurredAt == createdAt` invariant in `listRecentOutcomesByUser` (sole writer never sets `occurredAt`; switch `orderBy` if that ever diverges).
+- [MINOR] AC-1 — the "≥200 calls" / page-2 pagination scenario was untested (coverage stopped at 12 rows → page 1) [llm-activity-log.test.tsx]
+  - Source: Spec
+  - Resolution: `ac0c7e0` — 200-item test asserting 20 pages (a "Page 20" control) + a page-2 click proving the second 10-row slice (latency 10..19 ms).
+- [MINOR] AC-5 — "no read reaches the service" was true structurally but not asserted (no spy) [llm.integration.test.ts]
+  - Source: Spec
+  - Resolution: `aa37d0a` — module-scope `activityLogReads` counter; the 401 test asserts a zero-read delta, proving `requireUserId` short-circuits before any `llm_call_log` read.
+- [MINOR] AC-3 — the >90-day exclusion behaviour was never exercised (the fake `findMany` ignores `gte`) [llm.repository.test.ts]
+  - Source: Spec
+  - Resolution: `aa37d0a` — documented the `createdAt >= since` predicate as the unit-scope exclusion contract; real >90-day row exclusion is Prisma's, covered by the DB-backed `db:rls-audit` (no Postgres test harness in-repo). Accepted resolution.
+- [NIT] Doc-sync — the bounded-200 activity read was absent from the architecture D2 pagination-exception ledger [docs/architecture.md:132]
+  - Source: Code
+  - Resolution: `a064fdb` — recorded `llm_call_log`'s activity read as a third, distinct D2 deviation (keyset ordering, 200-row cap, no `nextCursor`, client-paginated).
+- [NIT] `OUTCOME_LABEL[entry.outcome]` is an object-index on a free-form `String` column → could render `undefined` on an out-of-band DB write [llm-activity-log.tsx:96]
+  - Source: Edge & Hallucination
+  - Resolution: `ac0c7e0` — belt-and-suspenders `?? "—"` fallback (unreachable via the validated pipeline; guards a manual-SQL / bad-migration write).
+
+#### Dismissed
+- [NIT] `NINETY_DAYS_MS` is a fixed-ms window (±1h across a DST transition) rather than a calendar 90 days [llm.service.ts:113]
+  - Source: Edge & Hallucination
+  - Rationale: AC-3 specifies "createdAt >= now − 90 days", which a fixed-ms window satisfies exactly; the ±1h DST drift is immaterial to a 90-day audit floor and the value runs server-side only (no hydration concern). Intended behaviour.
+
+#### Unresolved
+- none
+
+### Verification
+- Test command: `bun --filter='@pekulo/api' run test` · `bun --filter='@pekulo/web' run test llm-activity-log.test.tsx` · `bun --filter='@pekulo/{validators,contracts,api,web}' run typecheck`
+- Test output (final pass): api **805 pass, 0 fail** (1948 expect() calls, 95 files); web component **8 passed**; all 4 package typechecks exit 0.
+- Visual verification: deferred — `react-grab-mcp` unavailable at 2026-06-03T16:00Z (offline for 6-3/6-4/6-8/6-9/6-10 too); static design-law pass clean (TR-strict grayscale, `aria-live` loading region, R13 guard, `role="list"`/`"listitem"`), now also backed by the AC-6 unit assertions added in `ac0c7e0`.
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/36#issuecomment-4613413145
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/121 (base `main` = `umbrella_branch`; marked ready for review)
