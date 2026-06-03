@@ -19,7 +19,7 @@ const PaginationLink = styled.button({
   minWidth: 32,
   height: 32,
   paddingHorizontal: "$2",
-  borderRadius: "$3",
+  borderRadius: "$md",
   borderWidth: 0,
   backgroundColor: "transparent",
   flexDirection: "row",
