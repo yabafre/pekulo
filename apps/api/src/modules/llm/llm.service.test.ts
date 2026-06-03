@@ -19,6 +19,7 @@ function makeService(overrides?: { optedIn?: boolean }) {
     getAiNoticeSeen: async () => false,
     markAiNoticeSeen: async () => {},
     listRecentByUser: async () => [],
+    listRecentOutcomesByUser: async () => [],
   };
   const ollamaClient: LlmProvider = {
     route: "ollama",
