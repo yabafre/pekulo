@@ -137,6 +137,12 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
       }));
     },
     async listRecentOutcomesByUser(userId, since) {
+      // Keyset order is by createdAt (index-backed: llm_call_log_user_created_idx);
+      // the DTO/UI displays occurredAt (AC-1). The single writer (createCallEvent)
+      // never sets occurredAt, so both columns default to the same INSERT clock →
+      // displayed order == sort order. INVARIANT: if a future writer ever stamps
+      // occurredAt ≠ createdAt, switch this orderBy to occurredAt (or surface
+      // createdAt in the DTO) so "most-recent-first" still holds on the displayed field.
       const rows = await db.llmCallLog.findMany({
         where: { userId, phase: "outcome", createdAt: { gte: since } },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],

@@ -111,6 +111,9 @@ test("listRecentOutcomesByUser filters to phase outcome + the since window, keys
     take: number;
   };
   expect(arg.where).toMatchObject({ userId: "u1", phase: "outcome" });
+  // AC-3: the `createdAt >= since` predicate IS the 90-day exclusion contract at
+  // unit scope. Actual >90-day row exclusion is Prisma's to enforce (no Postgres
+  // test-DB harness here — see file header; covered by the DB-backed db:rls-audit).
   expect(arg.where.createdAt.gte).toBe(since);
   expect(arg.orderBy).toEqual([{ createdAt: "desc" }, { id: "desc" }]);
   expect(arg.take).toBe(200);
