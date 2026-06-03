@@ -774,3 +774,50 @@ $ bun --filter='@pekulo/web' run test src/lib/llm/attest-queue.test.ts
 ```
 
 Full gate (T5): `typecheck` exit 0 · `lint` exit 0 (0 errors; 0 warnings on the new files) · full `@pekulo/web` suite 77 files / 183 tests passed (no regressions).
+
+> _aped-review (2026-06-03) later took the suite to **12 tests / 188 full-suite** and fixed a real lint warning — see the Review Record below._
+
+## Review Record
+
+**Date:** 2026-06-03
+**Auditors:** Spec, Code, Edge & Hallucination (no Aria — pure browser-lib primitive, zero UI)
+**Verdict:** done
+**Override:** Spec AC gap accepted — reason: "AC-4 re-arm + AC-5 idempotence were missing tests over already-correct code (Code + Edge APPROVED, behaviour verified by executed probing); fixed in-review rather than a full dev round-trip."
+
+First pass: **Code APPROVED · Edge APPROVED · Spec CHANGES_REQUESTED** (2 untested AC sub-clauses). Every actionable finding was fixed in-review (commit `df2c0ad`) and re-verified **RESOLVED** by the originating auditor (all three APPROVED on re-pass); the lone NIT is dismissed with rationale.
+
+### Findings
+
+#### Resolved
+- [MAJOR] AC-5 "start()/stop() … idempotently" had code but no test [attest-queue.ts:start/stop]
+  - Source: Spec
+  - Resolution: `df2c0ad` — test spies `window.add/removeEventListener` (filtered to `"online"`): double-`start()` → 1 listener, double-`stop()` → 1 removal [attest-queue.test.ts:226].
+- [MAJOR] AC-4 "re-armed only after the rate falls back ≤ 1 %" had code but no test [attest-queue.ts maybeAlert]
+  - Source: Spec
+  - Resolution: `df2c0ad` — test fires alert #1, drives the in-window rate to 1/201 (re-arm), ages the window so 3 fresh drops re-cross → asserts a 2nd `onAlert` [attest-queue.test.ts:188].
+- [MINOR] AC-1 `enqueued` metric recorded but never asserted (and unread by getStats)
+  - Source: Spec (Code echoed the write-only smell)
+  - Resolution: `df2c0ad` — test reads the metrics store for a `type:"enqueued"` row [attest-queue.test.ts:175]. Metric kept (AC-1 requires it; reserved for fleet enqueued-vs-terminal accounting at 10-2).
+- [MINOR] Dev Record "0 warnings" was false — lint emitted `no-await-in-loop` at the 99-event test loop [attest-queue.test.ts:138]
+  - Source: Spec + Code (converged); Lead's fresh `lint` confirmed `Found 1 warning`
+  - Resolution: `df2c0ad` — added an `apps/web/**/*.test.{ts,tsx}` oxlint override mirroring the existing `apps/api` one; lint is now genuinely `0 warnings / 0 errors`.
+- [MINOR] event delete + terminal metric were two separate IDB transactions — a crash between them mis-counts the W3 denominator
+  - Source: Code
+  - Resolution: `df2c0ad` — `evictWithMetric` commits both in one `db.transaction([EVENTS_STORE, METRICS_STORE])`.
+- [MINOR] two queue instances for one userId could double-submit (instance-local flush guard)
+  - Source: Edge
+  - Resolution: `df2c0ad` — flush guard moved to a module-level `Map` keyed by userId; cross-instance test asserts `maxInFlight===1` (different userIds still drain concurrently — verified).
+- [MINOR] a versionchange / deleteDB racing an in-flight flush threw `InvalidStateError` → unhandled rejection via the fire-and-forget `online` handler
+  - Source: Code + Edge (converged)
+  - Resolution: `df2c0ad` — `isConnectionClosing` catch → `closeAttestDb()` + `break` + `endedOnClose` (also skips the post-break `maybeAlert` reopen, closing the narrower residual Edge re-flagged on verification); test proves the drain aborts cleanly and the uncommitted row survives.
+
+#### Dismissed
+- [NIT] AC-3 default alert fires `console.warn` on a tiny denominator (`dropRate=1` with 1 terminal event); no minimum-sample floor
+  - Source: Edge
+  - Rationale: behaviourally correct — W3 (ADR-0008) defines the tripwire as drop rate **> 1 %** over the window, with no sample floor; a 100 % drop rate *should* alert. A floor would be a spec deviation. The default `console.warn` is the dormant-V1(a) placeholder sink (nothing calls `enqueue()` in prod); the real injected sink lands with the 10-2 producer, where a configurable floor can be added if fleet noise warrants it.
+
+### Verification
+- Test command: `bun --filter='@pekulo/web' run test src/lib/llm/attest-queue.test.ts`
+- Test output (final pass): `Test Files  1 passed (1)` · `Tests  12 passed (12)` · exit 0. Full `@pekulo/web` suite: 77 files / **188** tests passed (183 + 5 new, no regressions). `typecheck` exit 0 · `lint` `Found 0 warnings and 0 errors`.
+- Scope audit (manual — `git-audit.sh` is broken: greps `### File List`, stories use `##`): `git diff main...HEAD` = the 6 expected files only, 0 out-of-scope.
+- Visual verification: N/A — the primitive ships zero UI (no Tamagui, no preview app); Aria not dispatched.
