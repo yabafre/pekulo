@@ -22,6 +22,11 @@ export interface LlmRepository {
   /** Story 6-4 (DR-12) — stamp ai_notice_seen_at = now (P2002-safe upsert). */
   markAiNoticeSeen(userId: string): Promise<void>;
   listRecentByUser(userId: string, since: Date): Promise<LlmCallLogEntry[]>;
+  /** Story 6-5 (FR-36) — the 90-day activity log lists COMPLETED calls only.
+   * Same keyset window + 200-row cap as listRecentByUser, narrowed to
+   * phase "outcome" so every row carries route + latencyMs + outcome (intent
+   * rows have null latency/outcome). NEVER returns the prompt body (NFR-26). */
+  listRecentOutcomesByUser(userId: string, since: Date): Promise<LlmCallLogEntry[]>;
 }
 
 export function createLlmRepository(deps: { prismaService: PrismaService }): LlmRepository {
@@ -118,6 +123,28 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
     async listRecentByUser(userId, since) {
       const rows = await db.llmCallLog.findMany({
         where: { userId, createdAt: { gte: since } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 200,
+      });
+      return rows.map((r) => ({
+        id: r.id as LlmCallLogEntry["id"],
+        callId: r.callId,
+        phase: r.phase as "intent" | "outcome",
+        route: r.route,
+        latencyMs: r.latencyMs,
+        outcome: (r.outcome as LlmCallLogEntry["outcome"]) ?? null,
+        occurredAt: r.occurredAt.toISOString(),
+      }));
+    },
+    async listRecentOutcomesByUser(userId, since) {
+      // Keyset order is by createdAt (index-backed: llm_call_log_user_created_idx);
+      // the DTO/UI displays occurredAt (AC-1). The single writer (createCallEvent)
+      // never sets occurredAt, so both columns default to the same INSERT clock →
+      // displayed order == sort order. INVARIANT: if a future writer ever stamps
+      // occurredAt ≠ createdAt, switch this orderBy to occurredAt (or surface
+      // createdAt in the DTO) so "most-recent-first" still holds on the displayed field.
+      const rows = await db.llmCallLog.findMany({
+        where: { userId, phase: "outcome", createdAt: { gte: since } },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 200,
       });

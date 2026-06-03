@@ -35,6 +35,7 @@ function makeService() {
     recordLlmCallPair: async (userId, pair) => {
       for (const event of pair) events.push({ userId, event });
     },
+    listActivityLog: async () => [],
   };
   return { service, events };
 }

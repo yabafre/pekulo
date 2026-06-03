@@ -19,6 +19,7 @@ function makeService(overrides?: { optedIn?: boolean }) {
     getAiNoticeSeen: async () => false,
     markAiNoticeSeen: async () => {},
     listRecentByUser: async () => [],
+    listRecentOutcomesByUser: async () => [],
   };
   const ollamaClient: LlmProvider = {
     route: "ollama",
@@ -128,4 +129,45 @@ test("recordLlmCall rejects an unknown route", async () => {
       labelHash: "h",
     }),
   ).rejects.toThrow(/unknown route/);
+});
+
+test("listActivityLog reads outcome rows since ~90 days ago and returns them verbatim", async () => {
+  let capturedSince: Date | undefined;
+  const entry = {
+    id: "llm_1" as never,
+    callId: "c1",
+    phase: "outcome" as const,
+    route: "ollama" as const,
+    latencyMs: 240,
+    outcome: "success" as const,
+    occurredAt: "2026-06-01T08:00:00.000Z",
+  };
+  const repository = {
+    route: async () => undefined,
+    recordCallEvent: async () => undefined,
+    recordCallEvents: async () => undefined,
+    isThirdPartyOptedIn: async () => false,
+    setThirdPartyOptIn: async () => false,
+    getAiNoticeSeen: async () => false,
+    markAiNoticeSeen: async () => undefined,
+    listRecentByUser: async () => [],
+    listRecentOutcomesByUser: async (_userId: string, since: Date) => {
+      capturedSince = since;
+      return [entry];
+    },
+  } as unknown as Parameters<typeof createLlmService>[0]["repository"];
+
+  const service = createLlmService({
+    repository,
+    ollamaClient: { route: "ollama", complete: async () => ({ raw: "", latencyMs: 0 }) },
+    thirdPartyClient: { route: "third_party", complete: async () => ({ raw: "", latencyMs: 0 }) },
+    optInReader: { isThirdPartyOptedIn: async () => false },
+    generateCallId: () => "c1",
+  });
+
+  const entries = await service.listActivityLog("u1");
+  expect(entries).toEqual([entry]);
+  const ageDays = (Date.now() - capturedSince!.getTime()) / 86_400_000;
+  expect(ageDays).toBeGreaterThan(89.9);
+  expect(ageDays).toBeLessThan(90.1);
 });

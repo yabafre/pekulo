@@ -4,9 +4,11 @@ import { defineAction } from "@zapaction/core";
 import { z } from "@pekulo/zod";
 import {
   aiNoticeStateSchema,
+  llmActivityLogSchema,
   llmOptInSchema,
   updateLlmOptInSchema,
   type AiNoticeState,
+  type LlmActivityLog,
   type LlmOptInState,
   type UpdateLlmOptInInput,
 } from "@pekulo/validators";
@@ -63,5 +65,18 @@ export const markAiNotice = defineAction<void, AiNoticeState, ActionContext>({
   handler: async () => {
     await ensureRequestContext();
     return llmClient.markAiNotice();
+  },
+});
+
+// Story 6-5 (FR-36) — 90-day LLM activity log read. KEEPS `output:` (no typed
+// error branch to surface — the read cannot 404). No tags: read-only, nothing
+// on the web tier writes the audit log, so there is no invalidation edge.
+export const getLlmActivityLog = defineAction<void, LlmActivityLog, ActionContext>({
+  name: "getLlmActivityLog",
+  input: z.void(),
+  output: llmActivityLogSchema,
+  handler: async () => {
+    await ensureRequestContext();
+    return llmClient.getActivityLog();
   },
 });

@@ -103,3 +103,28 @@ export type UpdateLlmOptInInput = z.infer<typeof updateLlmOptInSchema>;
 // Story 6-4 (DR-12 / AC-3) — AI transparency notice "seen" state.
 export const aiNoticeStateSchema = z.object({ seen: z.boolean() });
 export type AiNoticeState = z.infer<typeof aiNoticeStateSchema>;
+
+// Story 6-5 (FR-36) — 90-day LLM activity-log read DTO. Mirrors
+// @pekulo/types#LlmCallLogEntry (the type 6-1 declared for this story). One
+// entry per COMPLETED call (phase "outcome"): route + latency + outcome +
+// timestamp. NEVER prompt content (NFR-26 / AC-2) — id/callId are opaque, no
+// label/amount/merchant ever enters the audit row, so none can leak here.
+// latencyMs/outcome stay nullable to match the DTO type; the service filters to
+// outcome rows, so both are non-null at runtime. Reuses llmRouteSchema /
+// llmOutcomeSchema (the iso mirrors already in this file).
+export const llmCallLogEntrySchema = z.object({
+  id: z.string().min(1),
+  callId: z.string().min(1),
+  phase: z.enum(["intent", "outcome"]),
+  route: llmRouteSchema,
+  latencyMs: z.number().int().nonnegative().nullable(),
+  outcome: llmOutcomeSchema.nullable(),
+  occurredAt: z.string(),
+});
+
+export const llmActivityLogSchema = z.object({
+  items: z.array(llmCallLogEntrySchema),
+});
+
+export type LlmCallLogEntryDto = z.infer<typeof llmCallLogEntrySchema>;
+export type LlmActivityLog = z.infer<typeof llmActivityLogSchema>;

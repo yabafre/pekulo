@@ -43,10 +43,15 @@ export const accountsTags = createFeatureTags("accounts", {
 });
 
 // Story 6-3 — third-party LLM opt-in (FR-34). Single `optIn` read; the toggle
-// mutation invalidates it via the registry edge below.
+// mutation invalidates it via the registry edge below. Story 6-5 (FR-36) adds
+// `activityLog` — a read-only audit query with NO write path on the web tier
+// (categorisation is server-side fire-and-forget), so it needs a key but NO
+// tag and NO setTagRegistry edge: it refreshes on staleTime, never on a
+// client mutation.
 export const llmKeys = createFeatureKeys("llm", {
   optIn: () => ["optIn"] as const,
   aiNotice: () => ["aiNotice"] as const,
+  activityLog: () => ["activityLog"] as const,
 });
 export const llmTags = createFeatureTags("llm", {
   optIn: () => ["optIn"] as const,

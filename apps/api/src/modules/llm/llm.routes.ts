@@ -47,5 +47,11 @@ export function createLlmRouter(deps: { service: LlmService }) {
       await deps.service.markAiNoticeSeen(context.userId);
       return { seen: true };
     }),
+    // Story 6-5 (FR-36) — 90-day activity log. requireUserId throws UNAUTHORIZED
+    // (→ 401 < 100 ms, NFR-9 / AC-5) before any read when context is missing.
+    getActivityLog: impl.getActivityLog.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return { items: await deps.service.listActivityLog(context.userId) };
+    }),
   });
 }

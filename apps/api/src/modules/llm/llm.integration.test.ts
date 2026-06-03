@@ -31,6 +31,11 @@ const USER_A = "55555555-5555-4555-8555-555555555555";
 const USER_B = "66666666-6666-4666-8666-666666666666";
 const PORT_BASE = 14360;
 
+// AC-5 probe — counts every llm_call_log read so a test can prove the auth guard
+// short-circuits BEFORE the repository on the unauthenticated path (no read
+// reaches the service). Module-scope because makeFakeDb is constructed once.
+let activityLogReads = 0;
+
 async function signFor(sub: string): Promise<string> {
   return new SignJWT({ email: null })
     .setProtectedHeader({ alg: "HS256" })
@@ -49,7 +54,28 @@ function makeFakeDb(): PrismaService {
   const client = {
     llmCallLog: {
       create: async () => undefined,
-      findMany: async () => [],
+      // Story 6-5 — the activity-log read filters phase:"outcome". Return one
+      // completed call so the 200-branch asserts the rendered shape; any other
+      // (intent) query stays empty.
+      findMany: async ({ where }: { where: { userId: string; phase?: string } }) => {
+        activityLogReads += 1;
+        return where.phase === "outcome"
+          ? [
+              {
+                id: "llm_x1",
+                callId: "c1",
+                userId: where.userId,
+                phase: "outcome",
+                route: "ollama",
+                labelHash: "h",
+                latencyMs: 240,
+                outcome: "success",
+                occurredAt: new Date("2026-06-01T08:00:00.000Z"),
+                createdAt: new Date("2026-06-01T08:00:00.000Z"),
+              },
+            ]
+          : [];
+      },
     },
     llmOptIn: {
       findUnique: async ({ where }: { where: { userId: string } }) =>
@@ -205,5 +231,55 @@ describe("llm opt-in HTTP boundary (AC-5)", () => {
       body: JSON.stringify({ json: {} }),
     });
     expect(res.status).toBe(401);
+  });
+});
+
+describe("llm activity log HTTP boundary (story 6-5, AC-1/AC-2/AC-5)", () => {
+  test("getActivityLog with a valid JWT returns 200 + outcome rows (route+latency+outcome, AC-1)", async () => {
+    const token = await signFor(USER_A);
+    const res = await fetch(`${baseUrl}/rpc/v1/llm/getActivityLog`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: { items: Array<Record<string, unknown>> } };
+    expect(Array.isArray(body.json.items)).toBe(true);
+    expect(body.json.items[0]).toMatchObject({
+      route: "ollama",
+      latencyMs: 240,
+      outcome: "success",
+    });
+  });
+
+  test("getActivityLog response exposes NO prompt content (AC-2 / NFR-26)", async () => {
+    const token = await signFor(USER_A);
+    const res = await fetch(`${baseUrl}/rpc/v1/llm/getActivityLog`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    const raw = await res.text();
+    for (const banned of ['"label"', '"labelHash"', '"amount"', '"merchant"', '"prompt"']) {
+      expect(raw).not.toContain(banned);
+    }
+  });
+
+  test("getActivityLog without JWT returns 401 < 100 ms and no read reaches the service (NFR-9 / AC-5)", async () => {
+    const readsBefore = activityLogReads;
+    const t0 = performance.now();
+    const res = await fetch(`${baseUrl}/rpc/v1/llm/getActivityLog`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ json: {} }),
+    });
+    const elapsed = performance.now() - t0;
+    expect(res.status).toBe(401);
+    expect(elapsed).toBeLessThan(100);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("UNAUTHORIZED");
+    // AC-5 second clause: requireUserId throws before listActivityLog, so the
+    // unauthenticated request triggers ZERO llm_call_log reads.
+    expect(activityLogReads).toBe(readsBefore);
   });
 });

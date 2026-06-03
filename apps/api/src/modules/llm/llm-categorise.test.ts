@@ -33,6 +33,7 @@ function makeService(
     getAiNoticeSeen: async () => false,
     markAiNoticeSeen: async () => {},
     listRecentByUser: async () => [],
+    listRecentOutcomesByUser: async () => [],
   };
   const ollamaClient: LlmProvider = {
     route: "ollama",

@@ -10,6 +10,7 @@
 import type {
   ClientCapabilities,
   LlmCallEvent,
+  LlmCallLogEntry,
   LlmCategorisation,
   LlmPromptEnvelope,
   LlmRoute,
@@ -69,6 +70,12 @@ export interface LlmService {
    * events are validated and persisted in one transaction so a crash can never
    * leave an orphan intent row. */
   recordLlmCallPair(userId: string, events: [LlmCallEvent, LlmCallEvent]): Promise<void>;
+  /** Story 6-5 (FR-36) — the 90-day LLM activity log. Resolves the rolling
+   * 90-day floor and delegates to the audit repository's outcome-only reader.
+   * No purge job exists, so this `since` filter is what bounds FR-36 to 90 days
+   * (NFR-26 retention is enforced at read time here). NEVER returns prompt
+   * content — the DTO carries route/latency/outcome/timestamp only. */
+  listActivityLog(userId: string): Promise<LlmCallLogEntry[]>;
 }
 
 const VALID_ROUTES: ReadonlySet<LlmRoute> = new Set<LlmRoute>([
@@ -99,6 +106,14 @@ export function createLlmService(deps: {
   }
   async function markAiNotice(userId: string): Promise<void> {
     return deps.repository.markAiNoticeSeen(userId);
+  }
+
+  // Story 6-5 (FR-36). 90 days in ms; `new Date()` is server-side only (no
+  // hydration concern — this runs in the Elysia handler, never the client).
+  const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+  async function listActivity(userId: string): Promise<LlmCallLogEntry[]> {
+    const since = new Date(Date.now() - NINETY_DAYS_MS);
+    return deps.repository.listRecentOutcomesByUser(userId, since);
   }
 
   async function record(userId: string, event: LlmCallEvent): Promise<void> {
@@ -290,5 +305,6 @@ export function createLlmService(deps: {
     markAiNoticeSeen: markAiNotice,
     recordLlmCall: record,
     recordLlmCallPair: recordPair,
+    listActivityLog: listActivity,
   };
 }
