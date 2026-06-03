@@ -44,6 +44,12 @@ vi.mock("nuqs", () => ({
   parseAsInteger: { withDefault: () => null },
   useQueryState: () => [1, () => {}],
 }));
+vi.mock("../_hooks/use-pending-suggestions", () => ({
+  usePendingSuggestions: () => ({ data: { items: [], totalCount: 0, page: 1, pageSize: 10 } }),
+}));
+vi.mock("../../_llm/_components/ai-transparency-notice", () => ({
+  AiTransparencyNotice: () => <span>__ai_notice__</span>,
+}));
 
 import { TransactionsRecentSection } from "./transactions-recent-section";
 
@@ -103,5 +109,29 @@ describe("TransactionsRecentSection envelope (AC-13)", () => {
     );
 
     await findByText(/boom/);
+  });
+
+  test("6-7 — auto-applied row shows the IA hint + mounts the notice when no pending", async () => {
+    const autoApplied: Transaction = {
+      ...fixtureTx,
+      id: "tx_ccccccccccccccccccccc",
+      label: "Spotify",
+      category: "abonnements",
+      suggestedCategory: "abonnements",
+      suggestedConfidence: 0.81,
+      suggestedRoute: "ollama",
+    };
+    listTransactionsMock.mockResolvedValueOnce({ items: [autoApplied], nextCursor: null });
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { findByText } = renderWithTamagui(
+      <QueryClientProvider client={qc}>
+        <TransactionsRecentSection />
+      </QueryClientProvider>,
+    );
+    await findByText(/Spotify/);
+    // T5 renders the literal "IA" provenance hint for an auto-applied row.
+    await findByText("IA");
+    // The notice mounts (sentinel) — auto-applied row present AND no pending.
+    await findByText("__ai_notice__");
   });
 });

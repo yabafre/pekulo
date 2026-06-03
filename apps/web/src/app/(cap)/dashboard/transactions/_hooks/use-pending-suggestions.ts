@@ -26,12 +26,17 @@ export function armSuggestionPoll(): void {
 // ext — `month` ("YYYY-MM") scopes the pending list + the "À confirmer" count to
 // the active month; each (page, month) caches independently under
 // transactionsKeys.pending(page, month). Absent = the unscoped backlog.
-export function usePendingSuggestions(page = 1, pageSize = 10, month?: string) {
+// `enabled` (default true) lets month-scoped callers hold the fetch until the
+// active month resolves — without it the pending list fires once unscoped
+// (`{page,pageSize}`) then re-fires scoped (`{page,pageSize,month}`): the
+// load-time double-fetch on the transactions page (aped-debug 2026-06-03).
+export function usePendingSuggestions(page = 1, pageSize = 10, month?: string, enabled = true) {
   return useActionQuery(listPendingSuggestions, {
     input: month ? { page, pageSize, month } : { page, pageSize },
     queryKey: transactionsKeys.pending(page, month),
     readPolicy: "read-only",
     staleTime: 30_000,
+    enabled,
     // RQ re-evaluates this after every fetch → the poll self-terminates once the
     // window elapses (returns false). No re-render needed to stop it.
     refetchInterval: () => (Date.now() < pollUntil ? POLL_INTERVAL_MS : false),

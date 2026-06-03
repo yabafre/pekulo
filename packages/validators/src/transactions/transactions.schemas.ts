@@ -254,6 +254,19 @@ void suggestableSubsetGuard;
 export const suggestableTransactionCategorySchema = z.enum(SUGGESTABLE_TRANSACTION_CATEGORIES);
 export type SuggestableTransactionCategory = z.infer<typeof suggestableTransactionCategorySchema>;
 
+// ─── Transaction source (story 6-7, FR-33 amended) ───────────────────────
+// Where a transaction was created — drives the épic-6 categorisation policy:
+// 'manual' rows keep the suggestion→confirm flow (6-4); 'csv'/'bridge' (bulk
+// import) rows get the LLM suggestion APPLIED directly as the final category
+// (no pending state). SERVER-INTERNAL — deliberately NOT part of the public
+// Transaction DTO (the web "· IA" provenance hint derives from
+// category === suggestedCategory instead). Plain string column, NO DB CHECK
+// (lesson 2026-05-27 — the value universe is enumerated here + validated in
+// the app layer, mirroring the free-String `category`).
+export const TRANSACTION_SOURCES = ["manual", "csv", "bridge"] as const;
+export const transactionSourceSchema = z.enum(TRANSACTION_SOURCES);
+export type TransactionSource = z.infer<typeof transactionSourceSchema>;
+
 export const confirmCategorisationInputSchema = z.object({
   id: z.string().regex(TRANSACTION_ID_REGEX, "id invalide"),
   category: suggestableTransactionCategorySchema,
