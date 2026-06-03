@@ -171,4 +171,119 @@ describe("attest-queue (story 6-6)", () => {
     expect(await db.getAllFromIndex(EVENTS_STORE, "byUser", USER)).toHaveLength(0);
     expect(await db.getAllFromIndex(METRICS_STORE, "byUser", USER)).toHaveLength(0);
   });
+
+  test("AC-1 — enqueue records an `enqueued` metric", async () => {
+    const c = clock(1_000_000);
+    const q = createAttestQueue({
+      userId: USER,
+      submit: vi.fn(async (_e: AttestEvent): Promise<{ ok: boolean }> => ({ ok: true })),
+      now: c.now,
+    });
+    await q.enqueue(event());
+    const db = await openAttestDb();
+    const metrics = await db.getAllFromIndex(METRICS_STORE, "byUser", USER);
+    expect(metrics.filter((m) => m.type === "enqueued")).toHaveLength(1);
+  });
+
+  test("AC-4 — re-arms after the rate falls back ≤ 1 % and fires again on the next crossing", async () => {
+    const c = clock(1_000_000);
+    const onAlert = vi.fn();
+    let deliver = false;
+    const submit = vi.fn(async (_e: AttestEvent): Promise<{ ok: boolean }> => ({ ok: deliver }));
+    const q = createAttestQueue({
+      userId: USER,
+      submit,
+      now: c.now,
+      onAlert,
+      backoff: { jitter: false },
+    });
+
+    // (1) one event ages out → 1 dropped / 0 flushed = 100 % > 1 % → alert #1.
+    await q.enqueue(event({ callId: "d1" }));
+    c.advance(SEVEN_DAYS_MS + 1);
+    await q.flush();
+    expect(onAlert).toHaveBeenCalledTimes(1);
+
+    // (2) 200 clean deliveries pull the in-window rate to 1/201 ≈ 0.5 % ≤ 1 % → re-arm.
+    deliver = true;
+    for (let i = 0; i < 200; i += 1) {
+      await q.enqueue(event({ callId: `ok_${i}` }));
+    }
+    await q.flush();
+    expect(onAlert).toHaveBeenCalledTimes(1); // fell back under threshold — no new alert
+
+    // (3) advance past the window so (2)'s flushes age out of it, then 3 fresh
+    // events age out → 3 dropped / 0 in-window flushed = 100 % > 1 % → alert #2.
+    deliver = false;
+    for (let i = 0; i < 3; i += 1) {
+      await q.enqueue(event({ callId: `d2_${i}` }));
+    }
+    c.advance(SEVEN_DAYS_MS + 1);
+    await q.flush();
+    expect(onAlert).toHaveBeenCalledTimes(2);
+  });
+
+  test("AC-5 — start()/stop() add/remove the `online` listener idempotently", async () => {
+    const c = clock(1_000_000);
+    const addSpy = vi.spyOn(window, "addEventListener");
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+    const submit = vi.fn(async (_e: AttestEvent): Promise<{ ok: boolean }> => ({ ok: true }));
+    const q = createAttestQueue({ userId: USER, submit, now: c.now });
+    await q.enqueue(event());
+
+    q.start();
+    q.start(); // idempotent — must NOT register a second `online` listener
+    const onlineAdds = addSpy.mock.calls.filter(([type]) => type === "online").length;
+    expect(onlineAdds).toBe(1);
+
+    window.dispatchEvent(new Event("online"));
+    await vi.waitFor(async () => {
+      expect(await eventRows()).toHaveLength(0);
+    });
+    expect(submit).toHaveBeenCalledTimes(1);
+
+    q.stop();
+    q.stop(); // idempotent — safe to call twice, removes the listener once
+    const onlineRemoves = removeSpy.mock.calls.filter(([type]) => type === "online").length;
+    expect(onlineRemoves).toBe(1);
+  });
+
+  test("AC-5 — two queue instances for the same user never double-submit a row", async () => {
+    const c = clock(1_000_000);
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const submit = vi.fn(async (_e: AttestEvent): Promise<{ ok: boolean }> => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await Promise.resolve();
+      inFlight -= 1;
+      return { ok: true };
+    });
+    const q1 = createAttestQueue({ userId: USER, submit, now: c.now });
+    const q2 = createAttestQueue({ userId: USER, submit, now: c.now });
+    await q1.enqueue(event({ callId: "a" }));
+    await q1.enqueue(event({ callId: "b" }));
+    // The per-user guard is shared across instances → only one drains.
+    await Promise.all([q1.flush(), q2.flush()]);
+    expect(maxInFlight).toBe(1);
+    expect(await eventRows()).toHaveLength(0);
+  });
+
+  test("AC-5 — a connection closed mid-drain ends the flush cleanly", async () => {
+    const c = clock(1_000_000);
+    // submit closes the shared connection (as a versionchange / deleteDB would)
+    // right before the queue evicts the delivered row, so the eviction runs
+    // against a dead handle.
+    const submit = vi.fn(async (_e: AttestEvent): Promise<{ ok: boolean }> => {
+      (await openAttestDb()).close();
+      return { ok: true };
+    });
+    const q = createAttestQueue({ userId: USER, submit, now: c.now });
+    await q.enqueue(event());
+    // No throw, no unhandled rejection — the drain aborts and reopens next window.
+    await expect(q.flush()).resolves.toBeUndefined();
+    // Proof the eviction was aborted (not a no-op close): the row survives,
+    // uncommitted, for the next window rather than being silently dropped.
+    expect(await eventRows()).toHaveLength(1);
+  });
 });

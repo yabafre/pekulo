@@ -21,8 +21,16 @@
 // Every enqueue is validated against attestLlmCallSchema — the SAME schema the
 // server enforces — so a malformed event can't reach the durable store and
 // client/server stay drift-locked.
+//
+// Concurrency hardening (aped-review, story 6-6): the drain guard is keyed by
+// userId at module scope so two instances for one user can't double-submit; an
+// event eviction + its terminal metric commit in one transaction (no half-state
+// inflating the drop-rate); and a drain whose shared connection is closed
+// mid-flight (versionchange / deleteDB / logout) ends cleanly and reopens next
+// window instead of leaking an unhandled rejection.
 import { attestLlmCallSchema } from "@pekulo/validators";
 import {
+  closeAttestDb,
   EVENTS_STORE,
   METRICS_STORE,
   openAttestDb,
@@ -126,6 +134,26 @@ function isQuotaError(err: unknown): boolean {
   );
 }
 
+/** A drain is mid-flight when another context (a second tab's versionchange, a
+ * `deleteDB`, or a logout `clearForUser`) closes the shared connection: the next
+ * IDB request on the dead handle rejects with one of these. We end the drain
+ * cleanly and let the next window reopen, rather than leaking an unhandled
+ * rejection out of the fire-and-forget `online` handler. */
+function isConnectionClosing(err: unknown): boolean {
+  return (
+    err instanceof DOMException &&
+    (err.name === "InvalidStateError" ||
+      err.name === "AbortError" ||
+      err.name === "TransactionInactiveError")
+  );
+}
+
+// The drain guard is keyed by userId at MODULE scope, not per queue instance:
+// two `createAttestQueue` calls for the same user share one IndexedDB store, so
+// an instance-local flag would let both drain the same rows and double-submit.
+// One guard per userId serialises drains across every instance in the tab (AC-5).
+const flushingByUser = new Map<string, boolean>();
+
 export function createAttestQueue(deps: AttestQueueDeps): AttestQueue {
   const userId = deps.userId;
   const now = deps.now ?? (() => Date.now());
@@ -136,13 +164,28 @@ export function createAttestQueue(deps: AttestQueueDeps): AttestQueue {
   const backoff: BackoffConfig = { ...DEFAULT_BACKOFF, ...deps.backoff };
   const submit = deps.submit ?? defaultSubmit(deps.endpoint ?? DEFAULT_ENDPOINT, deps.getAuthToken);
 
-  let flushing = false;
   let alertedAbove = false;
   let onlineHandler: (() => void) | null = null;
 
   async function recordMetric(type: MetricType): Promise<void> {
     const db = await openAttestDb();
     await db.add(METRICS_STORE, { userId, type, ts: now() });
+  }
+
+  /** Evict an event and record its terminal metric in ONE transaction, so a
+   * crash between the two can never drop the event without counting it (which
+   * would silently inflate the W3 drop-rate denominator). */
+  async function evictWithMetric(
+    db: Awaited<ReturnType<typeof openAttestDb>>,
+    key: number,
+    type: MetricType,
+  ): Promise<void> {
+    const tx = db.transaction([EVENTS_STORE, METRICS_STORE], "readwrite");
+    await Promise.all([
+      tx.objectStore(EVENTS_STORE).delete(key),
+      tx.objectStore(METRICS_STORE).add({ userId, type, ts: now() }),
+    ]);
+    await tx.done;
   }
 
   function backoffDelay(attempts: number): number {
@@ -186,8 +229,9 @@ export function createAttestQueue(deps: AttestQueueDeps): AttestQueue {
   }
 
   async function flush(): Promise<void> {
-    if (flushing) return; // AC-5: never two concurrent drains.
-    flushing = true;
+    if (flushingByUser.get(userId)) return; // AC-5: never two concurrent drains.
+    flushingByUser.set(userId, true);
+    let endedOnClose = false;
     try {
       const db = await openAttestDb();
       await pruneOldMetrics(db);
@@ -197,46 +241,59 @@ export function createAttestQueue(deps: AttestQueueDeps): AttestQueue {
       // fire at once on reconnect (thundering herd — see the jitter note).
       for (const record of records) {
         if (record.id === undefined) continue;
-        // Drop-on-age: an event still undeliverable after 7 days is abandoned
-        // (AC-3) — it counts as a drop and is evicted.
-        if (now() - record.enqueuedAt > SEVEN_DAYS_MS) {
-          await db.delete(EVENTS_STORE, record.id);
-          await recordMetric("dropped");
-          continue;
-        }
-        if (now() < record.nextAttemptAt) continue; // still backing off
-        let delivered = false;
         try {
-          const result = await submit({ ...record.payload });
-          delivered = result.ok;
-        } catch {
-          delivered = false;
-        }
-        if (delivered) {
-          await db.delete(EVENTS_STORE, record.id);
-          await recordMetric("flushed"); // AC-2 recovery is recorded
-          continue;
-        }
-        const attempts = record.attempts + 1;
-        if (attempts >= backoff.maxAttempts) {
-          // Park for the next online window — DON'T drop yet (age decides).
-          await db.put(EVENTS_STORE, {
-            ...record,
-            attempts: 0,
-            nextAttemptAt: now() + backoff.maxDelayMs,
-          });
-        } else {
-          await db.put(EVENTS_STORE, {
-            ...record,
-            attempts,
-            nextAttemptAt: now() + backoffDelay(attempts),
-          });
+          // Drop-on-age: an event still undeliverable after 7 days is abandoned
+          // (AC-3) — it counts as a drop and is evicted.
+          if (now() - record.enqueuedAt > SEVEN_DAYS_MS) {
+            await evictWithMetric(db, record.id, "dropped");
+            continue;
+          }
+          if (now() < record.nextAttemptAt) continue; // still backing off
+          let delivered = false;
+          try {
+            const result = await submit({ ...record.payload });
+            delivered = result.ok;
+          } catch {
+            delivered = false;
+          }
+          if (delivered) {
+            await evictWithMetric(db, record.id, "flushed"); // AC-2 recovery recorded
+            continue;
+          }
+          const attempts = record.attempts + 1;
+          if (attempts >= backoff.maxAttempts) {
+            // Park for the next online window — DON'T drop yet (age decides).
+            await db.put(EVENTS_STORE, {
+              ...record,
+              attempts: 0,
+              nextAttemptAt: now() + backoff.maxDelayMs,
+            });
+          } else {
+            await db.put(EVENTS_STORE, {
+              ...record,
+              attempts,
+              nextAttemptAt: now() + backoffDelay(attempts),
+            });
+          }
+        } catch (err) {
+          // Another context closed the shared connection mid-drain: release the
+          // dead handle and resume on the next window — never reject out of the
+          // fire-and-forget `online` handler.
+          if (isConnectionClosing(err)) {
+            await closeAttestDb();
+            endedOnClose = true;
+            break;
+          }
+          throw err;
         }
       }
       // oxlint-enable no-await-in-loop
-      await maybeAlert();
+      // Skip the alert when the drain ended on a closed connection: the stats
+      // would be partial (and reopening mid-deleteDB could itself reject) — the
+      // next window recomputes and alerts cleanly.
+      if (!endedOnClose) await maybeAlert();
     } finally {
-      flushing = false;
+      flushingByUser.set(userId, false);
     }
   }
 

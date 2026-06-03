@@ -90,3 +90,20 @@ export function openAttestDb(): Promise<IDBPDatabase<AttestDb>> {
   dbPromise = promise;
   return promise;
 }
+
+/** Release the memoised connection (closing it) and clear the cache so the next
+ * `openAttestDb()` reopens fresh. Idempotent: a no-op when nothing is open, and
+ * `close()` on an already-closing connection is itself a no-op. The queue calls
+ * this when a drain hits a connection that another context closed mid-flight
+ * (versionchange / deleteDB), so subsequent reads reopen instead of throwing on
+ * the dead handle. */
+export async function closeAttestDb(): Promise<void> {
+  if (!dbPromise) return;
+  const pending = dbPromise;
+  dbPromise = null;
+  try {
+    (await pending).close();
+  } catch {
+    // Connection already gone / closing — nothing to release.
+  }
+}
