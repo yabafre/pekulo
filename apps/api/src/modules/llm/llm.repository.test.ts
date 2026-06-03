@@ -12,10 +12,24 @@ function makePrismaMock(optInRow: { thirdParty: boolean } | null) {
   const create = mock(async (_args: unknown) => undefined);
   const findUnique = mock(async () => optInRow);
   const $transaction = mock(async (ops: Promise<unknown>[]) => Promise.all(ops));
+  const findMany = mock(async (_args: unknown) => [
+    {
+      id: "llm_abc123",
+      callId: "c1",
+      userId: "u1",
+      phase: "outcome",
+      route: "ollama",
+      labelHash: "h",
+      latencyMs: 240,
+      outcome: "success",
+      occurredAt: new Date("2026-06-01T08:00:00.000Z"),
+      createdAt: new Date("2026-06-01T08:00:00.000Z"),
+    },
+  ]);
   const prismaService = {
-    client: { llmCallLog: { create }, llmOptIn: { findUnique }, $transaction },
+    client: { llmCallLog: { create, findMany }, llmOptIn: { findUnique }, $transaction },
   } as unknown as PrismaService;
-  return { prismaService, create, findUnique, $transaction };
+  return { prismaService, create, findUnique, $transaction, findMany };
 }
 
 test("recordCallEvent writes an intent row with null latency/outcome", async () => {
@@ -83,4 +97,32 @@ test("isThirdPartyOptedIn returns the stored flag", async () => {
   const { prismaService } = makePrismaMock({ thirdParty: true });
   const repo = createLlmRepository({ prismaService });
   expect(await repo.isThirdPartyOptedIn("u1")).toBe(true);
+});
+
+test("listRecentOutcomesByUser filters to phase outcome + the since window, keyset-ordered", async () => {
+  const { prismaService, findMany } = makePrismaMock(null);
+  const repo = createLlmRepository({ prismaService });
+  const since = new Date("2026-03-05T00:00:00.000Z");
+  const entries = await repo.listRecentOutcomesByUser("u1", since);
+  expect(findMany).toHaveBeenCalledTimes(1);
+  const arg = findMany.mock.calls[0]![0] as {
+    where: { userId: string; phase: string; createdAt: { gte: Date } };
+    orderBy: unknown;
+    take: number;
+  };
+  expect(arg.where).toMatchObject({ userId: "u1", phase: "outcome" });
+  expect(arg.where.createdAt.gte).toBe(since);
+  expect(arg.orderBy).toEqual([{ createdAt: "desc" }, { id: "desc" }]);
+  expect(arg.take).toBe(200);
+  expect(entries[0]).toMatchObject({ route: "ollama", latencyMs: 240, outcome: "success" });
+});
+
+test("listRecentOutcomesByUser maps rows to the DTO without any prompt field (NFR-26)", async () => {
+  const { prismaService } = makePrismaMock(null);
+  const repo = createLlmRepository({ prismaService });
+  const [entry] = await repo.listRecentOutcomesByUser("u1", new Date(0));
+  expect(Object.keys(entry!).sort()).toEqual(
+    ["callId", "id", "latencyMs", "occurredAt", "outcome", "phase", "route"].sort(),
+  );
+  expect(entry).not.toHaveProperty("labelHash");
 });
