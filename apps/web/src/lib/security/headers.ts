@@ -24,12 +24,16 @@ export const CSP_ENFORCED_HEADER = "Content-Security-Policy";
 export function buildContentSecurityPolicy(opts: SecurityHeaderOptions): string {
   const supabase = opts.supabaseUrl?.trim() ? [opts.supabaseUrl.trim()] : [];
   // 'unsafe-eval' is dev-only — React reconstructs server-side error stacks via
-  // eval in the dev overlay (Next's CSP guide mandates it); production needs
-  // neither it nor the unpkg react-grab src.
-  // react-grab's dev inspector loads from our own bundle (pinned npm package, not
-  // a CDN) but still pings react-grab.com for its version; Next's dev overlay
-  // needs eval + HMR websockets. All DEV ONLY.
-  const scriptExtra = opts.dev ? ["https://www.react-grab.com", "'unsafe-eval'"] : [];
+  // eval in the dev overlay (Next's CSP guide mandates it); production needs none
+  // of these.
+  // react-grab's dev inspector loads its PINNED global build from unpkg — a CDN
+  // IIFE that runs OUTSIDE Turbopack (aped-debug 2026-06-03: the bundled import
+  // routed react-grab + its source-maps through the dev server and pegged it to
+  // ~7 cores on heavy routes) — and pings react-grab.com for its version; Next's
+  // dev overlay needs eval + HMR websockets. All DEV ONLY.
+  const scriptExtra = opts.dev
+    ? ["https://unpkg.com", "https://www.react-grab.com", "'unsafe-eval'"]
+    : [];
   const connectExtra = opts.dev ? ["ws:", "https://www.react-grab.com"] : [];
   // react-grab's overlay loads Geist from Google Fonts (stylesheet on googleapis,
   // woff2 on gstatic). DEV ONLY — production self-hosts its fonts.
