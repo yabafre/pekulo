@@ -106,12 +106,25 @@ export function TransactionsRecentSection() {
   // dropping into cursor mode (a falsy page → unscoped window, no totalCount).
   const page = rawPage < 1 ? 1 : rawPage;
   const { month } = useMonthScope();
-  const { data, isLoading, error } = useTransactions(PAGE_SIZE, month ?? undefined, page);
+  // Gate on the resolved month so the list does not fire a throwaway no-month
+  // request while MonthScopeProvider resolves the active month (aped-debug
+  // 2026-06-03 — load-time double-fetch).
+  const { data, isLoading, error } = useTransactions(
+    PAGE_SIZE,
+    month ?? undefined,
+    page,
+    month != null,
+  );
   // Story 6-7 — the AI notice shows for an auto-applied batch ONLY when there
   // are no pending suggestions (the suggestions section owns the notice in the
   // pending case). This guarantees exactly one notice renders (no double-banner
   // on a first visit that has both pending + applied rows).
-  const { data: pendingData } = usePendingSuggestions(1, undefined, month ?? undefined);
+  const { data: pendingData } = usePendingSuggestions(
+    1,
+    undefined,
+    month ?? undefined,
+    month != null,
+  );
   const pendingTotal = pendingData?.totalCount ?? 0;
   const { data: accounts } = useAccounts();
   const [openDialog, setOpenDialog] = useState<DialogKind>(null);

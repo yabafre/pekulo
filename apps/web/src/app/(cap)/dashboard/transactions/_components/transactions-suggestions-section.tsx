@@ -60,7 +60,12 @@ export function TransactionsSuggestionsSection() {
   // Story 6-9 ext — re-scope the pending list to the active month (shares the
   // pending(page, month) cache with the "À confirmer" stat count).
   const { month } = useMonthScope();
-  const { data, isLoading, error } = usePendingSuggestions(page, undefined, month ?? undefined);
+  const { data, isLoading, error } = usePendingSuggestions(
+    page,
+    undefined,
+    month ?? undefined,
+    month != null,
+  );
   const { data: accounts } = useAccounts();
   const confirm = useConfirmCategorisation();
   const toast = useToast();

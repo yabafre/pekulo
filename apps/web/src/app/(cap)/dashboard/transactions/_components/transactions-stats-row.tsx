@@ -44,7 +44,12 @@ export function TransactionsStatsRow() {
   // "À confirmer" — live pending-suggestion total, scoped to the active month
   // (story 6-9 ext; shares the pending(1, month) cache with the Suggestions IA
   // section so both reflect the same month).
-  const { data: pendingData } = usePendingSuggestions(1, undefined, month ?? undefined);
+  const { data: pendingData } = usePendingSuggestions(
+    1,
+    undefined,
+    month ?? undefined,
+    month != null,
+  );
 
   // Hydration guard (R13) — the summary comes from the TanStack cache, so SSR
   // renders the PLACEHOLDER and the client renders real numbers on the first
