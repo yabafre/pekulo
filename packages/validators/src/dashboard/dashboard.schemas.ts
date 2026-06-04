@@ -6,6 +6,26 @@
 
 import { z } from "@pekulo/zod";
 import { fxSourceSchema } from "../holdings";
+import { transactionCategorySchema } from "../transactions";
+
+// Display direction mirrors @pekulo/types TxDirection ("in" | "out"). The raw
+// transaction type ("inflow" | "outflow") is mapped to this at the server
+// boundary; defined locally because validators has no shared direction schema.
+const activityDirectionSchema = z.enum(["in", "out"]);
+
+// One recent-activity row (story 7-2 / D3). The server resolves account LABEL
+// + direction + EUR amount; `category` stays the raw enum so the web maps it
+// to its French label + icon (TRANSACTION_CATEGORY_LABELS + CategoryIcon) —
+// keeps API copy-free. logoUrl is the opaque Pekulo proxy URL (6-10) or null.
+export const dashboardActivitySchema = z.object({
+  label: z.string(),
+  account: z.string(),
+  category: transactionCategorySchema,
+  direction: activityDirectionSchema,
+  amountEur: z.number(),
+  logoUrl: z.string().nullable().optional(),
+});
+export type DashboardActivity = z.infer<typeof dashboardActivitySchema>;
 
 export const dashboardCompositionSchema = z.object({
   liquideEur: z.number(),
@@ -35,6 +55,7 @@ export const dashboardOverviewSchema = z.object({
       .regex(/^\d{4}-\d{2}-\d{2}$/, "asOf must be YYYY-MM-DD")
       .nullable(),
   }),
+  recentActivity: z.array(dashboardActivitySchema),
 });
 export type DashboardOverview = z.infer<typeof dashboardOverviewSchema>;
 
