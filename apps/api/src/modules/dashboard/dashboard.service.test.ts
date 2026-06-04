@@ -145,4 +145,62 @@ describe("dashboard.service.getOverview", () => {
     expect(calls).toBe(0);
     expect(out.composition.placementsEur).toBe(42);
   });
+
+  // --- aped-review regression tests ---
+
+  test("M1 — negative net wealth + compass: never throws, compass clamps to 0%", async () => {
+    // Underwater real-estate (debt > valuation) drives total wealth negative.
+    // computeProgress rejects a negative currentWealth (INVALID_WEALTH → 400),
+    // so getOverview must clamp the ratio input to 0 — never throw (NFR-18).
+    const svc = createDashboardService(
+      basePorts({
+        listAccounts: async () => [],
+        listHoldings: async () => [],
+        getTotalEquity: async () => ({ totalEquityEur: -300_000 }),
+        getCompass: async () => ({ objectif: 800_000 }),
+      }),
+    );
+    const out = await svc.getOverview(USER);
+    expect(out.totalWealthEur).toBe(-300_000); // raw value preserved in the payload
+    expect(out.compass).toEqual({ percent: 0, objectif: 800_000, gap: 800_000 });
+  });
+
+  test("M2 — identical {ticker,kind,currency} holdings resolve ONE quote (dedup)", async () => {
+    let calls = 0;
+    const svc = createDashboardService(
+      basePorts({
+        listHoldings: async () => [
+          hold({ id: "h1", ticker: "CW8" }),
+          hold({ id: "h2", ticker: "CW8" }),
+          hold({ id: "h3", ticker: "CW8" }),
+        ],
+        resolveQuote: async ({ ticker }) => {
+          calls += 1;
+          return {
+            symbol: ticker ?? "T",
+            price: 100,
+            currency: "EUR",
+            marketTime: "2026-06-04",
+            provider: "yahoo",
+          };
+        },
+      }),
+    );
+    const out = await svc.getOverview(USER);
+    expect(calls).toBe(1); // 3 lots of CW8 → a single resolveQuote (no thundering-herd)
+    expect(out.composition.placementsEur).toBe(3_000); // 3 × qty 10 × 100
+  });
+
+  test("M4 — a getCompass read failure degrades to null (no throw)", async () => {
+    const svc = createDashboardService(
+      basePorts({
+        getCompass: async () => {
+          throw new Error("compass read down");
+        },
+      }),
+    );
+    const out = await svc.getOverview(USER);
+    expect(out.compass).toBeNull();
+    expect(out.totalWealthEur).toBe(276_000);
+  });
 });

@@ -55,24 +55,51 @@ export interface DashboardService {
 export function createDashboardService(deps: DashboardPorts): DashboardService {
   // Enrich each holding with a LIVE price; fall back to the stored lastPrice on
   // a null ticker (manual entry) or any resolveQuote rejection (all tiers
-  // failed — NFR-18). Parallel: the holdings module's 60s PricesCache fronts
-  // resolveQuote, so steady-state loads are cache hits.
+  // failed — NFR-18). The holdings module's 60s PricesCache fronts resolveQuote,
+  // so steady-state loads are cache hits.
+  //
+  // Two guards keep this linear at the NFR-16 cap (≤500 holdings): (1) dedup
+  // identical {ticker,kind,currency} so N lots of the same security resolve ONE
+  // quote, and (2) bound concurrency so a COLD cache (after the 60s TTL) cannot
+  // fan out 500 provider chains in a single tick (thundering-herd against the
+  // upstream price providers).
+  const PRICE_CONCURRENCY = 8;
   async function priceHoldings(holdings: Holding[]): Promise<Holding[]> {
-    return Promise.all(
-      holdings.map(async (h) => {
-        if (!h.ticker) return h;
-        try {
-          const quote = await deps.resolveQuote({
-            ticker: h.ticker,
-            kind: h.kind,
-            currency: h.currency,
-          });
-          return { ...h, lastPrice: quote.price };
-        } catch {
-          return h; // graceful fallback to stored lastPrice
-        }
-      }),
-    );
+    const quoteKey = (h: Holding) => `${h.ticker}|${h.kind}|${h.currency}`;
+    const distinct = new Map<string, PriceQuoteInput>();
+    for (const h of holdings) {
+      if (!h.ticker) continue;
+      const key = quoteKey(h);
+      if (!distinct.has(key)) {
+        distinct.set(key, { ticker: h.ticker, kind: h.kind, currency: h.currency });
+      }
+    }
+
+    const prices = new Map<string, number>();
+    const inputs = [...distinct.entries()];
+    for (let i = 0; i < inputs.length; i += PRICE_CONCURRENCY) {
+      const batch = inputs.slice(i, i + PRICE_CONCURRENCY);
+      // Sequential by design: each batch runs in parallel, but batches are awaited
+      // one at a time to bound the fan-out (parallelising ALL batches is exactly
+      // the unbounded thundering-herd this guard prevents — NFR-16).
+      // oxlint-disable-next-line no-await-in-loop -- bounded price fan-out, see above
+      await Promise.all(
+        batch.map(async ([key, input]) => {
+          try {
+            const quote = await deps.resolveQuote(input);
+            prices.set(key, quote.price);
+          } catch {
+            // graceful fallback — leave unset, the holding keeps its stored lastPrice
+          }
+        }),
+      );
+    }
+
+    return holdings.map((h) => {
+      if (!h.ticker) return h;
+      const price = prices.get(quoteKey(h));
+      return price === undefined ? h : { ...h, lastPrice: price };
+    });
   }
 
   return {
@@ -83,7 +110,12 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
         // FX is best-effort (NFR-19): a frankfurter failure → null → 1:1 fallback.
         deps.getRates("EUR").catch(() => null),
         deps.getTotalEquity(userId),
-        deps.getCompass(userId),
+        // The compass is optional (the schema is .nullable()): a read failure
+        // degrades to "no compass" rather than 500-ing the whole overview. The
+        // three wealth-bearing reads above intentionally have NO catch — a
+        // failed accounts/holdings/equity read MUST surface, never silently
+        // under-report net wealth (finance correctness > availability here).
+        deps.getCompass(userId).catch(() => null),
       ]);
 
       const priced = await priceHoldings(holdings);
@@ -92,8 +124,14 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
 
       const compass = compassRow
         ? {
+            // Clamp to ≥0 for the progress ratio only. Net wealth CAN be negative
+            // (underwater real-estate — property-equity.ts sums raw), and
+            // computeProgress rejects a negative currentWealth (INVALID_WEALTH →
+            // 400). The payload still returns the RAW totalWealthEur; an
+            // underwater user reads 0 % progress against the full gap, never an
+            // error (NFR-18 — getOverview never throws).
             ...deps.computeProgress({
-              currentWealth: totalWealthEur,
+              currentWealth: Math.max(0, totalWealthEur),
               capitalTarget: compassRow.objectif,
             }),
             objectif: compassRow.objectif,
