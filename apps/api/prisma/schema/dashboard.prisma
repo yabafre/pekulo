@@ -1,0 +1,15 @@
+// apps/api/prisma/schema/dashboard.prisma
+// Per-user dashboard widget layout (story 7-2 / D6). One row per user
+// (userId is the PK — a user has exactly one layout). `widgets` is a JSONB
+// array of { id, visible, order }; validated by dashboardLayoutSchema at the
+// service boundary (defence in depth — never trust the column blind). RLS
+// (SELECT/INSERT/UPDATE where user_id = auth.uid()) is appended to the
+// migration SQL manually — Prisma does not introspect policies (ADR-0013).
+model DashboardLayout {
+  userId    String   @id @map("user_id") @db.Uuid
+  widgets   Json     @map("widgets") @db.JsonB
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("dashboard_layout")
+}
