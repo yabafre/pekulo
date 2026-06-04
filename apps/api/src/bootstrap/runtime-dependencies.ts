@@ -255,6 +255,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // holdings 4-tier chain (resolveQuote, 60s cache); FX via the frankfurter
   // client the holdings module exposes for exactly this (holdings.module L39).
   const dashboardModule = createDashboardModule({
+    prismaService,
     listAccounts: (userId) => accountsModule.service.list(userId),
     listHoldings: (userId) => holdingsModule.service.list(userId, { includeClosed: false }),
     resolveQuote: (input) => holdingsModule.service.resolveQuote(input),
