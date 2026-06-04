@@ -143,6 +143,18 @@ export const bankConnectionsTags = createFeatureTags(BANK_CONNECTIONS_KEY, {
   list: () => ["list"] as const,
 });
 
+// Story 7-1 (FR-43/FR-44) — dashboard read-aggregator. Read-only feature: it
+// has NO write path of its own, so it declares `dashboardKeys` but NO
+// `dashboardTags`. `overview` is invalidated BY every wealth-affecting
+// feature's list tag via the registry edges below — recording a transaction,
+// editing an account / holding / property, or changing the compass objectif
+// all refresh the Cap view total wealth. Consumed by useDashboardOverview
+// (read-only).
+export const DASHBOARD_KEY = "dashboard" as const;
+export const dashboardKeys = createFeatureKeys(DASHBOARD_KEY, {
+  overview: () => ["overview"] as const,
+});
+
 setTagRegistry({
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
@@ -158,6 +170,7 @@ setTagRegistry({
     compassKeys.curve(),
     compassKeys.history(),
     milestonesKeys.list(),
+    dashboardKeys.overview(),
   ],
   [compassTags.current()]: [
     compassKeys.current(),
@@ -166,6 +179,7 @@ setTagRegistry({
     compassKeys.curve(),
     compassKeys.history(),
     milestonesKeys.list(),
+    dashboardKeys.overview(),
   ],
   // Milestones — `list` invalidates the milestones list + `compass.setup`
   // (the setup state is derived from "compass row exists AND ≥1 milestone",
@@ -174,8 +188,8 @@ setTagRegistry({
   // is added, defeating the inline AddMilestoneForm round-trip.
   [milestonesTags.all()]: [milestonesKeys.list(), compassKeys.setup()],
   [milestonesTags.list()]: [milestonesKeys.list(), compassKeys.setup()],
-  [accountsTags.all()]: [accountsKeys.list()],
-  [accountsTags.list()]: [accountsKeys.list()],
+  [accountsTags.all()]: [accountsKeys.list(), dashboardKeys.overview()],
+  [accountsTags.list()]: [accountsKeys.list(), dashboardKeys.overview()],
   // Story 6-3 — llm opt-in. The setLlmOptIn mutation invalidates the single
   // optIn read so the toggle state survives a reload.
   [llmTags.all()]: [llmKeys.optIn()],
@@ -185,8 +199,8 @@ setTagRegistry({
   // Holdings — `list` invalidates the holdings list. Once the portfolio
   // aggregate ships its own read path, the cross-feature edge to
   // portfolioKeys.holdings + portfolioKeys.snapshot lands back here.
-  [holdingsTags.all()]: [holdingsKeys.list()],
-  [holdingsTags.list()]: [holdingsKeys.list()],
+  [holdingsTags.all()]: [holdingsKeys.list(), dashboardKeys.overview()],
+  [holdingsTags.list()]: [holdingsKeys.list(), dashboardKeys.overview()],
   // Realestate (story 4-1 + 4-2 + 4-3) — the `list` tag invalidates the
   // entire realestate read graph via the bare `[REALESTATE_KEY]` prefix.
   // TanStack's `invalidateQueries({queryKey:["realestate"]})` is inclusive
@@ -195,8 +209,9 @@ setTagRegistry({
   // (useProperties / useListPropertyDerives / useProperty /
   // useListValuations) all subscribe to keys under the `realestate`
   // prefix. Surgical edges are not required at V1 scale (NFR-16: 50
-  // properties / user). 7-1 dashboard will add a dedicated
-  // `realestateTags.list → dashboardKeys.cap` edge when it ships.
+  // properties / user). 7-1 dashboard shipped the
+  // realestate/accounts/holdings/transactions/compass list →
+  // `dashboardKeys.overview()` edges (read-only aggregate).
   //
   // 2026-05-22 aped-review fix — earlier shape mapped to
   // `realestateKeys.list()` only, which silently missed `byId` and
@@ -205,8 +220,8 @@ setTagRegistry({
   // that violated R3/R4 + lesson 2026-05-20 ("hooks consume zapaction,
   // never raw @tanstack/react-query"). Fixing the registry restores
   // the SSOT.
-  [realestateTags.all()]: [[REALESTATE_KEY]],
-  [realestateTags.list()]: [[REALESTATE_KEY]],
+  [realestateTags.all()]: [[REALESTATE_KEY], dashboardKeys.overview()],
+  [realestateTags.list()]: [[REALESTATE_KEY], dashboardKeys.overview()],
   // Transactions (story 5-1) — `list` invalidates the entire transactions
   // read graph via the bare `[TRANSACTIONS_KEY]` prefix (matches realestate
   // pattern at L130) AND `accountsKeys.list()` since a recorded transaction
@@ -214,8 +229,18 @@ setTagRegistry({
   // (AC-5) with `[MONTHLY_KEY]` so any transaction mutation re-derives the
   // monthly view — TanStack's prefix-match invalidates every monthly entry
   // under any (year, monthNum).
-  [transactionsTags.all()]: [[TRANSACTIONS_KEY], accountsKeys.list(), [MONTHLY_KEY]],
-  [transactionsTags.list()]: [[TRANSACTIONS_KEY], accountsKeys.list(), [MONTHLY_KEY]],
+  [transactionsTags.all()]: [
+    [TRANSACTIONS_KEY],
+    accountsKeys.list(),
+    [MONTHLY_KEY],
+    dashboardKeys.overview(),
+  ],
+  [transactionsTags.list()]: [
+    [TRANSACTIONS_KEY],
+    accountsKeys.list(),
+    [MONTHLY_KEY],
+    dashboardKeys.overview(),
+  ],
   // Monthly (story 5-4 + 5-5). The `get(0, 0)` stand-in carries the
   // structural shape; `all()` is the bulk edge that invalidates every
   // monthlyKeys.* slot via the bare `[MONTHLY_KEY]` prefix. Sign-off / reopen
@@ -233,5 +258,6 @@ setTagRegistry({
     [TRANSACTIONS_KEY],
     accountsKeys.list(),
     [MONTHLY_KEY],
+    dashboardKeys.overview(),
   ],
 });
