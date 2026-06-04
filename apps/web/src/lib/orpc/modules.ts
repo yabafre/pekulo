@@ -34,6 +34,7 @@ import {
   monthlyContract,
   bankAggregatorContract,
   llmContract,
+  dashboardContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -79,3 +80,8 @@ export const bankAggregatorClient: ContractRouterClient<typeof bankAggregatorCon
 export const llmClient: ContractRouterClient<typeof llmContract> = createORPCClient(orpcLink, {
   path: ["llm"],
 });
+// Story 7-1 — dashboard read-aggregator (FR-43). Mount path `/rpc/v1/dashboard`.
+export const dashboardClient: ContractRouterClient<typeof dashboardContract> = createORPCClient(
+  orpcLink,
+  { path: ["dashboard"] },
+);
