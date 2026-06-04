@@ -26,6 +26,7 @@
 import type {
   ConfirmCategorisationInput,
   CreateTransactionInput,
+  DashboardActivity,
   DeleteTransactionInput,
   GetTransactionInput,
   ImportCsvInput,
@@ -124,6 +125,16 @@ export interface LogosEnrichPort {
   ): Promise<Map<string, string | null>>;
 }
 
+/**
+ * Story 7-2 (D3) — narrow account-label port for the dashboard recent-activity
+ * read. Optional (mirrors logos/categoriser, L1 — no AccountsRepository leak):
+ * absent → the activity row's account renders "—". The runtime wires it around
+ * accountsModule.service.list.
+ */
+export interface AccountLabelPort {
+  list(userId: string): Promise<{ id: string; label: string }[]>;
+}
+
 // Categories the LLM may suggest — the validators SSOT (the closed transaction
 // enum minus the two system values 'transfer'/'autre'). Story 6-8 stopped
 // re-deriving this here so the prompt allowlist can never drift from
@@ -141,6 +152,10 @@ export interface TransactionsService {
   deleteTransaction(userId: string, input: DeleteTransactionInput): Promise<{ ok: true }>;
   getTransaction(userId: string, input: GetTransactionInput): Promise<Transaction>;
   listTransactions(userId: string, input: ListTransactionsInput): Promise<ListTransactionsOutput>;
+  /** Story 7-2 (D3) — the dashboard recent-activity widget: the N most recent
+   *  transactions shaped to DashboardActivity (account label resolved, logo
+   *  attached, direction/amount mapped). Read-only. */
+  listRecentActivity(userId: string, limit: number): Promise<DashboardActivity[]>;
   /** Story 6-9 (FR-64) — the navigator's stat-card aggregate for a month.
    *  `input.month` omitted → resolve the most recent month with activity
    *  (current UTC month when the user has none). Aggregates the WHOLE month
@@ -373,6 +388,7 @@ export function createTransactionsService(deps: {
   categoriser?: TransactionCategoriser;
   llmAudit?: LlmOverrideAuditPort;
   logos?: LogosEnrichPort;
+  accountLister?: AccountLabelPort;
 }): TransactionsService {
   // Story 6-10 — attach the resolved logo proxy URL to a page of DTOs. The
   // repository already defaults logoUrl to null in toDto, so without a logos
@@ -465,6 +481,21 @@ export function createTransactionsService(deps: {
     async listTransactions(userId, input) {
       const page = await deps.repository.listByUser(userId, input);
       return { ...page, items: await attachLogos(userId, page.items) };
+    },
+
+    async listRecentActivity(userId, limit) {
+      const page = await deps.repository.listByUser(userId, { limit });
+      const items = await attachLogos(userId, page.items);
+      const accounts = deps.accountLister ? await deps.accountLister.list(userId) : [];
+      const labelById = new Map(accounts.map((a) => [a.id, a.label]));
+      return items.map((tx) => ({
+        label: tx.label,
+        account: labelById.get(tx.accountId) ?? "—",
+        category: tx.category,
+        direction: tx.type === "inflow" ? "in" : "out",
+        amountEur: tx.amount,
+        logoUrl: tx.logoUrl ?? null,
+      }));
     },
 
     async monthSummary(userId, input) {
