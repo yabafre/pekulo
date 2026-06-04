@@ -39,31 +39,39 @@ export function HeroAnchor({ variant = "mobile" }: { variant?: "mobile" | "card"
   const requiredYearly = horizon != null && horizon > 0 ? gap / horizon : null;
 
   return (
-    <View render="section" aria-label="Patrimoine total" flexDirection="column">
-      <Text color="$colorTertiary" fontSize="$caption">
-        Patrimoine total
-      </Text>
-
-      {isLoading || !overview ? (
-        <View marginTop="$2">
-          <PekuloSkeleton block width={220} height={40} />
-        </View>
-      ) : (
-        <PekuloCountUpEUR
-          value={overview.totalWealthEur}
-          color="$color"
-          fontSize="$h1"
-          fontWeight="600"
-          letterSpacing={-0.5}
-          marginTop="$2"
-        />
-      )}
-
-      {next != null ? (
-        <Text color="$colorTertiary" fontSize="$bodySm" marginTop="$2">
-          Prochain palier · +{eur0.format(next.deltaEur)} à atteindre
+    <View
+      render="section"
+      aria-label="Patrimoine total"
+      flexDirection="column"
+      flex={variant === "card" ? 1 : undefined}
+      justifyContent={variant === "card" ? "space-between" : undefined}
+    >
+      <View flexDirection="column">
+        <Text color="$colorTertiary" fontSize="$caption">
+          Patrimoine total
         </Text>
-      ) : null}
+
+        {isLoading || !overview ? (
+          <View marginTop="$2">
+            <PekuloSkeleton block width={220} height={40} />
+          </View>
+        ) : (
+          <PekuloCountUpEUR
+            value={overview.totalWealthEur}
+            color="$color"
+            fontSize="$h1"
+            fontWeight="600"
+            letterSpacing={-0.5}
+            marginTop="$2"
+          />
+        )}
+
+        {next != null ? (
+          <Text color="$colorTertiary" fontSize="$bodySm" marginTop="$2">
+            Prochain palier · +{eur0.format(next.deltaEur)} à atteindre
+          </Text>
+        ) : null}
+      </View>
 
       {variant === "card" && objectif != null ? (
         <View flexDirection="row" gap="$6" marginTop="$4">

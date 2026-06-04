@@ -21,7 +21,7 @@
 // `$max-md` claiming Tamagui `md = 1020`; see lesson 2026-05-17 "Tamagui
 // v5 media keys" — the real `md` is 768 and the right cutover is 1024.)
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -77,6 +77,14 @@ export function CapShell({ email, children }: CapShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [newTxOpen, setNewTxOpen] = useState(false);
+  // The "Personnaliser" toggle's visibility depends on the active tab, which is
+  // resolved from useSearchParams — empty during the server prerender, real on
+  // the client. Gating it behind a post-mount flag keeps the SSR and first
+  // client render identical (no hydration mismatch); the toggle fades in after.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const isDashboardRoot = pathname === "/dashboard";
   const activeTab: PekuloTopTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
   const navActiveKey: PekuloNavKey = pathname.startsWith("/dashboard/portefeuille")
@@ -173,7 +181,7 @@ export function CapShell({ email, children }: CapShellProps) {
             {screenTitle && <h1 className={styles.screenTitle}>{screenTitle}</h1>}
           </div>
           <div className={styles.headerRight}>
-            {isDashboardRoot && activeTab === "cap" && <DashboardEditToggle />}
+            {mounted && isDashboardRoot && activeTab === "cap" && <DashboardEditToggle />}
             {contextualAddLabel && (
               <PekuloContextualAddButton label={contextualAddLabel} onPress={handleNewTx} />
             )}
