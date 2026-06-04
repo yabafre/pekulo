@@ -20,6 +20,7 @@ import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module"
 import { createMilestonesModule } from "../modules/milestones/milestones.module";
 import { createMonthlyModule } from "../modules/monthly/monthly.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
+import { createDashboardModule } from "../modules/dashboard/dashboard.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
 import {
   createSuggestionBackfillScheduler,
@@ -248,6 +249,21 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     service: transactionsModule.service,
   });
 
+  // Story 7-1 (FR-43, FR-44) — dashboard cross-domain aggregator. Pure
+  // composition module: no repository, no Prisma. Narrow read ports over the
+  // four wealth-bearing modules + compass. Holdings priced live via the
+  // holdings 4-tier chain (resolveQuote, 60s cache); FX via the frankfurter
+  // client the holdings module exposes for exactly this (holdings.module L39).
+  const dashboardModule = createDashboardModule({
+    listAccounts: (userId) => accountsModule.service.list(userId),
+    listHoldings: (userId) => holdingsModule.service.list(userId, { includeClosed: false }),
+    resolveQuote: (input) => holdingsModule.service.resolveQuote(input),
+    getRates: (base) => holdingsModule.frankfurterClient.getRates(base),
+    getTotalEquity: (userId) => realestateModule.service.getTotalEquity(userId),
+    getCompass: (userId) => compassModule.service.getCompass(userId),
+    computeProgress: (input) => compassModule.service.computeProgress(input),
+  });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -255,6 +271,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     accounts: accountsModule.router,
     holdings: holdingsModule.router,
     realestate: realestateModule.router,
+    dashboard: dashboardModule.router,
     transactions: transactionsModule.router,
     monthly: monthlyModule.router,
     bankaggregator: bankAggregatorModule.router,
