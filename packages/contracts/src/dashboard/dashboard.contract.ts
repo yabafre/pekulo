@@ -1,13 +1,21 @@
 // packages/contracts/src/dashboard/dashboard.contract.ts
-// Dashboard module oRPC contract. One read procedure:
-//   - getOverview: cross-domain wealth aggregate (FR-43). No input.
+// Dashboard module oRPC contract.
+//   - getOverview : cross-domain wealth aggregate + recentActivity (FR-43, 7-2 D3). No input.
+//   - getLayout   : the caller's saved widget layout, or null (7-2 D6). No input.
+//   - saveLayout  : upsert the caller's widget layout (7-2 D6).
 // See ADR-0009 (mount under /rpc/v1/dashboard).
 
 import { oc } from "@orpc/contract";
-import { dashboardOverviewSchema } from "@pekulo/validators";
+import {
+  dashboardOverviewSchema,
+  dashboardLayoutSchema,
+  saveDashboardLayoutInputSchema,
+} from "@pekulo/validators";
 
 export const dashboardContractV1 = {
   getOverview: oc.output(dashboardOverviewSchema),
+  getLayout: oc.output(dashboardLayoutSchema.nullable()),
+  saveLayout: oc.input(saveDashboardLayoutInputSchema).output(dashboardLayoutSchema),
 } as const;
 
 export const dashboardContract = dashboardContractV1;
