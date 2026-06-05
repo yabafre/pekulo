@@ -1107,6 +1107,10 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Complexity:** L
 
+> **Realized scope (2026-06-05) — supersedes the summary above, does not replace it.** During the `aped-story` design gate the scope was expanded (user decision) from a fixed-order Cap page to a **configurable widget system**: every widget can be drag-reordered and shown/hidden, with the layout persisted **server-side per user** (new `dashboard_layout` table + `dashboard.getLayout`/`saveLayout` oRPC procedures). dnd-kit is lazy-loaded behind a `dynamic(ssr:false)` boundary so it never enters the default bundle (AC-3). `recentActivity` was added to the 7-1 dashboard overview DTO (server-resolved label/logo/direction). Composition + Recent-activity are shared between the Cap and Patrimoine views. FR-41 / U1 are guaranteed on the **default layout only** (customisation is opt-in) — see **ADR-0017**. The AC set is now **AC-1..AC-9** (default-order, nav, Lighthouse + dnd bundle isolation, reorder, visibility + reset, graceful fallback, data states, total-wealth source, composition). Shipped as one XL story; doc-sync paid in the same change (lesson 2026-05-31). Realized AC set lives in `docs/stories/7-2-dashboard-cap-page.md` and ticket #39.
+
+**Complexity:** XL (expanded from L)
+
 #### Story 7-3-hypothesis-domain
 
 **Ticket:** [#40](https://github.com/yabafre/pekulo/issues/40)
