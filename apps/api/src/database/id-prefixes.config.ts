@@ -61,6 +61,12 @@ export const ID_PREFIXES = {
   // so the cache upsert's create branch doesn't trip MissingPrefixError.
   MerchantLogoCache: null,
   ProviderLogoCache: null,
+
+  // Dashboard layout (story 7-2, D6) — PK is `user_id` (UUID FK to auth.users),
+  // one row per user, no synthetic id column. Same opt-out shape as BridgeUser:
+  // the extension MUST NOT inject, or the saveLayout upsert's create branch
+  // throws MissingPrefixError.
+  DashboardLayout: null,
 } as const satisfies Record<string, string | null>;
 
 export type ModelName = keyof typeof ID_PREFIXES;

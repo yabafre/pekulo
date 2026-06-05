@@ -13,8 +13,8 @@ import { describe, expect, it } from "bun:test";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 21 model entries (… + 6-10 MerchantLogoCache:null + ProviderLogoCache:null)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(21);
+  it("exposes exactly 22 model entries (… + 7-2 DashboardLayout:null)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(22);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -59,6 +59,7 @@ describe("id-prefixes.config", () => {
       "BridgeUser",
       "MerchantLogoCache",
       "ProviderLogoCache",
+      "DashboardLayout",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
   });
@@ -70,6 +71,14 @@ describe("id-prefixes.config", () => {
   it("logo caches are registered null (natural-key PK, opt-out)", () => {
     expect(getPrefix("MerchantLogoCache")).toBeNull();
     expect(getPrefix("ProviderLogoCache")).toBeNull();
+  });
+
+  // Story 7-2 (D6): dashboard_layout has a `user_id` PK (UUID FK to auth.users),
+  // no synthetic id — opt out of prefix injection (null), same shape as
+  // BridgeUser. Without this, saveLayout's upsert create branch throws
+  // MissingPrefixError (the runtime 500 the stubbed unit tests could not catch).
+  it("dashboard layout is registered null (user_id PK, opt-out)", () => {
+    expect(getPrefix("DashboardLayout")).toBeNull();
   });
 
   it("getPrefix returns the registered prefix for a known model", () => {
