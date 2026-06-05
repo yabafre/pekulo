@@ -977,6 +977,21 @@ DS contracts (already shipped, consumed as-is): `PekuloCompositionRow({ label, a
 - `apps/web/package.json` (@dnd-kit deps)
 - `docs/epics.md`, `docs/architecture.md`, `docs/epics-context/epic-7-context.md`, `docs/state.yaml` (ADR-0017 registration), `docs/lessons.md`
 
+## Extension — drag-resize widgets (post-review, 2026-06-05)
+
+After 7-2 reached `review`, the user asked for **direct widget resizing on the grid** (width + height). Kept inside 7-2 (user override); the doc-debt is paid here (reaffirms the 2026-06-05 "split scope expansions, or pay the doc-debt same-change" lesson). ADR-0017 Consequences updated.
+
+**Realized:**
+
+- `DashboardWidget` schema gains optional `colSpan` (1–12) + `rowSpan` (1–4); absent → the registry default. Backward-compatible with stored layouts (flows through contracts + the api validator untouched).
+- The widget registry carries a `rowSpan` default per widget; `resolveLayout` honours stored sizes; `WidgetGrid` renders inline `grid-column`/`grid-row` spans on a generic `.bentoCell` fill class (replaces the fixed named card classes).
+- The edit mode is now the **bento grid itself**: each cell has a drag handle (dnd-kit `rectSortingStrategy` reorder), a visibility switch, and a bottom-right resize handle that snaps the col/row span to the grid units (`snapSpan`, pure helper). Reorder/toggle commit one save; resize updates live + persists on pointer-up.
+- Persistence flows through the existing `saveLayout` path (spans stored in the JSONB `widgets`); `reset` restores the defaults.
+
+**Limitation:** resize is pointer-driven; keyboard resize is a follow-up (reorder + visibility are keyboard-reachable). The dnd/resize pointer interaction is verified live (jsdom can't measure the grid); `snapSpan` + `serializeLayout` + the size round-trip are unit-tested.
+
+**Ops fixes found in live testing (both runtime 500s, both because the unit tests stubbed the DB):** the `dashboard_layout` migration was applied via `migrate deploy` (deferred at T1 → `getLayout` 500'd on the missing table); `DashboardLayout` was registered in `id-prefixes.config.ts` as a `null` opt-out (`user_id` PK, no synthetic id → the prefixed-ids extension threw on the `saveLayout` upsert create → 500). Lesson 2026-06-05 (prefixed-ids registration) records the class.
+
 ## Dev Agent Record
 
 - **Model:** claude-opus-4-8[1m]

@@ -77,4 +77,15 @@ describe("dashboard-layout.service", () => {
     expect(out).toEqual(VALID);
     expect(upserted).toEqual([{ userId: USER, layout: VALID }]);
   });
+
+  // Story 7-2 resize extension — colSpan/rowSpan round-trip through validation
+  // + persistence untouched (the spans are part of the widget record).
+  test("saveLayout preserves stored colSpan/rowSpan", async () => {
+    const sized: DashboardLayout = {
+      widgets: [{ id: "hero", visible: true, order: 0, colSpan: 12, rowSpan: 1 }],
+    };
+    const { svc } = svcWith();
+    const out = await svc.saveLayout(USER, sized);
+    expect(out.widgets[0]).toMatchObject({ id: "hero", colSpan: 12, rowSpan: 1 });
+  });
 });
