@@ -41,28 +41,29 @@ export function RecentActivitySection({ variant = "flat" }: { variant?: "flat" |
             logoUrl: item.logoUrl,
           };
           return (
-            <View
-              key={`${item.label}-${item.amountEur}-${i}`}
-              role="listitem"
-              render="button"
-              onPress={() => router.push("/dashboard/transactions")}
-              cursor="pointer"
-              backgroundColor="transparent"
-              borderWidth={0}
-              aria-label={`${item.label}, voir dans les transactions`}
-            >
-              <PekuloActivityRow
-                tx={activity}
-                categoryPrefix={
-                  <CategoryIcon
-                    category={item.category}
-                    size={14}
-                    color="var(--colorTertiary)"
-                    style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}
-                  />
-                }
-                logo={<TransactionLogo src={item.logoUrl} category={item.category} />}
-              />
+            <View key={`${item.label}-${item.amountEur}-${i}`} role="listitem">
+              <View
+                render="button"
+                onPress={() => router.push("/dashboard/transactions")}
+                cursor="pointer"
+                backgroundColor="transparent"
+                borderWidth={0}
+                width="100%"
+                aria-label={`${item.label}, voir dans les transactions`}
+              >
+                <PekuloActivityRow
+                  tx={activity}
+                  categoryPrefix={
+                    <CategoryIcon
+                      category={item.category}
+                      size={14}
+                      color="var(--colorTertiary)"
+                      style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}
+                    />
+                  }
+                  logo={<TransactionLogo src={item.logoUrl} category={item.category} />}
+                />
+              </View>
             </View>
           );
         })}
