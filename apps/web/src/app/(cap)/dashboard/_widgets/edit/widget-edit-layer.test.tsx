@@ -1,12 +1,13 @@
 // apps/web/src/app/(cap)/dashboard/_widgets/edit/widget-edit-layer.test.tsx
-// Story 7-2 (AC-4, AC-5) — the edit layer: drag-reorder + visibility toggles +
-// reset. The dnd sensor→onDragEnd seam is verified visually (jsdom can't drive
-// dnd-kit's coordinate sensors); here we cover the reorder/serialize logic
-// purely and the toggle / reset / done interactions through the DOM.
+// Story 7-2 (AC-4, AC-5) + resize extension — the grid edit mode. The pure
+// helpers (snapSpan clamp/round, serializeLayout with sizes) are unit-tested;
+// the toggle / reset / done interactions go through the DOM. The pointer-drag
+// resize itself is verified live (jsdom reports zero element sizes, so the snap
+// unit collapses — covered by snapSpan's unit-only guard test instead).
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent } from "@testing-library/react";
 import { renderWithTamagui } from "../../../../../../test/setup";
-import { WidgetEditLayer, reorderOrder, toLayout } from "./widget-edit-layer";
+import { WidgetEditLayer, serializeLayout, snapSpan } from "./widget-edit-layer";
 
 const save = vi.fn();
 const reset = vi.fn();
@@ -20,14 +21,31 @@ vi.mock("../../_components/dashboard-edit-context", () => ({
 }));
 
 const WIDGETS = [
-  { id: "hero", label: "Patrimoine", visible: true, order: 0, colSpan: 7, render: () => null },
-  { id: "compass", label: "Cap", visible: true, order: 1, colSpan: 5, render: () => null },
+  {
+    id: "hero",
+    label: "Patrimoine",
+    visible: true,
+    order: 0,
+    colSpan: 7,
+    rowSpan: 2,
+    render: () => null,
+  },
+  {
+    id: "compass",
+    label: "Cap",
+    visible: true,
+    order: 1,
+    colSpan: 5,
+    rowSpan: 2,
+    render: () => null,
+  },
   {
     id: "composition",
     label: "Composition",
     visible: true,
     order: 2,
     colSpan: 5,
+    rowSpan: 1,
     render: () => null,
   },
 ] as unknown as Parameters<typeof WidgetEditLayer>[0]["widgets"];
@@ -38,37 +56,51 @@ beforeEach(() => {
   setEditing.mockReset();
 });
 
-describe("reorderOrder / toLayout (pure)", () => {
-  it("reorderOrder moves the active id to the over id's slot", () => {
-    expect(reorderOrder(["hero", "compass", "composition"], "hero", "composition")).toEqual([
-      "compass",
-      "composition",
-      "hero",
-    ]);
+describe("snapSpan (pure)", () => {
+  it("adds the rounded number of units the pointer travelled, clamped", () => {
+    expect(snapSpan(5, 100, 100, 1, 12)).toBe(6); // +1 unit
+    expect(snapSpan(5, 240, 100, 1, 12)).toBe(7); // +2.4 → +2
+    expect(snapSpan(5, -1000, 100, 1, 12)).toBe(1); // clamp to min
+    expect(snapSpan(7, 1000, 100, 1, 12)).toBe(12); // clamp to max
   });
 
-  it("toLayout serializes order + visibility into 0-based widget records", () => {
-    expect(toLayout(["compass", "hero"], { hero: false, compass: true })).toEqual({
+  it("leaves the span unchanged when the unit is zero (jsdom / unmeasured grid)", () => {
+    expect(snapSpan(5, 999, 0, 1, 12)).toBe(5);
+  });
+});
+
+describe("serializeLayout (pure)", () => {
+  it("serializes order + visibility + spans into 0-based records", () => {
+    expect(
+      serializeLayout([
+        { id: "compass", visible: true, colSpan: 12, rowSpan: 1 },
+        { id: "hero", visible: false, colSpan: 4, rowSpan: 2 },
+      ]),
+    ).toEqual({
       widgets: [
-        { id: "compass", visible: true, order: 0 },
-        { id: "hero", visible: false, order: 1 },
+        { id: "compass", visible: true, order: 0, colSpan: 12, rowSpan: 1 },
+        { id: "hero", visible: false, order: 1, colSpan: 4, rowSpan: 2 },
       ],
     });
   });
 });
 
 describe("WidgetEditLayer", () => {
-  it("renders one sortable row per widget", () => {
+  it("renders one editable cell per widget", () => {
     const { getAllByRole } = renderWithTamagui(<WidgetEditLayer widgets={WIDGETS} />);
     expect(getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("exposes a resize handle per widget (AC: resize)", () => {
+    const { getByLabelText } = renderWithTamagui(<WidgetEditLayer widgets={WIDGETS} />);
+    expect(getByLabelText(/Redimensionner Composition/)).toBeTruthy();
   });
 
   it("toggling a widget off saves it with visible:false (AC-5)", () => {
     const { getByLabelText } = renderWithTamagui(<WidgetEditLayer widgets={WIDGETS} />);
     fireEvent.click(getByLabelText("Afficher Composition"));
     expect(save).toHaveBeenCalledTimes(1);
-    const layout = save.mock.calls[0][0];
-    expect(layout.widgets).toContainEqual(
+    expect(save.mock.calls[0][0].widgets).toContainEqual(
       expect.objectContaining({ id: "composition", visible: false }),
     );
   });
