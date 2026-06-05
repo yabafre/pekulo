@@ -6,7 +6,7 @@
 // current-wealth figure (AC-8). The compass donut % lives in the adjacent
 // compass widget; here we add only the wealth headline + "Prochain palier".
 // `card` adds the Cap-objectif + Plan/an mini-dl (desktop bento card).
-import { PekuloCountUpEUR, PekuloSkeleton } from "@pekulo/ui";
+import { PekuloCountUpEUR, PekuloSkeleton, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useDashboardOverview } from "../_hooks/use-dashboard-overview";
 import { useCapDashboardState } from "../_compass/_components/compass-section";
@@ -38,63 +38,75 @@ export function HeroAnchor({ variant = "mobile" }: { variant?: "mobile" | "card"
   const gap = cap && objectif != null ? Math.max(0, objectif - cap.currentWealth) : 0;
   const requiredYearly = horizon != null && horizon > 0 ? gap / horizon : null;
 
-  return (
-    <View
-      render="section"
-      aria-label="Patrimoine total"
-      flexDirection="column"
-      flex={variant === "card" ? 1 : undefined}
-      justifyContent={variant === "card" ? "space-between" : undefined}
-    >
-      <View flexDirection="column">
-        <Text color="$colorTertiary" fontSize="$caption">
-          Patrimoine total
+  const topGroup = (
+    <View flexDirection="column">
+      <Text color="$colorTertiary" fontSize="$caption">
+        Patrimoine total
+      </Text>
+
+      {isLoading || !overview ? (
+        <View marginTop="$2">
+          <PekuloSkeleton block width={220} height={40} />
+        </View>
+      ) : (
+        <PekuloCountUpEUR
+          value={overview.totalWealthEur}
+          color="$color"
+          fontSize="$h1"
+          fontWeight="600"
+          letterSpacing={-0.5}
+          marginTop="$2"
+        />
+      )}
+
+      {next != null ? (
+        <Text color="$colorTertiary" fontSize="$bodySm" marginTop="$2">
+          Prochain palier · +{eur0.format(next.deltaEur)} à atteindre
         </Text>
+      ) : null}
+    </View>
+  );
 
-        {isLoading || !overview ? (
-          <View marginTop="$2">
-            <PekuloSkeleton block width={220} height={40} />
-          </View>
-        ) : (
-          <PekuloCountUpEUR
-            value={overview.totalWealthEur}
-            color="$color"
-            fontSize="$h1"
-            fontWeight="600"
-            letterSpacing={-0.5}
-            marginTop="$2"
-          />
-        )}
-
-        {next != null ? (
-          <Text color="$colorTertiary" fontSize="$bodySm" marginTop="$2">
-            Prochain palier · +{eur0.format(next.deltaEur)} à atteindre
+  const dl =
+    objectif != null ? (
+      <View flexDirection="row" gap="$6" marginTop="$4">
+        <View flexDirection="column">
+          <Text color="$colorTertiary" fontSize="$caption">
+            Cap
           </Text>
-        ) : null}
-      </View>
-
-      {variant === "card" && objectif != null ? (
-        <View flexDirection="row" gap="$6" marginTop="$4">
+          <Text color="$color" fontSize="$bodySm" fontWeight="600">
+            {eur0.format(objectif)}
+          </Text>
+        </View>
+        {requiredYearly != null ? (
           <View flexDirection="column">
             <Text color="$colorTertiary" fontSize="$caption">
-              Cap
+              Plan / an
             </Text>
             <Text color="$color" fontSize="$bodySm" fontWeight="600">
-              {eur0.format(objectif)}
+              {eurCompact.format(requiredYearly)} €
             </Text>
           </View>
-          {requiredYearly != null ? (
-            <View flexDirection="column">
-              <Text color="$colorTertiary" fontSize="$caption">
-                Plan / an
-              </Text>
-              <Text color="$color" fontSize="$bodySm" fontWeight="600">
-                {eurCompact.format(requiredYearly)} €
-              </Text>
-            </View>
-          ) : null}
+        ) : null}
+      </View>
+    ) : null;
+
+  // Card variant — wrap in Section for the bento card chrome (background +
+  // padding); the inner flex column fills the 2-row cell (wealth top, dl
+  // bottom). Mobile variant is a bare section (the flat stack has no card).
+  if (variant === "card") {
+    return (
+      <Section ariaLabel="Patrimoine total">
+        <View flex={1} flexDirection="column" justifyContent="space-between" minHeight={0}>
+          {topGroup}
+          {dl}
         </View>
-      ) : null}
+      </Section>
+    );
+  }
+  return (
+    <View render="section" aria-label="Patrimoine total" flexDirection="column">
+      {topGroup}
     </View>
   );
 }
