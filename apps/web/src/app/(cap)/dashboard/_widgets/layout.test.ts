@@ -46,6 +46,21 @@ describe("resolveLayout", () => {
     expect(resolved.find((w) => w.id === "composition")?.visible).toBe(false);
   });
 
+  it("honours a stored colSpan/rowSpan over the registry default (resize)", () => {
+    const saved: DashboardLayout = {
+      widgets: [{ id: "hero", visible: true, order: 0, colSpan: 12, rowSpan: 1 }],
+    };
+    const hero = resolveLayout(saved).find((w) => w.id === "hero");
+    expect(hero?.colSpan).toBe(12);
+    expect(hero?.rowSpan).toBe(1);
+  });
+
+  it("falls back to the registry default span when none is stored", () => {
+    const hero = resolveLayout(null).find((w) => w.id === "hero");
+    expect(hero?.colSpan).toBe(7);
+    expect(hero?.rowSpan).toBe(2);
+  });
+
   it("defaultLayout() lists every registry widget at its default order", () => {
     const def = defaultLayout();
     expect(def.widgets).toHaveLength(8);

@@ -16,6 +16,7 @@ export interface ResolvedWidget {
   visible: boolean;
   order: number;
   colSpan: number;
+  rowSpan: number;
   render: () => ReactNode;
 }
 
@@ -29,7 +30,8 @@ export function resolveLayout(saved: DashboardLayout | null): ResolvedWidget[] {
     return {
       id: def.id,
       label: def.label,
-      colSpan: def.colSpan,
+      colSpan: stored?.colSpan ?? def.colSpan,
+      rowSpan: stored?.rowSpan ?? def.rowSpan,
       render: def.render,
       visible: stored ? stored.visible : def.defaultVisible,
       // A stored widget keeps its order; a registry widget the user never saw

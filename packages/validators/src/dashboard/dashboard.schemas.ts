@@ -80,6 +80,12 @@ export const dashboardWidgetSchema = z.object({
   id: dashboardWidgetIdSchema,
   visible: z.boolean(),
   order: z.number().int().min(0),
+  // Story 7-2 extension — user-resized span on the desktop bento grid (drag
+  // handles). Optional + bounded: absent → the registry default span. colSpan
+  // is the 12-col width; rowSpan is the row-track height. Mobile (flat column)
+  // ignores both.
+  colSpan: z.number().int().min(1).max(12).optional(),
+  rowSpan: z.number().int().min(1).max(4).optional(),
 });
 export type DashboardWidget = z.infer<typeof dashboardWidgetSchema>;
 

@@ -8,7 +8,6 @@
 // factory (hooks run inside the returned component, not here).
 import dynamic from "next/dynamic";
 import { View } from "@pekulo/ui/client";
-import type { DashboardWidgetId } from "@pekulo/validators";
 import type { ResolvedWidget } from "./layout";
 import styles from "../_components/bento.module.css";
 
@@ -17,21 +16,9 @@ const WidgetEditLayer = dynamic(
   { ssr: false, loading: () => null },
 );
 
-// Each widget reuses the matching bento card class, which carries both its
-// grid-column/grid-row span AND the cell-fill rule (`.xCard { display:flex }` +
-// `.xCard > * { flex:1 }`) so the card stretches to its row track instead of
-// floating at the top of an oversized cell. Widgets without a dedicated cell
-// (nextMilestone, opt-in) fall back to an inline column span.
-const CARD_CLASS: Partial<Record<DashboardWidgetId, string>> = {
-  hero: styles.heroCard,
-  compass: styles.donutCard,
-  trajectory: styles.trajectoryCard,
-  milestones: styles.milestonesCard,
-  composition: styles.compositionCard,
-  recentActivity: styles.recentActivityCard,
-  hypothesis: styles.hypothesisCard,
-};
-
+// Each cell's grid placement is the RESOLVED span (registry default, overridden
+// by the user's stored resize). `.bentoCell` carries only the cell-fill so the
+// card stretches to its track; the span is inline so it stays user-configurable.
 export function WidgetGrid({ widgets, editing }: { widgets: ResolvedWidget[]; editing: boolean }) {
   if (editing) return <WidgetEditLayer widgets={widgets} />;
   const visible = widgets.filter((w) => w.visible);
@@ -46,18 +33,18 @@ export function WidgetGrid({ widgets, editing }: { widgets: ResolvedWidget[]; ed
       </View>
       <View display="none" $lg={{ display: "block" }}>
         <div className={styles.bento}>
-          {visible.map((w) => {
-            const cls = CARD_CLASS[w.id];
-            return (
-              <div
-                key={w.id}
-                className={cls}
-                style={cls ? undefined : { gridColumn: `span ${w.colSpan} / span ${w.colSpan}` }}
-              >
-                {w.render()}
-              </div>
-            );
-          })}
+          {visible.map((w) => (
+            <div
+              key={w.id}
+              className={styles.bentoCell}
+              style={{
+                gridColumn: `span ${w.colSpan} / span ${w.colSpan}`,
+                gridRow: `span ${w.rowSpan} / span ${w.rowSpan}`,
+              }}
+            >
+              {w.render()}
+            </div>
+          ))}
         </div>
       </View>
     </>

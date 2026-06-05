@@ -186,6 +186,20 @@
     gap: 16px; /* $4 */
   }
 
+  /* Generic configurable cell (story 7-2 extension — user-resized spans). The
+     grid-column / grid-row span is applied inline from the resolved colSpan /
+     rowSpan; this class only carries the cell-fill so the card stretches to its
+     track instead of floating at the top of an oversized cell (the same fill
+     the named .xCard classes provide). */
+  .bentoCell {
+    display: flex;
+    flex-direction: column;
+  }
+  .bentoCell > * {
+    flex: 1;
+    min-height: 0;
+  }
+
   /* Every cell stretches to the row track via the default
      `align-items: stretch` on the grid; the inner card consumes 100% of
      the cell height so its content can `justify-content: space-between`

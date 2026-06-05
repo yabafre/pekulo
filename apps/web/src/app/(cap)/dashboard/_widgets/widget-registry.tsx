@@ -27,7 +27,10 @@ export interface WidgetDef {
   label: string;
   defaultOrder: number;
   defaultVisible: boolean;
+  /** Default 12-col grid width (overridable by a stored colSpan). */
   colSpan: number;
+  /** Default row-track height (overridable by a stored rowSpan). */
+  rowSpan: number;
   render: () => ReactNode;
 }
 
@@ -89,6 +92,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 0,
     defaultVisible: true,
     colSpan: 7,
+    rowSpan: 2,
     render: () => <HeroAnchor variant="card" />,
   },
   {
@@ -97,6 +101,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 1,
     defaultVisible: true,
     colSpan: 5,
+    rowSpan: 2,
     render: () => <CompassSection />,
   },
   {
@@ -105,6 +110,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 2,
     defaultVisible: false,
     colSpan: 12,
+    rowSpan: 1,
     render: () => <NextMilestoneWidget />,
   },
   {
@@ -113,6 +119,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 3,
     defaultVisible: true,
     colSpan: 7,
+    rowSpan: 2,
     render: () => <PlaceholderCard variant="trajectory" ownerStory="7-1" />,
   },
   {
@@ -121,6 +128,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 4,
     defaultVisible: true,
     colSpan: 5,
+    rowSpan: 2,
     render: () => <MilestonesWidget />,
   },
   {
@@ -129,6 +137,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 5,
     defaultVisible: true,
     colSpan: 12,
+    rowSpan: 1,
     render: () => <PlaceholderCard variant="hypothesis" ownerStory="6-x" />,
   },
   {
@@ -137,6 +146,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 6,
     defaultVisible: true,
     colSpan: 5,
+    rowSpan: 1,
     render: () => <CompositionSection variant="card" />,
   },
   {
@@ -145,6 +155,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 7,
     defaultVisible: true,
     colSpan: 7,
+    rowSpan: 1,
     render: () => <RecentActivitySection variant="card" />,
   },
 ];
