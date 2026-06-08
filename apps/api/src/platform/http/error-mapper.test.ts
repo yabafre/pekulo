@@ -5,6 +5,7 @@
 // to oRPC's `isORPCErrorJson` shape (no extra top-level keys allowed).
 
 import { describe, expect, test } from "bun:test";
+import { z } from "@pekulo/zod";
 
 import { PekuloError } from "../../common/errors";
 import { mapErrorToOrpcResponse } from "./error-mapper";
@@ -67,6 +68,25 @@ describe("mapErrorToOrpcResponse", () => {
     expect(result.status).toBe(500);
     expect(result.body.code).toBe("INTERNAL");
     expect(result.body.message).toBe("internal server error");
+    expect(result.body.data.requestId).toBe(REQUEST_ID);
+  });
+
+  test("ZodError → 400 BAD_REQUEST (story 7-2 aped-review F4, defence in depth)", () => {
+    // A schema re-parse inside a service (dashboard-layout.service.saveLayout)
+    // or any internal caller bypassing the oRPC contract input layer throws a
+    // ZodError; the mapper must surface it as a 400, not a 500.
+    const err = (() => {
+      try {
+        z.object({ id: z.string() }).parse({ id: 123 });
+        return null;
+      } catch (e) {
+        return e;
+      }
+    })();
+    const result = mapErrorToOrpcResponse(err, REQUEST_ID);
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe("BAD_REQUEST");
+    expect(result.body.message).toBe("invalid request payload");
     expect(result.body.data.requestId).toBe(REQUEST_ID);
   });
 

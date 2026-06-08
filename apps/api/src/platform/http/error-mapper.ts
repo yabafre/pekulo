@@ -15,6 +15,7 @@
 // `requestId` lives inside `data` so the cross-realm correlation handle
 // survives without breaking the guard.
 
+import { ZodError } from "@pekulo/zod";
 import { isPekuloError, type PekuloErrorCode } from "../../common/errors";
 
 interface OrpcErrorBody {
@@ -221,6 +222,25 @@ export function mapErrorToOrpcResponse(err: unknown, requestId: string): MappedE
         code: "NOT_FOUND",
         status: 404,
         message: "route not found",
+        data: { requestId },
+      },
+    };
+  }
+  // Defence in depth (story 7-2 / aped-review F4): a Zod validation throw that
+  // reaches here is a bad-request payload, not an internal fault. The oRPC
+  // RPCHandler validates contract input BEFORE the handler runs, so for real
+  // wire clients an invalid body is already a structured 400 — but a service
+  // that re-parses with `schema.parse()` (e.g. dashboard-layout.service) or any
+  // future internal/programmatic caller bypassing the contract would otherwise
+  // surface as INTERNAL 500. Map it to BAD_REQUEST 400 instead.
+  if (err instanceof ZodError) {
+    return {
+      status: 400,
+      body: {
+        defined: false,
+        code: "BAD_REQUEST",
+        status: 400,
+        message: "invalid request payload",
         data: { requestId },
       },
     };
