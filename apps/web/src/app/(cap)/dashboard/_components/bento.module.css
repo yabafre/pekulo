@@ -163,6 +163,80 @@
   }
 }
 
+/* ─── Edit-mode layout arranger (story 7-2 resize ext) ───────────────────────
+   A COMPACT, clearly-delimited grid of tiles — NOT the live widgets. Each tile
+   shows its name + span badge + controls so you can see exactly which card you
+   are moving / resizing. Rows are short (72px) so the editor stays legible; the
+   tile still spans its colSpan × rowSpan, so resizing visibly changes the box.
+   A single 12-col grid at every viewport (editing is a desktop affordance). */
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: 72px;
+  gap: 8px;
+}
+
+.editTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background-color: var(--backgroundCard);
+  padding: 8px 10px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.editTile:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+}
+
+.editTileHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editTileLabel {
+  flex: 1;
+  min-width: 0;
+  color: var(--color);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editTileSize {
+  color: var(--colorTertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.editResize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 4px;
+  background: transparent;
+  border: 0;
+  cursor: nwse-resize;
+  color: var(--colorTertiary);
+  touch-action: none;
+}
+
+.editResize:hover {
+  color: var(--color);
+}
+
 /* ─── Bento (ux-preview L335-354) ────────────────────────────────────────── */
 
 .bento {

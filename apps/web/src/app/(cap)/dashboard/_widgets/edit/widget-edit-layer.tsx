@@ -26,7 +26,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Maximize2 } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import { PekuloSwitch, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import type { DashboardLayout, DashboardWidgetId } from "@pekulo/validators";
@@ -39,8 +39,9 @@ const MIN_COL = 1;
 const MAX_COL = 12;
 const MIN_ROW = 1;
 const MAX_ROW = 4;
-// Row track floor (220px) + grid gap (16px) — the px a single row span occupies.
-const ROW_UNIT_PX = 236;
+// One row span in the COMPACT edit grid = 72px row track + 8px gap. The stored
+// rowSpan renders taller in the read grid; the span value is what matters.
+const EDIT_ROW_UNIT_PX = 80;
 
 type EditItem = {
   id: DashboardWidgetId;
@@ -109,7 +110,7 @@ function EditCell({
     if (!d || !grid) return;
     const colUnit = grid.clientWidth / MAX_COL;
     const col = snapSpan(d.col, e.clientX - d.x, colUnit, MIN_COL, MAX_COL);
-    const row = snapSpan(d.row, e.clientY - d.y, ROW_UNIT_PX, MIN_ROW, MAX_ROW);
+    const row = snapSpan(d.row, e.clientY - d.y, EDIT_ROW_UNIT_PX, MIN_ROW, MAX_ROW);
     if (col !== item.colSpan || row !== item.rowSpan) onResizeLive(item.id, col, row);
   }
   function onResizeUp(e: React.PointerEvent) {
@@ -119,82 +120,72 @@ function EditCell({
     onResizeCommit();
   }
 
+  // Compact, clearly-bordered tile — NOT the live widget. Shows the name + the
+  // span badge so it's obvious which card you're moving / resizing; the tile
+  // still spans its colSpan × rowSpan so a resize visibly grows/shrinks the box.
   return (
     <div
       ref={setNodeRef}
       role="listitem"
+      className={styles.editTile}
       style={{
         gridColumn: `span ${item.colSpan} / span ${item.colSpan}`,
         gridRow: `span ${item.rowSpan} / span ${item.rowSpan}`,
         transform: CSS.Transform.toString(transform),
         transition,
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "var(--backgroundCard)",
-        borderRadius: 12,
-        padding: 12,
-        opacity: item.visible ? 1 : 0.5,
-        overflow: "hidden",
+        opacity: item.visible ? 1 : 0.45,
       }}
     >
-      <View flexDirection="row" alignItems="center" gap="$2" justifyContent="space-between">
-        <View flexDirection="row" alignItems="center" gap="$2" flex={1} minWidth={0}>
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            aria-roledescription="sortable"
-            aria-label={`Déplacer ${item.label}`}
-            style={{ background: "transparent", border: 0, cursor: "grab", display: "flex" }}
-          >
-            <GripVertical size={16} aria-hidden={true} />
-          </button>
-          <Text color="$color" fontSize="$bodySm" fontWeight="600" numberOfLines={1}>
-            {item.label}
-          </Text>
-        </View>
+      <div className={styles.editTileHeader}>
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-roledescription="sortable"
+          aria-label={`Déplacer ${item.label}`}
+          style={{
+            background: "transparent",
+            border: 0,
+            padding: 0,
+            cursor: "grab",
+            display: "flex",
+            color: "var(--colorTertiary)",
+          }}
+        >
+          <GripVertical size={15} aria-hidden={true} />
+        </button>
+        <span className={styles.editTileLabel}>{item.label}</span>
         <PekuloSwitch
           checked={item.visible}
           onCheckedChange={() => onToggle(item.id)}
           aria-label={`Afficher ${item.label}`}
         />
-      </View>
-
-      {/* Live preview — non-interactive so taps reach the controls, dimmed when hidden. */}
-      <div
-        style={{ flex: 1, minHeight: 0, marginTop: 8, pointerEvents: "none", overflow: "hidden" }}
-      >
-        {item.render()}
       </div>
+
+      <span className={styles.editTileSize}>
+        {item.colSpan} × {item.rowSpan}
+      </span>
 
       {/* Bottom-right resize handle — drag to change col (x) + row (y) span.
           Pointer-driven (a 2D resize isn't a 1D slider); keyboard resize is a
           follow-up — reorder + visibility are already keyboard-reachable. */}
       <button
         type="button"
+        className={styles.editResize}
         aria-label={`Redimensionner ${item.label} (${item.colSpan}×${item.rowSpan})`}
         onPointerDown={onResizeDown}
         onPointerMove={onResizeMove}
         onPointerUp={onResizeUp}
-        style={{
-          position: "absolute",
-          right: 2,
-          bottom: 2,
-          width: 22,
-          height: 22,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "transparent",
-          border: 0,
-          padding: 0,
-          cursor: "nwse-resize",
-          color: "var(--colorTertiary)",
-          touchAction: "none",
-        }}
       >
-        <Maximize2 size={13} aria-hidden={true} />
+        <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
+          <path
+            d="M10 2 L2 10 M10 6 L6 10"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </svg>
       </button>
     </div>
   );
@@ -259,7 +250,7 @@ export function WidgetEditLayer({ widgets }: { widgets: ResolvedWidget[] }) {
       </Text>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map((it) => it.id)} strategy={rectSortingStrategy}>
-          <div ref={gridRef} className={styles.bento} role="list">
+          <div ref={gridRef} className={styles.editGrid} role="list">
             {items.map((it) => (
               <EditCell
                 key={it.id}
