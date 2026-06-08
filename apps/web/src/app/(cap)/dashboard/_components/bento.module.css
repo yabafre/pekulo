@@ -263,8 +263,10 @@
   /* Generic configurable cell (story 7-2 extension — user-resized spans). The
      grid-column / grid-row span is applied inline from the resolved colSpan /
      rowSpan; this class only carries the cell-fill so the card stretches to its
-     track instead of floating at the top of an oversized cell (the same fill
-     the named .xCard classes provide). */
+     track instead of floating at the top of an oversized cell. WidgetGrid maps
+     every widget to this single class — the legacy named .xCard rules (heroCard,
+     donutCard, …) were removed in aped-review F5 once the resize extension made
+     spans inline + per-widget (they had no remaining consumer). */
   .bentoCell {
     display: flex;
     flex-direction: column;
@@ -272,56 +274,5 @@
   .bentoCell > * {
     flex: 1;
     min-height: 0;
-  }
-
-  /* Every cell stretches to the row track via the default
-     `align-items: stretch` on the grid; the inner card consumes 100% of
-     the cell height so its content can `justify-content: space-between`
-     instead of sitting at the top of an empty box. */
-  .heroCard,
-  .donutCard,
-  .trajectoryCard,
-  .milestonesCard,
-  .compositionCard,
-  .recentActivityCard,
-  .hypothesisCard {
-    display: flex;
-    flex-direction: column;
-  }
-  .heroCard > *,
-  .donutCard > *,
-  .trajectoryCard > *,
-  .milestonesCard > *,
-  .compositionCard > *,
-  .recentActivityCard > *,
-  .hypothesisCard > * {
-    flex: 1;
-    min-height: 0;
-  }
-
-  .heroCard {
-    grid-column: span 7 / span 7;
-    grid-row: span 2 / span 2;
-  }
-  .donutCard {
-    grid-column: span 5 / span 5;
-    grid-row: span 2 / span 2;
-  }
-  .trajectoryCard {
-    grid-column: span 7 / span 7;
-    grid-row: span 2 / span 2;
-  }
-  .milestonesCard {
-    grid-column: span 5 / span 5;
-    grid-row: span 2 / span 2;
-  }
-  .compositionCard {
-    grid-column: span 5 / span 5;
-  }
-  .recentActivityCard {
-    grid-column: span 7 / span 7;
-  }
-  .hypothesisCard {
-    grid-column: span 12 / span 12;
   }
 }
