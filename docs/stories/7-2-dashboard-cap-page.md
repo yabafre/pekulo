@@ -1039,3 +1039,48 @@ web  lint: 0 errors, 2 warnings (pre-existing array-index-key on the activity ro
 ```
 
 Per-AC coverage: AC-1/AC-6 → `_widgets/layout.test.ts`; AC-2 → `to-activity.test.ts` + `recent-activity-section.test.tsx` (press→push) + api `listRecentActivity`; AC-3 → `widget-grid.test.tsx` (edit layer absent on default path) + CI Lighthouse; AC-4/AC-5 → `dashboard-layout.service.test.ts` + `widget-edit-layer.test.tsx` (toggle/reset/reorder) + `dashboard-registry.test.ts` (layout edge); AC-6 → layout merge + service corrupt→null; AC-7 → component loading/empty tests + service `recentActivity` degrade-to-[]; AC-8 → `hero-anchor.test.tsx` (totalWealth ≠ compass currentWealth); AC-9 → `composition-section.test.tsx` (3 rows + %). a11y: `*.a11y.test.tsx` on Composition / RecentActivity / Hero / edit layer — 0 axe violations. AC-3 Lighthouse number: pending CI on the PR (not runnable locally).
+
+## Review Record
+
+**Date:** 2026-06-09
+**Auditors:** Spec, Code, Edge & Hallucination (Aria — visual — deferred)
+**Verdict:** done
+**Override:** AC gap accepted — reason: "architecture.md was the dev's queued-for-review doc-sync (story Dev Record L1025), not a missing AC — all 9 ACs are covered; the Lead applied the queued edit in the review fix cycle and re-verified against HEAD (lesson 2026-05-13)."
+
+### Findings
+
+#### Resolved
+- [MAJOR] `docs/architecture.md` driver line still claimed the dashboard "owns no tables" — T28.3 marked done but unsynced. [docs/architecture.md L90]
+  - Source: Spec + Code
+  - Resolution: `b957525` — applied the queued FR-44 edit (dashboard_layout table + recentActivity DTO + dnd-kit lazy boundary; cites ADR-0017). Verified against HEAD: 5/5 tokens present.
+- [MINOR] No CI guard that a new Prisma model is registered in `id-prefixes.config.ts` — the exact blind spot that let 7-2's `saveLayout` 500 ship (stubbed tests never load the prefixed-ids extension; lesson 2026-06-05). [apps/api/src/database/id-prefixes.config.test.ts]
+  - Source: Code (testing anti-pattern #5)
+  - Resolution: `53eb306` — DMMF meta-test enumerates `Prisma.dmmf.datamodel.models` and asserts each is in `ID_PREFIXES`; fails CI on the next unregistered model. `11 pass / 0 fail`.
+- [MINOR] A service-level `dashboardLayoutSchema.parse()` throw (or any internal caller bypassing the oRPC contract input layer) mapped to INTERNAL 500 instead of 400. [apps/api/src/platform/http/error-mapper.ts]
+  - Source: Edge & Hallucination
+  - Resolution: `24a47a3` — `err instanceof ZodError → 400 BAD_REQUEST` branch before the 500 fall-through (`@pekulo/zod` is the single monorepo zod instance, so `instanceof` holds cross-package). New test `7 pass / 0 fail`.
+- [NIT] Dead named bento `.xCard` CSS rules (no consumer after the resize extension switched to `.bentoCell` + inline spans) + a stale Dev Record note claiming WidgetGrid maps to named classes. [bento.module.css / story Dev Record L1021]
+  - Source: Code
+  - Resolution: `95ac461` — removed the dead rules (kept `.bentoCell` + edit-mode classes), corrected the note. No source references the removed classes; web typecheck + widget-grid test green.
+
+#### Dismissed
+- [BLOCKER → waived] Visual review (Aria) could not run — react-grab MCP unavailable for the entire session (already so at dev time, T26).
+  - Source: Lead (conditional Aria)
+  - Rationale: explicit user waiver. AC-1 default order is unit-proven (`_widgets/layout.test.ts`), the dnd-kit bundle-isolation half of AC-3 is unit-proven (`widget-grid.test.tsx`), and the dev validated the live render against the user's screenshots. Visual GREEN to be captured when react-grab MCP is back (or at ship).
+
+#### Documented deferrals (not findings — no hidden gap)
+- AC-2: the one-tap nav-rail half is inherited 7-1 shell chrome (untouched here); the recent-activity-row→`/dashboard/transactions` half is tested.
+- AC-3: dnd-kit bundle isolation is unit-proven; the Lighthouse Performance ≥ 90 number is the `pr.yml` CI gate (not runnable locally).
+- AC-1: default-order unit-proven; the visual first-viewport check rides on the F2 waiver.
+
+### Verification
+- Test commands (final pass, captured in the review message):
+  - `bun --filter=@pekulo/{validators,contracts,api,web} run typecheck` → exit 0 (4/4)
+  - `bun --filter=@pekulo/api test src/modules/dashboard src/database/id-prefixes.config.test.ts` → 30 pass / 0 fail
+  - `bun --filter=@pekulo/web run test "src/app/(cap)/dashboard"` → 82 files / 180 tests pass, exit 0
+  - Post-fix: api+web typecheck exit 0; error-mapper + id-prefixes 18 pass; widget-grid 3 pass — all fixes verified RESOLVED against HEAD `95ac461`.
+- Visual verification: deferred — React Grab MCP unavailable at 2026-06-09 (waived by user).
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/39#issuecomment-4658306500
+- PR opened: https://github.com/yabafre/pekulo/pull/124 (draft, base `main`)
