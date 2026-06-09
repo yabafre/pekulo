@@ -1,10 +1,15 @@
 // apps/api/src/modules/dashboard/dashboard.module.test.ts
 import { describe, expect, test } from "bun:test";
 import { computeProgress } from "../../common/derive/compass-progress";
+import type { PrismaService } from "../../database";
 import { createDashboardModule } from "./dashboard.module";
 
 describe("createDashboardModule", () => {
-  test("returns a service + router wired over the ports", async () => {
+  test("wires the overview + layout halves onto one router", () => {
+    // The layout half only needs prismaService.client at request time; the
+    // structural smoke test below never invokes a handler, so a bare stub is
+    // enough. getOverview's numeric behaviour is covered by the service +
+    // integration suites.
     const mod = createDashboardModule({
       listAccounts: async () => [],
       listHoldings: async () => [],
@@ -18,12 +23,12 @@ describe("createDashboardModule", () => {
       }),
       getTotalEquity: async () => ({ totalEquityEur: 0 }),
       getCompass: async () => null,
+      listRecentActivity: async () => [],
       computeProgress,
+      prismaService: { client: {} } as unknown as PrismaService,
     });
-    expect(typeof mod.service.getOverview).toBe("function");
     expect(mod.router.getOverview).toBeDefined();
-    const out = await mod.service.getOverview("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
-    expect(out.totalWealthEur).toBe(0);
-    expect(out.compass).toBeNull();
+    expect(mod.router.getLayout).toBeDefined();
+    expect(mod.router.saveLayout).toBeDefined();
   });
 });

@@ -16,6 +16,7 @@ import { mapErrorToOrpcResponse } from "../../platform/http/error-mapper";
 import { mountOrpc, type PekuloRpcRouter } from "../../platform/http/orpc-mount";
 import { createJwtVerifier } from "../../platform/security";
 import { computeProgress } from "../../common/derive/compass-progress";
+import type { PrismaService } from "../../database";
 import type { DashboardOverview } from "@pekulo/validators";
 import { createDashboardModule } from "./dashboard.module";
 
@@ -51,7 +52,10 @@ function buildApp() {
     }),
     getTotalEquity: async () => ({ totalEquityEur: 250_000 }),
     getCompass: async () => ({ objectif: 800_000 }),
+    listRecentActivity: async () => [],
     computeProgress,
+    // getOverview never touches the layout repo — a bare client stub is enough.
+    prismaService: { client: {} } as unknown as PrismaService,
   });
   const orpcRouter = { dashboard: dashboardModule.router } as unknown as PekuloRpcRouter;
   const jwtVerifier = createJwtVerifier({ secret: SECRET, issuer: ISSUER, audience: AUDIENCE });

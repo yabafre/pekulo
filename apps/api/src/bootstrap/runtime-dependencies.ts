@@ -228,6 +228,8 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     categoriser: transactionCategoriser,
     llmAudit: llmOverrideAudit,
     logos: logosModule.service, // story 6-10 — enrich list reads with logoUrl
+    // story 7-2 D3 — resolve account labels for the dashboard recentActivity DTO
+    accountLister: { list: (userId) => accountsModule.service.list(userId) },
   });
 
   const monthlyModule = createMonthlyModule({ prismaService });
@@ -255,6 +257,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // holdings 4-tier chain (resolveQuote, 60s cache); FX via the frankfurter
   // client the holdings module exposes for exactly this (holdings.module L39).
   const dashboardModule = createDashboardModule({
+    prismaService,
     listAccounts: (userId) => accountsModule.service.list(userId),
     listHoldings: (userId) => holdingsModule.service.list(userId, { includeClosed: false }),
     resolveQuote: (input) => holdingsModule.service.resolveQuote(input),
@@ -262,6 +265,9 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     getTotalEquity: (userId) => realestateModule.service.getTotalEquity(userId),
     getCompass: (userId) => compassModule.service.getCompass(userId),
     computeProgress: (input) => compassModule.service.computeProgress(input),
+    // story 7-2 D3 — recent activity port (transactions + account labels)
+    listRecentActivity: (userId, limit) =>
+      transactionsModule.service.listRecentActivity(userId, limit),
   });
 
   const orpcRouter: PekuloRpcRouter = {

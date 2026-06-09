@@ -3,7 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import { computeProgress } from "../../common/derive/compass-progress";
 import { createDashboardService, type DashboardPorts } from "./dashboard.service";
-import type { Account, Holding } from "@pekulo/validators";
+import type { Account, DashboardActivity, Holding } from "@pekulo/validators";
 
 const USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const NOW = new Date("2026-06-04T00:00:00Z");
@@ -73,6 +73,7 @@ function basePorts(over: Partial<DashboardPorts> = {}): DashboardPorts {
     }),
     getTotalEquity: async () => ({ totalEquityEur: 250_000 }),
     getCompass: async () => ({ objectif: 800_000 }),
+    listRecentActivity: async () => [],
     computeProgress,
     ...over,
   };
@@ -201,6 +202,49 @@ describe("dashboard.service.getOverview", () => {
     );
     const out = await svc.getOverview(USER);
     expect(out.compass).toBeNull();
+    expect(out.totalWealthEur).toBe(276_000);
+  });
+
+  // Story 7-2 (D3) — recentActivity composed into the overview (AC-2, AC-7).
+  test("recentActivity surfaces the rows from the port, in order", async () => {
+    const rows: DashboardActivity[] = [
+      {
+        label: "Loyer",
+        account: "Compte courant",
+        category: "loyer",
+        direction: "out",
+        amountEur: 900,
+      },
+      {
+        label: "Salaire",
+        account: "Livret A",
+        category: "salaire",
+        direction: "in",
+        amountEur: 2_500,
+      },
+      {
+        label: "Courses",
+        account: "Compte courant",
+        category: "courses",
+        direction: "out",
+        amountEur: 42,
+      },
+    ];
+    const svc = createDashboardService(basePorts({ listRecentActivity: async () => rows }));
+    const out = await svc.getOverview(USER);
+    expect(out.recentActivity).toEqual(rows);
+  });
+
+  test("AC-7 — a failing recentActivity read degrades to [] without breaking wealth", async () => {
+    const svc = createDashboardService(
+      basePorts({
+        listRecentActivity: async () => {
+          throw new Error("activity read down");
+        },
+      }),
+    );
+    const out = await svc.getOverview(USER);
+    expect(out.recentActivity).toEqual([]);
     expect(out.totalWealthEur).toBe(276_000);
   });
 });

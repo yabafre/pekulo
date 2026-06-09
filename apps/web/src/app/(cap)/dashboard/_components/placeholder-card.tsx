@@ -15,7 +15,7 @@
 import { Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 
-type PlaceholderVariant = "hero" | "trajectory" | "composition" | "activity" | "hypothesis";
+type PlaceholderVariant = "trajectory" | "hypothesis";
 
 export interface PlaceholderCardProps {
   variant: PlaceholderVariant;
@@ -33,32 +33,6 @@ function SkeletonLine({ width, height = 14 }: { width: number | `${number}%`; he
   }
   return (
     <View width={width} height={height} backgroundColor="$backgroundMuted" borderRadius="$sm" />
-  );
-}
-
-function HeroPlaceholder() {
-  return (
-    <View flexDirection="column" gap="$3" paddingTop="$1">
-      <Text color="$colorTertiary" fontSize="$caption">
-        Patrimoine total
-      </Text>
-      <SkeletonLine width={220} height={36} />
-      <SkeletonLine width={180} height={14} />
-      <View flexDirection="row" gap="$8" marginTop="$5" flexWrap="wrap">
-        <View flexDirection="column" gap="$1">
-          <Text color="$colorTertiary" fontSize="$caption">
-            Cap
-          </Text>
-          <SkeletonLine width={120} height={20} />
-        </View>
-        <View flexDirection="column" gap="$1">
-          <Text color="$colorTertiary" fontSize="$caption">
-            Plan / an
-          </Text>
-          <SkeletonLine width={120} height={20} />
-        </View>
-      </View>
-    </View>
   );
 }
 
@@ -117,27 +91,6 @@ function TrajectoryPlaceholder() {
   );
 }
 
-function ListPlaceholder({ rows }: { rows: number }) {
-  // Static placeholder rows — the key is intentionally derived from a
-  // stable label sequence rather than the array index so the lint rule
-  // `no-array-index-key` is satisfied. The list never reorders.
-  const stableKeys = ["skeleton-row-a", "skeleton-row-b", "skeleton-row-c", "skeleton-row-d"];
-  return (
-    <View flexDirection="column" gap="$3">
-      {stableKeys.slice(0, rows).map((key) => (
-        <View key={key} flexDirection="row" alignItems="center" gap="$3" paddingVertical="$2">
-          <View width={28} height={28} borderRadius="$full" backgroundColor="$backgroundMuted" />
-          <View flex={1} flexDirection="column" gap="$1">
-            <SkeletonLine width="60%" height={12} />
-            <SkeletonLine width="30%" height={10} />
-          </View>
-          <SkeletonLine width={60} height={12} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
 function HypothesisPlaceholder() {
   return (
     <View flexDirection="column" gap="$3" paddingVertical="$1">
@@ -148,38 +101,20 @@ function HypothesisPlaceholder() {
 }
 
 const VARIANT_TITLES: Record<PlaceholderVariant, string> = {
-  hero: "Patrimoine",
   trajectory: "Trajectoire",
-  composition: "Composition",
-  activity: "Activité récente",
   hypothesis: "Hypothèse de projection",
 };
 
 export function PlaceholderCard({ variant, ownerStory, className }: PlaceholderCardProps) {
   const title = VARIANT_TITLES[variant];
-  const body =
-    variant === "hero" ? (
-      <HeroPlaceholder />
-    ) : variant === "trajectory" ? (
-      <TrajectoryPlaceholder />
-    ) : variant === "composition" ? (
-      <ListPlaceholder rows={3} />
-    ) : variant === "activity" ? (
-      <ListPlaceholder rows={4} />
-    ) : (
-      <HypothesisPlaceholder />
-    );
+  const body = variant === "trajectory" ? <TrajectoryPlaceholder /> : <HypothesisPlaceholder />;
   // The outer wrapper is `flex: 1; justify-content: space-between` so the
   // body sits at the TOP of the available cell height and the footnote
   // pins to the BOTTOM. Without this, lighter placeholders stack at the
   // top of an oversized cell and the rest of the cell reads as empty —
   // exactly the visual hole the user flagged on Pass 6.
   return (
-    <Section
-      className={className}
-      title={variant === "hero" ? undefined : title}
-      ariaLabel={`${title} (bientôt — ${ownerStory})`}
-    >
+    <Section className={className} title={title} ariaLabel={`${title} (bientôt — ${ownerStory})`}>
       <View flex={1} flexDirection="column" justifyContent="space-between" minHeight={0}>
         <View flexDirection="column" flex={1}>
           {body}

@@ -155,7 +155,19 @@ export const dashboardKeys = createFeatureKeys(DASHBOARD_KEY, {
   overview: () => ["overview"] as const,
 });
 
+// Story 7-2 (D6) — the per-user widget layout. Unlike the read-only overview,
+// the layout HAS a write path (saveLayout), so it declares both keys AND tags;
+// saving the layout invalidates only its own read (the wealth overview is
+// untouched by a reorder/visibility change).
+export const dashboardLayoutKeys = createFeatureKeys(DASHBOARD_KEY, {
+  layout: () => ["layout"] as const,
+});
+export const dashboardLayoutTags = createFeatureTags(DASHBOARD_KEY, {
+  current: () => ["layout"] as const,
+});
+
 setTagRegistry({
+  [dashboardLayoutTags.current()]: [dashboardLayoutKeys.layout()],
   [hypothesesTags.all()]: [hypothesesKeys.current()],
   [hypothesesTags.current()]: [hypothesesKeys.current()],
   // Compass — `current` invalidates every read of the compass aggregate

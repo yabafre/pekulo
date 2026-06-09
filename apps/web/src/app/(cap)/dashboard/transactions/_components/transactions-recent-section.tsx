@@ -18,9 +18,9 @@ import {
   useToast,
 } from "@pekulo/ui";
 import { MoreHorizontal, Search, Upload } from "lucide-react";
-import { TRANSACTION_CATEGORY_LABELS, type Transaction } from "@pekulo/validators";
-import type { Activity } from "@pekulo/types";
+import type { Transaction } from "@pekulo/validators";
 import { useAccounts } from "../../_accounts/_hooks/use-accounts";
+import { txToActivity } from "../../_lib/to-activity";
 import { useTransactions } from "../_hooks/use-transactions";
 import { useMonthScope } from "./month-scope-context";
 import { CsvImportForm } from "./csv-import-form";
@@ -226,13 +226,7 @@ export function TransactionsRecentSection() {
           {items.some(isAiApplied) && pendingTotal === 0 ? <AiTransparencyNotice /> : null}
           <View flexDirection="column" role="list" aria-label="Liste des transactions">
             {items.map((tx) => {
-              const activity: Activity = {
-                label: tx.label,
-                account: accountLabelById.get(tx.accountId) ?? "—",
-                category: TRANSACTION_CATEGORY_LABELS[tx.category],
-                direction: tx.type === "inflow" ? "in" : "out",
-                amountEur: tx.amount,
-              };
+              const activity = txToActivity(tx, accountLabelById.get(tx.accountId) ?? "—");
               // Story 6-8 (DR-13) — every row shows its category icon as an
               // inline caption prefix (14 px / colorTertiary / aria-hidden so SR
               // readers announce only the category label). 'transfer' resolves to

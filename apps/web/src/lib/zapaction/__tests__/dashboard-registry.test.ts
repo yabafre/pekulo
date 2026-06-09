@@ -8,6 +8,8 @@ import {
   bankConnectionsTags,
   compassTags,
   dashboardKeys,
+  dashboardLayoutKeys,
+  dashboardLayoutTags,
   holdingsTags,
   realestateTags,
   transactionsTags,
@@ -37,5 +39,17 @@ describe("dashboard tag registry — AC-5", () => {
 
   it("dashboardKeys.overview() is the stable read key", () => {
     expect(dashboardKeys.overview()[0]).toBe("dashboard");
+  });
+
+  // Story 7-2 (D6) — saving the widget layout invalidates only its own read,
+  // through a dedicated edge (the overview is untouched by a layout change).
+  it("invalidateTags(dashboardLayout) reaches dashboardLayoutKeys.layout()", async () => {
+    const qc = new QueryClient();
+    qc.setQueryData(dashboardLayoutKeys.layout(), { widgets: [] });
+    expect(qc.getQueryState(dashboardLayoutKeys.layout())?.isInvalidated).toBe(false);
+
+    await invalidateTags(qc, [dashboardLayoutTags.current()]);
+
+    expect(qc.getQueryState(dashboardLayoutKeys.layout())?.isInvalidated).toBe(true);
   });
 });

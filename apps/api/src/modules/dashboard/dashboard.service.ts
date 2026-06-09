@@ -26,6 +26,7 @@ import type {
 } from "../../common/derive/compass-progress";
 import type {
   Account,
+  DashboardActivity,
   DashboardOverview,
   FxRates,
   Holding,
@@ -46,6 +47,9 @@ export interface DashboardPorts {
   getTotalEquity: (userId: string) => Promise<{ totalEquityEur: number }>;
   getCompass: (userId: string) => Promise<{ objectif: number } | null>;
   computeProgress: (input: ComputeProgressInput) => ComputeProgressOutput;
+  // story 7-2 D3 — last N confirmed activity rows, already shaped to the
+  // dashboard activity DTO (account label resolved, direction/amount mapped).
+  listRecentActivity: (userId: string, limit: number) => Promise<DashboardActivity[]>;
 }
 
 export interface DashboardService {
@@ -104,7 +108,7 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
 
   return {
     async getOverview(userId) {
-      const [accounts, holdings, rates, equity, compassRow] = await Promise.all([
+      const [accounts, holdings, rates, equity, compassRow, recentActivity] = await Promise.all([
         deps.listAccounts(userId),
         deps.listHoldings(userId),
         // FX is best-effort (NFR-19): a frankfurter failure → null → 1:1 fallback.
@@ -116,6 +120,9 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
         // failed accounts/holdings/equity read MUST surface, never silently
         // under-report net wealth (finance correctness > availability here).
         deps.getCompass(userId).catch(() => null),
+        // recent activity is presentational — degrade to [] on any failure so a
+        // logo/transactions hiccup never 500s the wealth aggregate (AC-7).
+        deps.listRecentActivity(userId, 5).catch(() => [] as DashboardActivity[]),
       ]);
 
       const priced = await priceHoldings(holdings);
@@ -147,6 +154,7 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
         },
         compass,
         fx: { source: snapshot.fxSource, asOf: snapshot.fxAsOf },
+        recentActivity,
       };
     },
   };

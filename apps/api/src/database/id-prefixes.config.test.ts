@@ -10,11 +10,12 @@
 //         Object.values(ID_PREFIXES).length === new Set(Object.values(ID_PREFIXES)).size.
 
 import { describe, expect, it } from "bun:test";
+import { Prisma } from "@generated/prisma/client";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 21 model entries (… + 6-10 MerchantLogoCache:null + ProviderLogoCache:null)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(21);
+  it("exposes exactly 22 model entries (… + 7-2 DashboardLayout:null)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(22);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -59,6 +60,7 @@ describe("id-prefixes.config", () => {
       "BridgeUser",
       "MerchantLogoCache",
       "ProviderLogoCache",
+      "DashboardLayout",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
   });
@@ -72,6 +74,14 @@ describe("id-prefixes.config", () => {
     expect(getPrefix("ProviderLogoCache")).toBeNull();
   });
 
+  // Story 7-2 (D6): dashboard_layout has a `user_id` PK (UUID FK to auth.users),
+  // no synthetic id — opt out of prefix injection (null), same shape as
+  // BridgeUser. Without this, saveLayout's upsert create branch throws
+  // MissingPrefixError (the runtime 500 the stubbed unit tests could not catch).
+  it("dashboard layout is registered null (user_id PK, opt-out)", () => {
+    expect(getPrefix("DashboardLayout")).toBeNull();
+  });
+
   it("getPrefix returns the registered prefix for a known model", () => {
     expect(getPrefix("Account")).toBe("acc");
     expect(getPrefix("HoldingLot")).toBe("lot");
@@ -81,6 +91,27 @@ describe("id-prefixes.config", () => {
   it("getPrefix throws MissingPrefixError on an unknown model", () => {
     expect(() => getPrefix("FakeModel")).toThrow(MissingPrefixError);
     expect(() => getPrefix("FakeModel")).toThrow(/FakeModel/);
+  });
+
+  // Story 7-2 (aped-review F3): close the lesson-2026-06-05 class for good.
+  // The prefixed-ids extension fires `getPrefix(model)` on EVERY create/upsert
+  // (prefixed-ids.injector); an unregistered Prisma model throws
+  // MissingPrefixError at RUNTIME (a 500 on the first write) while every stubbed
+  // unit test stays green — exactly how 7-2's saveLayout 500 slipped past. This
+  // meta-test enumerates the generated client's DMMF and fails in CI the moment
+  // a new model lands without an ID_PREFIXES entry, so the next story can't ship
+  // the same latent 500. (Reverse direction — extra ID_PREFIXES keys that aren't
+  // Prisma models — is harmless and intentionally allowed: ADR-0012 pre-registers
+  // future models.)
+  it("every Prisma model (DMMF) is registered in ID_PREFIXES (a prefix or null)", () => {
+    const dmmfModels = Prisma.dmmf.datamodel.models.map((m) => m.name);
+    const registered = new Set(Object.keys(ID_PREFIXES));
+    const unregistered = dmmfModels.filter((name) => !registered.has(name));
+    expect(
+      unregistered,
+      `unregistered Prisma model(s) — add to apps/api/src/database/id-prefixes.config.ts ` +
+        `(a 2–4 char prefix, or null for natural-key / user_id-PK tables): ${unregistered.join(", ")}`,
+    ).toEqual([]);
   });
 
   // AC-1 (verbatim from story 5-6-bridge-connector):

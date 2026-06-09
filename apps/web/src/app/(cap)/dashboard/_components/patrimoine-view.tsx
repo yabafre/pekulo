@@ -11,6 +11,8 @@ import { View, Text } from "@pekulo/ui/client";
 import { useAccounts } from "../_accounts/_hooks/use-accounts";
 import { AccountsSection } from "../_accounts/_components/accounts-section";
 import { BankConnectionsSection } from "../_bank/_components/bank-connections-section";
+import { CompositionSection } from "./composition-section";
+import { RecentActivitySection } from "./recent-activity-section";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -21,44 +23,6 @@ const eurCompact = new Intl.NumberFormat("fr-FR", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
-
-function SkeletonLine({ width, height = 14 }: { width: number | `${number}%`; height?: number }) {
-  if (typeof width === "string") {
-    return <View style={{ width, height }} backgroundColor="$backgroundMuted" borderRadius="$sm" />;
-  }
-  return (
-    <View width={width} height={height} backgroundColor="$backgroundMuted" borderRadius="$sm" />
-  );
-}
-
-function FlatListPlaceholder({ rows, ownerStory }: { rows: number; ownerStory: string }) {
-  const keys = ["a", "b", "c", "d", "e"].slice(0, rows);
-  return (
-    <View flexDirection="column" gap="$3">
-      {keys.map((k) => (
-        <View
-          key={`row-${k}`}
-          flexDirection="row"
-          alignItems="center"
-          gap="$3"
-          paddingVertical="$2"
-        >
-          <View width={28} height={28} borderRadius="$full" backgroundColor="$backgroundMuted" />
-          <View flex={1} flexDirection="column" gap="$1">
-            <SkeletonLine width="60%" height={12} />
-            <SkeletonLine width="30%" height={10} />
-          </View>
-          <SkeletonLine width={60} height={12} />
-        </View>
-      ))}
-      <View flexDirection="row" justifyContent="flex-end" marginTop="$1">
-        <Text color="$colorMuted" fontSize="$xs">
-          Bientôt · {ownerStory}
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 export function PatrimoineView() {
   const { data } = useAccounts();
@@ -95,35 +59,9 @@ export function PatrimoineView() {
 
       <BankConnectionsSection />
 
-      <View render="section" aria-labelledby="comp-h" flexDirection="column">
-        <Text
-          id="comp-h"
-          render="h2"
-          color="$color"
-          fontSize="$h3"
-          fontWeight="600"
-          marginBottom="$3"
-          $lg={{ fontSize: "$h2" }}
-        >
-          Composition
-        </Text>
-        <FlatListPlaceholder rows={3} ownerStory="3-x / 4-x" />
-      </View>
+      <CompositionSection variant="flat" />
 
-      <View render="section" aria-labelledby="act-h" flexDirection="column">
-        <Text
-          id="act-h"
-          render="h2"
-          color="$color"
-          fontSize="$h3"
-          fontWeight="600"
-          marginBottom="$3"
-          $lg={{ fontSize: "$h2" }}
-        >
-          Activité récente
-        </Text>
-        <FlatListPlaceholder rows={5} ownerStory="5-x" />
-      </View>
+      <RecentActivitySection variant="flat" />
     </View>
   );
 }

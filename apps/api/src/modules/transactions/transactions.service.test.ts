@@ -786,3 +786,75 @@ describe("transactionsService — logo enrichment (story 6-10 / FR-65)", () => {
     expect(pending.items[0]?.logoUrl ?? null).toBeNull();
   });
 });
+
+// Story 7-2 (D3) — the dashboard recent-activity port. The service shapes the
+// N most recent transactions to DashboardActivity: resolves the account label
+// (narrow accountLister port), maps inflow/outflow → in/out, passes logoUrl
+// through. A missing label port degrades the account to "—".
+describe("listRecentActivity (story 7-2 D3)", () => {
+  const tx1 = {
+    ...sampleTx,
+    id: "tx_recent1aaaaaaaaaaaaaa",
+    accountId: "acc_courant11111111111111",
+    label: "Loyer",
+    amount: 900,
+    type: "outflow" as const,
+    category: "loyer" as const,
+  };
+  const tx2 = {
+    ...sampleTx,
+    id: "tx_recent2aaaaaaaaaaaaaa",
+    accountId: "acc_livret111111111111111",
+    label: "Salaire",
+    amount: 2500,
+    type: "inflow" as const,
+    category: "salaire" as const,
+  };
+
+  test("maps recent transactions to DashboardActivity with resolved labels", async () => {
+    const svc = createTransactionsService({
+      repository: makeRepoMock({
+        listByUser: mock(async () => ({ items: [tx1, tx2], nextCursor: null })),
+      }),
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+      accountLister: {
+        list: async () => [
+          { id: "acc_courant11111111111111", label: "Compte courant" },
+          { id: "acc_livret111111111111111", label: "Livret A" },
+        ],
+      },
+    });
+    const out = await svc.listRecentActivity("u1", 5);
+    expect(out).toEqual([
+      {
+        label: "Loyer",
+        account: "Compte courant",
+        category: "loyer",
+        direction: "out",
+        amountEur: 900,
+        logoUrl: null,
+      },
+      {
+        label: "Salaire",
+        account: "Livret A",
+        category: "salaire",
+        direction: "in",
+        amountEur: 2500,
+        logoUrl: null,
+      },
+    ]);
+  });
+
+  test("falls back to '—' when no account-label port is wired", async () => {
+    const svc = createTransactionsService({
+      repository: makeRepoMock({
+        listByUser: mock(async () => ({ items: [tx1], nextCursor: null })),
+      }),
+      accountOwnershipProbe: makeProbe(true),
+      accountResolver: makeResolver(),
+    });
+    const [row] = await svc.listRecentActivity("u1", 5);
+    expect(row?.account).toBe("—");
+  });
+});

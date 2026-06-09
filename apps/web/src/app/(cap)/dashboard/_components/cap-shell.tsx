@@ -21,7 +21,7 @@
 // `$max-md` claiming Tamagui `md = 1020`; see lesson 2026-05-17 "Tamagui
 // v5 media keys" — the real `md` is 768 and the right cutover is 1024.)
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -36,6 +36,7 @@ import {
 } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { TransactionCreateForm } from "../transactions/_components/transaction-create-form";
+import { DashboardEditProvider, useDashboardEdit } from "./dashboard-edit-context";
 import styles from "./bento.module.css";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", {
@@ -49,11 +50,41 @@ export interface CapShellProps {
   children: ReactNode;
 }
 
+// "Personnaliser" / "Terminé" toggle. A child of DashboardEditProvider so it
+// consumes the same editing flag CapView's widget grid reads (the shell itself
+// renders the provider, so it can't consume it directly).
+function DashboardEditToggle() {
+  const { editing, setEditing } = useDashboardEdit();
+  return (
+    <View
+      render="button"
+      onPress={() => setEditing((v) => !v)}
+      cursor="pointer"
+      backgroundColor="transparent"
+      borderWidth={0}
+      paddingHorizontal="$3"
+      aria-label={editing ? "Terminer la personnalisation" : "Personnaliser le tableau de bord"}
+    >
+      <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
+        {editing ? "Terminé" : "Personnaliser"}
+      </Text>
+    </View>
+  );
+}
+
 export function CapShell({ email, children }: CapShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [newTxOpen, setNewTxOpen] = useState(false);
+  // The "Personnaliser" toggle's visibility depends on the active tab, which is
+  // resolved from useSearchParams — empty during the server prerender, real on
+  // the client. Gating it behind a post-mount flag keeps the SSR and first
+  // client render identical (no hydration mismatch); the toggle fades in after.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const isDashboardRoot = pathname === "/dashboard";
   const activeTab: PekuloTopTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
   const navActiveKey: PekuloNavKey = pathname.startsWith("/dashboard/portefeuille")
@@ -131,70 +162,73 @@ export function CapShell({ email, children }: CapShellProps) {
   };
 
   return (
-    <div className={styles.shell}>
-      <PekuloNavRail activeKey={navActiveKey} onSelect={handleNav} />
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <p className={styles.dateLabel} translate="no">
-            {today}
-          </p>
-          {isDashboardRoot && (
-            <PekuloTopTabToggle
-              topTab={activeTab}
-              onChange={(t) =>
-                router.push(t === "patrimoine" ? "/dashboard?tab=patrimoine" : "/dashboard")
-              }
-            />
-          )}
-          {screenTitle && <h1 className={styles.screenTitle}>{screenTitle}</h1>}
-        </div>
-        <div className={styles.headerRight}>
-          {contextualAddLabel && (
-            <PekuloContextualAddButton label={contextualAddLabel} onPress={handleNewTx} />
-          )}
-          <button
-            type="button"
-            className={styles.newTxPill}
-            onClick={handleNewTx}
-            aria-label="Nouvelle transaction"
-          >
-            <Plus size={16} strokeWidth={2.25} aria-hidden={true} />
-            Nouvelle transaction
-          </button>
-          <PekuloUserDot initial={initial} onPress={() => router.push("/dashboard/parametres")} />
-        </div>
-      </header>
-      <main className={styles.main}>{children}</main>
-      <PekuloMobileBottomNav activeKey={navActiveKey} onSelect={handleNav} />
+    <DashboardEditProvider>
+      <div className={styles.shell}>
+        <PekuloNavRail activeKey={navActiveKey} onSelect={handleNav} />
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <p className={styles.dateLabel} translate="no">
+              {today}
+            </p>
+            {isDashboardRoot && (
+              <PekuloTopTabToggle
+                topTab={activeTab}
+                onChange={(t) =>
+                  router.push(t === "patrimoine" ? "/dashboard?tab=patrimoine" : "/dashboard")
+                }
+              />
+            )}
+            {screenTitle && <h1 className={styles.screenTitle}>{screenTitle}</h1>}
+          </div>
+          <div className={styles.headerRight}>
+            {mounted && isDashboardRoot && activeTab === "cap" && <DashboardEditToggle />}
+            {contextualAddLabel && (
+              <PekuloContextualAddButton label={contextualAddLabel} onPress={handleNewTx} />
+            )}
+            <button
+              type="button"
+              className={styles.newTxPill}
+              onClick={handleNewTx}
+              aria-label="Nouvelle transaction"
+            >
+              <Plus size={16} strokeWidth={2.25} aria-hidden={true} />
+              Nouvelle transaction
+            </button>
+            <PekuloUserDot initial={initial} onPress={() => router.push("/dashboard/parametres")} />
+          </div>
+        </header>
+        <main className={styles.main}>{children}</main>
+        <PekuloMobileBottomNav activeKey={navActiveKey} onSelect={handleNav} />
 
-      <PekuloDialog open={newTxOpen} onOpenChange={setNewTxOpen}>
-        <PekuloDialog.Portal>
-          <PekuloDialog.Overlay />
-          <PekuloDialog.Content>
-            <View flexDirection="column" gap="$3">
-              <PekuloDialog.Title>Nouvelle transaction</PekuloDialog.Title>
-              <PekuloDialog.Description>
-                Renseigne le compte, la date, le libellé et le montant.
-              </PekuloDialog.Description>
-            </View>
-            <TransactionCreateForm onSuccess={() => setNewTxOpen(false)} />
-            <PekuloDialog.Close asChild>
-              <View
-                render="button"
-                paddingVertical="$2"
-                cursor="pointer"
-                backgroundColor="transparent"
-                borderWidth={0}
-                alignItems="center"
-              >
-                <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                  Annuler
-                </Text>
+        <PekuloDialog open={newTxOpen} onOpenChange={setNewTxOpen}>
+          <PekuloDialog.Portal>
+            <PekuloDialog.Overlay />
+            <PekuloDialog.Content>
+              <View flexDirection="column" gap="$3">
+                <PekuloDialog.Title>Nouvelle transaction</PekuloDialog.Title>
+                <PekuloDialog.Description>
+                  Renseigne le compte, la date, le libellé et le montant.
+                </PekuloDialog.Description>
               </View>
-            </PekuloDialog.Close>
-          </PekuloDialog.Content>
-        </PekuloDialog.Portal>
-      </PekuloDialog>
-    </div>
+              <TransactionCreateForm onSuccess={() => setNewTxOpen(false)} />
+              <PekuloDialog.Close asChild>
+                <View
+                  render="button"
+                  paddingVertical="$2"
+                  cursor="pointer"
+                  backgroundColor="transparent"
+                  borderWidth={0}
+                  alignItems="center"
+                >
+                  <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
+                    Annuler
+                  </Text>
+                </View>
+              </PekuloDialog.Close>
+            </PekuloDialog.Content>
+          </PekuloDialog.Portal>
+        </PekuloDialog>
+      </div>
+    </DashboardEditProvider>
   );
 }
