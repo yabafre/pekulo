@@ -29,4 +29,23 @@ describe("PekuloErrorBoundary snapshot", () => {
     );
     spy.mockRestore();
   });
+  it("wraps the fallback in a dark full-screen container when fullScreen is set", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { getByRole } = renderWithTamagui(
+      <PekuloErrorBoundary fullScreen>
+        <Boom />
+      </PekuloErrorBoundary>,
+    );
+    // Same alert content as the inline card…
+    const alert = getByRole("alert");
+    expect(alert.textContent).toContain("Une erreur s'est produite.");
+    expect(alert.textContent).toContain("kaboom");
+    // …nested inside a dark, full-viewport, centered wrapper.
+    const wrapper = alert.parentElement as HTMLElement;
+    expect(wrapper.getAttribute("style") ?? "").toContain("min-height: 100dvh");
+    expect(wrapper.className).toMatch(/_items-center/);
+    expect(wrapper.className).toMatch(/_justify-center/);
+    expect(wrapper.className).toMatch(/_bg-background/);
+    spy.mockRestore();
+  });
 });

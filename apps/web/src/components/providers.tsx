@@ -22,7 +22,7 @@ export function Providers({ children }: { children: ReactNode }) {
   );
   return (
     <PekuloRootProvider>
-      <PekuloErrorBoundary onError={reportClientError}>
+      <PekuloErrorBoundary onError={reportClientError} fullScreen>
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       </PekuloErrorBoundary>
     </PekuloRootProvider>
