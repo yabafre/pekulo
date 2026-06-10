@@ -291,19 +291,27 @@ export function createBankAggregatorService(deps: {
         providerItemId: input.itemId,
       });
 
-      // Already-synced guard (story 5-7 FIX 2026-05-28). Bridge mints a NEW
-      // item (new account ids) every time the user clicks "connect" — even for
-      // a bank they already synced. We dedup local accounts on a STABLE key
-      // (IBAN / provider_id+name, see bridgeAccountKey), so if ANY of this
-      // item's accounts already exists locally, this is a re-connect of an
-      // already-synced bank: reject instead of duplicating the accounts.
-      const preexisting = await Promise.all(
-        remoteAccounts.map((a) =>
-          deps.accountsService.findByProviderKey(userId, "bridge", a.accountKey),
-        ),
-      );
-      if (preexisting.some((acc) => acc !== null)) {
-        throw bankConnectionAlreadyExists(input.itemId);
+      // Already-synced guard (story 5-7 FIX 2026-05-28, revised 2026-06-10).
+      // Bridge mints a NEW item every connect, so findByProviderItemId above
+      // can't catch a re-connect of the same bank. The PREVIOUS guard rejected
+      // whenever any account already existed locally (stable IBAN key) — but
+      // that also blocked the legitimate revoke→reconnect flow, because revoke
+      // soft-deletes the connection yet KEEPS its accounts, leaving them to
+      // match forever ("la banque est déjà liée à Pekulo" on every reconnect).
+      //
+      // Correct discriminator: the Bridge institution `provider_id`. Reject only
+      // when a NON-revoked connection already serves this institution (a genuine
+      // active duplicate). When the only prior connection is revoked, its
+      // orphaned accounts are simply re-used by findOrCreateAutoFromProvider
+      // below (idempotent on the stable key) — the reconnect keeps the history.
+      const institutionId = remoteAccounts.find((a) => a.providerId)?.providerId ?? null;
+      if (institutionId) {
+        const activeDuplicate = await deps.repository.findActiveByProviderId(
+          userId,
+          "bridge",
+          institutionId,
+        );
+        if (activeDuplicate) throw bankConnectionAlreadyExists(input.itemId);
       }
 
       for (const a of remoteAccounts) {
@@ -322,6 +330,7 @@ export function createBankAggregatorService(deps: {
         provider: "bridge" as BankProviderName,
         providerItemId: input.itemId,
         displayName: remoteAccounts[0]?.bankName ?? null,
+        providerId: institutionId,
       });
       return created;
     },

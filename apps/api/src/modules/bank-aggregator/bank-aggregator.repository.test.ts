@@ -63,6 +63,7 @@ test("createConnection persists row and toDto strips secret-bearing columns (AC-
     provider: "bridge",
     providerItemId: "item-42",
     displayName: "Société Générale",
+    providerId: null,
   });
   expect(dto.id).toBe("bnk_created");
   expect(dto.userId).toBe("u_a");

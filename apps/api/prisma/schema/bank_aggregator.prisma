@@ -32,6 +32,9 @@ model BankConnection {
   refreshTokenSecretId String?   @map("refresh_token_secret_id") @db.Uuid
   status               String    @default("active")
   displayName          String?   @map("display_name")
+  // Bridge institution provider_id — the "which bank" discriminator used by the
+  // reconnect guard (block only an ACTIVE duplicate; allow revoke→reconnect).
+  providerId           String?   @map("provider_id")
   // Incremental `since` cursor (latest txn watermark) — advanced only on data.
   lastRefreshedAt      DateTime? @map("last_refreshed_at") @db.Timestamptz
   // User-facing "last synced" — stamped now() on every successful poll.

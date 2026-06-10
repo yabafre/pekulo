@@ -153,6 +153,7 @@ function makeRepo(): BankAggregatorRepository {
       };
     },
     findByProviderItemId: async () => null,
+    findActiveByProviderId: async () => false,
     setDisplayName: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
