@@ -119,14 +119,19 @@ export function MilestonesSection({
       ) : (
         <View
           render="ul"
-          flex={flat ? undefined : 1}
-          minHeight={flat ? undefined : 0}
           flexDirection="column"
+          // Cell-fill (flex:1 + minHeight:0 + scroll) is gated to `$lg`: the
+          // desktop bento cell has a defined height (`grid-auto-rows`), so the
+          // list flex-fills it and scrolls past the 20-cap. The mobile flat
+          // column is auto-height — applying flex:1 + minHeight:0 there
+          // collapses the ul to 0 and `overflow-y:auto` then clips every row
+          // (the "empty Paliers" bug). Below `$lg` the list is natural-height
+          // (SSOT ux-preview: `<ul className="flex flex-col">`).
+          $lg={flat ? undefined : { flex: 1, minHeight: 0 }}
           style={{
             listStyle: "none",
-            // Desktop bento: flex-fills the cell height + scrolls inside.
-            // Flat mode (cap-view mobile): natural-height list, no scroll —
-            // the parent column flow handles overflow.
+            // Natural-height on mobile (no overflow to clip); the `$lg` fill
+            // turns this into the scroll container on desktop.
             overflowY: flat ? "visible" : "auto",
             paddingInlineStart: 0,
             marginBlock: 0,

@@ -92,12 +92,20 @@ export function HeroAnchor({ variant = "mobile" }: { variant?: "mobile" | "card"
     ) : null;
 
   // Card variant — wrap in Section for the bento card chrome (background +
-  // padding); the inner flex column fills the 2-row cell (wealth top, dl
-  // bottom). Mobile variant is a bare section (the flat stack has no card).
+  // padding). The cell-fill (flex:1 + space-between + minHeight:0, so wealth
+  // pins top / dl pins bottom of the 2-row bento cell) is gated to `$lg`:
+  // the desktop bento gives this card a defined height via `.bentoCell` +
+  // `grid-auto-rows: minmax(220px)`, but the mobile flat column is auto-
+  // height — there, flex:1 + minHeight:0 collapse the inner box to 0 and the
+  // content spills out of a near-flat card. On mobile the column is natural-
+  // height (SSOT ux-preview L334-343), so leave the inner box content-sized.
   if (variant === "card") {
     return (
       <Section ariaLabel="Patrimoine total">
-        <View flex={1} flexDirection="column" justifyContent="space-between" minHeight={0}>
+        <View
+          flexDirection="column"
+          $lg={{ flex: 1, justifyContent: "space-between", minHeight: 0 }}
+        >
           {topGroup}
           {dl}
         </View>

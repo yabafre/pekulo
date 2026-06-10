@@ -89,4 +89,26 @@ describe("HeroAnchor", () => {
     const { queryByText } = renderWithTamagui(<HeroAnchor />);
     expect(queryByText(/Prochain palier/)).toBeNull();
   });
+
+  // Regression — mobile card collapse. The card variant fills the desktop
+  // bento cell via flex:1 + minHeight:0. That fill MUST be `$lg`-gated: on the
+  // mobile flat column (auto-height) an ungated flex:1/minHeight:0 collapses
+  // the inner box to 0 and the wealth figure spills out of a near-flat card.
+  // We assert the cell-fill lives only in the `$lg` atomic classes — never the
+  // base ones. (Tamagui `disableInjectCSS` → deterministic atomic classNames.)
+  it("regression — card cell-fill is gated to $lg, not applied on mobile", () => {
+    setOverview(276_000);
+    setCap(100_000);
+    setStatuses([]);
+    const { container } = renderWithTamagui(<HeroAnchor variant="card" />);
+    const wrapper = container.querySelector('section[aria-label="Patrimoine total"]')
+      ?.firstElementChild as HTMLElement | null;
+    expect(wrapper).not.toBeNull();
+    const cls = wrapper!.className;
+    // Desktop fill present, but only in the $lg-prefixed form.
+    expect(cls).toMatch(/_minH-_lg_0/);
+    // No base (mobile) collapse: neither min-height:0 nor flex-basis:0.
+    expect(cls).not.toMatch(/_minH-0px/);
+    expect(cls.split(/\s+/)).not.toContain("_fb-0px");
+  });
 });

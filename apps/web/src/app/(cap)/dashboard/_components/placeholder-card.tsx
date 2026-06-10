@@ -112,11 +112,14 @@ export function PlaceholderCard({ variant, ownerStory, className }: PlaceholderC
   // body sits at the TOP of the available cell height and the footnote
   // pins to the BOTTOM. Without this, lighter placeholders stack at the
   // top of an oversized cell and the rest of the cell reads as empty —
-  // exactly the visual hole the user flagged on Pass 6.
+  // exactly the visual hole the user flagged on Pass 6. Gated to `$lg`:
+  // only the desktop bento cell has the defined height this fills. On the
+  // mobile flat column (auto-height) flex:1 + minHeight:0 would collapse the
+  // box to 0 and spill the body, so below `$lg` the card is natural-height.
   return (
     <Section className={className} title={title} ariaLabel={`${title} (bientôt — ${ownerStory})`}>
-      <View flex={1} flexDirection="column" justifyContent="space-between" minHeight={0}>
-        <View flexDirection="column" flex={1}>
+      <View flexDirection="column" $lg={{ flex: 1, justifyContent: "space-between", minHeight: 0 }}>
+        <View flexDirection="column" $lg={{ flex: 1 }}>
           {body}
         </View>
         <View flexDirection="row" justifyContent="flex-end" marginTop="$4">
