@@ -35,6 +35,7 @@ function makeStubs() {
       status: "active",
       displayName: "SG",
       lastRefreshedAt: null,
+      lastSyncedAt: null,
       createdAt: new Date().toISOString(),
     }),
     listByUser: async () => [],
@@ -43,6 +44,7 @@ function makeStubs() {
     findByProviderItemId: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
+    setLastSyncedAt: async () => undefined,
     findOwnersByProviderItemId: async () => [],
   };
   const provider: BankProvider = {
@@ -157,6 +159,7 @@ test("completeConnection rejects when the Bridge item is already connected", asy
       status: "active",
       displayName: null,
       lastRefreshedAt: null,
+      lastSyncedAt: null,
       createdAt: new Date().toISOString(),
     },
   });
@@ -212,6 +215,7 @@ test("listConnections delegates without leaking secret-id columns (AC-4)", async
       status: "active",
       displayName: null,
       lastRefreshedAt: null,
+      lastSyncedAt: null,
       createdAt: new Date().toISOString(),
     },
   ];
@@ -240,6 +244,7 @@ test("refreshConnection rejects sca_required with BANK_SCA_REQUIRED (AC-5)", asy
       status: "sca_required",
       displayName: null,
       lastRefreshedAt: null,
+      lastSyncedAt: null,
       createdAt: new Date().toISOString(),
     },
   });
@@ -266,6 +271,7 @@ test("refreshConnection persists fetched + skipped + lastRefreshedAt (AC-2)", as
       status: "active",
       displayName: null,
       lastRefreshedAt: null,
+      lastSyncedAt: null,
       createdAt: new Date().toISOString(),
     },
   });
@@ -314,6 +320,85 @@ test("refreshConnection persists fetched + skipped + lastRefreshedAt (AC-2)", as
   expect(stamped.at?.toISOString()).toBe("2026-05-26T10:00:00.000Z");
 });
 
+// ───── quick-spec 2026-06-10 — last_synced_at decoupled from the cursor ────
+
+test("refreshConnection stamps lastSyncedAt=now() on an EMPTY non-first poll, leaving the lastRefreshedAt cursor untouched (AC-2, AC-3)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  const since = "2026-05-28T00:00:00.000Z";
+  repo.findByIdForUser = async () => ({
+    connection: {
+      id: "bnk_x",
+      userId: "u",
+      provider: "bridge",
+      providerItemId: "i",
+      status: "active",
+      displayName: null,
+      // Cursor already set → this is a NON-first poll; an empty response must
+      // NOT advance it (silent-data-loss defense).
+      lastRefreshedAt: since,
+      lastSyncedAt: since,
+      createdAt: new Date().toISOString(),
+    },
+  });
+  // Bridge returns nothing new since the cursor.
+  provider.listTransactions = async () => ({ transactions: [], latestUpdatedAt: null });
+  let cursorStamp: Date | null = null;
+  let syncStamp: Date | null = null;
+  repo.setLastRefreshedAt = async (_u, _c, at) => {
+    cursorStamp = at;
+  };
+  repo.setLastSyncedAt = async (_u, _c, at) => {
+    syncStamp = at;
+  };
+  const fixedNow = new Date("2026-06-10T09:00:00.000Z");
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+    clock: () => fixedNow,
+  });
+  await svc.refreshConnection("u", { connectionId: "bnk_x" });
+  // The user-facing "last synced" advances to now() even with zero new rows…
+  expect((syncStamp as Date | null)?.toISOString()).toBe("2026-06-10T09:00:00.000Z");
+  // …while the incremental `since` cursor stays put (no data to anchor on).
+  expect(cursorStamp).toBeNull();
+});
+
+test("refreshConnection does NOT stamp lastSyncedAt when the provider poll throws (AC-4)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.findByIdForUser = async () => ({
+    connection: {
+      id: "bnk_x",
+      userId: "u",
+      provider: "bridge",
+      providerItemId: "i",
+      status: "active",
+      displayName: null,
+      lastRefreshedAt: null,
+      lastSyncedAt: null,
+      createdAt: new Date().toISOString(),
+    },
+  });
+  provider.listTransactions = async () => {
+    throw new Error("bridge 503");
+  };
+  let syncCalled = false;
+  repo.setLastSyncedAt = async () => {
+    syncCalled = true;
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  await expect(svc.refreshConnection("u", { connectionId: "bnk_x" })).rejects.toThrow("bridge 503");
+  expect(syncCalled).toBe(false);
+});
+
 test("refreshAll swallows per-connection failure non-fatally (AC-6)", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
   let count = 0;
@@ -329,6 +414,7 @@ test("refreshAll swallows per-connection failure non-fatally (AC-6)", async () =
         status: "active",
         displayName: null,
         lastRefreshedAt: null,
+        lastSyncedAt: null,
         createdAt: new Date().toISOString(),
       },
     };
@@ -420,6 +506,7 @@ test("handleWebhookEvent on status_code=0 triggers transaction fetch for owners"
       status: "active",
       displayName: null,
       lastRefreshedAt: null,
+      lastSyncedAt: null,
       createdAt: new Date().toISOString(),
     },
   });
@@ -502,6 +589,7 @@ const baseConn = {
   status: "active" as const,
   displayName: "SG",
   lastRefreshedAt: null,
+  lastSyncedAt: null,
   createdAt: new Date().toISOString(),
 };
 

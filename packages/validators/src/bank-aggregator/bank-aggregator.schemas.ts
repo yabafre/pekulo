@@ -22,7 +22,14 @@ export const bankConnectionSchema = z.object({
   providerItemId: z.string().min(1),
   status: bankConnectionStatusSchema,
   displayName: z.string().nullable(),
+  // Incremental `since` cursor — advanced to the latest transaction watermark
+  // only when the provider returns data (silent-data-loss defense). NOT the
+  // user-facing "last synced" date; see `lastSyncedAt`.
   lastRefreshedAt: z.string().datetime().nullable(),
+  // User-facing "Synchronisée le …" — stamped to now() on EVERY successful
+  // poll, even an empty one. A healthy connection with no new transactions
+  // must still show a fresh sync time (quick-spec 2026-06-10).
+  lastSyncedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
 });
 export type BankConnection = z.infer<typeof bankConnectionSchema>;

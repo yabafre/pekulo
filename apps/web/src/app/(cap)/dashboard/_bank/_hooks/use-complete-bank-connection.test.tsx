@@ -41,6 +41,7 @@ describe("useCompleteBankConnection — invalidation contract", () => {
         status: "active",
         displayName: "SG",
         lastRefreshedAt: null,
+        lastSyncedAt: null,
         createdAt: new Date().toISOString(),
       },
     }));
