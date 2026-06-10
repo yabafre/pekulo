@@ -129,18 +129,21 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
       const snapshot = computeSnapshotFx(accounts, priced, rates, "EUR");
       const totalWealthEur = snapshot.kpi.capitalTotal + equity.totalEquityEur;
 
+      // The cap measures INVESTABLE wealth — cash + market value (= capitalTotal)
+      // — NOT total net wealth (quick-spec 2026-06-10, Alex's decision). Real-
+      // estate equity is excluded: the primary residence dwarfs the investable
+      // base, so including it would peg every compass near 100 %. Clamp to ≥0 for
+      // the ratio: computeProgress rejects a negative currentWealth (INVALID_
+      // WEALTH → 400), so an overdrawn account reads 0 %, never an error
+      // (NFR-18 — getOverview never throws). totalWealthEur stays the hero figure.
+      const investableWealthEur = Math.max(0, snapshot.kpi.capitalTotal);
       const compass = compassRow
         ? {
-            // Clamp to ≥0 for the progress ratio only. Net wealth CAN be negative
-            // (underwater real-estate — property-equity.ts sums raw), and
-            // computeProgress rejects a negative currentWealth (INVALID_WEALTH →
-            // 400). The payload still returns the RAW totalWealthEur; an
-            // underwater user reads 0 % progress against the full gap, never an
-            // error (NFR-18 — getOverview never throws).
             ...deps.computeProgress({
-              currentWealth: Math.max(0, totalWealthEur),
+              currentWealth: investableWealthEur,
               capitalTarget: compassRow.objectif,
             }),
+            currentWealth: investableWealthEur,
             objectif: compassRow.objectif,
           }
         : null;

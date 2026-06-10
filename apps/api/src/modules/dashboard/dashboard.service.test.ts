@@ -98,10 +98,17 @@ describe("dashboard.service.getOverview", () => {
     expect(liquideEur + placementsEur + immobilierEur).toBe(out.totalWealthEur);
   });
 
-  test("AC-3 — compass percent/gap derive from the LIVE total wealth", async () => {
+  test("AC-3 — compass percent/gap derive from LIVE INVESTABLE wealth (real estate excluded)", async () => {
     const svc = createDashboardService(basePorts());
     const out = await svc.getOverview(USER);
-    expect(out.compass).toEqual({ percent: 34.5, objectif: 800_000, gap: 524_000 });
+    // investable = capitalTotal = cash 20 000 + marketValue 6 000 = 26 000
+    // (immobilier 250 000 EXCLUDED) → 26 000 / 800 000 = 3.25 % → rounded 3.3 %.
+    expect(out.compass).toEqual({
+      percent: 3.3,
+      objectif: 800_000,
+      gap: 774_000,
+      currentWealth: 26_000,
+    });
   });
 
   test("AC-3 — no compass row → compass:null, no throw", async () => {
@@ -149,21 +156,22 @@ describe("dashboard.service.getOverview", () => {
 
   // --- aped-review regression tests ---
 
-  test("M1 — negative net wealth + compass: never throws, compass clamps to 0%", async () => {
-    // Underwater real-estate (debt > valuation) drives total wealth negative.
-    // computeProgress rejects a negative currentWealth (INVALID_WEALTH → 400),
-    // so getOverview must clamp the ratio input to 0 — never throw (NFR-18).
+  test("M1 — negative INVESTABLE wealth (overdraft) + compass: never throws, clamps to 0%", async () => {
+    // The cap measures investable wealth (capitalTotal), so the clamp must guard
+    // a negative INVESTABLE base — an overdrawn account, not underwater real
+    // estate (which is excluded entirely). computeProgress rejects a negative
+    // currentWealth (INVALID_WEALTH → 400), so getOverview clamps to 0 (NFR-18).
     const svc = createDashboardService(
       basePorts({
-        listAccounts: async () => [],
+        listAccounts: async () => [acct({ id: "acc_od", cashBalance: -50_000 })],
         listHoldings: async () => [],
-        getTotalEquity: async () => ({ totalEquityEur: -300_000 }),
+        getTotalEquity: async () => ({ totalEquityEur: 0 }),
         getCompass: async () => ({ objectif: 800_000 }),
       }),
     );
     const out = await svc.getOverview(USER);
-    expect(out.totalWealthEur).toBe(-300_000); // raw value preserved in the payload
-    expect(out.compass).toEqual({ percent: 0, objectif: 800_000, gap: 800_000 });
+    expect(out.totalWealthEur).toBe(-50_000); // raw value preserved in the payload
+    expect(out.compass).toEqual({ percent: 0, objectif: 800_000, gap: 800_000, currentWealth: 0 });
   });
 
   test("M2 — identical {ticker,kind,currency} holdings resolve ONE quote (dedup)", async () => {

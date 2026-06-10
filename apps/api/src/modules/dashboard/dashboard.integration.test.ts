@@ -91,7 +91,14 @@ describe("dashboard /rpc/v1/dashboard/getOverview", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { json: DashboardOverview };
     expect(body.json.totalWealthEur).toBe(250_000);
-    expect(body.json.compass).toEqual({ percent: 31.3, objectif: 800_000, gap: 550_000 });
+    // Investable wealth (cash + market value) is 0 here — only real-estate
+    // equity (250 000, EXCLUDED from the cap) exists → 0 % progress.
+    expect(body.json.compass).toEqual({
+      percent: 0,
+      objectif: 800_000,
+      gap: 800_000,
+      currentWealth: 0,
+    });
     expect(body.json.fx.source).toBe("live");
   });
 

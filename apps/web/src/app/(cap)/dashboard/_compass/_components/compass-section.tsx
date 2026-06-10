@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PekuloDonut, PekuloSkeleton, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useDashboardCompass } from "../_hooks/use-dashboard-compass";
+import { useDashboardOverview } from "../../_hooks/use-dashboard-overview";
 import { useCompassCurve } from "../_hooks/use-compass-curve";
 import { useAddMilestoneDialog } from "../../_components/add-milestone-dialog";
 import { CompassSetupCta } from "./compass-setup-cta";
@@ -31,7 +32,12 @@ function horizonAbsoluteYearMaxFor(horizonYears: number | undefined): number {
 export function CompassSection() {
   const router = useRouter();
   const dialog = useAddMilestoneDialog();
-  const { setup, compass, progress } = useDashboardCompass();
+  const { setup, compass } = useDashboardCompass();
+  // The donut reads the LIVE compass progress from the dashboard overview
+  // (investable wealth, real estate excluded) — NOT the snapshot-based
+  // getCurrentProgress, which derives currentWealth from the last monthly
+  // snapshot and lags behind live wealth (quick-spec 2026-06-10).
+  const overview = useDashboardOverview();
   // AC-6: hook is called even on the dashboard's first paint to prove the
   // wire is alive. Disabled until setup is complete to avoid a 404 round-trip.
   useCompassCurve({ enabled: setup.data === "complete" });
@@ -93,7 +99,7 @@ export function CompassSection() {
       </Section>
     );
   }
-  if (progress.isError || compass.isError) {
+  if (overview.isError || compass.isError) {
     return (
       <Section ariaLabel="Cap indisponible">
         <View padding="$4">
@@ -104,15 +110,37 @@ export function CompassSection() {
       </Section>
     );
   }
-  const pct = progress.data ? progress.data.percent / 100 : 0;
-  const remaining = progress.data?.gap ?? 0;
+  if (overview.isLoading || !overview.data) {
+    return (
+      <Section ariaLabel="Cap (chargement)">
+        <View role="status" aria-live="polite">
+          <Text
+            color="$colorTertiary"
+            fontSize="$caption"
+            position="absolute"
+            width={1}
+            height={1}
+            overflow="hidden"
+          >
+            Chargement du cap…
+          </Text>
+          <PekuloSkeleton block height={120} />
+          <View height={12} />
+          <PekuloSkeleton lines={2} height={14} />
+        </View>
+      </Section>
+    );
+  }
+  const cmp = overview.data.compass;
+  const pct = cmp ? cmp.percent / 100 : 0;
+  const remaining = cmp?.gap ?? 0;
   const pctLabel = `${(pct * 100).toFixed(1)} %`;
   // `+€ vs plan` delta — current wealth minus the plan value at the same
   // moment in time. The `useCompassCurve` hook is wired upstream (AC-6); we
   // read its data here for the donut card's perf-line ONLY (the full chart
   // assembly stays owned by story 7-1). When the curve hasn't resolved
   // yet, the delta line is hidden.
-  const ahead = computeAhead(progress.data?.currentWealth ?? 0);
+  const ahead = computeAhead(cmp?.currentWealth ?? 0);
   const aheadTone: "gain" | "loss" | null = ahead == null ? null : ahead >= 0 ? "gain" : "loss";
 
   return (
@@ -186,14 +214,17 @@ function computeAhead(_currentWealth: number): number | null {
 // React-Query state). Returns null when setup is loading / error / incomplete
 // so the bento can hide the milestones cell in those states.
 export function useCapDashboardState() {
-  const { setup, compass, progress } = useDashboardCompass();
+  const { setup, compass } = useDashboardCompass();
+  const overview = useDashboardOverview();
   if (setup.data !== "complete") return null;
-  if (setup.isError || progress.isError || compass.isError) return null;
-  const currentWealth = progress.data?.currentWealth ?? 0;
+  if (setup.isError || overview.isError || compass.isError) return null;
+  // currentWealth is the LIVE investable wealth from the overview (real-estate
+  // equity excluded); horizonYears comes from the compass row.
+  const cmp = overview.data?.compass ?? null;
   return {
-    currentWealth,
-    horizonAbsoluteYearMax: horizonAbsoluteYearMaxFor(progress.data?.horizonYears),
-    compassObjectif: progress.data?.objectif,
-    compassHorizonYears: progress.data?.horizonYears,
+    currentWealth: cmp?.currentWealth ?? 0,
+    horizonAbsoluteYearMax: horizonAbsoluteYearMaxFor(compass.data?.horizonYears),
+    compassObjectif: cmp?.objectif ?? compass.data?.objectif,
+    compassHorizonYears: compass.data?.horizonYears,
   };
 }
