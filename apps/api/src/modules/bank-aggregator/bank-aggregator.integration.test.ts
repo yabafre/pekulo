@@ -42,6 +42,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
       displayName: string | null;
       status: "active" | "sca_required" | "revoked";
       lastRefreshedAt: Date | null;
+      lastSyncedAt: Date | null;
       createdAt: Date;
     }
   >();
@@ -61,6 +62,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
         displayName,
         status: "active" as const,
         lastRefreshedAt: null,
+        lastSyncedAt: null,
         createdAt: new Date(),
       };
       store.set(id, row);
@@ -72,6 +74,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
         status: row.status,
         displayName,
         lastRefreshedAt: null,
+        lastSyncedAt: null,
         createdAt: row.createdAt.toISOString(),
       };
     },
@@ -87,6 +90,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
           status: r.status,
           displayName: r.displayName,
           lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
+          lastSyncedAt: r.lastSyncedAt ? r.lastSyncedAt.toISOString() : null,
           createdAt: r.createdAt.toISOString(),
         });
       }
@@ -104,6 +108,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
           status: r.status,
           displayName: r.displayName,
           lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
+          lastSyncedAt: r.lastSyncedAt ? r.lastSyncedAt.toISOString() : null,
           createdAt: r.createdAt.toISOString(),
         },
       };
@@ -121,6 +126,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
           status: r.status,
           displayName,
           lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
+          lastSyncedAt: r.lastSyncedAt ? r.lastSyncedAt.toISOString() : null,
           createdAt: r.createdAt.toISOString(),
         },
       };
@@ -137,6 +143,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
               status: r.status,
               displayName: r.displayName,
               lastRefreshedAt: r.lastRefreshedAt ? r.lastRefreshedAt.toISOString() : null,
+              lastSyncedAt: r.lastSyncedAt ? r.lastSyncedAt.toISOString() : null,
               createdAt: r.createdAt.toISOString(),
             },
           };
@@ -151,6 +158,10 @@ function makeInMemoryRepo(): BankAggregatorRepository {
     setLastRefreshedAt: async (userId, id, at) => {
       const r = store.get(id);
       if (r && r.userId === userId) r.lastRefreshedAt = at;
+    },
+    setLastSyncedAt: async (userId, id, at) => {
+      const r = store.get(id);
+      if (r && r.userId === userId) r.lastSyncedAt = at;
     },
     findOwnersByProviderItemId: async (provider, providerItemId) => {
       const owners: Array<{ userId: string; connectionId: string }> = [];
@@ -372,6 +383,7 @@ function baseDto(over: Partial<BankConnection> = {}): BankConnection {
     status: "active",
     displayName: "Société Générale",
     lastRefreshedAt: null,
+    lastSyncedAt: null,
     createdAt: "2026-05-28T00:00:00.000Z",
     ...over,
   };

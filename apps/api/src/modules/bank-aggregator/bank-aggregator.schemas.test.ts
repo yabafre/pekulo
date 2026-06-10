@@ -30,6 +30,7 @@ describe("bank-aggregator schemas", () => {
       status: "active",
       displayName: "Société Générale",
       lastRefreshedAt: "2026-05-27T10:00:00.000Z",
+      lastSyncedAt: "2026-05-27T10:00:00.000Z",
       createdAt: "2026-05-27T09:00:00.000Z",
     });
     expect(parsed.provider).toBe("bridge");
@@ -45,6 +46,7 @@ describe("bank-aggregator schemas", () => {
       status: "active",
       displayName: null,
       lastRefreshedAt: null,
+      lastSyncedAt: null,
       createdAt: "2026-05-27T09:00:00.000Z",
       accessTokenSecretId: "00000000-0000-0000-0000-000000000aaa",
     });

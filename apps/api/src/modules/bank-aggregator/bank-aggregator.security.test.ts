@@ -42,6 +42,7 @@ type AllowedBankConnectionKeys =
   | "status"
   | "displayName"
   | "lastRefreshedAt"
+  | "lastSyncedAt"
   | "createdAt";
 type _BothWaysEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -130,6 +131,7 @@ function makeRepo(): BankAggregatorRepository {
         status: "active",
         displayName: "SG",
         lastRefreshedAt: null,
+        lastSyncedAt: null,
         createdAt: new Date().toISOString(),
       };
     },
@@ -145,6 +147,7 @@ function makeRepo(): BankAggregatorRepository {
           status: "active",
           displayName: "SG",
           lastRefreshedAt: null,
+          lastSyncedAt: null,
           createdAt: new Date().toISOString(),
         },
       };
@@ -153,6 +156,7 @@ function makeRepo(): BankAggregatorRepository {
     setDisplayName: async () => null,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
+    setLastSyncedAt: async () => undefined,
     findOwnersByProviderItemId: async () => [],
   };
 }

@@ -13,6 +13,7 @@ const connections = [
     status: "active" as const,
     displayName: "Société Générale",
     lastRefreshedAt: "2026-05-28T00:00:00.000Z",
+    lastSyncedAt: "2026-06-09T08:00:00.000Z",
     createdAt: "2026-05-20T00:00:00.000Z",
   },
   {
@@ -23,6 +24,7 @@ const connections = [
     status: "sca_required" as const,
     displayName: "Revolut",
     lastRefreshedAt: null,
+    lastSyncedAt: null,
     createdAt: "2026-05-21T00:00:00.000Z",
   },
 ];

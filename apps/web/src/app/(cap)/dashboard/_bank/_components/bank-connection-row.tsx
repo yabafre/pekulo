@@ -13,7 +13,7 @@ const dateFmt = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 });
 
-function formatLastRefreshed(iso: string | null): string {
+function formatLastSynced(iso: string | null): string {
   if (!iso) return "Jamais synchronisée";
   return `Synchronisée le ${dateFmt.format(new Date(iso))}`;
 }
@@ -87,7 +87,7 @@ export function BankConnectionRow({ connection, onRename, onRevoke }: BankConnec
           )}
         </View>
         <Text color="$colorTertiary" fontSize="$caption">
-          {formatLastRefreshed(connection.lastRefreshedAt)}
+          {formatLastSynced(connection.lastSyncedAt)}
         </Text>
       </View>
 

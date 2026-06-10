@@ -22,6 +22,7 @@ interface PersistedConnectionRow {
   status: string;
   display_name: string | null;
   last_refreshed_at: Date | null;
+  last_synced_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -90,6 +91,13 @@ export interface BankAggregatorRepository {
   setLastRefreshedAt(userId: string, connectionId: string, at: Date): Promise<void>;
 
   /**
+   * Stamp the user-facing "last synced" timestamp. Called on EVERY successful
+   * poll (even an empty response), unlike setLastRefreshedAt which is the
+   * data-gated incremental cursor. Scoped by userId (ADR-0013).
+   */
+  setLastSyncedAt(userId: string, connectionId: string, at: Date): Promise<void>;
+
+  /**
    * Cross-user lookup keyed by (provider, providerItemId). Used by the webhook
    * handler to resolve the owning userId(s) before applying any userId-scoped
    * mutation — ADR-0013 defense-in-depth requires the userId on every write.
@@ -115,6 +123,7 @@ function toDto(row: PersistedConnectionRow): BankConnection {
     status: row.status as BankConnectionStatus,
     displayName: row.display_name,
     lastRefreshedAt: row.last_refreshed_at ? row.last_refreshed_at.toISOString() : null,
+    lastSyncedAt: row.last_synced_at ? row.last_synced_at.toISOString() : null,
     createdAt: row.created_at.toISOString(),
   };
 }
@@ -129,6 +138,7 @@ interface PrismaBankConnectionRow {
   status: string;
   displayName: string | null;
   lastRefreshedAt: Date | null;
+  lastSyncedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -144,6 +154,7 @@ function rowToDto(r: PrismaBankConnectionRow): BankConnection {
     status: r.status,
     display_name: r.displayName,
     last_refreshed_at: r.lastRefreshedAt,
+    last_synced_at: r.lastSyncedAt,
     created_at: r.createdAt,
     updated_at: r.updatedAt,
   });
@@ -235,6 +246,13 @@ export function createBankAggregatorRepository(deps: {
       await db.bankConnection.updateMany({
         where: { id: connectionId, userId },
         data: { lastRefreshedAt: at },
+      });
+    },
+
+    async setLastSyncedAt(userId, connectionId, at) {
+      await db.bankConnection.updateMany({
+        where: { id: connectionId, userId },
+        data: { lastSyncedAt: at },
       });
     },
 

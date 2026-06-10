@@ -79,6 +79,7 @@ test("createConnection persists row and toDto strips secret-bearing columns (AC-
       "displayName",
       "id",
       "lastRefreshedAt",
+      "lastSyncedAt",
       "provider",
       "providerItemId",
       "status",

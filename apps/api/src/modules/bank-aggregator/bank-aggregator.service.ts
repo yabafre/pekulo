@@ -207,6 +207,14 @@ export function createBankAggregatorService(deps: {
       rows,
     );
 
+    // Quick-spec 2026-06-10 — the poll succeeded (provider replied + import ran),
+    // so advance the USER-FACING "last synced" stamp to now() unconditionally,
+    // even when Bridge returned 0 new rows. This is distinct from the
+    // `last_refreshed_at` cursor below (which only moves on actual data): a
+    // healthy connection with no new transactions must still read as freshly
+    // synced, not frozen at the last transaction's date.
+    await deps.repository.setLastSyncedAt(userId, input.connectionId, now());
+
     // Story 6-10 (FR-65) — warm the logo caches off the user hot path (this is
     // the cron/webhook refresh). Best-effort: a Brandfetch/Bridge failure must
     // never fail a refresh. Warm the distinct new merchant labels + the user's
