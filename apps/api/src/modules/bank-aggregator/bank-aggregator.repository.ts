@@ -60,6 +60,8 @@ export interface BankAggregatorRepository {
     provider: BankProviderName;
     providerItemId: string;
     displayName: string | null;
+    /** Bridge institution provider_id — the reconnect guard's discriminator. */
+    providerId: string | null;
   }): Promise<BankConnection>;
 
   listByUser(userId: string): Promise<BankConnection[]>;
@@ -85,6 +87,18 @@ export interface BankAggregatorRepository {
     provider: BankProviderName,
     providerItemId: string,
   ): Promise<{ connection: BankConnection } | null>;
+
+  /**
+   * True if the user has a NON-revoked connection for this Bridge institution
+   * `provider_id`. The reconnect guard uses it to reject a genuine active
+   * duplicate while allowing a revoke→reconnect (whose only prior connection
+   * for the institution is revoked). Scoped by userId (ADR-0013).
+   */
+  findActiveByProviderId(
+    userId: string,
+    provider: BankProviderName,
+    providerId: string,
+  ): Promise<boolean>;
 
   setStatus(userId: string, connectionId: string, status: BankConnectionStatus): Promise<void>;
 
@@ -183,13 +197,14 @@ export function createBankAggregatorRepository(deps: {
       });
     },
 
-    async createConnection({ userId, provider, providerItemId, displayName }) {
+    async createConnection({ userId, provider, providerItemId, displayName, providerId }) {
       const row = (await db.bankConnection.create({
         data: {
           userId,
           provider,
           providerItemId,
           displayName,
+          providerId,
           status: "active",
         } as unknown as Parameters<typeof db.bankConnection.create>[0]["data"],
       })) as PrismaBankConnectionRow;
@@ -233,6 +248,14 @@ export function createBankAggregatorRepository(deps: {
       })) as PrismaBankConnectionRow | null;
       if (!r) return null;
       return { connection: rowToDto(r) };
+    },
+
+    async findActiveByProviderId(userId, provider, providerId) {
+      const r = (await db.bankConnection.findFirst({
+        where: { userId, provider, providerId, status: { not: "revoked" } },
+        select: { id: true },
+      })) as { id: string } | null;
+      return r !== null;
     },
 
     async setStatus(userId, connectionId, status) {
