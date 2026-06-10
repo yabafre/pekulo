@@ -34,13 +34,17 @@ export const dashboardCompositionSchema = z.object({
 });
 export type DashboardComposition = z.infer<typeof dashboardCompositionSchema>;
 
-// Non-null only when the user has a compass row. percent/gap come from the
-// pure computeProgress() over the LIVE total wealth; objectif echoes the
-// compass target so the page renders without a second compass read.
+// Non-null only when the user has a compass row. percent/gap/currentWealth come
+// from computeProgress() over the LIVE INVESTABLE wealth (cash + market value =
+// capitalTotal — real-estate equity EXCLUDED; the cap measures investable
+// wealth, not the primary residence). objectif echoes the compass target so the
+// page renders without a second compass read.
 export const dashboardCompassSchema = z.object({
   percent: z.number(),
   objectif: z.number(),
   gap: z.number(),
+  // Live investable wealth driving percent/gap (excludes real-estate equity).
+  currentWealth: z.number(),
 });
 export type DashboardCompass = z.infer<typeof dashboardCompassSchema>;
 
