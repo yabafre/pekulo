@@ -42,6 +42,7 @@ function makeStubs() {
     findByIdForUser: async () => null,
     setDisplayName: async () => null,
     findByProviderItemId: async () => null,
+    findActiveByProviderId: async () => false,
     setStatus: async () => undefined,
     setLastRefreshedAt: async () => undefined,
     setLastSyncedAt: async () => undefined,
@@ -175,23 +176,15 @@ test("completeConnection rejects when the Bridge item is already connected", asy
   ).rejects.toThrow(/already exists/);
 });
 
-// Story 5-7 FIX 2026-05-28 — already-synced guard. A re-connect creates a NEW
-// Bridge item (findByProviderItemId null) but its accounts already exist
-// locally by stable key → reject instead of duplicating accounts.
-test("completeConnection rejects when the bank is already synced (account-key overlap)", async () => {
+// Story 5-7 FIX 2026-05-28, revised 2026-06-10 — the reconnect guard keys on the
+// Bridge institution provider_id, NOT on account-key overlap. A re-connect makes
+// a NEW item (findByProviderItemId null); reject ONLY when a non-revoked
+// connection already serves the same institution (a genuine active duplicate).
+test("completeConnection rejects when an ACTIVE connection for the same institution exists", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
   repo.findByProviderItemId = async () => null; // brand-new item_id
-  accountsService.findByProviderKey = async () => ({
-    id: "acc_existing",
-    userId: "u",
-    label: "Bridge — SG — Courant",
-    type: "banque" as const,
-    currency: "EUR",
-    cashBalance: 0,
-    notes: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  // listAccounts stub reports providerId "574"; an active connection serves it.
+  repo.findActiveByProviderId = async () => true;
   const svc = createBankAggregatorService({
     repository: repo,
     provider,
@@ -202,6 +195,57 @@ test("completeConnection rejects when the bank is already synced (account-key ov
   await expect(
     svc.completeConnection("u", "fred@x", { itemId: "new-item-99", userUuid: "bridge-uuid-1" }),
   ).rejects.toThrow(/already exists/i);
+});
+
+// Regression 2026-06-10 — revoke→reconnect. After a revoke the connection is
+// soft-deleted but its accounts persist; the bank's only connection is revoked
+// (findActiveByProviderId false). Reconnecting MUST succeed and re-use the
+// orphaned accounts (idempotent find-or-create), not error "already linked".
+test("completeConnection ALLOWS reconnect when no active connection serves the institution (revoke→reconnect)", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.findByProviderItemId = async () => null; // brand-new item_id
+  repo.findActiveByProviderId = async () => false; // only the revoked connection remains
+  // The orphaned account from the revoked connection still matches by stable key,
+  // but that no longer blocks the reconnect — it is re-used, not duplicated.
+  accountsService.findByProviderKey = async () => ({
+    id: "acc_orphan",
+    userId: "u",
+    label: "Bridge — SG — Courant",
+    type: "banque" as const,
+    currency: "EUR",
+    cashBalance: 0,
+    notes: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  let relinked = 0;
+  accountsService.findOrCreateAutoFromProvider = (async () => {
+    relinked++;
+    return {
+      id: "acc_orphan",
+      userId: "u",
+      label: "Bridge — SG — Courant",
+      type: "banque" as const,
+      currency: "EUR",
+      cashBalance: 0,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }) as AccountService["findOrCreateAutoFromProvider"];
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+  const result = await svc.completeConnection("u", "fred@x", {
+    itemId: "new-item-99",
+    userUuid: "bridge-uuid-1",
+  });
+  expect(result.provider).toBe("bridge"); // succeeded — no "already exists"
+  expect(relinked).toBe(1); // orphaned account re-used, not duplicated
 });
 
 test("listConnections delegates without leaking secret-id columns (AC-4)", async () => {

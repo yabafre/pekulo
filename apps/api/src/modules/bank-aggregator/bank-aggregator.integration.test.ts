@@ -40,6 +40,7 @@ function makeInMemoryRepo(): BankAggregatorRepository {
       provider: string;
       providerItemId: string;
       displayName: string | null;
+      providerId: string | null;
       status: "active" | "sca_required" | "revoked";
       lastRefreshedAt: Date | null;
       lastSyncedAt: Date | null;
@@ -53,13 +54,14 @@ function makeInMemoryRepo(): BankAggregatorRepository {
     persistProviderUserUuid: async (userId, _provider, uuid) => {
       providerUsers.set(userId, uuid);
     },
-    createConnection: async ({ userId, provider, providerItemId, displayName }) => {
+    createConnection: async ({ userId, provider, providerItemId, displayName, providerId }) => {
       const id = `bnk_${String(++nextId).padStart(21, "0")}`;
       const row = {
         userId,
         provider,
         providerItemId,
         displayName,
+        providerId,
         status: "active" as const,
         lastRefreshedAt: null,
         lastSyncedAt: null,
@@ -150,6 +152,19 @@ function makeInMemoryRepo(): BankAggregatorRepository {
         }
       }
       return null;
+    },
+    findActiveByProviderId: async (userId, provider, providerId) => {
+      for (const [, r] of store) {
+        if (
+          r.userId === userId &&
+          r.provider === provider &&
+          r.providerId === providerId &&
+          r.status !== "revoked"
+        ) {
+          return true;
+        }
+      }
+      return false;
     },
     setStatus: async (userId, id, status) => {
       const r = store.get(id);
@@ -564,12 +579,14 @@ describe("cross-tenant isolation (11-3 AC-5)", () => {
       provider: "bridge",
       providerItemId: "item-A",
       displayName: "A bank",
+      providerId: null,
     });
     const connB = await repo.createConnection({
       userId: B,
       provider: "bridge",
       providerItemId: "item-B",
       displayName: "B bank",
+      providerId: null,
     });
 
     await svc.handleWebhookEvent({
@@ -607,12 +624,14 @@ describe("cross-tenant isolation (11-3 AC-5)", () => {
       provider: "bridge",
       providerItemId: SHARED,
       displayName: "A bank",
+      providerId: null,
     });
     const connB = await repo.createConnection({
       userId: B,
       provider: "bridge",
       providerItemId: SHARED,
       displayName: "B bank",
+      providerId: null,
     });
 
     await svc.handleWebhookEvent({
