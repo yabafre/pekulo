@@ -11,6 +11,9 @@ import { setTagRegistry } from "@zapaction/query";
 
 export const hypothesesKeys = createFeatureKeys("hypotheses", {
   current: () => ["current"] as const,
+  // Story 7-3 — the projection curve read. currentWealth is part of the key
+  // (like milestonesKeys.statuses) so a wealth change refetches naturally.
+  projection: (currentWealth: number) => ["projection", currentWealth] as const,
 });
 export const hypothesesTags = createFeatureTags("hypotheses", {
   current: () => ["current"] as const,
@@ -168,8 +171,8 @@ export const dashboardLayoutTags = createFeatureTags(DASHBOARD_KEY, {
 
 setTagRegistry({
   [dashboardLayoutTags.current()]: [dashboardLayoutKeys.layout()],
-  [hypothesesTags.all()]: [hypothesesKeys.current()],
-  [hypothesesTags.current()]: [hypothesesKeys.current()],
+  [hypothesesTags.all()]: [hypothesesKeys.current(), ["hypotheses", "projection"]],
+  [hypothesesTags.current()]: [hypothesesKeys.current(), ["hypotheses", "projection"]],
   // Compass — `current` invalidates every read of the compass aggregate
   // AND the milestones list (status badges + linear-plan derive depend on
   // the compass objectif / horizonYears ; a compass change ripples through
