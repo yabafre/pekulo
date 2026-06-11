@@ -29,6 +29,7 @@ export type PekuloErrorCode =
   | "FORBIDDEN"
   | "HOLDING_CLOSED"
   | "HOLDING_NOT_FOUND"
+  | "HYPOTHESIS_INVALID_INPUT"
   | "INTERNAL"
   | "INVALID_CSV"
   | "INVALID_TARGET"
@@ -73,6 +74,7 @@ const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode
   "FORBIDDEN",
   "HOLDING_CLOSED",
   "HOLDING_NOT_FOUND",
+  "HYPOTHESIS_INVALID_INPUT",
   "INTERNAL",
   "INVALID_CSV",
   "INVALID_TARGET",
