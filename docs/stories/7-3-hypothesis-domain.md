@@ -21,7 +21,7 @@
 
 ## Tasks
 
-- [ ] **T1 — Add `monthlyContribution` column to `hypotheses` + hand-written migration [AC: AC-5, AC-6]**
+- [x] **T1 — Add `monthlyContribution` column to `hypotheses` + hand-written migration [AC: AC-5, AC-6]**
   Edit `apps/api/prisma/schema/hypothesis.prisma` — add the column directly after `objectif` (line 35), before `createdAt`:
   ```prisma
   objectif            Decimal   @default(100000) @db.Decimal
@@ -47,7 +47,7 @@
   Expected: `prisma:format` rewrites the schema idempotently; `prisma:generate` succeeds; `typecheck` exits 0; `migrate:deploy` prints `1 migration found` / `Applying migration 20260611120000_add_hypothesis_monthly_contribution` and exits 0 (or "No pending migrations" if already applied — idempotent).
   Commit: `git add apps/api/prisma/schema/hypothesis.prisma apps/api/prisma/migrations/20260611120000_add_hypothesis_monthly_contribution && git commit -m "feat(#40): add monthly_contribution column to hypotheses (FR-57)"`
 
-- [ ] **T2 — Add `HypothesisProjection` + `HypothesisProjectionPoint` to `@pekulo/types` [AC: AC-1, AC-6]**
+- [x] **T2 — Add `HypothesisProjection` + `HypothesisProjectionPoint` to `@pekulo/types` [AC: AC-1, AC-6]**
   Append to the domain-types file in `packages/types/src/` (the file that already exports `CompassCurve` / `HypothesisProjection` placeholder — locate it with `grep -rn "CompassCurve" packages/types/src`; add there to keep the barrel export intact):
   ```ts
   /**
@@ -81,7 +81,7 @@
   Expected: exit 0, no type errors.
   Commit: `git add packages/types/src && git commit -m "feat(#40): add HypothesisProjection domain type (FR-58)"`
 
-- [ ] **T3 — Add projection Zod schemas to `@pekulo/validators` [AC: AC-1, AC-5, AC-6]**
+- [x] **T3 — Add projection Zod schemas to `@pekulo/validators` [AC: AC-1, AC-5, AC-6]**
   Append to `packages/validators/src/hypothesis/hypothesis.schemas.ts` (after `defaultHypotheses`, reusing the file's `ratio`/`positive` style):
   ```ts
   // ── Story 7-3 (FR-57/FR-58) — projection hypothesis ──────────────────────
@@ -126,7 +126,7 @@
   Expected: exit 0.
   Commit: `git add packages/validators/src/hypothesis && git commit -m "feat(#40): add projection Zod schemas (FR-57/FR-58)"`
 
-- [ ] **T4 — Register `HYPOTHESIS_INVALID_INPUT` error code + `HypothesisError` class [AC: AC-4]**
+- [x] **T4 — Register `HYPOTHESIS_INVALID_INPUT` error code + `HypothesisError` class [AC: AC-4]**
   (a) Edit `apps/api/src/common/errors/pekulo-error.ts` — add `"HYPOTHESIS_INVALID_INPUT"` to BOTH the `PekuloErrorCode` union AND the `PEKULO_ERROR_CODES` Set, alphabetically between `"HOLDING_NOT_FOUND"` and `"INTERNAL"` (the file comment mandates updating both in the same commit). In the union:
   ```ts
     | "HOLDING_NOT_FOUND"
@@ -171,7 +171,7 @@
   Expected: exit 0 (the `Record<PekuloErrorCode, number>` compiles only because both union + map carry the new code).
   Commit: `git add apps/api/src/common/errors/pekulo-error.ts apps/api/src/platform/http/error-mapper.ts apps/api/src/modules/hypothesis/hypothesis.errors.ts && git commit -m "feat(#40): register HYPOTHESIS_INVALID_INPUT error code (FR-58)"`
 
-- [ ] **T5 — RED→GREEN: pure `projection-curve.ts` derive + tests [AC: AC-1, AC-2, AC-3, AC-4]**
+- [x] **T5 — RED→GREEN: pure `projection-curve.ts` derive + tests [AC: AC-1, AC-2, AC-3, AC-4]**
   Create `apps/api/src/common/derive/projection-curve.ts`:
   ```ts
   // Pure helper for the hypothesis projection curve (FR-58, story 7-3). Consumes
@@ -390,7 +390,7 @@
   Expected: the full api `bun test` suite is green; the new file reports `✓ computeProjectionCurve > AC-1: year-by-year series matches the monthly closed-form annuity` and the other 8 cases pass, exit 0.
   Commit: `git add apps/api/src/common/derive/projection-curve.ts apps/api/src/common/derive/projection-curve.test.ts && git commit -m "feat(#40): pure projection-curve derive + tests (FR-58)"`
 
-- [ ] **T6 — RED→GREEN: `hypothesis.service` recordProjection + getProjection + tests [AC: AC-5, AC-6]**
+- [x] **T6 — RED→GREEN: `hypothesis.service` recordProjection + getProjection + tests [AC: AC-5, AC-6]**
   Edit `apps/api/src/modules/hypothesis/hypothesis.service.ts`. (a) Add imports at the top alongside the existing ones:
   ```ts
   import type { HypothesisProjection } from "@pekulo/types";
@@ -513,7 +513,7 @@
   Expected: the 3 new `hypothesis.service — projection` cases pass alongside the existing 4, exit 0.
   Commit: `git add apps/api/src/modules/hypothesis/hypothesis.service.ts apps/api/src/modules/hypothesis/hypothesis.service.test.ts && git commit -m "feat(#40): hypothesis recordProjection + getProjection (FR-57/FR-58)"`
 
-- [ ] **T7 — Extend `hypothesisContract` with recordProjection + getProjection [AC: AC-5, AC-6]**
+- [x] **T7 — Extend `hypothesisContract` with recordProjection + getProjection [AC: AC-5, AC-6]**
   Edit `packages/contracts/src/hypothesis/hypothesis.contract.ts` — add the two procedures (keep `get`/`save`):
   ```ts
   import { oc } from "@orpc/contract";
@@ -545,7 +545,7 @@
   Expected: exit 0.
   Commit: `git add packages/contracts/src/hypothesis/hypothesis.contract.ts && git commit -m "feat(#40): hypothesis contract recordProjection + getProjection (FR-57/FR-58)"`
 
-- [ ] **T8 — RED→GREEN: route handlers + integration test [AC: AC-5, AC-6]**
+- [x] **T8 — RED→GREEN: route handlers + integration test [AC: AC-5, AC-6]**
   Edit `apps/api/src/modules/hypothesis/hypothesis.routes.ts` — add the two handlers inside `impl.router({ ... })` (keep `get`/`save`):
   ```ts
       recordProjection: impl.recordProjection.handler(async ({ context, input }) => {
@@ -566,7 +566,7 @@
   Expected: the hypothesis integration suite passes including the new recordProjection→getProjection round-trip, exit 0.
   Commit: `git add apps/api/src/modules/hypothesis/hypothesis.routes.ts apps/api/src/modules/hypothesis/hypothesis.integration.test.ts && git commit -m "feat(#40): hypothesis projection route handlers + integration test (FR-57/FR-58)"`
 
-- [ ] **T9 — Web thin action/hook wrappers + keys [AC: AC-7]**
+- [x] **T9 — Web thin action/hook wrappers + keys [AC: AC-7]**
   (a) Edit `apps/web/src/lib/zapaction/keys.ts` — add a `projection` key factory to `hypothesesKeys` and extend the registry edge so a recorded projection invalidates it. Replace the `hypothesesKeys` block (L12-14) with:
   ```ts
   export const hypothesesKeys = createFeatureKeys("hypotheses", {
@@ -686,7 +686,7 @@
   Expected: exit 0 (the `hypothesisClient.recordProjection`/`.getProjection` calls type-check against the contract from T7).
   Commit: `git add apps/web/src/lib/zapaction/keys.ts "apps/web/src/app/(cap)/dashboard/_hypothesis" && git commit -m "feat(#40): web hypothesis projection action + hooks (FR-57/FR-58)"`
 
-- [ ] **T10 — Doc-sync [AC: AC-5]**
+- [x] **T10 — Doc-sync [AC: AC-5]**
   Update the architecture driver lines so the realized FR-57/FR-58 surface matches the code (lesson 2026-05-31): in `docs/architecture.md`, the Group J table rows for FR-57/FR-58 already name `hypothesis.service.ts#record` and `projection-curve.ts` — refresh FR-57 to `#recordProjection` + note the new `monthly_contribution` column on `hypotheses`, and FR-58 to note `getProjection(currentWealthEur)` returns `HypothesisProjection` (offset-indexed, monthly compounding). Add no new ADR (no new subsystem — a column + two procedures on an existing module). The epic-7 context cache is already recompiled (this story's prep). If any step-04 decision was deviated from during dev, record it in `docs/lessons.md` per the mid-flight-scope rule.
   Run: `git diff --stat docs/architecture.md`
   Expected: only the two Group J driver lines changed.
@@ -769,10 +769,52 @@
 
 _Populated by aped-dev during implementation (Summary / Files changed / Deviations / Test output)._
 
+- **Agent model:** claude-opus-4-8[1m]
+- **Mode:** classic single-session (no worktree)
+- **Started:** 2026-06-11T12:05:00Z · **Dev complete:** 2026-06-11
+
 ### Summary
+
+Backend-pure story (mirrors 7-1) — ships the pure projection-curve derive (FR-58),
+the `recordProjection`/`getProjection` oRPC procedures (FR-57/FR-58), the new
+`monthly_contribution` column on `hypotheses`, and the thin web action/hook
+wrappers. No UI component (7-4 owns the card/chart/verdict/form). All 10 tasks
+ran their TDD/typecheck gate; one commit per task.
 
 ### Files changed
 
+- `apps/api/prisma/schema/hypothesis.prisma` (M) + migration `20260611120000_add_hypothesis_monthly_contribution/migration.sql` (C) — applied via `migrate deploy` (live Supabase).
+- `packages/types/src/hypothesis/{hypothesis.types.ts,index.ts}` (C) + barrel `index.ts` (M).
+- `packages/validators/src/hypothesis/hypothesis.schemas.ts` (M).
+- `apps/api/src/common/errors/pekulo-error.ts` (M) + `platform/http/error-mapper.ts` (M) + `modules/hypothesis/hypothesis.errors.ts` (C).
+- `apps/api/src/common/derive/projection-curve.ts` (+`.test.ts`) (C).
+- `apps/api/src/modules/hypothesis/{hypothesis.service.ts,hypothesis.service.test.ts,hypothesis.routes.ts,hypothesis.integration.test.ts}` (M).
+- `packages/contracts/src/hypothesis/hypothesis.contract.ts` (M).
+- `apps/web/src/lib/zapaction/keys.ts` (M) + `app/(cap)/dashboard/_hypothesis/_actions/hypothesis-actions.ts` (C) + `_hooks/{use-hypothesis-projection,use-record-hypothesis-projection}.ts` (C).
+- Commits: `de047e6` (prep) · `d8f36b5` T1 · `490e653` T2 · `96d6562` T3 · `b36a9a8` T4 · `72062e3` T5 · `1e8fba5` T6 · `09831b8` T7 · `671a006` T8 · `139a23e` T9.
+
 ### Deviations
 
+These correct inaccuracies in the story's verbatim code/instructions; none change the step-04 scope lock (no new subsystem), so no `lessons.md` entry is mandated.
+
+1. **T2 location.** The story said to append the interfaces to the file that "already exports `CompassCurve` / `HypothesisProjection` placeholder". No `HypothesisProjection` placeholder exists, and `@pekulo/types` is organised folder-by-domain (`<domain>/<domain>.types.ts` + `index.ts`). Created a new `hypothesis/` subdir mirroring `compass/` + wired the barrel — not appended to `compass.types.ts`.
+2. **T6 integration test.** Extending the `HypothesisService` interface breaks the integration test's in-memory double (type error). Added the two methods to `inMemoryHypothesisService` in T6 (keeps `tsc` green); the HTTP round-trip assertion still landed in T8 as planned.
+3. **T9 handler signature.** The story's verbatim `handler: async (input) =>` is wrong against this codebase's `defineAction` API, which passes `{ input, ctx }`. Changed both handlers to `async ({ input }) =>`, matching `realestate-actions.ts`.
+4. **Prep commit.** Committed the aped-story prep (story spec + epic-7 cache + state) in `de047e6` so each task commit stays surgical; T10's cache portion is therefore already committed.
+5. **T10 architecture.md DEFERRED to review.** The upstream-doc write guard blocks `docs/architecture.md` while the story is in-progress (7-1 T11 / 7-2 precedent, lesson 2026-05-31/06-05). The epic-7 cache is already synced. The exact Group J edit is queued below for `aped-review` to apply.
+
+#### Queued architecture.md edit (apply at aped-review — Group J, FR-57/FR-58 rows)
+
+Replace the FR-57 / FR-58 API-module cells so the realized surface matches the code:
+
+- **FR-57** API module → `hypothesis.service.ts#recordProjection` → upserts the 4 projection cols incl. the new `monthly_contribution` column.
+- **FR-58** API module → `derive/projection-curve.ts` (pure) ← `hypothesis.service.ts#getProjection(currentWealthEur)` → `HypothesisProjection` (offset-indexed, monthly compounding).
+
+No new ADR (a column + two procedures on an existing module).
+
 ### Test output
+
+- `@pekulo/api` `bun test`: **846 pass / 0 fail** (2136 expect calls, 100 files) — incl. 9 `computeProjectionCurve` cases, 3 `hypothesis.service — projection` cases, 1 `recordProjection → getProjection` integration round-trip.
+- Typecheck exit 0: `@pekulo/{types,validators,contracts,api,web}`.
+- `@pekulo/web` zapaction registry tests: **11 pass / 0 fail**.
+- T1 `prisma:migrate:deploy`: applied `20260611120000_add_hypothesis_monthly_contribution` to the live Supabase DB, exit 0.
