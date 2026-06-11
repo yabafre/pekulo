@@ -1,7 +1,7 @@
 # Story: 7-3-hypothesis-domain — Hypothesis projection: record inputs + pure projection-curve derivation
 
 **Epic:** Epic 7 — Dashboard & projection
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#40](https://github.com/yabafre/pekulo/issues/40)
 **Branch:** feature/40-7-3-hypothesis-domain
 
@@ -790,8 +790,8 @@ ran their TDD/typecheck gate; one commit per task.
 - `apps/api/src/common/derive/projection-curve.ts` (+`.test.ts`) (C).
 - `apps/api/src/modules/hypothesis/{hypothesis.service.ts,hypothesis.service.test.ts,hypothesis.routes.ts,hypothesis.integration.test.ts}` (M).
 - `packages/contracts/src/hypothesis/hypothesis.contract.ts` (M).
-- `apps/web/src/lib/zapaction/keys.ts` (M) + `app/(cap)/dashboard/_hypothesis/_actions/hypothesis-actions.ts` (C) + `_hooks/{use-hypothesis-projection,use-record-hypothesis-projection}.ts` (C).
-- Commits: `de047e6` (prep) · `d8f36b5` T1 · `490e653` T2 · `96d6562` T3 · `b36a9a8` T4 · `72062e3` T5 · `1e8fba5` T6 · `09831b8` T7 · `671a006` T8 · `139a23e` T9.
+- `apps/web/src/lib/zapaction/keys.ts` (M) + `app/(cap)/dashboard/_hypothesis/_actions/hypothesis-actions.ts` (C) + `_hooks/{use-hypothesis-projection,use-record-hypothesis-projection}.ts` (C) + `lib/zapaction/__tests__/hypotheses-registry.test.ts` (C).
+- Commits: `de047e6` (prep) · `d8f36b5` T1 · `490e653` T2 · `96d6562` T3 · `b36a9a8` T4 · `72062e3` T5 · `1e8fba5` T6 · `09831b8` T7 · `671a006` T8 · `139a23e` T9 · `eff54b6` (dev record) · `6b8a2d3` (AC-7 registry test).
 
 ### Deviations
 
@@ -802,6 +802,7 @@ These correct inaccuracies in the story's verbatim code/instructions; none chang
 3. **T9 handler signature.** The story's verbatim `handler: async (input) =>` is wrong against this codebase's `defineAction` API, which passes `{ input, ctx }`. Changed both handlers to `async ({ input }) =>`, matching `realestate-actions.ts`.
 4. **Prep commit.** Committed the aped-story prep (story spec + epic-7 cache + state) in `de047e6` so each task commit stays surgical; T10's cache portion is therefore already committed.
 5. **T10 architecture.md DEFERRED to review.** The upstream-doc write guard blocks `docs/architecture.md` while the story is in-progress (7-1 T11 / 7-2 precedent, lesson 2026-05-31/06-05). The epic-7 cache is already synced. The exact Group J edit is queued below for `aped-review` to apply.
+6. **AC-7 coverage.** T9's literal gate was typecheck-only, but the step-07 AC-to-test trace needs a citing test for AC-7. Added `hypotheses-registry.test.ts` (mirrors `dashboard-registry.test.ts`, the 7-1/7-2 registry-test precedent) asserting the projection invalidation edge — the envelope/`output`-omitted half of AC-7 stays compile-verified.
 
 #### Queued architecture.md edit (apply at aped-review — Group J, FR-57/FR-58 rows)
 
@@ -816,5 +817,5 @@ No new ADR (a column + two procedures on an existing module).
 
 - `@pekulo/api` `bun test`: **846 pass / 0 fail** (2136 expect calls, 100 files) — incl. 9 `computeProjectionCurve` cases, 3 `hypothesis.service — projection` cases, 1 `recordProjection → getProjection` integration round-trip.
 - Typecheck exit 0: `@pekulo/{types,validators,contracts,api,web}`.
-- `@pekulo/web` zapaction registry tests: **11 pass / 0 fail**.
+- `@pekulo/web` zapaction registry tests: **14 pass / 0 fail** (incl. 3 new `hypotheses-registry` cases for the AC-7 invalidation edge).
 - T1 `prisma:migrate:deploy`: applied `20260611120000_add_hypothesis_monthly_contribution` to the live Supabase DB, exit 0.
