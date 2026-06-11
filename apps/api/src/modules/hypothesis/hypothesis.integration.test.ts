@@ -16,11 +16,12 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { Elysia } from "elysia";
 import { SignJWT } from "jose";
-import { defaultHypotheses, type Hypotheses } from "@pekulo/validators";
+import { defaultHypotheses, type Hypotheses, type RecordProjectionInput } from "@pekulo/validators";
 import { mapErrorToOrpcResponse } from "../../platform/http/error-mapper";
 import { mountOrpc, type PekuloRpcRouter } from "../../platform/http/orpc-mount";
 import { createJwtVerifier } from "../../platform/security";
 import { extractRequestId } from "../../common/errors";
+import { computeProjectionCurve } from "../../common/derive/projection-curve";
 import { createHypothesisRouter } from "./hypothesis.routes";
 import type { HypothesisService } from "./hypothesis.service";
 
@@ -43,6 +44,7 @@ async function signValid(): Promise<string> {
 
 function inMemoryHypothesisService(): HypothesisService {
   const store = new Map<string, Hypotheses>();
+  const projectionStore = new Map<string, RecordProjectionInput>();
   return {
     async get(userId: string) {
       return store.get(userId) ?? defaultHypotheses;
@@ -50,6 +52,21 @@ function inMemoryHypothesisService(): HypothesisService {
     async save(userId: string, input: Hypotheses) {
       store.set(userId, input);
       return input;
+    },
+    async recordProjection(userId: string, input: RecordProjectionInput) {
+      projectionStore.set(userId, input);
+      return input;
+    },
+    async getProjection(userId: string, currentWealthEur: number) {
+      // Mirrors the real service's fallback: no recorded projection → 0
+      // contribution + the default rate/horizon (the curve never reads a clock).
+      const p = projectionStore.get(userId);
+      return computeProjectionCurve({
+        currentWealthEur,
+        monthlyContribution: p?.monthlyContribution ?? 0,
+        annualRate: p?.perfEtfAnnuelle ?? defaultHypotheses.perfEtfAnnuelle,
+        horizonYears: p?.horizonYears ?? defaultHypotheses.horizonYears,
+      });
     },
   };
 }

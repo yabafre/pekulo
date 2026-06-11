@@ -129,3 +129,58 @@ describe("hypothesis.service", () => {
     expect(call?.create.id).toBeUndefined();
   });
 });
+
+describe("hypothesis.service — projection (story 7-3)", () => {
+  test("recordProjection upserts only the four projection columns", async () => {
+    const { client, mocks } = fakeClient({ upsertResult: {} });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const service = createHypothesisService({ client: client as any });
+    const input = {
+      objectif: 800_000,
+      horizonYears: 30,
+      monthlyContribution: 1_000,
+      perfEtfAnnuelle: 0.05,
+    };
+    const result = await service.recordProjection("user-uuid", input);
+    expect(result).toEqual(input);
+    expect(mocks.upsert).toHaveBeenCalledTimes(1);
+    const call = mocks.upsert.mock.calls[0]?.[0];
+    expect(call?.where).toEqual({ userId: "user-uuid" });
+    expect(call?.update).toEqual(input);
+    expect(call?.create.userId).toBe("user-uuid");
+    expect(call?.create.monthlyContribution).toBe(1_000);
+    // Budget columns are NOT in the write payload — only the 4 projection fields.
+    expect(Object.keys(call?.update ?? {}).sort()).toEqual(
+      ["horizonYears", "monthlyContribution", "objectif", "perfEtfAnnuelle"].sort(),
+    );
+  });
+
+  test("getProjection reads Decimal columns and returns the curve", async () => {
+    const row = {
+      objectif: new Prisma.Decimal(800_000),
+      horizonYears: 30,
+      perfEtfAnnuelle: new Prisma.Decimal("0.05"),
+      monthlyContribution: new Prisma.Decimal(1_000),
+    };
+    const { client } = fakeClient({ findUniqueResult: row });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const service = createHypothesisService({ client: client as any });
+    const out = await service.getProjection("user-uuid", 60_000);
+    expect(out.horizonYears).toBe(30);
+    expect(out.monthlyContribution).toBe(1_000);
+    expect(out.annualRate).toBe(0.05);
+    expect(out.points).toHaveLength(31);
+    expect(out.points[0]!.eur).toBe(60_000);
+  });
+
+  test("getProjection falls back to defaults + 0 contribution when row missing", async () => {
+    const { client } = fakeClient({ findUniqueResult: null });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const service = createHypothesisService({ client: client as any });
+    const out = await service.getProjection("user-uuid", 1_000);
+    expect(out.monthlyContribution).toBe(0);
+    expect(out.annualRate).toBe(defaultHypotheses.perfEtfAnnuelle);
+    expect(out.horizonYears).toBe(defaultHypotheses.horizonYears);
+    expect(out.points[0]!.eur).toBe(1_000);
+  });
+});
