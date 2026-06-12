@@ -179,9 +179,10 @@ export function createHypothesisService(deps: { client: ExtendedPrismaClient }):
       await deps.client.hypothesis.upsert({
         where: { userId },
         update: writeData,
-        create: { userId, ...writeData } as unknown as Parameters<
-          typeof deps.client.hypothesis.upsert
-        >[0]["create"],
+        // No `as unknown` cast needed: `Hypothesis` skips the prefixedIds
+        // extension (native gen_random_uuid PK) so `id` is optional in the
+        // generated create input, and `monthly_contribution` is in the client.
+        create: { userId, ...writeData },
       });
       return input;
     },
@@ -199,11 +200,9 @@ export function createHypothesisService(deps: { client: ExtendedPrismaClient }):
       const horizonYears = decimalToNumber(row?.horizonYears, defaultHypotheses.horizonYears);
       const annualRate = decimalToNumber(row?.perfEtfAnnuelle, defaultHypotheses.perfEtfAnnuelle);
       // monthlyContribution is the new nullable column (defaults to 0 when the
-      // row predates story 7-3 or has never recorded a projection).
-      const monthlyContribution = decimalToNumber(
-        (row as { monthlyContribution?: unknown } | null)?.monthlyContribution,
-        0,
-      );
+      // row predates story 7-3 or has never recorded a projection). The select
+      // above types it as `Decimal | null` on `row`, so no cast is needed.
+      const monthlyContribution = decimalToNumber(row?.monthlyContribution, 0);
       // objectif is carried for downstream 7-4 (gap vs compass) but is not a
       // projection-curve input; the curve needs current wealth + contribution
       // + rate + horizon only.
