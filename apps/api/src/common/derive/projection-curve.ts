@@ -57,10 +57,25 @@ export function computeProjectionCurve(input: ComputeProjectionCurveInput): Hypo
   const i = annualRate / MONTHS_PER_YEAR;
   const points = Array.from({ length: horizonYears + 1 }, (_unused, k) => {
     const m = MONTHS_PER_YEAR * k;
+    // Branch on the compounding FACTOR, not `i === 0`. For an `i` smaller than
+    // machine epsilon, `(1 + i)` rounds to exactly 1 → the annuity term
+    // ((factor − 1) / i) collapses to 0 and would silently drop EVERY
+    // contribution. The linear limit `P + C·m` is the correct value there (and
+    // the no-division-by-zero path for an exact `annualRate = 0`).
+    const factor = (1 + i) ** m;
     const eur =
-      i === 0
+      factor === 1
         ? currentWealthEur + monthlyContribution * m
-        : currentWealthEur * (1 + i) ** m + monthlyContribution * (((1 + i) ** m - 1) / i);
+        : currentWealthEur * factor + monthlyContribution * ((factor - 1) / i);
+    // Defense-in-depth: astronomically large P/C overflow the IEEE-754 double to
+    // ±∞, which the egress `hypothesisProjectionSchema` would reject as a 500.
+    // Surface a clean 400 instead. Unreachable at Persona Alex's V1 scale.
+    if (!Number.isFinite(eur)) {
+      throw new HypothesisError(
+        "HYPOTHESIS_INVALID_INPUT",
+        "projected wealth overflowed to a non-finite value",
+      );
+    }
     return { year: k, eur };
   });
 
