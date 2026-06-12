@@ -1,6 +1,15 @@
 name: deploy
+# Gated on CI success. Previously this triggered directly on `push: main`, in
+# parallel with pr.yml — so a red main (failing typecheck/tests/lint) still
+# fired the Dokploy webhooks and shipped to prod. We now wait for the `pr`
+# workflow to COMPLETE on the main branch and only deploy when its conclusion
+# is `success`. `workflow_run` runs against the default-branch workflow
+# definition and only fires for completed runs, so a cancelled/failed CI run
+# never reaches the Dokploy POST step.
 on:
-  push:
+  workflow_run:
+    workflows: ["pr"]
+    types: [completed]
     branches: [main]
 
 concurrency:
@@ -14,6 +23,8 @@ jobs:
   dokploy:
     name: dokploy-webhooks
     runs-on: ubuntu-latest
+    # Gate: only deploy when the upstream CI run on main concluded successfully.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v5
       - name: POST Dokploy webhooks (api then prices, sequential, fail on non-2xx)
