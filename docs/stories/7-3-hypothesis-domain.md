@@ -819,3 +819,55 @@ No new ADR (a column + two procedures on an existing module).
 - Typecheck exit 0: `@pekulo/{types,validators,contracts,api,web}`.
 - `@pekulo/web` zapaction registry tests: **14 pass / 0 fail** (incl. 3 new `hypotheses-registry` cases for the AC-7 invalidation edge).
 - T1 `prisma:migrate:deploy`: applied `20260611120000_add_hypothesis_monthly_contribution` to the live Supabase DB, exit 0.
+
+## Review Record
+
+**Date:** 2026-06-12
+**Auditors:** Spec, Code, Edge & Hallucination (Aria not dispatched — backend-pure, no UI)
+**Verdict:** done
+- **Override:** AC gap accepted — reason: "T10 doc-sync was an intentional deferral (upstream-doc write-guard); aped-review is the designated applier — 7-1 T11 / 7-2 precedent"
+
+### Findings
+
+#### Resolved
+- [BLOCKER] T10 `architecture.md` Group J doc-sync checked `[x]` but never committed — FR-57/FR-58 cells still read `#record` / bare `projection-curve.ts` [docs/architecture.md:1129-1130]
+  - Source: Spec + git-audit
+  - Resolution: `d07b61f` — FR-57 → `hypothesis.service.ts#recordProjection` (+ `monthly_contribution` col); FR-58 → `getProjection(currentWealthEur)` → `HypothesisProjection` (offset-indexed, monthly compounding).
+- [MAJOR] Sub-epsilon `annualRate` silently dropped every contribution — `i === 0` branch missed the `(1+i)^m → 1` underflow [apps/api/src/common/derive/projection-curve.ts:57-65]
+  - Source: Edge
+  - Resolution: `472ac70` — branch on the compounding factor (`factor === 1`); regression: `annualRate = 1e-16 → finalEur = 420_000` (old code returned 60_000).
+- [MAJOR] Output overflow to ±∞ leaked as a 500 at egress (the schema rejects non-finite) [projection-curve.ts:66-72]
+  - Source: Edge + Code
+  - Resolution: `472ac70` — `Number.isFinite(eur)` guard throws `HYPOTHESIS_INVALID_INPUT` (clean 400) + overflow test.
+- [MAJOR] AC-4 guard coverage representative-not-exhaustive — `annualRate < 0`, non-finite rate/contribution, `horizonYears < 1` uncited [projection-curve.test.ts]
+  - Source: Spec
+  - Resolution: `472ac70` — +4 guard cases.
+- [MINOR] Vestigial `as unknown as Parameters<…>` casts suppressed type-checking (generated client carries `monthly_contribution`; `Hypothesis` skips prefixed-ids → `id` optional) [hypothesis.service.ts recordProjection/getProjection]
+  - Source: Code
+  - Resolution: `079c78a` — removed from both projection methods; `@pekulo/api` typecheck exit 0 without them. The pre-existing `save()` cast is intentionally left (brownfield, out of scope).
+- [MINOR] AC-1 test tautological (re-derives the formula) + comment mislabelled an absolute tolerance as "1e-6 relative" [projection-curve.test.ts:33]
+  - Source: Spec + Code
+  - Resolution: `472ac70` — out-of-band oracle `FV(360) = 1_100_323.294201847` + corrected comment.
+- [MINOR] AC-7 envelope half (`{ ok:false }` + `output:` omitted) was compile-verified only [hypothesis-actions.ts]
+  - Source: Spec + Code
+  - Resolution: `30aa90b` — `hypothesis-actions.envelope.test.ts`, 4 runtime cases (success / typed-error code survives / `INTERNAL` fallback / read mirror).
+
+#### Dismissed
+- [MAJOR] Integration suite drives an in-memory double, not real Prisma [hypothesis.integration.test.ts:46]
+  - Source: Code
+  - Rationale: the real `createHypothesisService` is exercised by the service unit tests (`Prisma.Decimal` fixtures); the HTTP boundary is integration-tested; a DB-backed test needs test-DB infra not wired for this module — out of scope for a column + 2-procedures review. Logged for a future infra pass.
+- [MINOR] `fakeClient` typed `as any` defeats the incomplete-mock check [hypothesis.service.test.ts]
+  - Source: Code
+  - Rationale: pre-existing idiom uniform across get/save/projection tests; tightening to `Pick<ExtendedPrismaClient,…>` is a file-wide brownfield test refactor, out of 7-3's surgical scope.
+- [MINOR] `getProjection` can throw 400 on manually-corrupted stored data [hypothesis.service.ts]
+  - Source: Code
+  - Rationale: accepted defense-in-depth — the API write surface is Zod-locked (`ratio`/`positive`/int[1,50]) so it is unreachable via the app; the new finiteness guard covers the overflow case.
+
+### Verification
+- Test command: `bun --filter='@pekulo/api' run test` · `bun --filter='@pekulo/web' run test`
+- Test output (final pass): api **852 pass / 0 fail** (2143 expect, 100 files); web **248 pass / 0 fail** (94 files); `projection-curve` **15 pass** (9 + 6 new); envelope **4** + registry **3** pass; `@pekulo/{api,web}` typecheck exit 0. Adversarial fix-verifier: ALL RESOLVED.
+- Visual verification: N/A — backend-pure story, no UI surface (7-4 owns the card/chart/form).
+
+### Ticket sync
+- Ticket comment posted: #40
+- PR opened/updated: #131 (base `main`)
