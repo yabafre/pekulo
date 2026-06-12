@@ -56,7 +56,7 @@ describe("attest-queue (story 6-6)", () => {
     // A fresh DB handle (simulating a page reload) still sees the row.
     const rows = await eventRows();
     expect(rows).toHaveLength(1);
-    expect(rows[0].payload.callId).toBe("call_1");
+    expect(rows[0]!.payload.callId).toBe("call_1");
     expect(submit).not.toHaveBeenCalled(); // enqueue does not auto-flush
   });
 

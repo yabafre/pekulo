@@ -2,7 +2,7 @@
 
 import { SegmentError } from "@/lib/segment-error";
 
-export default function TransactionsError({
+export default function DashboardError({
   error,
   reset,
 }: {
@@ -13,8 +13,8 @@ export default function TransactionsError({
     <SegmentError
       error={error}
       reset={reset}
-      context="transactions"
-      message="Erreur de chargement des transactions."
+      context="dashboard"
+      message="Erreur de chargement du tableau de bord."
     />
   );
 }

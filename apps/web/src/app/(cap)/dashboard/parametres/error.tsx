@@ -2,7 +2,7 @@
 
 import { SegmentError } from "@/lib/segment-error";
 
-export default function TransactionsError({
+export default function ParametresError({
   error,
   reset,
 }: {
@@ -13,8 +13,8 @@ export default function TransactionsError({
     <SegmentError
       error={error}
       reset={reset}
-      context="transactions"
-      message="Erreur de chargement des transactions."
+      context="parametres"
+      message="Erreur de chargement des paramètres."
     />
   );
 }

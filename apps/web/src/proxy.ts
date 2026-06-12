@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { buildSecurityHeaders, CSP_ENFORCED_HEADER } from "@/lib/security/headers";
+import {
+  buildContentSecurityPolicy,
+  buildSecurityHeaders,
+  CSP_ENFORCED_HEADER,
+} from "@/lib/security/headers";
 
 export async function proxy(request: NextRequest) {
   // One nonce per request. Next extracts it from the CSP header on the REQUEST
@@ -10,12 +14,16 @@ export async function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
-  const securityHeaders = buildSecurityHeaders({
+  const cspOptions = {
     dev: isDev,
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     nonce,
-  });
-  const csp = securityHeaders[CSP_ENFORCED_HEADER];
+  };
+  const securityHeaders = buildSecurityHeaders(cspOptions);
+  // Derive the CSP from the same options rather than re-indexing the record:
+  // under `noUncheckedIndexedAccess` the lookup widens to `string | undefined`,
+  // and `headers.set` requires a definite string.
+  const csp = buildContentSecurityPolicy(cspOptions);
 
   // request.headers is immutable — clone it and thread the nonce + CSP into the
   // RSC render. Rebuilt on each NextResponse.next so Supabase's refreshed auth

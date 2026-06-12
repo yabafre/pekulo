@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import type { Account } from "@pekulo/validators";
+import { userErrorMessage } from "@/lib/user-error-message";
 import { useDeleteAccount } from "../_hooks/use-delete-account";
 
 const FK_MESSAGE = "Ce compte est référencé par des positions — supprimez-les d'abord.";
@@ -69,7 +70,8 @@ export function AccountDeleteConfirm({ account, open, onOpenChange }: AccountDel
           <View flexDirection="column" gap="$3" padding="$4">
             <PekuloDialog.Title>Supprimer « {account.label} » ?</PekuloDialog.Title>
             <PekuloDialog.Description>
-              Cette action est irréversible. Le solde et l'historique du compte seront effacés.
+              Cette action est définitive et irréversible. Le solde, l'historique du compte et{" "}
+              <strong>toutes les transactions associées</strong> seront supprimés définitivement.
             </PekuloDialog.Description>
             {envelopeError && (
               <Text role="alert" color="$danger" fontSize="$caption">
@@ -78,7 +80,7 @@ export function AccountDeleteConfirm({ account, open, onOpenChange }: AccountDel
             )}
             {error && !envelopeError && (
               <Text role="alert" color="$danger" fontSize="$caption">
-                {error.message}
+                {userErrorMessage(error, "account-delete")}
               </Text>
             )}
             <View flexDirection="row" gap="$3" alignItems="center">

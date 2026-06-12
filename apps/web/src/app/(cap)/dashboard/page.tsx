@@ -7,10 +7,14 @@
 
 import { Suspense } from "react";
 import { DashboardTabs } from "./_components/dashboard-tabs";
+import DashboardLoading from "./loading";
 
 export default function DashboardPage() {
+  // Reuse the segment's loading.tsx skeleton as the Suspense fallback so a
+  // suspending client subtree paints the PekuloSkeleton shell rather than a
+  // blank gap (was `fallback={null}`).
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<DashboardLoading />}>
       <DashboardTabs />
     </Suspense>
   );

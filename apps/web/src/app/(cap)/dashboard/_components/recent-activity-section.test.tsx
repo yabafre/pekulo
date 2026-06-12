@@ -52,7 +52,7 @@ describe("RecentActivitySection", () => {
   it("navigates to /dashboard/transactions when a row is pressed (AC-2)", () => {
     mocked.mockReturnValue(withActivity(FIVE));
     const { getAllByRole } = renderWithTamagui(<RecentActivitySection />);
-    fireEvent.click(getAllByRole("button")[0]);
+    fireEvent.click(getAllByRole("button")[0]!);
     expect(push).toHaveBeenCalledWith("/dashboard/transactions");
   });
 
