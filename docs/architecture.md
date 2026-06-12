@@ -1124,11 +1124,11 @@ pekulo/
 
 #### Group J — Hypotheses & projections (brownfield)
 
-| FR    | Definition                                                        | API module                                                           | Web surface                                                           |
-| ----- | ----------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| FR-57 | Record hypothesis (compass + monthly contribution + assumed rate) | `apps/api/src/modules/hypothesis/hypothesis.service.ts#record`       | `(cap)/parametres/_components/hypothesis-form.tsx`                    |
-| FR-58 | Project future wealth curve                                       | `apps/api/src/common/derive/projection-curve.ts` (pure)              | `dashboard/_components/hypothesis-card.tsx` + `PekuloProjectionChart` |
-| FR-59 | Compare projection vs cap-required                                | `dashboard.service.ts#getHypothesisGap` returns `{ gapEurPerMonth }` | `PekuloHypothesisVerdict`                                             |
+| FR    | Definition                                                        | API module                                                                                                                                                   | Web surface                                                           |
+| ----- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| FR-57 | Record hypothesis (compass + monthly contribution + assumed rate) | `hypothesis.service.ts#recordProjection` upserts 4 projection cols incl. new `monthly_contribution`                                                          | `(cap)/parametres/_components/hypothesis-form.tsx`                    |
+| FR-58 | Project future wealth curve                                       | `derive/projection-curve.ts` (pure) ← `hypothesis.service.ts#getProjection(currentWealthEur)` → `HypothesisProjection` (offset-indexed, monthly compounding) | `dashboard/_components/hypothesis-card.tsx` + `PekuloProjectionChart` |
+| FR-59 | Compare projection vs cap-required                                | `dashboard.service.ts#getHypothesisGap` returns `{ gapEurPerMonth }`                                                                                         | `PekuloHypothesisVerdict`                                             |
 
 ### Integration Boundaries
 
