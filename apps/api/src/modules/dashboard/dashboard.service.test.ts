@@ -255,4 +255,84 @@ describe("dashboard.service.getOverview", () => {
     expect(out.recentActivity).toEqual([]);
     expect(out.totalWealthEur).toBe(276_000);
   });
+
+  // --- FX provenance: no more silent 1:1 fallback (audit fix) ---
+  //
+  // A single USD account isolates the FX effect: 1 080 USD converts to 1 000 €
+  // at the live rate (USD 1.08), so the source + the converted amount together
+  // prove which rate path ran. No EUR holdings → marketValue 0, immobilier 0.
+  function usdPorts(over: Partial<DashboardPorts> = {}): DashboardPorts {
+    return basePorts({
+      listAccounts: async () => [acct({ id: "acc_usd", currency: "USD", cashBalance: 1_080 })],
+      listHoldings: async () => [],
+      getTotalEquity: async () => ({ totalEquityEur: 0 }),
+      getCompass: async () => null,
+      ...over,
+    });
+  }
+
+  test("FX live — a reachable provider stamps source 'live' and applies the rate", async () => {
+    const svc = createDashboardService(usdPorts());
+    const out = await svc.getOverview(USER);
+    expect(out.fx.source).toBe("live");
+    expect(out.fx.asOf).toBe("2026-06-04");
+    // 1 080 USD / 1.08 = 1 000 € (rate applied, not 1:1).
+    expect(out.composition.liquideEur).toBeCloseTo(1_000, 6);
+  });
+
+  test("FX stale — provider down AFTER a success serves last-known-good rates, source 'stale'", async () => {
+    let succeed = true;
+    const svc = createDashboardService(
+      usdPorts({
+        getRates: async () => {
+          if (!succeed) throw new Error("frankfurter down");
+          return {
+            base: "EUR",
+            date: "2026-06-04",
+            rates: { EUR: 1, USD: 1.08, GBP: 0.85, CHF: 0.95 },
+          };
+        },
+      }),
+    );
+
+    // First read warms the in-memory last-known-good cache (live).
+    const live = await svc.getOverview(USER);
+    expect(live.fx.source).toBe("live");
+
+    // Provider now down — must serve the cached rates (NOT 1:1).
+    succeed = false;
+    const stale = await svc.getOverview(USER);
+    expect(stale.fx.source).toBe("stale");
+    expect(stale.fx.asOf).toBe("2026-06-04"); // cached rate date carried through
+    expect(stale.composition.liquideEur).toBeCloseTo(1_000, 6); // 1 080 / 1.08, still applied
+  });
+
+  test("FX unavailable — cold start + provider down → source 'unavailable', 1:1 conversion is EXPLICIT and logged", async () => {
+    const warnings: unknown[][] = [];
+    const originalWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args);
+    };
+    try {
+      const svc = createDashboardService(
+        usdPorts({
+          getRates: async () => {
+            throw new Error("frankfurter down");
+          },
+        }),
+      );
+      const out = await svc.getOverview(USER);
+      expect(out.fx.source).toBe("unavailable");
+      expect(out.fx.asOf).toBeNull();
+      // No cached rate → 1:1 identity (1 080 USD read as 1 080 €), but EXPLICIT.
+      expect(out.composition.liquideEur).toBe(1_080);
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    expect(warnings).toHaveLength(1);
+    const message = String(warnings[0]?.[0]);
+    expect(message).toContain("[fx]");
+    expect(message).toContain("unavailable");
+  });
 });

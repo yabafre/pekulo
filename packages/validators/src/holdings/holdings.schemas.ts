@@ -194,7 +194,19 @@ export type PriceQuoteInput = z.infer<typeof priceQuoteInputSchema>;
 // same closed set used by Account.currency and Holding.currency, so the FX
 // matrix has 4×4 = 16 cells but only 3 non-identity foreign rates per base.
 
-export const FX_SOURCES = ["live", "fallback"] as const;
+// FX provenance stamped on every snapshot (NFR-19 transparency):
+//   - "live"        — rates fetched fresh from the provider this read.
+//   - "stale"       — provider down THIS read, served from the last-known-good
+//                     in-memory cache (rates still applied, never 1:1). asOf
+//                     reflects the cached rate date so the UI can flag staleness.
+//   - "unavailable" — provider down AND no rate ever cached (cold start). The
+//                     snapshot degrades to a 1:1 identity conversion, but the
+//                     source makes that EXPLICIT instead of a silent fallback.
+//   - "fallback"    — pure-helper default when `rates` is null (kept for
+//                     back-compat with computeSnapshotFx's null path; the
+//                     dashboard now maps this to "stale"/"unavailable" via the
+//                     caching FX reader so the silent 1:1 fallback is gone).
+export const FX_SOURCES = ["live", "stale", "unavailable", "fallback"] as const;
 export const fxSourceSchema = z.enum(FX_SOURCES);
 export type FxSource = z.infer<typeof fxSourceSchema>;
 
