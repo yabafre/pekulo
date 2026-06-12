@@ -100,7 +100,7 @@ describe("WidgetEditLayer", () => {
     const { getByLabelText } = renderWithTamagui(<WidgetEditLayer widgets={WIDGETS} />);
     fireEvent.click(getByLabelText("Afficher Composition"));
     expect(save).toHaveBeenCalledTimes(1);
-    expect(save.mock.calls[0][0].widgets).toContainEqual(
+    expect(save.mock.calls[0]![0].widgets).toContainEqual(
       expect.objectContaining({ id: "composition", visible: false }),
     );
   });

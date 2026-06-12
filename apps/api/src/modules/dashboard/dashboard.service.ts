@@ -20,6 +20,7 @@
 // + architecture.md).
 
 import { computeSnapshotFx } from "../../common/derive/portfolio-fx";
+import { createFxRatesReader } from "./fx-rates-source";
 import type {
   ComputeProgressInput,
   ComputeProgressOutput,
@@ -57,6 +58,13 @@ export interface DashboardService {
 }
 
 export function createDashboardService(deps: DashboardPorts): DashboardService {
+  // FX read with a last-known-good in-memory cache (created ONCE per service so
+  // the cache survives across getOverview calls). This kills the brownfield
+  // silent 1:1 fallback: a provider outage now serves the last live rates with
+  // source "stale", or (cold start) converts 1:1 with an EXPLICIT "unavailable"
+  // source + a warn log — never a silent 8 % USD over-report.
+  const fxRates = createFxRatesReader({ getRates: deps.getRates });
+
   // Enrich each holding with a LIVE price; fall back to the stored lastPrice on
   // a null ticker (manual entry) or any resolveQuote rejection (all tiers
   // failed — NFR-18). The holdings module's 60s PricesCache fronts resolveQuote,
@@ -108,11 +116,13 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
 
   return {
     async getOverview(userId) {
-      const [accounts, holdings, rates, equity, compassRow, recentActivity] = await Promise.all([
+      const [accounts, holdings, fx, equity, compassRow, recentActivity] = await Promise.all([
         deps.listAccounts(userId),
         deps.listHoldings(userId),
-        // FX is best-effort (NFR-19): a frankfurter failure → null → 1:1 fallback.
-        deps.getRates("EUR").catch(() => null),
+        // FX is best-effort (NFR-19) but NEVER a silent 1:1: the reader serves
+        // last-known-good rates ("stale") on a provider outage, or marks the
+        // cold-start outage "unavailable" + logs it. fx.read never throws.
+        fxRates.read("EUR"),
         deps.getTotalEquity(userId),
         // The compass is optional (the schema is .nullable()): a read failure
         // degrades to "no compass" rather than 500-ing the whole overview. The
@@ -126,7 +136,7 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
       ]);
 
       const priced = await priceHoldings(holdings);
-      const snapshot = computeSnapshotFx(accounts, priced, rates, "EUR");
+      const snapshot = computeSnapshotFx(accounts, priced, fx.rates, "EUR");
       const totalWealthEur = snapshot.kpi.capitalTotal + equity.totalEquityEur;
 
       // The cap measures INVESTABLE wealth — cash + market value (= capitalTotal)
@@ -156,7 +166,12 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
           immobilierEur: equity.totalEquityEur,
         },
         compass,
-        fx: { source: snapshot.fxSource, asOf: snapshot.fxAsOf },
+        // Source comes from the caching reader (live | stale | unavailable),
+        // NOT from computeSnapshotFx's null-derived "live"/"fallback" — the
+        // reader knows whether the rates were fresh, cached, or absent. asOf is
+        // the snapshot's rate date (the cached rate date when stale; null when
+        // unavailable).
+        fx: { source: fx.source, asOf: snapshot.fxAsOf },
         recentActivity,
       };
     },

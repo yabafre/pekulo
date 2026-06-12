@@ -2,6 +2,7 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "envMode": "loose",
+  "globalEnv": ["NODE_ENV"],
   "tasks": {
     "dev": {
       "inputs": [
@@ -22,7 +23,14 @@
         ".env.production",
         ".env"
       ],
-      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "API_BASE_URL",
+        "DATABASE_URL",
+        "DIRECT_URL"
+      ],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
       "dependsOn": ["^build"]
     },
     "typecheck": {

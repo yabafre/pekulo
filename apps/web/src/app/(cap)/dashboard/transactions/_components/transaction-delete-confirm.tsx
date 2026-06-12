@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from "react";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import type { Transaction } from "@pekulo/validators";
+import { userErrorMessage } from "@/lib/user-error-message";
 import { useDeleteTransaction } from "../_hooks/use-delete-transaction";
 
 const NOT_FOUND_MESSAGE = "Cette transaction est introuvable (déjà supprimée ?). Recharge la page.";
@@ -77,7 +78,7 @@ export function TransactionDeleteConfirm({
             )}
             {error && !envelopeError && (
               <Text role="alert" color="$danger" fontSize="$caption">
-                {error.message}
+                {userErrorMessage(error, "transaction-delete")}
               </Text>
             )}
             <View flexDirection="row" gap="$3" marginTop="$2">

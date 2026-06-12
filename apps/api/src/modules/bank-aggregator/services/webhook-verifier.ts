@@ -6,9 +6,11 @@
 // Non-v1 schemes (v0, v2, …) are silently dropped — downgrade-attack defense.
 // Timing-safe equality via node:crypto.
 //
-// Replay defense (post-review aped-review): `t=<unix_ts>` is the timestamp
-// Bridge attached to the signed payload ; if the receiver clock differs from
-// `t` by more than MAX_REPLAY_AGE_SECONDS, reject. Mirrors Stripe's pattern.
+// Replay defense (audit 2026-06-12): `t=<unix_ts>` is the timestamp Bridge
+// attached to the signed payload. It is MANDATORY — a request with no `t=` (or
+// an unparseable one) is rejected, and a request whose `t` differs from the
+// receiver clock by more than MAX_REPLAY_AGE_SECONDS is rejected. Mirrors
+// Stripe's pattern; closes the replay-by-stripping-`t=` hole.
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -46,15 +48,18 @@ export function verifyBridgeSignature(args: {
   }
   if (v1Hexes.length === 0) return { valid: false, reason: "no-v1-signatures" };
 
-  // Replay defense — reject if the timestamp is older than MAX_REPLAY_AGE_SECONDS.
-  // Tolerate missing `t=` for back-compat with secrets-only fixtures but mark
-  // it explicitly so log analysers can detect a regression.
-  if (tsSeconds !== null) {
-    const now = args.nowMs ?? Date.now();
-    const ageSec = Math.abs(now / 1000 - tsSeconds);
-    if (ageSec > MAX_REPLAY_AGE_SECONDS) {
-      return { valid: false, reason: "timestamp-too-old" };
-    }
+  // Replay defense (audit 2026-06-12) — the `t=` timestamp is now MANDATORY.
+  // Bridge fixes the signed payload schema (we cannot make it sign `t`), so the
+  // only lever against a captured-and-replayed webhook is: require `t=` and
+  // reject anything outside the freshness window. The previous impl tolerated a
+  // missing `t=` for back-compat, which let an attacker strip `t=` and replay a
+  // captured request forever (the HMAC over the body alone stays valid). We now
+  // reject a missing/unparseable `t=` outright, then reject a stale timestamp.
+  if (tsSeconds === null) return { valid: false, reason: "missing-timestamp" };
+  const now = args.nowMs ?? Date.now();
+  const ageSec = Math.abs(now / 1000 - tsSeconds);
+  if (ageSec > MAX_REPLAY_AGE_SECONDS) {
+    return { valid: false, reason: "timestamp-too-old" };
   }
 
   for (const secret of secrets) {

@@ -39,7 +39,7 @@ export function PekuloProjectionChart({
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-label="Projection vs cap-required"
+        aria-label="Projection par rapport au cap requis"
       >
         <path
           d={toPath(required)}

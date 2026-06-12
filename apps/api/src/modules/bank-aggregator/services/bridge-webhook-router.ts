@@ -63,7 +63,22 @@ export function createBridgeWebhookRouter(args: { env: Env; service: BankAggrega
         return new Response(null, { status: 400 });
       }
 
-      await service.handleWebhookEvent(event);
+      // Async dispatch (audit 2026-06-12): respond 204 IMMEDIATELY after HMAC +
+      // parse/validation, then process the event in the background. A full
+      // refresh can drain up to 100 pages × ~10 s; awaiting it here made Bridge
+      // time out (their webhook receiver budget is seconds, not minutes) and
+      // RE-DELIVER, which spawned concurrent refresh runs for the same item.
+      // The 204 is the ACK Bridge needs to stop retrying. The service coalesces
+      // concurrent deliveries per providerItemId internally, and we attach a
+      // catch so a background failure is logged (not an unhandled rejection)
+      // rather than surfaced to Bridge — they already got their 204.
+      void service.handleWebhookEvent(event).catch((err) => {
+        console.warn(
+          `[bridge-webhook] background dispatch failed: ${
+            err instanceof Error ? err.message : "unknown"
+          }`,
+        );
+      });
       return new Response(null, { status: 204 });
     });
 }

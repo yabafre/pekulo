@@ -827,16 +827,16 @@ pekulo/
 │   │   │   │   │   ├── signup/{page,_components,_hooks,_actions}/   FR-45
 │   │   │   │   │   ├── callback/{page,loading,error}/               FR-46 (Supabase OAuth-style cb)
 │   │   │   │   │   └── recover/{page,loading,error,_actions}/       FR-48 password reset
-│   │   │   │   └── (cap)/
-│   │   │   │       ├── dashboard/{page,loading,error,_components,_hooks,_skeletons}/   FR-41-44, FR-1-8
-│   │   │   │       ├── transactions/{page,loading,error,_components,_hooks,_actions}/   FR-28-36
-│   │   │   │       │   └── [id]/{page,loading,error,not-found}/                          drill-down
-│   │   │   │       ├── mensuel/{page,loading,error,_components,_hooks,_actions}/        FR-37-40
-│   │   │   │       ├── portefeuille/{page,loading,error,_components,_hooks,_actions}/   FR-13-20
-│   │   │   │       │   └── [holdingId]/{page,loading,error,not-found}/
-│   │   │   │       ├── immobilier/{page,loading,error,_components,_hooks,_actions}/     FR-21-27
-│   │   │   │       │   └── [propertyId]/{page,loading,error,not-found}/
-│   │   │   │       └── parametres/{page,loading,error,_components,_hooks,_actions}/     FR-34, FR-36, FR-49-52, FR-57
+│   │   │   │   └── (cap)/                              ← single authed shell ; everything nests under dashboard/
+│   │   │   │       └── dashboard/                      FR-41-44, FR-1-8 (page, layout, loading, error)
+│   │   │   │           ├── {_components,_hooks,_actions,_lib,_widgets}/   dashboard-local building blocks
+│   │   │   │           ├── {_accounts,_bank,_compass,_hypothesis,_llm}/   feature-scoped slices
+│   │   │   │           ├── portefeuille/{page,loading,error,_components,_hooks,_actions}/   FR-13-20
+│   │   │   │           ├── mensuel/{page,loading,error,_components,_hooks,_actions}/        FR-37-40
+│   │   │   │           ├── transactions/{page,loading,error,_components,_hooks,_actions}/   FR-28-36
+│   │   │   │           ├── immobilier/{page,loading,error,_components,_hooks,_actions}/     FR-21-27
+│   │   │   │           ├── parametres/{page,loading,error}/  +  journal-ia/page.tsx          FR-34, FR-36, FR-49-52, FR-57
+│   │   │   │           └── bank/callback/{page,classify-callback.ts}/                        Bridge reconnect callback
 │   │   │   ├── components/                          ← GLOBAL components (ErrorBoundary, ToastContainer, ContextualAddButton)
 │   │   │   ├── lib/
 │   │   │   │   ├── hooks/                           ← GLOBAL cross-route hooks
@@ -881,30 +881,27 @@ pekulo/
 │   │       │   ├── lifecycle.ts                     startup/shutdown hooks
 │   │       │   └── readiness.ts                     deps health probes (/ready)
 │   │       ├── modules/
-│   │       │   ├── auth/                            FR-45-48 (Supabase wrapping for /rpc/v1/auth)
-│   │       │   ├── compass/                         FR-1-8 + compass_history audit
-│   │       │   ├── milestones/                      FR-3, FR-4, FR-6, FR-8
 │   │       │   ├── accounts/                        FR-9-12
-│   │       │   ├── holdings/                        FR-13-20 + lots subcomponent
-│   │       │   ├── realestate/                      FR-21-27 + valuations audit
-│   │       │   ├── transactions/                    FR-28-30, FR-33, FR-37-38 (CSV import)
-│   │       │   ├── llm/                             FR-31-36 + audit log + opt-in + /internal/llm/attest
-│   │       │   ├── monthly/                         FR-37-40
+│   │       │   ├── bank-aggregator/                 Bridge ingestion (provider abstraction + routes + services/)
+│   │       │   ├── compass/                         FR-1-8 + compass_history audit
 │   │       │   ├── dashboard/                       FR-41-44 (read-aggregator)
-│   │       │   ├── settings/                        FR-49-52 (export, delete, theme/lang persist)
+│   │       │   ├── health/                          /health, /ready (Elysia-native, public)
+│   │       │   ├── holdings/                        FR-13-20 + lots subcomponent
 │   │       │   ├── hypothesis/                      FR-57-59
-│   │       │   └── health/                          /health, /ready (Elysia-native, public)
+│   │       │   ├── llm/                             FR-31-36 + audit log + opt-in + /internal/llm/attest
+│   │       │   ├── logos/                           merchant-logo proxy (/v1/logos) — domains + key derive + services/
+│   │       │   ├── milestones/                      FR-3, FR-4, FR-6, FR-8
+│   │       │   ├── monthly/                         FR-37-40
+│   │       │   ├── realestate/                      FR-21-27 + valuations audit
+│   │       │   └── transactions/                    FR-28-30, FR-33, FR-37-38 (CSV import)
 │   │       ├── platform/
-│   │       │   ├── http/{request-id, error-mapper, cors, bearer, rate-limit}.ts
-│   │       │   ├── logging/otel-logger.ts           OTel logger wrapper (NFR-25-26)
-│   │       │   ├── audit/audit-row.ts               masked-userId, no-PII helpers
+│   │       │   ├── http/{error-mapper, orpc-mount, request-log}.ts
 │   │       │   ├── security/
 │   │       │   │   ├── jwt-verifier.ts              SUPABASE_JWT_SECRET verify
 │   │       │   │   ├── require-user-context.ts      ctx = { userId, email, jwtClaims }
 │   │       │   │   └── opt-in-guard.ts              requireOptIn(userId) for 3rd-party LLM (DR-7)
 │   │       │   └── observability/
-│   │       │       ├── otel-sdk.ts                  @opentelemetry/sdk-node init
-│   │       │       └── prisma-instrumentation.ts    @opentelemetry/instrumentation-prisma
+│   │       │       └── otel-sdk.ts                  @opentelemetry/sdk-node init
 │   │       ├── database/
 │   │       │   ├── prisma.service.ts                PrismaPg adapter + extension chain (ADR-0012)
 │   │       │   ├── prefixed-ids.extension.ts        Trafi pattern, ADR-0012
@@ -933,16 +930,21 @@ pekulo/
 │   │       ├── common/
 │   │       │   ├── errors/
 │   │       │   │   ├── pekulo-error.ts              base class
-│   │       │   │   └── factories.ts                 createUnauthorizedError, createRlsViolationError, etc.
-│   │       │   ├── time/
-│   │       │   │   ├── clock.ts                     Clock interface
-│   │       │   │   └── fake-clock.ts                test-time control
-│   │       │   ├── security-primitives/
-│   │       │   │   ├── constant-time-compare.ts
-│   │       │   │   └── mask-email.ts                f***@bonjour.email
-│   │       │   └── ids/
-│   │       │       ├── random-base62.ts             21-char base62 generator (Trafi pattern)
-│   │       │       └── request-id.ts                UUID v7 for request correlation
+│   │       │   │   └── request-id-tag.ts            request-id error tagging
+│   │       │   └── derive/                          ← pure, zero-IO domain helpers (each `<name>.ts` + `<name>.test.ts`)
+│   │       │       ├── close-window.ts              sign-off close window (mirror of apps/web/src/lib/derive/close-window.ts, story 5-5)
+│   │       │       ├── compass-curve.ts             compass-progress curve points
+│   │       │       ├── compass-progress.ts          1-decimal compass progress %
+│   │       │       ├── decimal-to-number.ts         Prisma Decimal → number at euro scale
+│   │       │       ├── holding-pnl.ts               holding P&L derive
+│   │       │       ├── holding-quantity.ts          net quantity from lots
+│   │       │       ├── milestone-status.ts          {ahead, on-track, behind}
+│   │       │       ├── monthly-aggregates.ts        monthly tracking aggregates
+│   │       │       ├── portfolio-fx.ts              multi-currency portfolio conversion
+│   │       │       ├── projection-curve.ts          hypothesis projection vs cap-required curve
+│   │       │       ├── property-equity.ts           real-estate equity derive
+│   │       │       ├── rental-cashflow.ts           rental cashflow derive
+│   │       │       └── transfer-rule.ts             transfer-rule derive
 │   │       └── test/
 │   │           ├── flows/                           cross-module wired flows (J1-J9 mapping where API touches multiple modules)
 │   │           ├── fakes/

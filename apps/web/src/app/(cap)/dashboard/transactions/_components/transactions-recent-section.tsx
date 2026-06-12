@@ -19,6 +19,7 @@ import {
 } from "@pekulo/ui";
 import { MoreHorizontal, Search, Upload } from "lucide-react";
 import type { Transaction } from "@pekulo/validators";
+import { userErrorMessage } from "@/lib/user-error-message";
 import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { txToActivity } from "../../_lib/to-activity";
 import { useTransactions } from "../_hooks/use-transactions";
@@ -45,6 +46,22 @@ const rowActionBtn: CSSProperties = {
 };
 
 const dangerRowActionBtn: CSSProperties = { ...rowActionBtn, color: "var(--danger)" };
+
+// Inline "Réessayer" pill shown next to a load-error message — muted-pill
+// treatment via DS tokens (no hardcoded colours), matching accounts-section.
+const retryBtn: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  height: 32,
+  padding: "0 12px",
+  borderRadius: pekuloRadius.full,
+  backgroundColor: "var(--backgroundMuted)",
+  color: "var(--color)",
+  border: "none",
+  cursor: "pointer",
+  fontSize: pekuloFontSizes.caption,
+  fontWeight: 500,
+};
 
 const kebabBtn: CSSProperties = {
   background: "none",
@@ -109,7 +126,7 @@ export function TransactionsRecentSection() {
   // Gate on the resolved month so the list does not fire a throwaway no-month
   // request while MonthScopeProvider resolves the active month (aped-debug
   // 2026-06-03 — load-time double-fetch).
-  const { data, isLoading, error } = useTransactions(
+  const { data, isLoading, error, refetch } = useTransactions(
     PAGE_SIZE,
     month ?? undefined,
     page,
@@ -211,9 +228,14 @@ export function TransactionsRecentSection() {
         </View>
       )}
       {error && !showLoading && (
-        <Text color="$danger" fontSize="$caption" role="alert">
-          {error.message}
-        </Text>
+        <View role="alert" flexDirection="column" gap="$2" alignItems="flex-start">
+          <Text color="$danger" fontSize="$caption">
+            {userErrorMessage(error, "transactions")}
+          </Text>
+          <button type="button" onClick={() => void refetch()} style={retryBtn}>
+            Réessayer
+          </button>
+        </View>
       )}
       {!showLoading && !error && items.length === 0 && (
         <Text color="$colorTertiary" fontSize="$caption">

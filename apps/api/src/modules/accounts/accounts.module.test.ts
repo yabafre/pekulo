@@ -88,6 +88,16 @@ function fakePrismaService(seed?: { holdings?: HoldingRow[] }) {
         data: { userId: string; accountId: string; cashBalance: number; valuedOn: Date };
       }) => Promise<BalanceLogRow>;
     };
+    // Transfer-pair orphan cleanup (audit 2026-06-12) — deleteWithFkProbe now
+    // probes the deleted account's transfer pairs and unpairs surviving
+    // siblings. This module test seeds no transactions, so empty stubs suffice
+    // (the repository unit test exercises the populated path).
+    transaction: {
+      findMany: (args: {
+        where: { userId: string; accountId?: string; transferPairId?: unknown };
+      }) => Promise<Array<{ transferPairId: string | null }>>;
+      updateMany: (args: { where: { userId: string } }) => Promise<{ count: number }>;
+    };
     $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
   };
 
@@ -160,6 +170,17 @@ function fakePrismaService(seed?: { holdings?: HoldingRow[] }) {
         };
         balanceLog.push(row);
         return row;
+      },
+    },
+    transaction: {
+      // No transactions seeded in the module test — the probe finds no pairs and
+      // the unpair updateMany is never reached. Empty stubs keep the wired flow
+      // exercising deleteWithFkProbe end-to-end without a transaction store.
+      async findMany() {
+        return [];
+      },
+      async updateMany() {
+        return { count: 0 };
       },
     },
     // Fake $transaction mirrors Prisma's interactive-tx rollback: snapshot

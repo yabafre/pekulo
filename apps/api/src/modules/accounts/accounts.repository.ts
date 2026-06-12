@@ -212,6 +212,41 @@ export function createAccountRepository(deps: { client: ExtendedPrismaClient }):
         if (holdingCount > 0) {
           return { outcome: "fk-blocked", holdingCount } as const;
         }
+
+        // Transfer-pair orphan cleanup (audit 2026-06-12). transfer_pair_id is a
+        // plain grouping column, NOT a foreign key (ADR-0012: prefixed-IDs are
+        // for models, not grouping columns) — so the ON DELETE CASCADE that
+        // removes this account's transactions does NOT touch the SURVIVING
+        // sibling on the OTHER account. That sibling would keep category='transfer'
+        // + a transfer_pair_id pointing at a now-deleted half, which corrupts the
+        // monthly aggregates (deriveMonthlyAggregates excludes 'transfer' rows
+        // from income/spending and counts the outflow leg into transfersEur —
+        // FR-38), exactly the AC-11 single-delete unpair-the-sibling rule but for
+        // the account-cascade path. Before deleting, collect the pair ids carried
+        // by THIS account's transactions, then revert the siblings on the other
+        // account(s) to category='autre' + transfer_pair_id=null. All inside the
+        // same $transaction so the unpair + cascade-delete are atomic.
+        const pairRows = (await tx.transaction.findMany({
+          where: { userId, accountId: id, transferPairId: { not: null } },
+          select: { transferPairId: true },
+          distinct: ["transferPairId"],
+        })) as Array<{ transferPairId: string | null }>;
+        const pairIds = pairRows.map((r) => r.transferPairId).filter((p): p is string => p != null);
+        if (pairIds.length > 0) {
+          // Scope by transferPairId IN (...) AND accountId != id so the leg(s) on
+          // the deleted account (about to be cascade-removed anyway) are left
+          // alone and only the surviving sibling(s) are reverted. Explicit
+          // where:{ userId } satisfies the no-prisma-query-without-user-id rule.
+          await tx.transaction.updateMany({
+            where: {
+              userId,
+              transferPairId: { in: pairIds },
+              accountId: { not: id },
+            },
+            data: { category: "autre", transferPairId: null, updatedAt: new Date() },
+          });
+        }
+
         const result = await tx.account.deleteMany({ where: { id, userId } });
         if (result.count === 0) {
           return { outcome: "not-found" } as const;

@@ -292,6 +292,113 @@ test("listTransactions follows the next_uri cursor across pages", async () => {
   }
 });
 
+// Bug-fix 2026-06-12 — MAX_PAGES truncation must NOT be permanent loss.
+// A history longer than the per-tick page cap (MAX_PAGES=100) used to warn +
+// drop the unfetched (older) pages while the service still stamped the watermark
+// at the NEWEST updated_at → the dropped pages were never re-windowed. The
+// client now reports { truncated:true, oldestUpdatedAt } so the caller resumes
+// the older slice with `until = oldestUpdatedAt`. This test proves:
+//   (a) a >100-page history truncates with truncated:true + a correct floor;
+//   (b) re-querying with until=oldestUpdatedAt fetches the remaining rows
+//       with truncated:false → no transaction is permanently lost.
+test("listTransactions reports truncated + oldestUpdatedAt past MAX_PAGES; resumes via `until` (no permanent loss)", async () => {
+  const MAX_PAGES = 100;
+  const PAGE_LIMIT = 500;
+  const TOTAL_PAGES = MAX_PAGES + 5; // 5 pages beyond the per-tick cap.
+  // Reverse-chronological by updated_at: page p (0-based) is newer than page
+  // p+1. Build a deterministic descending clock: page 0 newest, last page
+  // oldest. One row per page keeps the fixture light while still exercising the
+  // cursor + cap. The row's updated_at decreases by the page index.
+  const baseMs = Date.parse("2030-01-01T00:00:00.000Z");
+  const pageUpdatedAt = (page: number) => new Date(baseMs - page * 60_000).toISOString();
+
+  const untilSeen: Array<string | null> = [];
+  const localFetch = mock(async (url: string | URL | Request) => {
+    const u = typeof url === "string" ? new URL(url) : new URL((url as Request).url);
+    if (u.pathname === "/v3/aggregation/authorization/token") {
+      return new Response(JSON.stringify({ access_token: "a", expires_at: null }), { status: 200 });
+    }
+    if (u.pathname === "/v3/aggregation/accounts") {
+      return new Response(JSON.stringify({ resources: [{ id: 11 }] }), { status: 200 });
+    }
+    if (u.pathname === "/v3/aggregation/transactions") {
+      const until = u.searchParams.get("until");
+      untilSeen.push(until);
+      // `after` carries the cursor page index inside one slice; absent on the
+      // first page of a slice. The slice's first page is bounded above by
+      // `until` (the caller's resume bound) — translate it into a starting
+      // page index so the second slice continues below the first slice's floor.
+      const sliceStartPage = until ? Math.round((baseMs - Date.parse(until)) / 60_000) + 1 : 0;
+      const cursorOffset = u.searchParams.get("after") ? Number(u.searchParams.get("after")) : 0;
+      const page = sliceStartPage + cursorOffset;
+      if (page >= TOTAL_PAGES) {
+        return new Response(JSON.stringify({ resources: [], pagination: { next_uri: null } }), {
+          status: 200,
+        });
+      }
+      const isLastEver = page === TOTAL_PAGES - 1;
+      const next = isLastEver
+        ? null
+        : `/v3/aggregation/transactions?after=${cursorOffset + 1}&limit=${PAGE_LIMIT}${
+            until ? `&until=${encodeURIComponent(until)}` : ""
+          }`;
+      return new Response(
+        JSON.stringify({
+          resources: [
+            {
+              id: page + 1,
+              account_id: 11,
+              amount: -1,
+              clean_description: `Txn page ${page}`,
+              category_id: null,
+              date: "2030-01-01",
+              updated_at: pageUpdatedAt(page),
+            },
+          ],
+          pagination: { next_uri: next },
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response("", { status: 404 });
+  });
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const p = createBridgeProvider({ env });
+
+    // Slice 1 — first tick, no `until`. Caps at MAX_PAGES, truncated:true.
+    const slice1 = await p.listTransactions({ userUuid: "u", providerItemId: "42", since: null });
+    expect(slice1.truncated).toBe(true);
+    expect(slice1.transactions).toHaveLength(MAX_PAGES);
+    // Floor reached this slice = the oldest of the 100 newest pages (page 99).
+    expect(slice1.oldestUpdatedAt?.toISOString()).toBe(pageUpdatedAt(MAX_PAGES - 1));
+    // Newest = page 0.
+    expect(slice1.latestUpdatedAt?.toISOString()).toBe(pageUpdatedAt(0));
+
+    // Slice 2 — resume with until = the slice-1 floor. Fetches the remaining 5
+    // pages and finishes (truncated:false). No row from the tail was lost.
+    const slice2 = await p.listTransactions({
+      userUuid: "u",
+      providerItemId: "42",
+      since: null,
+      until: slice1.oldestUpdatedAt,
+    });
+    // The resume slice sent `until = slice-1 floor` to Bridge.
+    expect(untilSeen).toContain(slice1.oldestUpdatedAt!.toISOString());
+    expect(slice2.truncated).toBe(false);
+    expect(slice2.transactions).toHaveLength(TOTAL_PAGES - MAX_PAGES);
+
+    // Completeness: the two slices together cover every page id with no gap.
+    const ids = [...slice1.transactions, ...slice2.transactions]
+      .map((t) => Number(t.providerTransactionId))
+      .sort((a, b) => a - b);
+    expect(ids).toEqual(Array.from({ length: TOTAL_PAGES }, (_v, i) => i + 1));
+  } finally {
+    globalThis.fetch = prev;
+  }
+});
+
 test("listAccounts maps Bridge v3 flat-REST response → ProviderBankAccount[]", async () => {
   const p = createBridgeProvider({ env });
   const accounts = await p.listAccounts({

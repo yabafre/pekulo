@@ -35,8 +35,15 @@ export interface AccountService {
    * Story 5-6 T22 — idempotent auto-create on (userId, provider, providerAccountKey).
    * AC-7: re-completeConnection of the same Bridge item produces zero new
    * accounts rows. The bank-aggregator service calls this in completeConnection
-   * (per remote account) and reuses the returned accountId during refresh
-   * for transaction insertion.
+   * (per remote account) and on every refresh (cron / webhook / reconnect) to
+   * keep the account list AND its `cashBalance` in sync with the provider.
+   *
+   * Balance-refresh fix (2026-06-12): when the row already exists this UPDATES
+   * its `cashBalance` (and `label`) to the provider's fresh snapshot instead of
+   * returning the stale local row — accounts.cashBalance no longer freezes at
+   * the day-1 value. Row count stays idempotent (update, never insert). The
+   * snapshot write is a plain `update` (no accountBalanceLog audit row — that
+   * ledger is reserved for user-recorded `recordBalanceChange` events).
    */
   findOrCreateAutoFromProvider(
     userId: string,
@@ -131,7 +138,36 @@ export function createAccountService(deps: AccountServiceDeps): AccountService {
         provider,
         providerAccountKey,
       );
-      if (existing) return existing;
+      if (existing) {
+        // Balance-refresh fix (2026-06-12): the account already exists, but the
+        // provider just handed us a FRESH `cashBalance` (and possibly a renamed
+        // label / a newly-discovered provider_id). The previous impl returned
+        // the stale local row untouched, so `accounts.cashBalance` froze at the
+        // day-1 value forever — the refresh path (cron / webhook / reconnect)
+        // imported transactions but NEVER updated the running balance. Patch the
+        // snapshot fields that drift, leaving user-owned fields (notes) alone.
+        // The provider balance is a SNAPSHOT, not a user-driven valuation, so we
+        // write it via `update` (no accountBalanceLog audit row — that ledger is
+        // reserved for user-recorded `recordBalanceChange` events).
+        const patch: {
+          cashBalance?: number;
+          label?: string;
+        } = {};
+        if (input.cashBalance !== undefined && input.cashBalance !== existing.cashBalance) {
+          patch.cashBalance = input.cashBalance;
+        }
+        if (input.label !== existing.label) {
+          patch.label = input.label;
+        }
+        if (patch.cashBalance === undefined && patch.label === undefined) {
+          return existing;
+        }
+        const updated = await deps.repository.update(userId, existing.id, patch);
+        // `update` returns null only on a cross-user / vanished row, which the
+        // find above just proved present; fall back to the existing snapshot
+        // rather than throwing on an impossible race.
+        return updated ?? existing;
+      }
       // Story 5-6 FIX (post-review aped-review): the find-then-create
       // sequence is non-atomic — two concurrent completeConnection calls for
       // the same `(userId, provider, providerAccountKey)` both observe null

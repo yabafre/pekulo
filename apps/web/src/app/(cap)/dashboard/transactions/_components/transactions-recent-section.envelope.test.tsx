@@ -1,4 +1,4 @@
-import { describe, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../../test/setup";
 
@@ -99,16 +99,21 @@ describe("TransactionsRecentSection envelope (AC-13)", () => {
     await findByText(/Aucune transaction/);
   });
 
-  test("error from SA — alert text surfaces", async () => {
+  test("error from SA — generic FR alert + retry, never the raw message", async () => {
     listTransactionsMock.mockRejectedValueOnce(new Error("boom"));
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const { findByText } = renderWithTamagui(
+    const { findByText, queryByText } = renderWithTamagui(
       <QueryClientProvider client={qc}>
         <TransactionsRecentSection />
       </QueryClientProvider>,
     );
 
-    await findByText(/boom/);
+    // The raw technical message ("boom") is mapped to a generic French copy
+    // via userErrorMessage — it must never leak to the user.
+    await findByText(/Une erreur est survenue\. Réessayez\./);
+    // The retry affordance is present (wired to the react-query refetch).
+    await findByText("Réessayer");
+    expect(queryByText(/boom/)).toBeNull();
   });
 
   test("6-7 — auto-applied row shows the IA hint + mounts the notice when no pending", async () => {

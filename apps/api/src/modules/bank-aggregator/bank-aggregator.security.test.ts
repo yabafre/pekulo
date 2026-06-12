@@ -102,6 +102,8 @@ function makeFakeProvider(): BankProvider {
         },
       ],
       latestUpdatedAt: new Date("2026-05-26T10:00Z"),
+      oldestUpdatedAt: new Date("2026-05-26T10:00Z"),
+      truncated: false,
     }),
     revokeItem: async () => undefined,
     getItem: async () => ({

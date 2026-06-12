@@ -6,8 +6,12 @@ Run:
     uvicorn main:app --host 0.0.0.0 --port 8000
 
 Env:
-    PRICES_SERVICE_TOKEN          Bearer token required on every request (optional in dev).
-    ALLOWED_ORIGIN                CORS origin allowlist, default '*'.
+    PRICES_SERVICE_TOKEN          Bearer token required on every request. MANDATORY at boot:
+                                  the service refuses to start without it, unless
+                                  PRICES_AUTH_DISABLED=1 is explicitly set (local dev only).
+    PRICES_AUTH_DISABLED          Set to "1" to run with auth fully disabled (dev escape hatch).
+    PRICES_CORS_ORIGINS           Comma-separated CORS origin allowlist. Default: no origin
+                                  allowed (restrictive). Use "*" only if you trust your network.
     OTEL_EXPORTER_OTLP_ENDPOINT   Optional OTLP-HTTP traces endpoint (story 0-7 — ADR-0005).
     OTEL_SERVICE_NAME             Defaults to "pekulo-prices".
 
@@ -16,6 +20,7 @@ Compatible with Python 3.9+ (uses typing.Optional/Union/List/Dict instead of PEP
 
 import asyncio
 import os
+import secrets
 import sys
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional, Union
@@ -24,7 +29,7 @@ from urllib.parse import urlparse
 import yfinance as yf
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -38,10 +43,26 @@ from opentelemetry.sdk.trace.export import (
 
 
 SERVICE_TOKEN = os.environ.get("PRICES_SERVICE_TOKEN", "").strip()
-ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*").strip() or "*"
+AUTH_DISABLED = os.environ.get("PRICES_AUTH_DISABLED", "").strip() == "1"
 YF_IMPERSONATE = os.environ.get("YF_IMPERSONATE", "chrome").strip() or "chrome"
 OTEL_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
 OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "pekulo-prices").strip() or "pekulo-prices"
+
+# Max symbols accepted in a single POST /quotes batch. Beyond this, pydantic
+# rejects the request with 422 before any yfinance work is scheduled.
+MAX_BATCH_SYMBOLS = 50
+
+# Per-symbol wall-clock budget for a single yfinance fetch. yfinance has no
+# clean per-call timeout knob, so we bound it at the executor level: a hung
+# Yahoo call becomes a QuoteError instead of blocking the whole batch.
+QUOTE_TIMEOUT_SECONDS = float(os.environ.get("PRICES_QUOTE_TIMEOUT", "10").strip() or "10")
+
+# CORS allowlist. Default is restrictive: no origin is allowed unless
+# PRICES_CORS_ORIGINS is set (comma-separated). "*" is honoured but must be
+# opted into explicitly — it is no longer the default.
+CORS_ORIGINS = [
+    o.strip() for o in os.environ.get("PRICES_CORS_ORIGINS", "").split(",") if o.strip()
+]
 
 
 # M3 — env validation parity with apps/api's Zod gate. Fail loud at boot so
@@ -54,6 +75,30 @@ if OTEL_OTLP_ENDPOINT:
             "[prices-service] invalid OTEL_EXPORTER_OTLP_ENDPOINT: {!r} is not a parseable URL".format(
                 OTEL_OTLP_ENDPOINT
             ),
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
+
+
+# Auth fail-loud at boot — same pattern as the OTEL gate above. A missing
+# PRICES_SERVICE_TOKEN previously made _check_auth a no-op, silently exposing
+# the service. Now the import aborts unless auth is explicitly disabled for
+# local dev via PRICES_AUTH_DISABLED=1.
+if not SERVICE_TOKEN:
+    if AUTH_DISABLED:
+        print(
+            "[prices-service] WARNING: auth DISABLED (PRICES_AUTH_DISABLED=1). "
+            "Every request is accepted without a bearer token — local dev only, "
+            "never run this in a shared or production environment.",
+            file=sys.stderr,
+            flush=True,
+        )
+    else:
+        print(
+            "[prices-service] FATAL: PRICES_SERVICE_TOKEN is required. "
+            "Set it to a strong random secret, or set PRICES_AUTH_DISABLED=1 "
+            "to run without auth in local dev.",
             file=sys.stderr,
             flush=True,
         )
@@ -96,9 +141,12 @@ except Exception as _e:  # noqa: BLE001
 
 app = FastAPI(title="prices-service", version="1.0.0")
 
+# CORS_ORIGINS defaults to [] (no browser origin allowed). The service is a
+# server-to-server backend; an explicit allowlist via PRICES_CORS_ORIGINS is
+# required to permit any browser origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN] if ALLOWED_ORIGIN != "*" else ["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -120,7 +168,9 @@ class QuoteError(BaseModel):
 
 
 class BatchRequest(BaseModel):
-    symbols: List[str]
+    # Bounded batch: pydantic rejects >MAX_BATCH_SYMBOLS with 422 before any
+    # yfinance fan-out, so a single request can't fan out unboundedly.
+    symbols: List[str] = Field(..., max_length=MAX_BATCH_SYMBOLS)
 
 
 class BatchResponse(BaseModel):
@@ -129,12 +179,16 @@ class BatchResponse(BaseModel):
 
 
 def _check_auth(authorization: Optional[str]) -> None:
-    if not SERVICE_TOKEN:
+    # Auth is only skipped when explicitly disabled for local dev. Boot fails
+    # loud (see top of module) if PRICES_SERVICE_TOKEN is unset without
+    # PRICES_AUTH_DISABLED=1, so reaching here with no token means dev mode.
+    if AUTH_DISABLED and not SERVICE_TOKEN:
         return
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token.")
     token = authorization[len("Bearer ") :].strip()
-    if token != SERVICE_TOKEN:
+    # Constant-time comparison: avoids leaking the token via response timing.
+    if not secrets.compare_digest(token, SERVICE_TOKEN):
         raise HTTPException(status_code=403, detail="Invalid token.")
 
 
@@ -230,9 +284,20 @@ async def post_quotes(
         return BatchResponse(quotes=[], errors=[])
 
     loop = asyncio.get_event_loop()
-    results = await asyncio.gather(
-        *(loop.run_in_executor(None, _safe_quote_one, s) for s in body.symbols)
-    )
+
+    async def _bounded(symbol: str) -> Union[Quote, QuoteError]:
+        # asyncio.wait_for bounds each symbol independently so one slow Yahoo
+        # response cannot stall the whole batch. The underlying executor thread
+        # may keep running, but the response is no longer blocked on it.
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, _safe_quote_one, symbol),
+                timeout=QUOTE_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            return QuoteError(symbol=symbol, reason="Timeout fetching quote.")
+
+    results = await asyncio.gather(*(_bounded(s) for s in body.symbols))
 
     quotes: List[Quote] = []
     errors: List[QuoteError] = []

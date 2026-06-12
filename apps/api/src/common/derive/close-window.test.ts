@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isWithinCloseWindow, lastDayOfMonthUTC } from "./close-window";
+import { closeWindowBounds, isWithinCloseWindow, lastDayOfMonthUTC } from "./close-window";
 
 describe("lastDayOfMonthUTC", () => {
   it("returns 31 for May 2026", () => {
@@ -67,5 +67,36 @@ describe("isWithinCloseWindow boundary months", () => {
   it("Feb 2027 (non-leap) window = Feb 24 → Mar 5", () => {
     expect(isWithinCloseWindow(2027, 2, new Date("2027-02-24T00:00:00.000Z"))).toBe(true);
     expect(isWithinCloseWindow(2027, 2, new Date("2027-03-05T23:59:59.999Z"))).toBe(true);
+  });
+});
+
+describe("closeWindowBounds", () => {
+  it("May 2026 → May 27 00:00:00.000Z … June 5 23:59:59.999Z", () => {
+    expect(closeWindowBounds(2026, 5)).toEqual({
+      startIso: "2026-05-27T00:00:00.000Z",
+      endIso: "2026-06-05T23:59:59.999Z",
+    });
+  });
+
+  it("Dec 2026 rolls the end into the next year (Jan 5 2027)", () => {
+    expect(closeWindowBounds(2026, 12)).toEqual({
+      startIso: "2026-12-27T00:00:00.000Z",
+      endIso: "2027-01-05T23:59:59.999Z",
+    });
+  });
+
+  it("Feb 2028 (leap) → Feb 25 … Mar 5", () => {
+    expect(closeWindowBounds(2028, 2)).toEqual({
+      startIso: "2028-02-25T00:00:00.000Z",
+      endIso: "2028-03-05T23:59:59.999Z",
+    });
+  });
+
+  it("bounds agree with isWithinCloseWindow at both inclusive edges", () => {
+    const { startIso, endIso } = closeWindowBounds(2026, 5);
+    expect(isWithinCloseWindow(2026, 5, new Date(startIso))).toBe(true);
+    expect(isWithinCloseWindow(2026, 5, new Date(endIso))).toBe(true);
+    expect(isWithinCloseWindow(2026, 5, new Date(new Date(startIso).getTime() - 1))).toBe(false);
+    expect(isWithinCloseWindow(2026, 5, new Date(new Date(endIso).getTime() + 1))).toBe(false);
   });
 });

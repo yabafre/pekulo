@@ -18,7 +18,11 @@ describe("PekuloContextualAddButton a11y", () => {
     const { getByRole } = renderWithTamagui(
       <PekuloContextualAddButton label="Ajouter" onPress={onPress} />,
     );
-    fireEvent.click(getByRole("button"));
+    // happy-dom 20 excludes the FAB from the default accessibility tree
+    // because of its responsive `display: none` at the lg breakpoint
+    // (_dsp-_lg_none). The click behavior is independent of that computed
+    // visibility, so query with `hidden: true` to reach the button.
+    fireEvent.click(getByRole("button", { hidden: true }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

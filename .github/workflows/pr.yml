@@ -112,6 +112,53 @@ jobs:
   # lighthouserc.json for Core Web Vitals gating, *.axe.test.* if a
   # dedicated axe pass becomes desirable).
 
+  gitleaks:
+    # Secret-scanning backstop. The lefthook pre-commit hook (lefthook.yml)
+    # runs gitleaks locally, but it is bypassable with LEFTHOOK=0 (or by a
+    # contributor who never ran `lefthook install`). This job re-runs the
+    # scan in CI against the same root .gitleaks.toml so a committed secret
+    # cannot reach main unnoticed. Uses the official gitleaks action; it
+    # auto-detects .gitleaks.toml at the repo root. GITLEAKS_LICENSE is only
+    # required for GitHub organisations — omitted here for the personal repo.
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history so gitleaks scans every commit introduced by the PR,
+          # not just the tip (shallow checkout would miss secrets buried in
+          # intermediate commits).
+          fetch-depth: 0
+      - name: gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  prices-tests:
+    # apps/prices is the Python (FastAPI) yfinance microservice — it lives
+    # outside the bun/turbo graph, so its tests are not covered by test-unit.
+    # Setup Python, install runtime + dev deps, then run pytest from the
+    # service dir (conftest.py primes PRICES_SERVICE_TOKEN at collection time
+    # and inserts apps/prices on sys.path, so plain `python -m pytest` boots
+    # main.py cleanly without extra env).
+    name: prices-tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/prices
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: pytest
+        run: python -m pytest
+
   tamagui-css-fresh:
     # Belt-and-suspenders for the pre-commit hook (lefthook 5_tamagui_css).
     # apps/web's TamaguiProvider runs with disableInjectCSS and reads
