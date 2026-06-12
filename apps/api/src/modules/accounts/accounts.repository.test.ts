@@ -9,6 +9,7 @@
 
 import { describe, expect, mock, test } from "bun:test";
 import { Prisma } from "@generated/prisma/client";
+import { deriveMonthlyAggregates } from "../../common/derive/monthly-aggregates";
 import { createAccountRepository } from "./accounts.repository";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
@@ -41,9 +42,25 @@ interface BalanceLogRow {
   createdAt: Date;
 }
 
-function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] }) {
+interface TransactionRow {
+  id: string;
+  userId: string;
+  accountId: string;
+  category: string;
+  transferPairId: string | null;
+  type: "inflow" | "outflow";
+  amount: Prisma.Decimal;
+  updatedAt: Date;
+}
+
+function fakeClient(seed?: {
+  accounts?: AccountRow[];
+  holdings?: HoldingRow[];
+  transactions?: TransactionRow[];
+}) {
   const accounts: AccountRow[] = [...(seed?.accounts ?? [])];
   const holdings: HoldingRow[] = [...(seed?.holdings ?? [])];
+  const transactions: TransactionRow[] = [...(seed?.transactions ?? [])];
   const balanceLog: BalanceLogRow[] = [];
   let now = Date.now();
   let nextId = 0;
@@ -116,10 +133,81 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
     const before = accounts.length;
     for (let i = accounts.length - 1; i >= 0; i--) {
       const r = accounts[i]!;
-      if (r.id === args.where.id && r.userId === args.where.userId) accounts.splice(i, 1);
+      if (r.id === args.where.id && r.userId === args.where.userId) {
+        accounts.splice(i, 1);
+        // Simulate the ON DELETE CASCADE: account_id FK on transactions drops
+        // every transaction belonging to the deleted account (transactions.prisma
+        // — account relation onDelete: Cascade).
+        for (let j = transactions.length - 1; j >= 0; j--) {
+          if (transactions[j]!.accountId === r.id) transactions.splice(j, 1);
+        }
+      }
     }
     return { count: before - accounts.length };
   });
+
+  // Transaction store mocks — only the surface deleteWithFkProbe touches:
+  // findMany (distinct transfer_pair_id on the deleted account) + updateMany
+  // (unpair surviving siblings). Mirrors the real Prisma callshape.
+  const txFindMany = mock(
+    async (args: {
+      where: {
+        userId: string;
+        accountId?: string;
+        transferPairId?: { not: null } | { in: string[] } | null;
+      };
+      select?: { transferPairId?: boolean };
+      distinct?: Array<"transferPairId">;
+    }) => {
+      const filtered = transactions.filter((t) => {
+        if (t.userId !== args.where.userId) return false;
+        if (args.where.accountId !== undefined && t.accountId !== args.where.accountId)
+          return false;
+        const pairFilter = args.where.transferPairId;
+        if (pairFilter && typeof pairFilter === "object" && "not" in pairFilter) {
+          if (t.transferPairId === null) return false;
+        }
+        return true;
+      });
+      const rows = filtered.map((t) => ({ transferPairId: t.transferPairId }));
+      if (args.distinct?.includes("transferPairId")) {
+        const seen = new Set<string | null>();
+        const out: Array<{ transferPairId: string | null }> = [];
+        for (const r of rows) {
+          if (seen.has(r.transferPairId)) continue;
+          seen.add(r.transferPairId);
+          out.push(r);
+        }
+        return out;
+      }
+      return rows;
+    },
+  );
+
+  const txUpdateMany = mock(
+    async (args: {
+      where: {
+        userId: string;
+        transferPairId?: { in: string[] };
+        accountId?: { not: string };
+      };
+      data: { category?: string; transferPairId?: string | null; updatedAt?: Date };
+    }) => {
+      let count = 0;
+      for (const t of transactions) {
+        if (t.userId !== args.where.userId) continue;
+        const pairIn = args.where.transferPairId?.in;
+        if (pairIn && (t.transferPairId === null || !pairIn.includes(t.transferPairId))) continue;
+        const notAccount = args.where.accountId?.not;
+        if (notAccount !== undefined && t.accountId === notAccount) continue;
+        if (args.data.category !== undefined) t.category = args.data.category;
+        if (args.data.transferPairId !== undefined) t.transferPairId = args.data.transferPairId;
+        if (args.data.updatedAt !== undefined) t.updatedAt = args.data.updatedAt;
+        count++;
+      }
+      return { count };
+    },
+  );
 
   const findFirst = mock(async (args: { where: { id?: string; userId: string } }) => {
     return (
@@ -187,6 +275,7 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
     };
     holding: { count: typeof holdingCount };
     accountBalanceLog: { create: typeof accountBalanceLogCreate };
+    transaction: { findMany: typeof txFindMany; updateMany: typeof txUpdateMany };
     $transaction: <T>(callback: (tx: FakeClient) => Promise<T>) => Promise<T>;
   };
 
@@ -194,6 +283,7 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
     account: { create, updateMany, deleteMany, findFirst, findMany },
     holding: { count: holdingCount },
     accountBalanceLog: { create: accountBalanceLogCreate },
+    transaction: { findMany: txFindMany, updateMany: txUpdateMany },
     // Mirrors Prisma's interactive-tx rollback: snapshot the mutable stores
     // before the callback, restore on throw. Without this the happy-path
     // tests pass but a mid-flight failure (T8 below) would silently retain
@@ -201,6 +291,7 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
     $transaction: async (callback) => {
       const accountsSnap = accounts.map((r) => ({ ...r }));
       const holdingsSnap = holdings.map((r) => ({ ...r }));
+      const transactionsSnap = transactions.map((r) => ({ ...r }));
       const balanceLogSnap = balanceLog.map((r) => ({ ...r }));
       try {
         return await callback(client);
@@ -209,13 +300,15 @@ function fakeClient(seed?: { accounts?: AccountRow[]; holdings?: HoldingRow[] })
         accounts.push(...accountsSnap);
         holdings.length = 0;
         holdings.push(...holdingsSnap);
+        transactions.length = 0;
+        transactions.push(...transactionsSnap);
         balanceLog.length = 0;
         balanceLog.push(...balanceLogSnap);
         throw err;
       }
     },
   };
-  return { client, accounts, holdings, balanceLog };
+  return { client, accounts, holdings, transactions, balanceLog };
 }
 
 describe("accounts.repository", () => {
@@ -410,6 +503,174 @@ describe("accounts.repository", () => {
     const out = await repo.deleteWithFkProbe(USER_A, accountId);
     expect(out).toEqual({ outcome: "deleted" });
     expect(accounts).toHaveLength(0);
+  });
+
+  // Audit 2026-06-12 — deleting one half of a transfer pair must unpair the
+  // SURVIVING half so the monthly aggregates stay coherent. transfer_pair_id is
+  // a grouping column, not a FK, so the ON DELETE CASCADE leaves the sibling on
+  // the other account dangling at category='transfer' otherwise.
+  test("deleteWithFkProbe unpairs the surviving transfer sibling on the other account", async () => {
+    const accountA = "acc_transferA00000000";
+    const accountB = "acc_transferB00000000";
+    const seedAccounts: AccountRow[] = [
+      {
+        id: accountA,
+        userId: USER_A,
+        label: "Compte A",
+        type: "autre",
+        currency: "EUR",
+        cashBalance: new Prisma.Decimal(0),
+        notes: null,
+        createdAt: new Date("2026-01-01"),
+        updatedAt: new Date("2026-01-01"),
+      },
+      {
+        id: accountB,
+        userId: USER_A,
+        label: "Compte B",
+        type: "autre",
+        currency: "EUR",
+        cashBalance: new Prisma.Decimal(0),
+        notes: null,
+        createdAt: new Date("2026-01-01"),
+        updatedAt: new Date("2026-01-01"),
+      },
+    ];
+    // A transfer pair: the outflow leg on A, the inflow leg on B, both sharing
+    // tp_pair1. Plus an unrelated income row on B that must stay untouched.
+    const seedTransactions: TransactionRow[] = [
+      {
+        id: "tx_outflow_on_A",
+        userId: USER_A,
+        accountId: accountA,
+        category: "transfer",
+        transferPairId: "tp_pair1",
+        type: "outflow",
+        amount: new Prisma.Decimal(200),
+        updatedAt: new Date("2026-01-01"),
+      },
+      {
+        id: "tx_inflow_on_B",
+        userId: USER_A,
+        accountId: accountB,
+        category: "transfer",
+        transferPairId: "tp_pair1",
+        type: "inflow",
+        amount: new Prisma.Decimal(200),
+        updatedAt: new Date("2026-01-01"),
+      },
+      {
+        id: "tx_salary_on_B",
+        userId: USER_A,
+        accountId: accountB,
+        category: "salaire",
+        transferPairId: null,
+        type: "inflow",
+        amount: new Prisma.Decimal(1000),
+        updatedAt: new Date("2026-01-01"),
+      },
+    ];
+    const { client, accounts, transactions } = fakeClient({
+      accounts: seedAccounts,
+      transactions: seedTransactions,
+    });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+
+    const out = await repo.deleteWithFkProbe(USER_A, accountA);
+    expect(out).toEqual({ outcome: "deleted" });
+    // Account A and its outflow leg are cascade-gone.
+    expect(accounts.map((a) => a.id)).toEqual([accountB]);
+    expect(transactions.some((t) => t.id === "tx_outflow_on_A")).toBe(false);
+    // The surviving inflow leg on B is unpaired: category reverts to 'autre',
+    // transfer_pair_id cleared. No longer a dangling half of a vanished pair.
+    const survivingInflow = transactions.find((t) => t.id === "tx_inflow_on_B")!;
+    expect(survivingInflow.category).toBe("autre");
+    expect(survivingInflow.transferPairId).toBeNull();
+    // The unrelated salary row is untouched.
+    const salary = transactions.find((t) => t.id === "tx_salary_on_B")!;
+    expect(salary.category).toBe("salaire");
+    expect(salary.transferPairId).toBeNull();
+  });
+
+  // Same scenario, asserted through the pure monthly-aggregates derive: BEFORE
+  // the delete the surviving inflow is wrongly classified as a transfer (income
+  // undercounted); AFTER the unpair it counts as income and netChange is right.
+  test("deleteWithFkProbe keeps monthly aggregates coherent after a transfer half is deleted", async () => {
+    const accountA = "acc_aggA0000000000000";
+    const accountB = "acc_aggB0000000000000";
+    const seedAccounts: AccountRow[] = [
+      {
+        id: accountA,
+        userId: USER_A,
+        label: "A",
+        type: "autre",
+        currency: "EUR",
+        cashBalance: new Prisma.Decimal(0),
+        notes: null,
+        createdAt: new Date("2026-01-01"),
+        updatedAt: new Date("2026-01-01"),
+      },
+      {
+        id: accountB,
+        userId: USER_A,
+        label: "B",
+        type: "autre",
+        currency: "EUR",
+        cashBalance: new Prisma.Decimal(0),
+        notes: null,
+        createdAt: new Date("2026-01-01"),
+        updatedAt: new Date("2026-01-01"),
+      },
+    ];
+    const seedTransactions: TransactionRow[] = [
+      {
+        id: "tx_out_A",
+        userId: USER_A,
+        accountId: accountA,
+        category: "transfer",
+        transferPairId: "tp_agg",
+        type: "outflow",
+        amount: new Prisma.Decimal(300),
+        updatedAt: new Date("2026-01-01"),
+      },
+      {
+        id: "tx_in_B",
+        userId: USER_A,
+        accountId: accountB,
+        category: "transfer",
+        transferPairId: "tp_agg",
+        type: "inflow",
+        amount: new Prisma.Decimal(300),
+        updatedAt: new Date("2026-01-01"),
+      },
+    ];
+    const { client, transactions } = fakeClient({
+      accounts: seedAccounts,
+      transactions: seedTransactions,
+    });
+    const repo = createAccountRepository({
+      client: client as unknown as Parameters<typeof createAccountRepository>[0]["client"],
+    });
+
+    await repo.deleteWithFkProbe(USER_A, accountA);
+
+    // Build the DTO shape deriveMonthlyAggregates consumes from the surviving
+    // rows (only the type / category / amount fields matter for the derive).
+    const survivors = transactions.map((t) => ({
+      type: t.type,
+      category: t.category,
+      amount: Number(t.amount),
+    })) as unknown as Parameters<typeof deriveMonthlyAggregates>[0]["transactions"];
+    const agg = deriveMonthlyAggregates({ transactions: survivors });
+    // The surviving 300€ inflow on B now reads as income (not a transfer),
+    // transfers drop to 0 (the only outflow leg was on the deleted account), and
+    // netChange reflects the real +300 the user kept.
+    expect(agg.incomeEur).toBe(300);
+    expect(agg.transfersEur).toBe(0);
+    expect(agg.spendingEur).toBe(0);
+    expect(agg.netChangeEur).toBe(300);
   });
 
   test("deleteWithFkProbe returns not-found on cross-user attempt (AC-4)", async () => {

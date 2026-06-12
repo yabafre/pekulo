@@ -104,3 +104,45 @@ test("timestamp older than MAX_REPLAY_AGE_SECONDS is rejected (replay defense)",
   expect(result.valid).toBe(false);
   expect(result.reason).toBe("timestamp-too-old");
 });
+
+// Audit 2026-06-12 — `t=` is now MANDATORY. A captured webhook replayed with
+// the `t=` element stripped (HMAC over the body alone is still valid) must be
+// rejected, not silently accepted on back-compat tolerance.
+test("missing t= is rejected even when the v1 HMAC is valid (replay defense)", () => {
+  const body = new TextEncoder().encode(JSON.stringify({ type: "item.refreshed" }));
+  const hex = createHmac("sha256", SECRET).update(Buffer.from(body)).digest("hex");
+  const result = verifyBridgeSignature({
+    rawBody: body,
+    // Note: NO `t=` element — only v1=. The HMAC itself is correct.
+    header: `v1=${hex}`,
+    secrets: [SECRET],
+    nowMs: NOW_MS,
+  });
+  expect(result.valid).toBe(false);
+  expect(result.reason).toBe("missing-timestamp");
+});
+
+test("unparseable t= is rejected (treated as missing timestamp)", () => {
+  const body = new TextEncoder().encode(JSON.stringify({ type: "item.refreshed" }));
+  const hex = createHmac("sha256", SECRET).update(Buffer.from(body)).digest("hex");
+  const result = verifyBridgeSignature({
+    rawBody: body,
+    header: `t=notanumber,v1=${hex}`,
+    secrets: [SECRET],
+    nowMs: NOW_MS,
+  });
+  expect(result.valid).toBe(false);
+  expect(result.reason).toBe("missing-timestamp");
+});
+
+test("fresh t= within the window is accepted (replay defense — happy path)", () => {
+  const body = new TextEncoder().encode(JSON.stringify({ type: "item.refreshed" }));
+  const result = verifyBridgeSignature({
+    rawBody: body,
+    // 1 minute after the signed timestamp ⇒ 60 s < 300 s budget.
+    header: makeHeader(body, SECRET),
+    secrets: [SECRET],
+    nowMs: NOW_MS + 60_000,
+  });
+  expect(result.valid).toBe(true);
+});

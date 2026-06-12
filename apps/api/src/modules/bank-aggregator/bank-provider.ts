@@ -97,14 +97,39 @@ export interface BankProvider {
   listAccounts(args: { userUuid: string; providerItemId: string }): Promise<ProviderBankAccount[]>;
 
   /**
-   * Incremental transaction fetch — `since` drives Bridge's `?since=<ISO>` dedup
-   * (Bridge returns rows with `updated_at > since` only).
+   * Incremental transaction fetch.
+   *
+   * Bridge paginates the transactions list in REVERSE-chronological order of
+   * `updated_at` (verified via context7 /websites/bridgeapi_io 2026-06-12 —
+   * "all objects are ordered and paginated in reverse chronological order"),
+   * bounded below by `since` (`updated_at > since`) and above by `until`
+   * (`updated_at < until`). So the FIRST pages carry the NEWEST rows.
+   *
+   * - `since` drives the incremental dedup cursor (the connection watermark).
+   * - `until` lets the caller resume a TRUNCATED history downward: a tick that
+   *   hits the per-tick page cap reports `truncated: true` + `oldestUpdatedAt`;
+   *   the next tick passes `until = oldestUpdatedAt` to fetch the still-older
+   *   slice it could not reach this tick (the MAX_PAGES backfill loop —
+   *   bug-fix 2026-06-12: the old client warned + dropped the unfetched pages,
+   *   and because the watermark stamped the NEWEST `updated_at`, those older
+   *   rows were never re-windowed → permanent silent loss).
+   *
+   * `truncated` is true iff the per-tick page cap stopped the cursor before
+   * Bridge signalled `next_uri = null`. `oldestUpdatedAt` is the minimum
+   * `updated_at` over the rows actually returned (the floor reached this tick),
+   * or null when no rows came back.
    */
   listTransactions(args: {
     userUuid: string;
     providerItemId: string;
     since: Date | null;
-  }): Promise<{ transactions: ProviderTransaction[]; latestUpdatedAt: Date | null }>;
+    until?: Date | null;
+  }): Promise<{
+    transactions: ProviderTransaction[];
+    latestUpdatedAt: Date | null;
+    oldestUpdatedAt: Date | null;
+    truncated: boolean;
+  }>;
 
   /**
    * Revoke a Bridge item — used by the 5-7 revoke flow. 5-6 implements but

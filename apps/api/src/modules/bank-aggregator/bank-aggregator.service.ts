@@ -104,16 +104,40 @@ export function createBankAggregatorService(deps: {
 }): BankAggregatorService {
   const now = () => (deps.clock ? deps.clock() : new Date());
 
+  // Webhook anti-concurrency guard (audit 2026-06-12). The router now responds
+  // 204 immediately and dispatches handleWebhookEvent in the background, so
+  // Bridge no longer re-delivers on a slow refresh. But two genuine deliveries
+  // for the SAME item (e.g. a retry that crossed a slow first attempt, or two
+  // status events landing back to back) could still run refreshConnectionImpl
+  // concurrently — duplicating the (up to 100-page × 10 s) fan-out and racing
+  // the watermark. We coalesce per providerItemId: while one handler runs, a
+  // second delivery for the same item awaits the in-flight promise instead of
+  // starting its own. Keyed on providerItemId (the unit Bridge re-delivers) and
+  // cleared in a finally so a failed run never wedges the item permanently.
+  const inFlightByItem = new Map<string, Promise<void>>();
+
   async function resolveAccountIds(
     userId: string,
     transactions: ProviderTransaction[],
   ): Promise<Map<string, string>> {
-    // Story 5-6 FIX12 (2026-05-27): LOOKUP-ONLY, no auto-create. The proper
-    // accounts were already created by completeConnection.listAccounts. If
-    // a transaction references an unknown account_id, that's a Bridge sandbox
-    // race / data anomaly (we observed transient orphan IDs during sync); we
-    // skip the offending transactions instead of polluting the local accounts
-    // table with placeholder rows that would never reconcile back.
+    // LOOKUP-ONLY map build — accounts are auto-created upstream now.
+    //
+    // Story 5-6 FIX12 (2026-05-27) made this lookup-only because the accounts
+    // were created ONCE by completeConnection.listAccounts and a refresh never
+    // re-read the item's account list — so an account opened AFTER the initial
+    // connect was unknown here, its transactions were skipped, and the watermark
+    // still advanced → permanent loss (audit bug #2).
+    //
+    // Fix #2(a) (2026-06-12): refreshConnectionImpl now re-pulls listAccounts and
+    // find-or-creates every account BEFORE calling resolveAccountIds, so a newly
+    // opened account is already present and nothing is skipped on the normal
+    // path. This stays lookup-only on purpose: the FIX12 rationale (don't create
+    // placeholder accounts from a volatile/orphan Bridge transaction account_id —
+    // sandbox races produce transient ids that would never reconcile) still holds
+    // as a defense-in-depth fallback. The remaining skip is now a true anomaly
+    // path, and fix #2(b) guarantees the watermark never advances past a skipped
+    // row (importedLatest is computed over imported rows only), so even an
+    // anomalous skip is re-windowed on the next tick rather than lost.
     // Map the STABLE accountKey (set by the client from the item's accounts)
     // → local account id. Keyed on accountKey, not the volatile Bridge id, so
     // it matches the deduped local accounts (story 5-7 FIX 2026-05-28).
@@ -174,32 +198,103 @@ export function createBankAggregatorService(deps: {
     const userUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
     if (!userUuid) throw bankConnectionNotFound(input.connectionId);
 
+    const providerItemId = found.connection.providerItemId;
+
+    // Balance-refresh fix (2026-06-12) + lost-transaction fix #2(a): on EVERY
+    // refresh (cron / webhook / reconnect), re-pull the item's account list
+    // from the provider FIRST and find-or-create-or-update each account, BEFORE
+    // resolving transactions. Two bugs this closes:
+    //   1. accounts.cashBalance froze at the day-1 value — the refresh path
+    //      never re-read balances (it only imported transactions). The
+    //      find-or-create now patches the balance snapshot of existing rows.
+    //   2. a NEW account opened on an EXISTING item produced orphan-keyed
+    //      transactions that resolveAccountIds skipped (console.warn) while the
+    //      watermark still advanced — permanent loss. Auto-creating the missing
+    //      account here means resolveAccountIds finds it and nothing is skipped.
+    const remoteAccounts = await deps.provider.listAccounts({ userUuid, providerItemId });
+    for (const a of remoteAccounts) {
+      // oxlint-disable-next-line no-await-in-loop -- serial by design: ordered find-or-create-or-update with P2002 race handling (mirrors completeConnection)
+      await deps.accountsService.findOrCreateAutoFromProvider(userId, "bridge", a.accountKey, {
+        label: `Bridge — ${a.bankName} — ${a.accountName}`,
+        type: mapBridgeAccountKind(a.kind),
+        currency: a.currency,
+        cashBalance: a.balance,
+        providerId: a.providerId,
+      });
+    }
+
     const since = found.connection.lastRefreshedAt
       ? new Date(found.connection.lastRefreshedAt)
       : null;
-    const { transactions, latestUpdatedAt } = await deps.provider.listTransactions({
-      userUuid,
-      providerItemId: found.connection.providerItemId,
-      since,
-    });
 
-    const accountIdMap = await resolveAccountIds(userId, transactions);
-    const rows: ProviderTransactionImportRow[] = transactions
-      .map((t) => {
-        const accountId = accountIdMap.get(t.accountKey);
-        if (!accountId) return null;
-        const type = t.amount >= 0 ? ("inflow" as const) : ("outflow" as const);
-        return {
-          accountId,
-          occurredOn: t.occurredOn,
-          label: t.label,
-          amount: Math.abs(t.amount),
-          type,
-          category: "autre",
-          providerTransactionId: t.providerTransactionId,
-        };
-      })
-      .filter((r): r is ProviderTransactionImportRow => r !== null);
+    // Truncation-completeness fix #3: Bridge paginates reverse-chronologically
+    // by updated_at and a single listTransactions call is capped at MAX_PAGES.
+    // When that cap truncates the window the client now reports
+    // { truncated: true, oldestUpdatedAt }. We DRAIN the remaining (older) slice
+    // within the tick by re-querying with `until = oldestUpdatedAt` until the
+    // window is exhausted. The per-call page cap is preserved ("borne par tick"
+    // — each HTTP fan-out stays ≤ MAX_PAGES); we just issue successive bounded
+    // slices walking downward in time. `MAX_SLICES` is a belt-and-braces guard
+    // against a pathological provider (it never trips on real finite history).
+    const MAX_SLICES = 50; // ≤ MAX_SLICES × MAX_PAGES × 500 rows drained per tick.
+    const allTransactions: ProviderTransaction[] = [];
+    let until: Date | null = null;
+    let drained = false;
+    let slices = 0;
+    while (slices < MAX_SLICES) {
+      // oxlint-disable-next-line no-await-in-loop -- serial by design: each slice's `until` bound depends on the previous slice's oldestUpdatedAt
+      const slice = await deps.provider.listTransactions({
+        userUuid,
+        providerItemId,
+        since,
+        until,
+      });
+      slices += 1;
+      allTransactions.push(...slice.transactions);
+      if (!slice.truncated) {
+        drained = true;
+        break;
+      }
+      // Truncated: resume below the oldest row reached this slice. Bridge's
+      // `until` is a STRICT `updated_at < until`, so the next slice excludes the
+      // floor row (no duplicate; any overlap dedups on providerTransactionId
+      // anyway). If the provider reports no floor (no rows came back yet still
+      // truncated — an anomaly) or the floor fails to strictly decrease (e.g.
+      // ≥ PAGE_LIMIT×MAX_PAGES rows share one timestamp at a page boundary — a
+      // pathological cluster), stop draining to avoid an infinite re-fetch loop.
+      // The watermark stays put (see below) so the next tick re-windows from the
+      // same `since` rather than stranding the un-drained tail.
+      if (!slice.oldestUpdatedAt || (until && slice.oldestUpdatedAt >= until)) {
+        break;
+      }
+      until = slice.oldestUpdatedAt;
+    }
+
+    const accountIdMap = await resolveAccountIds(userId, allTransactions);
+    // Lost-transaction fix #2(b) — defense in depth: keep only the transactions
+    // we can actually map to a local account; anything resolveAccountIds could
+    // not resolve is dropped from the import AND from the watermark computation.
+    const mappable = allTransactions.filter((t) => accountIdMap.has(t.accountKey));
+    // The watermark must never advance past a row we failed to import, or that
+    // row would never be re-windowed (permanent loss). Compute it over the
+    // IMPORTED rows only — never the raw provider set.
+    const importedLatest: Date | null = mappable.reduce<Date | null>(
+      (max, t) => (!max || t.updatedAt > max ? t.updatedAt : max),
+      null,
+    );
+    const rows: ProviderTransactionImportRow[] = mappable.map((t) => {
+      const accountId = accountIdMap.get(t.accountKey)!;
+      const type = t.amount >= 0 ? ("inflow" as const) : ("outflow" as const);
+      return {
+        accountId,
+        occurredOn: t.occurredOn,
+        label: t.label,
+        amount: Math.abs(t.amount),
+        type,
+        category: "autre",
+        providerTransactionId: t.providerTransactionId,
+      };
+    });
 
     const { persisted, skipped } = await deps.transactionsService.importFromProvider(
       userId,
@@ -223,7 +318,7 @@ export function createBankAggregatorService(deps: {
     // card key). The read path only does cache lookups.
     if (deps.logos) {
       const logos = deps.logos;
-      const labels = [...new Set(transactions.map((t) => t.label))];
+      const labels = [...new Set(allTransactions.map((t) => t.label))];
       void (async () => {
         const providerIds = await deps.accountsService.listProviderIds(userId);
         await logos.warmMany({ labels, providerIds });
@@ -232,16 +327,20 @@ export function createBankAggregatorService(deps: {
       });
     }
 
-    // Story 5-6 FIX (post-review aped-review): only stamp lastRefreshedAt
-    // when Bridge actually returned data. On an empty response, leave the
-    // stamp unchanged so the next tick re-queries the same window — protects
-    // against the silent-data-loss case where Bridge returns HTTP 200 + [] on
-    // a transient backend error.
+    // Watermark advance — combines three guarantees:
+    //   * Story 5-6 post-review: only advance on actual data (an empty 200 on a
+    //     non-first refresh leaves the stamp so the next tick re-queries).
+    //   * Fix #2(b): advance to `importedLatest` (max over IMPORTED rows) rather
+    //     than the raw provider latest, so a skipped row can never be stranded
+    //     above the watermark.
+    //   * Fix #3: only advance when the window was fully `drained` this tick. If
+    //     truncation stopped us mid-drain, the stamp stays put so the next tick
+    //     re-windows from the same `since` and resumes — no silent gap.
     let stampIso: string | null = found.connection.lastRefreshedAt;
-    if (latestUpdatedAt) {
-      await deps.repository.setLastRefreshedAt(userId, input.connectionId, latestUpdatedAt);
-      stampIso = latestUpdatedAt.toISOString();
-    } else if (transactions.length === 0 && !since) {
+    if (drained && importedLatest) {
+      await deps.repository.setLastRefreshedAt(userId, input.connectionId, importedLatest);
+      stampIso = importedLatest.toISOString();
+    } else if (drained && allTransactions.length === 0 && !since) {
       // First-ever refresh that returned 0 transactions — stamp now() to
       // anchor the window. Subsequent empty responses will re-query the same
       // window forever otherwise.
@@ -251,11 +350,60 @@ export function createBankAggregatorService(deps: {
     }
 
     return {
-      fetched: transactions.length,
+      fetched: allTransactions.length,
       persisted,
       skipped,
       lastRefreshedAt: stampIso,
     };
+  }
+
+  // The actual webhook work, extracted so handleWebhookEvent can wrap it in the
+  // per-item in-flight coalescing guard. Named closure at factory scope (same
+  // rationale as refreshConnectionImpl — binding-safe across cron/webhook).
+  async function handleWebhookWork(
+    providerItemId: string,
+    statusCode: number | undefined,
+  ): Promise<void> {
+    // Story 5-6 FIX (post-review): resolve the owning userId(s) FIRST via
+    // findOwnersByProviderItemId — ADR-0013 mandates a userId-scoped guard
+    // on every write. The cross-user setStatusByProviderItemId pattern
+    // previously used was a defense-in-depth gap (a crafted HMAC-valid
+    // payload could flip status across every user sharing the providerItemId).
+    if (statusCode === 1010) {
+      const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
+      for (const o of owners) {
+        // oxlint-disable-next-line no-await-in-loop -- serial by design: per-owner status write (userId-scoped, ADR-0013)
+        await deps.repository.setStatus(o.userId, o.connectionId, "sca_required");
+      }
+      return;
+    }
+    if (statusCode === 0) {
+      // Bridge scheduler refreshed the item — pull new transactions for
+      // every owning user (in practice, exactly one).
+      const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
+      for (const o of owners) {
+        try {
+          // oxlint-disable-next-line no-await-in-loop -- serial by design: per-owner refresh with error isolation
+          await refreshConnectionImpl(o.userId, { connectionId: o.connectionId });
+        } catch (err) {
+          console.warn(
+            `[bank-aggregator] webhook refresh skip ${o.connectionId}: ${
+              err instanceof Error ? err.message : "unknown"
+            }`,
+          );
+        }
+      }
+      return;
+    }
+    // Story 5-6 FIX (post-review): surface unknown Bridge status_codes
+    // through pino so we can observe-and-decide instead of silently
+    // dropping them. Bridge can send 1003 / 1004 / 1005 / etc. — V1
+    // doesn't act on them, but invisible failure modes were a top-3 finding.
+    console.warn(
+      `[bank-aggregator] webhook item.refreshed unknown status_code=${
+        statusCode ?? "<missing>"
+      } for providerItemId=${providerItemId} — no action taken`,
+    );
   }
 
   return {
@@ -371,46 +519,28 @@ export function createBankAggregatorService(deps: {
       const statusCode = evt.content?.status_code;
       if (!providerItemId) return;
 
-      // Story 5-6 FIX (post-review): resolve the owning userId(s) FIRST via
-      // findOwnersByProviderItemId — ADR-0013 mandates a userId-scoped guard
-      // on every write. The cross-user setStatusByProviderItemId pattern
-      // previously used was a defense-in-depth gap (a crafted HMAC-valid
-      // payload could flip status across every user sharing the providerItemId).
-      if (statusCode === 1010) {
-        const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
-        for (const o of owners) {
-          // oxlint-disable-next-line no-await-in-loop -- serial by design: per-owner status write (userId-scoped, ADR-0013)
-          await deps.repository.setStatus(o.userId, o.connectionId, "sca_required");
-        }
+      // Anti-concurrency coalescing (audit 2026-06-12): if a handler for this
+      // providerItemId is already running, await it instead of starting a second
+      // concurrent run (which would duplicate the refresh fan-out and race the
+      // watermark). The first delivery owns the work; later deliveries that
+      // arrive while it runs piggy-back on the same promise.
+      const inFlight = inFlightByItem.get(providerItemId);
+      if (inFlight) {
+        await inFlight;
         return;
       }
-      if (statusCode === 0) {
-        // Bridge scheduler refreshed the item — pull new transactions for
-        // every owning user (in practice, exactly one).
-        const owners = await deps.repository.findOwnersByProviderItemId("bridge", providerItemId);
-        for (const o of owners) {
-          try {
-            // oxlint-disable-next-line no-await-in-loop -- serial by design: per-owner refresh with error isolation
-            await refreshConnectionImpl(o.userId, { connectionId: o.connectionId });
-          } catch (err) {
-            console.warn(
-              `[bank-aggregator] webhook refresh skip ${o.connectionId}: ${
-                err instanceof Error ? err.message : "unknown"
-              }`,
-            );
-          }
+
+      const work = handleWebhookWork(providerItemId, statusCode);
+      inFlightByItem.set(providerItemId, work);
+      try {
+        await work;
+      } finally {
+        // Clear only if we are still the owner — a later set() can't happen
+        // because a second delivery coalesces above rather than overwriting.
+        if (inFlightByItem.get(providerItemId) === work) {
+          inFlightByItem.delete(providerItemId);
         }
-        return;
       }
-      // Story 5-6 FIX (post-review): surface unknown Bridge status_codes
-      // through pino so we can observe-and-decide instead of silently
-      // dropping them. Bridge can send 1003 / 1004 / 1005 / etc. — V1
-      // doesn't act on them, but invisible failure modes were a top-3 finding.
-      console.warn(
-        `[bank-aggregator] webhook item.refreshed unknown status_code=${
-          statusCode ?? "<missing>"
-        } for providerItemId=${providerItemId} — no action taken`,
-      );
     },
 
     async getReconnectUrl(userId, userEmail, connectionId) {

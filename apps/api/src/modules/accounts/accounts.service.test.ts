@@ -430,8 +430,9 @@ describe("findOrCreateAutoFromProvider (T22 + post-review race fix)", () => {
     updatedAt: new Date(),
   };
 
-  test("returns the existing row when findByProviderKey matches (idempotency)", async () => {
+  test("returns the existing row without writing when nothing drifted (idempotency)", async () => {
     let createAutoCalls = 0;
+    let updateCalls = 0;
     const repo: AccountRepository = {
       ...stubAccountRepository(),
       findByProviderKey: async () => BASE_ACCOUNT,
@@ -439,8 +440,13 @@ describe("findOrCreateAutoFromProvider (T22 + post-review race fix)", () => {
         createAutoCalls++;
         throw new Error("createAuto must not be called when findByProviderKey matches");
       },
+      update: async () => {
+        updateCalls++;
+        throw new Error("update must not be called when balance + label are unchanged");
+      },
     };
     const svc = createAccountService({ repository: repo });
+    // Same balance + same label as the existing row → no drift → no write.
     const r = await svc.findOrCreateAutoFromProvider(USER_A, PROVIDER, KEY, {
       label: "Bridge — SG — Courant",
       type: "banque",
@@ -449,6 +455,60 @@ describe("findOrCreateAutoFromProvider (T22 + post-review race fix)", () => {
     });
     expect(r.id).toBe(BASE_ACCOUNT.id);
     expect(createAutoCalls).toBe(0);
+    expect(updateCalls).toBe(0);
+  });
+
+  // Balance-refresh fix (2026-06-12, audit #1): an existing account whose
+  // provider balance moved must be UPDATED (cashBalance no longer frozen at the
+  // day-1 value), via `update` — not the audit-logging recordBalanceChange.
+  test("updates cashBalance + label of the existing row when the provider snapshot drifted (audit #1)", async () => {
+    const patches: Array<{ id: string; patch: { cashBalance?: number; label?: string } }> = [];
+    const repo: AccountRepository = {
+      ...stubAccountRepository(),
+      findByProviderKey: async () => BASE_ACCOUNT, // cashBalance 1234, label "Bridge — SG — Courant"
+      recordBalanceChange: async () => {
+        throw new Error(
+          "recordBalanceChange (audit ledger) must NOT be used for provider snapshots",
+        );
+      },
+      update: async (_userId, id, patch) => {
+        patches.push({ id, patch });
+        return { ...BASE_ACCOUNT, cashBalance: patch.cashBalance ?? BASE_ACCOUNT.cashBalance };
+      },
+    };
+    const svc = createAccountService({ repository: repo });
+    const r = await svc.findOrCreateAutoFromProvider(USER_A, PROVIDER, KEY, {
+      label: "Bridge — SG — Compte courant", // renamed
+      type: "banque",
+      currency: "EUR",
+      cashBalance: 9999, // moved from 1234
+    });
+    expect(patches).toHaveLength(1);
+    expect(patches[0]?.id).toBe(BASE_ACCOUNT.id);
+    expect(patches[0]?.patch.cashBalance).toBe(9999);
+    expect(patches[0]?.patch.label).toBe("Bridge — SG — Compte courant");
+    expect(r.cashBalance).toBe(9999);
+  });
+
+  // Only the balance drifted — the patch must carry cashBalance and NOT label.
+  test("patches only the drifted field (balance moved, label unchanged) (audit #1)", async () => {
+    const recorded: Array<{ cashBalance?: number; label?: string }> = [];
+    const repo: AccountRepository = {
+      ...stubAccountRepository(),
+      findByProviderKey: async () => BASE_ACCOUNT,
+      update: async (_userId, _id, patch) => {
+        recorded.push(patch);
+        return { ...BASE_ACCOUNT, cashBalance: patch.cashBalance ?? BASE_ACCOUNT.cashBalance };
+      },
+    };
+    const svc = createAccountService({ repository: repo });
+    await svc.findOrCreateAutoFromProvider(USER_A, PROVIDER, KEY, {
+      label: BASE_ACCOUNT.label, // unchanged
+      type: "banque",
+      currency: "EUR",
+      cashBalance: 4242,
+    });
+    expect(recorded).toEqual([{ cashBalance: 4242 }]);
   });
 
   test("creates a new row when findByProviderKey returns null (first call)", async () => {

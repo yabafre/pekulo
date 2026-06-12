@@ -246,7 +246,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       );
     },
 
-    async listTransactions({ userUuid, providerItemId, since }) {
+    async listTransactions({ userUuid, providerItemId, since, until }) {
       // Bridge v3 — GET /v3/aggregation/transactions does NOT honor `item_id`
       // (confirmed live 2026-05-28: a bogus item_id still returns the user's
       // FULL set across every item). The documented + working filter is
@@ -256,6 +256,13 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       // transactions. We also follow the `next_uri` cursor so items with >500
       // transactions are fully fetched (the old limit=500 cap silently
       // truncated older rows).
+      //
+      // Ordering (context7 /websites/bridgeapi_io 2026-06-12): the list is
+      // REVERSE-chronological by `updated_at`, so page 1 is the NEWEST rows and
+      // the cursor walks DOWNWARD in time. `since` bounds the window below
+      // (`updated_at > since`); `until` bounds it above (`updated_at < until`)
+      // and lets the caller drain a history longer than MAX_PAGES one slice
+      // per tick (see the `truncated` return + the service backfill loop).
       const bearer = await mintUserAccessToken(userUuid);
       const itemAccounts = await fetchItemAccounts(userUuid, providerItemId);
       // accountId → STABLE accountKey: refresh maps txns to the deduped local
@@ -279,9 +286,16 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       }
 
       const PAGE_LIMIT = 500;
-      const MAX_PAGES = 100; // ≤ 50k rows/user (NFR-15) — guards an unbounded cursor.
+      const MAX_PAGES = 100; // ≤ 50k rows/tick (NFR-15) — guards an unbounded cursor.
       const first = new URLSearchParams({ limit: String(PAGE_LIMIT) });
+      // `since` bounds the window below (updated_at > since); `until` bounds it
+      // above (updated_at < until). The reverse-chronological order means the
+      // cursor walks DOWNWARD in time from `until` (or now) toward `since`, so
+      // a truncated tick fetched the NEWEST slice and the caller resumes the
+      // still-older slice next tick by passing `until = oldestUpdatedAt`
+      // (bug-fix 2026-06-12 — see the BankProvider.listTransactions contract).
       if (since) first.set("since", since.toISOString());
+      if (until) first.set("until", until.toISOString());
       let nextPath: string | null = `/v3/aggregation/transactions?${first.toString()}`;
 
       const rows: TxnRow[] = [];
@@ -298,9 +312,15 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         nextPath = next && next !== "null" ? next : null;
         pages += 1;
       }
-      if (nextPath) {
+      // `truncated` is true iff the per-tick page cap stopped the cursor BEFORE
+      // Bridge signalled `next_uri = null`. We no longer just warn-and-drop the
+      // unfetched pages: we report the truncation + the oldest `updated_at`
+      // reached so the service drains the remaining (still-older) slice with
+      // `until = oldestUpdatedAt` — no silent permanent loss (bug-fix 2026-06-12).
+      const truncated = nextPath !== null;
+      if (truncated) {
         console.warn(
-          `[bridge-client] listTransactions hit MAX_PAGES=${MAX_PAGES} for item_id=${providerItemId} — older transactions left unfetched this tick`,
+          `[bridge-client] listTransactions hit MAX_PAGES=${MAX_PAGES} for item_id=${providerItemId} — reporting truncated:true so the service resumes the older slice next slice/tick`,
         );
       }
 
@@ -310,12 +330,16 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       // bancaire" so Prisma's non-null `label` constraint never trips. We skip
       // deleted=true rows (Bridge soft-deletes via this flag) and rows whose
       // account does not belong to this item (the item_id-ignored guard above).
+      // `latest`/`oldest` are computed over the FILTERED rows only so the dedup
+      // cursor + the resume bound never key on another item's transactions.
       let latest: Date | null = null;
+      let oldest: Date | null = null;
       const transactions = rows
         .filter((r) => !r.deleted && accountKeyById.has(String(r.account_id)))
         .map((r) => {
           const updatedAt = new Date(r.updated_at);
           if (!latest || updatedAt > latest) latest = updatedAt;
+          if (!oldest || updatedAt < oldest) oldest = updatedAt;
           const label =
             r.clean_description?.trim() || r.provider_description?.trim() || "Transaction bancaire";
           return {
@@ -329,7 +353,7 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
             updatedAt,
           } satisfies ProviderTransaction;
         });
-      return { transactions, latestUpdatedAt: latest };
+      return { transactions, latestUpdatedAt: latest, oldestUpdatedAt: oldest, truncated };
     },
 
     async revokeItem({ userUuid, providerItemId }) {
