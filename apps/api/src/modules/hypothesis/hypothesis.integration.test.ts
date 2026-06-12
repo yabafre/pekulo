@@ -16,13 +16,15 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { Elysia } from "elysia";
 import { SignJWT } from "jose";
-import { defaultHypotheses, type Hypotheses } from "@pekulo/validators";
+import { defaultHypotheses, type Hypotheses, type RecordProjectionInput } from "@pekulo/validators";
 import { mapErrorToOrpcResponse } from "../../platform/http/error-mapper";
 import { mountOrpc, type PekuloRpcRouter } from "../../platform/http/orpc-mount";
 import { createJwtVerifier } from "../../platform/security";
 import { extractRequestId } from "../../common/errors";
+import { computeProjectionCurve } from "../../common/derive/projection-curve";
 import { createHypothesisRouter } from "./hypothesis.routes";
 import type { HypothesisService } from "./hypothesis.service";
+import type { HypothesisProjection } from "@pekulo/types";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
 const ISSUER = "https://integration.supabase.co/auth/v1";
@@ -43,6 +45,7 @@ async function signValid(): Promise<string> {
 
 function inMemoryHypothesisService(): HypothesisService {
   const store = new Map<string, Hypotheses>();
+  const projectionStore = new Map<string, RecordProjectionInput>();
   return {
     async get(userId: string) {
       return store.get(userId) ?? defaultHypotheses;
@@ -50,6 +53,21 @@ function inMemoryHypothesisService(): HypothesisService {
     async save(userId: string, input: Hypotheses) {
       store.set(userId, input);
       return input;
+    },
+    async recordProjection(userId: string, input: RecordProjectionInput) {
+      projectionStore.set(userId, input);
+      return input;
+    },
+    async getProjection(userId: string, currentWealthEur: number) {
+      // Mirrors the real service's fallback: no recorded projection → 0
+      // contribution + the default rate/horizon (the curve never reads a clock).
+      const p = projectionStore.get(userId);
+      return computeProjectionCurve({
+        currentWealthEur,
+        monthlyContribution: p?.monthlyContribution ?? 0,
+        annualRate: p?.perfEtfAnnuelle ?? defaultHypotheses.perfEtfAnnuelle,
+        horizonYears: p?.horizonYears ?? defaultHypotheses.horizonYears,
+      });
     },
   };
 }
@@ -222,6 +240,45 @@ describe("hypothesis bridge (integration)", () => {
     expect(r3.status).toBe(200);
     const reread = await unwrap(r3);
     expect(reread.objectif).toBe(100001);
+  });
+
+  test("AC-5 + AC-6: recordProjection → getProjection round-trips through the router", async () => {
+    const headers = {
+      Authorization: `Bearer ${await signValid()}`,
+      "Content-Type": "application/json",
+    };
+    const projectionInput = {
+      objectif: 800_000,
+      horizonYears: 30,
+      monthlyContribution: 1_000,
+      perfEtfAnnuelle: 0.05,
+    };
+
+    // FR-57: record the four projection inputs — the write echoes them back.
+    const recRes = await fetch(`${baseUrl}/rpc/v1/hypothesis/recordProjection`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ json: projectionInput }),
+    });
+    expect(recRes.status).toBe(200);
+    const recorded = (await recRes.json()) as { json: typeof projectionInput };
+    expect(recorded.json).toEqual(projectionInput);
+
+    // FR-58: project the curve from current wealth + the recorded inputs. The
+    // egress hypothesisProjectionSchema validates the payload on the way out.
+    const projRes = await fetch(`${baseUrl}/rpc/v1/hypothesis/getProjection`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ json: { currentWealthEur: 60_000 } }),
+    });
+    expect(projRes.status).toBe(200);
+    const projection = (await projRes.json()) as { json: HypothesisProjection };
+    expect(projection.json.horizonYears).toBe(30);
+    expect(projection.json.monthlyContribution).toBe(1_000);
+    expect(projection.json.annualRate).toBe(0.05);
+    expect(projection.json.points).toHaveLength(31);
+    expect(projection.json.points[0]!.eur).toBe(60_000);
+    expect(projection.json.finalEur).toBe(projection.json.points[30]!.eur);
   });
 
   test("isolated stores: two parallel users don't bleed userIds across requests", async () => {

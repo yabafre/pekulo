@@ -139,6 +139,11 @@ const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   // 409. Same shape-conflict rationale as ACCOUNT_REFERENCED_FK — request is
   // well-formed but contradicts the row state.
   HOLDING_CLOSED: 409,
+  // Hypothesis projection (story 7-3, FR-57/FR-58): malformed projection
+  // inputs (non-finite wealth, negative contribution, rate ∉ [0,1], horizon
+  // ∉ [1,50] int) surface as 400 — defense-in-depth behind the Zod contract
+  // boundary which already rejects bad wire input.
+  HYPOTHESIS_INVALID_INPUT: 400,
   // Real-estate 409 (story 4-1, AC-2/AC-3): attachMortgage / attachRental on a
   // property that already has a mortgage / rental fails the UNIQUE constraint;
   // mapper raises 409 instead of letting Prisma P2002 leak through.

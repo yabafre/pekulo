@@ -70,3 +70,41 @@ export const defaultHypotheses: Hypotheses = {
   horizonYears: 5,
   objectif: 100000,
 };
+
+// ── Story 7-3 (FR-57/FR-58) — projection hypothesis ──────────────────────
+// Narrow projection-input write surface, separate from the 25-field brownfield
+// budget `hypothesesSchema` above. The four fields map to columns on the same
+// `hypotheses` row: objectif (capital cible), horizonYears (horizon),
+// monthlyContribution (versement mensuel — new column, story 7-3 T1),
+// perfEtfAnnuelle (taux annuel supposé).
+export const recordProjectionSchema = z.object({
+  objectif: positive,
+  horizonYears: z.number().int().min(1).max(50),
+  monthlyContribution: positive,
+  perfEtfAnnuelle: ratio,
+});
+export type RecordProjectionInput = z.infer<typeof recordProjectionSchema>;
+
+// Input to the getProjection read. currentWealthEur is supplied by the caller
+// (the 7-1 dashboard overview total) — NOT clamped: net wealth can be negative
+// (underwater real-estate, 7-1 lesson 2026-06-04), and the annuity formula is
+// defined for negative P. Only finiteness is enforced (the derive guards it).
+export const getProjectionInputSchema = z.object({
+  currentWealthEur: z.number(),
+});
+export type GetProjectionInput = z.infer<typeof getProjectionInputSchema>;
+
+// Iso with @pekulo/types#HypothesisProjection (kept in lock-step by hand).
+export const hypothesisProjectionPointSchema = z.object({
+  year: z.number().int().min(0),
+  eur: z.number(),
+});
+export const hypothesisProjectionSchema = z.object({
+  currentWealthEur: z.number(),
+  monthlyContribution: positive,
+  annualRate: ratio,
+  horizonYears: z.number().int().min(1).max(50),
+  points: z.array(hypothesisProjectionPointSchema),
+  finalEur: z.number(),
+});
+export type HypothesisProjectionDto = z.infer<typeof hypothesisProjectionSchema>;

@@ -8,11 +8,15 @@
 //   hypotheses.ts during the 0-6 zapaction-orpc bridge port).
 
 import type { ExtendedPrismaClient } from "../../database";
-import { defaultHypotheses, type Hypotheses } from "@pekulo/validators";
+import type { HypothesisProjection } from "@pekulo/types";
+import { type RecordProjectionInput, defaultHypotheses, type Hypotheses } from "@pekulo/validators";
+import { computeProjectionCurve } from "../../common/derive/projection-curve";
 
 export interface HypothesisService {
   get(userId: string): Promise<Hypotheses>;
   save(userId: string, input: Hypotheses): Promise<Hypotheses>;
+  recordProjection(userId: string, input: RecordProjectionInput): Promise<RecordProjectionInput>;
+  getProjection(userId: string, currentWealthEur: number): Promise<HypothesisProjection>;
 }
 
 /**
@@ -162,6 +166,53 @@ export function createHypothesisService(deps: { client: ExtendedPrismaClient }):
         >[0]["create"],
       });
       return rowToHypotheses(row as unknown as HypothesisRow);
+    },
+    async recordProjection(userId, input) {
+      // Upsert only the four projection columns — the budget columns are left
+      // untouched (ADR-0013: explicit where:{userId} even under the service role).
+      const writeData = {
+        objectif: input.objectif,
+        horizonYears: input.horizonYears,
+        monthlyContribution: input.monthlyContribution,
+        perfEtfAnnuelle: input.perfEtfAnnuelle,
+      };
+      await deps.client.hypothesis.upsert({
+        where: { userId },
+        update: writeData,
+        // No `as unknown` cast needed: `Hypothesis` skips the prefixedIds
+        // extension (native gen_random_uuid PK) so `id` is optional in the
+        // generated create input, and `monthly_contribution` is in the client.
+        create: { userId, ...writeData },
+      });
+      return input;
+    },
+    async getProjection(userId, currentWealthEur) {
+      const row = await deps.client.hypothesis.findUnique({
+        where: { userId },
+        select: {
+          objectif: true,
+          horizonYears: true,
+          perfEtfAnnuelle: true,
+          monthlyContribution: true,
+        },
+      });
+      const objectif = decimalToNumber(row?.objectif, defaultHypotheses.objectif);
+      const horizonYears = decimalToNumber(row?.horizonYears, defaultHypotheses.horizonYears);
+      const annualRate = decimalToNumber(row?.perfEtfAnnuelle, defaultHypotheses.perfEtfAnnuelle);
+      // monthlyContribution is the new nullable column (defaults to 0 when the
+      // row predates story 7-3 or has never recorded a projection). The select
+      // above types it as `Decimal | null` on `row`, so no cast is needed.
+      const monthlyContribution = decimalToNumber(row?.monthlyContribution, 0);
+      // objectif is carried for downstream 7-4 (gap vs compass) but is not a
+      // projection-curve input; the curve needs current wealth + contribution
+      // + rate + horizon only.
+      void objectif;
+      return computeProjectionCurve({
+        currentWealthEur,
+        monthlyContribution,
+        annualRate,
+        horizonYears,
+      });
     },
   };
 }

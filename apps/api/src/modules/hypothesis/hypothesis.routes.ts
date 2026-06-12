@@ -31,5 +31,17 @@ export function createHypothesisRouter(deps: { service: HypothesisService }) {
       }
       return deps.service.save(context.userId, input);
     }),
+    recordProjection: impl.recordProjection.handler(async ({ context, input }) => {
+      if (!context.userId) {
+        throw new PekuloError("UNAUTHORIZED", "user context missing");
+      }
+      return deps.service.recordProjection(context.userId, input);
+    }),
+    getProjection: impl.getProjection.handler(async ({ context, input }) => {
+      if (!context.userId) {
+        throw new PekuloError("UNAUTHORIZED", "user context missing");
+      }
+      return deps.service.getProjection(context.userId, input.currentWealthEur);
+    }),
   });
 }

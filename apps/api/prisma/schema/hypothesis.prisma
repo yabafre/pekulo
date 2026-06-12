@@ -33,6 +33,7 @@ model Hypothesis {
   revenuFreelanceMois Decimal?  @default(300) @map("revenu_freelance_mois") @db.Decimal
   horizonYears        Int       @default(5) @map("horizon_years") @db.SmallInt
   objectif            Decimal   @default(100000) @db.Decimal
+  monthlyContribution Decimal?  @default(0) @map("monthly_contribution") @db.Decimal
   createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime? @default(now()) @map("updated_at") @db.Timestamptz
 
