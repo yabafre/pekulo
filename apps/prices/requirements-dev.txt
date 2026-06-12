@@ -1,0 +1,9 @@
+# Test-only dependencies for the prices microservice.
+# Install into the existing venv, then run the suite:
+#   .venv/bin/python -m pip install -r requirements-dev.txt
+#   python -m pytest        # from apps/prices
+#
+# Pinned for reproducibility. pytest 8.x and httpx 0.28 both support Python 3.9.
+# httpx is required by FastAPI/Starlette's TestClient (starlette 0.41.3).
+pytest==8.3.4
+httpx==0.28.1
