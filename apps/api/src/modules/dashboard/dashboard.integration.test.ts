@@ -118,4 +118,20 @@ describe("dashboard /rpc/v1/dashboard/getOverview", () => {
     });
     expect(res.status).toBe(401);
   });
+
+  test("getHypothesisGap round-trips the gap over the oRPC HTTP boundary", async () => {
+    const token = await signFor(USER);
+    const res = await fetch(`${baseUrl}/rpc/v1/dashboard/getHypothesisGap`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ json: { currentWealthEur: 60_000 } }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      json: { requiredFinalEur: number; projectedFinalEur: number; reachesCap: boolean };
+    };
+    expect(body.json.requiredFinalEur).toBe(800_000);
+    expect(body.json.projectedFinalEur).toBe(700_000);
+    expect(body.json.reachesCap).toBe(false);
+  });
 });
