@@ -20,7 +20,9 @@
 // + architecture.md).
 
 import { computeSnapshotFx } from "../../common/derive/portfolio-fx";
+import { computeMonthlyGap, computeRequiredCurve } from "../../common/derive/hypothesis-gap";
 import { createFxRatesReader } from "./fx-rates-source";
+import type { HypothesisGap, HypothesisProjection } from "@pekulo/types";
 import type {
   ComputeProgressInput,
   ComputeProgressOutput,
@@ -51,10 +53,19 @@ export interface DashboardPorts {
   // story 7-2 D3 — last N confirmed activity rows, already shaped to the
   // dashboard activity DTO (account label resolved, direction/amount mapped).
   listRecentActivity: (userId: string, limit: number) => Promise<DashboardActivity[]>;
+  // Story 7-4 (FR-59) — the 7-3 hypothesis projection read, injected as a port
+  // so the dashboard composes the gap WITHOUT a dashboard↔hypothesis cycle: the
+  // caller passes currentWealthEur (the overview investable wealth), exactly as
+  // getProjection takes it (7-3 decoupling).
+  getHypothesisProjection: (
+    userId: string,
+    currentWealthEur: number,
+  ) => Promise<HypothesisProjection>;
 }
 
 export interface DashboardService {
   getOverview(userId: string): Promise<DashboardOverview>;
+  getHypothesisGap(userId: string, currentWealthEur: number): Promise<HypothesisGap | null>;
 }
 
 export function createDashboardService(deps: DashboardPorts): DashboardService {
@@ -173,6 +184,37 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
         // unavailable).
         fx: { source: fx.source, asOf: snapshot.fxAsOf },
         recentActivity,
+      };
+    },
+
+    async getHypothesisGap(userId, currentWealthEur) {
+      // The compass objectif is the cap target; the projection supplies the
+      // final wealth + horizon + rate. Both reads are user-scoped (ADR-0013 is
+      // enforced inside the underlying module services).
+      const [compassRow, projection] = await Promise.all([
+        // Compass is optional: no compass → no target → no gap (the card shows
+        // the "configure ton cap" hint). Mirror getOverview's degrade-to-null.
+        deps.getCompass(userId).catch(() => null),
+        deps.getHypothesisProjection(userId, currentWealthEur),
+      ]);
+      if (!compassRow) return null;
+      const { objectif } = compassRow;
+      const { finalEur: projectedFinalEur, horizonYears, annualRate } = projection;
+      const requiredPoints = computeRequiredCurve({ currentWealthEur, objectif, horizonYears });
+      const { gapEurPerMonth, reachesCap } = computeMonthlyGap({
+        projectedFinalEur,
+        objectif,
+        horizonYears,
+        annualRate,
+      });
+      return {
+        gapEurPerMonth,
+        reachesCap,
+        projectedFinalEur,
+        requiredFinalEur: objectif,
+        deltaAtCapEur: projectedFinalEur - objectif,
+        horizonYears,
+        requiredPoints,
       };
     },
   };

@@ -24,6 +24,14 @@ describe("createDashboardModule", () => {
       getTotalEquity: async () => ({ totalEquityEur: 0 }),
       getCompass: async () => null,
       listRecentActivity: async () => [],
+      getHypothesisProjection: async () => ({
+        currentWealthEur: 0,
+        monthlyContribution: 0,
+        annualRate: 0,
+        horizonYears: 1,
+        points: [{ year: 0, eur: 0 }],
+        finalEur: 0,
+      }),
       computeProgress,
       prismaService: { client: {} } as unknown as PrismaService,
     });

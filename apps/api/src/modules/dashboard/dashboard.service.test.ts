@@ -74,6 +74,14 @@ function basePorts(over: Partial<DashboardPorts> = {}): DashboardPorts {
     getTotalEquity: async () => ({ totalEquityEur: 250_000 }),
     getCompass: async () => ({ objectif: 800_000 }),
     listRecentActivity: async () => [],
+    getHypothesisProjection: async () => ({
+      currentWealthEur: 0,
+      monthlyContribution: 0,
+      annualRate: 0,
+      horizonYears: 1,
+      points: [{ year: 0, eur: 0 }],
+      finalEur: 0,
+    }),
     computeProgress,
     ...over,
   };
@@ -334,5 +342,53 @@ describe("dashboard.service.getOverview", () => {
     const message = String(warnings[0]?.[0]);
     expect(message).toContain("[fx]");
     expect(message).toContain("unavailable");
+  });
+});
+
+describe("dashboard.service — getHypothesisGap (story 7-4)", () => {
+  const baseProjection = {
+    currentWealthEur: 60_000,
+    monthlyContribution: 1_000,
+    annualRate: 0.05,
+    horizonYears: 30,
+    points: [{ year: 0, eur: 60_000 }],
+    finalEur: 700_000,
+  };
+  // Minimal port set — getHypothesisGap only touches getCompass + getHypothesisProjection.
+  function ports(overrides: Partial<Parameters<typeof createDashboardService>[0]>) {
+    return {
+      listAccounts: async () => [],
+      listHoldings: async () => [],
+      resolveQuote: async () => {
+        throw new Error("unused");
+      },
+      getRates: async () => ({ base: "EUR" as const, date: "2026-06-13", rates: { EUR: 1 } }),
+      getTotalEquity: async () => ({ totalEquityEur: 0 }),
+      getCompass: async () => ({ objectif: 800_000 }),
+      computeProgress: () => ({ percent: 0, gap: 0 }),
+      listRecentActivity: async () => [],
+      getHypothesisProjection: async () => baseProjection,
+      ...overrides,
+    } as Parameters<typeof createDashboardService>[0];
+  }
+
+  test("composes objectif + projection into the gap (AC-3)", async () => {
+    const service = createDashboardService(ports({}));
+    const gap = await service.getHypothesisGap("user-uuid", 60_000);
+    expect(gap).not.toBeNull();
+    expect(gap!.requiredFinalEur).toBe(800_000);
+    expect(gap!.projectedFinalEur).toBe(700_000);
+    expect(gap!.deltaAtCapEur).toBe(-100_000);
+    expect(gap!.reachesCap).toBe(false);
+    expect(gap!.gapEurPerMonth).toBeGreaterThan(0);
+    expect(gap!.requiredPoints).toHaveLength(31);
+    expect(gap!.requiredPoints[0]!.eur).toBe(60_000);
+    expect(gap!.requiredPoints[30]!.eur).toBe(800_000);
+  });
+
+  test("returns null when the user has no compass (AC-3)", async () => {
+    const service = createDashboardService(ports({ getCompass: async () => null }));
+    const gap = await service.getHypothesisGap("user-uuid", 60_000);
+    expect(gap).toBeNull();
   });
 });

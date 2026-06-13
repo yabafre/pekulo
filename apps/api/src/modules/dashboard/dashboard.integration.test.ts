@@ -53,6 +53,14 @@ function buildApp() {
     getTotalEquity: async () => ({ totalEquityEur: 250_000 }),
     getCompass: async () => ({ objectif: 800_000 }),
     listRecentActivity: async () => [],
+    getHypothesisProjection: async () => ({
+      currentWealthEur: 60_000,
+      monthlyContribution: 1_000,
+      annualRate: 0.05,
+      horizonYears: 30,
+      points: [{ year: 0, eur: 60_000 }],
+      finalEur: 700_000,
+    }),
     computeProgress,
     // getOverview never touches the layout repo — a bare client stub is enough.
     prismaService: { client: {} } as unknown as PrismaService,
