@@ -11,6 +11,7 @@ import { CompassEditForm } from "../_compass/_components/compass-edit-form";
 import { CompassHistoryPanel } from "../_compass/_components/compass-history-panel";
 import { LlmOptInToggle } from "../_llm/_components/llm-opt-in-toggle";
 import { LlmActivityLogLink } from "../_llm/_components/llm-activity-log-link";
+import { HypothesisSettings } from "../_hypothesis/_components/hypothesis-settings";
 
 // Feature code is co-located by mount: accounts → dashboard/_accounts,
 // bank connections → dashboard/_bank (+ the bank/callback route), compass →
@@ -40,6 +41,7 @@ export default function ParametresPage() {
         <CompassHistoryPanel />
         <LlmOptInToggle />
         <LlmActivityLogLink />
+        <HypothesisSettings />
       </div>
     </div>
   );
