@@ -17,6 +17,7 @@ import { HeroAnchor } from "../_components/hero-anchor";
 import { CompositionSection } from "../_components/composition-section";
 import { RecentActivitySection } from "../_components/recent-activity-section";
 import { MilestonesSection } from "../_components/milestones-section";
+import { HypothesisCard } from "../_hypothesis/_components/hypothesis-card";
 import { PlaceholderCard } from "../_components/placeholder-card";
 import { CompassSection, useCapDashboardState } from "../_compass/_components/compass-section";
 import { useMilestoneStatuses } from "../_hooks/use-milestone-statuses";
@@ -85,6 +86,24 @@ function NextMilestoneWidget() {
   );
 }
 
+// Hypothèse card needs the LIVE investable wealth (currentWealth) to feed both
+// the 7-3 projection read and the FR-59 gap read; a wrapper keeps the registry
+// render a plain element factory (mirrors MilestonesWidget). No cap → the same
+// "en attente du cap" hint the milestones widget shows.
+function HypothesisWidget() {
+  const cap = useCapDashboardState();
+  if (!cap) {
+    return (
+      <Section title="Hypothèse" ariaLabel="Hypothèse (en attente du cap)">
+        <Text color="$colorTertiary" fontSize="$caption">
+          En attente de la configuration du cap.
+        </Text>
+      </Section>
+    );
+  }
+  return <HypothesisCard currentWealth={cap.currentWealth} />;
+}
+
 export const WIDGET_REGISTRY: WidgetDef[] = [
   {
     id: "hero",
@@ -138,7 +157,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultVisible: true,
     colSpan: 12,
     rowSpan: 1,
-    render: () => <PlaceholderCard variant="hypothesis" ownerStory="6-x" />,
+    render: () => <HypothesisWidget />,
   },
   {
     id: "composition",
