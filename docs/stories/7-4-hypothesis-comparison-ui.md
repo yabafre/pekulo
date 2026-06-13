@@ -26,7 +26,7 @@
 > Commit prefix: `feat(#41): …` / `docs(#41): …` (github-issues — see `.aped/aped-dev/references/ticket-git-workflow.md`).
 > `tsc` is NOT in the commit gate — run the package `typecheck` before every commit (lesson 2026-06-01).
 
-- [ ] **T1 — Add `HypothesisGap` to `@pekulo/types` [AC: AC-3]**
+- [x] **T1 — Add `HypothesisGap` to `@pekulo/types` [AC: AC-3]**
   Append to `packages/types/src/hypothesis/hypothesis.types.ts` (after `HypothesisProjection`, keeping the barrel export intact):
   ```ts
   /**
@@ -58,7 +58,7 @@
   Expected: exit 0, no type errors.
   Commit: `git add packages/types/src/hypothesis && git commit -m "feat(#41): add HypothesisGap domain type (FR-59)"`
 
-- [ ] **T2 — Add `hypothesisGapSchema` to `@pekulo/validators` [AC: AC-3]**
+- [x] **T2 — Add `hypothesisGapSchema` to `@pekulo/validators` [AC: AC-3]**
   Append to `packages/validators/src/hypothesis/hypothesis.schemas.ts` (after `hypothesisProjectionSchema`, reusing the file's `positive` helper + `hypothesisProjectionPointSchema`):
   ```ts
   // ── Story 7-4 (FR-59) — projection-vs-compass gap ─────────────────────────
@@ -81,7 +81,7 @@
   Expected: exit 0.
   Commit: `git add packages/validators/src/hypothesis && git commit -m "feat(#41): add hypothesisGapSchema (FR-59)"`
 
-- [ ] **T3 — RED→GREEN: pure `derive/hypothesis-gap.ts` + tests [AC: AC-1, AC-2]**
+- [x] **T3 — RED→GREEN: pure `derive/hypothesis-gap.ts` + tests [AC: AC-1, AC-2]**
   Create `apps/api/src/common/derive/hypothesis-gap.ts`:
   ```ts
   // apps/api/src/common/derive/hypothesis-gap.ts
@@ -330,7 +330,7 @@
   Expected: the full api suite is green; the new file reports `✓ computeMonthlyGap > AC-1: returns the monthly annuity that closes the shortfall` and the other cases pass, exit 0.
   Commit: `git add apps/api/src/common/derive/hypothesis-gap.ts apps/api/src/common/derive/hypothesis-gap.test.ts && git commit -m "feat(#41): pure hypothesis-gap derives + tests (FR-59)"`
 
-- [ ] **T4 — RED→GREEN: `dashboard.service` getHypothesisProjection port + getHypothesisGap + tests [AC: AC-3]**
+- [x] **T4 — RED→GREEN: `dashboard.service` getHypothesisProjection port + getHypothesisGap + tests [AC: AC-3]**
   Edit `apps/api/src/modules/dashboard/dashboard.service.ts`.
   (a) Add the type import near the top (a new line — `HypothesisGap`/`HypothesisProjection` live in `@pekulo/types`, NOT `@pekulo/validators`):
   ```ts
@@ -440,7 +440,7 @@
   Expected: typecheck exit 0; the 2 new `getHypothesisGap` cases pass alongside the existing dashboard service suite, exit 0.
   Commit: `git add apps/api/src/modules/dashboard/dashboard.service.ts apps/api/src/modules/dashboard/dashboard.service.test.ts && git commit -m "feat(#41): dashboard getHypothesisGap + projection port (FR-59)"`
 
-- [ ] **T5 — Extend `dashboardContract` with getHypothesisGap [AC: AC-3]**
+- [x] **T5 — Extend `dashboardContract` with getHypothesisGap [AC: AC-3]**
   Edit `packages/contracts/src/dashboard/dashboard.contract.ts` — extend the imports and add the procedure (keep `getOverview`/`getLayout`/`saveLayout`):
   ```ts
   import { oc } from "@orpc/contract";
@@ -466,7 +466,7 @@
   Expected: exit 0.
   Commit: `git add packages/contracts/src/dashboard/dashboard.contract.ts && git commit -m "feat(#41): dashboard contract getHypothesisGap (FR-59)"`
 
-- [ ] **T6 — RED→GREEN: route handler + integration round-trip [AC: AC-3]**
+- [x] **T6 — RED→GREEN: route handler + integration round-trip [AC: AC-3]**
   Edit `apps/api/src/modules/dashboard/dashboard.routes.ts` — add the handler inside `impl.router({ ... })` (keep the three existing handlers):
   ```ts
       getHypothesisGap: impl.getHypothesisGap.handler(async ({ context, input }) => {
@@ -505,7 +505,7 @@
   Expected: the dashboard integration suite passes including the new `getHypothesisGap` round-trip, exit 0.
   Commit: `git add apps/api/src/modules/dashboard/dashboard.routes.ts apps/api/src/modules/dashboard/dashboard.integration.test.ts && git commit -m "feat(#41): dashboard getHypothesisGap route + integration test (FR-59)"`
 
-- [ ] **T7 — Wire the `getHypothesisProjection` port in runtime-dependencies [AC: AC-3]**
+- [x] **T7 — Wire the `getHypothesisProjection` port in runtime-dependencies [AC: AC-3]**
   Edit `apps/api/src/bootstrap/runtime-dependencies.ts` — inside the `createDashboardModule({ ... })` call (currently ending at `listRecentActivity`), add the projection port (the `hypothesisModule` is already constructed above — `orpcRouter.hypothesis = hypothesisModule.router`):
   ```ts
       // story 7-4 (FR-59) — projection read port for the gap composition. Same
@@ -518,7 +518,7 @@
   Expected: typecheck exit 0 (the port now satisfies `DashboardPorts`); api suite green.
   Commit: `git add apps/api/src/bootstrap/runtime-dependencies.ts && git commit -m "feat(#41): wire dashboard getHypothesisProjection port (FR-59)"`
 
-- [ ] **T8 — Extend `PekuloHypothesisVerdict` with the €/month gap line + tests [AC: AC-4, AC-8]**
+- [x] **T8 — Extend `PekuloHypothesisVerdict` with the €/month gap line + tests [AC: AC-4, AC-8]**
   Edit `packages/ui/src/components/PekuloHypothesisVerdict/PekuloHypothesisVerdict.tsx`.
   (a) Add the optional prop to the interface:
   ```ts
@@ -610,7 +610,7 @@
   Expected: typecheck exit 0; the two pre-existing `PekuloHypothesisVerdict` snapshots are UNCHANGED (the prop is optional), the new snapshot + a11y cases pass, exit 0.
   Commit: `git add packages/ui/src/components/PekuloHypothesisVerdict && git commit -m "feat(#41): PekuloHypothesisVerdict €/month gap line (FR-59)"`
 
-- [ ] **T9 — keys.ts: `dashboardKeys.hypothesisGap` + registry edges [AC: AC-4]**
+- [x] **T9 — keys.ts: `dashboardKeys.hypothesisGap` + registry edges [AC: AC-4]**
   Edit `apps/web/src/lib/zapaction/keys.ts`.
   (a) Add the gap key factory to `dashboardKeys` (replace the existing `dashboardKeys` block, L156-159):
   ```ts
@@ -648,7 +648,7 @@
   Expected: typecheck exit 0; the existing zapaction registry tests stay green.
   Commit: `git add apps/web/src/lib/zapaction/keys.ts && git commit -m "feat(#41): dashboardKeys.hypothesisGap + registry edges (FR-59)"`
 
-- [ ] **T10 — Web read action `getHypothesisGap` [AC: AC-4]**
+- [x] **T10 — Web read action `getHypothesisGap` [AC: AC-4]**
   Create `apps/web/src/app/(cap)/dashboard/_hypothesis/_actions/hypothesis-gap-actions.ts`:
   ```ts
   "use server";
@@ -681,7 +681,7 @@
   Expected: exit 0 (the `dashboardClient.getHypothesisGap` call type-checks against the T5 contract).
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_hypothesis/_actions/hypothesis-gap-actions.ts" && git commit -m "feat(#41): web getHypothesisGap action (FR-59)"`
 
-- [ ] **T11 — `useHypothesisGap` hook [AC: AC-4]**
+- [x] **T11 — `useHypothesisGap` hook [AC: AC-4]**
   Create `apps/web/src/app/(cap)/dashboard/_hypothesis/_hooks/use-hypothesis-gap.ts`:
   ```ts
   "use client";
@@ -709,7 +709,7 @@
   Expected: exit 0.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_hypothesis/_hooks/use-hypothesis-gap.ts" && git commit -m "feat(#41): useHypothesisGap hook (FR-59)"`
 
-- [ ] **T12 — Hypothèse card: pure chart-model helper + test + the card component [AC: AC-4, AC-5, AC-8, AC-9]**
+- [x] **T12 — Hypothèse card: pure chart-model helper + test + the card component [AC: AC-4, AC-5, AC-8, AC-9]**
   > Read `node_modules/next/dist/docs/` for any App-Router/RSC convention before writing web components (apps/web/AGENTS.md — "this is NOT the Next.js you know").
 
   Create the PURE mapping helper `apps/web/src/app/(cap)/dashboard/_hypothesis/_lib/build-chart-model.ts` (offset → calendar at render, AC-9; no hooks, fully unit-testable):
@@ -884,7 +884,7 @@
   **Visual verification (CLAUDE.md — frontend = visual verification):** at GREEN, run the app and confirm the card via `mcp__react-grab-mcp__get_element_context` — both curves draw, the cap marker is outlined, the verdict + €/month line read correctly, and the card fills its desktop bento cell without collapsing the mobile column ($lg gate).
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_hypothesis/_lib" "apps/web/src/app/(cap)/dashboard/_hypothesis/_components" && git commit -m "feat(#41): Hypothèse card + chart-model helper (FR-57/58/59)"`
 
-- [ ] **T13 — Plug the live card into the widget registry [AC: AC-7]**
+- [x] **T13 — Plug the live card into the widget registry [AC: AC-7]**
   Edit `apps/web/src/app/(cap)/dashboard/_widgets/widget-registry.tsx`.
   (a) Add the import (after the `MilestonesSection` import):
   ```ts
@@ -920,7 +920,7 @@
   **Visual verification:** at GREEN, open `/dashboard`, confirm the Hypothèse cell renders the real card and still drag-reorders / hides via the 7-2 edit layer.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_widgets/widget-registry.tsx" && git commit -m "feat(#41): render live Hypothèse widget (FR-59, AC-7)"`
 
-- [ ] **T14 — Read-only Hypothèse section in Paramètres [AC: AC-6]**
+- [x] **T14 — Read-only Hypothèse section in Paramètres [AC: AC-6]**
   Create `apps/web/src/app/(cap)/dashboard/_hypothesis/_components/hypothesis-settings.tsx`:
   ```tsx
   "use client";
@@ -968,7 +968,7 @@
   **Visual verification:** at GREEN, open `/dashboard/parametres`, confirm the "Hypothèse de projection" section shows the two read-only rows (no edit affordance).
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_hypothesis/_components/hypothesis-settings.tsx" "apps/web/src/app/(cap)/dashboard/parametres/page.tsx" && git commit -m "feat(#41): read-only Hypothèse section in Paramètres (FR-57)"`
 
-- [ ] **T15 — Doc-sync: architecture Group J FR-59 (DEFERRED to aped-review) [AC: AC-3]**
+- [x] **T15 — Doc-sync: architecture Group J FR-59 (DEFERRED to aped-review) [AC: AC-3]**
   The upstream-doc write guard blocks `docs/architecture.md` while a story is in-progress (7-1 T11 / 7-2 / 7-3 T10 precedent, lessons 2026-05-31 / 06-05). The epic-7 cache is already refreshed (this story's prep). **Do NOT edit `architecture.md` during dev** — queue the exact edit here for `aped-review` to apply:
   - **FR-59** (Group J table, `docs/architecture.md:1133`): API module → `dashboard.service.ts#getHypothesisGap(userId, currentWealthEur)` → full `HypothesisGap` (gapEurPerMonth + reachesCap + projectedFinalEur + requiredFinalEur + deltaAtCapEur + horizonYears + linear `requiredPoints`), null when no compass; pure math in `derive/hypothesis-gap.ts` (`computeMonthlyGap` + `computeRequiredCurve`); web surface → `dashboard/_hypothesis/_components/hypothesis-card.tsx` (`PekuloProjectionChart` + `PekuloHypothesisVerdict` with the new `gapEurPerMonth` line) + read-only `hypothesis-settings.tsx` in Paramètres.
   - No new ADR (a derive + one procedure on an existing module + a DS prop — no new subsystem).
@@ -1088,17 +1088,96 @@
 
 _Populated by aped-dev during implementation (Summary / Files changed / Deviations / Test output)._
 
-- **Agent model:** _TBD by aped-dev_
-- **Mode:** _TBD by aped-dev_
-- **Started:** _TBD_ · **Dev complete:** _TBD_
+- **Agent model:** claude-opus-4-8[1m] (fast mode)
+- **Mode:** classic single-session (solo)
+- **Started:** 2026-06-13 · **Dev complete:** 2026-06-13
 
 ### Summary
 
+FR-59 vertical slice shipped end-to-end through TDD. Pure `derive/hypothesis-gap.ts`
+(`computeMonthlyGap` annuity + `computeRequiredCurve` linear ramp, clock-free,
+offset-indexed) → `dashboard.service.getHypothesisGap` composing the 7-3 projection
+(injected port, no dashboard↔hypothesis cycle) + the compass `objectif` → oRPC
+contract + route mounted at `/rpc/v1/dashboard/getHypothesisGap` (null when no
+compass) → web action/hook → the Cap-view `HypothesisCard` (projected vs required
+curve, €/month gap, verdict) wired live into the 7-2 widget grid, plus the
+read-only "Hypothèse de projection" section in Paramètres. The DS verdict gained an
+optional `gapEurPerMonth` line (back-compat: the two 7-x snapshots are byte-identical).
+The deterministic engine owns every number; the web layer only maps offset→calendar.
+
 ### Files changed
+
+- `packages/types/src/hypothesis/hypothesis.types.ts` — `HypothesisGap` (M)
+- `packages/validators/src/hypothesis/hypothesis.schemas.ts` — `hypothesisGapSchema` + `HypothesisGapDto` (M)
+- `apps/api/src/common/derive/hypothesis-gap.{ts,test.ts}` — pure FR-59 derives + tests (C)
+- `apps/api/src/modules/dashboard/dashboard.service.{ts,test.ts}` — `getHypothesisProjection` port + `getHypothesisGap` + tests (M)
+- `apps/api/src/modules/dashboard/dashboard.{module,integration}.test.ts` — port stubs + HTTP round-trip (M)
+- `apps/api/src/bootstrap/runtime-dependencies.ts` — projection port wiring (M)
+- `apps/api/src/modules/dashboard/dashboard.routes.ts` — `getHypothesisGap` handler (M)
+- `packages/contracts/src/dashboard/dashboard.contract.ts` — `getHypothesisGap` procedure (M)
+- `packages/ui/src/components/PekuloHypothesisVerdict/PekuloHypothesisVerdict.{tsx,snapshot.test.tsx,a11y.test.tsx}` — optional `gapEurPerMonth` line + tests (M)
+- `apps/web/src/lib/zapaction/keys.ts` — `dashboardKeys.hypothesisGap` + 4 registry edges (M)
+- `apps/web/src/app/(cap)/dashboard/_compass/_hooks/use-update-compass.test.tsx` — invalidation count 7→8 (new edge) (M)
+- `apps/web/src/app/(cap)/dashboard/_hypothesis/_actions/hypothesis-gap-actions.ts` — read action (C)
+- `apps/web/src/app/(cap)/dashboard/_hypothesis/_hooks/use-hypothesis-gap.ts` — read hook (C)
+- `apps/web/src/app/(cap)/dashboard/_hypothesis/_lib/build-chart-model.{ts,test.ts}` — offset→calendar helper + test (C)
+- `apps/web/src/app/(cap)/dashboard/_hypothesis/_components/{hypothesis-card,hypothesis-settings}.tsx` — Cap card + Paramètres section (C)
+- `apps/web/src/app/(cap)/dashboard/_widgets/widget-registry.tsx` — live `HypothesisWidget` render (M)
 
 ### Deviations
 
+1. **T3 oracle correction.** The story's verbatim out-of-band oracle `120.1500447`
+   was a miscalculation; the AC-1 annuity formula yields `120.15495634…` (verified
+   independently via Node). Corrected the test constant, NOT the derive — the inline
+   re-derivation assertion already pinned the formula.
+2. **T4 absorbed T7 + test doubles.** Making `getHypothesisProjection` a required
+   `DashboardPorts` member breaks every construction site in one typecheck unit, so
+   T4's commit also wired the runtime port (T7) and stubbed the module/integration/
+   service test doubles (the story's T4 missed `basePorts` + `module.test`). A
+   per-task split would have shipped an intermediate red typecheck (lesson 2026-06-01).
+3. **T5+T6 folded.** Adding the contract procedure forces `impl.router` to implement
+   it, so the route handler shipped in the same commit as the contract — a
+   contract-only commit leaves the api package red.
+4. **T9 compass-test count.** The new `["dashboard","hypothesisGap"]` edge on the
+   compass tags makes an objectif change fire 8 invalidations (was 7);
+   `use-update-compass.test.tsx` updated to assert the intended extra edge.
+
+None of these expanded scope into a new subsystem/column (the mid-flight-scope rule,
+lesson 2026-05-31, is not triggered) — they are test-fix / commit-granularity
+adjustments forced by the type system. No new ADR (a derive + one procedure on an
+existing module + an optional DS prop).
+
+**Visual verification DEFERRED to aped-review.** AC-4 / AC-5 / AC-6 / AC-7 are
+visual-render ACs (each T-task specifies a React Grab check at GREEN). The
+`mcp__react-grab-mcp__*` server is not available in this session, so the pixel-level
+check could not run (same posture as 7-2, user-waived). Their logic/contract IS
+covered (typecheck on the DS prop contracts + `build-chart-model` AC-9 mapping test +
+the verdict snapshot/a11y). Aria (aped-review) should run the visual pass: both curves
+draw, the cap marker is outlined, the verdict + €/month line read correctly, the card
+fills its desktop bento cell without collapsing the mobile column ($lg gate), and the
+Paramètres section shows two read-only rows with no edit affordance.
+
+**T15 (architecture doc-sync) is queued, not applied** — the upstream-doc write guard
+blocks `docs/architecture.md` during dev. The exact Group J FR-59 edit is in the T15
+task body for aped-review to apply.
+
 ### Test output
+
+Fresh full-suite run (2026-06-13), all green:
+
+```
+typecheck: types ✓  validators ✓  contracts ✓  api ✓  ui ✓  web ✓   (all exit 0)
+api:  891 pass, 0 fail, 2322 expect() — exit 0
+ui:   216 pass | 1 skipped — exit 0
+web:  257 pass — exit 0
+```
+
+New tests this story:
+- `hypothesis-gap.test.ts` — 9 tests (AC-1 ×3, AC-2 ×2, 4 guards)
+- `dashboard.service.test.ts` — getHypothesisGap describe (AC-3 compose + null)
+- `dashboard.integration.test.ts` — getHypothesisGap HTTP round-trip (AC-3)
+- `PekuloHypothesisVerdict.{snapshot,a11y}.test.tsx` — €/month gap line (AC-4/AC-8)
+- `build-chart-model.test.ts` — offset→calendar mapping (AC-9)
 
 ## Review Record
 
