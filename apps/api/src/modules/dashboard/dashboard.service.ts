@@ -195,9 +195,12 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
         // Compass is optional: no compass → no target → no gap (the card shows
         // the "configure ton cap" hint). Mirror getOverview's degrade-to-null.
         deps.getCompass(userId).catch(() => null),
-        deps.getHypothesisProjection(userId, currentWealthEur),
+        // The projection is a wealth-bearing read: a genuine infra failure must
+        // degrade to the same null (→ card hint) rather than 500 the whole gap,
+        // matching getCompass's degrade-to-null posture (aped-review F1, 7-4).
+        deps.getHypothesisProjection(userId, currentWealthEur).catch(() => null),
       ]);
-      if (!compassRow) return null;
+      if (!compassRow || !projection) return null;
       const { objectif } = compassRow;
       const { finalEur: projectedFinalEur, horizonYears, annualRate } = projection;
       const requiredPoints = computeRequiredCurve({ currentWealthEur, objectif, horizonYears });

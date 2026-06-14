@@ -391,4 +391,18 @@ describe("dashboard.service — getHypothesisGap (story 7-4)", () => {
     const gap = await service.getHypothesisGap("user-uuid", 60_000);
     expect(gap).toBeNull();
   });
+
+  // aped-review F1 (7-4): a projection-read infra failure must degrade to null
+  // (→ card hint), not 500 the whole gap — symmetric with the getCompass catch.
+  test("returns null when the projection read fails (aped-review F1)", async () => {
+    const service = createDashboardService(
+      ports({
+        getHypothesisProjection: async () => {
+          throw new Error("prisma down");
+        },
+      }),
+    );
+    const gap = await service.getHypothesisGap("user-uuid", 60_000);
+    expect(gap).toBeNull();
+  });
 });
