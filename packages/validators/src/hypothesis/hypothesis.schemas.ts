@@ -108,3 +108,19 @@ export const hypothesisProjectionSchema = z.object({
   finalEur: z.number(),
 });
 export type HypothesisProjectionDto = z.infer<typeof hypothesisProjectionSchema>;
+
+// ── Story 7-4 (FR-59) — projection-vs-compass gap ─────────────────────────
+// Iso with @pekulo/types#HypothesisGap (kept in lock-step by hand). The read
+// input is the SAME { currentWealthEur } shape as getProjection (the caller
+// passes the 7-1 dashboard overview investable wealth) — reuse
+// getProjectionInputSchema rather than declaring a second identical schema.
+export const hypothesisGapSchema = z.object({
+  gapEurPerMonth: positive,
+  reachesCap: z.boolean(),
+  projectedFinalEur: z.number(),
+  requiredFinalEur: z.number(),
+  deltaAtCapEur: z.number(),
+  horizonYears: z.number().int().min(1).max(50),
+  requiredPoints: z.array(hypothesisProjectionPointSchema),
+});
+export type HypothesisGapDto = z.infer<typeof hypothesisGapSchema>;

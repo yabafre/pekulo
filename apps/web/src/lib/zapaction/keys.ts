@@ -156,6 +156,10 @@ export const bankConnectionsTags = createFeatureTags(BANK_CONNECTIONS_KEY, {
 export const DASHBOARD_KEY = "dashboard" as const;
 export const dashboardKeys = createFeatureKeys(DASHBOARD_KEY, {
   overview: () => ["overview"] as const,
+  // Story 7-4 (FR-59) — the projection-vs-compass gap read. currentWealth is
+  // part of the key (like hypothesesKeys.projection) so a wealth change
+  // refetches naturally without a registry edge.
+  hypothesisGap: (currentWealth: number) => ["hypothesisGap", currentWealth] as const,
 });
 
 // Story 7-2 (D6) — the per-user widget layout. Unlike the read-only overview,
@@ -171,8 +175,16 @@ export const dashboardLayoutTags = createFeatureTags(DASHBOARD_KEY, {
 
 setTagRegistry({
   [dashboardLayoutTags.current()]: [dashboardLayoutKeys.layout()],
-  [hypothesesTags.all()]: [hypothesesKeys.current(), ["hypotheses", "projection"]],
-  [hypothesesTags.current()]: [hypothesesKeys.current(), ["hypotheses", "projection"]],
+  [hypothesesTags.all()]: [
+    hypothesesKeys.current(),
+    ["hypotheses", "projection"],
+    ["dashboard", "hypothesisGap"],
+  ],
+  [hypothesesTags.current()]: [
+    hypothesesKeys.current(),
+    ["hypotheses", "projection"],
+    ["dashboard", "hypothesisGap"],
+  ],
   // Compass — `current` invalidates every read of the compass aggregate
   // AND the milestones list (status badges + linear-plan derive depend on
   // the compass objectif / horizonYears ; a compass change ripples through
@@ -186,6 +198,7 @@ setTagRegistry({
     compassKeys.history(),
     milestonesKeys.list(),
     dashboardKeys.overview(),
+    ["dashboard", "hypothesisGap"],
   ],
   [compassTags.current()]: [
     compassKeys.current(),
@@ -195,6 +208,7 @@ setTagRegistry({
     compassKeys.history(),
     milestonesKeys.list(),
     dashboardKeys.overview(),
+    ["dashboard", "hypothesisGap"],
   ],
   // Milestones — `list` invalidates the milestones list + `compass.setup`
   // (the setup state is derived from "compass row exists AND ≥1 milestone",

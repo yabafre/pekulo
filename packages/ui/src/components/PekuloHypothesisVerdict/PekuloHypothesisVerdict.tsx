@@ -9,6 +9,11 @@ export interface PekuloHypothesisVerdictProps {
   requiredEur: number;
   /** Année cible. */
   targetYear: number;
+  /**
+   * Story 7-4 (FR-59) — extra €/month to reach the cap. Renders the shortfall
+   * line when present AND the cap is NOT reached. Omit to keep the 7-3 shape.
+   */
+  gapEurPerMonth?: number;
 }
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -21,6 +26,7 @@ export function PekuloHypothesisVerdict({
   projectedEur,
   requiredEur,
   targetYear,
+  gapEurPerMonth,
 }: PekuloHypothesisVerdictProps) {
   const delta = projectedEur - requiredEur;
   const sign = delta >= 0 ? "+" : "−";
@@ -40,6 +46,11 @@ export function PekuloHypothesisVerdict({
         {sign}
         {eur0.format(Math.abs(delta))} vs cap requis
       </Text>
+      {!reaches && gapEurPerMonth != null && gapEurPerMonth > 0 && (
+        <Text color="$colorTertiary" fontSize="$caption">
+          Il manque {eur0.format(gapEurPerMonth)} / mois pour atteindre le cap.
+        </Text>
+      )}
     </View>
   );
 }

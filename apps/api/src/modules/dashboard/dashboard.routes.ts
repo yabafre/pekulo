@@ -37,5 +37,8 @@ export function createDashboardRouter(deps: {
     saveLayout: impl.saveLayout.handler(async ({ context, input }) => {
       return deps.layoutService.saveLayout(requireUserId(context.userId), input);
     }),
+    getHypothesisGap: impl.getHypothesisGap.handler(async ({ context, input }) => {
+      return deps.service.getHypothesisGap(requireUserId(context.userId), input.currentWealthEur);
+    }),
   });
 }

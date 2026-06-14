@@ -24,3 +24,28 @@ export interface HypothesisProjection {
   points: HypothesisProjectionPoint[];
   finalEur: number;
 }
+
+/**
+ * FR-59 comparison output (story 7-4). The projected-vs-compass gap, surfaced
+ * as the extra €/month needed to reach the cap. `requiredPoints` is the LINEAR
+ * compass-required ramp, offset-indexed like HypothesisProjection.points
+ * (point[0].eur === currentWealthEur, point[horizonYears].eur === requiredFinalEur).
+ * The projected curve itself stays the 7-3 HypothesisProjection (the web card
+ * reads it from useHypothesisProjection). Iso with `hypothesisGapSchema` in
+ * @pekulo/validators (kept in lock-step by hand, like HypothesisProjection).
+ */
+export interface HypothesisGap {
+  /** Extra monthly contribution to close the shortfall; 0 when reachesCap. */
+  gapEurPerMonth: number;
+  /** projectedFinalEur >= requiredFinalEur. */
+  reachesCap: boolean;
+  /** Projected wealth at the horizon (= HypothesisProjection.finalEur). */
+  projectedFinalEur: number;
+  /** The compass target capital (objectif). */
+  requiredFinalEur: number;
+  /** Signed: projectedFinalEur − requiredFinalEur. */
+  deltaAtCapEur: number;
+  horizonYears: number;
+  /** Linear compass-required ramp, offset-indexed (length horizonYears + 1). */
+  requiredPoints: HypothesisProjectionPoint[];
+}

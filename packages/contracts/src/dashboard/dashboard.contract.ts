@@ -10,12 +10,17 @@ import {
   dashboardOverviewSchema,
   dashboardLayoutSchema,
   saveDashboardLayoutInputSchema,
+  getProjectionInputSchema,
+  hypothesisGapSchema,
 } from "@pekulo/validators";
 
 export const dashboardContractV1 = {
   getOverview: oc.output(dashboardOverviewSchema),
   getLayout: oc.output(dashboardLayoutSchema.nullable()),
   saveLayout: oc.input(saveDashboardLayoutInputSchema).output(dashboardLayoutSchema),
+  // Story 7-4 (FR-59) — projection-vs-compass gap. Input { currentWealthEur }
+  // (reused from getProjection); null output when the user has no compass.
+  getHypothesisGap: oc.input(getProjectionInputSchema).output(hypothesisGapSchema.nullable()),
 } as const;
 
 export const dashboardContract = dashboardContractV1;

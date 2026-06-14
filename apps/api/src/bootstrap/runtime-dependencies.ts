@@ -268,6 +268,11 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     // story 7-2 D3 — recent activity port (transactions + account labels)
     listRecentActivity: (userId, limit) =>
       transactionsModule.service.listRecentActivity(userId, limit),
+    // story 7-4 (FR-59) — projection read port for the gap composition. Same
+    // service the /rpc/v1/hypothesis getProjection procedure uses; passing it
+    // as a port keeps the dashboard decoupled from the hypothesis module.
+    getHypothesisProjection: (userId, currentWealthEur) =>
+      hypothesisModule.service.getProjection(userId, currentWealthEur),
   });
 
   const orpcRouter: PekuloRpcRouter = {

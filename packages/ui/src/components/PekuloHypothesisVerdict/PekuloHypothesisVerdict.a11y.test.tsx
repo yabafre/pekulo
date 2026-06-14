@@ -12,4 +12,19 @@ describe("PekuloHypothesisVerdict a11y", () => {
       (r.violations ?? []).filter((v) => v.impact === "serious" || v.impact === "critical"),
     ).toEqual([]);
   });
+
+  it("gap-line variant has no serious/critical violations", async () => {
+    const { container } = renderWithTamagui(
+      <PekuloHypothesisVerdict
+        projectedEur={650000}
+        requiredEur={800000}
+        targetYear={2055}
+        gapEurPerMonth={120}
+      />,
+    );
+    const r = await axe(container);
+    expect(
+      (r.violations ?? []).filter((v) => v.impact === "serious" || v.impact === "critical"),
+    ).toEqual([]);
+  });
 });
