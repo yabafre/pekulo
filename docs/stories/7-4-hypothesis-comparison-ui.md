@@ -1,7 +1,7 @@
 # Story: 7-4-hypothesis-comparison-ui — Hypothèse card: projection vs compass-required curve + €/month gap
 
 **Epic:** Epic 7 — Dashboard & projection
-**Status:** ready-for-dev
+**Status:** done
 **Ticket:** [#41](https://github.com/yabafre/pekulo/issues/41)
 **Branch:** feature/41-7-4-hypothesis-comparison-ui
 
@@ -1181,8 +1181,37 @@ New tests this story:
 
 ## Review Record
 
-_Populated by aped-review._
+**Date:** 2026-06-15
+**Auditors:** Spec, Code, Edge & Hallucination (Aria deferred — React Grab MCP unavailable)
+**Verdict:** done
+
+The three method-driven auditors returned APPROVED / HIGH confidence each. The
+adversarial "positive-helper-rejects-zero" hypothesis seeded into the Code
+auditor was disproven against the real code (`positive = z.number().min(0)`
+admits `0`, so the `reachesCap === true → gapEurPerMonth: 0` response round-trips
+the contract). Two MINOR findings were fixed; one INFO dismissed.
 
 ### Findings
 
+#### Resolved
+- [MINOR] `getHypothesisGap` did not `.catch`-wrap `getHypothesisProjection` — a projection infra failure 500'd the whole gap read and surfaced the misleading "Configure ton cap" card hint, asymmetric with the `getCompass` catch [apps/api/src/modules/dashboard/dashboard.service.ts:194-200]
+  - Source: Code + Edge (convergent)
+  - Resolution: `948bb72` — wrapped the projection read in `.catch(() => null)` and widened the guard to `if (!compassRow || !projection) return null;`; degrade-to-null is now symmetric with `getCompass`. Regression test added (`dashboard.service.test.ts` — "returns null when the projection read fails"). Re-verified RESOLVED by the Code auditor against HEAD (17 pass on the focused suite, `@pekulo/api typecheck` exit 0).
+- [MINOR] `buildChartModel` built `actual` from a separate projection read and `years`/`required` from the gap read, with no length assertion — a horizon-edit race between the two concurrent fetches could transiently misalign the two series on the shared x-axis [apps/web/src/app/(cap)/dashboard/_hypothesis/_lib/build-chart-model.ts:21-28]
+  - Source: Edge
+  - Resolution: `cd2d2f5` — clamp `actual` to `projection.points.slice(0, years.length)`. Regression test added (over-long projection → `actual.length === years.length`). Re-verified RESOLVED by the Edge auditor against HEAD (2 pass). Residual note: a *shorter* projection still under-fills the tail (benign — the line ends early, no year-shift); revisit if a composite gap-DTO carrying the projected points lands.
+
+#### Dismissed
+- [INFO] Double projection compute — the card calls both `useHypothesisProjection` and `useHypothesisGap`, and `getHypothesisGap` recomputes the projection server-side [apps/web/.../_hypothesis/_components/hypothesis-card.tsx:28-29 / apps/api/.../dashboard.service.ts:198]
+  - Source: Code
+  - Rationale: an O(1) DB read plus a pure ≤51-point loop, run twice — negligible at Persona #1 scale. Optimisable later via a composite gap DTO carrying the projected points (which would also close the F2 under-long residual). Not worth coupling the two reads in V1.
+
 ### Verification
+- Test command: `bun --filter='@pekulo/api' run test` · `bun --filter='@pekulo/ui' run test` · `bun --filter='@pekulo/web' run test` (+ per-package `typecheck`)
+- Test output (final pass at HEAD `56316cb`): **api 892 pass / 0 fail**, **web 258 pass / 0 fail**, **ui 216 pass / 1 skip** (ui untouched by the fixes); all six package typechecks exit 0. Focused post-fix: `hypothesis-gap` 9 pass, `dashboard.getHypothesisGap` service+integration 17 pass (incl. the F1 regression + HTTP round-trip 200, user-scoped), `build-chart-model` 2 pass (incl. the F2 regression).
+- Visual verification: **deferred — React Grab MCP unavailable at 2026-06-15** (user-waived, same posture as 7-2/7-3). AC-4/5/6/7 pixel-render not validated; the underlying logic is covered by `build-chart-model` (AC-9 offset→calendar), the `PekuloHypothesisVerdict` snapshot/a11y cases, and the card's source branches (skeleton / error-empty / present).
+- Doc-sync: `docs/architecture.md` Group J FR-59 row updated from the `{ gapEurPerMonth }` stub to the shipped `getHypothesisGap` shape + derive + web surfaces (`56316cb`, T15).
+
+### Ticket sync
+- Ticket comment posted: #41
+- PR opened/updated: #133 (base `main`) → ready
