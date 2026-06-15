@@ -1105,3 +1105,43 @@ tamagui CSS regen: no diff (all new style atoms already present)
 
 - **AC trace**: AC-1/AC-2/AC-3/AC-4 covered by citing unit tests (auth-actions suite). AC-5 (RSC email display) + AC-6 (proxy gate) covered by typecheck + live smoke (logged-out `/dashboard` → 307 `/login`; `/recover` → 200; `/auth-code-error` → 200) + manual checklist — no RSC/middleware unit harness in this repo (story testing strategy).
 - **Deferred to review (manual)**: the full reset-email round-trip and the logged-in walkthrough (login → Paramètres email + logout → `/login`) need real Supabase + an inbox; no E2E/Playwright harness exists and the React Grab visual MCP was unavailable this session (Aria/visual to confirm at review).
+
+## Review Record
+
+**Date:** 2026-06-15
+**Auditors:** Spec, Code, Edge & Hallucination (Aria: visual review **deferred** — React Grab MCP unavailable this session)
+**Verdict:** done-eligible — all 6 findings resolved; status flip + remote sync pending user approval.
+
+### Findings
+
+#### Resolved
+- [MAJOR] A normal authenticated user landing on `/recover` was shown the set-new-password (reset) form — `mode={user ? "reset" : "request"}` could not distinguish a recovery session from a full one (auth-js `amr` carries no "recovery" method). [apps/web/src/app/(auth)/recover/page.tsx]
+  - Source: Edge & Hallucination
+  - Resolution: `006df04` — the callback sets a short-lived httpOnly recovery marker only after a verified code exchange; `/recover` serves reset mode only with the marker and bounces other authenticated users to `/dashboard`; `updatePassword` clears it. New unit tests cover clear-on-success / keep-on-failure. Edge auditor re-verified RESOLVED (happy path intact; no client-forgery path; AC-6 preserved).
+- [MAJOR] Auth client components import `(auth)/_actions/auth-actions.ts` directly against the hard Component→Hook→Action boundary; the cited "architecture L142 exception" did not exist, and lint was green only via a path blind spot. [auth-form.tsx, recover-form.tsx, sign-out-button.tsx]
+  - Source: Code
+  - Resolution: `65a3368` + `63632db` — documented as an accepted, deliberate exception in `architecture.md` (the calls wrap Supabase Auth SDK, not oRPC; no React Query cache to orchestrate) and corrected the false L142 reasoning. Verification found the lint rule is in fact **inert repo-wide** (pre-existing anchoring bug) and would false-positive on RSCs, so hardening the shared rule was reverted and deferred (see tracked follow-up). M2 resolved as documentation; enforcement gap recorded.
+- [MINOR] `resolveOrigin` trusted `x-forwarded-host` for the reset-email link with `NEXT_PUBLIC_SITE_URL` unset (host-header injection on the reset link). [auth-actions.ts]
+  - Source: Code
+  - Resolution: `006df04` — production now requires `NEXT_PUBLIC_SITE_URL` (throws if unset); the header fallback is dev-only. Code auditor re-verified RESOLVED (no enumeration/regression; tests green under `NODE_ENV=test`).
+- [MINOR] Ticket #42 body AC-3 still read `/auth/recover` (superseded URL).
+  - Source: Spec
+  - Resolution: #42 body updated to `/recover` with an inline supersession note.
+- [MINOR] `AccountSection` bundled email + logout in one « Compte » section; the authoritative `App.tsx` keeps logout in a separate « Session » section. [account-section.tsx]
+  - Source: Spec
+  - Resolution: `d5910b5` — split into « Compte » + « Session » sections (stacked as direct children of the Paramètres column).
+- [NIT] `loginSchema` exported but never consumed. [packages/validators/src/auth/auth.schemas.ts]
+  - Source: Edge
+  - Resolution: `cc73a91` — wired as the login-form client validation gate (empty/malformed credentials caught before the round-trip; action remains the trust boundary).
+
+#### Tracked follow-up (out of scope — not an 8-1 change)
+- [MAJOR · lint-infra] `no-server-action-in-component` is **inert repo-wide**: its filename anchoring (`apps/web/src/…`) does not match the cwd-relative paths `oxlint src` feeds it from `apps/web`, so it fires on zero files; and it has no `'use client'` gate, so fixing the anchoring false-positives on legitimate RSC server-to-server calls (`bank/callback/page.tsx`). Hardening it (cwd anchoring + `'use client'` gate + per-feature allowlist for the auth exception) is a dedicated lint-infra task. Recorded in `architecture.md`.
+
+### Verification
+- Final gate @ `63632db`: `bun --filter='@pekulo/web' run typecheck` exit 0 · `@pekulo/validators` typecheck exit 0 · `bun --filter='@pekulo/web' run lint` 0 errors (2 pre-existing warnings, untouched dashboard files) · `bun --filter='@pekulo/oxlint-config' run test` 57 passed · `bun --filter='@pekulo/web' run test` **268 passed (98 files)**, exit 0.
+- Auth-actions suite: **15 passed** (13 original + 2 new M1 cookie tests).
+- Visual verification: **deferred** — React Grab MCP unavailable 2026-06-15. AC-4 full email round-trip + the logged-in walkthrough remain manual (no E2E harness).
+
+### Ticket sync
+- Ticket comment posted: pending user approval of the status flip.
+- PR opened/updated: pending user approval (umbrella = `main`).
