@@ -20,8 +20,21 @@ tester.run("no-server-action-in-component", rule, {
       code: `import { format } from "@/lib/utils";`,
       filename: "apps/web/src/components/foo.tsx",
     },
+    // Allowlisted per-feature actions — the documented Supabase Auth exception.
+    {
+      code: `import { signOut } from "@/app/(auth)/_actions/auth-actions";`,
+      filename: "apps/web/src/components/auth-form.tsx",
+      options: [{ allow: ["(auth)/_actions/"] }],
+    },
   ],
   invalid: [
+    // Per-feature action imported into a component (not allowlisted) — the M2
+    // blind spot, now caught.
+    {
+      code: `import { updateCompass } from "@/app/(cap)/dashboard/_compass/_actions/compass-actions";`,
+      filename: "apps/web/src/app/(cap)/dashboard/_compass/_components/compass-edit-form.tsx",
+      errors: [{ messageId: "forbidden" }],
+    },
     {
       code: `import { recordTx } from "@/lib/actions/transactions";`,
       filename: "apps/web/src/components/transactions-form.tsx",
