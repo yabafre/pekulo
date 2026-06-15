@@ -3,14 +3,21 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 // The server actions talk to Supabase via the SERVER client (the httpOnly
 // cookie write path), so we mock that module — never the browser client.
 // vi.hoisted keeps the mock fns defined before the hoisted vi.mock factory.
-const { signInWithPassword, signUpWithPassword, signOut, resetPasswordForEmail, updateUser } =
-  vi.hoisted(() => ({
-    signInWithPassword: vi.fn(),
-    signUpWithPassword: vi.fn(),
-    signOut: vi.fn(),
-    resetPasswordForEmail: vi.fn(),
-    updateUser: vi.fn(),
-  }));
+const {
+  signInWithPassword,
+  signUpWithPassword,
+  signOut,
+  resetPasswordForEmail,
+  updateUser,
+  cookieDelete,
+} = vi.hoisted(() => ({
+  signInWithPassword: vi.fn(),
+  signUpWithPassword: vi.fn(),
+  signOut: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
+  updateUser: vi.fn(),
+  cookieDelete: vi.fn(),
+}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
@@ -25,9 +32,11 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 // requestPasswordReset reads headers() to build the redirect origin; stub it
-// so resolveOrigin falls back to the localhost default.
+// so resolveOrigin falls back to the localhost default. updatePassword also
+// clears the recovery-marker cookie on success, so stub cookies() too.
 vi.mock("next/headers", () => ({
   headers: vi.fn(async () => ({ get: () => null })),
+  cookies: vi.fn(async () => ({ delete: cookieDelete, get: vi.fn(), set: vi.fn() })),
 }));
 
 import {
@@ -44,6 +53,7 @@ beforeEach(() => {
   signOut.mockReset();
   resetPasswordForEmail.mockReset();
   updateUser.mockReset();
+  cookieDelete.mockReset();
 });
 
 describe("signIn (server action)", () => {
@@ -150,5 +160,17 @@ describe("updatePassword (server action)", () => {
     updateUser.mockResolvedValue({ error: null });
     expect(await updatePassword("twelvecharss")).toEqual({ ok: true });
     expect(updateUser).toHaveBeenCalledWith({ password: "twelvecharss" });
+  });
+
+  test("M1 — a successful reset clears the recovery marker cookie", async () => {
+    updateUser.mockResolvedValue({ error: null });
+    await updatePassword("twelvecharss");
+    expect(cookieDelete).toHaveBeenCalledWith("pekulo-pwd-recovery");
+  });
+
+  test("M1 — a failed reset leaves the recovery marker intact", async () => {
+    updateUser.mockResolvedValue({ error: { message: "weak" } });
+    await updatePassword("twelvecharss");
+    expect(cookieDelete).not.toHaveBeenCalled();
   });
 });

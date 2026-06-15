@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   PASSWORD_POLICY_MESSAGE,
   passwordResetRequestSchema,
@@ -8,6 +8,7 @@ import {
   signupSchema,
 } from "@pekulo/validators";
 import { createClient } from "@/lib/supabase/server";
+import { RECOVERY_MARKER_COOKIE } from "../recovery-marker";
 
 export type AuthResult = { ok: true } | { ok: false; message: string };
 
@@ -56,13 +57,21 @@ export async function signOut(): Promise<AuthResult> {
 }
 
 // Origin for the recovery-email redirect link. Prefer the explicit
-// NEXT_PUBLIC_SITE_URL (stable behind proxies); fall back to the forwarded
-// host headers (Next 16 `headers()` is async — see apps/web/AGENTS.md).
+// NEXT_PUBLIC_SITE_URL (stable behind proxies; Next 16 `headers()` is async —
+// see apps/web/AGENTS.md). In production we REQUIRE it: the forwarded-host
+// fallback trusts attacker-controllable headers, so building the reset-email
+// link from them is a host-header-injection vector. The header fallback is
+// dev-only (aped-review m3).
 async function resolveOrigin(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
   if (configured) return configured.replace(/\/$/, "");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "NEXT_PUBLIC_SITE_URL must be set in production (password-reset redirect origin).",
+    );
+  }
   const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "https";
+  const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3002";
   return `${proto}://${host}`;
 }
@@ -96,5 +105,9 @@ export async function updatePassword(password: string): Promise<AuthResult> {
   if (error) {
     return { ok: false, message: "Impossible de mettre à jour le mot de passe. Réessaie." };
   }
+  // The recovery session is spent — drop the recovery marker so a later visit
+  // to /recover with the (now full) session is bounced rather than re-shown the
+  // reset form (aped-review M1).
+  (await cookies()).delete(RECOVERY_MARKER_COOKIE);
   return { ok: true };
 }
