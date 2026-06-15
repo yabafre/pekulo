@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Section, pekuloFontSizes, useToast } from "@pekulo/ui";
 import { Text, View, styled } from "@pekulo/ui/client";
-import { signIn, signUp } from "@/app/auth/_actions/auth-actions";
+import { signIn, signUp } from "@/app/(auth)/_actions/auth-actions";
 
 // Plain styled HTML input. `color` and `outline` are CSS-only (not in
 // Tamagui's StackStyle), so we apply them via inline style referencing
@@ -155,14 +155,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               {mode === "login" ? (
                 <>
                   Pas de compte ?{" "}
-                  <Link href="/auth/signup" style={{ color: "var(--color)" }}>
+                  <Link href="/signup" style={{ color: "var(--color)" }}>
                     S'inscrire
                   </Link>
                 </>
               ) : (
                 <>
                   Déjà un compte ?{" "}
-                  <Link href="/auth/login" style={{ color: "var(--color)" }}>
+                  <Link href="/login" style={{ color: "var(--color)" }}>
                     Se connecter
                   </Link>
                 </>
