@@ -30,3 +30,20 @@ Status: V1 (a) personal-use. Items marked **(b)** are load-bearing before the pu
 ## Web perimeter
 
 See the `fix/security-perimeter-hardening` work (open-redirect guard, security headers + CSP Report-Only, `/openapi` dev-gate). CSP enforce flip is a tracked follow-up.
+
+## Auth flows (story 8-1, FR-45/46/47/48 · NFR-11)
+
+The Supabase **hosted-project** configuration (Dashboard → Authentication) is
+load-bearing for NFR-11 and must be set on every environment:
+
+- **Minimum password length = 12** (Auth → Policies). The web tier also guards
+  this client-side and in the `signUp` / `updatePassword` server actions via
+  `@pekulo/validators` (`PASSWORD_MIN_LENGTH = 12`), but the hosted setting is
+  the authoritative server enforcement.
+- **Login rate-limit = 10 / IP / hour** (Auth → Rate Limits). The `signIn`
+  action surfaces the blocked response as a sanitised generic line and never
+  echoes the raw Supabase rate-limit hint (story 11-7).
+- **Redirect URL allowlist** (Auth → URL Configuration): add the migrated
+  callback path `<origin>/callback` (story 8-1 moved `auth/` → the `(auth)`
+  route group, so the URL is `/callback`, not `/auth/callback`). The
+  password-reset email links to `<origin>/callback?next=/recover`.
