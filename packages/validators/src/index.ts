@@ -2,6 +2,7 @@
 // both apps/web (form resolvers) and apps/api (handler validation + DB
 // mapping). New schemas land alongside their feature stories.
 export * from "./accounts";
+export * from "./auth";
 export * from "./bank-aggregator";
 export * from "./compass";
 export * from "./dashboard";

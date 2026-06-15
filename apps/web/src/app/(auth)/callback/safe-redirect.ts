@@ -1,4 +1,4 @@
-// apps/web/src/app/auth/callback/safe-redirect.ts
+// apps/web/src/app/(auth)/callback/safe-redirect.ts
 // Open-redirect guard (CWE-601) for the Supabase auth callback. The `next`
 // query param is attacker-controllable and gets concatenated onto the origin
 // (`${origin}${next}`); only a same-origin, path-absolute value is honoured.

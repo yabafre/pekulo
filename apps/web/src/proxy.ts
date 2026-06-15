@@ -87,15 +87,28 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
-  const isAuthPage = pathname.startsWith("/auth");
+  // Public (auth) route-group paths — reachable without a session. The route
+  // group `(auth)` is invisible in the URL, so these are bare top-level paths
+  // (story 8-1 migrated `auth/` → `(auth)/`).
+  const PUBLIC_AUTH_PATHS = new Set([
+    "/login",
+    "/signup",
+    "/recover",
+    "/callback",
+    "/auth-code-error",
+  ]);
+  const isPublicAuthPath = PUBLIC_AUTH_PATHS.has(pathname);
   const isApi = pathname.startsWith("/api");
   const isStatic = pathname.startsWith("/_next") || pathname.includes(".");
 
   if (!isStatic) {
-    if (!user && !isAuthPage && !isApi && pathname !== "/") {
-      return withSecurity(NextResponse.redirect(new URL("/auth/login", request.url)));
+    if (!user && !isPublicAuthPath && !isApi && pathname !== "/") {
+      return withSecurity(NextResponse.redirect(new URL("/login", request.url)));
     }
-    if (user && isAuthPage) {
+    // Bounce signed-in users off login/signup ONLY. NOT `/recover` — a
+    // password-recovery session legitimately lands there to set a new
+    // password (AC-6). NOT `/callback` — it must run its code exchange first.
+    if (user && (pathname === "/login" || pathname === "/signup")) {
       return withSecurity(NextResponse.redirect(new URL("/dashboard", request.url)));
     }
   }
