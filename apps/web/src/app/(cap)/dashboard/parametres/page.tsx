@@ -7,6 +7,7 @@
 // without a server round-trip.
 
 import { pekuloSpacing } from "@pekulo/ui";
+import { AccountSection } from "../_account/_components/account-section";
 import { CompassEditForm } from "../_compass/_components/compass-edit-form";
 import { CompassHistoryPanel } from "../_compass/_components/compass-history-panel";
 import { LlmOptInToggle } from "../_llm/_components/llm-opt-in-toggle";
@@ -37,6 +38,7 @@ export default function ParametresPage() {
           gap: pekuloSpacing[6],
         }}
       >
+        <AccountSection />
         <CompassEditForm />
         <CompassHistoryPanel />
         <LlmOptInToggle />
