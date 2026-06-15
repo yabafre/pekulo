@@ -3,13 +3,23 @@
 // apps/web/src/components/auth/falling-pattern.tsx
 // Generative dot-matrix with isobar/contour wave bands that drift organically
 // (sine interference → topographic field). Rendered via putImageData (one
-// atomic blit, zero flicker), DPR-aware, ResizeObserver-driven, and disabled
-// under prefers-reduced-motion. Decorative only: pointer-events none +
-// aria-hidden. Ported from the cloudvault ux-preview to plain React + inline
-// styles (no Tailwind on apps/web). Default colour is grayscale to honour the
-// TR-strict discipline (chromatic accents stay reserved for perf deltas).
+// atomic blit, zero flicker) and disabled under prefers-reduced-motion.
+// Decorative only: pointer-events none + aria-hidden. Ported from the cloudvault
+// ux-preview to plain React + inline styles (no Tailwind on apps/web). Default
+// colour is grayscale to honour the TR-strict discipline (chromatic accents
+// stay reserved for perf deltas).
+//
+// PERF (it is a *background*, so it must stay cheap): the render is pinned to 1
+// device pixel (no retina 4×-pixel blit), throttled to ~30fps (the field drifts
+// slowly — 60fps is imperceptible here), and fully paused while the tab is
+// hidden. These three together cut the main-thread + WindowServer compositing
+// cost by an order of magnitude vs an unthrottled dpr-2 60fps loop.
 
 import { useEffect, useRef, type CSSProperties } from "react";
+
+const RENDER_DPR = 1; // pin to 1 device pixel — a faint background needs no retina density
+const TARGET_FPS = 30;
+const FRAME_MS = 1000 / TARGET_FPS;
 
 type FallingPatternProps = {
   color?: string;
@@ -23,7 +33,7 @@ export function FallingPattern({
   color = "#ededed",
   speed = 0.8,
   dotSize = 1.5,
-  gap = 6,
+  gap = 8,
   style,
 }: FallingPatternProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,7 +46,7 @@ export function FallingPattern({
     if (!ctx) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = RENDER_DPR;
     const hex = color.replace("#", "");
     const cr = parseInt(hex.substring(0, 2), 16);
     const cg = parseInt(hex.substring(2, 4), 16);
@@ -47,6 +57,7 @@ export function FallingPattern({
     let cols = 0;
     let rows = 0;
     let imgData: ImageData | null = null;
+    let last = 0;
 
     const resize = () => {
       const rect = canvas.parentElement?.getBoundingClientRect();
@@ -87,10 +98,12 @@ export function FallingPattern({
     };
 
     const draw = (ts: number) => {
-      if (!imgData) {
-        animRef.current = requestAnimationFrame(draw);
-        return;
-      }
+      animRef.current = requestAnimationFrame(draw);
+      // Throttle to TARGET_FPS — skip frames that arrive too soon.
+      if (ts - last < FRAME_MS) return;
+      last = ts;
+      if (!imgData) return;
+
       const t = ts * 0.001 * speed;
       imgData.data.fill(0);
 
@@ -118,22 +131,32 @@ export function FallingPattern({
       }
 
       ctx.putImageData(imgData, 0, 0);
-      animRef.current = requestAnimationFrame(draw);
     };
 
+    const start = () => {
+      cancelAnimationFrame(animRef.current);
+      last = 0;
+      animRef.current = requestAnimationFrame(draw);
+    };
+    const stop = () => cancelAnimationFrame(animRef.current);
+
+    // Pause entirely while the tab is hidden — no point animating offscreen.
+    const onVisibility = () => (document.hidden ? stop() : start());
+    document.addEventListener("visibilitychange", onVisibility);
+
     resize();
-    animRef.current = requestAnimationFrame(draw);
+    start();
 
     const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(animRef.current);
       resize();
-      animRef.current = requestAnimationFrame(draw);
+      start();
     });
     if (canvas.parentElement) ro.observe(canvas.parentElement);
 
     return () => {
-      cancelAnimationFrame(animRef.current);
+      stop();
       ro.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [color, speed, dotSize, gap]);
 
