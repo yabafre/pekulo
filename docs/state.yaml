@@ -230,7 +230,7 @@ sprint:
     7-3-hypothesis-domain: {status: done, depends_on: [0-4-prisma-setup, 0-5-orpc-contracts-scaffold, 0-6-zapaction-orpc-bridge], ticket: "#40", worktree: null, started_at: "2026-06-11T12:05:00Z", completed_at: "2026-06-11", reviewed_at: "2026-06-12T14:00:00Z"}
     7-4-hypothesis-comparison-ui: {status: done, depends_on: [7-3-hypothesis-domain, 7-2-dashboard-cap-page, 0-10-pekulo-ui-migration], ticket: "#41", worktree: null}
     # Epic 8 — Auth & preferences (V1 brownfield + extension)
-    8-1-supabase-auth-flows: {status: pending, depends_on: [0-3-api-scaffold], ticket: "#42", worktree: null}
+    8-1-supabase-auth-flows: {status: review, depends_on: [0-3-api-scaffold], ticket: "#42", worktree: null, started_at: "2026-06-15T00:00:00Z", completed_at: "2026-06-15T00:00:00Z"}
     8-2-theme-language-prefs: {status: pending, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#43", worktree: null}
     # Epic 9 — PWA install + offline (V1)
     9-1-pwa-manifest-and-install: {status: pending, depends_on: [0-10-pekulo-ui-migration], ticket: "#44", worktree: null}
