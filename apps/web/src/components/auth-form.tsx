@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Section, pekuloFontSizes, useToast } from "@pekulo/ui";
 import { Text, View, styled } from "@pekulo/ui/client";
+import { PASSWORD_MIN_LENGTH, PASSWORD_POLICY_MESSAGE, signupSchema } from "@pekulo/validators";
 import { signIn, signUp } from "@/app/(auth)/_actions/auth-actions";
 
 // Plain styled HTML input. `color` and `outline` are CSS-only (not in
@@ -55,6 +56,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setLoading(true);
     try {
       if (mode === "signup") {
+        // AC-1: reject a weak password client-side with the policy message
+        // before any Supabase round-trip. The action re-checks server-side.
+        const check = signupSchema.safeParse({ email, password });
+        if (!check.success) {
+          const issue =
+            check.error.issues.find((i) => i.path[0] === "password") ?? check.error.issues[0];
+          toast.danger("Inscription refusée", issue?.message ?? PASSWORD_POLICY_MESSAGE);
+          return;
+        }
         const result = await signUp(email, password);
         if (!result.ok) {
           toast.danger("Inscription refusée", result.message);
@@ -134,7 +144,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  minLength={6}
+                  minLength={mode === "signup" ? PASSWORD_MIN_LENGTH : 1}
                   style={{
                     color: "var(--color)",
                     fontSize: pekuloFontSizes.bodySm,
@@ -142,6 +152,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   }}
                 />
               </View>
+              {mode === "login" && (
+                <View alignItems="flex-end">
+                  <Link
+                    href="/recover"
+                    style={{ color: "var(--colorTertiary)", fontSize: pekuloFontSizes.caption }}
+                  >
+                    Mot de passe oublié ?
+                  </Link>
+                </View>
+              )}
               <SubmitButton type="submit" disabled={loading}>
                 {loading && <Loader2 size={16} color="var(--colorOnAccent)" />}
                 <Text color="$colorOnAccent" fontSize="$bodySm" fontWeight="600">
