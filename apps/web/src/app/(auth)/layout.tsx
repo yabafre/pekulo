@@ -1,9 +1,10 @@
 // apps/web/src/app/(auth)/layout.tsx
-// The (auth) screens render outside the CapShell (which is what paints the dark
-// surface on the dashboard), so without this the <body> default (white) showed
-// through behind the form. Paint the theme background full-bleed here — the
-// `--background` CSS var is theme-aware (#000 dark / #fff light), so this is
-// correct in both themes (story 8-1 visual refonte).
+// The (auth) screens render outside the CapShell (which paints the dark surface
+// on the dashboard). AuthSplit provides the full-bleed theme background + the
+// split-screen composition (form left, ambient generative pattern right on
+// ≥lg). Without it the <body> default (white) showed through (story 8-1 refonte).
+import { AuthSplit } from "@/components/auth/auth-split";
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return <div style={{ minHeight: "100dvh", background: "var(--background)" }}>{children}</div>;
+  return <AuthSplit>{children}</AuthSplit>;
 }

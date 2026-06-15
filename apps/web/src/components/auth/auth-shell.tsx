@@ -88,8 +88,9 @@ export function AuthField({
 }
 
 /**
- * Full-bleed centred auth screen: brand wordmark on pure black, a borderless
- * card holding the form, and an optional footer line under the card.
+ * The left-panel auth content: brand wordmark, a borderless card holding the
+ * form, and an optional footer line. Centring + full-bleed #000 background are
+ * owned by the AuthSplit shell (the (auth) layout), so this is just the column.
  */
 export function AuthScreen({
   subtitle,
@@ -103,33 +104,25 @@ export function AuthScreen({
   footer?: ReactNode;
 }) {
   return (
-    <View
-      minHeight="100dvh"
-      alignItems="center"
-      justifyContent="center"
-      paddingHorizontal="$4"
-      paddingVertical="$10"
-    >
-      <View width="100%" maxWidth={400} flexDirection="column" gap="$6">
-        <View alignItems="center" gap="$2">
-          <Text color="$color" fontSize="$display" fontWeight="700" letterSpacing={-0.5}>
-            Pekulo
-          </Text>
-          <Text color="$colorTertiary" fontSize="$bodySm" textAlign="center">
-            {subtitle}
-          </Text>
-        </View>
-        <View
-          render="section"
-          aria-label={ariaLabel}
-          backgroundColor="$backgroundCard"
-          borderRadius="$xl"
-          padding="$6"
-        >
-          {children}
-        </View>
-        {footer ? <View alignItems="center">{footer}</View> : null}
+    <View width="100%" maxWidth={400} flexDirection="column" gap="$6">
+      <View alignItems="center" gap="$2">
+        <Text color="$color" fontSize="$display" fontWeight="700" letterSpacing={-0.5}>
+          Pekulo
+        </Text>
+        <Text color="$colorTertiary" fontSize="$bodySm" textAlign="center">
+          {subtitle}
+        </Text>
       </View>
+      <View
+        render="section"
+        aria-label={ariaLabel}
+        backgroundColor="$backgroundCard"
+        borderRadius="$xl"
+        padding="$6"
+      >
+        {children}
+      </View>
+      {footer ? <View alignItems="center">{footer}</View> : null}
     </View>
   );
 }
