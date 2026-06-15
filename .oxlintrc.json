@@ -87,7 +87,7 @@
     {
       "files": ["apps/web/src/components/**/*.{ts,tsx}", "apps/web/src/app/**/*.{ts,tsx}"],
       "rules": {
-        "pekulo/no-server-action-in-component": ["error", { "allow": ["(auth)/_actions/"] }]
+        "pekulo/no-server-action-in-component": "error"
       }
     },
     {

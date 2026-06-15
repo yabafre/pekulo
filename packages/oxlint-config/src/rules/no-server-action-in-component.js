@@ -5,11 +5,6 @@ import { getStringLiteralValue, normaliseFilename } from "../utils/ast.js";
  * Detect whether an import source resolves under the configured action root.
  * Handles the `@/` alias and bare relative imports.
  *
- * Covers BOTH action homes (arch L367): the GLOBAL root (`@/lib/actions/`) and
- * any PER-FEATURE `_actions/` directory (`<route>/_actions/<feature>-actions`).
- * Previously only the global root was matched, so a component importing a
- * per-feature action slipped through (aped-review M2).
- *
  * @param {string} source
  * @param {string} actionRoot - e.g. "apps/web/src/lib/actions/"
  * @returns {boolean}
@@ -21,9 +16,7 @@ function importTargetsActions(source, actionRoot) {
     const aliased = "@/" + actionRoot.slice(idx + 4);
     if (source === aliased || source.startsWith(aliased)) return true;
   }
-  if (source.includes("/lib/actions/") || source.endsWith("/lib/actions")) return true;
-  // Per-feature server-action directory.
-  return source.includes("/_actions/");
+  return source.includes("/lib/actions/") || source.endsWith("/lib/actions");
 }
 
 /**
@@ -60,16 +53,6 @@ const rule = {
             items: { type: "string" },
             default: ["apps/web/src/components/", "apps/web/src/app/"],
           },
-          // Import-source substrings that are exempt from the rule — for the
-          // documented direct-call exceptions (e.g. the Supabase Auth actions
-          // under `(auth)/_actions/`, which wrap SDK calls, not oRPC, so there
-          // is no React Query cache for a hook to orchestrate). See arch
-          // "Exception — Supabase Auth actions" (aped-review M2).
-          allow: {
-            type: "array",
-            items: { type: "string" },
-            default: [],
-          },
         },
         additionalProperties: false,
       },
@@ -83,7 +66,6 @@ const rule = {
     const opts = context.options[0] ?? {};
     const actionRoot = opts.actionRoot ?? "apps/web/src/lib/actions/";
     const componentRoots = opts.componentRoots ?? ["apps/web/src/components/", "apps/web/src/app/"];
-    const allow = opts.allow ?? [];
     const filename = normaliseFilename(
       context.filename ?? context.getFilename?.() ?? "",
       context.cwd,
@@ -97,7 +79,6 @@ const rule = {
     function checkSource(sourceNode, reportNode) {
       const src = getStringLiteralValue(sourceNode);
       if (!src) return;
-      if (allow.some((a) => src.includes(a))) return;
       if (importTargetsActions(src, actionRoot)) {
         context.report({ node: reportNode, messageId: "forbidden" });
       }
