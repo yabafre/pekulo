@@ -1110,7 +1110,7 @@ tamagui CSS regen: no diff (all new style atoms already present)
 
 **Date:** 2026-06-15
 **Auditors:** Spec, Code, Edge & Hallucination (Aria: visual review **deferred** — React Grab MCP unavailable this session)
-**Verdict:** done-eligible — all 6 findings resolved; status flip + remote sync pending user approval.
+**Verdict:** done — all 6 findings resolved; story flipped to `done` (user-approved 2026-06-15).
 
 ### Findings
 
@@ -1140,8 +1140,9 @@ tamagui CSS regen: no diff (all new style atoms already present)
 ### Verification
 - Final gate @ `63632db`: `bun --filter='@pekulo/web' run typecheck` exit 0 · `@pekulo/validators` typecheck exit 0 · `bun --filter='@pekulo/web' run lint` 0 errors (2 pre-existing warnings, untouched dashboard files) · `bun --filter='@pekulo/oxlint-config' run test` 57 passed · `bun --filter='@pekulo/web' run test` **268 passed (98 files)**, exit 0.
 - Auth-actions suite: **15 passed** (13 original + 2 new M1 cookie tests).
-- Visual verification: **deferred** — React Grab MCP unavailable 2026-06-15. AC-4 full email round-trip + the logged-in walkthrough remain manual (no E2E harness).
+- Visual verification: **deferred — user-waived** 2026-06-15 (React Grab MCP unavailable this session). The auth screens + the AC-4 full email round-trip + the logged-in walkthrough are validated manually (no E2E harness).
 
 ### Ticket sync
-- Ticket comment posted: pending user approval of the status flip.
-- PR opened/updated: pending user approval (umbrella = `main`).
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/42#issuecomment-4709359859 (#42 body AC-3 URL also corrected `/auth/recover` → `/recover`).
+- PR opened: https://github.com/yabafre/pekulo/pull/134 (draft, base `main`).
+- Follow-up (lint-infra, out of scope): https://github.com/yabafre/pekulo/issues/135.

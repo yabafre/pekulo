@@ -67,4 +67,9 @@ Existing patterns the epic must respect:
 
 ## Previous stories — outcomes
 
-_(Appended by aped-review at story→done. Empty — 8-1 is the first story of epic 8.)_
+### Story 8-1-supabase-auth-flows — done 2026-06-15T17:05:00Z
+
+- **Decisions:** Auth stays 100% Supabase-native on `apps/web` (no `apps/api` auth procedure; `contracts/auth` stays empty). The `(auth)` route group is the on-disk home — URLs are `/login` `/signup` `/recover` `/callback` `/auth-code-error` (no `/auth` prefix). A **recovery** session is distinguished from a full one server-side via a short-lived httpOnly **recovery-marker cookie** set by the callback (auth-js `amr` carries no "recovery" method — do not rely on it). `(auth)` client components call `auth-actions.ts` **directly** — a documented exception to the Component→Hook→Action boundary (Supabase SDK calls, no React Query cache to orchestrate); see `architecture.md`.
+- **Files:** `packages/validators/src/auth/*`; `apps/web/src/app/(auth)/**` (route-group migration + `recover/` + `auth-code-error/` + `recovery-marker.ts` + `_actions/auth-actions.ts`); `apps/web/src/components/{auth-form,recover-form}.tsx`; `apps/web/src/app/(cap)/dashboard/_account/_components/{account-section,sign-out-button}.tsx`; `proxy.ts`; `docs/security.md`; `.env.example`.
+- **Contracts:** `@pekulo/validators` auth schemas — `signupSchema`, `loginSchema`, `passwordResetRequestSchema`, `passwordUpdateSchema`, `PASSWORD_MIN_LENGTH = 12`, `PASSWORD_POLICY_MESSAGE`. Action envelope `AuthResult = { ok: true } | { ok: false; message: string }`. Paramètres now hosts a « Compte » (email) + « Session » (logout) section pair — **8-2's theme/lang controls land in « Apparence »** alongside these.
+- **Deviations from plan:** Several from aped-review — recovery-marker mode detection on `/recover` (M1), `resolveOrigin` requires `NEXT_PUBLIC_SITE_URL` in prod (m3), Compte/Session split (m5), `loginSchema` wired as the login client gate (n6). The `no-server-action-in-component` lint rule is **inert repo-wide** (pre-existing; the auth direct-call exception is documented, hardening tracked in #135).
