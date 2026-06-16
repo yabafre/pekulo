@@ -53,7 +53,8 @@
     "signUpError": "Inscription refusée. Réessaie.",
     "signOutError": "Déconnexion impossible. Réessaie.",
     "passwordUpdateError": "Impossible de mettre à jour le mot de passe. Réessaie.",
-    "emailInvalid": "Email invalide"
+    "emailInvalid": "Email invalide",
+    "signOut": { "title": "Déconnexion", "label": "Se déconnecter" }
   },
   "common": {
     "cancel": "Annuler",
@@ -564,5 +565,16 @@
       "allReached": "Tous les paliers sont atteints."
     },
     "hypothesis": { "title": "Hypothèse", "ariaLabelWaiting": "Hypothèse (en attente du cap)" }
+  },
+  "errors": {
+    "recoverFailed": "Erreur lors de la réinitialisation du mot de passe.",
+    "parametresFailed": "Erreur de chargement des paramètres."
+  },
+  "loading": {
+    "parametres": "Chargement des paramètres",
+    "history": "Chargement de l'historique",
+    "historyTitle": "Historique",
+    "mensuelCurrent": "Chargement du mois en cours",
+    "mensuelCloture": "Chargement de la clôture"
   }
 }

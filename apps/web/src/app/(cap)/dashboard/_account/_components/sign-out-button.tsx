@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { signOut } from "@/app/(auth)/_actions/auth-actions";
 
 export function SignOutButton() {
+  const t = useTranslations("auth.signOut");
   const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ export function SignOutButton() {
     try {
       const result = await signOut();
       if (!result.ok) {
-        toast.danger("Déconnexion", result.message);
+        toast.danger(t("title"), result.message);
         return;
       }
       router.push("/login");
@@ -32,7 +34,7 @@ export function SignOutButton() {
     <View
       render="button"
       onPress={handleSignOut}
-      aria-label="Se déconnecter"
+      aria-label={t("label")}
       cursor="pointer"
       alignSelf="flex-start"
       flexDirection="row"
@@ -47,7 +49,7 @@ export function SignOutButton() {
     >
       {loading && <Loader2 size={16} color="var(--color)" />}
       <Text color="$color" fontSize="$bodySm" fontWeight="600">
-        Se déconnecter
+        {t("label")}
       </Text>
     </View>
   );

@@ -53,7 +53,8 @@
     "signUpError": "Sign-up refused. Please try again.",
     "signOutError": "Sign-out failed. Please try again.",
     "passwordUpdateError": "Couldn't update your password. Please try again.",
-    "emailInvalid": "Invalid email"
+    "emailInvalid": "Invalid email",
+    "signOut": { "title": "Sign out", "label": "Sign out" }
   },
   "common": {
     "cancel": "Cancel",
@@ -570,5 +571,16 @@
       "title": "Projection",
       "ariaLabelWaiting": "Projection (waiting for the target)"
     }
+  },
+  "errors": {
+    "recoverFailed": "Error while resetting your password.",
+    "parametresFailed": "Error loading settings."
+  },
+  "loading": {
+    "parametres": "Loading settings",
+    "history": "Loading history",
+    "historyTitle": "History",
+    "mensuelCurrent": "Loading current month",
+    "mensuelCloture": "Loading close-out"
   }
 }
