@@ -14,14 +14,33 @@ export interface UseCountUpOptions {
   durationMs?: number;
   /** Easing function (t in [0, 1] → eased t). Default: ease-out cubic. */
   easing?: (t: number) => number;
+  /**
+   * Animate from 0 → target on mount (the value "sweeps in"). Opt-in: when
+   * omitted the value starts already at `target` and only animates on a
+   * subsequent `target` change — the behaviour the other consumers (Hero,
+   * CountUpEUR, CountUpPct) rely on. Honours prefers-reduced-motion (settles
+   * at target, no sweep) and seeds the first paint at 0 → no flicker.
+   */
+  fromZero?: boolean;
 }
 
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 export function useCountUp(target: number, opts: UseCountUpOptions = {}): number {
-  const { durationMs = 800, easing = easeOutCubic } = opts;
-  const [value, setValue] = useState(target);
-  const fromRef = useRef(target);
+  const { durationMs = 800, easing = easeOutCubic, fromZero = false } = opts;
+  // First paint (and SSR) value: 0 when sweeping in with motion allowed, else
+  // target. Seeding at 0 — rather than target → 0 → target — means the empty
+  // ring renders first and only fills upward (no flicker).
+  const [value, setValue] = useState(() => (fromZero && !prefersReducedMotion() ? 0 : target));
+  const fromRef = useRef(value);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -30,8 +49,7 @@ export function useCountUp(target: number, opts: UseCountUpOptions = {}): number
       return;
     }
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) {
+    if (prefersReducedMotion()) {
       setValue(target);
       fromRef.current = target;
       return;

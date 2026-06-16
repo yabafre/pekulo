@@ -51,6 +51,7 @@ export function HeroAnchor({ variant = "mobile" }: { variant?: "mobile" | "card"
       ) : (
         <PekuloCountUpEUR
           value={overview.totalWealthEur}
+          fromZero
           color="$color"
           fontSize="$h1"
           fontWeight="600"
