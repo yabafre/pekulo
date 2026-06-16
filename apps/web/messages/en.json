@@ -5,6 +5,47 @@
     "lang": { "fr": "French", "en": "English" }
   },
   "auth": {
+    "fields": {
+      "email": "Email",
+      "emailPlaceholder": "jane@example.com",
+      "password": "Password",
+      "passwordHint": "At least 12 characters",
+      "newPassword": "New password"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Sign in to your dashboard",
+      "submit": "Sign in",
+      "rejected": "Sign-in refused",
+      "checkCredentials": "Check your credentials.",
+      "forgotPassword": "Forgot your password?",
+      "noAccount": "No account?",
+      "signUpLink": "Sign up"
+    },
+    "signUp": {
+      "title": "Sign up",
+      "subtitle": "Create your account in seconds",
+      "submit": "Create an account",
+      "rejected": "Sign-up refused",
+      "created": "Account created",
+      "checkEmails": "Check your emails to confirm.",
+      "haveAccount": "Already have an account?",
+      "signInLink": "Sign in"
+    },
+    "recover": {
+      "requestTitle": "Reset your password",
+      "resetTitle": "New password",
+      "requestSubtitle": "Get a reset link",
+      "resetSubtitle": "Choose your new password",
+      "backToLogin": "Back to sign in",
+      "sendLink": "Send the link",
+      "update": "Update",
+      "emailInvalidDesc": "Check your email address.",
+      "emailSentTitle": "Email sent",
+      "emailSentDesc": "If an account exists, a reset link has been sent to you.",
+      "passwordTooShortTitle": "Password too short",
+      "failTitle": "Failed"
+    },
     "signInError": {
       "badCredentials": "Incorrect email or password",
       "generic": "Sign-in failed. Please try again later."

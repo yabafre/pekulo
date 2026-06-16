@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { pekuloFontSizes, useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import {
@@ -22,6 +23,7 @@ import {
 } from "@/components/auth/auth-shell";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+  const t = useTranslations("auth");
   const router = useRouter();
   const toast = useToast();
   const [email, setEmail] = useState("");
@@ -40,14 +42,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         if (!check.success) {
           const issue =
             check.error.issues.find((i) => i.path[0] === "password") ?? check.error.issues[0];
-          toast.danger("Inscription refusée", issue?.message ?? PASSWORD_POLICY_MESSAGE);
+          toast.danger(t("signUp.rejected"), issue?.message ?? PASSWORD_POLICY_MESSAGE);
           return;
         }
         const result = await signUp(email, password);
         if (!result.ok) {
-          toast.danger("Inscription refusée", result.message);
+          toast.danger(t("signUp.rejected"), result.message);
         } else {
-          toast.success("Compte créé", "Vérifie tes emails pour confirmer.");
+          toast.success(t("signUp.created"), t("signUp.checkEmails"));
         }
       } else {
         // Reject empty / malformed credentials client-side before the round-trip
@@ -56,8 +58,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         const check = loginSchema.safeParse({ email, password });
         if (!check.success) {
           toast.danger(
-            "Connexion refusée",
-            check.error.issues[0]?.message ?? "Vérifie tes identifiants.",
+            t("signIn.rejected"),
+            check.error.issues[0]?.message ?? t("signIn.checkCredentials"),
           );
           return;
         }
@@ -66,7 +68,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         // already sanitised from the action.
         const result = await signIn(email, password);
         if (!result.ok) {
-          toast.danger("Connexion refusée", result.message);
+          toast.danger(t("signIn.rejected"), result.message);
         } else {
           router.push("/dashboard");
           router.refresh();
@@ -80,22 +82,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <AuthScreen
-      ariaLabel={isLogin ? "Connexion" : "Inscription"}
-      subtitle={isLogin ? "Connecte-toi à ton dashboard" : "Crée ton compte en quelques secondes"}
+      ariaLabel={isLogin ? t("signIn.title") : t("signUp.title")}
+      subtitle={isLogin ? t("signIn.subtitle") : t("signUp.subtitle")}
       footer={
         <Text color="$colorTertiary" fontSize="$caption">
           {isLogin ? (
             <>
-              Pas de compte ?{" "}
+              {t("signIn.noAccount")}{" "}
               <Link href="/signup" style={{ color: "var(--color)", fontWeight: 600 }}>
-                S&apos;inscrire
+                {t("signIn.signUpLink")}
               </Link>
             </>
           ) : (
             <>
-              Déjà un compte ?{" "}
+              {t("signUp.haveAccount")}{" "}
               <Link href="/login" style={{ color: "var(--color)", fontWeight: 600 }}>
-                Se connecter
+                {t("signUp.signInLink")}
               </Link>
             </>
           )}
@@ -104,25 +106,25 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     >
       <form onSubmit={handleSubmit}>
         <View flexDirection="column" gap="$4">
-          <AuthField label="Email" htmlFor="email">
+          <AuthField label={t("fields.email")} htmlFor="email">
             <AuthInput
               id="email"
               type="email"
               value={email}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              placeholder="jean@exemple.fr"
+              placeholder={t("fields.emailPlaceholder")}
               autoComplete="email"
               required
               style={authInputTextStyle}
             />
           </AuthField>
-          <AuthField label="Mot de passe" htmlFor="password">
+          <AuthField label={t("fields.password")} htmlFor="password">
             <AuthInput
               id="password"
               type="password"
               value={password}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              placeholder={isLogin ? "••••••••" : "Au moins 12 caractères"}
+              placeholder={isLogin ? "••••••••" : t("fields.passwordHint")}
               autoComplete={isLogin ? "current-password" : "new-password"}
               required
               minLength={isLogin ? 1 : PASSWORD_MIN_LENGTH}
@@ -135,7 +137,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 href="/recover"
                 style={{ color: "var(--colorTertiary)", fontSize: pekuloFontSizes.caption }}
               >
-                Mot de passe oublié ?
+                {t("signIn.forgotPassword")}
               </Link>
             </View>
           )}
@@ -147,7 +149,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           >
             {loading && <Loader2 size={16} color="var(--colorOnAccent)" />}
             <Text color="$colorOnAccent" fontSize="$bodySm" fontWeight="600">
-              {isLogin ? "Se connecter" : "Créer un compte"}
+              {isLogin ? t("signIn.submit") : t("signUp.submit")}
             </Text>
           </AuthSubmitButton>
         </View>

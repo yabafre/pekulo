@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import {
@@ -22,6 +23,7 @@ import {
 } from "@/components/auth/auth-shell";
 
 export function RecoverForm({ mode }: { mode: "request" | "reset" }) {
+  const t = useTranslations("auth");
   const router = useRouter();
   const toast = useToast();
   const [email, setEmail] = useState("");
@@ -36,27 +38,24 @@ export function RecoverForm({ mode }: { mode: "request" | "reset" }) {
       if (isRequest) {
         const check = passwordResetRequestSchema.safeParse({ email });
         if (!check.success) {
-          toast.danger("Email invalide", "Vérifie ton adresse email.");
+          toast.danger(t("emailInvalid"), t("recover.emailInvalidDesc"));
           return;
         }
         await requestPasswordReset(email);
         // Enumeration-safe confirmation — never reveal whether the account exists.
-        toast.success(
-          "Email envoyé",
-          "Si un compte existe, un lien de réinitialisation t'a été envoyé.",
-        );
+        toast.success(t("recover.emailSentTitle"), t("recover.emailSentDesc"));
       } else {
         const check = passwordUpdateSchema.safeParse({ password });
         if (!check.success) {
           toast.danger(
-            "Mot de passe trop court",
+            t("recover.passwordTooShortTitle"),
             check.error.issues[0]?.message ?? PASSWORD_POLICY_MESSAGE,
           );
           return;
         }
         const result = await updatePassword(password);
         if (!result.ok) {
-          toast.danger("Échec", result.message);
+          toast.danger(t("recover.failTitle"), result.message);
         } else {
           router.push("/dashboard");
           router.refresh();
@@ -70,14 +69,12 @@ export function RecoverForm({ mode }: { mode: "request" | "reset" }) {
 
   return (
     <AuthScreen
-      ariaLabel={isRequest ? "Réinitialiser le mot de passe" : "Nouveau mot de passe"}
-      subtitle={
-        isRequest ? "Reçois un lien de réinitialisation" : "Choisis ton nouveau mot de passe"
-      }
+      ariaLabel={isRequest ? t("recover.requestTitle") : t("recover.resetTitle")}
+      subtitle={isRequest ? t("recover.requestSubtitle") : t("recover.resetSubtitle")}
       footer={
         <Text color="$colorTertiary" fontSize="$caption">
           <Link href="/login" style={{ color: "var(--color)", fontWeight: 600 }}>
-            Retour à la connexion
+            {t("recover.backToLogin")}
           </Link>
         </Text>
       }
@@ -85,26 +82,26 @@ export function RecoverForm({ mode }: { mode: "request" | "reset" }) {
       <form onSubmit={handleSubmit}>
         <View flexDirection="column" gap="$4">
           {isRequest ? (
-            <AuthField label="Email" htmlFor="email">
+            <AuthField label={t("fields.email")} htmlFor="email">
               <AuthInput
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                placeholder="jean@exemple.fr"
+                placeholder={t("fields.emailPlaceholder")}
                 autoComplete="email"
                 required
                 style={authInputTextStyle}
               />
             </AuthField>
           ) : (
-            <AuthField label="Nouveau mot de passe" htmlFor="new-password">
+            <AuthField label={t("fields.newPassword")} htmlFor="new-password">
               <AuthInput
                 id="new-password"
                 type="password"
                 value={password}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                placeholder="Au moins 12 caractères"
+                placeholder={t("fields.passwordHint")}
                 autoComplete="new-password"
                 required
                 minLength={PASSWORD_MIN_LENGTH}
@@ -120,7 +117,7 @@ export function RecoverForm({ mode }: { mode: "request" | "reset" }) {
           >
             {loading && <Loader2 size={16} color="var(--colorOnAccent)" />}
             <Text color="$colorOnAccent" fontSize="$bodySm" fontWeight="600">
-              {isRequest ? "Envoyer le lien" : "Mettre à jour"}
+              {isRequest ? t("recover.sendLink") : t("recover.update")}
             </Text>
           </AuthSubmitButton>
         </View>

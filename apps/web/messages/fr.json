@@ -5,6 +5,47 @@
     "lang": { "fr": "Français", "en": "English" }
   },
   "auth": {
+    "fields": {
+      "email": "Email",
+      "emailPlaceholder": "jean@exemple.fr",
+      "password": "Mot de passe",
+      "passwordHint": "Au moins 12 caractères",
+      "newPassword": "Nouveau mot de passe"
+    },
+    "signIn": {
+      "title": "Connexion",
+      "subtitle": "Connecte-toi à ton dashboard",
+      "submit": "Se connecter",
+      "rejected": "Connexion refusée",
+      "checkCredentials": "Vérifie tes identifiants.",
+      "forgotPassword": "Mot de passe oublié ?",
+      "noAccount": "Pas de compte ?",
+      "signUpLink": "S'inscrire"
+    },
+    "signUp": {
+      "title": "Inscription",
+      "subtitle": "Crée ton compte en quelques secondes",
+      "submit": "Créer un compte",
+      "rejected": "Inscription refusée",
+      "created": "Compte créé",
+      "checkEmails": "Vérifie tes emails pour confirmer.",
+      "haveAccount": "Déjà un compte ?",
+      "signInLink": "Se connecter"
+    },
+    "recover": {
+      "requestTitle": "Réinitialiser le mot de passe",
+      "resetTitle": "Nouveau mot de passe",
+      "requestSubtitle": "Reçois un lien de réinitialisation",
+      "resetSubtitle": "Choisis ton nouveau mot de passe",
+      "backToLogin": "Retour à la connexion",
+      "sendLink": "Envoyer le lien",
+      "update": "Mettre à jour",
+      "emailInvalidDesc": "Vérifie ton adresse email.",
+      "emailSentTitle": "Email envoyé",
+      "emailSentDesc": "Si un compte existe, un lien de réinitialisation t'a été envoyé.",
+      "passwordTooShortTitle": "Mot de passe trop court",
+      "failTitle": "Échec"
+    },
     "signInError": {
       "badCredentials": "Email ou mot de passe incorrect",
       "generic": "Connexion impossible. Réessaie plus tard."

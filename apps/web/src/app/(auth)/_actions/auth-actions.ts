@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import {
   PASSWORD_POLICY_MESSAGE,
   passwordResetRequestSchema,
@@ -16,16 +17,15 @@ export type AuthResult = { ok: true } | { ok: false; message: string };
 // server details (story 11-7). Surface the bad-credentials case explicitly
 // (UX); collapse everything else — including the NFR-11 login rate-limit
 // (10/IP/hour, Supabase-native) — to a generic line (AC-2).
-function friendlySignInError(message: string): string {
-  return message === "Invalid login credentials"
-    ? "Email ou mot de passe incorrect"
-    : "Connexion impossible. Réessaie plus tard.";
+async function friendlySignInError(message: string): Promise<string> {
+  const t = await getTranslations("auth.signInError");
+  return message === "Invalid login credentials" ? t("badCredentials") : t("generic");
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, message: friendlySignInError(error.message) };
+  if (error) return { ok: false, message: await friendlySignInError(error.message) };
   return { ok: true };
 }
 
@@ -42,7 +42,10 @@ export async function signUp(email: string, password: string): Promise<AuthResul
   }
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({ email, password });
-  if (error) return { ok: false, message: "Inscription refusée. Réessaie." };
+  if (error) {
+    const t = await getTranslations("auth");
+    return { ok: false, message: t("signUpError") };
+  }
   return { ok: true };
 }
 
@@ -52,7 +55,10 @@ export async function signOut(): Promise<AuthResult> {
   // then redirects to /login.
   const supabase = await createClient();
   const { error } = await supabase.auth.signOut();
-  if (error) return { ok: false, message: "Déconnexion impossible. Réessaie." };
+  if (error) {
+    const t = await getTranslations("auth");
+    return { ok: false, message: t("signOutError") };
+  }
   return { ok: true };
 }
 
@@ -82,7 +88,10 @@ export async function requestPasswordReset(email: string): Promise<AuthResult> {
   // callback, which exchanges the code then redirects to /recover (reset
   // mode); `next` is sanitised by safe-redirect.ts.
   const parsed = passwordResetRequestSchema.safeParse({ email });
-  if (!parsed.success) return { ok: false, message: "Email invalide" };
+  if (!parsed.success) {
+    const t = await getTranslations("auth");
+    return { ok: false, message: t("emailInvalid") };
+  }
   const supabase = await createClient();
   const origin = await resolveOrigin();
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
@@ -103,7 +112,8 @@ export async function updatePassword(password: string): Promise<AuthResult> {
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    return { ok: false, message: "Impossible de mettre à jour le mot de passe. Réessaie." };
+    const t = await getTranslations("auth");
+    return { ok: false, message: t("passwordUpdateError") };
   }
   // The recovery session is spent — drop the recovery marker so a later visit
   // to /recover with the (now full) session is bounced rather than re-shown the
