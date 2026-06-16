@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloField,
   PekuloFieldDescription,
@@ -24,21 +25,19 @@ import { HOLDING_KINDS, type HoldingKind } from "@pekulo/types";
 import { useAppForm } from "@/hooks/form-hook";
 import { useCreateHolding } from "../_hooks/use-create-holding";
 
-const KIND_LABEL: Record<HoldingKind, string> = {
-  etf: "ETF",
-  action: "Action",
-  crypto: "Crypto",
-  autre: "Autre",
-};
-
-const ACCOUNT_NOT_FOUND_MSG = "Compte introuvable. Recharge la page.";
-
 export interface HoldingCreateFormProps {
   accounts: Account[];
   onSuccess?: () => void;
 }
 
 export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProps) {
+  const t = useTranslations("portefeuille");
+  const KIND_LABEL: Record<HoldingKind, string> = {
+    etf: t("kinds.etf"),
+    action: t("kinds.action"),
+    crypto: t("kinds.crypto"),
+    autre: t("kinds.autre"),
+  };
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
   const { mutate, isPending, error, isSuccess, reset } = useCreateHolding();
 
@@ -57,29 +56,29 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
       onSubmit: ({ value }) => {
         const trimmedLabel = value.label.trim();
         if (trimmedLabel.length === 0) {
-          return "Libellé requis";
+          return t("labelRequired");
         }
         if (trimmedLabel.length > MAX_HOLDING_LABEL_LENGTH) {
-          return `Libellé > ${MAX_HOLDING_LABEL_LENGTH} caractères`;
+          return t("labelTooLong", { max: MAX_HOLDING_LABEL_LENGTH });
         }
         const trimmedTicker = value.ticker.trim();
         if (trimmedTicker.length > MAX_HOLDING_TICKER_LENGTH) {
-          return `Ticker > ${MAX_HOLDING_TICKER_LENGTH} caractères`;
+          return t("tickerTooLong", { max: MAX_HOLDING_TICKER_LENGTH });
         }
         const trimmedNotes = value.notes.trim();
         if (trimmedNotes.length > MAX_HOLDING_NOTES_LENGTH) {
-          return `Notes > ${MAX_HOLDING_NOTES_LENGTH} caractères`;
+          return t("notesTooLong", { max: MAX_HOLDING_NOTES_LENGTH });
         }
         const qNum = Number(value.quantity);
         if (!Number.isFinite(qNum) || qNum < 0) {
-          return "Quantité invalide (>= 0)";
+          return t("quantityInvalid");
         }
         const aNum = Number(value.avgCost);
         if (!Number.isFinite(aNum) || aNum < 0) {
-          return "Prix moyen invalide (>= 0)";
+          return t("avgCostInvalid");
         }
         if (value.accountId.length === 0) {
-          return "Compte requis";
+          return t("accountRequired");
         }
         return undefined;
       },
@@ -106,7 +105,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
         {
           onSuccess: (result) => {
             if (!result.ok) {
-              setEnvelopeError(ACCOUNT_NOT_FOUND_MSG);
+              setEnvelopeError(t("accountNotFound"));
               return;
             }
             form.reset();
@@ -125,7 +124,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Ajouter un placement"
+      aria-label={t("addHoldingTitle")}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
       <View paddingHorizontal="$1" paddingVertical="$2" maxHeight="60vh" overflowY="auto">
@@ -133,7 +132,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="accountId">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-account">Compte</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-account">{t("fields.account")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v)}
@@ -141,9 +140,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
                   <PekuloSelect.Trigger id="hld-account">
                     <PekuloSelect.Value
                       placeholder={
-                        accounts.length === 0
-                          ? "Aucun compte — crée-en un dans Paramètres"
-                          : "Choisir un compte"
+                        accounts.length === 0 ? t("noAccountPlaceholder") : t("chooseAccount")
                       }
                     />
                   </PekuloSelect.Trigger>
@@ -163,13 +160,13 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="kind">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-kind">Classe</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-kind">{t("fields.kind")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as HoldingKind)}
                 >
                   <PekuloSelect.Trigger id="hld-kind">
-                    <PekuloSelect.Value placeholder="Choisir une classe" />
+                    <PekuloSelect.Value placeholder={t("chooseKind")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
@@ -187,7 +184,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="ticker">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-ticker">Ticker (optionnel)</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-ticker">{t("fields.ticker")}</PekuloFieldLabel>
                 <PekuloInput
                   id="hld-ticker"
                   type="text"
@@ -201,7 +198,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="label">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-label">Libellé</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-label">{t("fields.label")}</PekuloFieldLabel>
                 <PekuloInput
                   id="hld-label"
                   type="text"
@@ -216,13 +213,13 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="currency">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-currency">Devise</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-currency">{t("fields.currency")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as HoldingCurrency)}
                 >
                   <PekuloSelect.Trigger id="hld-currency">
-                    <PekuloSelect.Value placeholder="Choisir une devise" />
+                    <PekuloSelect.Value placeholder={t("chooseCurrency")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
@@ -240,7 +237,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="quantity">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-quantity">Quantité</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-quantity">{t("fields.quantity")}</PekuloFieldLabel>
                 <PekuloInput
                   id="hld-quantity"
                   type="number"
@@ -256,7 +253,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="avgCost">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-avgcost">Prix unitaire moyen</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-avgcost">{t("fields.avgCost")}</PekuloFieldLabel>
                 <PekuloInput
                   id="hld-avgcost"
                   type="number"
@@ -272,7 +269,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
           <form.Field name="notes">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="hld-notes">Notes (optionnel)</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="hld-notes">{t("fields.notes")}</PekuloFieldLabel>
                 <PekuloInput
                   id="hld-notes"
                   type="text"
@@ -306,9 +303,7 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
             <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
               {(clientError) =>
                 clientError ? null : (
-                  <PekuloFieldDescription color="$success">
-                    Placement ajouté.
-                  </PekuloFieldDescription>
+                  <PekuloFieldDescription color="$success">{t("added")}</PekuloFieldDescription>
                 )
               }
             </form.Subscribe>
@@ -316,8 +311,12 @@ export function HoldingCreateForm({ accounts, onSuccess }: HoldingCreateFormProp
         </PekuloFieldGroup>
       </View>
       <View paddingTop="$2">
-        <PekuloSubmitButton loading={isPending} loadingLabel="Ajout…" disabled={submitDisabled}>
-          Ajouter le placement
+        <PekuloSubmitButton
+          loading={isPending}
+          loadingLabel={t("adding")}
+          disabled={submitDisabled}
+        >
+          {t("addHoldingSubmit")}
         </PekuloSubmitButton>
       </View>
     </form>

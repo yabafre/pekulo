@@ -24,7 +24,11 @@ vi.mock("next-intl/server", async () => {
         typeof namespace === "string"
           ? namespace
           : (namespace as { namespace?: string })?.namespace;
-      return createTranslator({ locale: "fr", messages, namespace: ns });
+      // Cast: the mock accepts any runtime namespace; next-intl types
+      // `namespace` as a strict key union we don't need to satisfy in tests.
+      return createTranslator({ locale: "fr", messages, namespace: ns } as Parameters<
+        typeof createTranslator
+      >[0]);
     },
     getLocale: async () => "fr",
     getMessages: async () => messages,
