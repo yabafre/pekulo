@@ -6,6 +6,7 @@
 // /dashboard/transactions on press. Skeleton while loading; empty state when
 // there is no activity. `variant` switches bento card ↔ flat section.
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   CategoryIcon,
   PekuloActivityRow,
@@ -19,6 +20,7 @@ import { TRANSACTION_CATEGORY_LABELS } from "@pekulo/validators";
 import { useDashboardOverview } from "../_hooks/use-dashboard-overview";
 
 export function RecentActivitySection({ variant = "flat" }: { variant?: "flat" | "card" }) {
+  const t = useTranslations("dashboard");
   const router = useRouter();
   const { data, isLoading } = useDashboardOverview();
   const items = data?.recentActivity ?? [];
@@ -27,10 +29,10 @@ export function RecentActivitySection({ variant = "flat" }: { variant?: "flat" |
       <PekuloSkeleton lines={5} height={48} />
     ) : items.length === 0 ? (
       <Text color="$colorTertiary" fontSize="$caption">
-        Aucune activité récente.
+        {t("noRecentActivity")}
       </Text>
     ) : (
-      <View flexDirection="column" role="list" aria-label="Activité récente">
+      <View flexDirection="column" role="list" aria-label={t("recentActivity")}>
         {items.map((item, i) => {
           const activity: Activity = {
             label: item.label,
@@ -71,7 +73,7 @@ export function RecentActivitySection({ variant = "flat" }: { variant?: "flat" |
     );
   if (variant === "card") {
     return (
-      <Section title="Activité récente" ariaLabel="Activité récente">
+      <Section title={t("recentActivity")} ariaLabel={t("recentActivity")}>
         {body}
       </Section>
     );
@@ -87,7 +89,7 @@ export function RecentActivitySection({ variant = "flat" }: { variant?: "flat" |
         marginBottom="$3"
         $lg={{ fontSize: "$h2" }}
       >
-        Activité récente
+        {t("recentActivity")}
       </Text>
       {body}
     </View>

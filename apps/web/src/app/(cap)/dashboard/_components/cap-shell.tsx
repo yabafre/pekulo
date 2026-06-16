@@ -24,6 +24,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   PekuloContextualAddButton,
   PekuloDialog,
@@ -54,6 +55,7 @@ export interface CapShellProps {
 // consumes the same editing flag CapView's widget grid reads (the shell itself
 // renders the provider, so it can't consume it directly).
 function DashboardEditToggle() {
+  const t = useTranslations("dashboard");
   const { editing, setEditing } = useDashboardEdit();
   return (
     <View
@@ -63,16 +65,17 @@ function DashboardEditToggle() {
       backgroundColor="transparent"
       borderWidth={0}
       paddingHorizontal="$3"
-      aria-label={editing ? "Terminer la personnalisation" : "Personnaliser le tableau de bord"}
+      aria-label={editing ? t("doneAria") : t("customizeAria")}
     >
       <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-        {editing ? "Terminé" : "Personnaliser"}
+        {editing ? t("done") : t("customize")}
       </Text>
     </View>
   );
 }
 
 export function CapShell({ email, children }: CapShellProps) {
+  const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -104,15 +107,15 @@ export function CapShell({ email, children }: CapShellProps) {
   const screenTitle: string | null = isDashboardRoot
     ? null
     : navActiveKey === "portfolio"
-      ? "Portefeuille"
+      ? t("nav.portfolio")
       : navActiveKey === "settings"
-        ? "Paramètres"
+        ? t("nav.settings")
         : navActiveKey === "realestate"
-          ? "Immobilier"
+          ? t("nav.realestate")
           : navActiveKey === "transactions"
-            ? "Transactions"
+            ? t("nav.transactions")
             : navActiveKey === "monthly"
-              ? "Mensuel"
+              ? t("nav.monthly")
               : null;
   // Contextual mobile add button label per active screen. The primitive
   // is a pure styled FAB (`$lg: display:none` keeps it mobile-only); the
@@ -121,10 +124,10 @@ export function CapShell({ email, children }: CapShellProps) {
   // which only includes transactions / portfolio / realestate). Settings
   // has no primary write action, so it's excluded.
   const CONTEXTUAL_LABEL: Partial<Record<PekuloNavKey, string>> = {
-    cap: "Nouvelle transaction",
-    portfolio: "Nouvelle ligne",
-    transactions: "Nouvelle transaction",
-    realestate: "Nouveau bien",
+    cap: t("dashboard.newTransaction"),
+    portfolio: t("dashboard.newHolding"),
+    transactions: t("dashboard.newTransaction"),
+    realestate: t("dashboard.newProperty"),
   };
   const contextualAddLabel = CONTEXTUAL_LABEL[navActiveKey];
   const today = dateFmt.format(new Date());
@@ -173,8 +176,8 @@ export function CapShell({ email, children }: CapShellProps) {
             {isDashboardRoot && (
               <PekuloTopTabToggle
                 topTab={activeTab}
-                onChange={(t) =>
-                  router.push(t === "patrimoine" ? "/dashboard?tab=patrimoine" : "/dashboard")
+                onChange={(tab) =>
+                  router.push(tab === "patrimoine" ? "/dashboard?tab=patrimoine" : "/dashboard")
                 }
               />
             )}
@@ -189,10 +192,10 @@ export function CapShell({ email, children }: CapShellProps) {
               type="button"
               className={styles.newTxPill}
               onClick={handleNewTx}
-              aria-label="Nouvelle transaction"
+              aria-label={t("dashboard.newTransaction")}
             >
               <Plus size={16} strokeWidth={2.25} aria-hidden={true} />
-              Nouvelle transaction
+              {t("dashboard.newTransaction")}
             </button>
             <PekuloUserDot initial={initial} onPress={() => router.push("/dashboard/parametres")} />
           </div>
@@ -205,9 +208,9 @@ export function CapShell({ email, children }: CapShellProps) {
             <PekuloDialog.Overlay />
             <PekuloDialog.Content>
               <View flexDirection="column" gap="$3">
-                <PekuloDialog.Title>Nouvelle transaction</PekuloDialog.Title>
+                <PekuloDialog.Title>{t("dashboard.newTransaction")}</PekuloDialog.Title>
                 <PekuloDialog.Description>
-                  Renseigne le compte, la date, le libellé et le montant.
+                  {t("dashboard.newTransactionDesc")}
                 </PekuloDialog.Description>
               </View>
               <TransactionCreateForm onSuccess={() => setNewTxOpen(false)} />
@@ -221,7 +224,7 @@ export function CapShell({ email, children }: CapShellProps) {
                   alignItems="center"
                 >
                   <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                    Annuler
+                    {t("common.cancel")}
                   </Text>
                 </View>
               </PekuloDialog.Close>

@@ -54,5 +54,43 @@
     "signOutError": "Sign-out failed. Please try again.",
     "passwordUpdateError": "Couldn't update your password. Please try again.",
     "emailInvalid": "Invalid email"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "add": "Add"
+  },
+  "nav": {
+    "portfolio": "Portfolio",
+    "settings": "Settings",
+    "realestate": "Real estate",
+    "transactions": "Transactions",
+    "monthly": "Monthly"
+  },
+  "dashboard": {
+    "customize": "Customize",
+    "done": "Done",
+    "customizeAria": "Customize the dashboard",
+    "doneAria": "Finish customizing",
+    "newTransaction": "New transaction",
+    "newHolding": "New holding",
+    "newProperty": "New property",
+    "newTransactionDesc": "Enter the account, date, label and amount.",
+    "recentActivity": "Recent activity",
+    "noRecentActivity": "No recent activity.",
+    "milestones": "Milestones",
+    "milestonesCount": "Milestones ({count}/20)",
+    "addMilestone": "Add a milestone",
+    "loadingMilestones": "Loading milestones…",
+    "noMilestones": "No milestone — add the first one to pace your goal.",
+    "deleteFailed": "Delete failed",
+    "actual": "Actual",
+    "plan": "Plan",
+    "trajectory": "Trajectory",
+    "projectionHypothesis": "Projection hypothesis",
+    "trajectoryPlaceholder": "Trajectory — placeholder",
+    "soon": "Soon · {story}",
+    "soonAria": "{title} (soon — {story})",
+    "compassSetupTitle": "Set your first milestone",
+    "compassSetupMessage": "To see your goal, add at least one milestone (target capital + year). Until a milestone exists, the goal is just a wish."
   }
 }

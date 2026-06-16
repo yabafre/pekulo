@@ -54,5 +54,43 @@
     "signOutError": "Déconnexion impossible. Réessaie.",
     "passwordUpdateError": "Impossible de mettre à jour le mot de passe. Réessaie.",
     "emailInvalid": "Email invalide"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "add": "Ajouter"
+  },
+  "nav": {
+    "portfolio": "Portefeuille",
+    "settings": "Paramètres",
+    "realestate": "Immobilier",
+    "transactions": "Transactions",
+    "monthly": "Mensuel"
+  },
+  "dashboard": {
+    "customize": "Personnaliser",
+    "done": "Terminé",
+    "customizeAria": "Personnaliser le tableau de bord",
+    "doneAria": "Terminer la personnalisation",
+    "newTransaction": "Nouvelle transaction",
+    "newHolding": "Nouvelle ligne",
+    "newProperty": "Nouveau bien",
+    "newTransactionDesc": "Renseigne le compte, la date, le libellé et le montant.",
+    "recentActivity": "Activité récente",
+    "noRecentActivity": "Aucune activité récente.",
+    "milestones": "Paliers",
+    "milestonesCount": "Paliers ({count}/20)",
+    "addMilestone": "Ajouter un palier",
+    "loadingMilestones": "Chargement des paliers…",
+    "noMilestones": "Aucun palier — ajoute le premier pour rythmer le cap.",
+    "deleteFailed": "Suppression échouée",
+    "actual": "Réel",
+    "plan": "Plan",
+    "trajectory": "Trajectoire",
+    "projectionHypothesis": "Hypothèse de projection",
+    "trajectoryPlaceholder": "Trajectoire — placeholder",
+    "soon": "Bientôt · {story}",
+    "soonAria": "{title} (bientôt — {story})",
+    "compassSetupTitle": "Définis ton premier palier",
+    "compassSetupMessage": "Pour voir ton cap, ajoute au moins un palier (capital cible + année). Tant qu'aucun palier n'existe, le cap reste un voeu."
   }
 }

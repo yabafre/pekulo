@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PekuloMilestoneRow, PekuloSkeleton, Section, useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useMilestones } from "../_hooks/use-milestones";
@@ -44,6 +45,7 @@ export function MilestonesSection({
   compassHorizonYears,
   flat,
 }: MilestonesSectionProps) {
+  const t = useTranslations();
   const toast = useToast();
   const dialog = useAddMilestoneDialog();
   const milestonesQ = useMilestones();
@@ -65,7 +67,7 @@ export function MilestonesSection({
       { id },
       {
         onError: (err) => {
-          toast.danger("Suppression échouée", err.message);
+          toast.danger(t("dashboard.deleteFailed"), err.message);
         },
       },
     );
@@ -76,10 +78,10 @@ export function MilestonesSection({
       type="button"
       className={styles.headerActionPill}
       onClick={() => dialog.open()}
-      aria-label="Ajouter un palier"
+      aria-label={t("dashboard.addMilestone")}
     >
       <Plus size={12} strokeWidth={2.25} aria-hidden={true} />
-      Ajouter
+      {t("common.add")}
     </button>
   );
 
@@ -93,8 +95,8 @@ export function MilestonesSection({
   const isInitialLoading = !isHydrated || (milestonesQ.isLoading && !milestonesQ.data);
   return (
     <Section
-      ariaLabel={`Paliers (${items.length}/20)`}
-      title="Paliers"
+      ariaLabel={t("dashboard.milestonesCount", { count: items.length })}
+      title={t("dashboard.milestones")}
       action={headerAction}
       flat={flat}
     >
@@ -108,13 +110,13 @@ export function MilestonesSection({
             height={1}
             overflow="hidden"
           >
-            Chargement des paliers…
+            {t("dashboard.loadingMilestones")}
           </Text>
           <PekuloSkeleton lines={3} height={32} />
         </View>
       ) : items.length === 0 ? (
         <Text color="$colorTertiary" fontSize="$caption" paddingVertical="$3">
-          Aucun palier — ajoute le premier pour rythmer le cap.
+          {t("dashboard.noMilestones")}
         </Text>
       ) : (
         <View
