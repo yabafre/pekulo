@@ -62,3 +62,21 @@ enum LlmRoute {
 
   @@map("llm_route")
 }
+
+// User-preference enums (story 8-2, FR-51 / FR-52). All identifiers are
+// already snake/lower (Postgres enum identifiers reject hyphens). The API/UI
+// surface uses the same literal values (no kebab mapping needed).
+enum ThemePref {
+  system
+  dark
+  light
+
+  @@map("theme_pref")
+}
+
+enum LangPref {
+  fr
+  en
+
+  @@map("lang_pref")
+}
