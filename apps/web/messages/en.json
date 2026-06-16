@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "appearance": { "title": "Appearance", "theme": "Theme", "language": "Language" },
+    "theme": { "system": "System", "dark": "Dark", "light": "Light" },
+    "lang": { "fr": "French", "en": "English" }
+  },
+  "auth": {
+    "signInError": {
+      "badCredentials": "Incorrect email or password",
+      "generic": "Sign-in failed. Please try again later."
+    },
+    "signUpError": "Sign-up refused. Please try again.",
+    "signOutError": "Sign-out failed. Please try again.",
+    "passwordUpdateError": "Couldn't update your password. Please try again.",
+    "emailInvalid": "Invalid email"
+  }
+}

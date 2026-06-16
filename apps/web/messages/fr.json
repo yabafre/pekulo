@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "appearance": { "title": "Apparence", "theme": "Thème", "language": "Langue" },
+    "theme": { "system": "Système", "dark": "Sombre", "light": "Clair" },
+    "lang": { "fr": "Français", "en": "English" }
+  },
+  "auth": {
+    "signInError": {
+      "badCredentials": "Email ou mot de passe incorrect",
+      "generic": "Connexion impossible. Réessaie plus tard."
+    },
+    "signUpError": "Inscription refusée. Réessaie.",
+    "signOutError": "Déconnexion impossible. Réessaie.",
+    "passwordUpdateError": "Impossible de mettre à jour le mot de passe. Réessaie.",
+    "emailInvalid": "Email invalide"
+  }
+}
