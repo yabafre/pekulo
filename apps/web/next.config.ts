@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   // Slim transpilePackages to match tamagui/starter-free reference — `tamagui`,
@@ -50,4 +51,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// next-intl plugin — points at the cookie-locale request config (no i18n
+// routing). Wraps the whole Turbopack config so message imports resolve via
+// the next-intl loader. story 8-2 (FR-52).
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);
