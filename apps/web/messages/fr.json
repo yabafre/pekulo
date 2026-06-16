@@ -92,5 +92,51 @@
     "soonAria": "{title} (bientôt — {story})",
     "compassSetupTitle": "Définis ton premier palier",
     "compassSetupMessage": "Pour voir ton cap, ajoute au moins un palier (capital cible + année). Tant qu'aucun palier n'existe, le cap reste un voeu."
+  },
+  "accounts": {
+    "types": {
+      "livret": "Livret",
+      "pea": "PEA",
+      "cto": "CTO",
+      "av": "Assurance vie",
+      "autre": "Autre",
+      "banque": "Compte courant"
+    },
+    "fields": {
+      "label": "Libellé",
+      "type": "Type",
+      "currency": "Devise",
+      "balance": "Solde",
+      "initialBalance": "Solde initial",
+      "newBalance": "Nouveau solde",
+      "notes": "Notes",
+      "notesOptional": "Notes (optionnel)",
+      "date": "Date"
+    },
+    "chooseType": "Choisir un type",
+    "currencyNote": "Multi-devises arrive avec les portefeuilles (story 3-3).",
+    "editFormAria": "Modifier le compte",
+    "createFormAria": "Ajouter un compte",
+    "balanceFormAria": "Modifier le solde de {label}",
+    "labelRequired": "Libellé requis",
+    "labelTooLong": "Libellé > {max} caractères",
+    "balanceInvalid": "Solde invalide (>= 0)",
+    "notesTooLong": "Notes > {max} caractères",
+    "dateRequired": "Date requise",
+    "notFound": "Compte introuvable — il a peut-être été supprimé.",
+    "updated": "Compte mis à jour.",
+    "added": "Compte ajouté.",
+    "balanceSaved": "Solde enregistré.",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer",
+    "adding": "Ajout…",
+    "addAccount": "Ajouter le compte",
+    "saveBalance": "Enregistrer le solde",
+    "deleteTitle": "Supprimer « {label} » ?",
+    "deleteDesc": "Cette action est définitive et irréversible. Le solde, l'historique du compte et <strong>toutes les transactions associées</strong> seront supprimés définitivement.",
+    "fkMessage": "Ce compte est référencé par des positions — supprimez-les d'abord.",
+    "notFoundReload": "Ce compte est introuvable (déjà supprimé ?). Recharge la page.",
+    "deleting": "Suppression…",
+    "delete": "Supprimer"
   }
 }

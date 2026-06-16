@@ -8,13 +8,36 @@
 
 import "@testing-library/jest-dom/vitest";
 import * as matchers from "vitest-axe/matchers";
-import { expect } from "vitest";
+import { expect, vi } from "vitest";
+
+// next-intl/server APIs (getTranslations/getLocale/getMessages) throw outside a
+// real RSC request ("not supported in Client Components"), so server-action +
+// server-component unit tests break once they read copy via getTranslations
+// (story 8-2 i18n sweep). Back them with a real next-intl translator over the
+// FR catalog (the source locale) so assertions on French copy keep matching.
+vi.mock("next-intl/server", async () => {
+  const { createTranslator } = await import("next-intl");
+  const messages = (await import("../messages/fr.json")).default;
+  return {
+    getTranslations: async (namespace?: unknown) => {
+      const ns =
+        typeof namespace === "string"
+          ? namespace
+          : (namespace as { namespace?: string })?.namespace;
+      return createTranslator({ locale: "fr", messages, namespace: ns });
+    },
+    getLocale: async () => "fr",
+    getMessages: async () => messages,
+  };
+});
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
+import { NextIntlClientProvider } from "next-intl";
 import { TamaguiProvider } from "tamagui";
 
 import { config } from "@pekulo/ui/tamagui-config";
 import { ToastProvider } from "@pekulo/ui";
+import frMessages from "../messages/fr.json";
 
 expect.extend(matchers);
 
@@ -38,20 +61,27 @@ if (typeof window !== "undefined") {
 
 function TamaguiTestProvider({ children }: { children: ReactNode }): ReactElement {
   return (
-    <TamaguiProvider
-      config={config}
-      defaultTheme="pekulo-dark"
-      disableInjectCSS
-      disableRootThemeClass
-    >
-      {/* `ToastProvider` is mounted by `PekuloRootProvider` in production —
-          tests bypass that wrapper for happy-dom compatibility (no
-          next/script), so mount the provider explicitly here. Any component
-          that consumes `useToast` (e.g. MilestonesSection on delete error)
-          would otherwise crash with "useToast must be used inside
-          <ToastProvider>". */}
-      <ToastProvider>{children}</ToastProvider>
-    </TamaguiProvider>
+    // NextIntlClientProvider (story 8-2): components now read copy via
+    // useTranslations, which throws without an intl context. Tests render the
+    // FR catalog (the source locale) so existing assertions on French copy
+    // keep matching; pass explicit locale + messages since the RSC
+    // auto-inheritance doesn't apply in a client-only test render.
+    <NextIntlClientProvider locale="fr" messages={frMessages}>
+      <TamaguiProvider
+        config={config}
+        defaultTheme="pekulo-dark"
+        disableInjectCSS
+        disableRootThemeClass
+      >
+        {/* `ToastProvider` is mounted by `PekuloRootProvider` in production —
+            tests bypass that wrapper for happy-dom compatibility (no
+            next/script), so mount the provider explicitly here. Any component
+            that consumes `useToast` (e.g. MilestonesSection on delete error)
+            would otherwise crash with "useToast must be used inside
+            <ToastProvider>". */}
+        <ToastProvider>{children}</ToastProvider>
+      </TamaguiProvider>
+    </NextIntlClientProvider>
   );
 }
 

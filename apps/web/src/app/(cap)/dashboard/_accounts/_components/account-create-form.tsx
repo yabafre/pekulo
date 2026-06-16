@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   PekuloField,
   PekuloFieldDescription,
@@ -27,20 +28,20 @@ import { useCreateAccount } from "../_hooks/use-create-account";
 const FORCED_CURRENCY: (typeof ACCOUNT_CURRENCIES)[number] = "EUR";
 void ACCOUNT_CURRENCIES;
 
-const TYPE_LABEL: Record<AccountType, string> = {
-  livret: "Livret",
-  pea: "PEA",
-  cto: "CTO",
-  av: "Assurance vie",
-  autre: "Autre",
-  banque: "Compte courant",
-};
-
 export interface AccountCreateFormProps {
   onSuccess?: () => void;
 }
 
 export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
+  const t = useTranslations("accounts");
+  const TYPE_LABEL: Record<AccountType, string> = {
+    livret: t("types.livret"),
+    pea: t("types.pea"),
+    cto: t("types.cto"),
+    av: t("types.av"),
+    autre: t("types.autre"),
+    banque: t("types.banque"),
+  };
   const { mutate, isPending, error, isSuccess, reset } = useCreateAccount();
 
   const form = useAppForm({
@@ -54,18 +55,18 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
       onSubmit: ({ value }) => {
         const trimmed = value.label.trim();
         if (trimmed.length === 0) {
-          return "Libellé requis";
+          return t("labelRequired");
         }
         if (trimmed.length > MAX_ACCOUNT_LABEL_LENGTH) {
-          return `Libellé > ${MAX_ACCOUNT_LABEL_LENGTH} caractères`;
+          return t("labelTooLong", { max: MAX_ACCOUNT_LABEL_LENGTH });
         }
         const balance = Number(value.cashBalance);
         if (!Number.isFinite(balance) || balance < 0) {
-          return "Solde invalide (>= 0)";
+          return t("balanceInvalid");
         }
         const trimmedNotes = value.notes.trim();
         if (trimmedNotes.length > MAX_ACCOUNT_NOTES_LENGTH) {
-          return `Notes > ${MAX_ACCOUNT_NOTES_LENGTH} caractères`;
+          return t("notesTooLong", { max: MAX_ACCOUNT_NOTES_LENGTH });
         }
         return undefined;
       },
@@ -99,14 +100,14 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Ajouter un compte"
+      aria-label={t("createFormAria")}
     >
       <View padding="$4">
         <PekuloFieldGroup>
           <form.Field name="label">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-label">Libellé</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-label">{t("fields.label")}</PekuloFieldLabel>
                 <PekuloInput
                   id="acc-label"
                   type="text"
@@ -121,19 +122,19 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
           <form.Field name="type">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-type">Type</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-type">{t("fields.type")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as AccountType)}
                 >
                   <PekuloSelect.Trigger id="acc-type">
-                    <PekuloSelect.Value placeholder="Choisir un type" />
+                    <PekuloSelect.Value placeholder={t("chooseType")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
-                      {ACCOUNT_TYPES.map((t, i) => (
-                        <PekuloSelect.Item key={t} value={t} index={i}>
-                          {TYPE_LABEL[t]}
+                      {ACCOUNT_TYPES.map((at, i) => (
+                        <PekuloSelect.Item key={at} value={at} index={i}>
+                          {TYPE_LABEL[at]}
                         </PekuloSelect.Item>
                       ))}
                     </PekuloSelect.Group>
@@ -143,7 +144,7 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
             )}
           </form.Field>
           <PekuloField>
-            <PekuloFieldLabel htmlFor="acc-currency">Devise</PekuloFieldLabel>
+            <PekuloFieldLabel htmlFor="acc-currency">{t("fields.currency")}</PekuloFieldLabel>
             <PekuloInput
               id="acc-currency"
               type="text"
@@ -152,14 +153,14 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
               aria-readonly="true"
               style={{ opacity: 0.6, cursor: "not-allowed" }}
             />
-            <PekuloFieldDescription>
-              Multi-devises arrive avec les portefeuilles (story 3-3).
-            </PekuloFieldDescription>
+            <PekuloFieldDescription>{t("currencyNote")}</PekuloFieldDescription>
           </PekuloField>
           <form.Field name="cashBalance">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-balance">Solde initial</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-balance">
+                  {t("fields.initialBalance")}
+                </PekuloFieldLabel>
                 <PekuloInput
                   id="acc-balance"
                   type="number"
@@ -175,7 +176,7 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
           <form.Field name="notes">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-notes">Notes (optionnel)</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-notes">{t("fields.notesOptional")}</PekuloFieldLabel>
                 <PekuloInput
                   id="acc-notes"
                   type="text"
@@ -202,13 +203,13 @@ export function AccountCreateForm({ onSuccess }: AccountCreateFormProps) {
             <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
               {(clientError) =>
                 clientError ? null : (
-                  <PekuloFieldDescription color="$success">Compte ajouté.</PekuloFieldDescription>
+                  <PekuloFieldDescription color="$success">{t("added")}</PekuloFieldDescription>
                 )
               }
             </form.Subscribe>
           )}
-          <PekuloSubmitButton loading={isPending} loadingLabel="Ajout…">
-            Ajouter le compte
+          <PekuloSubmitButton loading={isPending} loadingLabel={t("adding")}>
+            {t("addAccount")}
           </PekuloSubmitButton>
         </PekuloFieldGroup>
       </View>

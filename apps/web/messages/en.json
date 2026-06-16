@@ -92,5 +92,51 @@
     "soonAria": "{title} (soon — {story})",
     "compassSetupTitle": "Set your first milestone",
     "compassSetupMessage": "To see your goal, add at least one milestone (target capital + year). Until a milestone exists, the goal is just a wish."
+  },
+  "accounts": {
+    "types": {
+      "livret": "Savings account",
+      "pea": "PEA",
+      "cto": "Brokerage account",
+      "av": "Life insurance",
+      "autre": "Other",
+      "banque": "Checking account"
+    },
+    "fields": {
+      "label": "Label",
+      "type": "Type",
+      "currency": "Currency",
+      "balance": "Balance",
+      "initialBalance": "Initial balance",
+      "newBalance": "New balance",
+      "notes": "Notes",
+      "notesOptional": "Notes (optional)",
+      "date": "Date"
+    },
+    "chooseType": "Choose a type",
+    "currencyNote": "Multi-currency is coming with portfolios (story 3-3).",
+    "editFormAria": "Edit account",
+    "createFormAria": "Add an account",
+    "balanceFormAria": "Edit the balance of {label}",
+    "labelRequired": "Label required",
+    "labelTooLong": "Label > {max} characters",
+    "balanceInvalid": "Invalid balance (>= 0)",
+    "notesTooLong": "Notes > {max} characters",
+    "dateRequired": "Date required",
+    "notFound": "Account not found — it may have been deleted.",
+    "updated": "Account updated.",
+    "added": "Account added.",
+    "balanceSaved": "Balance saved.",
+    "saving": "Saving…",
+    "save": "Save",
+    "adding": "Adding…",
+    "addAccount": "Add the account",
+    "saveBalance": "Save the balance",
+    "deleteTitle": "Delete “{label}”?",
+    "deleteDesc": "This action is permanent and irreversible. The balance, the account history and <strong>all associated transactions</strong> will be permanently deleted.",
+    "fkMessage": "This account is referenced by holdings — delete those first.",
+    "notFoundReload": "This account is not found (already deleted?). Reload the page.",
+    "deleting": "Deleting…",
+    "delete": "Delete"
   }
 }
