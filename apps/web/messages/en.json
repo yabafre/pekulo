@@ -208,5 +208,367 @@
     "lotSaved": "Lot recorded.",
     "saving": "Saving…",
     "saveLot": "Record the lot"
+  },
+  "immobilier": {
+    "errors": { "realEstateNotFound": "Property not found (already deleted?). Reload the page." },
+    "propertyType": {
+      "residencePrincipale": "Primary residence",
+      "locatif": "Rental",
+      "autre": "Other"
+    },
+    "mortgage": {
+      "attachAria": "Add a mortgage",
+      "updateAria": "Edit mortgage",
+      "dialogTitleAttach": "Add a mortgage",
+      "dialogTitleUpdate": "Edit mortgage",
+      "dialogDescription": "Outstanding principal, rate, monthly payment, remaining term and start date.",
+      "fields": {
+        "outstanding": "Outstanding principal (EUR)",
+        "annualRate": "Annual rate (decimal — 0.025 = 2.5%)",
+        "monthlyPayment": "Monthly payment (EUR)",
+        "termMonths": "Remaining term (months)",
+        "startDate": "Start date"
+      },
+      "errors": {
+        "outstandingInvalid": "Invalid outstanding principal (>= 0)",
+        "rateInvalid": "Invalid rate (between 0 and 1)",
+        "paymentInvalid": "Invalid monthly payment (>= 0)",
+        "termInvalid": "Invalid term (1-600 months)",
+        "startDateRequired": "Start date required",
+        "alreadyAttached": "This property already has a mortgage. Edit the existing one.",
+        "notFound": "No mortgage attached to this property."
+      },
+      "successAdded": "Mortgage added.",
+      "successUpdated": "Mortgage updated.",
+      "loadingAdd": "Adding…",
+      "loadingUpdate": "Updating…",
+      "submitAdd": "Add mortgage",
+      "submitUpdate": "Update mortgage"
+    },
+    "rental": {
+      "attachAria": "Add a rental",
+      "updateAria": "Edit rental",
+      "dialogTitleAttach": "Add a rental",
+      "dialogTitleUpdate": "Edit rental",
+      "dialogDescription": "Monthly rent, charges and furnished status.",
+      "fields": {
+        "monthlyRent": "Monthly rent (EUR)",
+        "monthlyCharges": "Monthly charges (EUR)",
+        "furnished": "Furnished"
+      },
+      "errors": {
+        "rentInvalid": "Invalid rent (>= 0)",
+        "chargesInvalid": "Invalid charges (>= 0)",
+        "alreadyAttached": "This property already has a rental. Edit the existing one.",
+        "notFound": "No rental attached to this property."
+      },
+      "successAdded": "Rental added.",
+      "successUpdated": "Rental updated.",
+      "loadingAdd": "Adding…",
+      "loadingUpdate": "Updating…",
+      "submitAdd": "Add rental",
+      "submitUpdate": "Update rental"
+    },
+    "create": {
+      "formAria": "Add a property",
+      "dialogTitle": "Add a property",
+      "dialogDescription": "Label, type (primary residence / rental / other), valuation EUR and date.",
+      "typePlaceholder": "Choose a type",
+      "fields": {
+        "label": "Label",
+        "type": "Type",
+        "valuation": "Valuation (EUR)",
+        "valuationDate": "Valuation date"
+      },
+      "errors": {
+        "labelRequired": "Label required",
+        "labelTooLong": "Label > {max} characters",
+        "valuationInvalid": "Invalid valuation (>= 0)",
+        "valuationDateRequired": "Valuation date required",
+        "generic": "An error occurred. Reload the page."
+      },
+      "success": "Property added.",
+      "loading": "Adding…",
+      "submit": "Add property"
+    },
+    "valuation": {
+      "formAria": "Update valuation",
+      "dialogTitle": "Update valuation",
+      "dialogDescription": "The current valuation will be replaced and the audit history added automatically.",
+      "fields": { "amount": "New valuation (EUR)", "date": "Valuation date" },
+      "errors": { "amountInvalid": "Invalid valuation (>= 0)", "dateRequired": "Date required" },
+      "success": "Valuation recorded.",
+      "loading": "Saving…",
+      "submit": "Save valuation"
+    },
+    "delete": {
+      "title": "Delete “{label}”?",
+      "description": "This action is irreversible. The property, its mortgage, its rental and the valuation history will be erased (Prisma cascade).",
+      "confirm": "Delete",
+      "loading": "Deleting…"
+    },
+    "card": {
+      "actionsAria": "Actions for {label}",
+      "actions": {
+        "updateValuation": "Update valuation",
+        "viewHistory": "View history",
+        "editMortgage": "Add / Edit mortgage",
+        "editRental": "Add / Edit rental",
+        "deleteProperty": "Delete property"
+      },
+      "metrics": {
+        "valuation": "VALUATION",
+        "equity": "EQUITY",
+        "debtRemaining": "REMAINING DEBT",
+        "monthlyCashflow": "Monthly cash flow"
+      },
+      "repaidPct": "{pct}% repaid"
+    },
+    "section": {
+      "loading": "Loading real estate portfolio…",
+      "equityLoadingAria": "Net equity — loading",
+      "actionLoadingAria": "Action — loading",
+      "loadError": "Loading error: {message}",
+      "refetching": "Updating…",
+      "equityTotalAria": "Total net equity",
+      "equityLabel": "Net equity · EUR",
+      "subline": "{valuation} valuation · {debt} remaining debt",
+      "actionAria": "Action",
+      "portfolioLabel": "Real estate portfolio",
+      "propertyCount": "{count, plural, one {{count} property} other {{count} properties}}",
+      "addAria": "Add a property",
+      "addProperty": "Add a property",
+      "emptyAria": "No property",
+      "empty": "No real estate property yet. Click “Add a property” to create the first one."
+    }
+  },
+  "transactions": {
+    "recentTitle": "Recent",
+    "import": "Import",
+    "filter": "Filter",
+    "soon": "Coming soon",
+    "filterSoon": "Transaction filtering is coming later.",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "empty": "No transactions yet. Add your first one to start tracking this month.",
+    "listAria": "Transaction list",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "editRowAria": "Edit {label}",
+    "deleteRowAria": "Delete {label}",
+    "actionsRowAria": "Actions {label}",
+    "paginationAria": "Transactions pagination",
+    "editTitle": "Edit “{label}”",
+    "deleteTitle": "Delete “{label}”?",
+    "deleteDesc": "This action is irreversible. The transaction will be permanently erased.",
+    "notFoundReload": "This transaction can’t be found (already deleted?). Reload the page.",
+    "createFormAria": "Add a transaction",
+    "editFormAria": "Edit transaction",
+    "addTransaction": "Add transaction",
+    "adding": "Adding…",
+    "save": "Save",
+    "saving": "Saving…",
+    "chooseAccount": "Choose an account",
+    "chooseCategory": "Choose a category",
+    "noAccountHint": "Create an account in Settings before adding a transaction.",
+    "types": { "inflow": "Inflow", "outflow": "Outflow" },
+    "fields": {
+      "account": "Account",
+      "date": "Date",
+      "label": "Label",
+      "amount": "Amount (€)",
+      "type": "Type",
+      "category": "Category",
+      "imprevu": "Unexpected",
+      "notesOptional": "Notes (optional)"
+    },
+    "errors": {
+      "accountRequired": "Choose a parent account",
+      "accountInvalid": "Invalid account",
+      "labelRequired": "Label required",
+      "labelTooLong": "Label > 120 characters",
+      "amountInvalid": "Invalid amount (≥ 0)",
+      "notesTooLong": "Notes > 500 characters",
+      "noChange": "No changes — edit a field before saving."
+    },
+    "suggestionsTitle": "AI suggestions",
+    "toValidate": "{count} to review",
+    "confirmFailed": "Failed",
+    "allCategorised": "Everything is categorised",
+    "allCategorisedMessage": "Your new transactions will appear here as soon as they are imported.",
+    "suggestionsListAria": "Suggestions to confirm",
+    "suggestionsPaginationAria": "Suggestions pagination",
+    "overrideTitle": "Correct the category of “{label}”",
+    "overrideFormAria": "Correct the category",
+    "saveCategory": "Save category",
+    "statNetAria": "Net for the month",
+    "statNetMonth": "Net · {month}",
+    "statPendingAria": "Awaiting AI",
+    "statToConfirm": "To confirm",
+    "statSuggestions": "suggestions",
+    "statInflowAria": "Inflows for the month",
+    "statInflowMonth": "Inflows · {month}",
+    "statOutflowAria": "Outflows for the month",
+    "statOutflowMonth": "Outflows · {month}",
+    "csvImportTitle": "Import a CSV",
+    "csvImportFormat": "Format: 4 columns per line — date (YYYY-MM-DD), amount (sign = direction: positive = inflow, negative = outflow), label, account name. Max 1000 lines.",
+    "csvContentAria": "CSV content",
+    "csvPlaceholder": "2026-05-01,42.50,Carrefour groceries,Checking account",
+    "csvAnalysing": "Analysing…",
+    "csvPreview": "Preview",
+    "csvSummary": "{valid} valid lines · {invalid} invalid · {total} total",
+    "csvStalePreview": "The CSV has changed — run “Preview” again before confirming.",
+    "csvImporting": "Importing…",
+    "csvConfirm": "Confirm ({count})",
+    "csvImportSuccess": "Import successful",
+    "csvImportSuccessMessage": "{count} transactions imported",
+    "close": "Close"
+  },
+  "mensuel": {
+    "common": { "loadError": "Failed to load." },
+    "historique": {
+      "ariaLabel": "Past months",
+      "title": "History",
+      "empty": "No past months to show.",
+      "reopenAria": "Reopen {month} {year}"
+    },
+    "moisEnCours": {
+      "sectionAria": "Current month",
+      "header": "{month} {year} · in progress",
+      "statIncome": "Income",
+      "statSpending": "Spending",
+      "statNet": "Net"
+    },
+    "cloture": {
+      "sectionAria": "Action",
+      "heading": "Close-out",
+      "signedOff": "{month} closed on {date}.",
+      "reopenHint": "You can reopen the month from the history.",
+      "freezeHint": "You can freeze the {month} aggregates so they are no longer recalculated.",
+      "title": "Close {month} {year}",
+      "description": "The values below will be frozen on the monthly record. You can edit them again by reopening the month.",
+      "formAria": "Close the month",
+      "labelIncome": "Income (€)",
+      "labelSpending": "Spending (€)",
+      "labelTransfers": "Transfers (€)",
+      "labelNet": "Net (€)",
+      "errorIncome": "Invalid income (≥ 0)",
+      "errorSpending": "Invalid spending (≥ 0)",
+      "errorTransfers": "Invalid transfers (≥ 0)",
+      "errorNet": "Invalid net",
+      "submitting": "Closing…",
+      "submit": "Confirm close-out"
+    },
+    "reopen": {
+      "title": "Reopen {month} {year}?",
+      "description": "The month will become editable again and the aggregate will revert to derived mode. The current frozen values will be ignored but kept in the database — you can edit them again before the next close-out.",
+      "formAria": "Reopen the month",
+      "submitting": "Reopening…",
+      "submit": "Reopen"
+    },
+    "signOff": {
+      "cta": "Close {month}",
+      "ctaAria": "Close {month}",
+      "ctaAriaClosed": "Close {month} (window closed)",
+      "window": "Close-out window: {range}"
+    }
+  },
+  "llm": {
+    "activityLog": {
+      "title": "AI activity log",
+      "ariaLabel": "90-day AI activity log",
+      "loading": "Loading…",
+      "empty": "No AI calls in the last 90 days.",
+      "paginationAriaLabel": "AI activity log pagination",
+      "outcomeSuccess": "Succeeded",
+      "outcomeFailure": "Failed",
+      "outcomeOverridden": "Overridden"
+    },
+    "optIn": {
+      "title": "Artificial intelligence",
+      "ariaLabel": "Artificial intelligence settings",
+      "toggleLabel": "Third-party AI models",
+      "toggleSub": "Allow sending certain transactions to a third-party API (Mistral, hosted in the EU) for categorization. Off by default.",
+      "loading": "Loading…"
+    },
+    "activityLogLink": {
+      "title": "AI activity log",
+      "ariaLabel": "Open the AI activity log",
+      "linkText": "View the AI activity log (last 90 days) →"
+    }
+  },
+  "hypothesis": {
+    "card": {
+      "title": "Projection",
+      "ariaLabel": "Projection hypothesis",
+      "ariaLabelLoading": "Projection (loading)",
+      "ariaLabelUnavailable": "Projection unavailable",
+      "loading": "Loading the projection…",
+      "noCap": "Set your target to see your projection.",
+      "action": "{monthly} / month · {rate}% / year"
+    },
+    "settings": {
+      "title": "Projection hypothesis",
+      "ariaLabel": "Projection hypothesis",
+      "monthlyContribution": "Monthly contribution",
+      "annualRate": "Assumed annual return",
+      "rateValue": "{rate}%"
+    }
+  },
+  "bank": {
+    "revoke": {
+      "title": "Revoke “{name}”?",
+      "description": "Bridge access will be revoked and the connection removed from Pekulo. Transactions already imported are kept.",
+      "confirm": "Revoke",
+      "revoking": "Revoking…",
+      "providerUnavailable": "Bridge is unavailable — try again in a moment.",
+      "notFound": "This connection can't be found (already revoked?). Reload the page."
+    },
+    "connectionRow": {
+      "neverSynced": "Never synced",
+      "syncedOn": "Synced on {date}",
+      "scaExpired": "SCA expired",
+      "rename": "Rename",
+      "revoke": "Revoke",
+      "renameAriaLabel": "Rename {name}",
+      "revokeAriaLabel": "Revoke {name}",
+      "actionsAriaLabel": "Actions for {name}"
+    },
+    "renameForm": {
+      "nameRequired": "Name required",
+      "maxLength": "Maximum {max} characters",
+      "notFound": "Connection not found — it may have been revoked.",
+      "ariaLabel": "Rename the connection",
+      "displayNameLabel": "Display name",
+      "save": "Save",
+      "saving": "Saving…"
+    },
+    "callback": {
+      "backToConnections": "Back to my connections",
+      "cancelledTitle": "Connection cancelled",
+      "cancelledDescription": "You closed the Bridge window before finishing — no bank was added. You can try again whenever you like.",
+      "errorTitle": "Bank connection failed",
+      "errorDescription": "The connection couldn't be completed on Bridge's side. Try again in a moment; if the problem persists, contact your bank.",
+      "alreadyExists": "This bank is already connected to Pekulo.",
+      "notFinalized": "The connection couldn't be finalized. Try again in a moment."
+    }
+  },
+  "widgets": {
+    "common": { "waitingForCap": "Waiting for the target to be set up." },
+    "milestones": {
+      "title": "Milestones",
+      "ariaLabelWaiting": "Milestones (waiting for the target)"
+    },
+    "nextMilestone": {
+      "title": "Next milestone",
+      "ariaLabel": "Next milestone",
+      "delta": "+{amount} to go",
+      "allReached": "All milestones reached."
+    },
+    "hypothesis": {
+      "title": "Projection",
+      "ariaLabelWaiting": "Projection (waiting for the target)"
+    }
   }
 }

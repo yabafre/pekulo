@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { type CSSProperties } from "react";
+import { getTranslations } from "next-intl/server";
 import { Text, View } from "@pekulo/ui/client";
 import { pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import { completeBankConnection } from "../../_bank/_actions/bank-aggregator-actions";
@@ -35,7 +36,15 @@ const ctaPill: CSSProperties = {
   fontWeight: 500,
 };
 
-function CallbackState({ title, description }: { title: string; description: string }) {
+function CallbackState({
+  title,
+  description,
+  ctaLabel,
+}: {
+  title: string;
+  description: string;
+  ctaLabel: string;
+}) {
   return (
     <View render="section" aria-label={title} flexDirection="column" gap="$3" paddingVertical="$6">
       <Text render="h1" color="$color" fontSize="$h2" fontWeight="600">
@@ -45,7 +54,7 @@ function CallbackState({ title, description }: { title: string; description: str
         {description}
       </Text>
       <Link href={CONNECTIONS_HREF} style={ctaPill}>
-        Retour à mes connexions
+        {ctaLabel}
       </Link>
     </View>
   );
@@ -58,12 +67,15 @@ export default async function BridgeCallbackPage({
 }) {
   const params = await searchParams;
   const outcome = classifyBridgeCallback(params);
+  const t = await getTranslations("bank");
+  const ctaLabel = t("callback.backToConnections");
 
   if (outcome.kind === "cancelled") {
     return (
       <CallbackState
-        title="Connexion annulée"
-        description="Tu as fermé la fenêtre Bridge avant la fin — aucune banque n'a été ajoutée. Tu peux réessayer quand tu veux."
+        title={t("callback.cancelledTitle")}
+        description={t("callback.cancelledDescription")}
+        ctaLabel={ctaLabel}
       />
     );
   }
@@ -71,8 +83,9 @@ export default async function BridgeCallbackPage({
   if (outcome.kind === "error") {
     return (
       <CallbackState
-        title="Connexion bancaire échouée"
-        description="La connexion n'a pas pu aboutir côté Bridge. Réessaie dans un instant ; si le problème persiste, contacte ta banque."
+        title={t("callback.errorTitle")}
+        description={t("callback.errorDescription")}
+        ctaLabel={ctaLabel}
       />
     );
   }
@@ -88,12 +101,13 @@ export default async function BridgeCallbackPage({
 
   return (
     <CallbackState
-      title="Connexion bancaire échouée"
+      title={t("callback.errorTitle")}
       description={
         result.code === "BANK_CONNECTION_ALREADY_EXISTS"
-          ? "Cette banque est déjà connectée à Pekulo."
-          : "La connexion n'a pas pu être finalisée. Réessaie dans un instant."
+          ? t("callback.alreadyExists")
+          : t("callback.notFinalized")
       }
+      ctaLabel={ctaLabel}
     />
   );
 }

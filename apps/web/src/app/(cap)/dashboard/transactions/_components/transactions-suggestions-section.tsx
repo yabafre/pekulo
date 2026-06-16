@@ -7,6 +7,7 @@
 // override. Hydration-guarded (R13); no <Suspense> (loading via isLoading).
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import {
   CategoryIcon,
@@ -56,6 +57,7 @@ function formatDay(iso: string): string {
 }
 
 export function TransactionsSuggestionsSection() {
+  const t = useTranslations();
   const [page, setPage] = useState(1);
   // Story 6-9 ext — re-scope the pending list to the active month (shares the
   // pending(page, month) cache with the "À confirmer" stat count).
@@ -100,7 +102,7 @@ export function TransactionsSuggestionsSection() {
   const runConfirm = (id: string, category: string) => {
     confirm.mutate({ id, category } as ConfirmCategorisationInput, {
       onSuccess: (result) => {
-        if (!result.ok) toast.danger("Échec", result.message);
+        if (!result.ok) toast.danger(t("transactions.confirmFailed"), result.message);
       },
     });
   };
@@ -113,13 +115,13 @@ export function TransactionsSuggestionsSection() {
 
   return (
     <Section
-      ariaLabel="Suggestions IA"
-      title="Suggestions IA"
+      ariaLabel={t("transactions.suggestionsTitle")}
+      title={t("transactions.suggestionsTitle")}
       action={
         <View flexDirection="row" alignItems="center" gap="$2">
           <Bot size={12} strokeWidth={2} aria-hidden />
           <Text color="$colorTertiary" fontSize="$caption">
-            {totalCount} à valider
+            {t("transactions.toValidate", { count: totalCount })}
           </Text>
         </View>
       }
@@ -134,7 +136,7 @@ export function TransactionsSuggestionsSection() {
             color="$colorTertiary"
             fontSize="$caption"
           >
-            Chargement…
+            {t("transactions.loading")}
           </Text>
           <PekuloSkeleton lines={2} height={56} />
         </View>
@@ -147,14 +149,18 @@ export function TransactionsSuggestionsSection() {
       {!showLoading && !error && items.length === 0 && (
         <PekuloEmptyState
           icon={Check}
-          title="Tout est catégorisé"
-          message="Vos nouvelles transactions apparaîtront ici dès qu'elles seront importées."
+          title={t("transactions.allCategorised")}
+          message={t("transactions.allCategorisedMessage")}
         />
       )}
       {!showLoading && items.length > 0 && (
         <>
           <AiTransparencyNotice />
-          <View flexDirection="column" role="list" aria-label="Suggestions à confirmer">
+          <View
+            flexDirection="column"
+            role="list"
+            aria-label={t("transactions.suggestionsListAria")}
+          >
             {items.map((tx) => {
               const suggestion: Suggestion = {
                 label: tx.label,
@@ -201,7 +207,7 @@ export function TransactionsSuggestionsSection() {
             page={page}
             pageCount={pageCount}
             onPageChange={setPage}
-            ariaLabel="Pagination des suggestions"
+            ariaLabel={t("transactions.suggestionsPaginationAria")}
           />
         </>
       )}
@@ -213,7 +219,7 @@ export function TransactionsSuggestionsSection() {
             <PekuloDialog.Content>
               <View flexDirection="column" gap="$3">
                 <PekuloDialog.Title>
-                  Corriger la catégorie de « {overrideTx.label} »
+                  {t("transactions.overrideTitle", { label: overrideTx.label })}
                 </PekuloDialog.Title>
                 <CategoryPicker
                   id="suggestion-override-category"
@@ -222,15 +228,18 @@ export function TransactionsSuggestionsSection() {
                   options={OVERRIDE_OPTIONS}
                 />
                 <form
-                  aria-label="Corriger la catégorie"
+                  aria-label={t("transactions.overrideFormAria")}
                   onSubmit={(e) => {
                     e.preventDefault();
                     runConfirm(overrideTx.id, overrideCategory);
                     closeOverride();
                   }}
                 >
-                  <PekuloSubmitButton loading={confirm.isPending} loadingLabel="Enregistrement…">
-                    Enregistrer la catégorie
+                  <PekuloSubmitButton
+                    loading={confirm.isPending}
+                    loadingLabel={t("transactions.saving")}
+                  >
+                    {t("transactions.saveCategory")}
                   </PekuloSubmitButton>
                 </form>
                 <PekuloDialog.Close asChild>
@@ -247,7 +256,7 @@ export function TransactionsSuggestionsSection() {
                       fontSize="$caption"
                       hoverStyle={{ color: "$color" }}
                     >
-                      Annuler
+                      {t("common.cancel")}
                     </Text>
                   </View>
                 </PekuloDialog.Close>

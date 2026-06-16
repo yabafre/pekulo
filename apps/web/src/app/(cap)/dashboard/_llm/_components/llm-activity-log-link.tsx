@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Text } from "@pekulo/ui/client";
 import { Section } from "@pekulo/ui";
 
@@ -9,11 +10,12 @@ import { Section } from "@pekulo/ui";
 // SettingsScreen mock. Routes to /dashboard/parametres/journal-ia (under
 // (cap)/dashboard/* so the CapShell layout wraps it, lesson 2026-05-27).
 export function LlmActivityLogLink() {
+  const t = useTranslations("llm");
   return (
-    <Section title="Journal d'activité IA" ariaLabel="Accès au journal d'activité de l'IA">
+    <Section title={t("activityLogLink.title")} ariaLabel={t("activityLogLink.ariaLabel")}>
       <Link href="/dashboard/parametres/journal-ia" style={{ textDecoration: "none" }}>
         <Text color="$colorSecondary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-          Voir le journal d'activité IA (90 derniers jours) →
+          {t("activityLogLink.linkText")}
         </Text>
       </Link>
     </Section>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloField,
   PekuloFieldError,
@@ -15,7 +16,6 @@ import { useAppForm } from "@/hooks/form-hook";
 import { useRenameBankConnection } from "../_hooks/use-rename-bank-connection";
 
 const MAX_DISPLAY_NAME = 60;
-const NOT_FOUND_MESSAGE = "Connexion introuvable — elle a peut-être été révoquée.";
 
 export interface BankConnectionRenameFormProps {
   connection: BankConnection;
@@ -23,6 +23,7 @@ export interface BankConnectionRenameFormProps {
 }
 
 export function BankConnectionRenameForm({ connection, onSuccess }: BankConnectionRenameFormProps) {
+  const t = useTranslations("bank");
   const { mutate, isPending, error } = useRenameBankConnection();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -31,8 +32,9 @@ export function BankConnectionRenameForm({ connection, onSuccess }: BankConnecti
     validators: {
       onSubmit: ({ value }) => {
         const trimmed = value.displayName.trim();
-        if (trimmed.length === 0) return "Nom requis";
-        if (trimmed.length > MAX_DISPLAY_NAME) return `Maximum ${MAX_DISPLAY_NAME} caractères`;
+        if (trimmed.length === 0) return t("renameForm.nameRequired");
+        if (trimmed.length > MAX_DISPLAY_NAME)
+          return t("renameForm.maxLength", { max: MAX_DISPLAY_NAME });
         return undefined;
       },
     },
@@ -48,7 +50,7 @@ export function BankConnectionRenameForm({ connection, onSuccess }: BankConnecti
         {
           onSuccess: (result) => {
             if (!result.ok) {
-              setEnvelopeError(NOT_FOUND_MESSAGE);
+              setEnvelopeError(t("renameForm.notFound"));
               return;
             }
             onSuccess?.();
@@ -69,14 +71,16 @@ export function BankConnectionRenameForm({ connection, onSuccess }: BankConnecti
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Renommer la connexion"
+      aria-label={t("renameForm.ariaLabel")}
     >
       <View padding="$4">
         <PekuloFieldGroup>
           <form.Field name="displayName">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="bank-rename-name">Nom affiché</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="bank-rename-name">
+                  {t("renameForm.displayNameLabel")}
+                </PekuloFieldLabel>
                 <PekuloInput
                   id="bank-rename-name"
                   type="text"
@@ -107,8 +111,8 @@ export function BankConnectionRenameForm({ connection, onSuccess }: BankConnecti
               }
             </form.Subscribe>
           )}
-          <PekuloSubmitButton loading={isPending} loadingLabel="Enregistrement…">
-            Enregistrer
+          <PekuloSubmitButton loading={isPending} loadingLabel={t("renameForm.saving")}>
+            {t("renameForm.save")}
           </PekuloSubmitButton>
         </PekuloFieldGroup>
       </View>

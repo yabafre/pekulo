@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   PekuloProjectionChart,
   PekuloHypothesisVerdict,
@@ -25,12 +26,13 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 // financial arithmetic — every number is server-derived; buildChartModel only
 // maps offsets → calendar years (AC-9).
 export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
+  const t = useTranslations("hypothesis");
   const projection = useHypothesisProjection(currentWealth);
   const gap = useHypothesisGap(currentWealth);
 
   if (projection.isLoading || gap.isLoading) {
     return (
-      <Section title="Hypothèse" ariaLabel="Hypothèse (chargement)">
+      <Section title={t("card.title")} ariaLabel={t("card.ariaLabelLoading")}>
         <View role="status" aria-live="polite" $lg={{ flex: 1, minHeight: 0 }}>
           <Text
             color="$colorTertiary"
@@ -40,7 +42,7 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
             height={1}
             overflow="hidden"
           >
-            Chargement de la projection…
+            {t("card.loading")}
           </Text>
           <PekuloSkeleton block height={160} />
         </View>
@@ -52,9 +54,9 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
   // no-cap case; this is the defensive in-card branch.
   if (projection.isError || gap.isError || !projection.data || !gap.data) {
     return (
-      <Section title="Hypothèse" ariaLabel="Hypothèse indisponible">
+      <Section title={t("card.title")} ariaLabel={t("card.ariaLabelUnavailable")}>
         <Text role="alert" color="$colorTertiary" fontSize="$caption">
-          Configure ton cap pour voir ta projection.
+          {t("card.noCap")}
         </Text>
       </Section>
     );
@@ -68,11 +70,11 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
 
   return (
     <Section
-      title="Hypothèse"
-      ariaLabel="Hypothèse de projection"
+      title={t("card.title")}
+      ariaLabel={t("card.ariaLabel")}
       action={
         <Text color="$colorTertiary" fontSize="$caption">
-          {eur0.format(proj.monthlyContribution)} / mois · {ratePct} % / an
+          {t("card.action", { monthly: eur0.format(proj.monthlyContribution), rate: ratePct })}
         </Text>
       }
     >

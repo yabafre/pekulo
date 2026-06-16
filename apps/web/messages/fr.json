@@ -208,5 +208,361 @@
     "lotSaved": "Lot enregistré.",
     "saving": "Enregistrement…",
     "saveLot": "Enregistrer le lot"
+  },
+  "immobilier": {
+    "errors": { "realEstateNotFound": "Bien introuvable (déjà supprimé ?). Recharge la page." },
+    "propertyType": {
+      "residencePrincipale": "Résidence principale",
+      "locatif": "Locatif",
+      "autre": "Autre"
+    },
+    "mortgage": {
+      "attachAria": "Ajouter un crédit",
+      "updateAria": "Modifier le crédit",
+      "dialogTitleAttach": "Ajouter un crédit",
+      "dialogTitleUpdate": "Modifier le crédit",
+      "dialogDescription": "Capital restant, taux, mensualité, durée restante et date de début.",
+      "fields": {
+        "outstanding": "Capital restant (EUR)",
+        "annualRate": "Taux annuel (décimal — 0,025 = 2,5 %)",
+        "monthlyPayment": "Mensualité (EUR)",
+        "termMonths": "Durée restante (mois)",
+        "startDate": "Date de début"
+      },
+      "errors": {
+        "outstandingInvalid": "Capital restant invalide (>= 0)",
+        "rateInvalid": "Taux invalide (entre 0 et 1)",
+        "paymentInvalid": "Mensualité invalide (>= 0)",
+        "termInvalid": "Durée invalide (1-600 mois)",
+        "startDateRequired": "Date de début requise",
+        "alreadyAttached": "Ce bien a déjà un crédit. Modifie celui existant.",
+        "notFound": "Aucun crédit attaché à ce bien."
+      },
+      "successAdded": "Crédit ajouté.",
+      "successUpdated": "Crédit mis à jour.",
+      "loadingAdd": "Ajout…",
+      "loadingUpdate": "Mise à jour…",
+      "submitAdd": "Ajouter le crédit",
+      "submitUpdate": "Mettre à jour le crédit"
+    },
+    "rental": {
+      "attachAria": "Ajouter un loyer",
+      "updateAria": "Modifier le loyer",
+      "dialogTitleAttach": "Ajouter un loyer",
+      "dialogTitleUpdate": "Modifier le loyer",
+      "dialogDescription": "Loyer mensuel, charges et statut meublé.",
+      "fields": {
+        "monthlyRent": "Loyer mensuel (EUR)",
+        "monthlyCharges": "Charges mensuelles (EUR)",
+        "furnished": "Meublé"
+      },
+      "errors": {
+        "rentInvalid": "Loyer invalide (>= 0)",
+        "chargesInvalid": "Charges invalides (>= 0)",
+        "alreadyAttached": "Ce bien a déjà un loyer. Modifie celui existant.",
+        "notFound": "Aucun loyer attaché à ce bien."
+      },
+      "successAdded": "Loyer ajouté.",
+      "successUpdated": "Loyer mis à jour.",
+      "loadingAdd": "Ajout…",
+      "loadingUpdate": "Mise à jour…",
+      "submitAdd": "Ajouter le loyer",
+      "submitUpdate": "Mettre à jour le loyer"
+    },
+    "create": {
+      "formAria": "Ajouter un bien immobilier",
+      "dialogTitle": "Ajouter un bien",
+      "dialogDescription": "Libellé, type (résidence principale / locatif / autre), valorisation EUR et date.",
+      "typePlaceholder": "Choisir un type",
+      "fields": {
+        "label": "Libellé",
+        "type": "Type",
+        "valuation": "Valorisation (EUR)",
+        "valuationDate": "Date de valorisation"
+      },
+      "errors": {
+        "labelRequired": "Libellé requis",
+        "labelTooLong": "Libellé > {max} caractères",
+        "valuationInvalid": "Valorisation invalide (>= 0)",
+        "valuationDateRequired": "Date de valorisation requise",
+        "generic": "Une erreur est survenue. Recharge la page."
+      },
+      "success": "Bien ajouté.",
+      "loading": "Ajout…",
+      "submit": "Ajouter le bien"
+    },
+    "valuation": {
+      "formAria": "Mettre à jour la valorisation",
+      "dialogTitle": "Mettre à jour la valorisation",
+      "dialogDescription": "La valorisation actuelle sera remplacée et l'historique audit ajouté automatiquement.",
+      "fields": { "amount": "Nouvelle valorisation (EUR)", "date": "Date de valorisation" },
+      "errors": { "amountInvalid": "Valorisation invalide (>= 0)", "dateRequired": "Date requise" },
+      "success": "Valorisation enregistrée.",
+      "loading": "Enregistrement…",
+      "submit": "Enregistrer la valorisation"
+    },
+    "delete": {
+      "title": "Supprimer « {label} » ?",
+      "description": "Cette action est irréversible. Le bien, son crédit, son loyer et l'historique de valorisation seront effacés (cascade Prisma).",
+      "confirm": "Supprimer",
+      "loading": "Suppression…"
+    },
+    "card": {
+      "actionsAria": "Actions pour {label}",
+      "actions": {
+        "updateValuation": "Mettre à jour la valorisation",
+        "viewHistory": "Voir l'historique",
+        "editMortgage": "Ajouter / Modifier le crédit",
+        "editRental": "Ajouter / Modifier le loyer",
+        "deleteProperty": "Supprimer le bien"
+      },
+      "metrics": {
+        "valuation": "VALORISATION",
+        "equity": "EQUITY",
+        "debtRemaining": "DETTE RESTANTE",
+        "monthlyCashflow": "Cash-flow mensuel"
+      },
+      "repaidPct": "{pct} % remboursé"
+    },
+    "section": {
+      "loading": "Chargement du portefeuille immobilier…",
+      "equityLoadingAria": "Equity nette — chargement",
+      "actionLoadingAria": "Action — chargement",
+      "loadError": "Erreur de chargement : {message}",
+      "refetching": "Mise à jour…",
+      "equityTotalAria": "Equity nette total",
+      "equityLabel": "Equity nette · EUR",
+      "subline": "{valuation} valorisation · {debt} dette restante",
+      "actionAria": "Action",
+      "portfolioLabel": "Portefeuille immobilier",
+      "propertyCount": "{count} bien{count, plural, one {} other {s}}",
+      "addAria": "Ajouter un bien immobilier",
+      "addProperty": "Ajouter un bien",
+      "emptyAria": "Aucun bien",
+      "empty": "Aucun bien immobilier pour le moment. Clique « Ajouter un bien » pour créer le premier."
+    }
+  },
+  "transactions": {
+    "recentTitle": "Récentes",
+    "import": "Importer",
+    "filter": "Filtrer",
+    "soon": "Bientôt",
+    "filterSoon": "Le filtre transactions arrive plus tard.",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "empty": "Aucune transaction. Ajoute la première pour démarrer le suivi mensuel.",
+    "listAria": "Liste des transactions",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "deleting": "Suppression…",
+    "editRowAria": "Modifier {label}",
+    "deleteRowAria": "Supprimer {label}",
+    "actionsRowAria": "Actions {label}",
+    "paginationAria": "Pagination des transactions",
+    "editTitle": "Modifier « {label} »",
+    "deleteTitle": "Supprimer « {label} » ?",
+    "deleteDesc": "Cette action est irréversible. La transaction sera effacée définitivement.",
+    "notFoundReload": "Cette transaction est introuvable (déjà supprimée ?). Recharge la page.",
+    "createFormAria": "Ajouter une transaction",
+    "editFormAria": "Modifier la transaction",
+    "addTransaction": "Ajouter la transaction",
+    "adding": "Ajout…",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "chooseAccount": "Choisir un compte",
+    "chooseCategory": "Choisir une catégorie",
+    "noAccountHint": "Crée un compte dans Paramètres avant d'ajouter une transaction.",
+    "types": { "inflow": "Entrée", "outflow": "Sortie" },
+    "fields": {
+      "account": "Compte",
+      "date": "Date",
+      "label": "Libellé",
+      "amount": "Montant (€)",
+      "type": "Type",
+      "category": "Catégorie",
+      "imprevu": "Imprévu",
+      "notesOptional": "Notes (optionnel)"
+    },
+    "errors": {
+      "accountRequired": "Choisir un compte parent",
+      "accountInvalid": "Compte invalide",
+      "labelRequired": "Libellé requis",
+      "labelTooLong": "Libellé > 120 caractères",
+      "amountInvalid": "Montant invalide (≥ 0)",
+      "notesTooLong": "Notes > 500 caractères",
+      "noChange": "Aucune modification — modifiez un champ avant d'enregistrer."
+    },
+    "suggestionsTitle": "Suggestions IA",
+    "toValidate": "{count} à valider",
+    "confirmFailed": "Échec",
+    "allCategorised": "Tout est catégorisé",
+    "allCategorisedMessage": "Vos nouvelles transactions apparaîtront ici dès qu'elles seront importées.",
+    "suggestionsListAria": "Suggestions à confirmer",
+    "suggestionsPaginationAria": "Pagination des suggestions",
+    "overrideTitle": "Corriger la catégorie de « {label} »",
+    "overrideFormAria": "Corriger la catégorie",
+    "saveCategory": "Enregistrer la catégorie",
+    "statNetAria": "Net du mois",
+    "statNetMonth": "Net · {month}",
+    "statPendingAria": "En attente IA",
+    "statToConfirm": "À confirmer",
+    "statSuggestions": "suggestions",
+    "statInflowAria": "Entrées du mois",
+    "statInflowMonth": "Entrées · {month}",
+    "statOutflowAria": "Sorties du mois",
+    "statOutflowMonth": "Sorties · {month}",
+    "csvImportTitle": "Importer un CSV",
+    "csvImportFormat": "Format : 4 colonnes par ligne — date (YYYY-MM-DD), montant (signe = sens : positif = entrée, négatif = sortie), libellé, nom du compte. Max 1000 lignes.",
+    "csvContentAria": "Contenu CSV",
+    "csvPlaceholder": "2026-05-01,42.50,Courses Carrefour,Compte courant",
+    "csvAnalysing": "Analyse…",
+    "csvPreview": "Aperçu",
+    "csvSummary": "{valid} lignes valides · {invalid} invalides · {total} au total",
+    "csvStalePreview": "Le CSV a été modifié — relance « Aperçu » avant de confirmer.",
+    "csvImporting": "Import…",
+    "csvConfirm": "Confirmer ({count})",
+    "csvImportSuccess": "Import réussi",
+    "csvImportSuccessMessage": "{count} transactions importées",
+    "close": "Fermer"
+  },
+  "mensuel": {
+    "common": { "loadError": "Erreur de chargement." },
+    "historique": {
+      "ariaLabel": "Mois passés",
+      "title": "Historique",
+      "empty": "Aucun mois passé à afficher.",
+      "reopenAria": "Réouvrir {month} {year}"
+    },
+    "moisEnCours": {
+      "sectionAria": "Mois en cours",
+      "header": "{month} {year} · en cours",
+      "statIncome": "Entrées",
+      "statSpending": "Sorties",
+      "statNet": "Net"
+    },
+    "cloture": {
+      "sectionAria": "Action",
+      "heading": "Clôture",
+      "signedOff": "{month} clôturé le {date}.",
+      "reopenHint": "Tu peux réouvrir le mois depuis l'historique.",
+      "freezeHint": "Tu peux figer les agrégats de {month} pour qu'ils ne soient plus recalculés.",
+      "title": "Clôturer {month} {year}",
+      "description": "Les valeurs ci-dessous seront figées sur la fiche mensuelle. Tu pourras les rééditer en réouvrant le mois.",
+      "formAria": "Clôturer le mois",
+      "labelIncome": "Entrées (€)",
+      "labelSpending": "Sorties (€)",
+      "labelTransfers": "Transferts (€)",
+      "labelNet": "Net (€)",
+      "errorIncome": "Entrées invalides (≥ 0)",
+      "errorSpending": "Sorties invalides (≥ 0)",
+      "errorTransfers": "Transferts invalides (≥ 0)",
+      "errorNet": "Net invalide",
+      "submitting": "Clôture…",
+      "submit": "Confirmer la clôture"
+    },
+    "reopen": {
+      "title": "Réouvrir {month} {year} ?",
+      "description": "Le mois redeviendra modifiable et l'agrégat repassera en mode dérivé. Les valeurs figées actuelles seront ignorées, mais conservées en base — tu pourras les rééditer avant la prochaine clôture.",
+      "formAria": "Réouvrir le mois",
+      "submitting": "Réouverture…",
+      "submit": "Réouvrir"
+    },
+    "signOff": {
+      "cta": "Clôturer {month}",
+      "ctaAria": "Clôturer {month}",
+      "ctaAriaClosed": "Clôturer {month} (fenêtre fermée)",
+      "window": "Fenêtre de clôture : {range}"
+    }
+  },
+  "llm": {
+    "activityLog": {
+      "title": "Journal d'activité IA",
+      "ariaLabel": "Journal d'activité de l'IA sur 90 jours",
+      "loading": "Chargement…",
+      "empty": "Aucun appel IA sur les 90 derniers jours.",
+      "paginationAriaLabel": "Pagination du journal d'activité IA",
+      "outcomeSuccess": "Réussi",
+      "outcomeFailure": "Échec",
+      "outcomeOverridden": "Modifié"
+    },
+    "optIn": {
+      "title": "Intelligence artificielle",
+      "ariaLabel": "Paramètres d'intelligence artificielle",
+      "toggleLabel": "Modèles d'IA tiers",
+      "toggleSub": "Autoriser l'envoi de certaines transactions à une API tierce (Mistral, hébergée en UE) pour la catégorisation. Désactivé par défaut.",
+      "loading": "Chargement…"
+    },
+    "activityLogLink": {
+      "title": "Journal d'activité IA",
+      "ariaLabel": "Accès au journal d'activité de l'IA",
+      "linkText": "Voir le journal d'activité IA (90 derniers jours) →"
+    }
+  },
+  "hypothesis": {
+    "card": {
+      "title": "Hypothèse",
+      "ariaLabel": "Hypothèse de projection",
+      "ariaLabelLoading": "Hypothèse (chargement)",
+      "ariaLabelUnavailable": "Hypothèse indisponible",
+      "loading": "Chargement de la projection…",
+      "noCap": "Configure ton cap pour voir ta projection.",
+      "action": "{monthly} / mois · {rate} % / an"
+    },
+    "settings": {
+      "title": "Hypothèse de projection",
+      "ariaLabel": "Hypothèse de projection",
+      "monthlyContribution": "Versement mensuel",
+      "annualRate": "Rendement annuel supposé",
+      "rateValue": "{rate} %"
+    }
+  },
+  "bank": {
+    "revoke": {
+      "title": "Révoquer « {name} » ?",
+      "description": "L'accès Bridge sera révoqué et la connexion retirée de Pekulo. Les transactions déjà importées sont conservées.",
+      "confirm": "Révoquer",
+      "revoking": "Révocation…",
+      "providerUnavailable": "Bridge est indisponible — réessaie dans un instant.",
+      "notFound": "Cette connexion est introuvable (déjà révoquée ?). Recharge la page."
+    },
+    "connectionRow": {
+      "neverSynced": "Jamais synchronisée",
+      "syncedOn": "Synchronisée le {date}",
+      "scaExpired": "SCA expirée",
+      "rename": "Renommer",
+      "revoke": "Révoquer",
+      "renameAriaLabel": "Renommer {name}",
+      "revokeAriaLabel": "Révoquer {name}",
+      "actionsAriaLabel": "Actions {name}"
+    },
+    "renameForm": {
+      "nameRequired": "Nom requis",
+      "maxLength": "Maximum {max} caractères",
+      "notFound": "Connexion introuvable — elle a peut-être été révoquée.",
+      "ariaLabel": "Renommer la connexion",
+      "displayNameLabel": "Nom affiché",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "callback": {
+      "backToConnections": "Retour à mes connexions",
+      "cancelledTitle": "Connexion annulée",
+      "cancelledDescription": "Tu as fermé la fenêtre Bridge avant la fin — aucune banque n'a été ajoutée. Tu peux réessayer quand tu veux.",
+      "errorTitle": "Connexion bancaire échouée",
+      "errorDescription": "La connexion n'a pas pu aboutir côté Bridge. Réessaie dans un instant ; si le problème persiste, contacte ta banque.",
+      "alreadyExists": "Cette banque est déjà connectée à Pekulo.",
+      "notFinalized": "La connexion n'a pas pu être finalisée. Réessaie dans un instant."
+    }
+  },
+  "widgets": {
+    "common": { "waitingForCap": "En attente de la configuration du cap." },
+    "milestones": { "title": "Paliers", "ariaLabelWaiting": "Paliers (en attente du cap)" },
+    "nextMilestone": {
+      "title": "Prochain palier",
+      "ariaLabel": "Prochain palier",
+      "delta": "+{amount} à atteindre",
+      "allReached": "Tous les paliers sont atteints."
+    },
+    "hypothesis": { "title": "Hypothèse", "ariaLabelWaiting": "Hypothèse (en attente du cap)" }
   }
 }

@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import type { BankConnection } from "@pekulo/validators";
 import { useRevokeBankConnection } from "../_hooks/use-revoke-bank-connection";
-
-const PROVIDER_UNAVAILABLE_MESSAGE = "Bridge est indisponible — réessaie dans un instant.";
-const NOT_FOUND_MESSAGE = "Cette connexion est introuvable (déjà révoquée ?). Recharge la page.";
 
 const dangerBtn = (disabled: boolean): CSSProperties => ({
   alignSelf: "flex-start",
@@ -34,6 +32,7 @@ export function BankConnectionRevokeConfirm({
   open,
   onOpenChange,
 }: BankConnectionRevokeConfirmProps) {
+  const t = useTranslations();
   const { mutate, isPending, error, reset } = useRevokeBankConnection();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -59,8 +58,8 @@ export function BankConnectionRevokeConfirm({
           }
           setEnvelopeError(
             result.code === "BANK_PROVIDER_UNAVAILABLE"
-              ? PROVIDER_UNAVAILABLE_MESSAGE
-              : NOT_FOUND_MESSAGE,
+              ? t("bank.revoke.providerUnavailable")
+              : t("bank.revoke.notFound"),
           );
         },
       },
@@ -73,11 +72,8 @@ export function BankConnectionRevokeConfirm({
         <PekuloDialog.Overlay />
         <PekuloDialog.Content>
           <View flexDirection="column" gap="$3" padding="$4">
-            <PekuloDialog.Title>Révoquer « {label} » ?</PekuloDialog.Title>
-            <PekuloDialog.Description>
-              L'accès Bridge sera révoqué et la connexion retirée de Pekulo. Les transactions déjà
-              importées sont conservées.
-            </PekuloDialog.Description>
+            <PekuloDialog.Title>{t("bank.revoke.title", { name: label })}</PekuloDialog.Title>
+            <PekuloDialog.Description>{t("bank.revoke.description")}</PekuloDialog.Description>
             {envelopeError && (
               <Text role="alert" color="$danger" fontSize="$caption">
                 {envelopeError}
@@ -96,7 +92,7 @@ export function BankConnectionRevokeConfirm({
                 aria-disabled={isPending}
                 style={dangerBtn(isPending)}
               >
-                {isPending ? "Révocation…" : "Révoquer"}
+                {isPending ? t("bank.revoke.revoking") : t("bank.revoke.confirm")}
               </button>
               <PekuloDialog.Close asChild>
                 <View
@@ -107,7 +103,7 @@ export function BankConnectionRevokeConfirm({
                   borderWidth={0}
                 >
                   <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                    Annuler
+                    {t("common.cancel")}
                   </Text>
                 </View>
               </PekuloDialog.Close>

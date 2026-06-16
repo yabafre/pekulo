@@ -1,6 +1,7 @@
 "use client";
 
 import { type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloPopover, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import { MoreHorizontal } from "lucide-react";
@@ -12,11 +13,6 @@ const dateFmt = new Intl.DateTimeFormat("fr-FR", {
   month: "short",
   year: "numeric",
 });
-
-function formatLastSynced(iso: string | null): string {
-  if (!iso) return "Jamais synchronisée";
-  return `Synchronisée le ${dateFmt.format(new Date(iso))}`;
-}
 
 const rowActionBtn: CSSProperties = {
   background: "none",
@@ -63,8 +59,12 @@ export interface BankConnectionRowProps {
 }
 
 export function BankConnectionRow({ connection, onRename, onRevoke }: BankConnectionRowProps) {
+  const t = useTranslations("bank");
   const label = connection.displayName ?? connection.providerItemId;
   const isSca = connection.status === "sca_required";
+  const lastSynced = connection.lastSyncedAt
+    ? t("connectionRow.syncedOn", { date: dateFmt.format(new Date(connection.lastSyncedAt)) })
+    : t("connectionRow.neverSynced");
 
   return (
     <View role="listitem" flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
@@ -81,13 +81,13 @@ export function BankConnectionRow({ connection, onRename, onRevoke }: BankConnec
               paddingVertical="$1"
             >
               <Text color="$warning" fontSize="$xs" fontWeight="600">
-                SCA expirée
+                {t("connectionRow.scaExpired")}
               </Text>
             </View>
           )}
         </View>
         <Text color="$colorTertiary" fontSize="$caption">
-          {formatLastSynced(connection.lastSyncedAt)}
+          {lastSynced}
         </Text>
       </View>
 
@@ -102,23 +102,26 @@ export function BankConnectionRow({ connection, onRename, onRevoke }: BankConnec
           type="button"
           onClick={() => onRename(connection)}
           style={rowActionBtn}
-          aria-label={`Renommer ${label}`}
+          aria-label={t("connectionRow.renameAriaLabel", { name: label })}
         >
-          Renommer
+          {t("connectionRow.rename")}
         </button>
         <button
           type="button"
           onClick={() => onRevoke(connection)}
           style={dangerRowActionBtn}
-          aria-label={`Révoquer ${label}`}
+          aria-label={t("connectionRow.revokeAriaLabel", { name: label })}
         >
-          Révoquer
+          {t("connectionRow.revoke")}
         </button>
       </View>
 
       <View marginLeft="$2" $lg={{ display: "none" }}>
         <PekuloPopover>
-          <PekuloPopover.Trigger style={kebabBtn} aria-label={`Actions ${label}`}>
+          <PekuloPopover.Trigger
+            style={kebabBtn}
+            aria-label={t("connectionRow.actionsAriaLabel", { name: label })}
+          >
             <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
           </PekuloPopover.Trigger>
           <PekuloPopover.Content minWidth={180}>
@@ -127,14 +130,14 @@ export function BankConnectionRow({ connection, onRename, onRevoke }: BankConnec
               onClick={() => onRename(connection)}
               style={popoverActionBtnNeutral}
             >
-              Renommer
+              {t("connectionRow.rename")}
             </button>
             <button
               type="button"
               onClick={() => onRevoke(connection)}
               style={popoverActionBtnDanger}
             >
-              Révoquer
+              {t("connectionRow.revoke")}
             </button>
           </PekuloPopover.Content>
         </PekuloPopover>

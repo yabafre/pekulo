@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   CategoryIcon,
   PekuloDatePicker,
@@ -24,17 +25,17 @@ import {
 import { useAppForm } from "@/hooks/form-hook";
 import { useUpdateTransaction } from "../_hooks/use-update-transaction";
 
-const TYPE_LABEL: Record<TransactionType, string> = {
-  inflow: "Entrée",
-  outflow: "Sortie",
-};
-
 export interface TransactionEditFormProps {
   transaction: Transaction;
   onSuccess?: () => void;
 }
 
 export function TransactionEditForm({ transaction, onSuccess }: TransactionEditFormProps) {
+  const t = useTranslations("transactions");
+  const TYPE_LABEL: Record<TransactionType, string> = {
+    inflow: t("types.inflow"),
+    outflow: t("types.outflow"),
+  };
   const { mutate, isPending, reset } = useUpdateTransaction();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -50,11 +51,11 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
     validators: {
       onSubmit: ({ value }) => {
         const trimmed = value.label.trim();
-        if (trimmed.length === 0) return "Libellé requis";
-        if (trimmed.length > 120) return "Libellé > 120 caractères";
+        if (trimmed.length === 0) return t("errors.labelRequired");
+        if (trimmed.length > 120) return t("errors.labelTooLong");
         const amt = Number(value.amount);
-        if (!Number.isFinite(amt) || amt < 0) return "Montant invalide (≥ 0)";
-        if (value.notes.trim().length > 500) return "Notes > 500 caractères";
+        if (!Number.isFinite(amt) || amt < 0) return t("errors.amountInvalid");
+        if (value.notes.trim().length > 500) return t("errors.notesTooLong");
         return undefined;
       },
     },
@@ -76,7 +77,7 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
       // a red banner. Better UX: tell the user inline before the round-trip.
       const { id: _id, ...changed } = patch;
       if (Object.keys(changed).length === 0) {
-        setEnvelopeError("Aucune modification — modifiez un champ avant d'enregistrer.");
+        setEnvelopeError(t("errors.noChange"));
         return;
       }
       mutate(patch, {
@@ -98,14 +99,14 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Modifier la transaction"
+      aria-label={t("editFormAria")}
     >
       <View padding="$4">
         <PekuloFieldGroup>
           <form.Field name="occurredOn">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-edit-date">Date</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-edit-date">{t("fields.date")}</PekuloFieldLabel>
                 <PekuloDatePicker
                   id="tx-edit-date"
                   value={field.state.value ? new Date(field.state.value) : undefined}
@@ -117,7 +118,7 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
           <form.Field name="label">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-edit-label">Libellé</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-edit-label">{t("fields.label")}</PekuloFieldLabel>
                 <PekuloInput
                   id="tx-edit-label"
                   type="text"
@@ -131,7 +132,7 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
           <form.Field name="amount">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-edit-amount">Montant (€)</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-edit-amount">{t("fields.amount")}</PekuloFieldLabel>
                 <PekuloInput
                   id="tx-edit-amount"
                   type="number"
@@ -146,13 +147,13 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
           <form.Field name="type">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-edit-type">Type</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-edit-type">{t("fields.type")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as TransactionType)}
                 >
                   <PekuloSelect.Trigger id="tx-edit-type">
-                    <PekuloSelect.Value placeholder="Type" />
+                    <PekuloSelect.Value placeholder={t("fields.type")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
@@ -171,13 +172,15 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
           <form.Field name="category">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-edit-category">Catégorie</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-edit-category">
+                  {t("fields.category")}
+                </PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as TransactionCategory)}
                 >
                   <PekuloSelect.Trigger id="tx-edit-category">
-                    <PekuloSelect.Value placeholder="Catégorie" />
+                    <PekuloSelect.Value placeholder={t("fields.category")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
@@ -200,7 +203,9 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
           <form.Field name="notes">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-edit-notes">Notes (optionnel)</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-edit-notes">
+                  {t("fields.notesOptional")}
+                </PekuloFieldLabel>
                 <PekuloInput
                   id="tx-edit-notes"
                   type="text"
@@ -217,8 +222,8 @@ export function TransactionEditForm({ transaction, onSuccess }: TransactionEditF
             }
           </form.Subscribe>
           {envelopeError && <PekuloFieldError>{envelopeError}</PekuloFieldError>}
-          <PekuloSubmitButton loading={isPending} loadingLabel="Enregistrement…">
-            Enregistrer
+          <PekuloSubmitButton loading={isPending} loadingLabel={t("saving")}>
+            {t("save")}
           </PekuloSubmitButton>
         </PekuloFieldGroup>
       </View>

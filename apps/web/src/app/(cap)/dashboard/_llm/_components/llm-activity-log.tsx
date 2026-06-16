@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { LlmOutcome, LlmRoute } from "@pekulo/types";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloPagination, Section } from "@pekulo/ui";
@@ -23,14 +24,15 @@ const ROUTE_LABEL: Record<LlmRoute, string> = {
   ollama: "Ollama",
   third_party: "Cloud",
 };
-const OUTCOME_LABEL: Record<LlmOutcome, string> = {
-  success: "Réussi",
-  failure: "Échec",
-  overridden: "Modifié",
-};
 const dateTimeFmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 
 export function LlmActivityLog() {
+  const t = useTranslations("llm");
+  const OUTCOME_LABEL: Record<LlmOutcome, string> = {
+    success: t("activityLog.outcomeSuccess"),
+    failure: t("activityLog.outcomeFailure"),
+    overridden: t("activityLog.outcomeOverridden"),
+  };
   const { data, isLoading, error } = useLlmActivityLog();
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => setIsHydrated(true), []);
@@ -47,7 +49,7 @@ export function LlmActivityLog() {
   const pageItems = items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
-    <Section title="Journal d'activité IA" ariaLabel="Journal d'activité de l'IA sur 90 jours">
+    <Section title={t("activityLog.title")} ariaLabel={t("activityLog.ariaLabel")}>
       {showLoading && (
         // Visually-hidden live region so AT hears the load (mirrors
         // llm-opt-in-toggle.tsx). No <Suspense> here — useActionQuery surfaces
@@ -61,7 +63,7 @@ export function LlmActivityLog() {
           overflow="hidden"
         >
           <Text color="$colorTertiary" fontSize="$caption">
-            Chargement…
+            {t("activityLog.loading")}
           </Text>
         </View>
       )}
@@ -72,7 +74,7 @@ export function LlmActivityLog() {
       )}
       {!showLoading && !error && items.length === 0 && (
         <Text color="$colorTertiary" fontSize="$caption">
-          Aucun appel IA sur les 90 derniers jours.
+          {t("activityLog.empty")}
         </Text>
       )}
       {!showLoading && !error && items.length > 0 && (
@@ -113,7 +115,7 @@ export function LlmActivityLog() {
           page={safePage}
           pageCount={pageCount}
           onPageChange={(p) => setPage(p)}
-          ariaLabel="Pagination du journal d'activité IA"
+          ariaLabel={t("activityLog.paginationAriaLabel")}
         />
       )}
     </Section>

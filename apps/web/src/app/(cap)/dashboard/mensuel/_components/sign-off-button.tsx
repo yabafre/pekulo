@@ -11,6 +11,7 @@
 // when the user keeps the tab open across the window boundary.
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 import { View, Text } from "@pekulo/ui/client";
 import { isWithinCloseWindow, closeWindowBounds } from "@/lib/derive/close-window";
@@ -59,7 +60,8 @@ export function SignOffButton({
   derivedTransfersEur,
   derivedNetChangeEur,
 }: SignOffButtonProps) {
-  const monthName = MONTH_LABELS_FR[monthNum - 1];
+  const t = useTranslations("mensuel");
+  const monthName = MONTH_LABELS_FR[monthNum - 1] ?? "";
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
 
@@ -96,15 +98,15 @@ export function SignOffButton({
           borderWidth={0}
           opacity={0.5}
           cursor="not-allowed"
-          aria-label={`Clôturer ${monthName} (fenêtre fermée)`}
+          aria-label={t("signOff.ctaAriaClosed", { month: monthName })}
         >
           <Check size={14} strokeWidth={2} aria-hidden={true} />
           <Text color="$color" fontSize="$bodySm" fontWeight="500">
-            Clôturer {monthName}
+            {t("signOff.cta", { month: monthName })}
           </Text>
         </View>
         <Text color="$colorTertiary" fontSize="$caption" marginTop="$2">
-          Fenêtre de clôture : {formatWindow(year, monthNum)}
+          {t("signOff.window", { range: formatWindow(year, monthNum) })}
         </Text>
       </>
     );
@@ -127,11 +129,11 @@ export function SignOffButton({
         borderWidth={0}
         cursor="pointer"
         hoverStyle={{ opacity: 0.9 }}
-        aria-label={`Clôturer ${monthName}`}
+        aria-label={t("signOff.ctaAria", { month: monthName })}
       >
         <Check size={14} strokeWidth={2} color="var(--background)" aria-hidden={true} />
         <Text color="$background" fontSize="$bodySm" fontWeight="500">
-          Clôturer {monthName}
+          {t("signOff.cta", { month: monthName })}
         </Text>
       </View>
       <ClotureModal

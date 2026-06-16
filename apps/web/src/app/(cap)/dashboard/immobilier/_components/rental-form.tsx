@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloField,
   PekuloFieldDescription,
@@ -16,10 +17,6 @@ import { useAppForm } from "@/hooks/form-hook";
 import { useAttachRental } from "../_hooks/use-attach-rental";
 import { useUpdateRental } from "../_hooks/use-update-rental";
 
-const REALESTATE_NOT_FOUND_MSG = "Bien introuvable (déjà supprimé ?). Recharge la page.";
-const RENTAL_ALREADY_ATTACHED_MSG = "Ce bien a déjà un loyer. Modifie celui existant.";
-const RENTAL_NOT_FOUND_MSG = "Aucun loyer attaché à ce bien.";
-
 // Discriminated union — symmetric with MortgageFormProps. `mode: "update"`
 // MUST carry a non-null rental. See mortgage-form.tsx for the same rationale
 // (silent degradation to RENTAL_NOT_FOUND when null leaked through).
@@ -28,6 +25,7 @@ export type RentalFormProps =
   | { property: RealEstate; mode: "update"; rental: RealEstateRental; onSuccess?: () => void };
 
 export function RentalForm(props: RentalFormProps) {
+  const t = useTranslations("immobilier");
   const { property, mode, onSuccess } = props;
   const rental = props.mode === "update" ? props.rental : null;
   const attach = useAttachRental();
@@ -46,8 +44,8 @@ export function RentalForm(props: RentalFormProps) {
       onSubmit: ({ value }) => {
         const rent = Number(value.monthlyRent);
         const chg = Number(value.monthlyCharges);
-        if (!Number.isFinite(rent) || rent < 0) return "Loyer invalide (>= 0)";
-        if (!Number.isFinite(chg) || chg < 0) return "Charges invalides (>= 0)";
+        if (!Number.isFinite(rent) || rent < 0) return t("rental.errors.rentInvalid");
+        if (!Number.isFinite(chg) || chg < 0) return t("rental.errors.chargesInvalid");
         return undefined;
       },
     },
@@ -65,8 +63,8 @@ export function RentalForm(props: RentalFormProps) {
             if (!result.ok) {
               setSubmitError(
                 result.code === "RENTAL_ALREADY_ATTACHED"
-                  ? RENTAL_ALREADY_ATTACHED_MSG
-                  : REALESTATE_NOT_FOUND_MSG,
+                  ? t("rental.errors.alreadyAttached")
+                  : t("errors.realEstateNotFound"),
               );
               return;
             }
@@ -81,8 +79,8 @@ export function RentalForm(props: RentalFormProps) {
             if (!result.ok) {
               setSubmitError(
                 result.code === "RENTAL_NOT_FOUND"
-                  ? RENTAL_NOT_FOUND_MSG
-                  : REALESTATE_NOT_FOUND_MSG,
+                  ? t("rental.errors.notFound")
+                  : t("errors.realEstateNotFound"),
               );
               return;
             }
@@ -101,14 +99,14 @@ export function RentalForm(props: RentalFormProps) {
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label={mode === "attach" ? "Ajouter un loyer" : "Modifier le loyer"}
+      aria-label={mode === "attach" ? t("rental.attachAria") : t("rental.updateAria")}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
       <PekuloFieldGroup>
         <form.Field name="monthlyRent">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="r-rent">Loyer mensuel (EUR)</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="r-rent">{t("rental.fields.monthlyRent")}</PekuloFieldLabel>
               <PekuloInput
                 id="r-rent"
                 type="number"
@@ -124,7 +122,9 @@ export function RentalForm(props: RentalFormProps) {
         <form.Field name="monthlyCharges">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="r-chg">Charges mensuelles (EUR)</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="r-chg">
+                {t("rental.fields.monthlyCharges")}
+              </PekuloFieldLabel>
               <PekuloInput
                 id="r-chg"
                 type="number"
@@ -140,7 +140,7 @@ export function RentalForm(props: RentalFormProps) {
         <form.Field name="furnished">
           {(field) => (
             <PekuloField orientation="horizontal">
-              <PekuloFieldLabel htmlFor="r-furn">Meublé</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="r-furn">{t("rental.fields.furnished")}</PekuloFieldLabel>
               <PekuloNativeCheckbox
                 id="r-furn"
                 checked={field.state.value}
@@ -158,15 +158,15 @@ export function RentalForm(props: RentalFormProps) {
         {error && !submitError && <PekuloFieldError>{error.message}</PekuloFieldError>}
         {isSuccess && !submitError && !error && (
           <PekuloFieldDescription color="$success">
-            {mode === "attach" ? "Loyer ajouté." : "Loyer mis à jour."}
+            {mode === "attach" ? t("rental.successAdded") : t("rental.successUpdated")}
           </PekuloFieldDescription>
         )}
       </PekuloFieldGroup>
       <PekuloSubmitButton
         loading={isPending}
-        loadingLabel={mode === "attach" ? "Ajout…" : "Mise à jour…"}
+        loadingLabel={mode === "attach" ? t("rental.loadingAdd") : t("rental.loadingUpdate")}
       >
-        {mode === "attach" ? "Ajouter le loyer" : "Mettre à jour le loyer"}
+        {mode === "attach" ? t("rental.submitAdd") : t("rental.submitUpdate")}
       </PekuloSubmitButton>
     </form>
   );

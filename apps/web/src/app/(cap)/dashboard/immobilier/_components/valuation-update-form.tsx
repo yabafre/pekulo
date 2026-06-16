@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloDatePicker,
   PekuloField,
@@ -15,14 +16,13 @@ import type { RealEstate } from "@pekulo/types";
 import { useAppForm } from "@/hooks/form-hook";
 import { useRecordValuation } from "../_hooks/use-record-valuation";
 
-const REALESTATE_NOT_FOUND_MSG = "Bien introuvable (déjà supprimé ?). Recharge la page.";
-
 export interface ValuationUpdateFormProps {
   property: RealEstate;
   onSuccess?: () => void;
 }
 
 export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateFormProps) {
+  const t = useTranslations("immobilier");
   const { mutate, isPending, error, isSuccess, reset } = useRecordValuation();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -34,8 +34,8 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
     validators: {
       onSubmit: ({ value }) => {
         const amt = Number(value.amount);
-        if (!Number.isFinite(amt) || amt < 0) return "Valorisation invalide (>= 0)";
-        if (!value.valuedOn) return "Date requise";
+        if (!Number.isFinite(amt) || amt < 0) return t("valuation.errors.amountInvalid");
+        if (!value.valuedOn) return t("valuation.errors.dateRequired");
         return undefined;
       },
     },
@@ -50,7 +50,7 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
         {
           onSuccess: (result) => {
             if (!result.ok) {
-              setSubmitError(REALESTATE_NOT_FOUND_MSG);
+              setSubmitError(t("errors.realEstateNotFound"));
               return;
             }
             form.reset();
@@ -68,14 +68,14 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Mettre à jour la valorisation"
+      aria-label={t("valuation.formAria")}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
       <PekuloFieldGroup>
         <form.Field name="amount">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="v-amount">Nouvelle valorisation (EUR)</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="v-amount">{t("valuation.fields.amount")}</PekuloFieldLabel>
               <PekuloInput
                 id="v-amount"
                 type="number"
@@ -91,7 +91,7 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
         <form.Field name="valuedOn">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="v-date">Date de valorisation</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="v-date">{t("valuation.fields.date")}</PekuloFieldLabel>
               <PekuloDatePicker
                 id="v-date"
                 value={field.state.value}
@@ -108,13 +108,11 @@ export function ValuationUpdateForm({ property, onSuccess }: ValuationUpdateForm
         {submitError && <PekuloFieldError>{submitError}</PekuloFieldError>}
         {error && !submitError && <PekuloFieldError>{error.message}</PekuloFieldError>}
         {isSuccess && !submitError && !error && (
-          <PekuloFieldDescription color="$success">
-            Valorisation enregistrée.
-          </PekuloFieldDescription>
+          <PekuloFieldDescription color="$success">{t("valuation.success")}</PekuloFieldDescription>
         )}
       </PekuloFieldGroup>
-      <PekuloSubmitButton loading={isPending} loadingLabel="Enregistrement…">
-        Enregistrer la valorisation
+      <PekuloSubmitButton loading={isPending} loadingLabel={t("valuation.loading")}>
+        {t("valuation.submit")}
       </PekuloSubmitButton>
     </form>
   );

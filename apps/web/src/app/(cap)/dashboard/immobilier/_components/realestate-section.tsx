@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
@@ -41,6 +42,7 @@ const addPill: CSSProperties = {
 };
 
 export function RealestateSection() {
+  const t = useTranslations("immobilier");
   const properties = useProperties();
   const derives = useListPropertyDerives();
   const [createOpen, setCreateOpen] = useState(false);
@@ -80,7 +82,7 @@ export function RealestateSection() {
           height={1}
           overflow="hidden"
         >
-          Chargement du portefeuille immobilier…
+          {t("section.loading")}
         </Text>
         <View
           flexDirection="column"
@@ -88,7 +90,7 @@ export function RealestateSection() {
           $lg={{ flexDirection: "row", gap: "$4", alignItems: "stretch" }}
         >
           <View width="100%" $lg={{ flex: 7, flexBasis: 0, minWidth: 0 }}>
-            <Section ariaLabel="Equity nette — chargement" className={styles.cardStretch}>
+            <Section ariaLabel={t("section.equityLoadingAria")} className={styles.cardStretch}>
               <PekuloSkeleton height={12} />
               <View height={16} />
               <PekuloSkeleton block height={44} />
@@ -97,7 +99,7 @@ export function RealestateSection() {
             </Section>
           </View>
           <View width="100%" $lg={{ flex: 5, flexBasis: 0, minWidth: 0 }}>
-            <Section ariaLabel="Action — chargement" className={styles.cardStretch}>
+            <Section ariaLabel={t("section.actionLoadingAria")} className={styles.cardStretch}>
               <PekuloSkeleton height={12} />
               <View height={12} />
               <PekuloSkeleton lines={2} height={20} />
@@ -112,7 +114,7 @@ export function RealestateSection() {
     return (
       <View role="alert" paddingVertical="$6">
         <Text color="$danger" fontSize="$bodySm">
-          Erreur de chargement : {error.message}
+          {t("section.loadError", { message: error.message })}
         </Text>
       </View>
     );
@@ -122,7 +124,7 @@ export function RealestateSection() {
     <View flexDirection="column" gap="$6" width="100%" $lg={{ gap: 16 }}>
       {isRefetching && (
         <View alignSelf="flex-start">
-          <PekuloLoadingItem title="Mise à jour…" />
+          <PekuloLoadingItem title={t("section.refetching")} />
         </View>
       )}
       {/* Hero + Action — 7/5 split on lg+ (ux-preview L1650-1667 parity). */}
@@ -132,9 +134,9 @@ export function RealestateSection() {
         $lg={{ flexDirection: "row", gap: "$4", alignItems: "stretch" }}
       >
         <View width="100%" $lg={{ flex: 7, flexBasis: 0, minWidth: 0 }}>
-          <Section ariaLabel="Equity nette total" className={styles.cardStretch}>
+          <Section ariaLabel={t("section.equityTotalAria")} className={styles.cardStretch}>
             <Text color="$colorTertiary" fontSize="$caption">
-              Equity nette · EUR
+              {t("section.equityLabel")}
             </Text>
             <Text
               color="$color"
@@ -153,14 +155,17 @@ export function RealestateSection() {
               marginTop="$2"
               fontVariant={["tabular-nums"]}
             >
-              {eur0.format(totalValuation)} valorisation · {eur0.format(totalDebt)} dette restante
+              {t("section.subline", {
+                valuation: eur0.format(totalValuation),
+                debt: eur0.format(totalDebt),
+              })}
             </Text>
           </Section>
         </View>
         <View width="100%" $lg={{ flex: 5, flexBasis: 0, minWidth: 0 }}>
-          <Section ariaLabel="Action" className={styles.cardStretch}>
+          <Section ariaLabel={t("section.actionAria")} className={styles.cardStretch}>
             <Text color="$colorTertiary" fontSize="$caption">
-              Portefeuille immobilier
+              {t("section.portfolioLabel")}
             </Text>
             <Text
               color="$color"
@@ -170,16 +175,16 @@ export function RealestateSection() {
               $lg={{ fontSize: "$h2" }}
               fontVariant={["tabular-nums"]}
             >
-              {rows.length} bien{rows.length > 1 ? "s" : ""}
+              {t("section.propertyCount", { count: rows.length })}
             </Text>
             <View paddingTop="$4">
               <button
                 type="button"
                 onClick={() => setCreateOpen(true)}
                 style={addPill}
-                aria-label="Ajouter un bien immobilier"
+                aria-label={t("section.addAria")}
               >
-                <Plus size={14} strokeWidth={2.5} aria-hidden={true} /> Ajouter un bien
+                <Plus size={14} strokeWidth={2.5} aria-hidden={true} /> {t("section.addProperty")}
               </button>
             </View>
           </Section>
@@ -187,9 +192,9 @@ export function RealestateSection() {
       </View>
 
       {rows.length === 0 ? (
-        <Section ariaLabel="Aucun bien">
+        <Section ariaLabel={t("section.emptyAria")}>
           <Text color="$colorTertiary" fontSize="$bodySm">
-            Aucun bien immobilier pour le moment. Clique « Ajouter un bien » pour créer le premier.
+            {t("section.empty")}
           </Text>
         </Section>
       ) : (
@@ -204,10 +209,8 @@ export function RealestateSection() {
           <PekuloDialog.Overlay />
           <PekuloDialog.Content>
             <DialogCloseX />
-            <PekuloDialog.Title>Ajouter un bien</PekuloDialog.Title>
-            <PekuloDialog.Description>
-              Libellé, type (résidence principale / locatif / autre), valorisation EUR et date.
-            </PekuloDialog.Description>
+            <PekuloDialog.Title>{t("create.dialogTitle")}</PekuloDialog.Title>
+            <PekuloDialog.Description>{t("create.dialogDescription")}</PekuloDialog.Description>
             <PropertyCreateForm onSuccess={() => setCreateOpen(false)} />
           </PekuloDialog.Content>
         </PekuloDialog.Portal>

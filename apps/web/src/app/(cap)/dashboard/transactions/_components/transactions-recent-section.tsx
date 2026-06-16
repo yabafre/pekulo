@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { Text, View } from "@pekulo/ui/client";
 import {
@@ -118,6 +119,7 @@ function isAiApplied(tx: Transaction): boolean {
 }
 
 export function TransactionsRecentSection() {
+  const t = useTranslations();
   const [rawPage, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   // A malformed ?page=0 / ?page=-3 clamps to page 1 rather than silently
   // dropping into cursor mode (a falsy page → unscoped window, no totalCount).
@@ -199,15 +201,19 @@ export function TransactionsRecentSection() {
 
   return (
     <Section
-      ariaLabel="Récentes"
-      title="Récentes"
+      ariaLabel={t("transactions.recentTitle")}
+      title={t("transactions.recentTitle")}
       action={
         <View flexDirection="row" gap="$2">
-          <HeaderAction icon={Upload} label="Importer" onPress={() => setCsvImportOpen(true)} />
+          <HeaderAction
+            icon={Upload}
+            label={t("transactions.import")}
+            onPress={() => setCsvImportOpen(true)}
+          />
           <HeaderAction
             icon={Search}
-            label="Filtrer"
-            onPress={() => toast.info("Bientôt", "Le filtre transactions arrive plus tard.")}
+            label={t("transactions.filter")}
+            onPress={() => toast.info(t("transactions.soon"), t("transactions.filterSoon"))}
           />
         </View>
       }
@@ -222,7 +228,7 @@ export function TransactionsRecentSection() {
             height={1}
             overflow="hidden"
           >
-            Chargement…
+            {t("transactions.loading")}
           </Text>
           <PekuloSkeleton lines={3} height={48} />
         </View>
@@ -233,20 +239,20 @@ export function TransactionsRecentSection() {
             {userErrorMessage(error, "transactions")}
           </Text>
           <button type="button" onClick={() => void refetch()} style={retryBtn}>
-            Réessayer
+            {t("transactions.retry")}
           </button>
         </View>
       )}
       {!showLoading && !error && items.length === 0 && (
         <Text color="$colorTertiary" fontSize="$caption">
-          Aucune transaction. Ajoute la première pour démarrer le suivi mensuel.
+          {t("transactions.empty")}
         </Text>
       )}
 
       {!showLoading && items.length > 0 && (
         <>
           {items.some(isAiApplied) && pendingTotal === 0 ? <AiTransparencyNotice /> : null}
-          <View flexDirection="column" role="list" aria-label="Liste des transactions">
+          <View flexDirection="column" role="list" aria-label={t("transactions.listAria")}>
             {items.map((tx) => {
               const activity = txToActivity(tx, accountLabelById.get(tx.accountId) ?? "—");
               // Story 6-8 (DR-13) — every row shows its category icon as an
@@ -282,22 +288,25 @@ export function TransactionsRecentSection() {
                       type="button"
                       onClick={() => openFor("edit", tx)}
                       style={rowActionBtn}
-                      aria-label={`Modifier ${tx.label}`}
+                      aria-label={t("transactions.editRowAria", { label: tx.label })}
                     >
-                      Modifier
+                      {t("transactions.edit")}
                     </button>
                     <button
                       type="button"
                       onClick={() => openFor("delete", tx)}
                       style={dangerRowActionBtn}
-                      aria-label={`Supprimer ${tx.label}`}
+                      aria-label={t("transactions.deleteRowAria", { label: tx.label })}
                     >
-                      Supprimer
+                      {t("transactions.delete")}
                     </button>
                   </View>
                   <View marginLeft="$2" $lg={{ display: "none" }}>
                     <PekuloPopover>
-                      <PekuloPopover.Trigger style={kebabBtn} aria-label={`Actions ${tx.label}`}>
+                      <PekuloPopover.Trigger
+                        style={kebabBtn}
+                        aria-label={t("transactions.actionsRowAria", { label: tx.label })}
+                      >
                         <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
                       </PekuloPopover.Trigger>
                       <PekuloPopover.Content minWidth={180}>
@@ -306,14 +315,14 @@ export function TransactionsRecentSection() {
                           onClick={() => openFor("edit", tx)}
                           style={popoverActionBtnNeutral}
                         >
-                          Modifier
+                          {t("transactions.edit")}
                         </button>
                         <button
                           type="button"
                           onClick={() => openFor("delete", tx)}
                           style={popoverActionBtnDanger}
                         >
-                          Supprimer
+                          {t("transactions.delete")}
                         </button>
                       </PekuloPopover.Content>
                     </PekuloPopover>
@@ -330,7 +339,7 @@ export function TransactionsRecentSection() {
           page={page}
           pageCount={pageCount}
           onPageChange={(p) => void setPage(p)}
-          ariaLabel="Pagination des transactions"
+          ariaLabel={t("transactions.paginationAria")}
         />
       )}
 
@@ -340,7 +349,9 @@ export function TransactionsRecentSection() {
             <PekuloDialog.Overlay />
             <PekuloDialog.Content>
               <View flexDirection="column" gap="$3">
-                <PekuloDialog.Title>Modifier « {activeTx.label} »</PekuloDialog.Title>
+                <PekuloDialog.Title>
+                  {t("transactions.editTitle", { label: activeTx.label })}
+                </PekuloDialog.Title>
               </View>
               <TransactionEditForm transaction={activeTx} onSuccess={closeAll} />
               <PekuloDialog.Close asChild>
@@ -353,7 +364,7 @@ export function TransactionsRecentSection() {
                   alignItems="center"
                 >
                   <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                    Annuler
+                    {t("common.cancel")}
                   </Text>
                 </View>
               </PekuloDialog.Close>
