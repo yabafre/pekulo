@@ -14,8 +14,8 @@ import { Prisma } from "@generated/prisma/client";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 22 model entries (… + 7-2 DashboardLayout:null)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(22);
+  it("exposes exactly 23 model entries (… + 8-2 UserPref:null)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(23);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -61,6 +61,7 @@ describe("id-prefixes.config", () => {
       "MerchantLogoCache",
       "ProviderLogoCache",
       "DashboardLayout",
+      "UserPref",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
   });
@@ -80,6 +81,14 @@ describe("id-prefixes.config", () => {
   // MissingPrefixError (the runtime 500 the stubbed unit tests could not catch).
   it("dashboard layout is registered null (user_id PK, opt-out)", () => {
     expect(getPrefix("DashboardLayout")).toBeNull();
+  });
+
+  // Story 8-2 (FR-51/FR-52): user_pref has a `user_id` PK (UUID FK to
+  // auth.users), no synthetic id — opt out of prefix injection (null), same
+  // shape as DashboardLayout. Without this, the getOrCreate upsert's create
+  // branch throws MissingPrefixError (lesson 2026-06-05).
+  it("user pref is registered null (user_id PK, opt-out)", () => {
+    expect(getPrefix("UserPref")).toBeNull();
   });
 
   it("getPrefix returns the registered prefix for a known model", () => {
