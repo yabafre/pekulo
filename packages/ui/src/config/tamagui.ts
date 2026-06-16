@@ -3,16 +3,18 @@
 // (web-only, RSC-safe, honours prefers-reduced-motion natively) + Pekulo
 // themes/tokens.
 //
-// Only `pekulo-dark` is registered in `themes:` due to the @tamagui/cli
-// v2-rc.41 selector-emission bug for two custom-named themes (finding 3
-// of W2 spike). `pekulo-light` exists in TS for the contrast tests +
-// future re-registration. When the CLI bug ships a fix, add
-// `"pekulo-light": pekuloLight` here in one line.
+// Both `pekulo-dark` and `pekulo-light` are registered (story 8-2, AC-2).
+// @tamagui/cli rc.42 STILL collides two custom themes onto one `.tm_*` class
+// (the rc.41 bug persists), so the generated theme blocks are re-keyed to
+// `[data-theme="pekulo-dark"]` / `[data-theme="pekulo-light"]` by
+// scripts/fix-tamagui-css.mjs — the attribute NextThemeProvider + the layout
+// anti-FOUC script both write. See that script's header for the full rationale.
 import { defaultConfig } from "@tamagui/config/v5";
 import { animations } from "@tamagui/config/v5-css";
 import { createTamagui } from "@tamagui/core";
 
 import { pekuloDark } from "../themes/pekulo-dark";
+import { pekuloLight } from "../themes/pekulo-light";
 import {
   pekuloFonts,
   pekuloFontSizes,
@@ -34,6 +36,7 @@ export const config = createTamagui({
   },
   themes: {
     "pekulo-dark": pekuloDark,
+    "pekulo-light": pekuloLight,
   },
   defaultTheme: "pekulo-dark",
   // Token overrides — Pekulo spacing/radius/font scales replace defaultConfig's.

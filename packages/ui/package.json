@@ -27,7 +27,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "generate:tamagui-css": "tamagui generate-css && bun run fix:tamagui-css",
-    "fix:tamagui-css": "node -e \"const fs=require('fs');const p='public/tamagui.generated.css';fs.writeFileSync(p,fs.readFileSync(p,'utf8').replace(/^     {/gm,':root {').replace(/^, \\.tm_/gm,':root, .tm_'));\""
+    "fix:tamagui-css": "node scripts/fix-tamagui-css.mjs"
   },
   "dependencies": {
     "@pekulo/types": "workspace:*",
