@@ -18,6 +18,24 @@ import { ToastProvider } from "@pekulo/ui";
 
 expect.extend(matchers);
 
+// Mirror packages/ui/test/setup.tsx: report `prefers-reduced-motion: reduce` so
+// rAF-driven count-ups (e.g. PekuloDonut's fromZero mount sweep) render settled
+// instead of mid-animation — deterministic DOM, no unwrapped act() updates.
+// Non-motion media queries (Tamagui breakpoints) still report no-match; a test
+// can reassign window.matchMedia to exercise the motion-allowed path.
+if (typeof window !== "undefined") {
+  window.matchMedia = ((query: string) => ({
+    matches: /prefers-reduced-motion/.test(query),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
 function TamaguiTestProvider({ children }: { children: ReactNode }): ReactElement {
   return (
     <TamaguiProvider

@@ -20,6 +20,25 @@ import { config } from "../src/config/tamagui";
 
 expect.extend(matchers);
 
+// Deterministic animations in tests: report `prefers-reduced-motion: reduce` so
+// rAF-driven count-ups (e.g. PekuloDonut's mount sweep, fromZero) render at
+// their settled target value instead of a mid-animation frame — snapshots stay
+// stable and no unwrapped act() updates fire. Non-motion media queries (Tamagui
+// breakpoints) still report no-match. Individual tests can reassign
+// window.matchMedia to exercise the motion-allowed path.
+if (typeof window !== "undefined") {
+  window.matchMedia = ((query: string) => ({
+    matches: /prefers-reduced-motion/.test(query),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
 // Test wrapper: TamaguiProvider only (no NextThemeProvider — that wrapper
 // pulls @tamagui/next-theme which imports next/script, a peer that lives
 // only in apps/web). defaultTheme="pekulo-dark" still applies in tests.

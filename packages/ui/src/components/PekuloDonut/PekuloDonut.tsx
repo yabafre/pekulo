@@ -30,7 +30,9 @@ export interface PekuloDonutProps {
 
 export function PekuloDonut({ pct, size = 96, stroke = 8, centered, ariaLabel }: PekuloDonutProps) {
   const clamped = Math.max(0, Math.min(1, pct));
-  const animated = useCountUp(clamped, { durationMs: 900 });
+  // fromZero → the ring sweeps from empty and the label counts up from 0 % on
+  // mount (parity with the ux-preview donut), web + native, no framer-motion.
+  const animated = useCountUp(clamped, { durationMs: 900, fromZero: true });
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - animated);
