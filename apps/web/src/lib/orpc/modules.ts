@@ -5,10 +5,10 @@
 // `accountsClient.list({ ... })` and propagate the typed response.
 //
 // Only clients backed by a mounted apps/api router are exported. The api
-// router today exposes 11 modules: compass, milestones, accounts, holdings,
+// router today exposes 12 modules: compass, milestones, accounts, holdings,
 // hypothesis, realestate, transactions, monthly, bankaggregator, llm,
-// dashboard. Clients for contracts whose api route hasn't shipped yet (e.g.
-// auth, settings) are added back as the corresponding story lands them
+// dashboard, settings. Clients for contracts whose api route hasn't shipped
+// yet (e.g. auth) are added back as the corresponding story lands them
 // server-side — keeping this file aligned with the actual route surface
 // prevents accidental 404s on unmounted paths.
 //
@@ -34,6 +34,7 @@ import {
   bankAggregatorContract,
   llmContract,
   dashboardContract,
+  settingsContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -83,4 +84,9 @@ export const llmClient: ContractRouterClient<typeof llmContract> = createORPCCli
 export const dashboardClient: ContractRouterClient<typeof dashboardContract> = createORPCClient(
   orpcLink,
   { path: ["dashboard"] },
+);
+// Story 8-2 — user preferences (theme/lang). Mount path `/rpc/v1/settings`.
+export const settingsClient: ContractRouterClient<typeof settingsContract> = createORPCClient(
+  orpcLink,
+  { path: ["settings"] },
 );

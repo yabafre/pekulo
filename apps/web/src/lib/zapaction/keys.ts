@@ -173,8 +173,20 @@ export const dashboardLayoutTags = createFeatureTags(DASHBOARD_KEY, {
   current: () => ["layout"] as const,
 });
 
+// Story 8-2 (FR-51/FR-52) — per-user theme/lang preferences. updateTheme /
+// updateLang invalidate the single `current` read so a server-persisted change
+// survives a reload. The live client mirror is next-theme/next-intl; this key
+// covers any RSC/hook that reads the persisted pref.
+export const settingsKeys = createFeatureKeys("settings", {
+  current: () => ["current"] as const,
+});
+export const settingsTags = createFeatureTags("settings", {
+  current: () => ["current"] as const,
+});
+
 setTagRegistry({
   [dashboardLayoutTags.current()]: [dashboardLayoutKeys.layout()],
+  [settingsTags.current()]: [settingsKeys.current()],
   [hypothesesTags.all()]: [
     hypothesesKeys.current(),
     ["hypotheses", "projection"],
