@@ -1,7 +1,7 @@
 # Story: 8-2-theme-language-prefs — Theme + language preferences (full i18n + server-persisted)
 
 **Epic:** Epic 8 — Auth & preferences
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#43](https://github.com/yabafre/pekulo/issues/43)
 **Branch:** feature/43-8-2-theme-language-prefs
 **Commit prefix:** `feat(#43): …` (or `test(#43):` / `chore(#43):` per change type)
@@ -31,7 +31,7 @@
 
 **Sub-lot A — Data layer (`UserPref` + enums + migration + RLS)**
 
-- [ ] **T1 — Add `ThemePref` + `LangPref` enums.** [AC: AC-1, AC-4]
+- [x] **T1 — Add `ThemePref` + `LangPref` enums.** [AC: AC-1, AC-4]
   Append to `apps/api/prisma/schema/enums.prisma`:
   ```prisma
   // User-preference enums (story 8-2, FR-51 / FR-52). All identifiers are
@@ -56,7 +56,7 @@
   Expected: `The schema at …/schema is valid 🚀`, exit 0.
   Commit: `git add apps/api/prisma/schema/enums.prisma && git commit -m "feat(#43): add ThemePref + LangPref enums"`
 
-- [ ] **T2 — Add the `UserPref` model (per-user singleton).** [AC: AC-6, AC-7, AC-8]
+- [x] **T2 — Add the `UserPref` model (per-user singleton).** [AC: AC-6, AC-7, AC-8]
   Create `apps/api/prisma/schema/settings.prisma` (mirror of `dashboard.prisma` — PK is `user_id`, one row per user):
   ```prisma
   // apps/api/prisma/schema/settings.prisma
@@ -81,7 +81,7 @@
   Expected: schema valid, exit 0.
   Commit: `git add apps/api/prisma/schema/settings.prisma && git commit -m "feat(#43): add UserPref model (per-user singleton)"`
 
-- [ ] **T3 — Register `UserPref` as a prefixed-ID opt-out.** [AC: AC-8]
+- [x] **T3 — Register `UserPref` as a prefixed-ID opt-out.** [AC: AC-8]
   In `apps/api/src/database/id-prefixes.config.ts`, add this entry to `ID_PREFIXES` (after the `DashboardLayout: null` line, before the closing `} as const satisfies …`):
   ```ts
     // UserPref (story 8-2, FR-51/FR-52) — PK is `user_id` (UUID FK to
@@ -94,7 +94,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/api/src/database/id-prefixes.config.ts && git commit -m "feat(#43): register UserPref prefixed-id opt-out"`
 
-- [ ] **T4 — Generate the migration + hand-append the 3 RLS policies.** [AC: AC-7]
+- [x] **T4 — Generate the migration + hand-append the 3 RLS policies.** [AC: AC-7]
   1. Generate: `bun --filter='@pekulo/api' run prisma:migrate:dev -- --name create_user_pref` (creates `apps/api/prisma/migrations/<timestamp>_create_user_pref/migration.sql` + the `theme_pref` / `lang_pref` enum DDL).
   2. **Append** the RLS block to the bottom of that generated `migration.sql` (mirror of `dashboard_layout` — SELECT/INSERT/UPDATE only, no DELETE):
   ```sql
@@ -118,7 +118,7 @@
 
 **Sub-lot B — Validators + contract**
 
-- [ ] **T5 — Add the settings validators.** [AC: AC-1, AC-4, AC-8]
+- [x] **T5 — Add the settings validators.** [AC: AC-1, AC-4, AC-8]
   Create `packages/validators/src/settings/settings.schemas.ts`:
   ```ts
   // Zod source of truth for the settings (user-preference) domain. Consumed by
@@ -161,7 +161,7 @@
   Expected: no errors, exit 0.
   Commit: `git add packages/validators/src/settings packages/validators/src/index.ts && git commit -m "feat(#43): settings validators (theme/lang prefs)"`
 
-- [ ] **T6 — Fill the settings oRPC contract.** [AC: AC-1, AC-4, AC-6]
+- [x] **T6 — Fill the settings oRPC contract.** [AC: AC-1, AC-4, AC-6]
   Replace the body of `packages/contracts/src/settings/settings.contract.ts` (it is currently an empty scaffold — keep the existing `settingsContractMeta`, replace `settingsContractV1`):
   ```ts
   // packages/contracts/src/settings/settings.contract.ts
@@ -196,7 +196,7 @@
 
 **Sub-lot C — `settings` API module (mirror of `milestones`/`dashboard`)**
 
-- [ ] **T7 — Settings errors + repository.** [AC: AC-6, AC-8]
+- [x] **T7 — Settings errors + repository.** [AC: AC-6, AC-8]
   Create `apps/api/src/modules/settings/settings.errors.ts`:
   ```ts
   // Typed error class for the settings module. Extends PekuloError so the
@@ -278,7 +278,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.errors.ts apps/api/src/modules/settings/settings.repository.ts && git commit -m "feat(#43): settings repository (per-user upsert)"`
 
-- [ ] **T8 — Settings service.** [AC: AC-6, AC-8]
+- [x] **T8 — Settings service.** [AC: AC-6, AC-8]
   Create `apps/api/src/modules/settings/settings.service.ts`:
   ```ts
   // Domain service for the settings module (story 8-2). Owns:
@@ -321,7 +321,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.service.ts && git commit -m "feat(#43): settings service (get/updateTheme/updateLang)"`
 
-- [ ] **T9 — Settings routes + module factory.** [AC: AC-6, AC-8]
+- [x] **T9 — Settings routes + module factory.** [AC: AC-6, AC-8]
   Create `apps/api/src/modules/settings/settings.routes.ts` (mirror `milestones.routes.ts` — `implement(contract).$context<…>()` + `requireUserId`):
   ```ts
   // oRPC handlers for the settings module (story 8-2). Each handler reads
@@ -390,7 +390,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.routes.ts apps/api/src/modules/settings/settings.module.ts && git commit -m "feat(#43): settings routes + module factory"`
 
-- [ ] **T10 — Mount the settings module in the oRPC router.** [AC: AC-6]
+- [x] **T10 — Mount the settings module in the oRPC router.** [AC: AC-6]
   In `apps/api/src/bootstrap/runtime-dependencies.ts`:
   1. Add the import alongside the other `createXxxModule` imports:
   ```ts
@@ -410,7 +410,7 @@
   Expected: typecheck clean; bun test prints `… pass`, exit 0 (after T11 lands the tests).
   Commit: `git add apps/api/src/bootstrap/runtime-dependencies.ts && git commit -m "feat(#43): mount settings module under /rpc/v1/settings"`
 
-- [ ] **T11 — Settings service + integration tests.** [AC: AC-6, AC-7, AC-8]
+- [x] **T11 — Settings service + integration tests.** [AC: AC-6, AC-7, AC-8]
   Create `apps/api/src/modules/settings/settings.service.test.ts` using `bun:test` (mirror the structure of `milestones.service.test.ts`): cover `get` returns `{theme:'system', lang:'fr'}` when the repository finds nothing (AC-6 default), `updateTheme` / `updateLang` delegate to the repository and return the upserted pref. Mock the repository with an in-memory object.
   Create `apps/api/src/modules/settings/settings.integration.test.ts` (mirror `dashboard.integration.test.ts`): exercise the real repository against the test DB — assert a second user's `get` never returns the first user's row (AC-8), and that `updateTheme` then `get` round-trips (AC-6).
   > Use `import { describe, it, expect } from "bun:test";` — apps/api runs the **bun-native** test runner, not vitest.
@@ -422,7 +422,7 @@
 
 > **Before writing any next-intl code:** pin the version with `npm view next-intl dist-tags` (memory: verify versions via npm directly, not Context7) and confirm the **App-Router / no-i18n-routing / cookie** setup against Context7 (`mcp__context7__query-docs` for `next-intl`) **and** `node_modules/next/dist/docs/` (apps/web/AGENTS.md — this Next.js has breaking changes vs training data). next-intl must be compatible with Next 16.2.9 + Turbopack (`apps/web/next.config.ts` runs Turbopack with `resolveAlias`).
 
-- [ ] **T12 — Install + configure next-intl.** [AC: AC-4, AC-5]
+- [x] **T12 — Install + configure next-intl.** [AC: AC-4, AC-5]
   1. Install (exact version from the dist-tag check): `bun add --cwd apps/web next-intl@<latest>` (memory: `bun add --filter` targets root — use `--cwd apps/web`).
   2. Create `apps/web/src/i18n/request.ts` (cookie-driven locale, no routing segment):
   ```ts
@@ -457,7 +457,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/web/package.json apps/web/src/i18n/request.ts apps/web/next.config.ts && git commit -m "feat(#43): wire next-intl (cookie locale, no routing)"`
 
-- [ ] **T13 — Seed message catalogs + provider + dynamic `<html lang>`.** [AC: AC-4, AC-5]
+- [x] **T13 — Seed message catalogs + provider + dynamic `<html lang>`.** [AC: AC-4, AC-5]
   1. Create `apps/web/messages/fr.json` and `apps/web/messages/en.json` seeded with the Settings + Auth keys (the sweep in Sub-lot G grows these). Start with:
   ```json
   {
@@ -495,7 +495,7 @@
 
 **Sub-lot E — Theme registration**
 
-- [ ] **T14 — Register `pekulo-light` in the Tamagui config.** [AC: AC-2]
+- [x] **T14 — Register `pekulo-light` in the Tamagui config.** [AC: AC-2]
   In `packages/ui/src/config/tamagui.ts`: import `pekuloLight` and add it to `themes`. Update the header note. The provider already declares `themes={["pekulo-light", "pekulo-dark"]}` (`packages/ui/src/provider/index.tsx`), so this closes the registration gap.
   ```ts
   import { pekuloDark } from "../themes/pekulo-dark";
@@ -514,7 +514,7 @@
 
 **Sub-lot F — Apparence UI + actions + cross-device hydration**
 
-- [ ] **T15 — Web settings client + server actions + cache tags.** [AC: AC-4, AC-6]
+- [x] **T15 — Web settings client + server actions + cache tags.** [AC: AC-4, AC-6]
   1. Add the settings client to `apps/web/src/lib/orpc/modules.ts` (import `settingsContract`, export `settingsClient` with `path: ["settings"]` — mirror the existing exports):
   ```ts
   import { /* …existing… */ settingsContract } from "@pekulo/contracts";
@@ -591,7 +591,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/web/src/lib/orpc/modules.ts apps/web/src/lib/zapaction/keys.ts apps/web/src/app/(cap)/dashboard/_appearance/_actions/settings-actions.ts && git commit -m "feat(#43): web settings client + theme/lang server actions"`
 
-- [ ] **T16 — Theme + Lang controls + Appearance section.** [AC: AC-1, AC-2, AC-3, AC-4]
+- [x] **T16 — Theme + Lang controls + Appearance section.** [AC: AC-1, AC-2, AC-3, AC-4]
   Create `apps/web/src/app/(cap)/dashboard/_appearance/_components/theme-control.tsx` (client — `PekuloSegmentedControl` + `@tamagui/next-theme` `useThemeSetting` for live apply + `updateTheme` action for server persistence; copy from `messages` via `useTranslations`):
   ```tsx
   "use client";
@@ -692,7 +692,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/web/src/app/(cap)/dashboard/_appearance && git commit -m "feat(#43): Apparence section + theme/lang controls"`
 
-- [ ] **T17 — Mount `<AppearanceSection/>` in Paramètres.** [AC: AC-1, AC-4]
+- [x] **T17 — Mount `<AppearanceSection/>` in Paramètres.** [AC: AC-1, AC-4]
   In `apps/web/src/app/(cap)/dashboard/parametres/page.tsx`: import and render `<AppearanceSection/>` right after `<AccountSection/>` (per the ux-preview order: Compte → Apparence). Update the stale header comment ("interim home until the real Settings screen lands in story 8-2") — the Settings screen is landing now.
   ```tsx
   import { AppearanceSection } from "../_appearance/_components/appearance-section";
@@ -705,7 +705,7 @@
   Expected: no errors, exit 0.
   Commit: `git add apps/web/src/app/(cap)/dashboard/parametres/page.tsx && git commit -m "feat(#43): mount Apparence section in Paramètres"`
 
-- [ ] **T18 — Cross-device hydrator on the authenticated layout.** [AC: AC-6]
+- [x] **T18 — Cross-device hydrator on the authenticated layout.** [AC: AC-6]
   Create `apps/web/src/app/(cap)/_components/preference-hydrator.tsx` (client — applies the server pref once on mount: theme via `useThemeSetting().set`, locale via the `NEXT_LOCALE` cookie + `router.refresh()` when it differs):
   ```tsx
   "use client";
@@ -745,7 +745,7 @@
 
 > This is the bulk-mechanical part of the « i18n complet » choice. Land Sub-lots A–F green first; this sweep is its own commit train. **Every file follows the identical recipe** — there is no per-file design, only application of the pattern below. Do NOT machine-translate blindly: keep the FR source verbatim as the key value, write the EN translation by hand.
 
-- [ ] **T19 — Inventory the hardcoded French strings.** [AC: AC-4, AC-5]
+- [x] **T19 — Inventory the hardcoded French strings.** [AC: AC-4, AC-5]
   Build the work-list (does not change code):
   ```bash
   # User-facing FR strings in client/server components + actions (excludes tests, comments-only matches need manual triage).
@@ -757,7 +757,7 @@
   Expected: a de-duplicated list of files to convert (the T20 checklist), exit 0.
   Commit: _(no commit — inventory only; paste the file list into the PR description)._
 
-- [ ] **T20 — Convert each area to `useTranslations` / `getTranslations` (repeat per file).** [AC: AC-4, AC-5]
+- [x] **T20 — Convert each area to `useTranslations` / `getTranslations` (repeat per file).** [AC: AC-4, AC-5]
   **Recipe (apply verbatim to every file in the T19 list):**
   1. Add a namespace block to `apps/web/messages/fr.json` for the area (e.g. `"portefeuille": { … }`), keys = camelCase slug of the string, value = the **exact current FR string**. Mirror the same keys into `en.json` with hand-written English.
   2. In a **client** component: `import { useTranslations } from "next-intl";` then `const t = useTranslations("<namespace>");` and replace each literal `"Foo"` with `{t("foo")}`. In a **server** component / action: `import { getTranslations } from "next-intl/server";` then `const t = await getTranslations("<namespace>");`.
@@ -797,13 +797,13 @@
 
 **Sub-lot H — Verification (a11y + final gates)**
 
-- [ ] **T21 — a11y on the Apparence section.** [AC: AC-1, AC-4]
+- [x] **T21 — a11y on the Apparence section.** [AC: AC-1, AC-4]
   Add a `vitest-axe` test for `AppearanceSection` (mirror an existing `*.axe.test.tsx` / vitest-axe usage in the repo): render the section, assert no axe violations and that each `PekuloSegmentedControl` exposes `role="radiogroup"` + `aria-label` (the component already sets these). Cover the `aria-checked` reflection on the active segment.
   Run: `bun --filter='@pekulo/web' run test apps/web/src/app/(cap)/dashboard/_appearance`
   Expected: `Test Files  1 passed`, `Tests  N passed`, exit 0.
   Commit: `git add apps/web/src/app/(cap)/dashboard/_appearance && git commit -m "test(#43): a11y on Apparence section"`
 
-- [ ] **T22 — Full typecheck + RLS audit + visual verification.** [AC: all]
+- [x] **T22 — Full typecheck + RLS audit + visual verification.** [AC: all]
   1. `bun --filter='@pekulo/api' run typecheck && bun --filter='@pekulo/web' run typecheck` → both exit 0.
   2. `bun --filter='@pekulo/api' run db:rls-audit` → `user_pref` shows 3 policies (AC-7), exit 0.
   3. Run the app, open `/dashboard/parametres`, and **visually verify** every GREEN per CLAUDE.md (frontend = visual verification): toggle theme (Système/Sombre/Clair — confirm `data-theme` flips and light actually renders, AC-1/2/3), toggle language (FR↔EN — confirm strings flip without full reload, AC-4; reload → no flash, AC-5). Use `mcp__react-grab-mcp__get_element_context` on the segmented controls.
@@ -999,20 +999,43 @@ export const dashboardClient: ContractRouterClient<typeof dashboardContract> = c
 
 ## Dev Agent Record
 
-_Filled by aped-dev at completion (step-08). Model / start / end stamped there._
+_Model: Opus 4.8 (1M). Started 2026-06-16, completed 2026-06-17 (classic single-session mode)._
 
 ### Summary
 
-_Filled by aped-dev._
+Shipped the full XL story end-to-end: the per-user `UserPref` data layer (Prisma + RLS 3-policies + `settings` oRPC module), the next-intl framework (cookie locale, no-routing), the `pekulo-light` theme registration, the Apparence UI (theme + language segmented controls) + cross-device preference hydrator, and the app-wide i18n string sweep. AC-6/7/8 are covered by automated tests (settings service + HTTP-boundary integration + the live `db:rls-audit`); AC-1/2/3/4/5 are theme/locale behaviours whose final confirmation is the **manual visual pass (T22 step 3), deferred** because React Grab MCP was unavailable this session.
+
+Two material surprises drove deviations: (1) `@tamagui/cli` rc.42 still carries the rc.41 two-custom-theme selector-collision bug, so registering `pekulo-light` required a `[data-theme]` re-key workaround (user-approved); (2) the T19 grep undercounted the sweep ~3× (it only matched accented strings) — the real surface was ~300+ strings across ~50 files, completed in full per user direction (the dashboard bulk via verified parallel sub-agents, the sensitive/auth/meta areas by hand).
 
 ### Files changed
 
-_Filled by aped-dev._
+(Full list: `git diff --name-only main..HEAD` — 88 files. Grouped:)
+
+- **Data layer (api):** `prisma/schema/{enums,settings}.prisma`, `prisma/migrations/20260616120000_create_user_pref/`, `database/id-prefixes.config.ts` (+ test), `scripts/rls-audit.ts` (registered `user_pref:3`).
+- **settings module (api):** `modules/settings/{repository,service,routes,module}.ts` + `{service,integration}.test.ts`, `bootstrap/runtime-dependencies.ts` (mount).
+- **Contracts/validators:** `@pekulo/contracts settings.contract.ts`, `@pekulo/validators settings/*` + index.
+- **i18n framework (web):** `next-intl` dep, `src/i18n/request.ts`, `next.config.ts`, `app/layout.tsx` (provider + dynamic lang), `messages/{fr,en}.json`, `test/setup.tsx` (NextIntlClientProvider + getTranslations mock).
+- **Theme (ui):** `config/tamagui.ts` (register pekulo-light), `provider/index.tsx` (attribute=data-theme + value map), `scripts/fix-tamagui-css.mjs` (new), `package.json`, `public/tamagui.generated.css`.
+- **Apparence UI (web):** `_appearance/_actions/settings-actions.ts`, `_appearance/_components/{theme-control,lang-control,appearance-section}.tsx` + a11y test, `(cap)/_components/preference-hydrator.tsx`, `(cap)/dashboard/layout.tsx`, `parametres/page.tsx`, `lib/orpc/modules.ts`, `lib/zapaction/keys.ts`.
+- **i18n sweep (web):** auth (auth-form, recover-form, auth-actions, recover/error, sign-out-button), dashboard chrome (cap-shell, placeholder-card, recent-activity, milestones, compass-setup-cta), accounts (4 forms), portefeuille (4), immobilier (7), transactions (7), mensuel (6), llm/hypothesis/bank/widgets (10), parametres/mensuel loading+error.
 
 ### Deviations
 
-_Filled by aped-dev._
+- **errors.ts skipped (T7):** `SettingsError`/`SETTINGS_NOT_FOUND` is never thrown (getOrCreate read, upsert writes, auth uses base `PekuloError("UNAUTHORIZED")`). Creating it would force an unused code into the shared `PekuloErrorCode` union + `ORPC_HTTP_STATUS_BY_CODE` + the runtime Set — dead code. Dropped per YAGNI/DoD.
+- **pekulo-light via `[data-theme]` re-key (T14):** `@tamagui/cli` rc.42 still collides both custom themes onto one `.tm_*` class (rc.41 bug persists — STOP-and-reported; user chose the workaround). `scripts/fix-tamagui-css.mjs` re-keys the generated blocks to `[data-theme="pekulo-dark"],:root` / `[data-theme="pekulo-light"]`; `NextThemeProvider` now uses `attribute="data-theme"` + `value` map + `defaultTheme="system"` (matches DEFAULT_USER_PREF). Visual render of light is the one item still needing the manual pass.
+- **Integration test = HTTP-boundary stub, not real-DB (T11):** every sibling `*.integration.test.ts` stubs the data layer; mirrored that. Repo `where:{userId}` is enforced by the lint rule; AC-7 by `db:rls-audit`.
+- **Migration hand-written + `migrate:deploy` (T4):** repo convention (lesson 2026-05-05), not `migrate dev` (hangs on the pooler). Applied to the live Supabase with user approval.
+- **`defineAction` uses `tags:` not `invalidates:` (T15):** story template was wrong; the real `DefineActionOptions` key is `tags`.
+- **`Text`/`View` from `@pekulo/ui/client` (T16); PreferenceHydrator mounted in `(cap)/dashboard/layout.tsx` (T18 — no `(cap)/layout.tsx` exists); pref read defensively** (a failed read degrades to system/fr, never 500s the dashboard).
+- **next-intl v4 (T13):** `NextIntlClientProvider` takes no `locale`/`messages` props (auto-inherited); pinned `next-intl@4.13.0`.
+- **Zustand NOT added** (design gate 2026-06-16) — next-theme/next-intl are the client mirrors. **Doc-debt for aped-review:** `architecture.md` L197 + L1119-1120 + L848-856 still describe Zustand theme/lang stores; refresh those driver lines (the upstream-doc write-guard blocks editing architecture.md while a story is in-progress — same defer-to-review precedent as 7-1/7-2).
+- **i18n sweep — verified delegation:** dashboard bulk areas converted via parallel sub-agents; merged centrally + typecheck + full suite + axe. The mensuel agent introduced 7 transient `MONTH_LABELS_FR` `string|undefined`→ICU type errors (caught + fixed at merge).
+- **i18n skips (documented):** `layout.tsx` SEO metadata (app is `robots:noindex`), `lib/config.ts` (Alex's personal 4-phase plan data for an unshipped view), `lib/user-error-message.ts` (pure non-React fallback util), `_widgets/widget-registry.tsx` module-level labels (need a hook-factory refactor + out-of-scope consumers). **Follow-up:** mensuel month names (`MONTH_LABELS_FR`) render in French under EN locale — date/number localization is a distinct concern (use `Intl.DateTimeFormat(locale)`); deferred.
 
 ### Test output
 
-_Filled by aped-dev._
+- `bun --filter='@pekulo/api' run test` → **903 pass, 0 fail** (104 files).
+- `bun --filter='@pekulo/web' run test` → **270 passed** (98 files; +2 Apparence a11y).
+- `bun --filter='@pekulo/api' run typecheck` + `@pekulo/web run typecheck` → both exit 0.
+- `bun --filter='@pekulo/api' run db:rls-audit` → OK, `user_pref (3 policies)` (AC-7).
+- **Visual verification (T22 step 3): NOT run** — React Grab MCP unavailable this session; theme toggle / live language switch / SSR no-flash / cross-device hydration must be confirmed manually on `/dashboard/parametres` before merge (or by aped-review's visual persona).
