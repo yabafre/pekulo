@@ -17,8 +17,11 @@ import { HypothesisSettings } from "../_hypothesis/_components/hypothesis-settin
 
 // Feature code is co-located by mount: accounts → dashboard/_account,
 // appearance (theme/lang) → dashboard/_appearance, compass → dashboard/_compass.
-// The Settings screen now hosts « Compte » (8-1) → « Apparence » (8-2, theme +
-// language) → compass + LLM + hypothesis settings, in ux-preview order.
+// Section order mirrors the ux-preview SSOT (docs/ux-preview/src/App.tsx
+// SettingsScreen): Compte → Apparence → Intelligence artificielle → … →
+// Hypothèse (last). Données + Session are not built yet; Compass (cap config,
+// a Pekulo-only addition absent from ux-preview) is grouped with the Hypothèse
+// projection cluster at the end.
 
 export default function ParametresPage() {
   return (
@@ -41,10 +44,10 @@ export default function ParametresPage() {
       >
         <AccountSection />
         <AppearanceSection />
-        <CompassEditForm />
-        <CompassHistoryPanel />
         <LlmOptInToggle />
         <LlmActivityLogLink />
+        <CompassEditForm />
+        <CompassHistoryPanel />
         <HypothesisSettings />
       </div>
     </div>
