@@ -58,6 +58,22 @@ a.is_Button,
   text-decoration: none;
 }
 
+/* Smooth the theme (data-theme) switch — when the attribute flips, the themed
+   CSS vars change and these colour properties fade instead of hard-cutting.
+   Scoped to colour props only (no layout/size/opacity), and `stroke`/`fill`
+   are included so the projection chart + markers recolour with the rest. The
+   reduced-motion block below overrides this to ~instant (a11y). */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 280ms ease,
+    color 280ms ease,
+    border-color 280ms ease,
+    fill 280ms ease,
+    stroke 280ms ease;
+}
+
 /* Reduced-motion: collapse every transition/animation to ~instant — a11y
    (NFR-22/23/24, WCAG 2.3.3). Global, with `!important` so it also overrides the
    inline `transition` PekuloSwitch sets on its track + thumb (and any future CSS
