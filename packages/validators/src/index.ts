@@ -12,4 +12,5 @@ export * from "./llm";
 export * from "./milestones";
 export * from "./monthly";
 export * from "./realestate";
+export * from "./settings";
 export * from "./transactions";

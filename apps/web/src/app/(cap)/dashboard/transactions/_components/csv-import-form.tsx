@@ -11,6 +11,7 @@
 // invalidateWithTags option (R12, codified by the 2026-05-24 lesson).
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloButton, PekuloDialog, PekuloSkeleton, useToast } from "@pekulo/ui";
 import type { PreviewedRow, ValidatedCsvRow } from "@pekulo/validators";
@@ -26,6 +27,7 @@ export interface CsvImportFormProps {
 }
 
 export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
+  const t = useTranslations("transactions");
   const [csvText, setCsvText] = useState("");
   const [previewedRows, setPreviewedRows] = useState<PreviewedRow[] | null>(null);
   const [summary, setSummary] = useState<{
@@ -97,7 +99,10 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
             setEnvelopeError(result.message);
             return;
           }
-          toast.success("Import réussi", `${result.persisted} transactions importées`);
+          toast.success(
+            t("csvImportSuccess"),
+            t("csvImportSuccessMessage", { count: result.persisted }),
+          );
           onOpenChange(false);
         },
       },
@@ -118,20 +123,19 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
         <PekuloDialog.Overlay />
         <PekuloDialog.Content maxWidth={920} width="92vw">
           <View flexDirection="column" gap="$4">
-            <PekuloDialog.Title>Importer un CSV</PekuloDialog.Title>
+            <PekuloDialog.Title>{t("csvImportTitle")}</PekuloDialog.Title>
             <Text fontSize="$caption" color="$colorTertiary">
-              Format : 4 colonnes par ligne — date (YYYY-MM-DD), montant (signe = sens : positif =
-              entrée, négatif = sortie), libellé, nom du compte. Max 1000 lignes.
+              {t("csvImportFormat")}
             </Text>
 
-            <form aria-label="Importer un CSV" onSubmit={handlePreview}>
+            <form aria-label={t("csvImportTitle")} onSubmit={handlePreview}>
               <View flexDirection="column" gap="$3">
                 <textarea
                   value={csvText}
                   onChange={(e) => setCsvText(e.target.value)}
-                  aria-label="Contenu CSV"
+                  aria-label={t("csvContentAria")}
                   rows={10}
-                  placeholder="2026-05-01,42.50,Courses Carrefour,Compte courant"
+                  placeholder={t("csvPlaceholder")}
                   className={styles.textarea}
                   style={{
                     width: "100%",
@@ -156,7 +160,7 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
                     type="submit"
                     disabled={previewMut.isPending || csvText.trim().length === 0}
                   >
-                    {previewMut.isPending ? "Analyse…" : "Aperçu"}
+                    {previewMut.isPending ? t("csvAnalysing") : t("csvPreview")}
                   </PekuloButton>
                 </View>
               </View>
@@ -171,18 +175,23 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
             {summary && previewedRows && (
               <View flexDirection="column" gap="$2">
                 <Text fontSize="$caption" color="$colorTertiary">
-                  {summary.valid} lignes valides · {summary.invalid} invalides · {summary.total} au
-                  total
+                  {t("csvSummary", {
+                    valid: summary.valid,
+                    invalid: summary.invalid,
+                    total: summary.total,
+                  })}
                 </Text>
                 {isStalePreview && (
                   <Text fontSize="$caption" color="$danger" role="alert">
-                    Le CSV a été modifié — relance « Aperçu » avant de confirmer.
+                    {t("csvStalePreview")}
                   </Text>
                 )}
                 <CsvPreviewTable rows={previewedRows} accountLabelById={accountLabelById} />
                 <View flexDirection="row" gap="$2" justifyContent="flex-end" marginTop="$3">
                   <PekuloButton onPress={handleConfirm} disabled={!canConfirm}>
-                    {importMut.isPending ? "Import…" : `Confirmer (${summary.valid})`}
+                    {importMut.isPending
+                      ? t("csvImporting")
+                      : t("csvConfirm", { count: summary.valid })}
                   </PekuloButton>
                 </View>
               </View>
@@ -198,7 +207,7 @@ export function CsvImportForm({ open, onOpenChange }: CsvImportFormProps) {
                 alignItems="center"
               >
                 <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                  Fermer
+                  {t("close")}
                 </Text>
               </View>
             </PekuloDialog.Close>

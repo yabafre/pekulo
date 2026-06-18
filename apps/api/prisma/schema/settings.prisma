@@ -1,0 +1,17 @@
+// apps/api/prisma/schema/settings.prisma
+// Per-user UI preferences (story 8-2 / FR-51 / FR-52). One row per user
+// (userId is the PK — a user has exactly one pref row). theme/lang are
+// Postgres enums (theme_pref / lang_pref). RLS (SELECT/INSERT/UPDATE where
+// user_id = auth.uid()) is appended to the migration SQL manually — Prisma
+// does not introspect policies (ADR-0013). No DELETE policy: a pref reset
+// overwrites via UPDATE; row removal happens only via cascade from
+// auth.users (account deletion, story 11-2). Same shape as DashboardLayout.
+model UserPref {
+  userId    String    @id @map("user_id") @db.Uuid
+  theme     ThemePref @default(system)
+  lang      LangPref  @default(fr)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("user_pref")
+}

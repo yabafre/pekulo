@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   PekuloProjectionChart,
   PekuloHypothesisVerdict,
@@ -25,12 +26,13 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 // financial arithmetic — every number is server-derived; buildChartModel only
 // maps offsets → calendar years (AC-9).
 export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
+  const t = useTranslations("hypothesis");
   const projection = useHypothesisProjection(currentWealth);
   const gap = useHypothesisGap(currentWealth);
 
   if (projection.isLoading || gap.isLoading) {
     return (
-      <Section title="Hypothèse" ariaLabel="Hypothèse (chargement)">
+      <Section title={t("card.title")} ariaLabel={t("card.ariaLabelLoading")}>
         <View role="status" aria-live="polite" $lg={{ flex: 1, minHeight: 0 }}>
           <Text
             color="$colorTertiary"
@@ -40,7 +42,7 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
             height={1}
             overflow="hidden"
           >
-            Chargement de la projection…
+            {t("card.loading")}
           </Text>
           <PekuloSkeleton block height={160} />
         </View>
@@ -52,9 +54,9 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
   // no-cap case; this is the defensive in-card branch.
   if (projection.isError || gap.isError || !projection.data || !gap.data) {
     return (
-      <Section title="Hypothèse" ariaLabel="Hypothèse indisponible">
+      <Section title={t("card.title")} ariaLabel={t("card.ariaLabelUnavailable")}>
         <Text role="alert" color="$colorTertiary" fontSize="$caption">
-          Configure ton cap pour voir ta projection.
+          {t("card.noCap")}
         </Text>
       </Section>
     );
@@ -66,13 +68,24 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
   const model = buildChartModel(proj, g, baseYear, currentWealth);
   const ratePct = (proj.annualRate * 100).toFixed(1);
 
+  // Story 8-2 i18n — the verdict is now a pure-UI component; the card owns the
+  // copy. Derive the display delta + shortfall here, translate + format, and
+  // pass ready strings down. `year` is passed as a string so next-intl doesn't
+  // group-format the calendar year (e.g. "2 034").
+  const targetYear = baseYear + g.horizonYears;
+  const delta = g.projectedFinalEur - g.requiredFinalEur;
+  const reaches = delta >= 0;
+  const signedDelta = `${reaches ? "+" : "−"}${eur0.format(Math.abs(delta))}`;
+  const gapEur = g.reachesCap ? undefined : g.gapEurPerMonth;
+  const showGap = !reaches && gapEur != null && gapEur > 0;
+
   return (
     <Section
-      title="Hypothèse"
-      ariaLabel="Hypothèse de projection"
+      title={t("card.title")}
+      ariaLabel={t("card.ariaLabel")}
       action={
         <Text color="$colorTertiary" fontSize="$caption">
-          {eur0.format(proj.monthlyContribution)} / mois · {ratePct} % / an
+          {t("card.action", { monthly: eur0.format(proj.monthlyContribution), rate: ratePct })}
         </Text>
       }
     >
@@ -83,12 +96,13 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
           required={model.required}
           nowMarker={model.nowMarker}
           capMarker={model.capMarker}
+          ariaLabel={t("card.chartAria")}
         />
         <PekuloHypothesisVerdict
-          projectedEur={g.projectedFinalEur}
-          requiredEur={g.requiredFinalEur}
-          targetYear={baseYear + g.horizonYears}
-          gapEurPerMonth={g.reachesCap ? undefined : g.gapEurPerMonth}
+          reaches={reaches}
+          headline={t(reaches ? "verdict.reaches" : "verdict.misses", { year: String(targetYear) })}
+          deltaLabel={t("verdict.delta", { delta: signedDelta })}
+          gapLabel={showGap ? t("verdict.gap", { amount: eur0.format(gapEur) }) : undefined}
         />
       </View>
     </Section>

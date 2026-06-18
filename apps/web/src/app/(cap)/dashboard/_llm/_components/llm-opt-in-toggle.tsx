@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloToggleRow, Section } from "@pekulo/ui";
 import { useLlmOptIn, useSetLlmOptIn } from "../_hooks/use-llm-opt-in";
@@ -11,6 +12,7 @@ import { useLlmOptIn, useSetLlmOptIn } from "../_hooks/use-llm-opt-in";
 // invalidates the read so the state persists across reloads. Default OFF until
 // the read resolves. Hydration-guarded (lessons.md 2026-05-24).
 export function LlmOptInToggle() {
+  const t = useTranslations("llm");
   const { data, isLoading, error } = useLlmOptIn();
   const setOptIn = useSetLlmOptIn();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -18,10 +20,10 @@ export function LlmOptInToggle() {
   const showLoading = !isHydrated || isLoading;
   const checked = data?.thirdParty ?? false;
   return (
-    <Section title="Intelligence artificielle" ariaLabel="Paramètres d'intelligence artificielle">
+    <Section title={t("optIn.title")} ariaLabel={t("optIn.ariaLabel")}>
       <PekuloToggleRow
-        label="Modèles d'IA tiers"
-        sub="Autoriser l'envoi de certaines transactions à une API tierce (Mistral, hébergée en UE) pour la catégorisation. Désactivé par défaut."
+        label={t("optIn.toggleLabel")}
+        sub={t("optIn.toggleSub")}
         checked={checked}
         disabled={showLoading || setOptIn.isPending}
         onChange={(v) => setOptIn.mutate({ thirdParty: v })}
@@ -38,7 +40,7 @@ export function LlmOptInToggle() {
           overflow="hidden"
         >
           <Text color="$colorTertiary" fontSize="$caption">
-            Chargement…
+            {t("optIn.loading")}
           </Text>
         </View>
       )}

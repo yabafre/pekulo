@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloDatePicker,
   PekuloField,
@@ -16,17 +17,17 @@ import { PROPERTY_TYPES, type PropertyType } from "@pekulo/types";
 import { useAppForm } from "@/hooks/form-hook";
 import { useCreateProperty } from "../_hooks/use-create-property";
 
-const TYPE_LABEL: Record<PropertyType, string> = {
-  "residence-principale": "Résidence principale",
-  locatif: "Locatif",
-  autre: "Autre",
-};
-
 export interface PropertyCreateFormProps {
   onSuccess?: () => void;
 }
 
 export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
+  const t = useTranslations("immobilier");
+  const TYPE_LABEL: Record<PropertyType, string> = {
+    "residence-principale": t("propertyType.residencePrincipale"),
+    locatif: t("propertyType.locatif"),
+    autre: t("propertyType.autre"),
+  };
   const { mutate, isPending, error, isSuccess, reset } = useCreateProperty();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -40,11 +41,11 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
     validators: {
       onSubmit: ({ value }) => {
         const label = value.label.trim();
-        if (label.length === 0) return "Libellé requis";
-        if (label.length > 120) return "Libellé > 120 caractères";
+        if (label.length === 0) return t("create.errors.labelRequired");
+        if (label.length > 120) return t("create.errors.labelTooLong", { max: 120 });
         const val = Number(value.currentValuation);
-        if (!Number.isFinite(val) || val < 0) return "Valorisation invalide (>= 0)";
-        if (!value.lastValuedOn) return "Date de valorisation requise";
+        if (!Number.isFinite(val) || val < 0) return t("create.errors.valuationInvalid");
+        if (!value.lastValuedOn) return t("create.errors.valuationDateRequired");
         return undefined;
       },
     },
@@ -60,7 +61,7 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
         {
           onSuccess: (result) => {
             if (!result.ok) {
-              setSubmitError("Une erreur est survenue. Recharge la page.");
+              setSubmitError(t("create.errors.generic"));
               return;
             }
             form.reset();
@@ -78,14 +79,14 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Ajouter un bien immobilier"
+      aria-label={t("create.formAria")}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
       <PekuloFieldGroup>
         <form.Field name="label">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="re-label">Libellé</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="re-label">{t("create.fields.label")}</PekuloFieldLabel>
               <PekuloInput
                 id="re-label"
                 type="text"
@@ -100,19 +101,19 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
         <form.Field name="propertyType">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="re-type">Type</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="re-type">{t("create.fields.type")}</PekuloFieldLabel>
               <PekuloSelect
                 value={field.state.value}
                 onValueChange={(v) => field.handleChange(v as PropertyType)}
               >
                 <PekuloSelect.Trigger id="re-type">
-                  <PekuloSelect.Value placeholder="Choisir un type" />
+                  <PekuloSelect.Value placeholder={t("create.typePlaceholder")} />
                 </PekuloSelect.Trigger>
                 <PekuloSelect.Content>
                   <PekuloSelect.Group>
-                    {PROPERTY_TYPES.map((t, i) => (
-                      <PekuloSelect.Item key={t} value={t} index={i}>
-                        {TYPE_LABEL[t]}
+                    {PROPERTY_TYPES.map((opt, i) => (
+                      <PekuloSelect.Item key={opt} value={opt} index={i}>
+                        {TYPE_LABEL[opt]}
                       </PekuloSelect.Item>
                     ))}
                   </PekuloSelect.Group>
@@ -124,7 +125,7 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
         <form.Field name="currentValuation">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="re-val">Valorisation (EUR)</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="re-val">{t("create.fields.valuation")}</PekuloFieldLabel>
               <PekuloInput
                 id="re-val"
                 type="number"
@@ -140,7 +141,9 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
         <form.Field name="lastValuedOn">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="re-date">Date de valorisation</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="re-date">
+                {t("create.fields.valuationDate")}
+              </PekuloFieldLabel>
               <PekuloDatePicker
                 id="re-date"
                 value={field.state.value}
@@ -157,11 +160,11 @@ export function PropertyCreateForm({ onSuccess }: PropertyCreateFormProps) {
         {submitError && <PekuloFieldError>{submitError}</PekuloFieldError>}
         {error && !submitError && <PekuloFieldError>{error.message}</PekuloFieldError>}
         {isSuccess && !submitError && !error && (
-          <PekuloFieldDescription color="$success">Bien ajouté.</PekuloFieldDescription>
+          <PekuloFieldDescription color="$success">{t("create.success")}</PekuloFieldDescription>
         )}
       </PekuloFieldGroup>
-      <PekuloSubmitButton loading={isPending} loadingLabel="Ajout…">
-        Ajouter le bien
+      <PekuloSubmitButton loading={isPending} loadingLabel={t("create.loading")}>
+        {t("create.submit")}
       </PekuloSubmitButton>
     </form>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloDatePicker,
   PekuloField,
@@ -31,6 +32,7 @@ export interface AccountBalanceFormProps {
 }
 
 export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormProps) {
+  const t = useTranslations("accounts");
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
   const { mutate, isPending, error, isSuccess, reset, data } = useRecordBalanceChange();
   const envelopeRejected = data?.ok === false ? data : null;
@@ -43,11 +45,11 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
     validators: {
       onSubmit: ({ value }) => {
         if (!value.valuedOn || Number.isNaN(value.valuedOn.getTime())) {
-          return "Date requise";
+          return t("dateRequired");
         }
         const balance = Number(value.cashBalance);
         if (!Number.isFinite(balance) || balance < 0) {
-          return "Solde invalide (>= 0)";
+          return t("balanceInvalid");
         }
         return undefined;
       },
@@ -60,7 +62,7 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
         {
           onSuccess: (result) => {
             if (!result.ok) {
-              setEnvelopeError("Compte introuvable — il a peut-être été supprimé.");
+              setEnvelopeError(t("notFound"));
               return;
             }
             reset();
@@ -77,14 +79,14 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label={`Modifier le solde de ${account.label}`}
+      aria-label={t("balanceFormAria", { label: account.label })}
     >
       <View padding="$4">
         <PekuloFieldGroup>
           <form.Field name="valuedOn">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-bal-date">Date</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-bal-date">{t("fields.date")}</PekuloFieldLabel>
                 <PekuloDatePicker
                   id="acc-bal-date"
                   value={field.state.value}
@@ -96,7 +98,9 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
           <form.Field name="cashBalance">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-bal-amount">Nouveau solde</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-bal-amount">
+                  {t("fields.newBalance")}
+                </PekuloFieldLabel>
                 <PekuloInput
                   id="acc-bal-amount"
                   type="number"
@@ -133,14 +137,14 @@ export function AccountBalanceForm({ account, onSuccess }: AccountBalanceFormPro
               {(clientError) =>
                 clientError ? null : (
                   <PekuloFieldDescription color="$success">
-                    Solde enregistré.
+                    {t("balanceSaved")}
                   </PekuloFieldDescription>
                 )
               }
             </form.Subscribe>
           )}
-          <PekuloSubmitButton loading={isPending} loadingLabel="Enregistrement…">
-            Enregistrer le solde
+          <PekuloSubmitButton loading={isPending} loadingLabel={t("saving")}>
+            {t("saveBalance")}
           </PekuloSubmitButton>
         </PekuloFieldGroup>
       </View>

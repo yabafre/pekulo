@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
@@ -31,12 +32,6 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
   currency: "EUR",
   maximumFractionDigits: 0,
 });
-
-const TYPE_LABEL: Record<PropertyType, string> = {
-  "residence-principale": "Résidence principale",
-  locatif: "Locatif",
-  autre: "Autre",
-};
 
 const kebabBtn: CSSProperties = {
   background: "none",
@@ -94,6 +89,12 @@ function clamp01(n: number): number {
 }
 
 export function PropertyCard({ property, derives }: PropertyCardProps) {
+  const t = useTranslations("immobilier");
+  const TYPE_LABEL: Record<PropertyType, string> = {
+    "residence-principale": t("propertyType.residencePrincipale"),
+    locatif: t("propertyType.locatif"),
+    autre: t("propertyType.autre"),
+  };
   const [dialog, setDialog] = useState<DialogKind>(null);
   // Fetch property children only when we need them (open mortgage/rental dialog).
   const childrenQuery = useProperty(
@@ -141,7 +142,10 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
             {TYPE_LABEL[property.propertyType]}
           </Text>
           <PekuloPopover>
-            <PekuloPopover.Trigger aria-label={`Actions pour ${property.label}`} style={kebabBtn}>
+            <PekuloPopover.Trigger
+              aria-label={t("card.actionsAria", { label: property.label })}
+              style={kebabBtn}
+            >
               <MoreHorizontal size={16} aria-hidden={true} />
             </PekuloPopover.Trigger>
             <PekuloPopover.Content>
@@ -151,35 +155,35 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
                   onClick={() => setDialog({ kind: "valuation" })}
                   style={popoverActionBtnNeutral}
                 >
-                  Mettre à jour la valorisation
+                  {t("card.actions.updateValuation")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDialog({ kind: "history" })}
                   style={popoverActionBtnNeutral}
                 >
-                  Voir l'historique
+                  {t("card.actions.viewHistory")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDialog({ kind: "mortgage-attach" })}
                   style={popoverActionBtnNeutral}
                 >
-                  Ajouter / Modifier le crédit
+                  {t("card.actions.editMortgage")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDialog({ kind: "rental-attach" })}
                   style={popoverActionBtnNeutral}
                 >
-                  Ajouter / Modifier le loyer
+                  {t("card.actions.editRental")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDialog({ kind: "delete" })}
                   style={popoverActionBtnDanger}
                 >
-                  Supprimer le bien
+                  {t("card.actions.deleteProperty")}
                 </button>
               </View>
             </PekuloPopover.Content>
@@ -209,7 +213,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
         {/* Hero metric — VALORISATION */}
         <View>
           <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
-            VALORISATION
+            {t("card.metrics.valuation")}
           </Text>
           <Text
             color="$color"
@@ -225,7 +229,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
         {/* Equity — secondary line, label left + value right */}
         <View flexDirection="row" justifyContent="space-between" alignItems="baseline" gap="$3">
           <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
-            EQUITY
+            {t("card.metrics.equity")}
           </Text>
           <Text color="$color" fontSize="$h3" fontWeight="500" fontVariant={["tabular-nums"]}>
             {eur0.format(netEquity)}
@@ -237,7 +241,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
           <>
             <View flexDirection="row" justifyContent="space-between" alignItems="baseline" gap="$3">
               <Text color="$colorTertiary" fontSize="$caption" letterSpacing={0.5}>
-                DETTE RESTANTE
+                {t("card.metrics.debtRemaining")}
               </Text>
               <Text color="$color" fontSize="$h3" fontWeight="500" fontVariant={["tabular-nums"]}>
                 {eur0.format(debtRemaining)}
@@ -246,7 +250,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
             <View flexDirection="row" alignItems="center" gap="$3">
               <PekuloDonut pct={repaidPct} size={32} stroke={3} />
               <Text color="$colorSecondary" fontSize="$caption">
-                {Math.round(repaidPct * 100)} % remboursé
+                {t("card.repaidPct", { pct: Math.round(repaidPct * 100) })}
               </Text>
             </View>
           </>
@@ -264,7 +268,7 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
             gap="$3"
           >
             <Text color="$colorTertiary" fontSize="$caption">
-              Cash-flow mensuel
+              {t("card.metrics.monthlyCashflow")}
             </Text>
             <Text
               color={cashflow >= 0 ? "$accent" : "$danger"}
@@ -287,11 +291,9 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
             <PekuloDialog.Content>
               <DialogCloseX />
               <PekuloDialog.Title>
-                {mortgage ? "Modifier le crédit" : "Ajouter un crédit"}
+                {mortgage ? t("mortgage.dialogTitleUpdate") : t("mortgage.dialogTitleAttach")}
               </PekuloDialog.Title>
-              <PekuloDialog.Description>
-                Capital restant, taux, mensualité, durée restante et date de début.
-              </PekuloDialog.Description>
+              <PekuloDialog.Description>{t("mortgage.dialogDescription")}</PekuloDialog.Description>
               {mortgage ? (
                 <MortgageForm
                   property={property}
@@ -315,11 +317,9 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
             <PekuloDialog.Content>
               <DialogCloseX />
               <PekuloDialog.Title>
-                {rental ? "Modifier le loyer" : "Ajouter un loyer"}
+                {rental ? t("rental.dialogTitleUpdate") : t("rental.dialogTitleAttach")}
               </PekuloDialog.Title>
-              <PekuloDialog.Description>
-                Loyer mensuel, charges et statut meublé.
-              </PekuloDialog.Description>
+              <PekuloDialog.Description>{t("rental.dialogDescription")}</PekuloDialog.Description>
               {rental ? (
                 <RentalForm
                   property={property}
@@ -342,10 +342,9 @@ export function PropertyCard({ property, derives }: PropertyCardProps) {
             <PekuloDialog.Overlay />
             <PekuloDialog.Content>
               <DialogCloseX />
-              <PekuloDialog.Title>Mettre à jour la valorisation</PekuloDialog.Title>
+              <PekuloDialog.Title>{t("valuation.dialogTitle")}</PekuloDialog.Title>
               <PekuloDialog.Description>
-                La valorisation actuelle sera remplacée et l'historique audit ajouté
-                automatiquement.
+                {t("valuation.dialogDescription")}
               </PekuloDialog.Description>
               <ValuationUpdateForm property={property} onSuccess={() => setDialog(null)} />
             </PekuloDialog.Content>

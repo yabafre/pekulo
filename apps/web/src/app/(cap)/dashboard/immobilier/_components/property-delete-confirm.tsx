@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
@@ -10,8 +11,6 @@ import {
 } from "@pekulo/ui";
 import type { RealEstate } from "@pekulo/types";
 import { useDeleteProperty } from "../_hooks/use-delete-property";
-
-const NOT_FOUND_MESSAGE = "Bien introuvable (déjà supprimé ?). Recharge la page.";
 
 const dangerBtn = (disabled: boolean): CSSProperties => ({
   alignSelf: "flex-start",
@@ -38,6 +37,7 @@ export function PropertyDeleteConfirm({
   open,
   onOpenChange,
 }: PropertyDeleteConfirmProps) {
+  const t = useTranslations();
   const { mutate, isPending, error, reset } = useDeleteProperty();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -59,7 +59,7 @@ export function PropertyDeleteConfirm({
             onOpenChange(false);
             return;
           }
-          setEnvelopeError(NOT_FOUND_MESSAGE);
+          setEnvelopeError(t("immobilier.errors.realEstateNotFound"));
         },
       },
     );
@@ -72,10 +72,11 @@ export function PropertyDeleteConfirm({
         <PekuloDialog.Content>
           <DialogCloseX />
           <View flexDirection="column" gap="$3" padding="$4">
-            <PekuloDialog.Title>Supprimer « {property.label} » ?</PekuloDialog.Title>
+            <PekuloDialog.Title>
+              {t("immobilier.delete.title", { label: property.label })}
+            </PekuloDialog.Title>
             <PekuloDialog.Description>
-              Cette action est irréversible. Le bien, son crédit, son loyer et l'historique de
-              valorisation seront effacés (cascade Prisma).
+              {t("immobilier.delete.description")}
             </PekuloDialog.Description>
             {envelopeError && (
               <Text role="alert" color="$danger" fontSize="$caption">
@@ -95,7 +96,7 @@ export function PropertyDeleteConfirm({
                 aria-disabled={isPending}
                 style={dangerBtn(isPending)}
               >
-                {isPending ? "Suppression…" : "Supprimer"}
+                {isPending ? t("immobilier.delete.loading") : t("immobilier.delete.confirm")}
               </button>
               <PekuloDialog.Close asChild>
                 <View
@@ -106,7 +107,7 @@ export function PropertyDeleteConfirm({
                   borderWidth={0}
                 >
                   <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                    Annuler
+                    {t("common.cancel")}
                   </Text>
                 </View>
               </PekuloDialog.Close>

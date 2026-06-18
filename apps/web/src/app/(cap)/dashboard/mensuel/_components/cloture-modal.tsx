@@ -15,6 +15,7 @@
 // Cancel is the ghost variant.
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloButton,
   PekuloDialog,
@@ -67,7 +68,8 @@ export function ClotureModal({
   derivedNetChangeEur,
   onSuccess,
 }: ClotureModalProps) {
-  const monthName = MONTH_LABELS_FR[monthNum - 1];
+  const t = useTranslations();
+  const monthName = MONTH_LABELS_FR[monthNum - 1] ?? "";
   const { mutate, isPending, reset } = useSignOffMonthly();
 
   // Review F9: pre-fill via toFixed(2) so float arithmetic drift from
@@ -108,19 +110,19 @@ export function ClotureModal({
     const transfers = parseAmount(transfersStr);
     const netChange = parseAmount(netChangeStr);
     if (!Number.isFinite(income) || income < 0) {
-      setValidationError("Entrées invalides (≥ 0)");
+      setValidationError(t("mensuel.cloture.errorIncome"));
       return;
     }
     if (!Number.isFinite(spending) || spending < 0) {
-      setValidationError("Sorties invalides (≥ 0)");
+      setValidationError(t("mensuel.cloture.errorSpending"));
       return;
     }
     if (!Number.isFinite(transfers) || transfers < 0) {
-      setValidationError("Transferts invalides (≥ 0)");
+      setValidationError(t("mensuel.cloture.errorTransfers"));
       return;
     }
     if (!Number.isFinite(netChange)) {
-      setValidationError("Net invalide");
+      setValidationError(t("mensuel.cloture.errorNet"));
       return;
     }
     mutate(
@@ -153,18 +155,17 @@ export function ClotureModal({
           <DialogCloseX />
           <View flexDirection="column" gap="$2">
             <PekuloDialog.Title>
-              Clôturer {monthName} {year}
+              {t("mensuel.cloture.title", { month: monthName, year })}
             </PekuloDialog.Title>
-            <PekuloDialog.Description>
-              Les valeurs ci-dessous seront figées sur la fiche mensuelle. Tu pourras les rééditer
-              en réouvrant le mois.
-            </PekuloDialog.Description>
+            <PekuloDialog.Description>{t("mensuel.cloture.description")}</PekuloDialog.Description>
           </View>
-          <form onSubmit={handleSubmit} aria-label="Clôturer le mois">
+          <form onSubmit={handleSubmit} aria-label={t("mensuel.cloture.formAria")}>
             <View flexDirection="column" gap="$4" marginTop="$2">
               <PekuloFieldGroup>
                 <PekuloField>
-                  <PekuloFieldLabel htmlFor="cloture-income">Entrées (€)</PekuloFieldLabel>
+                  <PekuloFieldLabel htmlFor="cloture-income">
+                    {t("mensuel.cloture.labelIncome")}
+                  </PekuloFieldLabel>
                   <PekuloInput
                     id="cloture-income"
                     inputMode="decimal"
@@ -174,7 +175,9 @@ export function ClotureModal({
                   />
                 </PekuloField>
                 <PekuloField>
-                  <PekuloFieldLabel htmlFor="cloture-spending">Sorties (€)</PekuloFieldLabel>
+                  <PekuloFieldLabel htmlFor="cloture-spending">
+                    {t("mensuel.cloture.labelSpending")}
+                  </PekuloFieldLabel>
                   <PekuloInput
                     id="cloture-spending"
                     inputMode="decimal"
@@ -184,7 +187,9 @@ export function ClotureModal({
                   />
                 </PekuloField>
                 <PekuloField>
-                  <PekuloFieldLabel htmlFor="cloture-transfers">Transferts (€)</PekuloFieldLabel>
+                  <PekuloFieldLabel htmlFor="cloture-transfers">
+                    {t("mensuel.cloture.labelTransfers")}
+                  </PekuloFieldLabel>
                   <PekuloInput
                     id="cloture-transfers"
                     inputMode="decimal"
@@ -194,7 +199,9 @@ export function ClotureModal({
                   />
                 </PekuloField>
                 <PekuloField>
-                  <PekuloFieldLabel htmlFor="cloture-net">Net (€)</PekuloFieldLabel>
+                  <PekuloFieldLabel htmlFor="cloture-net">
+                    {t("mensuel.cloture.labelNet")}
+                  </PekuloFieldLabel>
                   <PekuloInput
                     id="cloture-net"
                     inputMode="decimal"
@@ -220,10 +227,10 @@ export function ClotureModal({
                   onPress={() => onOpenChange(false)}
                   disabled={isPending}
                 >
-                  Annuler
+                  {t("common.cancel")}
                 </PekuloButton>
                 <PekuloButton type="submit" disabled={isPending}>
-                  {isPending ? "Clôture…" : "Confirmer la clôture"}
+                  {isPending ? t("mensuel.cloture.submitting") : t("mensuel.cloture.submit")}
                 </PekuloButton>
               </View>
             </View>

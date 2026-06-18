@@ -69,6 +69,11 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // llm_opt_in — per-user third-party opt-in (story 6-1). Mutable per-user
   // state → full quartet. AC-5 of story 6-1 asserts this count.
   llm_opt_in: 4,
+  // user_pref — per-user UI preferences singleton (story 8-2, FR-51/FR-52).
+  // One row/user, PK user_id. SELECT/INSERT/UPDATE only — NO DELETE policy
+  // (a pref reset overwrites via UPDATE; row removal only via auth.users
+  // cascade, story 11-2). AC-7 of story 8-2 asserts exactly this 3-policy count.
+  user_pref: 3,
 };
 
 async function main(): Promise<number> {

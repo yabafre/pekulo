@@ -6,6 +6,8 @@ import "@pekulo/ui/generated.css";
 import { Providers } from "@/components/providers";
 import { ReactGrabDev } from "@/components/react-grab-dev";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: { default: "Pekulo", template: "%s · Pekulo" },
@@ -38,8 +40,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // React Grab now loads from the pinned npm package via <ReactGrabDev> (dev
   // only, bundled from 'self') instead of an unversioned unpkg CDN <Script>.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  // SSR locale from the NEXT_LOCALE cookie (i18n/request.ts) — drives <html lang>
+  // so the first paint is already in the chosen language (AC-5, no FR flash).
+  const locale = await getLocale();
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script
           nonce={nonce}
@@ -59,9 +64,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <ReactGrabDev />
-        <NuqsAdapter>
-          <Providers>{children}</Providers>
-        </NuqsAdapter>
+        {/* next-intl v4: provider auto-inherits locale + messages from
+            i18n/request.ts when rendered in a Server Component — no props. */}
+        <NextIntlClientProvider>
+          <NuqsAdapter>
+            <Providers>{children}</Providers>
+          </NuqsAdapter>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useToast } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { signOut } from "@/app/(auth)/_actions/auth-actions";
 
 export function SignOutButton() {
+  const t = useTranslations("auth.signOut");
   const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ export function SignOutButton() {
     try {
       const result = await signOut();
       if (!result.ok) {
-        toast.danger("Déconnexion", result.message);
+        toast.danger(t("title"), result.message);
         return;
       }
       router.push("/login");
@@ -28,26 +30,39 @@ export function SignOutButton() {
     }
   }
 
+  // Destructive emphasis (red): sign-out is the page's exit action, so it reads
+  // in $danger rather than grayscale — but stays a compact text+icon link, NOT
+  // the oversized filled pill. The icon lives INSIDE the Text so it inherits
+  // its colour (currentColor). Hover dims slightly for affordance.
   return (
     <View
       render="button"
       onPress={handleSignOut}
-      aria-label="Se déconnecter"
+      aria-label={t("label")}
+      aria-busy={loading}
       cursor="pointer"
       alignSelf="flex-start"
-      flexDirection="row"
-      alignItems="center"
-      gap="$2"
-      backgroundColor="$backgroundMuted"
-      borderRadius="$full"
+      backgroundColor="transparent"
       borderWidth={0}
-      paddingHorizontal="$4"
-      paddingVertical={10}
-      pressStyle={{ scale: 0.98 }}
+      padding={0}
+      hoverStyle={{ opacity: 0.8 }}
+      pressStyle={{ opacity: 0.6 }}
     >
-      {loading && <Loader2 size={16} color="var(--color)" />}
-      <Text color="$color" fontSize="$bodySm" fontWeight="600">
-        Se déconnecter
+      <Text
+        display="flex"
+        flexDirection="row"
+        alignItems="center"
+        gap="$2"
+        color={"$danger" as never}
+        fontSize="$bodySm"
+        fontWeight="600"
+      >
+        {loading ? (
+          <Loader2 size={14} color="currentColor" />
+        ) : (
+          <LogOut size={14} color="currentColor" />
+        )}
+        {t("label")}
       </Text>
     </View>
   );

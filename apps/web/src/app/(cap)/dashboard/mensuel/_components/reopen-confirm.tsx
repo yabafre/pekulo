@@ -6,6 +6,7 @@
 // destructive (reversible) — Confirm button stays primary, not danger.
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { PekuloButton, PekuloDialog, PekuloDialogCloseX as DialogCloseX } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import { useReopenMonthly } from "../_hooks/use-reopen-monthly";
@@ -40,7 +41,8 @@ export function ReopenConfirm({
   monthNum,
   onSuccess,
 }: ReopenConfirmProps) {
-  const monthName = MONTH_LABELS_FR[monthNum - 1];
+  const t = useTranslations();
+  const monthName = MONTH_LABELS_FR[monthNum - 1] ?? "";
   const { mutate, isPending } = useReopenMonthly();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -70,15 +72,11 @@ export function ReopenConfirm({
           <DialogCloseX />
           <View flexDirection="column" gap="$2">
             <PekuloDialog.Title>
-              Réouvrir {monthName} {year} ?
+              {t("mensuel.reopen.title", { month: monthName, year })}
             </PekuloDialog.Title>
-            <PekuloDialog.Description>
-              Le mois redeviendra modifiable et l&apos;agrégat repassera en mode dérivé. Les valeurs
-              figées actuelles seront ignorées, mais conservées en base — tu pourras les rééditer
-              avant la prochaine clôture.
-            </PekuloDialog.Description>
+            <PekuloDialog.Description>{t("mensuel.reopen.description")}</PekuloDialog.Description>
           </View>
-          <form onSubmit={handleConfirm} aria-label="Réouvrir le mois">
+          <form onSubmit={handleConfirm} aria-label={t("mensuel.reopen.formAria")}>
             <View flexDirection="column" gap="$3" marginTop="$2">
               {envelopeError !== null && (
                 <Text role="alert" color="$danger" fontSize="$caption">
@@ -91,10 +89,10 @@ export function ReopenConfirm({
                   onPress={() => onOpenChange(false)}
                   disabled={isPending}
                 >
-                  Annuler
+                  {t("common.cancel")}
                 </PekuloButton>
                 <PekuloButton type="submit" disabled={isPending}>
-                  {isPending ? "Réouverture…" : "Réouvrir"}
+                  {isPending ? t("mensuel.reopen.submitting") : t("mensuel.reopen.submit")}
                 </PekuloButton>
               </View>
             </View>

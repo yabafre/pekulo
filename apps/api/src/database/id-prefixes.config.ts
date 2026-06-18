@@ -67,6 +67,12 @@ export const ID_PREFIXES = {
   // the extension MUST NOT inject, or the saveLayout upsert's create branch
   // throws MissingPrefixError.
   DashboardLayout: null,
+
+  // UserPref (story 8-2, FR-51/FR-52) — PK is `user_id` (UUID FK to
+  // auth.users), one row per user, no synthetic id column. Same opt-out
+  // shape as DashboardLayout: the prefixed-ids extension MUST NOT inject,
+  // or the getOrCreate upsert's create branch throws MissingPrefixError.
+  UserPref: null,
 } as const satisfies Record<string, string | null>;
 
 export type ModelName = keyof typeof ID_PREFIXES;

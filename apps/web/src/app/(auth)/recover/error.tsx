@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { SegmentError } from "@/lib/segment-error";
 
 export default function RecoverError({
@@ -9,12 +10,8 @@ export default function RecoverError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("errors");
   return (
-    <SegmentError
-      error={error}
-      reset={reset}
-      context="recover"
-      message="Erreur lors de la réinitialisation du mot de passe."
-    />
+    <SegmentError error={error} reset={reset} context="recover" message={t("recoverFailed")} />
   );
 }

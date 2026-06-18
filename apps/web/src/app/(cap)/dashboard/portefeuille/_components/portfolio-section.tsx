@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import {
   PekuloDialog,
@@ -119,6 +120,7 @@ const popoverActionBtnDanger: CSSProperties = {
 };
 
 export function PortfolioSection() {
+  const t = useTranslations();
   const { data: holdings, isLoading: queryLoading, error } = useHoldings();
   const { data: accounts } = useAccounts();
   const [dialog, setDialog] = useState<DialogKind>(null);
@@ -157,7 +159,7 @@ export function PortfolioSection() {
           height={1}
           overflow="hidden"
         >
-          Chargement du portefeuille…
+          {t("portefeuille.loadingSr")}
         </Text>
         <View
           flexDirection="column"
@@ -165,7 +167,7 @@ export function PortfolioSection() {
           $lg={{ flexDirection: "row", gap: "$4", alignItems: "stretch" }}
         >
           <View width="100%" $lg={{ flex: 7, flexBasis: 0, minWidth: 0 }}>
-            <Section ariaLabel="Valeur portefeuille — chargement" className={styles.cardStretch}>
+            <Section ariaLabel={t("portefeuille.loadingValue")} className={styles.cardStretch}>
               <PekuloSkeleton height={12} />
               <View height={16} />
               <PekuloSkeleton block height={44} />
@@ -174,14 +176,17 @@ export function PortfolioSection() {
             </Section>
           </View>
           <View width="100%" $lg={{ flex: 5, flexBasis: 0, minWidth: 0 }}>
-            <Section ariaLabel="Répartition — chargement" className={styles.cardStretch}>
+            <Section
+              ariaLabel={t("portefeuille.loadingRepartition")}
+              className={styles.cardStretch}
+            >
               <PekuloSkeleton height={12} />
               <View height={12} />
               <PekuloSkeleton lines={3} height={20} />
             </Section>
           </View>
         </View>
-        <Section ariaLabel="Lignes — chargement" title="Lignes">
+        <Section ariaLabel={t("portefeuille.loadingLines")} title={t("portefeuille.lines")}>
           <PekuloSkeleton lines={4} height={28} />
         </Section>
       </View>
@@ -192,7 +197,7 @@ export function PortfolioSection() {
     return (
       <View role="alert" paddingVertical="$6">
         <Text color="$danger" fontSize="$bodySm">
-          Erreur de chargement : {error.message}
+          {t("portefeuille.loadError", { message: error.message })}
         </Text>
       </View>
     );
@@ -210,9 +215,9 @@ export function PortfolioSection() {
       >
         {/* Hero — Valeur totale (card-wrapped via Section primitive) */}
         <View width="100%" $lg={{ flex: 7, flexBasis: 0, minWidth: 0 }}>
-          <Section ariaLabel="Valeur totale du portefeuille" className={styles.cardStretch}>
+          <Section ariaLabel={t("portefeuille.totalValueAria")} className={styles.cardStretch}>
             <Text color="$colorTertiary" fontSize="$caption">
-              Valeur portefeuille · EUR
+              {t("portefeuille.valueLabel")}
             </Text>
             <Text
               color="$color"
@@ -236,7 +241,7 @@ export function PortfolioSection() {
               </Text>
               <Text color="$colorTertiary" fontSize="$bodySm" fontVariant={["tabular-nums"]}>
                 ({totalPnl >= 0 ? "+" : ""}
-                {(totalPnlPct * 100).toFixed(2)} %) plus-value latente
+                {(totalPnlPct * 100).toFixed(2)} %) {t("portefeuille.latentPnl")}
               </Text>
             </View>
           </Section>
@@ -244,19 +249,23 @@ export function PortfolioSection() {
 
         {/* Répartition par classe (card-wrapped via Section primitive) */}
         <View width="100%" $lg={{ flex: 5, flexBasis: 0, minWidth: 0 }}>
-          <Section ariaLabel="Répartition par classe" className={styles.cardStretch}>
+          <Section ariaLabel={t("portefeuille.repartitionAria")} className={styles.cardStretch}>
             <Text color="$colorTertiary" fontSize="$caption" marginBottom="$3">
-              Répartition
+              {t("portefeuille.repartition")}
             </Text>
             <View render="ul" flexDirection="column" margin={0} padding={0}>
-              <ClassRow label="ETF" amount={byKind.etf} pct={total > 0 ? byKind.etf / total : 0} />
               <ClassRow
-                label="Actions"
+                label={t("portefeuille.classEtf")}
+                amount={byKind.etf}
+                pct={total > 0 ? byKind.etf / total : 0}
+              />
+              <ClassRow
+                label={t("portefeuille.classActions")}
                 amount={byKind.action}
                 pct={total > 0 ? byKind.action / total : 0}
               />
               <ClassRow
-                label="Crypto"
+                label={t("portefeuille.classCrypto")}
                 amount={byKind.crypto}
                 pct={total > 0 ? byKind.crypto / total : 0}
               />
@@ -267,23 +276,23 @@ export function PortfolioSection() {
 
       {/* Lignes (card-wrapped via Section primitive with title + action header) */}
       <Section
-        ariaLabel="Lignes"
-        title="Lignes"
+        ariaLabel={t("portefeuille.lines")}
+        title={t("portefeuille.lines")}
         action={
           <button
             type="button"
             onClick={() => setDialog({ kind: "create" })}
             style={addPill}
-            aria-label="Ajouter un placement"
+            aria-label={t("portefeuille.addHoldingTitle")}
           >
             <Plus size={14} strokeWidth={2.25} aria-hidden={true} />
-            Ajouter
+            {t("common.add")}
           </button>
         }
       >
         {rows.length === 0 ? (
           <Text color="$colorTertiary" fontSize="$bodySm">
-            Aucun placement pour le moment. Clique « Ajouter » pour créer le premier.
+            {t("portefeuille.empty")}
           </Text>
         ) : (
           <View render="ul" flexDirection="column" margin={0} padding={0}>
@@ -298,7 +307,7 @@ export function PortfolioSection() {
                   trailing={
                     <PekuloPopover>
                       <PekuloPopover.Trigger
-                        aria-label={`Actions pour ${h.ticker ?? h.label}`}
+                        aria-label={t("portefeuille.actionsFor", { name: h.ticker ?? h.label })}
                         style={kebabBtn}
                       >
                         <MoreHorizontal size={16} aria-hidden={true} />
@@ -310,14 +319,14 @@ export function PortfolioSection() {
                             onClick={() => setDialog({ kind: "lot", holding: h })}
                             style={popoverActionBtnNeutral}
                           >
-                            Enregistrer un lot
+                            {t("portefeuille.recordLot")}
                           </button>
                           <button
                             type="button"
                             onClick={() => setDialog({ kind: "close", holding: h })}
                             style={popoverActionBtnDanger}
                           >
-                            Marquer comme clôturé
+                            {t("portefeuille.markClosed")}
                           </button>
                         </View>
                       </PekuloPopover.Content>
@@ -338,10 +347,8 @@ export function PortfolioSection() {
         <PekuloDialog.Portal>
           <PekuloDialog.Overlay />
           <PekuloDialog.Content>
-            <PekuloDialog.Title>Ajouter un placement</PekuloDialog.Title>
-            <PekuloDialog.Description>
-              Ticker, devise, quantité et prix unitaire moyen. Crypto et ETF acceptés.
-            </PekuloDialog.Description>
+            <PekuloDialog.Title>{t("portefeuille.addHoldingTitle")}</PekuloDialog.Title>
+            <PekuloDialog.Description>{t("portefeuille.createDesc")}</PekuloDialog.Description>
             <HoldingCreateForm accounts={accounts ?? []} onSuccess={() => setDialog(null)} />
           </PekuloDialog.Content>
         </PekuloDialog.Portal>

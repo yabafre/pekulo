@@ -21,6 +21,7 @@ import { createMilestonesModule } from "../modules/milestones/milestones.module"
 import { createMonthlyModule } from "../modules/monthly/monthly.module";
 import { createRealestateModule } from "../modules/realestate/realestate.module";
 import { createDashboardModule } from "../modules/dashboard/dashboard.module";
+import { createSettingsModule } from "../modules/settings/settings.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
 import {
   createSuggestionBackfillScheduler,
@@ -275,6 +276,10 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
       hypothesisModule.service.getProjection(userId, currentWealthEur),
   });
 
+  // Story 8-2 (FR-51/FR-52) — per-user theme/lang preferences. A pure per-user
+  // singleton store; only needs prismaService (mirrors dashboard's layout half).
+  const settingsModule = createSettingsModule({ prismaService });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -287,6 +292,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     monthly: monthlyModule.router,
     bankaggregator: bankAggregatorModule.router,
     llm: llmModule.router,
+    settings: settingsModule.router,
   };
 
   return {

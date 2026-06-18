@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloDatePicker,
   PekuloField,
@@ -16,10 +17,6 @@ import { useAppForm } from "@/hooks/form-hook";
 import { useAttachMortgage } from "../_hooks/use-attach-mortgage";
 import { useUpdateMortgage } from "../_hooks/use-update-mortgage";
 
-const REALESTATE_NOT_FOUND_MSG = "Bien introuvable (déjà supprimé ?). Recharge la page.";
-const MORTGAGE_ALREADY_ATTACHED_MSG = "Ce bien a déjà un crédit. Modifie celui existant.";
-const MORTGAGE_NOT_FOUND_MSG = "Aucun crédit attaché à ce bien.";
-
 // Discriminated union so `mode: "update"` MUST carry a non-null mortgage.
 // Pre-fix the prop was `mortgage: RealEstateMortgage | null` for both
 // modes, so an `update` call with `mortgage=null` typechecked, silently
@@ -31,6 +28,7 @@ export type MortgageFormProps =
   | { property: RealEstate; mode: "update"; mortgage: RealEstateMortgage; onSuccess?: () => void };
 
 export function MortgageForm(props: MortgageFormProps) {
+  const t = useTranslations("immobilier");
   const { property, mode, onSuccess } = props;
   const mortgage = props.mode === "update" ? props.mortgage : null;
   const attach = useAttachMortgage();
@@ -55,11 +53,11 @@ export function MortgageForm(props: MortgageFormProps) {
         const ar = Number(value.annualRate);
         const mp = Number(value.monthlyPayment);
         const tm = Number(value.termMonths);
-        if (!Number.isFinite(op) || op < 0) return "Capital restant invalide (>= 0)";
-        if (!Number.isFinite(ar) || ar < 0 || ar > 1) return "Taux invalide (entre 0 et 1)";
-        if (!Number.isFinite(mp) || mp < 0) return "Mensualité invalide (>= 0)";
-        if (!Number.isInteger(tm) || tm < 1 || tm > 600) return "Durée invalide (1-600 mois)";
-        if (!value.startDate) return "Date de début requise";
+        if (!Number.isFinite(op) || op < 0) return t("mortgage.errors.outstandingInvalid");
+        if (!Number.isFinite(ar) || ar < 0 || ar > 1) return t("mortgage.errors.rateInvalid");
+        if (!Number.isFinite(mp) || mp < 0) return t("mortgage.errors.paymentInvalid");
+        if (!Number.isInteger(tm) || tm < 1 || tm > 600) return t("mortgage.errors.termInvalid");
+        if (!value.startDate) return t("mortgage.errors.startDateRequired");
         return undefined;
       },
     },
@@ -79,8 +77,8 @@ export function MortgageForm(props: MortgageFormProps) {
             if (!result.ok) {
               setSubmitError(
                 result.code === "MORTGAGE_ALREADY_ATTACHED"
-                  ? MORTGAGE_ALREADY_ATTACHED_MSG
-                  : REALESTATE_NOT_FOUND_MSG,
+                  ? t("mortgage.errors.alreadyAttached")
+                  : t("errors.realEstateNotFound"),
               );
               return;
             }
@@ -95,8 +93,8 @@ export function MortgageForm(props: MortgageFormProps) {
             if (!result.ok) {
               setSubmitError(
                 result.code === "MORTGAGE_NOT_FOUND"
-                  ? MORTGAGE_NOT_FOUND_MSG
-                  : REALESTATE_NOT_FOUND_MSG,
+                  ? t("mortgage.errors.notFound")
+                  : t("errors.realEstateNotFound"),
               );
               return;
             }
@@ -115,14 +113,14 @@ export function MortgageForm(props: MortgageFormProps) {
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label={mode === "attach" ? "Ajouter un crédit" : "Modifier le crédit"}
+      aria-label={mode === "attach" ? t("mortgage.attachAria") : t("mortgage.updateAria")}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
       <PekuloFieldGroup>
         <form.Field name="outstandingPrincipal">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="m-op">Capital restant (EUR)</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="m-op">{t("mortgage.fields.outstanding")}</PekuloFieldLabel>
               <PekuloInput
                 id="m-op"
                 type="number"
@@ -138,9 +136,7 @@ export function MortgageForm(props: MortgageFormProps) {
         <form.Field name="annualRate">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="m-ar">
-                Taux annuel (décimal — 0,025 = 2,5 %)
-              </PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="m-ar">{t("mortgage.fields.annualRate")}</PekuloFieldLabel>
               <PekuloInput
                 id="m-ar"
                 type="number"
@@ -157,7 +153,9 @@ export function MortgageForm(props: MortgageFormProps) {
         <form.Field name="monthlyPayment">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="m-mp">Mensualité (EUR)</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="m-mp">
+                {t("mortgage.fields.monthlyPayment")}
+              </PekuloFieldLabel>
               <PekuloInput
                 id="m-mp"
                 type="number"
@@ -173,7 +171,7 @@ export function MortgageForm(props: MortgageFormProps) {
         <form.Field name="termMonths">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="m-tm">Durée restante (mois)</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="m-tm">{t("mortgage.fields.termMonths")}</PekuloFieldLabel>
               <PekuloInput
                 id="m-tm"
                 type="number"
@@ -190,7 +188,7 @@ export function MortgageForm(props: MortgageFormProps) {
         <form.Field name="startDate">
           {(field) => (
             <PekuloField>
-              <PekuloFieldLabel htmlFor="m-sd">Date de début</PekuloFieldLabel>
+              <PekuloFieldLabel htmlFor="m-sd">{t("mortgage.fields.startDate")}</PekuloFieldLabel>
               <PekuloDatePicker
                 id="m-sd"
                 value={field.state.value}
@@ -208,15 +206,15 @@ export function MortgageForm(props: MortgageFormProps) {
         {error && !submitError && <PekuloFieldError>{error.message}</PekuloFieldError>}
         {isSuccess && !submitError && !error && (
           <PekuloFieldDescription color="$success">
-            {mode === "attach" ? "Crédit ajouté." : "Crédit mis à jour."}
+            {mode === "attach" ? t("mortgage.successAdded") : t("mortgage.successUpdated")}
           </PekuloFieldDescription>
         )}
       </PekuloFieldGroup>
       <PekuloSubmitButton
         loading={isPending}
-        loadingLabel={mode === "attach" ? "Ajout…" : "Mise à jour…"}
+        loadingLabel={mode === "attach" ? t("mortgage.loadingAdd") : t("mortgage.loadingUpdate")}
       >
-        {mode === "attach" ? "Ajouter le crédit" : "Mettre à jour le crédit"}
+        {mode === "attach" ? t("mortgage.submitAdd") : t("mortgage.submitUpdate")}
       </PekuloSubmitButton>
     </form>
   );

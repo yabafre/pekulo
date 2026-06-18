@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, PekuloFieldError, PekuloSubmitButton } from "@pekulo/ui";
 import type { Holding } from "@pekulo/validators";
 import { useCloseHolding } from "../_hooks/use-close-holding";
-
-const NOT_FOUND_MSG = "Ce placement est introuvable (déjà supprimé ?). Recharge la page.";
 
 export interface HoldingCloseConfirmProps {
   holding: Holding;
@@ -15,6 +14,7 @@ export interface HoldingCloseConfirmProps {
 }
 
 export function HoldingCloseConfirm({ holding, open, onOpenChange }: HoldingCloseConfirmProps) {
+  const t = useTranslations();
   const { mutate, isPending, error, reset } = useCloseHolding();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -36,7 +36,7 @@ export function HoldingCloseConfirm({ holding, open, onOpenChange }: HoldingClos
             onOpenChange(false);
             return;
           }
-          setEnvelopeError(NOT_FOUND_MSG);
+          setEnvelopeError(t("portefeuille.closeNotFound"));
         },
       },
     );
@@ -49,12 +49,9 @@ export function HoldingCloseConfirm({ holding, open, onOpenChange }: HoldingClos
         <PekuloDialog.Content>
           <View flexDirection="column" gap="$3" padding="$4">
             <PekuloDialog.Title>
-              Clôturer « {holding.ticker ?? holding.label} » ?
+              {t("portefeuille.closeTitle", { name: holding.ticker ?? holding.label })}
             </PekuloDialog.Title>
-            <PekuloDialog.Description>
-              Le placement disparaît de la liste active. Les lots restent enregistrés pour
-              l'historique. Cette action est idempotente — clôturer à nouveau n'a pas d'effet.
-            </PekuloDialog.Description>
+            <PekuloDialog.Description>{t("portefeuille.closeDesc")}</PekuloDialog.Description>
             {envelopeError && <PekuloFieldError>{envelopeError}</PekuloFieldError>}
             {error && !envelopeError && <PekuloFieldError>{error.message}</PekuloFieldError>}
             <View flexDirection="row" gap="$3" alignItems="center">
@@ -63,10 +60,10 @@ export function HoldingCloseConfirm({ holding, open, onOpenChange }: HoldingClos
                 variant="danger"
                 fullWidth={false}
                 loading={isPending}
-                loadingLabel="Clôture…"
+                loadingLabel={t("portefeuille.closing")}
                 onClick={handleConfirm}
               >
-                Marquer comme clôturé
+                {t("portefeuille.markClosed")}
               </PekuloSubmitButton>
               <PekuloDialog.Close asChild>
                 <View
@@ -77,7 +74,7 @@ export function HoldingCloseConfirm({ holding, open, onOpenChange }: HoldingClos
                   borderWidth={0}
                 >
                   <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                    Annuler
+                    {t("common.cancel")}
                   </Text>
                 </View>
               </PekuloDialog.Close>

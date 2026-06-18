@@ -4,9 +4,11 @@
 // maxWidth 720, gap-6 column) and uses PekuloSkeleton inside Section, like
 // dashboard/transactions/mensuel loading files.
 
+import { getTranslations } from "next-intl/server";
 import { PekuloSkeleton, Section, pekuloSpacing } from "@pekulo/ui";
 
-export default function ParametresLoading() {
+export default async function ParametresLoading() {
+  const t = await getTranslations("loading");
   return (
     <div
       style={{
@@ -25,12 +27,12 @@ export default function ParametresLoading() {
           gap: pekuloSpacing[6],
         }}
       >
-        <Section ariaLabel="Chargement des paramètres">
+        <Section ariaLabel={t("parametres")}>
           <PekuloSkeleton width="50%" height={12} />
           <div style={{ height: 12 }} />
           <PekuloSkeleton block height={120} />
         </Section>
-        <Section ariaLabel="Chargement de l'historique">
+        <Section ariaLabel={t("history")}>
           <PekuloSkeleton lines={3} height={36} />
         </Section>
       </div>

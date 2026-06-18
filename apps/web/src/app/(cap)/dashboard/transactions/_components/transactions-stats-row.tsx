@@ -11,6 +11,7 @@
 // truncation). "À confirmer" stays the live pending count (story 6-4).
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { Section } from "@pekulo/ui";
 import { usePendingSuggestions } from "../_hooks/use-pending-suggestions";
@@ -40,6 +41,7 @@ const gridStyleLg: CSSProperties = {
 const PLACEHOLDER = "—";
 
 export function TransactionsStatsRow() {
+  const t = useTranslations("transactions");
   const { summary, month } = useMonthScope();
   // "À confirmer" — live pending-suggestion total, scoped to the active month
   // (story 6-9 ext; shares the pending(1, month) cache with the Suggestions IA
@@ -76,24 +78,24 @@ export function TransactionsStatsRow() {
     <>
       <View display="block" $lg={{ display: "none" }}>
         <div style={gridStyle}>
-          <Section ariaLabel="Net du mois">
+          <Section ariaLabel={t("statNetAria")}>
             <Text color="$colorTertiary" fontSize="$caption">
-              Net · {monthLabel}
+              {t("statNetMonth", { month: monthLabel })}
             </Text>
             <Text marginTop="$2" fontSize="$h2" fontWeight="600" color={netColor}>
               {netLabel}
             </Text>
           </Section>
-          <Section ariaLabel="En attente IA">
+          <Section ariaLabel={t("statPendingAria")}>
             <Text color="$colorTertiary" fontSize="$caption">
-              À confirmer
+              {t("statToConfirm")}
             </Text>
             <View flexDirection="row" alignItems="baseline" gap="$2" marginTop="$2">
               <Text fontSize="$h2" fontWeight="600" color="$color">
                 {pendingCount}
               </Text>
               <Text color="$colorTertiary" fontSize="$caption">
-                suggestions
+                {t("statSuggestions")}
               </Text>
             </View>
           </Section>
@@ -101,38 +103,38 @@ export function TransactionsStatsRow() {
       </View>
       <View display="none" $lg={{ display: "block" }}>
         <div style={gridStyleLg}>
-          <Section ariaLabel="Net du mois">
+          <Section ariaLabel={t("statNetAria")}>
             <Text color="$colorTertiary" fontSize="$caption">
-              Net · {monthLabel}
+              {t("statNetMonth", { month: monthLabel })}
             </Text>
             <Text marginTop="$2" fontSize="$h2" fontWeight="600" color={netColor}>
               {netLabel}
             </Text>
           </Section>
-          <Section ariaLabel="En attente IA">
+          <Section ariaLabel={t("statPendingAria")}>
             <Text color="$colorTertiary" fontSize="$caption">
-              À confirmer
+              {t("statToConfirm")}
             </Text>
             <View flexDirection="row" alignItems="baseline" gap="$2" marginTop="$2">
               <Text fontSize="$h2" fontWeight="600" color="$color">
                 {pendingCount}
               </Text>
               <Text color="$colorTertiary" fontSize="$caption">
-                suggestions
+                {t("statSuggestions")}
               </Text>
             </View>
           </Section>
-          <Section ariaLabel="Entrées du mois">
+          <Section ariaLabel={t("statInflowAria")}>
             <Text color="$colorTertiary" fontSize="$caption">
-              Entrées · {monthLabel}
+              {t("statInflowMonth", { month: monthLabel })}
             </Text>
             <Text marginTop="$2" fontSize="$h2" fontWeight="600" color="$color">
               {inflowLabel}
             </Text>
           </Section>
-          <Section ariaLabel="Sorties du mois">
+          <Section ariaLabel={t("statOutflowAria")}>
             <Text color="$colorTertiary" fontSize="$caption">
-              Sorties · {monthLabel}
+              {t("statOutflowMonth", { month: monthLabel })}
             </Text>
             <Text marginTop="$2" fontSize="$h2" fontWeight="600" color="$color">
               {outflowLabel}

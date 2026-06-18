@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import type { Account } from "@pekulo/validators";
 import { userErrorMessage } from "@/lib/user-error-message";
 import { useDeleteAccount } from "../_hooks/use-delete-account";
-
-const FK_MESSAGE = "Ce compte est référencé par des positions — supprimez-les d'abord.";
-const NOT_FOUND_MESSAGE = "Ce compte est introuvable (déjà supprimé ?). Recharge la page.";
 
 const dangerBtn = (disabled: boolean): CSSProperties => ({
   alignSelf: "flex-start",
@@ -31,6 +29,7 @@ export interface AccountDeleteConfirmProps {
 }
 
 export function AccountDeleteConfirm({ account, open, onOpenChange }: AccountDeleteConfirmProps) {
+  const t = useTranslations();
   const { mutate, isPending, error, reset } = useDeleteAccount();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -53,10 +52,10 @@ export function AccountDeleteConfirm({ account, open, onOpenChange }: AccountDel
             return;
           }
           if (result.code === "ACCOUNT_REFERENCED_FK") {
-            setEnvelopeError(FK_MESSAGE);
+            setEnvelopeError(t("accounts.fkMessage"));
             return;
           }
-          setEnvelopeError(NOT_FOUND_MESSAGE);
+          setEnvelopeError(t("accounts.notFoundReload"));
         },
       },
     );
@@ -68,10 +67,11 @@ export function AccountDeleteConfirm({ account, open, onOpenChange }: AccountDel
         <PekuloDialog.Overlay />
         <PekuloDialog.Content>
           <View flexDirection="column" gap="$3" padding="$4">
-            <PekuloDialog.Title>Supprimer « {account.label} » ?</PekuloDialog.Title>
+            <PekuloDialog.Title>
+              {t("accounts.deleteTitle", { label: account.label })}
+            </PekuloDialog.Title>
             <PekuloDialog.Description>
-              Cette action est définitive et irréversible. Le solde, l'historique du compte et{" "}
-              <strong>toutes les transactions associées</strong> seront supprimés définitivement.
+              {t.rich("accounts.deleteDesc", { strong: (chunks) => <strong>{chunks}</strong> })}
             </PekuloDialog.Description>
             {envelopeError && (
               <Text role="alert" color="$danger" fontSize="$caption">
@@ -91,7 +91,7 @@ export function AccountDeleteConfirm({ account, open, onOpenChange }: AccountDel
                 aria-disabled={isPending}
                 style={dangerBtn(isPending)}
               >
-                {isPending ? "Suppression…" : "Supprimer"}
+                {isPending ? t("accounts.deleting") : t("accounts.delete")}
               </button>
               <PekuloDialog.Close asChild>
                 <View
@@ -102,7 +102,7 @@ export function AccountDeleteConfirm({ account, open, onOpenChange }: AccountDel
                   borderWidth={0}
                 >
                   <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
-                    Annuler
+                    {t("common.cancel")}
                   </Text>
                 </View>
               </PekuloDialog.Close>

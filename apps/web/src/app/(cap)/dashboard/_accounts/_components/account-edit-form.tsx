@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloField,
   PekuloFieldDescription,
@@ -23,21 +24,21 @@ import { ACCOUNT_TYPES, type AccountType } from "@pekulo/types";
 import { useAppForm } from "@/hooks/form-hook";
 import { useUpdateAccount } from "../_hooks/use-update-account";
 
-const TYPE_LABEL: Record<AccountType, string> = {
-  livret: "Livret",
-  pea: "PEA",
-  cto: "CTO",
-  av: "Assurance vie",
-  autre: "Autre",
-  banque: "Compte courant",
-};
-
 export interface AccountEditFormProps {
   account: Account;
   onSuccess?: () => void;
 }
 
 export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
+  const t = useTranslations("accounts");
+  const TYPE_LABEL: Record<AccountType, string> = {
+    livret: t("types.livret"),
+    pea: t("types.pea"),
+    cto: t("types.cto"),
+    av: t("types.av"),
+    autre: t("types.autre"),
+    banque: t("types.banque"),
+  };
   // Devise stays locked to the account's existing currency until FX ships
   // in story 3-3 (Story 2-3 review HIGH #6). The legacy multi-currency
   // selector let users switch USD→EUR while the Patrimoine total still
@@ -59,11 +60,11 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
       onSubmit: ({ value }) => {
         const trimmed = value.label.trim();
         if (trimmed.length === 0) {
-          return "Libellé requis";
+          return t("labelRequired");
         }
         const balance = Number(value.cashBalance);
         if (!Number.isFinite(balance) || balance < 0) {
-          return "Solde invalide (>= 0)";
+          return t("balanceInvalid");
         }
         return undefined;
       },
@@ -97,11 +98,7 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
       mutate(patch, {
         onSuccess: (result) => {
           if (!result.ok) {
-            setEnvelopeError(
-              result.code === "ACCOUNT_NOT_FOUND"
-                ? "Compte introuvable — il a peut-être été supprimé."
-                : result.message,
-            );
+            setEnvelopeError(result.code === "ACCOUNT_NOT_FOUND" ? t("notFound") : result.message);
             return;
           }
           reset();
@@ -128,14 +125,14 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Modifier le compte"
+      aria-label={t("editFormAria")}
     >
       <View padding="$4">
         <PekuloFieldGroup>
           <form.Field name="label">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-edit-label">Libellé</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-edit-label">{t("fields.label")}</PekuloFieldLabel>
                 <PekuloInput
                   id="acc-edit-label"
                   type="text"
@@ -150,19 +147,19 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
           <form.Field name="type">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-edit-type">Type</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-edit-type">{t("fields.type")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as AccountType)}
                 >
                   <PekuloSelect.Trigger id="acc-edit-type">
-                    <PekuloSelect.Value placeholder="Choisir un type" />
+                    <PekuloSelect.Value placeholder={t("chooseType")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
-                      {ACCOUNT_TYPES.map((t, i) => (
-                        <PekuloSelect.Item key={t} value={t} index={i}>
-                          {TYPE_LABEL[t]}
+                      {ACCOUNT_TYPES.map((at, i) => (
+                        <PekuloSelect.Item key={at} value={at} index={i}>
+                          {TYPE_LABEL[at]}
                         </PekuloSelect.Item>
                       ))}
                     </PekuloSelect.Group>
@@ -172,7 +169,7 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
             )}
           </form.Field>
           <PekuloField>
-            <PekuloFieldLabel htmlFor="acc-edit-currency">Devise</PekuloFieldLabel>
+            <PekuloFieldLabel htmlFor="acc-edit-currency">{t("fields.currency")}</PekuloFieldLabel>
             <PekuloInput
               id="acc-edit-currency"
               type="text"
@@ -181,14 +178,14 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
               aria-readonly="true"
               style={{ opacity: 0.6, cursor: "not-allowed" }}
             />
-            <PekuloFieldDescription>
-              Multi-devises arrive avec les portefeuilles (story 3-3).
-            </PekuloFieldDescription>
+            <PekuloFieldDescription>{t("currencyNote")}</PekuloFieldDescription>
           </PekuloField>
           <form.Field name="cashBalance">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-edit-balance">Solde</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-edit-balance">
+                  {t("fields.balance")}
+                </PekuloFieldLabel>
                 <PekuloInput
                   id="acc-edit-balance"
                   type="number"
@@ -204,7 +201,7 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
           <form.Field name="notes">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="acc-edit-notes">Notes</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="acc-edit-notes">{t("fields.notes")}</PekuloFieldLabel>
                 <PekuloInput
                   id="acc-edit-notes"
                   type="text"
@@ -238,15 +235,13 @@ export function AccountEditForm({ account, onSuccess }: AccountEditFormProps) {
             <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
               {(clientError) =>
                 clientError ? null : (
-                  <PekuloFieldDescription color="$success">
-                    Compte mis à jour.
-                  </PekuloFieldDescription>
+                  <PekuloFieldDescription color="$success">{t("updated")}</PekuloFieldDescription>
                 )
               }
             </form.Subscribe>
           )}
-          <PekuloSubmitButton loading={isPending} loadingLabel="Enregistrement…">
-            Enregistrer
+          <PekuloSubmitButton loading={isPending} loadingLabel={t("saving")}>
+            {t("save")}
           </PekuloSubmitButton>
         </PekuloFieldGroup>
       </View>

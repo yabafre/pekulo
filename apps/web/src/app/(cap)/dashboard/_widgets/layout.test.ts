@@ -55,6 +55,16 @@ describe("resolveLayout", () => {
     expect(hero?.rowSpan).toBe(1);
   });
 
+  it("clamps a stored rowSpan up to the widget's minRowSpan floor (chart cards)", () => {
+    // The user (or a stale stored layout) pinned the hypothesis card to 1 row;
+    // it needs ≥2 to render the chart + verdict, so resolveLayout floors it.
+    const saved: DashboardLayout = {
+      widgets: [{ id: "hypothesis", visible: true, order: 0, colSpan: 12, rowSpan: 1 }],
+    };
+    const hyp = resolveLayout(saved).find((w) => w.id === "hypothesis");
+    expect(hyp?.rowSpan).toBe(2);
+  });
+
   it("falls back to the registry default span when none is stored", () => {
     const hero = resolveLayout(null).find((w) => w.id === "hero");
     expect(hero?.colSpan).toBe(7);

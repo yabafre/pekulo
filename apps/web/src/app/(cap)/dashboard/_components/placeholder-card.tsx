@@ -12,6 +12,7 @@
 // lands (HeroCard / 7-1, TrajectoryCard / 7-1, CompositionCard / 5-x,
 // RecentActivityCard / 5-x, HypothesisCard / 6-x).
 
+import { useTranslations } from "next-intl";
 import { Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 
@@ -39,6 +40,7 @@ function SkeletonLine({ width, height = 14 }: { width: number | `${number}%`; he
 function TrajectoryPlaceholder() {
   // Faint baseline + dashed line to hint at the chart shape, with
   // legend labels matching ux-preview ("Réel" / "Plan").
+  const t = useTranslations("dashboard");
   return (
     <View flexDirection="column" gap="$4" flex={1} minHeight={180}>
       <View flex={1} justifyContent="center" alignItems="center">
@@ -49,7 +51,7 @@ function TrajectoryPlaceholder() {
           preserveAspectRatio="none"
           aria-hidden={true}
         >
-          <title>Trajectoire — placeholder</title>
+          <title>{t("trajectoryPlaceholder")}</title>
           {/* Dashed plan line */}
           <line
             x1="0"
@@ -77,13 +79,13 @@ function TrajectoryPlaceholder() {
         <View flexDirection="row" alignItems="center" gap="$2">
           <View width={16} height={1.5} backgroundColor="$colorMuted" />
           <Text color="$colorTertiary" fontSize="$caption">
-            Réel
+            {t("actual")}
           </Text>
         </View>
         <View flexDirection="row" alignItems="center" gap="$2">
           <View width={16} height={1.5} backgroundColor="$colorMuted" opacity={0.6} />
           <Text color="$colorTertiary" fontSize="$caption">
-            Plan
+            {t("plan")}
           </Text>
         </View>
       </View>
@@ -100,13 +102,9 @@ function HypothesisPlaceholder() {
   );
 }
 
-const VARIANT_TITLES: Record<PlaceholderVariant, string> = {
-  trajectory: "Trajectoire",
-  hypothesis: "Hypothèse de projection",
-};
-
 export function PlaceholderCard({ variant, ownerStory, className }: PlaceholderCardProps) {
-  const title = VARIANT_TITLES[variant];
+  const t = useTranslations("dashboard");
+  const title = variant === "trajectory" ? t("trajectory") : t("projectionHypothesis");
   const body = variant === "trajectory" ? <TrajectoryPlaceholder /> : <HypothesisPlaceholder />;
   // The outer wrapper is `flex: 1; justify-content: space-between` so the
   // body sits at the TOP of the available cell height and the footnote
@@ -117,14 +115,18 @@ export function PlaceholderCard({ variant, ownerStory, className }: PlaceholderC
   // mobile flat column (auto-height) flex:1 + minHeight:0 would collapse the
   // box to 0 and spill the body, so below `$lg` the card is natural-height.
   return (
-    <Section className={className} title={title} ariaLabel={`${title} (bientôt — ${ownerStory})`}>
+    <Section
+      className={className}
+      title={title}
+      ariaLabel={t("soonAria", { title, story: ownerStory })}
+    >
       <View flexDirection="column" $lg={{ flex: 1, justifyContent: "space-between", minHeight: 0 }}>
         <View flexDirection="column" $lg={{ flex: 1 }}>
           {body}
         </View>
         <View flexDirection="row" justifyContent="flex-end" marginTop="$4">
           <Text color="$colorMuted" fontSize="$xs">
-            Bientôt · {ownerStory}
+            {t("soon", { story: ownerStory })}
           </Text>
         </View>
       </View>

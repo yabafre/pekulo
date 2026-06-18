@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Section, PekuloStat, PekuloSkeleton } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
 import { useMonthly } from "../_hooks/use-monthly";
@@ -32,6 +33,7 @@ interface MoisEnCoursSectionProps {
 }
 
 export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) {
+  const t = useTranslations("mensuel");
   const [isHydrated, setIsHydrated] = useState(false);
   const monthly = useMonthly(year, monthNum);
 
@@ -43,11 +45,11 @@ export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) 
   // → hydration mismatch on the second paint.
   useEffect(() => setIsHydrated(true), []);
 
-  const label = `${MONTH_LABELS_FR[monthNum - 1]} ${year}`;
+  const monthName = MONTH_LABELS_FR[monthNum - 1] ?? "";
 
   if (!isHydrated || monthly.isLoading) {
     return (
-      <Section ariaLabel="Mois en cours">
+      <Section ariaLabel={t("moisEnCours.sectionAria")}>
         <PekuloSkeleton width="40%" height={12} />
         <View height={12} />
         <PekuloSkeleton block height={48} />
@@ -57,9 +59,9 @@ export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) 
 
   if (monthly.error) {
     return (
-      <Section ariaLabel="Mois en cours">
+      <Section ariaLabel={t("moisEnCours.sectionAria")}>
         <Text color="$danger" fontSize="$bodySm">
-          Erreur de chargement.
+          {t("common.loadError")}
         </Text>
       </Section>
     );
@@ -70,15 +72,15 @@ export function MoisEnCoursSection({ year, monthNum }: MoisEnCoursSectionProps) 
   const { record } = monthly.data;
 
   return (
-    <Section ariaLabel="Mois en cours">
+    <Section ariaLabel={t("moisEnCours.sectionAria")}>
       <Text color="$colorTertiary" fontSize="$caption">
-        {label} · en cours
+        {t("moisEnCours.header", { month: monthName, year })}
       </Text>
       <View flexDirection="row" gap="$6" marginTop="$3" flexWrap="wrap">
-        <PekuloStat label="Entrées" value={eur0.format(record.incomeEur)} />
-        <PekuloStat label="Sorties" value={eur0.format(record.spendingEur)} />
+        <PekuloStat label={t("moisEnCours.statIncome")} value={eur0.format(record.incomeEur)} />
+        <PekuloStat label={t("moisEnCours.statSpending")} value={eur0.format(record.spendingEur)} />
         <PekuloStat
-          label="Net"
+          label={t("moisEnCours.statNet")}
           value={eur0.format(record.netChangeEur)}
           tone={record.netChangeEur >= 0 ? "gain" : "loss"}
         />

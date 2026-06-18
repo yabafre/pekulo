@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import {
   PekuloDatePicker,
   PekuloDialog,
@@ -17,9 +18,6 @@ import { MAX_HOLDING_NOTES_LENGTH, type Holding } from "@pekulo/validators";
 import { useAppForm } from "@/hooks/form-hook";
 import { useRecordLot } from "../_hooks/use-record-lot";
 import formControls from "../../../_components/form-controls.module.css";
-
-const HOLDING_NOT_FOUND_MSG = "Ce placement est introuvable. Recharge la page.";
-const HOLDING_CLOSED_MSG = "Ce placement est clôturé — les lots ne peuvent plus être modifiés.";
 
 function todayLocalMidnight(): Date {
   const d = new Date();
@@ -50,6 +48,7 @@ function initialPriceUnit(h: Holding): string {
 }
 
 export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
+  const t = useTranslations("portefeuille");
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
   const { mutate, isPending, error, isSuccess, reset } = useRecordLot();
 
@@ -66,19 +65,19 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
       onSubmit: ({ value }) => {
         const qNum = Number(value.quantity);
         if (!Number.isFinite(qNum) || qNum <= 0) {
-          return "Quantité invalide (> 0)";
+          return t("lotQtyInvalid");
         }
         const pNum = Number(value.priceUnit);
         if (!Number.isFinite(pNum) || pNum <= 0) {
-          return "Prix unitaire invalide (> 0)";
+          return t("lotPriceInvalid");
         }
         const fNum = Number(value.fees);
         if (!Number.isFinite(fNum) || fNum < 0) {
-          return "Frais invalides (>= 0)";
+          return t("feesInvalid");
         }
         const trimmedNotes = value.notes.trim();
         if (trimmedNotes.length > MAX_HOLDING_NOTES_LENGTH) {
-          return `Notes > ${MAX_HOLDING_NOTES_LENGTH} caractères`;
+          return t("notesTooLong", { max: MAX_HOLDING_NOTES_LENGTH });
         }
         return undefined;
       },
@@ -103,7 +102,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
           onSuccess: (result) => {
             if (!result.ok) {
               setEnvelopeError(
-                result.code === "HOLDING_NOT_FOUND" ? HOLDING_NOT_FOUND_MSG : HOLDING_CLOSED_MSG,
+                result.code === "HOLDING_NOT_FOUND" ? t("holdingNotFound") : t("holdingClosed"),
               );
               return;
             }
@@ -130,18 +129,16 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
         <PekuloDialog.Content>
           <View flexDirection="column" gap="$2">
             <PekuloDialog.Title>
-              Enregistrer un lot — {holding.ticker ?? holding.label}
+              {t("lotTitle", { name: holding.ticker ?? holding.label })}
             </PekuloDialog.Title>
-            <PekuloDialog.Description>
-              Achat ou vente. Le WAC se recalcule automatiquement.
-            </PekuloDialog.Description>
+            <PekuloDialog.Description>{t("lotDesc")}</PekuloDialog.Description>
             <form
               id="lot-form-submit"
               onSubmit={(e) => {
                 e.preventDefault();
                 void form.handleSubmit();
               }}
-              aria-label="Enregistrer un lot"
+              aria-label={t("lotFormAria")}
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -155,11 +152,11 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                   {(field) => (
                     <PekuloField>
                       <Text color="$colorSecondary" fontSize="$caption">
-                        Type
+                        {t("fields.type")}
                       </Text>
                       <div
                         role="radiogroup"
-                        aria-label="Type de lot"
+                        aria-label={t("lotTypeAria")}
                         style={radioRow}
                         className={formControls.radioGroup}
                       >
@@ -171,7 +168,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                             checked={field.state.value === "buy"}
                             onChange={() => field.handleChange("buy")}
                           />{" "}
-                          Achat
+                          {t("buy")}
                         </label>
                         <label>
                           <input
@@ -181,7 +178,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                             checked={field.state.value === "sell"}
                             onChange={() => field.handleChange("sell")}
                           />{" "}
-                          Vente
+                          {t("sell")}
                         </label>
                       </div>
                     </PekuloField>
@@ -190,7 +187,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 <form.Field name="occurredOn">
                   {(field) => (
                     <PekuloField>
-                      <PekuloFieldLabel htmlFor="lot-date">Date</PekuloFieldLabel>
+                      <PekuloFieldLabel htmlFor="lot-date">{t("fields.date")}</PekuloFieldLabel>
                       <PekuloDatePicker
                         id="lot-date"
                         value={field.state.value}
@@ -202,7 +199,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 <form.Field name="quantity">
                   {(field) => (
                     <PekuloField>
-                      <PekuloFieldLabel htmlFor="lot-qty">Quantité</PekuloFieldLabel>
+                      <PekuloFieldLabel htmlFor="lot-qty">{t("fields.quantity")}</PekuloFieldLabel>
                       <PekuloInput
                         id="lot-qty"
                         type="number"
@@ -218,7 +215,9 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 <form.Field name="priceUnit">
                   {(field) => (
                     <PekuloField>
-                      <PekuloFieldLabel htmlFor="lot-price">Prix unitaire</PekuloFieldLabel>
+                      <PekuloFieldLabel htmlFor="lot-price">
+                        {t("fields.priceUnit")}
+                      </PekuloFieldLabel>
                       <PekuloInput
                         id="lot-price"
                         type="number"
@@ -234,7 +233,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 <form.Field name="fees">
                   {(field) => (
                     <PekuloField>
-                      <PekuloFieldLabel htmlFor="lot-fees">Frais</PekuloFieldLabel>
+                      <PekuloFieldLabel htmlFor="lot-fees">{t("fields.fees")}</PekuloFieldLabel>
                       <PekuloInput
                         id="lot-fees"
                         type="number"
@@ -249,7 +248,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                 <form.Field name="notes">
                   {(field) => (
                     <PekuloField>
-                      <PekuloFieldLabel htmlFor="lot-notes">Notes (optionnel)</PekuloFieldLabel>
+                      <PekuloFieldLabel htmlFor="lot-notes">{t("fields.notes")}</PekuloFieldLabel>
                       <PekuloInput
                         id="lot-notes"
                         type="text"
@@ -284,7 +283,7 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
                     {(clientError) =>
                       clientError ? null : (
                         <PekuloFieldDescription color="$success">
-                          Lot enregistré.
+                          {t("lotSaved")}
                         </PekuloFieldDescription>
                       )
                     }
@@ -296,9 +295,9 @@ export function LotForm({ holding, open, onOpenChange }: LotFormProps) {
               <PekuloSubmitButton
                 form="lot-form-submit"
                 loading={isPending}
-                loadingLabel="Enregistrement…"
+                loadingLabel={t("saving")}
               >
-                Enregistrer le lot
+                {t("saveLot")}
               </PekuloSubmitButton>
             </View>
           </View>

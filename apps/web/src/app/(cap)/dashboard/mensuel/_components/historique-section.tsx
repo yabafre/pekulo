@@ -5,6 +5,7 @@
 // via a sibling MoreHorizontal trigger that opens the ReopenConfirm dialog.
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { MoreHorizontal } from "lucide-react";
 import { Section, PekuloMonthlyRow, PekuloSkeleton } from "@pekulo/ui";
 import { View, Text } from "@pekulo/ui/client";
@@ -32,6 +33,7 @@ interface HistoriqueSectionProps {
 }
 
 export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
+  const t = useTranslations("mensuel");
   const [isHydrated, setIsHydrated] = useState(false);
   const history = useMonthlyHistory(limit);
   const [reopenTarget, setReopenTarget] = useState<{ year: number; monthNum: number } | null>(null);
@@ -40,7 +42,7 @@ export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
 
   if (!isHydrated || history.isLoading) {
     return (
-      <Section ariaLabel="Mois passés" title="Historique">
+      <Section ariaLabel={t("historique.ariaLabel")} title={t("historique.title")}>
         <PekuloSkeleton lines={5} height={36} />
       </Section>
     );
@@ -48,9 +50,9 @@ export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
 
   if (history.error) {
     return (
-      <Section ariaLabel="Mois passés" title="Historique">
+      <Section ariaLabel={t("historique.ariaLabel")} title={t("historique.title")}>
         <Text color="$danger" fontSize="$bodySm">
-          Erreur de chargement.
+          {t("common.loadError")}
         </Text>
       </Section>
     );
@@ -63,9 +65,9 @@ export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
 
   if (past.length === 0) {
     return (
-      <Section ariaLabel="Mois passés" title="Historique">
+      <Section ariaLabel={t("historique.ariaLabel")} title={t("historique.title")}>
         <Text color="$colorTertiary" fontSize="$caption">
-          Aucun mois passé à afficher.
+          {t("historique.empty")}
         </Text>
       </Section>
     );
@@ -73,7 +75,7 @@ export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
 
   return (
     <>
-      <Section ariaLabel="Mois passés" title="Historique">
+      <Section ariaLabel={t("historique.ariaLabel")} title={t("historique.title")}>
         <View flexDirection="column">
           {past.map((item) => {
             // 5-5 AC-4: persisted iff signedOffAt set (T6 discriminator
@@ -115,7 +117,10 @@ export function HistoriqueSection({ limit = 6 }: HistoriqueSectionProps) {
                     borderWidth={0}
                     cursor="pointer"
                     hoverStyle={{ backgroundColor: "$backgroundMuted" }}
-                    aria-label={`Réouvrir ${MONTH_LABELS_FR[item.record.monthNum - 1]} ${item.record.year}`}
+                    aria-label={t("historique.reopenAria", {
+                      month: MONTH_LABELS_FR[item.record.monthNum - 1] ?? "",
+                      year: item.record.year,
+                    })}
                   >
                     <MoreHorizontal size={16} strokeWidth={2} aria-hidden={true} />
                   </View>

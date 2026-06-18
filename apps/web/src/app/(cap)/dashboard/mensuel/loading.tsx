@@ -4,10 +4,12 @@
 // transactions/loading.tsx: PekuloSkeleton inside Section primitives,
 // same shape as the loaded page.
 
+import { getTranslations } from "next-intl/server";
 import { PekuloSkeleton, Section } from "@pekulo/ui";
 import topRowStyles from "./_components/mensuel-top-row.module.css";
 
-export default function MensuelLoading() {
+export default async function MensuelLoading() {
+  const t = await getTranslations("loading");
   return (
     <div
       style={{
@@ -20,21 +22,21 @@ export default function MensuelLoading() {
     >
       <div className={topRowStyles.row}>
         <div className={topRowStyles.moisEnCours}>
-          <Section ariaLabel="Chargement du mois en cours">
+          <Section ariaLabel={t("mensuelCurrent")}>
             <PekuloSkeleton width="40%" height={12} />
             <div style={{ height: 12 }} />
             <PekuloSkeleton block height={48} />
           </Section>
         </div>
         <div className={topRowStyles.cloture}>
-          <Section ariaLabel="Chargement de la clôture">
+          <Section ariaLabel={t("mensuelCloture")}>
             <PekuloSkeleton width="30%" height={12} />
             <div style={{ height: 12 }} />
             <PekuloSkeleton lines={2} height={14} />
           </Section>
         </div>
       </div>
-      <Section ariaLabel="Chargement de l'historique" title="Historique">
+      <Section ariaLabel={t("history")} title={t("historyTitle")}>
         <PekuloSkeleton lines={5} height={36} />
       </Section>
     </div>

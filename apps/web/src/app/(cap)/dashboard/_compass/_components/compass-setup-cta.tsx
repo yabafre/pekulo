@@ -1,6 +1,7 @@
 "use client";
 
 import { Compass } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PekuloEmptyState } from "@pekulo/ui";
 
 export interface CompassSetupCtaProps {
@@ -8,12 +9,13 @@ export interface CompassSetupCtaProps {
 }
 
 export function CompassSetupCta({ onAddMilestone }: CompassSetupCtaProps) {
+  const t = useTranslations("dashboard");
   return (
     <PekuloEmptyState
       icon={Compass}
-      title="Définis ton premier palier"
-      message="Pour voir ton cap, ajoute au moins un palier (capital cible + année). Tant qu'aucun palier n'existe, le cap reste un voeu."
-      ctaLabel="Ajouter un palier"
+      title={t("compassSetupTitle")}
+      message={t("compassSetupMessage")}
+      ctaLabel={t("addMilestone")}
       onCta={onAddMilestone}
     />
   );

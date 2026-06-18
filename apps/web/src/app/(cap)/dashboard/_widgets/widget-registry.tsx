@@ -10,6 +10,7 @@
 // line) so it ships defaultVisible:false — the FR-41 default viewport is
 // hero (wealth + delta) + compass (%). It stays a real, opt-in widget.
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Section } from "@pekulo/ui";
 import { Text } from "@pekulo/ui/client";
 import type { DashboardWidgetId } from "@pekulo/validators";
@@ -32,6 +33,12 @@ export interface WidgetDef {
   colSpan: number;
   /** Default row-track height (overridable by a stored rowSpan). */
   rowSpan: number;
+  /**
+   * Hard floor for rowSpan, enforced in resolveLayout even against a stored
+   * span. Use for cards that are unusable below a height (e.g. a chart + verdict
+   * needs ≥2 tracks) so a stale/too-small stored layout can't squish them.
+   */
+  minRowSpan?: number;
   render: () => ReactNode;
 }
 
@@ -44,12 +51,13 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 // Milestones need the cap state (currentWealth + compass params); a wrapper
 // keeps the registry render a plain element factory.
 function MilestonesWidget() {
+  const t = useTranslations("widgets");
   const cap = useCapDashboardState();
   if (!cap) {
     return (
-      <Section title="Paliers" ariaLabel="Paliers (en attente du cap)">
+      <Section title={t("milestones.title")} ariaLabel={t("milestones.ariaLabelWaiting")}>
         <Text color="$colorTertiary" fontSize="$caption">
-          En attente de la configuration du cap.
+          {t("common.waitingForCap")}
         </Text>
       </Section>
     );
@@ -66,20 +74,21 @@ function MilestonesWidget() {
 // Standalone next-milestone card (folded into the hero by default; available as
 // an opt-in widget). Reuses the FR-41 selection helper.
 function NextMilestoneWidget() {
+  const t = useTranslations("widgets");
   const cap = useCapDashboardState();
   const { data: statuses } = useMilestoneStatuses(cap?.currentWealth ?? 0, {
     enabled: cap != null,
   });
   const next = selectNextMilestone(statuses);
   return (
-    <Section title="Prochain palier" ariaLabel="Prochain palier">
+    <Section title={t("nextMilestone.title")} ariaLabel={t("nextMilestone.ariaLabel")}>
       {next ? (
         <Text color="$color" fontSize="$bodySm" fontWeight="600">
-          +{eur0.format(next.deltaEur)} à atteindre
+          {t("nextMilestone.delta", { amount: eur0.format(next.deltaEur) })}
         </Text>
       ) : (
         <Text color="$colorTertiary" fontSize="$caption">
-          Tous les paliers sont atteints.
+          {t("nextMilestone.allReached")}
         </Text>
       )}
     </Section>
@@ -91,12 +100,13 @@ function NextMilestoneWidget() {
 // render a plain element factory (mirrors MilestonesWidget). No cap → the same
 // "en attente du cap" hint the milestones widget shows.
 function HypothesisWidget() {
+  const t = useTranslations("widgets");
   const cap = useCapDashboardState();
   if (!cap) {
     return (
-      <Section title="Hypothèse" ariaLabel="Hypothèse (en attente du cap)">
+      <Section title={t("hypothesis.title")} ariaLabel={t("hypothesis.ariaLabelWaiting")}>
         <Text color="$colorTertiary" fontSize="$caption">
-          En attente de la configuration du cap.
+          {t("common.waitingForCap")}
         </Text>
       </Section>
     );
@@ -156,7 +166,14 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 5,
     defaultVisible: true,
     colSpan: 12,
-    rowSpan: 1,
+    // rowSpan 2 (456px) — like `trajectory`, this card renders a chart: a
+    // responsive SVG + year axis + the verdict block. A 1-row cell floors at
+    // 220px (`grid-auto-rows: minmax(220px, auto)`) which leaves almost no room
+    // for the plot once the header + verdict are laid out. minRowSpan pins the
+    // floor to 2 even against a stale stored layout (resolveLayout enforces it)
+    // so the chart always has real estate and never collapses to a sliver.
+    rowSpan: 2,
+    minRowSpan: 2,
     render: () => <HypothesisWidget />,
   },
   {

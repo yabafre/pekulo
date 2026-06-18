@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
 import { PekuloDialog, pekuloFontSizes, pekuloRadius } from "@pekulo/ui";
 import type { Transaction } from "@pekulo/validators";
 import { userErrorMessage } from "@/lib/user-error-message";
 import { useDeleteTransaction } from "../_hooks/use-delete-transaction";
-
-const NOT_FOUND_MESSAGE = "Cette transaction est introuvable (déjà supprimée ?). Recharge la page.";
 
 const dangerBtn = (disabled: boolean): CSSProperties => ({
   alignSelf: "flex-start",
@@ -34,6 +33,7 @@ export function TransactionDeleteConfirm({
   open,
   onOpenChange,
 }: TransactionDeleteConfirmProps) {
+  const t = useTranslations();
   const { mutate, isPending, error, reset } = useDeleteTransaction();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
 
@@ -55,7 +55,7 @@ export function TransactionDeleteConfirm({
             onOpenChange(false);
             return;
           }
-          setEnvelopeError(NOT_FOUND_MESSAGE);
+          setEnvelopeError(t("transactions.notFoundReload"));
         },
       },
     );
@@ -67,10 +67,10 @@ export function TransactionDeleteConfirm({
         <PekuloDialog.Overlay />
         <PekuloDialog.Content>
           <View flexDirection="column" gap="$3" padding="$4">
-            <PekuloDialog.Title>Supprimer « {transaction.label} » ?</PekuloDialog.Title>
-            <PekuloDialog.Description>
-              Cette action est irréversible. La transaction sera effacée définitivement.
-            </PekuloDialog.Description>
+            <PekuloDialog.Title>
+              {t("transactions.deleteTitle", { label: transaction.label })}
+            </PekuloDialog.Title>
+            <PekuloDialog.Description>{t("transactions.deleteDesc")}</PekuloDialog.Description>
             {envelopeError && (
               <Text role="alert" color="$danger" fontSize="$caption">
                 {envelopeError}
@@ -88,7 +88,7 @@ export function TransactionDeleteConfirm({
                 disabled={isPending}
                 style={dangerBtn(isPending)}
               >
-                {isPending ? "Suppression…" : "Supprimer"}
+                {isPending ? t("transactions.deleting") : t("transactions.delete")}
               </button>
               <PekuloDialog.Close asChild>
                 <View
@@ -101,7 +101,7 @@ export function TransactionDeleteConfirm({
                   alignItems="center"
                 >
                   <Text color="$colorTertiary" fontSize="$caption">
-                    Annuler
+                    {t("common.cancel")}
                   </Text>
                 </View>
               </PekuloDialog.Close>

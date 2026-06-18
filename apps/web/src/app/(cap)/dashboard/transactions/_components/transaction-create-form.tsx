@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   CategoryIcon,
   PekuloDatePicker,
@@ -25,11 +26,6 @@ import { useAppForm } from "@/hooks/form-hook";
 import { useAccounts } from "../../_accounts/_hooks/use-accounts";
 import { useCreateTransaction } from "../_hooks/use-create-transaction";
 
-const TYPE_LABEL: Record<TransactionType, string> = {
-  inflow: "Entrée",
-  outflow: "Sortie",
-};
-
 export interface TransactionCreateFormProps {
   onSuccess?: () => void;
 }
@@ -37,6 +33,11 @@ export interface TransactionCreateFormProps {
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps) {
+  const t = useTranslations("transactions");
+  const TYPE_LABEL: Record<TransactionType, string> = {
+    inflow: t("types.inflow"),
+    outflow: t("types.outflow"),
+  };
   const { data: accounts } = useAccounts();
   const { mutate, isPending, reset } = useCreateTransaction();
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
@@ -55,15 +56,15 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
     },
     validators: {
       onSubmit: ({ value }) => {
-        if (!value.accountId) return "Choisir un compte parent";
-        if (!/^acc_[0-9A-Za-z]{21}$/.test(value.accountId)) return "Compte invalide";
+        if (!value.accountId) return t("errors.accountRequired");
+        if (!/^acc_[0-9A-Za-z]{21}$/.test(value.accountId)) return t("errors.accountInvalid");
         const trimmed = value.label.trim();
-        if (trimmed.length === 0) return "Libellé requis";
-        if (trimmed.length > 120) return "Libellé > 120 caractères";
+        if (trimmed.length === 0) return t("errors.labelRequired");
+        if (trimmed.length > 120) return t("errors.labelTooLong");
         const amt = Number(value.amount);
-        if (!Number.isFinite(amt) || amt < 0) return "Montant invalide (≥ 0)";
+        if (!Number.isFinite(amt) || amt < 0) return t("errors.amountInvalid");
         const notes = value.notes.trim();
-        if (notes.length > 500) return "Notes > 500 caractères";
+        if (notes.length > 500) return t("errors.notesTooLong");
         return undefined;
       },
     },
@@ -103,20 +104,20 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
         e.preventDefault();
         void form.handleSubmit();
       }}
-      aria-label="Ajouter une transaction"
+      aria-label={t("createFormAria")}
     >
       <View padding="$4">
         <PekuloFieldGroup>
           <form.Field name="accountId">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-account">Compte</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-account">{t("fields.account")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v)}
                 >
                   <PekuloSelect.Trigger id="tx-account">
-                    <PekuloSelect.Value placeholder="Choisir un compte" />
+                    <PekuloSelect.Value placeholder={t("chooseAccount")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
@@ -129,9 +130,7 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
                   </PekuloSelect.Content>
                 </PekuloSelect>
                 {(accounts ?? []).length === 0 && (
-                  <PekuloFieldDescription>
-                    Crée un compte dans Paramètres avant d&apos;ajouter une transaction.
-                  </PekuloFieldDescription>
+                  <PekuloFieldDescription>{t("noAccountHint")}</PekuloFieldDescription>
                 )}
               </PekuloField>
             )}
@@ -139,7 +138,7 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
           <form.Field name="occurredOn">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-date">Date</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-date">{t("fields.date")}</PekuloFieldLabel>
                 <PekuloDatePicker
                   id="tx-date"
                   value={field.state.value ? new Date(field.state.value) : undefined}
@@ -151,7 +150,7 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
           <form.Field name="label">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-label">Libellé</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-label">{t("fields.label")}</PekuloFieldLabel>
                 <PekuloInput
                   id="tx-label"
                   type="text"
@@ -166,7 +165,7 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
           <form.Field name="amount">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-amount">Montant (€)</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-amount">{t("fields.amount")}</PekuloFieldLabel>
                 <PekuloInput
                   id="tx-amount"
                   type="number"
@@ -182,13 +181,13 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
           <form.Field name="type">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-type">Type</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-type">{t("fields.type")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as TransactionType)}
                 >
                   <PekuloSelect.Trigger id="tx-type">
-                    <PekuloSelect.Value placeholder="Type" />
+                    <PekuloSelect.Value placeholder={t("fields.type")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
@@ -207,13 +206,13 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
           <form.Field name="category">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-category">Catégorie</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-category">{t("fields.category")}</PekuloFieldLabel>
                 <PekuloSelect
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(v as TransactionCategory)}
                 >
                   <PekuloSelect.Trigger id="tx-category">
-                    <PekuloSelect.Value placeholder="Choisir une catégorie" />
+                    <PekuloSelect.Value placeholder={t("chooseCategory")} />
                   </PekuloSelect.Trigger>
                   <PekuloSelect.Content>
                     <PekuloSelect.Group>
@@ -242,7 +241,7 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
                     checked={field.state.value}
                     onCheckedChange={(v: boolean) => field.handleChange(v)}
                   />
-                  <PekuloFieldLabel htmlFor="tx-imprevu">Imprévu</PekuloFieldLabel>
+                  <PekuloFieldLabel htmlFor="tx-imprevu">{t("fields.imprevu")}</PekuloFieldLabel>
                 </View>
               </PekuloField>
             )}
@@ -250,7 +249,7 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
           <form.Field name="notes">
             {(field) => (
               <PekuloField>
-                <PekuloFieldLabel htmlFor="tx-notes">Notes (optionnel)</PekuloFieldLabel>
+                <PekuloFieldLabel htmlFor="tx-notes">{t("fields.notesOptional")}</PekuloFieldLabel>
                 <PekuloInput
                   id="tx-notes"
                   type="text"
@@ -267,8 +266,8 @@ export function TransactionCreateForm({ onSuccess }: TransactionCreateFormProps)
             }
           </form.Subscribe>
           {envelopeError && <PekuloFieldError>{envelopeError}</PekuloFieldError>}
-          <PekuloSubmitButton loading={isPending} loadingLabel="Ajout…">
-            Ajouter la transaction
+          <PekuloSubmitButton loading={isPending} loadingLabel={t("adding")}>
+            {t("addTransaction")}
           </PekuloSubmitButton>
         </PekuloFieldGroup>
       </View>
