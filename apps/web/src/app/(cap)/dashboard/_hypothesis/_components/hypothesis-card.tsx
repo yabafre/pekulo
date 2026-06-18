@@ -68,6 +68,17 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
   const model = buildChartModel(proj, g, baseYear, currentWealth);
   const ratePct = (proj.annualRate * 100).toFixed(1);
 
+  // Story 8-2 i18n — the verdict is now a pure-UI component; the card owns the
+  // copy. Derive the display delta + shortfall here, translate + format, and
+  // pass ready strings down. `year` is passed as a string so next-intl doesn't
+  // group-format the calendar year (e.g. "2 034").
+  const targetYear = baseYear + g.horizonYears;
+  const delta = g.projectedFinalEur - g.requiredFinalEur;
+  const reaches = delta >= 0;
+  const signedDelta = `${reaches ? "+" : "−"}${eur0.format(Math.abs(delta))}`;
+  const gapEur = g.reachesCap ? undefined : g.gapEurPerMonth;
+  const showGap = !reaches && gapEur != null && gapEur > 0;
+
   return (
     <Section
       title={t("card.title")}
@@ -85,12 +96,13 @@ export function HypothesisCard({ currentWealth }: { currentWealth: number }) {
           required={model.required}
           nowMarker={model.nowMarker}
           capMarker={model.capMarker}
+          ariaLabel={t("card.chartAria")}
         />
         <PekuloHypothesisVerdict
-          projectedEur={g.projectedFinalEur}
-          requiredEur={g.requiredFinalEur}
-          targetYear={baseYear + g.horizonYears}
-          gapEurPerMonth={g.reachesCap ? undefined : g.gapEurPerMonth}
+          reaches={reaches}
+          headline={t(reaches ? "verdict.reaches" : "verdict.misses", { year: String(targetYear) })}
+          deltaLabel={t("verdict.delta", { delta: signedDelta })}
+          gapLabel={showGap ? t("verdict.gap", { amount: eur0.format(gapEur) }) : undefined}
         />
       </View>
     </Section>

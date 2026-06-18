@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useThemeSetting } from "@tamagui/next-theme";
+import { useThemeSetting } from "@pekulo/ui";
 import { useLocale } from "next-intl";
 import type { ThemePref, LangPref } from "@pekulo/validators";
 

@@ -5,37 +5,42 @@
 // each with its share-of-total %. Skeleton while loading; empty state when the
 // user has no wealth yet. `variant` switches between the bento card (desktop)
 // and a flat section (mobile / Patrimoine view) — same body either way.
+import { useTranslations } from "next-intl";
 import { PekuloCompositionRow, PekuloSkeleton, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useDashboardOverview } from "../_hooks/use-dashboard-overview";
 
+// Story 8-2 i18n sweep — the three wealth buckets. `labelKey` resolves to a
+// dashboard.composition.* message so the row labels follow the active locale
+// (the literal French strings here previously leaked in the EN locale).
 const ROWS = [
-  { key: "liquideEur", label: "Liquide" },
-  { key: "placementsEur", label: "Placements" },
-  { key: "immobilierEur", label: "Immobilier" },
+  { key: "liquideEur", labelKey: "liquide" },
+  { key: "placementsEur", labelKey: "placements" },
+  { key: "immobilierEur", labelKey: "immobilier" },
 ] as const;
 
 export function CompositionSection({ variant = "flat" }: { variant?: "flat" | "card" }) {
+  const t = useTranslations("dashboard.composition");
   const { data, isLoading } = useDashboardOverview();
   const body =
     isLoading || !data ? (
       <PekuloSkeleton lines={3} height={40} />
     ) : data.totalWealthEur <= 0 ? (
       <Text color="$colorTertiary" fontSize="$caption">
-        Aucune donnée de patrimoine pour l'instant.
+        {t("empty")}
       </Text>
     ) : (
       <View flexDirection="column">
-        {ROWS.map(({ key, label }) => {
+        {ROWS.map(({ key, labelKey }) => {
           const amount = data.composition[key];
           const pct = data.totalWealthEur > 0 ? amount / data.totalWealthEur : 0;
-          return <PekuloCompositionRow key={key} label={label} amount={amount} pct={pct} />;
+          return <PekuloCompositionRow key={key} label={t(labelKey)} amount={amount} pct={pct} />;
         })}
       </View>
     );
   if (variant === "card") {
     return (
-      <Section title="Composition" ariaLabel="Composition du patrimoine">
+      <Section title={t("title")} ariaLabel={t("ariaLabel")}>
         {body}
       </Section>
     );
@@ -51,7 +56,7 @@ export function CompositionSection({ variant = "flat" }: { variant?: "flat" | "c
         marginBottom="$3"
         $lg={{ fontSize: "$h2" }}
       >
-        Composition
+        {t("title")}
       </Text>
       {body}
     </View>

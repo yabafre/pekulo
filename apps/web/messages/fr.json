@@ -78,6 +78,14 @@
     "newTransactionDesc": "Renseigne le compte, la date, le libellé et le montant.",
     "recentActivity": "Activité récente",
     "noRecentActivity": "Aucune activité récente.",
+    "composition": {
+      "title": "Composition",
+      "ariaLabel": "Composition du patrimoine",
+      "liquide": "Liquide",
+      "placements": "Placements",
+      "immobilier": "Immobilier",
+      "empty": "Aucune donnée de patrimoine pour l'instant."
+    },
     "milestones": "Paliers",
     "milestonesCount": "Paliers ({count}/20)",
     "addMilestone": "Ajouter un palier",
@@ -507,7 +515,14 @@
       "ariaLabelUnavailable": "Hypothèse indisponible",
       "loading": "Chargement de la projection…",
       "noCap": "Configure ton cap pour voir ta projection.",
-      "action": "{monthly} / mois · {rate} % / an"
+      "action": "{monthly} / mois · {rate} % / an",
+      "chartAria": "Projection par rapport au cap requis"
+    },
+    "verdict": {
+      "reaches": "Tu atteins ton cap en {year}.",
+      "misses": "Tu n'atteins pas ton cap en {year}.",
+      "delta": "{delta} vs cap requis",
+      "gap": "Il manque {amount} / mois pour atteindre le cap."
     },
     "settings": {
       "title": "Hypothèse de projection",

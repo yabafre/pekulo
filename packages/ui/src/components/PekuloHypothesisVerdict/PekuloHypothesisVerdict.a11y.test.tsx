@@ -5,7 +5,11 @@ import { PekuloHypothesisVerdict } from "./PekuloHypothesisVerdict";
 describe("PekuloHypothesisVerdict a11y", () => {
   it("has no serious/critical violations", async () => {
     const { container } = renderWithTamagui(
-      <PekuloHypothesisVerdict projectedEur={820000} requiredEur={800000} targetYear={2055} />,
+      <PekuloHypothesisVerdict
+        reaches
+        headline="Tu atteins ton cap en 2055."
+        deltaLabel="+20 000 € vs cap requis"
+      />,
     );
     const r = await axe(container);
     expect(
@@ -16,10 +20,10 @@ describe("PekuloHypothesisVerdict a11y", () => {
   it("gap-line variant has no serious/critical violations", async () => {
     const { container } = renderWithTamagui(
       <PekuloHypothesisVerdict
-        projectedEur={650000}
-        requiredEur={800000}
-        targetYear={2055}
-        gapEurPerMonth={120}
+        reaches={false}
+        headline="Tu n'atteins pas ton cap en 2055."
+        deltaLabel="−150 000 € vs cap requis"
+        gapLabel="Il manque 120 € / mois pour atteindre le cap."
       />,
     );
     const r = await axe(container);

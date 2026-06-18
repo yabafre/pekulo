@@ -2,53 +2,46 @@
 
 import { Text, View } from "tamagui";
 
+// Story 8-2 i18n — pure presentational verdict. All copy (headline / delta /
+// shortfall) is translated + interpolated by the consumer (which owns the
+// next-intl context and the €-formatter) and passed in as ready strings, so
+// this UI-package component no longer hardcodes French. `reaches` drives the
+// delta colour (success ↔ danger) and is the only non-string prop.
 export interface PekuloHypothesisVerdictProps {
-  /** Capital projeté à l'horizon. */
-  projectedEur: number;
-  /** Cap demandé. */
-  requiredEur: number;
-  /** Année cible. */
-  targetYear: number;
+  /** True when the projected capital meets/exceeds the required cap. */
+  reaches: boolean;
+  /** Translated headline, e.g. "Tu n'atteins pas ton cap en 2034." */
+  headline: string;
+  /** Translated delta line, e.g. "−100 051 € vs cap requis". */
+  deltaLabel: string;
   /**
-   * Story 7-4 (FR-59) — extra €/month to reach the cap. Renders the shortfall
-   * line when present AND the cap is NOT reached. Omit to keep the 7-3 shape.
+   * Story 7-4 (FR-59) — translated €/month shortfall line. Pass it only when
+   * the cap is NOT reached and there is a positive gap; omit otherwise.
    */
-  gapEurPerMonth?: number;
+  gapLabel?: string;
 }
 
-const eur0 = new Intl.NumberFormat("fr-FR", {
-  style: "currency",
-  currency: "EUR",
-  maximumFractionDigits: 0,
-});
-
 export function PekuloHypothesisVerdict({
-  projectedEur,
-  requiredEur,
-  targetYear,
-  gapEurPerMonth,
+  reaches,
+  headline,
+  deltaLabel,
+  gapLabel,
 }: PekuloHypothesisVerdictProps) {
-  const delta = projectedEur - requiredEur;
-  const sign = delta >= 0 ? "+" : "−";
-  const reaches = delta >= 0;
   return (
     <View flexDirection="column" gap="$1">
       <Text color="$color" fontSize="$bodySm" fontWeight="500">
-        {reaches
-          ? `Tu atteins ton cap en ${targetYear}.`
-          : `Tu n'atteins pas ton cap en ${targetYear}.`}
+        {headline}
       </Text>
       <Text
         color={(reaches ? "$success" : "$danger") as never}
         fontSize="$caption"
         fontWeight="500"
       >
-        {sign}
-        {eur0.format(Math.abs(delta))} vs cap requis
+        {deltaLabel}
       </Text>
-      {!reaches && gapEurPerMonth != null && gapEurPerMonth > 0 && (
+      {gapLabel && (
         <Text color="$colorTertiary" fontSize="$caption">
-          Il manque {eur0.format(gapEurPerMonth)} / mois pour atteindre le cap.
+          {gapLabel}
         </Text>
       )}
     </View>

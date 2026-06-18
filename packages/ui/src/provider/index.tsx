@@ -35,6 +35,15 @@ import { TamaguiProvider } from "tamagui";
 import { config } from "../config/tamagui";
 import { PekuloToastViewport, ToastProvider } from "../toast";
 
+// Re-export the theme-setting hook from THIS package so consumers (apps/web)
+// read the SAME @tamagui/next-theme instance — and therefore the SAME
+// ThemeSettingContext — that PekuloRootProvider mounts below. Importing
+// `useThemeSetting` straight from "@tamagui/next-theme" in apps/web resolved a
+// DIFFERENT copy (rc.41 vs packages/ui's rc.42) → a mismatched context →
+// `set()` silently no-op'd → theme switching never applied. Routing the hook
+// through @pekulo/ui pins it to the provider's instance (story 8-2 fix).
+export { useThemeSetting } from "@tamagui/next-theme";
+
 export function PekuloRootProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemeProvider

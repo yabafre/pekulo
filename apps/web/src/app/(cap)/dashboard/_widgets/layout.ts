@@ -31,7 +31,10 @@ export function resolveLayout(saved: DashboardLayout | null): ResolvedWidget[] {
       id: def.id,
       label: def.label,
       colSpan: stored?.colSpan ?? def.colSpan,
-      rowSpan: stored?.rowSpan ?? def.rowSpan,
+      // Enforce the per-widget minRowSpan floor even over a stored span: a card
+      // can be sized DOWN by the user, but not below the height it needs to
+      // render (a chart card squished to 1 row collapses its plot to a sliver).
+      rowSpan: Math.max(stored?.rowSpan ?? def.rowSpan, def.minRowSpan ?? 1),
       render: def.render,
       visible: stored ? stored.visible : def.defaultVisible,
       // A stored widget keeps its order; a registry widget the user never saw

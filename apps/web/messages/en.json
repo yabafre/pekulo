@@ -78,6 +78,14 @@
     "newTransactionDesc": "Enter the account, date, label and amount.",
     "recentActivity": "Recent activity",
     "noRecentActivity": "No recent activity.",
+    "composition": {
+      "title": "Composition",
+      "ariaLabel": "Wealth composition",
+      "liquide": "Cash",
+      "placements": "Investments",
+      "immobilier": "Real estate",
+      "empty": "No wealth data yet."
+    },
     "milestones": "Milestones",
     "milestonesCount": "Milestones ({count}/20)",
     "addMilestone": "Add a milestone",
@@ -507,7 +515,14 @@
       "ariaLabelUnavailable": "Projection unavailable",
       "loading": "Loading the projection…",
       "noCap": "Set your target to see your projection.",
-      "action": "{monthly} / month · {rate}% / year"
+      "action": "{monthly} / month · {rate}% / year",
+      "chartAria": "Projection vs required cap"
+    },
+    "verdict": {
+      "reaches": "You reach your cap in {year}.",
+      "misses": "You won't reach your cap in {year}.",
+      "delta": "{delta} vs required cap",
+      "gap": "Short {amount} / month to reach the cap."
     },
     "settings": {
       "title": "Projection hypothesis",

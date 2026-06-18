@@ -5,7 +5,11 @@ import { PekuloHypothesisCard } from "./PekuloHypothesisCard";
 describe("PekuloHypothesisCard a11y", () => {
   it("has no serious/critical violations", async () => {
     const { container } = renderWithTamagui(
-      <PekuloHypothesisCard projectedEur={480000} requiredEur={500000} targetYear={2055} />,
+      <PekuloHypothesisCard
+        reaches={false}
+        headline="Tu n'atteins pas ton cap en 2055."
+        deltaLabel="−20 000 € vs cap requis"
+      />,
     );
     const results = await axe(container);
     expect(

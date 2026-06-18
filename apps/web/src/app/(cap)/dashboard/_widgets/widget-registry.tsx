@@ -33,6 +33,12 @@ export interface WidgetDef {
   colSpan: number;
   /** Default row-track height (overridable by a stored rowSpan). */
   rowSpan: number;
+  /**
+   * Hard floor for rowSpan, enforced in resolveLayout even against a stored
+   * span. Use for cards that are unusable below a height (e.g. a chart + verdict
+   * needs ≥2 tracks) so a stale/too-small stored layout can't squish them.
+   */
+  minRowSpan?: number;
   render: () => ReactNode;
 }
 
@@ -160,7 +166,14 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultOrder: 5,
     defaultVisible: true,
     colSpan: 12,
-    rowSpan: 1,
+    // rowSpan 2 (456px) — like `trajectory`, this card renders a chart: a
+    // responsive SVG + year axis + the verdict block. A 1-row cell floors at
+    // 220px (`grid-auto-rows: minmax(220px, auto)`) which leaves almost no room
+    // for the plot once the header + verdict are laid out. minRowSpan pins the
+    // floor to 2 even against a stale stored layout (resolveLayout enforces it)
+    // so the chart always has real estate and never collapses to a sliver.
+    rowSpan: 2,
+    minRowSpan: 2,
     render: () => <HypothesisWidget />,
   },
   {
