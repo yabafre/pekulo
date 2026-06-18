@@ -10,10 +10,11 @@ import { updateTheme } from "../_actions/settings-actions";
 // a data-theme via its `value` map (story 8-2 T14), so `set(v)` applies live.
 const ICONS = { system: Monitor, dark: Moon, light: Sun } as const;
 
-// DISPLAY order (presentation only) — Light · Dark · System, the OS-picker
-// convention. THEME_VALUES stays the DB-iso SSOT (its order mirrors the
-// Postgres enum), so the segmented control orders here instead of reusing it.
-const THEME_ORDER = ["light", "dark", "system"] as const satisfies readonly ThemePref[];
+// DISPLAY order (presentation only) — Système · Sombre · Clair, matching the
+// ux-preview SSOT (docs/ux-preview/src/App.tsx:1752-1754). THEME_VALUES stays
+// the DB-iso source (order mirrors the Postgres enum); the segmented control
+// orders here so display intent is explicit and decoupled from the DB array.
+const THEME_ORDER = ["system", "dark", "light"] as const satisfies readonly ThemePref[];
 
 export function ThemeControl({ initial }: { initial: ThemePref }) {
   const t = useTranslations("settings");
