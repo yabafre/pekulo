@@ -8,6 +8,7 @@
 
 import { pekuloSpacing } from "@pekulo/ui";
 import { AccountSection } from "../_account/_components/account-section";
+import { SessionSection } from "../_account/_components/session-section";
 import { AppearanceSection } from "../_appearance/_components/appearance-section";
 import { CompassEditForm } from "../_compass/_components/compass-edit-form";
 import { CompassHistoryPanel } from "../_compass/_components/compass-history-panel";
@@ -19,9 +20,9 @@ import { HypothesisSettings } from "../_hypothesis/_components/hypothesis-settin
 // appearance (theme/lang) → dashboard/_appearance, compass → dashboard/_compass.
 // Section order mirrors the ux-preview SSOT (docs/ux-preview/src/App.tsx
 // SettingsScreen): Compte → Apparence → Intelligence artificielle → … →
-// Hypothèse (last). Données + Session are not built yet; Compass (cap config,
-// a Pekulo-only addition absent from ux-preview) is grouped with the Hypothèse
-// projection cluster at the end.
+// Session (Se déconnecter) → Hypothèse (last). « Vos données » (export/delete)
+// isn't built yet; Compass (cap config, a Pekulo-only addition absent from
+// ux-preview) takes the slot before Session.
 
 export default function ParametresPage() {
   return (
@@ -48,6 +49,7 @@ export default function ParametresPage() {
         <LlmActivityLogLink />
         <CompassEditForm />
         <CompassHistoryPanel />
+        <SessionSection />
         <HypothesisSettings />
       </div>
     </div>
