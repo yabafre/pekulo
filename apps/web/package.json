@@ -55,7 +55,7 @@
     "happy-dom": "^20.0.0",
     "react-grab": "^0.1.44",
     "supabase": "^2.95.4",
-    "tamagui": "2.0.0-rc.42",
+    "tamagui": "2.3.1",
     "typescript": "^6.0.3",
     "vitest": "^3.2.6",
     "vitest-axe": "^0.1.0"
