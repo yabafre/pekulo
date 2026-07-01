@@ -170,7 +170,7 @@ corrections_count: 5
 sprint:
   scope_change_active: false
   project: "pekulo-v1"
-  active_epic: "6"
+  active_epic: "8"
   umbrella_branch: "main"
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
@@ -231,7 +231,7 @@ sprint:
     7-4-hypothesis-comparison-ui: {status: done, depends_on: [7-3-hypothesis-domain, 7-2-dashboard-cap-page, 0-10-pekulo-ui-migration], ticket: "#41", worktree: null}
     # Epic 8 — Auth & preferences (V1 brownfield + extension)
     8-1-supabase-auth-flows: {status: done, depends_on: [0-3-api-scaffold], ticket: "#42", worktree: null, started_at: "2026-06-15T00:00:00Z", completed_at: "2026-06-15T00:00:00Z", reviewed_at: "2026-06-15T17:05:00Z"}
-    8-2-theme-language-prefs: {status: review, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#43", worktree: null, started_at: "2026-06-16T15:45:04Z", completed_at: "2026-06-17T09:19:36Z"}
+    8-2-theme-language-prefs: {status: done, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#43", worktree: null, started_at: "2026-06-16T15:45:04Z", completed_at: "2026-06-17T09:19:36Z", reviewed_at: "2026-06-18T00:00:00Z"}
     # Epic 9 — PWA install + offline (V1)
     9-1-pwa-manifest-and-install: {status: pending, depends_on: [0-10-pekulo-ui-migration], ticket: "#44", worktree: null}
     9-2-pwa-offline-cache: {status: pending, depends_on: [9-1-pwa-manifest-and-install, 7-2-dashboard-cap-page, 3-4-portfolio-ui, 4-3-realestate-ui], ticket: "#45", worktree: null}
@@ -246,7 +246,7 @@ sprint:
     11-5-ai-transparency-notice: {status: pending, depends_on: [6-3-llm-opt-in, 6-4-llm-suggestion-ui], ticket: "#52", worktree: null}
     11-6-restore-drill-and-glitchtip: {status: pending, depends_on: [0-7-otel-three-runtimes, 0-3-api-scaffold], ticket: "#53", worktree: null}
     # Ingested from GitHub issue #104 via aped-from-ticket (2026-05-29). Registered, NOT added to active sprint (auto_add: false).
-    11-7-auth-hardening-httponly-csp: {status: review, depends_on: [], ticket: "#104", source: from_ticket, worktree: null, started_at: "2026-05-29T10:34:37Z", completed_at: "2026-05-29T11:04:11Z"}
+    11-7-auth-hardening-httponly-csp: {status: done, depends_on: [], ticket: "#104", source: from_ticket, worktree: null, started_at: "2026-05-29T10:34:37Z", completed_at: "2026-05-29T11:04:11Z", reviewed_at: "2026-05-29T11:04:11Z"}
     # Epic 12 — Private internal AI advisory tool (internal/non-product; ADR-0016). Registered via aped-epics append 2026-06-02; NOT added to active sprint (active_epic stays 6).
     12-1-advisory-access-gate: {status: pending, depends_on: [], ticket: "#114", worktree: null}
     12-2-advisory-analysis-engine: {status: pending, depends_on: [12-1-advisory-access-gate, 1-1-compass-domain, 3-1-holdings-orpc-port, 4-1-realestate-domain, 5-1-transactions-record], ticket: "#115", worktree: null}
