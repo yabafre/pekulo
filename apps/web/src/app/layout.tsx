@@ -1,10 +1,11 @@
 // apps/web/src/app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "@pekulo/ui/reset.css";
 import "@pekulo/ui/generated.css";
 import { Providers } from "@/components/providers";
 import { ReactGrabDev } from "@/components/react-grab-dev";
+import { InstallPrompt } from "@/components/install-prompt";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   description:
     "Pekulo — pilote ton plan financier : épargne, projection de capital, portefeuille et hypothèses.",
   applicationName: "Pekulo",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Pekulo" },
   keywords: ["pekulo", "plan financier", "épargne", "projection", "portefeuille", "ETF", "PEA"],
   authors: [{ name: "Pekulo" }],
   openGraph: {
@@ -31,6 +33,15 @@ export const metadata: Metadata = {
       "Pilote ton plan financier : épargne, projection de capital, portefeuille et hypothèses.",
   },
   robots: { index: false, follow: false },
+};
+
+// themeColor/viewport live in a dedicated export as of Next 14 (deprecated in
+// `metadata`). #000000 matches the manifest theme_color so the mobile toolbar
+// + PWA splash use the TR-strict dark surface.
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -70,6 +81,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <NuqsAdapter>
             <Providers>{children}</Providers>
           </NuqsAdapter>
+          {/* Fixed-position install banner — inside the intl provider for
+              useTranslations; DOM order is irrelevant (position: fixed). */}
+          <InstallPrompt />
         </NextIntlClientProvider>
       </body>
     </html>
