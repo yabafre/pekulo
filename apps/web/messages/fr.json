@@ -1,4 +1,12 @@
 {
+  "install": {
+    "aria": "Installer Pekulo",
+    "title": "Installer Pekulo",
+    "body": "Ajoute Pekulo à ton écran d'accueil pour un accès instantané.",
+    "cta": "Installer",
+    "iosHint": "Appuie sur Partager puis « Sur l'écran d'accueil ».",
+    "dismiss": "Fermer"
+  },
   "settings": {
     "appearance": { "title": "Apparence", "theme": "Thème", "language": "Langue" },
     "theme": { "system": "Système", "dark": "Sombre", "light": "Clair" },
