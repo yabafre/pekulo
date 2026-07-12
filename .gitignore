@@ -63,6 +63,10 @@ venv/
 apps/web/supabase/.branches/
 .vercel
 
+# CLAUDE.md context files (keep only root CLAUDE.md)
+**/CLAUDE.md
+!/CLAUDE.md
+
 # Yarn 4 — Vercel install only; bun is local DX. Keep .yarn/releases (binary)
 # and .yarnrc.yml committed; ignore everything else yarn generates.
 .yarn/*
