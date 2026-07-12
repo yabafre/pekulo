@@ -8,8 +8,18 @@
 //   ... the reported Performance score is >= 90 (NFR-3, M5). Manifest + icon
 //   correctness is asserted automatically by `manifest.test.ts` and by the
 //   presence of the `apple-icon` file ...
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import manifest from "./manifest";
+
+// Minimal PNG IHDR reader — width/height are big-endian uint32 at byte 16/20,
+// right after the 8-byte signature + IHDR length/type. Avoids pulling `sharp`
+// into the happy-dom test env just to measure a committed asset.
+function pngSize(path: string): { width: number; height: number } {
+  const buf = readFileSync(path);
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
 
 describe("PWA manifest", () => {
   const m = manifest();
@@ -37,5 +47,31 @@ describe("PWA manifest", () => {
       expect(icon.type).toBe("image/png");
       expect(icon.src.startsWith("/icons/")).toBe(true);
     }
+  });
+});
+
+// AC-1/AC-2: the committed icon assets must actually exist on disk at the
+// declared dimensions — the manifest object above only asserts the metadata
+// strings, not the real PNGs. `apple-icon.png` under app/ is the Next
+// apple-touch-icon convention AC-1 requires (180x180).
+describe("PWA icon assets", () => {
+  const iconsDir = resolve(import.meta.dirname, "../../public/icons");
+  const appleIcon = resolve(import.meta.dirname, "apple-icon.png");
+
+  const cases: Array<[string, number]> = [
+    [`${iconsDir}/icon-192.png`, 192],
+    [`${iconsDir}/icon-512.png`, 512],
+    [`${iconsDir}/icon-192-maskable.png`, 192],
+    [`${iconsDir}/icon-512-maskable.png`, 512],
+  ];
+
+  it.each(cases)("%s exists at the declared size", (path, size) => {
+    expect(existsSync(path)).toBe(true);
+    expect(pngSize(path)).toEqual({ width: size, height: size });
+  });
+
+  it("ships a 180x180 apple-touch-icon (Next apple-icon convention)", () => {
+    expect(existsSync(appleIcon)).toBe(true);
+    expect(pngSize(appleIcon)).toEqual({ width: 180, height: 180 });
   });
 });
