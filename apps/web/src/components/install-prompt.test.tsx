@@ -1,3 +1,10 @@
+// AC-3 (verbatim from story 9-1-pwa-manifest-and-install:18):
+//   Given Android fires `beforeinstallprompt`, or iOS Safari is open and the app
+//   is not already installed, When the page loads, Then a dismissible bottom
+//   banner appears (an Install button on Android that triggers the native prompt;
+//   a "Share -> Add to Home Screen" hint on iOS); the banner is hidden when the
+//   app runs in `display-mode: standalone` or once the user dismisses it
+//   (dismissal persisted in `localStorage`), and all copy is localised in fr + en.
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";

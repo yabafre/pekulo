@@ -1,3 +1,13 @@
+// AC-1 (verbatim from story 9-1-pwa-manifest-and-install:16):
+//   Given I open Pekulo in mobile Safari (or Chrome/Android), When I use the
+//   platform "Add to Home Screen" affordance, Then the icon installs and the
+//   launch screen reflects the manifest: `name` "Pekulo", `display: standalone`,
+//   `theme_color` #000000, PNG icons at 192/512 in both `any` and `maskable`
+//   purposes, and an `apple-touch-icon` (180×180) is present.
+// AC-2 (verbatim from story 9-1-pwa-manifest-and-install:17):
+//   ... the reported Performance score is >= 90 (NFR-3, M5). Manifest + icon
+//   correctness is asserted automatically by `manifest.test.ts` and by the
+//   presence of the `apple-icon` file ...
 import { describe, expect, it } from "vitest";
 import manifest from "./manifest";
 
