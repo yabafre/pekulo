@@ -760,3 +760,7 @@ re-verified RESOLVED by a re-dispatched auditor.
 - Test output (final pass): **101 files, 289 tests passed** (was 279; +10 new). Scoped: `manifest.test.ts` 8/8, `install-prompt.test.tsx` 10/10. `bun run typecheck` exit 0. `bun run lint` 0 errors. All 4 re-dispatched auditors returned APPROVED.
 - Visual verification: Aria statically confirmed the overlap, elevation and touch-target fixes. A **live phone-viewport (<1024px) pass on `/dashboard`** (banner clears the nav) is DEFERRED to the manual DoD gate — the banner only renders under an install signal and has no proto screen.
 - **Outstanding manual DoD gate (human):** `bun run build && bun run start` (now :3002), sign in, `bun run lighthouse` → confirm Performance ≥ 90 on `/dashboard` (AC-2, NFR-3), and eyeball the banner clearing the bottom nav on a mobile viewport.
+
+### Post-review follow-up (2026-07-13)
+
+- **Banner text rendered in the browser-default serif, not the DS Geist font.** Found when Alex live-inspected the banner over the local Cloudflare tunnel (`pekulo-dev.trafijs.com`) — i.e. the deferred live visual pass, run for real, surfaced a defect the static passes missed. Cause: the banner opts out of Tamagui, and `--f-family` is scoped to Tamagui `font_*` classes (unlike the global colour vars). Fixed by adding the `font_body` class — commit `7b8db16`. Recorded as lesson 2026-07-13 (force the live visual pass on signal-gated components; never defer it to "done").
