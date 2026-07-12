@@ -56,7 +56,7 @@
     "fake-indexeddb": "6.2.5",
     "happy-dom": "^20.0.0",
     "lighthouse": "^13.4.0",
-    "react-grab": "^0.1.44",
+    "react-grab": "^0.1.48",
     "sharp": "^0.35.3",
     "supabase": "^2.95.4",
     "tamagui": "2.3.1",

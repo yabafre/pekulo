@@ -17,7 +17,7 @@ import { useEffect } from "react";
 //
 // Injected client-side after mount (dev only) so a production build never adds
 // the tag. Renders nothing.
-const REACT_GRAB_SRC = "https://unpkg.com/react-grab@0.1.44/dist/index.global.js";
+const REACT_GRAB_SRC = "https://unpkg.com/react-grab@0.1.48/dist/index.global.js";
 
 export function ReactGrabDev(): null {
   useEffect(() => {
