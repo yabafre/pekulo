@@ -620,7 +620,7 @@ _Expected files created/modified by this story (final list confirmed by aped-dev
 - `apps/web/src/app/layout.tsx` (modified)
 - `apps/web/package.json` (modified)
 - `apps/web/.gitignore` (new/modified)
-- `apps/web/bun.lock` (modified)
+- `bun.lock` (modified — root, monorepo-hoisted lockfile; no `apps/web/bun.lock` exists)
 
 ## Dev Agent Record
 
@@ -697,3 +697,66 @@ Scoped story runs (each witnessed RED → GREEN): `manifest.test.ts` → 3 passe
 `install-prompt.test.tsx` → 5 passed. `bun run typecheck` (`tsc --noEmit`) clean.
 Manual DoD (not automated): `bun run build && bun run start`, sign in, then
 `bun run lighthouse` → confirm Performance ≥ 90 on `/dashboard`.
+
+## Review Record
+
+**Date:** 2026-07-12
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done (pending the manual DoD gate + user status approval)
+
+Four method-driven auditors ran in parallel. 0 hallucinations (24 identifiers
+verified), Next 16.2.9 metadata conventions confirmed correct, scope held (no
+Service Worker / IndexedDB — reserved for 9-2). 15 actionable findings were
+raised; all were fixed in-review (user chose "fix everything") and each was
+re-verified RESOLVED by a re-dispatched auditor.
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] Install banner overlapped the mobile bottom nav on `/dashboard` (both `zIndex:50`, banner painted last) [install-prompt.tsx]
+  - Source: Aria — Resolution: `737bcff` — `zIndex:60` + media-query `bottom` that clears the ~64px nav below the `lg` (1024px) breakpoint; Aria re-verified breakpoint alignment.
+- [MAJOR] `install()` persisted the dismissed flag even when the user DECLINED the native OS prompt [install-prompt.tsx]
+  - Source: Code / Edge — Resolution: `737bcff` — persist only on `outcome === "accepted"`; decline hides for the session; wrapped in try/finally.
+- [MAJOR] Lighthouse manual DoD gate (AC-2) targeted `:3002` but `next start` bound `:3000` [package.json]
+  - Source: Code — Resolution: `c46732a` — `start` pinned to `-p 3002` (dev/start/lighthouse now consistent).
+- [MAJOR] Install-click + Dismiss-click paths never exercised by tests [install-prompt.test.tsx]
+  - Source: Spec (rated CRITICAL) / Code — Resolution: `4ecb58f` — click tests assert prompt fires, persist-on-accept, no-persist-on-decline, dismiss persist+hide.
+- [MAJOR] "hidden in `display-mode: standalone`" branch untestable (matchMedia stub always false) [install-prompt.test.tsx]
+  - Source: Spec / Code — Resolution: `4ecb58f` — test reassigns matchMedia to match standalone; `afterEach` restores.
+- [MAJOR] AC-3 "localised in fr + en" — en catalog never rendered/asserted [install-prompt.test.tsx]
+  - Source: Spec — Resolution: `4ecb58f` — new en-locale render asserts "Install Pekulo" / "Add to Home Screen" / "Dismiss".
+- [MAJOR] AC-2 "icon correctness / apple-icon presence asserted automatically" — no test checked the real PNGs [manifest.test.ts]
+  - Source: Spec — Resolution: `02e8b9d` — IHDR-based test asserts the four `public/icons` PNGs + `apple-icon.png` exist at declared dims (192/512/180).
+- [MINOR] `localStorage` accessed without try/catch (root-layout blast radius) [install-prompt.tsx]
+  - Source: Edge / Code — Resolution: `737bcff` — reads/writes routed through guarded `readDismissed()` / `persistDismissed()`.
+- [MINOR] Maskable icons rendered as a white square on a hard-coded `#000` field [generate-pwa-icons.ts]
+  - Source: Edge — Resolution: `0d6e2c7` — field now samples the source's corner colour (#fafafa); coherent full-bleed mark; 2 maskable PNGs regenerated (`any` + apple icons byte-identical).
+- [MINOR] Touch targets below 44px [install-prompt.tsx]
+  - Source: Aria — Resolution: `737bcff` — dismiss 44×44; CTA `size="lg"` + `minHeight:44`.
+- [MINOR] Banner used base `--background` (invisible elevation on #000 dark) [install-prompt.tsx]
+  - Source: Aria — Resolution: `737bcff` — `var(--backgroundElevated)` (#121212 dark). Note: in light theme this token equals `--background`; separation there is carried by the border + shadow (accepted).
+- [NIT] iPadOS Safari got no iOS hint (desktop UA) [install-prompt.tsx]
+  - Source: Edge — Resolution: `737bcff` — `isIos()` also matches touch-capable Macintosh UA.
+- [NIT] Combined iOS-hint + deferred-event UI incoherent [install-prompt.tsx]
+  - Source: Edge — Resolution: `737bcff` — `showIosHint = iosHint && !deferred` prefers the Android UI.
+- [NIT] File List still cited `apps/web/bun.lock` (contradicted the Deviations) [this file]
+  - Source: Spec — Resolution: File List corrected to the root `bun.lock`.
+- [NIT] Story recorded no explicit UX cross-check note (lesson 2026-05-17)
+  - Source: Spec — Resolution (recorded here): no `ux-preview` screen exists — the PWA install affordance is "Implicit / validated at runtime" (ux/screen-inventory.md §165); nothing to cross-check, no phantom screen referenced.
+
+#### Dismissed
+
+- None.
+
+#### Noted (non-blocking, for follow-up / design sign-off)
+
+- Maskable glyph is scaled to 66% of a source that already carries whitespace, so the mark reads small within the safe zone — aesthetic sign-off for design, not a correctness defect (`0d6e2c7` fixed the coherence bug).
+- Light-theme `--backgroundElevated` == `--background`; `--backgroundCard` (#fafafa) is available if a stronger light-mode fill lift is ever wanted.
+
+### Verification
+
+- Test command: `cd apps/web && bun run test` (full suite) + scoped runs.
+- Test output (final pass): **101 files, 289 tests passed** (was 279; +10 new). Scoped: `manifest.test.ts` 8/8, `install-prompt.test.tsx` 10/10. `bun run typecheck` exit 0. `bun run lint` 0 errors. All 4 re-dispatched auditors returned APPROVED.
+- Visual verification: Aria statically confirmed the overlap, elevation and touch-target fixes. A **live phone-viewport (<1024px) pass on `/dashboard`** (banner clears the nav) is DEFERRED to the manual DoD gate — the banner only renders under an install signal and has no proto screen.
+- **Outstanding manual DoD gate (human):** `bun run build && bun run start` (now :3002), sign in, `bun run lighthouse` → confirm Performance ≥ 90 on `/dashboard` (AC-2, NFR-3), and eyeball the banner clearing the bottom nav on a mobile viewport.
