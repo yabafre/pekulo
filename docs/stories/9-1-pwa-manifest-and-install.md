@@ -1,7 +1,7 @@
 # Story: 9-1-pwa-manifest-and-install — PWA manifest + icons + install prompt + Lighthouse ≥ 90 (local)
 
 **Epic:** Epic 9 — PWA install + offline
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** #44
 **Branch:** feature/44-9-1-pwa-manifest-and-install
 **Complexity:** S
@@ -21,7 +21,7 @@
 
 ## Tasks
 
-- [ ] **T1 — PWA manifest route + unit test** [AC: AC-1, AC-2]
+- [x] **T1 — PWA manifest route + unit test** [AC: AC-1, AC-2]
 
   Create `apps/web/src/app/manifest.ts`:
   ```ts
@@ -88,7 +88,7 @@
   Expected: `Test Files  1 passed`, `Tests  3 passed`, exit 0.
   Commit: `git add apps/web/src/app/manifest.ts apps/web/src/app/manifest.test.ts && git commit -m "feat(#44): add PWA manifest route + unit test"`
 
-- [ ] **T2 — Icon generation script + generated PNG assets** [AC: AC-1]
+- [x] **T2 — Icon generation script + generated PNG assets** [AC: AC-1]
 
   **Precondition:** the brand source asset `apps/web/public/icons/_source/pekulo-icon-1024.png` (1024×1024 PNG) must exist — Alex drops it before dev. If it is missing, HALT and ask for it; do not invent one.
 
@@ -155,7 +155,7 @@
   Expected: prints `✓ PWA icons generated`, then lists `icon-192.png icon-512.png icon-192-maskable.png icon-512-maskable.png` under `public/icons/` and `src/app/apple-icon.png`, exit 0.
   Commit: `git add apps/web/scripts/generate-pwa-icons.ts apps/web/package.json apps/web/bun.lock apps/web/public/icons/icon-192.png apps/web/public/icons/icon-512.png apps/web/public/icons/icon-192-maskable.png apps/web/public/icons/icon-512-maskable.png apps/web/src/app/apple-icon.png && git commit -m "feat(#44): generate PWA icon set + apple-touch-icon from brand source"`
 
-- [ ] **T3 — Install-prompt i18n copy (fr + en)** [AC: AC-3]
+- [x] **T3 — Install-prompt i18n copy (fr + en)** [AC: AC-3]
 
   In `apps/web/messages/fr.json`, insert a new top-level `"install"` block immediately after the opening `{` (before `"settings"`). Replace:
   ```json
@@ -197,7 +197,7 @@
   Expected: prints `both message files parse`, exit 0.
   Commit: `git add apps/web/messages/fr.json apps/web/messages/en.json && git commit -m "feat(#44): add install-prompt copy (fr + en)"`
 
-- [ ] **T4 — InstallPrompt client component** [AC: AC-3]
+- [x] **T4 — InstallPrompt client component** [AC: AC-3]
 
   Create `apps/web/src/components/install-prompt.tsx`:
   ```tsx
@@ -333,7 +333,7 @@
   Expected: `tsc --noEmit` exits 0 with no output.
   Commit: `git add apps/web/src/components/install-prompt.tsx && git commit -m "feat(#44): add dismissible InstallPrompt banner (Android event + iOS hint)"`
 
-- [ ] **T5 — InstallPrompt behaviour + a11y tests** [AC: AC-3]
+- [x] **T5 — InstallPrompt behaviour + a11y tests** [AC: AC-3]
 
   Create `apps/web/src/components/install-prompt.test.tsx`:
   ```tsx
@@ -405,7 +405,7 @@
   Expected: `Test Files  1 passed`, `Tests  5 passed`, exit 0.
   Commit: `git add apps/web/src/components/install-prompt.test.tsx && git commit -m "test(#44): cover InstallPrompt Android/iOS/dismiss/a11y paths"`
 
-- [ ] **T6 — Wire viewport + appleWebApp + InstallPrompt into the root layout** [AC: AC-1, AC-3]
+- [x] **T6 — Wire viewport + appleWebApp + InstallPrompt into the root layout** [AC: AC-1, AC-3]
 
   Edit `apps/web/src/app/layout.tsx`. **(a)** widen the type import — replace:
   ```ts
@@ -475,7 +475,7 @@
   Expected: `tsc --noEmit` exits 0 with no output.
   Commit: `git add apps/web/src/app/layout.tsx && git commit -m "feat(#44): wire manifest viewport, appleWebApp meta + InstallPrompt into layout"`
 
-- [ ] **T7 — Local Lighthouse Performance script (manual DoD gate)** [AC: AC-2]
+- [x] **T7 — Local Lighthouse Performance script (manual DoD gate)** [AC: AC-2]
 
   Add `lighthouse` as a dev dependency:
   ```bash
@@ -626,20 +626,74 @@ _Expected files created/modified by this story (final list confirmed by aped-dev
 
 - **Model:** claude-opus-4-8[1m]
 - **Started:** 2026-07-12T16:40:55Z
-- **Completed:** _(set by aped-dev)_
+- **Completed:** 2026-07-12T16:58:15Z
 
 ### Summary
 
-_(filled by aped-dev at completion)_
+Shipped the Next 16 native PWA manifest route, the generated icon set (192/512 in
+`any` + `maskable`, plus a 180×180 `apple-icon`) derived from the brand letter mark,
+a dismissible `InstallPrompt` banner (Android `beforeinstallprompt` capture + iOS
+Share hint, `display-mode: standalone`/dismiss gating persisted in `localStorage`,
+fr + en copy), the layout wiring (`viewport.themeColor` #000000 + `appleWebApp`
+meta + the rendered banner), and the local `bun run lighthouse` performance script.
+Scope held to 9-1 — no Service Worker / IndexedDB (that is 9-2, ADR-0003). The
+Lighthouse Performance ≥ 90 number stays a manual DoD gate (needs a prod build +
+an authenticated `/dashboard`).
 
 ### Files changed
 
-_(filled by aped-dev at completion)_
+- `apps/web/src/app/manifest.ts` (new)
+- `apps/web/src/app/manifest.test.ts` (new)
+- `apps/web/scripts/generate-pwa-icons.ts` (new)
+- `apps/web/public/icons/_source/pekulo-icon-1024.png` (new — generator input)
+- `apps/web/public/icons/icon-192.png` (new, generated)
+- `apps/web/public/icons/icon-512.png` (new, generated)
+- `apps/web/public/icons/icon-192-maskable.png` (new, generated)
+- `apps/web/public/icons/icon-512-maskable.png` (new, generated)
+- `apps/web/src/app/apple-icon.png` (new, generated)
+- `apps/web/src/components/install-prompt.tsx` (new)
+- `apps/web/src/components/install-prompt.test.tsx` (new)
+- `apps/web/messages/fr.json` (modified)
+- `apps/web/messages/en.json` (modified)
+- `apps/web/src/app/layout.tsx` (modified)
+- `apps/web/package.json` (modified)
+- `apps/web/.gitignore` (new)
+- `bun.lock` (modified — root monorepo lockfile)
+- `docs/logos/{logo_full,logo_letter,logo_picto}.png` (new — brand pack, icon provenance)
+- `docs/epics-context/epic-9-context.md` (new — story-prep cache)
+- `docs/stories/9-1-pwa-manifest-and-install.md` (this file)
+- `docs/state.yaml` (status → review)
 
 ### Deviations
 
-_(filled by aped-dev at completion)_
+- **Icon source asset absent at the expected path.** The T2 precondition
+  `public/icons/_source/pekulo-icon-1024.png` did not exist. Alex's brand pack sat in
+  `docs/logos/`; per user decision `logo_letter.png` (1254×1254) was resized to
+  1024×1024 and committed as the generator input (prep commit). No invented asset.
+- **Lockfile path.** The story's T2/T7 staged `apps/web/bun.lock`, which does not
+  exist — this monorepo hoists a single root `bun.lock`. Staged the root lockfile.
+- **Lighthouse version.** Story cites v12; the latest `lighthouse@13.4.0` installed.
+  Same behaviour for this story (perf-only audit; the PWA category stays removed).
+- **Traceability commit.** Added verbatim AC-quote header comments to both test
+  files to satisfy the completion-gate item — additive comments, no logic change.
+- **Preparatory commit.** aped-story's artefacts (story file, epic-9 cache, brand
+  logos, icon source) were uncommitted; committed as one `docs(#44)` prep commit so
+  each task commit stayed surgical.
+- **Frontend visual loop.** The banner renders only under an install signal
+  (`beforeinstallprompt` / iOS UA), so live React Grab inspection was deferred to
+  the manual DoD gate; a11y is covered by the `vitest-axe` test (iOS-hint variant).
 
 ### Test output
 
-_(filled by aped-dev at completion)_
+Full apps/web suite (regression), step-07 verification gate:
+
+```
+cd apps/web && bun run test
+ Test Files  101 passed (101)
+      Tests  279 passed (279)
+```
+
+Scoped story runs (each witnessed RED → GREEN): `manifest.test.ts` → 3 passed;
+`install-prompt.test.tsx` → 5 passed. `bun run typecheck` (`tsc --noEmit`) clean.
+Manual DoD (not automated): `bun run build && bun run start`, sign in, then
+`bun run lighthouse` → confirm Performance ≥ 90 on `/dashboard`.
