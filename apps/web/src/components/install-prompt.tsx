@@ -153,9 +153,9 @@ export function InstallPrompt() {
         <span aria-hidden style={{ display: "flex", flexShrink: 0 }}>
           {showIosHint ? <Share size={20} /> : <Download size={20} />}
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{t("title")}</p>
-          <p style={{ margin: 0, fontSize: 13, opacity: 0.7 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 14, lineHeight: 1.25 }}>{t("title")}</p>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, opacity: 0.7 }}>
             {showIosHint ? t("iosHint") : t("body")}
           </p>
         </div>
