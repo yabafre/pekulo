@@ -126,7 +126,10 @@ export function InstallPrompt() {
     <>
       <style>{BANNER_CSS}</style>
       <div
-        className="pekulo-install-banner"
+        // `font_body` pulls the DS font (Geist via --f-family) onto this plain-DOM
+        // banner — Tamagui only applies the font to its own font-classed elements,
+        // so a raw <div>/<p> would otherwise fall back to the browser default.
+        className="pekulo-install-banner font_body"
         role="dialog"
         aria-label={t("aria")}
         style={{
