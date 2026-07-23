@@ -94,9 +94,20 @@ export async function requestPasswordReset(email: string): Promise<AuthResult> {
   }
   const supabase = await createClient();
   const origin = await resolveOrigin();
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${origin}/callback?next=/recover`,
   });
+  // The response is intentionally always { ok: true } to avoid account
+  // enumeration (AC-4) — which also silently hides real failures (email rate
+  // limit, redirect_to not allow-listed, SMTP errors, unknown address). Surface
+  // the cause in the dev-server log only, without weakening the prod contract.
+  if (error && process.env.NODE_ENV === "development") {
+    console.warn("[auth] resetPasswordForEmail failed (dev-only, hidden from the user):", {
+      status: error.status,
+      code: error.code,
+      message: error.message,
+    });
+  }
   return { ok: true };
 }
 
