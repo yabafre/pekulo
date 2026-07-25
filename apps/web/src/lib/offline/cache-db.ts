@@ -11,6 +11,11 @@
 import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from "idb";
 
 export const CACHE_DB_PREFIX = "pekulo-cache-";
+/** Mirrors `VERSION` in public/sw.js. The shell cache holds the rendered
+ * /dashboard document, and the cap layout serialises the signed-in user's
+ * email into that document's flight payload — so sign-out has to drop it too,
+ * not just the IndexedDB snapshot. */
+export const SHELL_CACHE_PREFIX = "pekulo-shell-";
 export const CACHE_DB_VERSION = 1;
 export const KEYS_STORE = "keys";
 export const SNAPSHOTS_STORE = "snapshots";
@@ -19,7 +24,9 @@ export const SNAPSHOTS_STORE = "snapshots";
 export const LAST_USER_KEY = "pekulo:offline-user";
 
 export interface EncryptedSnapshot {
-  iv: Uint8Array;
+  // Backing buffer pinned on purpose — see the note above `encryptJson` in
+  // cache-crypto.ts: a bare `Uint8Array` is not a valid WebCrypto BufferSource.
+  iv: Uint8Array<ArrayBuffer>;
   data: ArrayBuffer;
   savedAt: number;
 }
@@ -109,28 +116,73 @@ export function clearLastUserId(): void {
   }
 }
 
-/** Delete one user's database (AC-4 — identity change). */
-export async function purgeCacheDb(userId: string): Promise<void> {
-  await closeCacheDb();
-  await deleteDB(cacheDbName(userId));
+/** `deleteDB` with the two failure modes the sign-out path cannot tolerate
+ * handled: another tab holding an old connection (without a `blocked` callback
+ * the request sits there forever), and a rejection (private mode, corrupt
+ * store). A purge that throws would strand the user — see sign-out-button. */
+async function deleteDbSafely(name: string): Promise<void> {
+  try {
+    await deleteDB(name, {
+      blocked() {
+        // Another tab still holds a connection. Ours is already closed and its
+        // `blocking()` handler closes it on `versionchange`, so this resolves
+        // as soon as that tab yields; the callback exists so the state is
+        // observable rather than a silent stall.
+      },
+    });
+  } catch {
+    // Nothing we can do here, and nothing that justifies blocking a sign-out.
+  }
 }
 
-/** Delete EVERY Pekulo cache database plus the user pointer (AC-4 — sign-out).
- * `indexedDB.databases()` is unavailable on Firefox; there we can still drop
- * the remembered user's database, which is the one that holds data. */
+/** Delete one user's database (AC-4 — identity change). Never throws. */
+export async function purgeCacheDb(userId: string): Promise<void> {
+  await closeCacheDb();
+  await deleteDbSafely(cacheDbName(userId));
+}
+
+/** Delete EVERY Pekulo cache database, the Service Worker shell cache and the
+ * user pointer (AC-4 — sign-out). `indexedDB.databases()` is unavailable on
+ * Firefox; there we can still drop the remembered user's database, which is the
+ * one that holds data. Never throws. */
 export async function purgeOfflineCache(): Promise<void> {
   const remembered = readLastUserId();
   clearLastUserId();
   await closeCacheDb();
+
   if (typeof indexedDB !== "undefined" && typeof indexedDB.databases === "function") {
-    const databases = await indexedDB.databases();
-    const names = databases
-      .map((entry) => entry.name)
-      .filter(
-        (name): name is string => typeof name === "string" && name.startsWith(CACHE_DB_PREFIX),
-      );
-    await Promise.all(names.map((name) => deleteDB(name)));
-    return;
+    let names: string[] = [];
+    try {
+      const databases = await indexedDB.databases();
+      names = databases
+        .map((entry) => entry.name)
+        .filter(
+          (name): name is string => typeof name === "string" && name.startsWith(CACHE_DB_PREFIX),
+        );
+    } catch {
+      names = remembered ? [cacheDbName(remembered)] : [];
+    }
+    await Promise.all(names.map((name) => deleteDbSafely(name)));
+  } else if (remembered) {
+    await deleteDbSafely(cacheDbName(remembered));
   }
-  if (remembered) await deleteDB(cacheDbName(remembered));
+
+  await purgeShellCache();
+}
+
+/** Drop the Service Worker's cached documents. The /dashboard shell carries no
+ * figures (the cap screens are client-rendered) but it does carry the signed-in
+ * email, which must not outlive the session on a shared browser. */
+async function purgeShellCache(): Promise<void> {
+  if (typeof caches === "undefined") return;
+  try {
+    const names = await caches.keys();
+    await Promise.all(
+      names
+        .filter((name) => name.startsWith(SHELL_CACHE_PREFIX))
+        .map((name) => caches.delete(name)),
+    );
+  } catch {
+    // Storage partitioned away or unavailable — never block a sign-out on it.
+  }
 }

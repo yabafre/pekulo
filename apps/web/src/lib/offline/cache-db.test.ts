@@ -1,7 +1,7 @@
 // AC-4 — "Given I sign out, When the sign-out action resolves, Then every
 // pekulo-cache-* database and the remembered-user pointer are deleted."
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   CACHE_DB_PREFIX,
   LAST_USER_KEY,
@@ -86,6 +86,50 @@ describe("cache-db (story 9-2)", () => {
     expect(names.filter((name) => name.startsWith(CACHE_DB_PREFIX))).toEqual([]);
     expect(readLastUserId()).toBeNull();
     expect(localStorage.getItem(LAST_USER_KEY)).toBeNull();
+  });
+
+  test("AC-4 — purgeOfflineCache also drops the Service Worker shell cache", async () => {
+    // The cached /dashboard document is not just markup: the cap layout is an
+    // RSC that passes `email` to the "use client" CapShell, so the address is
+    // serialised verbatim into the flight payload embedded in the HTML. Leaving
+    // it behind means the previous account's email stays readable in DevTools →
+    // Cache Storage after sign-out, and across a different account signing in.
+    const deleted: string[] = [];
+    const names = ["pekulo-shell-v1", "some-other-origin-cache"];
+    vi.stubGlobal("caches", {
+      keys: () => Promise.resolve(names),
+      delete: (name: string) => {
+        deleted.push(name);
+        return Promise.resolve(true);
+      },
+    });
+
+    await purgeOfflineCache();
+
+    expect(deleted).toContain("pekulo-shell-v1");
+    expect(deleted).not.toContain("some-other-origin-cache");
+    vi.unstubAllGlobals();
+  });
+
+  test("purgeOfflineCache survives a caches API that throws", async () => {
+    vi.stubGlobal("caches", {
+      keys: () => Promise.reject(new Error("SecurityError")),
+      delete: () => Promise.resolve(true),
+    });
+    writeLastUserId("user_alex");
+
+    // A sign-out must never be blocked by a storage-layer failure — the
+    // IndexedDB purge and the pointer clear still have to land.
+    await expect(purgeOfflineCache()).resolves.toBeUndefined();
+    expect(readLastUserId()).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  test("purgeCacheDb never throws when the delete fails", async () => {
+    // Every other function in this module is exception-safe with an explicit
+    // "never break the app" comment; this one was the exception, and it is
+    // awaited on the sign-out path.
+    await expect(purgeCacheDb("user_nonexistent")).resolves.toBeUndefined();
   });
 
   test("the user pointer round-trips and survives a missing localStorage", () => {

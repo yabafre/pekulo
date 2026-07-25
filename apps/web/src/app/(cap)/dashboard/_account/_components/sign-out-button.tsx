@@ -27,7 +27,10 @@ export function SignOutButton() {
       // AC-4 — the session is gone; the decrypted-at-rest snapshot must go with
       // it before we leave the page. `onAuthStateChange('SIGNED_OUT')` (ADR-0003)
       // never fires here: auth runs server-side under httpOnly cookies.
-      await purgeOfflineCache();
+      // `purgeOfflineCache` is exception-safe, and the catch keeps it that way
+      // from this side too: the server session is ALREADY destroyed by now, so
+      // a storage failure must never cost the user the navigation below.
+      await purgeOfflineCache().catch(() => undefined);
       router.push("/login");
       router.refresh();
     } finally {

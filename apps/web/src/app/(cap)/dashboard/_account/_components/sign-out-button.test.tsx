@@ -46,6 +46,25 @@ describe("SignOutButton (story 9-2)", () => {
     expect(names).not.toContain("pekulo-cache-user_alex");
   });
 
+  test("a purge failure still lands the user on /login", async () => {
+    // The server session is already destroyed by the time the purge runs, so an
+    // exception here left the user sitting on the authenticated page — signed
+    // out without knowing it, with no navigation and no toast (React does not
+    // catch async rejections from event handlers).
+    signOut.mockResolvedValue({ ok: true });
+    const boom = vi
+      .spyOn(indexedDB, "databases")
+      .mockRejectedValue(new Error("SecurityError: private mode"));
+
+    renderWithTamagui(<SignOutButton />);
+    await userEvent.click(screen.getByRole("button"));
+
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith("/login");
+    });
+    boom.mockRestore();
+  });
+
   test("AC-4 — a FAILED sign-out keeps the cache (the session is still valid)", async () => {
     signOut.mockResolvedValue({ ok: false, message: "nope" });
     renderWithTamagui(<SignOutButton />);
