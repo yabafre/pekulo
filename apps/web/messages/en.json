@@ -1,4 +1,12 @@
 {
+  "install": {
+    "aria": "Install Pekulo",
+    "title": "Install Pekulo",
+    "body": "Add Pekulo to your home screen for instant access.",
+    "cta": "Install",
+    "iosHint": "Tap Share, then \"Add to Home Screen\".",
+    "dismiss": "Dismiss"
+  },
   "settings": {
     "appearance": { "title": "Appearance", "theme": "Theme", "language": "Language" },
     "theme": { "system": "System", "dark": "Dark", "light": "Light" },

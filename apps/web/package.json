@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "bun --bun next dev --port 3002",
     "build": "bun --bun next build",
-    "start": "next start",
+    "start": "next start -p 3002",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "bunx oxlint src"
+    "lint": "bunx oxlint src",
+    "generate:pwa-icons": "bun scripts/generate-pwa-icons.ts",
+    "lighthouse": "lighthouse http://localhost:3002/dashboard --only-categories=performance --form-factor=mobile --throttling-method=simulate --output=html --output-path=./lighthouse-report.html --chrome-flags=\"--headless=new\""
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
@@ -53,7 +55,9 @@
     "@types/react-dom": "^19",
     "fake-indexeddb": "6.2.5",
     "happy-dom": "^20.0.0",
-    "react-grab": "^0.1.44",
+    "lighthouse": "^13.4.0",
+    "react-grab": "^0.1.48",
+    "sharp": "^0.35.3",
     "supabase": "^2.95.4",
     "tamagui": "2.3.1",
     "typescript": "^6.0.3",
