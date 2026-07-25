@@ -1,4 +1,9 @@
 {
+  "offline": {
+    "aria": "Offline mode",
+    "title": "Offline — read-only data.",
+    "age": "Offline — data from {minutes} min ago, read-only."
+  },
   "install": {
     "aria": "Install Pekulo",
     "title": "Install Pekulo",

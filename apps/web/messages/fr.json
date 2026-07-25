@@ -1,4 +1,9 @@
 {
+  "offline": {
+    "aria": "Mode hors ligne",
+    "title": "Hors ligne — données en lecture seule.",
+    "age": "Hors ligne — données d'il y a {minutes} min, en lecture seule."
+  },
   "install": {
     "aria": "Installer Pekulo",
     "title": "Installer Pekulo",
