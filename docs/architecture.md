@@ -222,7 +222,7 @@ phases_planned:
 - **PWA + offline (D7):**
   - Service Worker: hand-written `apps/web/public/sw.js` (no `next-pwa`, no Serwist — Next 16's PWA guide prescribes `public/sw.js` + manual registration; there is NO native `app/sw.ts` convention). Runtime caching only: navigations to `/dashboard`, `/dashboard/portefeuille`, `/dashboard/immobilier` are network-first with cache fallback; `/_next/static/*` is cache-first; non-GET (Server-Action mutations) and cross-origin pass through. Satisfies FR-53, FR-54.
   - Offline cache: **encrypted IndexedDB scoped per `user_id`** (`pekulo-cache-<userId>`), AES-GCM under a NON-EXTRACTABLE `CryptoKey` generated client-side — the session cookie is httpOnly since story 11-7, so no session-derived key is reachable from JS. Purged on the sign-out success path and on identity change. Cache TTL = 60 min (NFR-20). Persists the React Query cache, because the screens read through Server Actions (POST) that a Service Worker cannot cache.
-  - **See ADR-0003.** Satisfies FR-54, NFR-8, NFR-20.
+  - **See ADR-0018** (supersedes ADR-0003). Satisfies FR-54, NFR-8, NFR-20.
 - **Lint + format toolchain:**
   - **`oxlint`** (Oxc, Rust-based) replaces `eslint-config-next` — drop-in for the rules currently active, ~50–100× faster on monorepo-wide runs. Project-context flagged the existing ESLint setup as the only quality gate; oxlint keeps the gate while removing the perf cost.
   - **`oxfmt`** (Oxc formatter, alpha) replaces ad-hoc Prettier. Accepted risk: oxfmt is pre-1.0 ; pin a known-good version, audit on every bump.

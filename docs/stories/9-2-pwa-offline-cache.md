@@ -1,7 +1,7 @@
 # Story: 9-2-pwa-offline-cache — Service Worker app shell + encrypted IndexedDB read-only cache
 
 **Epic:** Epic 9 — PWA install + offline
-**Status:** ready-for-dev
+**Status:** done
 **Ticket:** #45
 **Branch:** feature/45-9-2-pwa-offline-cache
 **Complexity:** L
@@ -1794,7 +1794,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  7 passed`, exit 0.
   Commit: `git add apps/web/src/components/offline-banner.tsx apps/web/src/components/offline-banner.test.tsx && git commit -m "feat(#45): offline banner with snapshot age, fr + en (AC-6)"`
 
-- [ ] **T16 — Full verification gate** [AC: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
+- [x] **T16 — Full verification gate** [AC: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
 
   Run, in this order:
   ```bash
@@ -2070,6 +2070,8 @@ _Expected files created/modified by this story (final list confirmed by aped-dev
 - `apps/web/src/lib/offline/query-persister.test.ts` (new)
 - `apps/web/src/lib/offline/use-offline-persistence.ts` (new)
 - `apps/web/src/lib/offline/use-offline-persistence.test.ts` (new)
+- `apps/web/src/lib/offline/routes.ts` (new — added at T16, shared offline-route list)
+- `apps/web/src/lib/offline/routes.test.ts` (new — added at T16, keeps sw.js in sync)
 - `apps/web/src/lib/offline/sw.test.ts` (new)
 - `apps/web/src/app/(cap)/_actions/offline-identity.ts` (new)
 - `apps/web/public/sw.js` (new)
@@ -2089,7 +2091,13 @@ _Expected files created/modified by this story (final list confirmed by aped-dev
 - `apps/web/package.json` (modified)
 - `bun.lock` (modified — root monorepo lockfile; there is no `apps/web/bun.lock`)
 - `docs/epics-context/epic-9-context.md` (modified — lessons refresh by aped-story)
-- `docs/state.yaml` (status → ready-for-dev)
+- `docs/state.yaml` (sprint status `pending` → `in-progress`; `active_epic` 8 → 9)
+- `.gitignore` (modified at T16 — `*.nosync` iCloud-eviction guard, see the T16 record)
+- `scripts/dev-tunnel.sh` (untracked dev tooling — the cloudflared named tunnel the T16
+  live pass runs against. Predates 9-2; declared here because the branch carries it)
+- `apps/web/src/app/(cap)/_actions/offline-actions.ts` (new at aped-review — renamed from
+  `offline-identity.ts` for the `<feature>-actions.ts` convention, and reworked to answer
+  three states so a Supabase outage can no longer read as a sign-out)
 
 ## Dev Agent Record
 
@@ -2235,3 +2243,257 @@ to its commit).
   banner renders in Geist (not serif), clears the install prompt, that the dashboard still
   shows values, that `/sw.js` is **activated** under Application → Service Workers, and that
   `pekulo-cache-<userId>` → `snapshots` holds unreadable ciphertext.
+
+---
+
+## T16 record — gate closed 2026-07-25 (second session)
+
+### The three "hangs" were one environment fault, not three tooling faults
+
+Deviations 1–4 above blamed `bun install`, `tsc`, oxlint's `import` plugin and the Tamagui
+test setup for freezing "in the dev-agent sandbox". All four had a single cause, and it was
+neither the sandbox nor this story's code: **the repository lives under an iCloud-synced
+`~/Documents`, and iCloud had evicted 85 files from `node_modules`.** An evicted file is
+`dataless` (`stat -f %Sf` → `hidden,compressed,dataless`, `blocks=0`); reading one blocks in
+`read()` until iCloud rematerialises it, with no error and no CPU. Evidence chain:
+
+| Check | Result |
+|---|---|
+| `node -e` / `tsc --version` | 27 ms / 54 ms — node itself is fine |
+| `sample <pid>` on the frozen `tsc` | main thread in `read` for 100 % of the sample |
+| `lsof -p <pid>` | stuck 18 s on the *same* happy-dom `.d.ts` |
+| `stat -f %Sf` on that file | `hidden,compressed,dataless`, `blocks=0` |
+| Re-run outside the sandbox | identical freeze — the sandbox was never involved |
+
+Disk was 92 % full with `com.apple.bird optimize-storage = 1`, so iCloud re-evicted files as
+fast as they were fetched. Fixed by moving the two hot directories out of iCloud's reach:
+`node_modules` → `node_modules.nosync` and `apps/web/.next` → `.next.nosync`, each with a
+symlink at the real name (iCloud skips any path ending in `.nosync`), plus `*.nosync` in
+`.gitignore`. `bun install` then completed in **7.7 s** with postinstall scripts — against
+28 minutes of hanging before.
+
+### Gates — all green
+
+| Gate | Result |
+|---|---|
+| `bun run typecheck` | exit 0 |
+| `bun run lint` | 0 errors, 2 warnings (both pre-existing, outside this story) |
+| `bun run test` | **110 files / 349 tests** passed |
+| `oxfmt --check` | clean |
+
+`sign-out-button.test.tsx` (deviation 4) now runs and passes under the project's real config —
+the Tamagui setup never had a defect.
+
+**The typecheck caught a real error the whole story had shipped blind** —
+`cache-crypto.ts:56`, `TS2322`: under TypeScript 6 a bare `Uint8Array` widens to
+`Uint8Array<ArrayBufferLike>`, which admits `SharedArrayBuffer` and is therefore not a valid
+WebCrypto `BufferSource`. `encryptJson` escaped it only because its `iv` comes from
+`getRandomValues`. Fixed by pinning the backing buffer in `cache-crypto.ts` and
+`EncryptedSnapshot`.
+
+### Live pass — run against the cloudflared tunnel
+
+`https://pekulo-dev.trafijs.com` (real HTTPS origin), signed in, Chrome DevTools.
+
+| Criterion | Evidence |
+|---|---|
+| AC-2 | key `AES-GCM/256`, `extractable: false`, `crypto.subtle.exportKey('raw', key)` → `InvalidAccessError`; 3 426 B of ciphertext; no `"dashboard"`, no amount in the payload |
+| AC-6 typography | `Geist` — **not** the serif fallback that shipped in 9-1 |
+| AC-6 cycle | appears offline, clears on reconnect with no reload |
+| AC-6 a11y | `role=status`, `aria-live=polite`, localised `aria-label`; axe clean |
+| SW | `activated`, scope `/`, cache `pekulo-shell-v1` (production run) |
+| T10 / T13 | `/sw.js` served `no-cache, no-store, must-revalidate`; `worker-src 'self'` present in the **enforced** CSP |
+
+### T16's own instructions are self-contradictory
+
+T16 demands `bun run build && bun run start` **and** verification through
+`mcp__react-grab-mcp__get_element_context`. These are mutually exclusive in this codebase:
+`ServiceWorkerRegistrar` returns early unless `NODE_ENV === "production"`
+(`service-worker-registrar.tsx:11`), while `ReactGrabDev` returns early unless
+`NODE_ENV === "development"` and the CSP only allows unpkg in dev
+(`react-grab-dev.tsx:24`, `headers.ts:35`). The pass was therefore split: Service Worker
+checks in a production run, banner/typography/geometry checks in a dev run. A future story
+should reword T16.
+
+### Three defects found by the live pass, and fixed
+
+1. **The cache never initialised on sign-in (AC-1).** `Providers` mounts in the ROOT layout,
+   so `useOfflinePersistence` first ran on `/login` while signed out, concluded "confirmed
+   signed out", and — keyed on mount alone — never re-ran. Measured after signing in:
+   `pekulo:offline-user` `null` and **no `pekulo-cache-*` database**; both appeared only after
+   a full page reload. A user who signed in and then lost connectivity had no snapshot at all.
+   Reproduced on `localhost` and on the tunnel. Fixed: the install effect is now keyed on
+   `usePathname()` and retries until an identity is known, guarded by an `installedRef` so it
+   installs exactly once, with teardown moved to an unmount-only effect.
+2. **The banner covered the whole app header on mobile (AC-6).** The cap-shell header is a
+   normal flow element (`bento.module.css .header`) and the banner is `position: fixed`. At
+   390×844 the banner covered the Cap / Patrimoine tabs and all five header buttons. Fixed
+   with a `pekulo-offline-banner-open` class on `<html>` that offsets the page by 62 px.
+   Measured after the fix: header `62 → 138`, banner `12 → 50`, **0 buttons covered**.
+3. **The banner claimed cached data on uncached routes.** Mounted in the root layout, it
+   rendered on `/login`, `/dashboard/transactions`, `/dashboard/mensuel`… where there is
+   neither a snapshot nor a cached shell. Fixed with `lib/offline/routes.ts` as the single
+   client-side source of truth, gated by `isOfflineRoute(pathname)`; `routes.test.ts` reads
+   `public/sw.js` and fails if the two copies of the route list ever drift.
+
+Eleven tests were added for these three fixes (RED witnessed before each GREEN).
+
+### Still outstanding for `aped-review`
+
+- **AC-1 offline reload and AC-5** were not exercised end-to-end: both need the Service Worker,
+  hence a production build, and the session ended in the dev run used for the banner work.
+- **The react-grab `get_element_context` step could not be automated** — the MCP tool returns
+  "the latest context that was *submitted*", which requires a human selection in the overlay.
+  Banner typography and geometry were instead verified through computed styles and
+  `getBoundingClientRect`, which is strictly more precise than a visual read.
+
+### Out of scope, found in passing (story 8-1, not fixed here)
+
+`recover-form.tsx:35-68` awaits `requestPasswordReset` / `updatePassword` inside
+`try { } finally { }` with **no `catch`**. React does not catch async rejections from event
+handlers, so a failing Server Action becomes an unhandled rejection: no toast, no message, the
+button simply re-arms and the user sees nothing happen. Observed live as a 500 from
+`resolveOrigin()` when `NEXT_PUBLIC_SITE_URL` was unset in a production run. Worth an
+`aped-triage` entry.
+
+## Review Record
+
+**Date:** 2026-07-25
+**Auditors:** Spec, Code, Edge & Hallucination, Aria (visual pass run by the Lead — see Verification)
+**Verdict:** done
+
+> **Override:** AC gap accepted — reason: "Écarts AC acceptés en review : chaque défaut est localisé au file:line avec
+> reproduction, et le gate T16 est vert (typecheck, lint, 349 tests, build). Corriger dans le cycle de review coûte
+> moins qu'un aller-retour en dev qui re-dériverait le même diagnostic."
+
+All three auditors returned CHANGES_REQUESTED, and Spec + Code converged independently on the same defect. The Lead
+reproduced it with a throwaway test before accepting it, and re-ran every gate the committed Dev Agent Record had
+declared impossible — they all pass. The iCloud `dataless` diagnosis in the T16 addendum is correct; the *committed*
+`### Deviations` section above it (which blames postinstall scripts and "the dev-agent sandbox") is superseded by it.
+
+### Findings
+
+#### Resolved
+
+- [BLOCKER] An in-tab account switch wrote user B's data into user A's database, and let B read A's figures from
+  memory [apps/web/src/lib/offline/use-offline-persistence.ts:59]
+  - Source: Spec + Code (independent convergence), reproduced by the Lead
+  - Evidence: `Providers` mounts in the root layout (`layout.tsx:83`) and both sign-in (`auth-form.tsx:73`) and
+    sign-out are client-side `router.push`es, so it never unmounts. The mount-only `installedRef` guard meant identity
+    was resolved ONCE per tab. A throwaway test over A → sign-out → B measured `getOfflineIdentity` calls: 1,
+    `persistQueryClient` installs: 1, `localStorage` last user: null. Compounded by query keys carrying no userId
+    (`dashboardKeys.overview()` → `["dashboard","overview"]`) and no `queryClient.clear()` anywhere in the app.
+  - Resolution: `fee4444` — keyed on the resolved identity, with `queryClient.clear()` on change. Two regression tests.
+
+- [MAJOR] The cached `/dashboard` document carries the signed-in email, and sign-out never dropped it
+  [apps/web/src/lib/offline/cache-db.ts:123]
+  - Source: Edge
+  - Evidence: `(cap)/dashboard/layout.tsx:35` passes `email` to `CapShell`, which is `"use client"`, so the address is
+    serialised into the flight payload. Confirmed live: `containsEmail: true` on the 96 KB cached document. No figures
+    leak — all three cap screens are client-rendered shells.
+  - Resolution: `117577c` — `purgeOfflineCache` now drops `pekulo-shell-*` too.
+
+- [MAJOR] `.env.bak-t16` sat untracked and un-gitignored with the service-role key, DB password and four API keys
+  - Source: Spec + Code
+  - Evidence: `git check-ignore -v .env.bak-t16` exited 1 — `.gitignore` covered `.env`, `.env.local`, `.env.*.local`,
+    none of which match. One `git add .` from the history.
+  - Resolution: `0d7b0cc` — `.env*` deny-by-default with explicit example negations. **The file itself is left on disk
+    for its owner; anything it held should be treated as exposed.**
+
+- [MAJOR] `?tab=patrimoine` and trailing slashes defeated the shell cache
+  [apps/web/public/sw.js:48, apps/web/src/lib/offline/routes.ts:18]
+  - Source: Edge
+  - Evidence: the Cache API keys on the full URL; `cap-shell.tsx:180` pushes `/dashboard?tab=patrimoine`. Offline, a
+    user who had only loaded `/dashboard` got a network-error page on tapping Patrimoine. The sw test's fake cache
+    keyed on the full URL unconditionally, reproducing the bug instead of exposing it.
+  - Resolution: `615fe0d` — normalised key + `ignoreSearch`, path normalisation in both copies of the route list, and
+    the test fake now honours `ignoreSearch`. Confirmed live: `patrimoineTabResolvesToSameEntry: true`.
+
+- [MAJOR] A purge failure stranded the user on an authenticated page after the session was already destroyed
+  [sign-out-button.tsx:30, cache-db.ts:115]
+  - Source: Code + Edge
+  - Evidence: `try`/`finally` with no `catch`; `purgeCacheDb` was the only function in its module without a try/catch,
+    and `deleteDB` had no `blocked` callback, so a second tab could stall it.
+  - Resolution: `117577c` — exception-safe purge with a `blocked` handler, plus a `catch` at the call site.
+
+- [MAJOR] A Supabase outage was indistinguishable from a sign-out, and purged a legitimate snapshot
+  [offline-actions.ts:11]
+  - Source: Lead + Code
+  - Evidence: `getUser()` resolves `{ user: null }` with an `error` on a 5xx/rate-limit/network failure; the action
+    discarded `error` and the caller treated `null` as "confirmed signed out". The "unreachable" test mocked a
+    `reject()`, which is not the library's real contract (anti-pattern #3).
+  - Resolution: `fee4444` — three states. The cookie decides sign-out (no network), `getClaims` verifies identity
+    locally (lesson 2026-06-01), anything else throws and keeps the snapshot.
+
+- [MINOR] The 60-minute ceiling was bypassed by a NaN, missing or future `savedAt` [query-persister.ts:53]
+  - Source: Edge · Resolution: `e5f0e62` — the age is validated before it is compared.
+
+- [MINOR] The banner froze its minute count and never applied the ceiling while a tab stayed open
+  [offline-banner.tsx:67]
+  - Source: Edge · Resolution: `e5f0e62` — ticks every 30 s, and past 60 minutes says the data is too old
+    (`offline.expired`, fr + en). Confirmed live: the count advanced 0 min → 1 min in the browser.
+
+- [MINOR] Paused mutations from every feature were dehydrated, contradicting the module's documented scope
+  [use-offline-persistence.ts:73] — Source: Edge · Resolution: `fee4444` — `shouldDehydrateMutation: () => false`.
+
+- [MINOR] `persistQueryClient`'s restore promise was discarded, leaving a latent unhandled rejection
+  [use-offline-persistence.ts:69] — Source: Edge · Resolution: `fee4444`.
+
+- [MINOR] A `cache.put` rejection discarded a good response, and the shell cache grew without bound
+  [sw.js:45, sw.js:15] — Source: Edge · Resolution: `615fe0d` — put failures are absorbed; `activate` caps
+  `/_next/static` entries. The cache name is a constant, so its sweep had never evicted anything.
+
+- [MINOR] `crypto.subtle` absence failed silently, so the app behaved as if persistence worked
+  [cache-crypto.ts:33] — Source: Edge · Resolution: `e5f0e62` — guarded, with a dev-only warning.
+
+- [MINOR] Doc-sync gaps: `architecture.md:225` still pointed at the superseded ADR-0003; the epic-9 cache still
+  described the ADR-0003 design verbatim; the File List omitted `scripts/dev-tunnel.sh` and misdescribed the
+  `state.yaml` transition; `apps/web/CLAUDE.md` carried unrelated tool noise.
+  - Source: Spec + Edge · Resolution: this commit; CLAUDE.md reverted.
+
+- [MINOR] `offline-identity.ts` broke the `<feature>-actions.ts` convention (architecture.md §361-367)
+  - Source: Code · Resolution: `fee4444` — renamed to `offline-actions.ts`.
+
+#### Dismissed
+
+- [MEDIUM] Hypothesis (Lead): `cache.put` on the 307 redirect a signed-out visitor gets would poison the cache and
+  serve them the previous user's `/dashboard` shell.
+  - Rationale: investigated by the Edge auditor and it does **not** reproduce. Navigation requests carry redirect mode
+    `manual`, so the redirect arrives as an opaque-redirect filtered response — `status 0`, `ok === false` — and the
+    `response.ok` guard at `sw.js:45` short-circuits before `cache.put`. Confirmed live: the cached document has
+    `redirected: false`, `status: 200`. The guard is load-bearing and now carries a comment saying so.
+
+### Verification
+
+- Typecheck: `bun --filter='@pekulo/web' run typecheck` → **exit 0**
+- Lint: `bunx oxlint src` → **0 errors**, 2 warnings, both pre-existing and outside this story
+- Test command: `bun run test` (apps/web) → **110 files / 362 tests passed** (349 before review; 13 regression tests added)
+- Build: `bun run build` → **exit 0**
+- Visual verification: **performed live** by the Lead against `https://pekulo-dev.trafijs.com` (real HTTPS origin),
+  signed in, Chrome DevTools MCP. React Grab MCP disconnected mid-session, so computed styles and
+  `getBoundingClientRect` were used instead — strictly more precise than a visual read.
+  - **AC-6 typography — the 9-1 defect class, confirmed clean**: banner and its text children both resolve
+    `font-family: Geist, ui-sans-serif, …`; `--f-family` resolves non-empty; `className` carries `font_body`.
+  - a11y: `role=status`, `aria-live=polite`, localised `aria-label`. Contrast `#EDEDED` on `#121212` = **16:1**.
+  - Geometry at 1440 px and 400 px: banner 12→50, header 62→138, **0 of 6 header controls covered**, no overlap with
+    either nav, no horizontal overflow. Offset class and `body padding-top: 62px` applied while open, removed on
+    reconnect along with the banner.
+  - Service Worker (production run): registered, **activated**, scope `/`, controlling the page; cached the
+    `/dashboard` document (96 KB, complete, `redirected: false`) under the normalised key plus 22 static chunks, all
+    22 referenced by that document. `/sw.js` served `no-cache, no-store, must-revalidate`.
+- **Residual verification gap — AC-1 offline reload and AC-5 end-to-end.** CDP network emulation is reset by every
+  navigation the MCP driver performs, so the browser could not be held offline across a reload; an in-page
+  `location.reload()` under emulation hit the same reset. Offline blocking itself was confirmed (`navigator.onLine`
+  false, `fetch` rejected). The SW routing these ACs depend on is covered by 13 unit tests driving the real `sw.js`,
+  including the offline-fallback and non-GET-passthrough paths, but neither AC has been observed end-to-end in a
+  browser. **Worth one manual pass before this ships beyond personal use.**
+- Also not verified live, and deliberately not forced: the **fr** banner catalogue and the **light** theme. Both are
+  pinned by a server-side user preference (story 8-2) that rewrites the `NEXT_LOCALE` cookie and holds
+  `data-theme="pekulo-dark"`; changing them means writing to the account's settings. Both are covered by unit tests
+  rendering the real `fr.json`/`en.json`, and the Edge auditor confirmed all three `offline.*` keys exist in both
+  catalogues with the `{minutes}` placeholder intact.
+
+### Ticket sync
+
+- Ticket comment posted: see below
+- PR opened/updated: see below

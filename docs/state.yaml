@@ -237,7 +237,7 @@ sprint:
     8-2-theme-language-prefs: {status: done, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#43", worktree: null, started_at: "2026-06-16T15:45:04Z", completed_at: "2026-06-17T09:19:36Z", reviewed_at: "2026-06-18T00:00:00Z"}
     # Epic 9 — PWA install + offline (V1)
     9-1-pwa-manifest-and-install: {status: done, depends_on: [0-10-pekulo-ui-migration], ticket: "#44", worktree: null, started_at: "2026-07-12T16:40:55Z", completed_at: "2026-07-12T16:58:15Z"}
-    9-2-pwa-offline-cache: {status: in-progress, depends_on: [9-1-pwa-manifest-and-install, 7-2-dashboard-cap-page, 3-4-portfolio-ui, 4-3-realestate-ui], ticket: "#45", worktree: null, started_at: "2026-07-25T15:38:55Z"}
+    9-2-pwa-offline-cache: {status: done, depends_on: [9-1-pwa-manifest-and-install, 7-2-dashboard-cap-page, 3-4-portfolio-ui, 4-3-realestate-ui], ticket: "#45", worktree: null, started_at: "2026-07-25T15:38:55Z", completed_at: "2026-07-25T20:50:00Z"}
     # Epic 10 — Design system parity (10-1 V1 / 10-2 V1.5 deferred per G1)
     10-1-visual-snapshot-suite: {status: pending, depends_on: [0-10-pekulo-ui-migration, 0-12-custom-oxlint-rules], ticket: "#46", worktree: null}
     10-2-mobile-app-bootstrap: {status: pending, depends_on: [10-1-visual-snapshot-suite, 0-10-pekulo-ui-migration], ticket: "#47", worktree: null}
