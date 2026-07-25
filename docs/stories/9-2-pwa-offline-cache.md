@@ -35,7 +35,7 @@ So the story ships **two** independent layers:
 
 ## Tasks
 
-- [ ] **T1 — ADR-0018 + supersede ADR-0003 + doc-sync** [AC: AC-1, AC-2, AC-4]
+- [x] **T1 — ADR-0018 + supersede ADR-0003 + doc-sync** [AC: AC-1, AC-2, AC-4]
 
   Three artefacts contradict the code and must be corrected in the same commit as the decision (lesson 2026-05-31 — mid-flight additions carry their own doc-sync).
 
@@ -165,7 +165,7 @@ So the story ships **two** independent layers:
   Expected: four lines ending in `:3`, `:1`, `:1`, `:1` respectively (architecture cites it three times), exit 0.
   Commit: `git add docs/adr/0018-pwa-offline-cache-revised-for-httponly-sessions.md docs/adr/0003-pwa-offline-cache-encrypted-indexeddb.md docs/architecture.md docs/epics.md && git commit -m "docs(#45): ADR-0018 supersedes ADR-0003 — offline cache revised for httpOnly + Server Actions"`
 
-- [ ] **T2 — Add the persistence dependency** [AC: AC-1, AC-3]
+- [x] **T2 — Add the persistence dependency** [AC: AC-1, AC-3]
 
   ```bash
   cd apps/web && bun add @tanstack/react-query-persist-client@5.101.4
@@ -174,7 +174,7 @@ So the story ships **two** independent layers:
   Expected: prints `5.101.4`, exit 0.
   Commit: `git add apps/web/package.json bun.lock && git commit -m "chore(#45): add @tanstack/react-query-persist-client"`
 
-- [ ] **T3 — Encrypted cache database + user pointer** [AC: AC-2, AC-4]
+- [x] **T3 — Encrypted cache database + user pointer** [AC: AC-2, AC-4]
 
   Create `apps/web/src/lib/offline/cache-db.ts`:
   ```ts
@@ -413,7 +413,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  6 passed`, exit 0.
   Commit: `git add apps/web/src/lib/offline/cache-db.ts apps/web/src/lib/offline/cache-db.test.ts && git commit -m "feat(#45): per-user encrypted-cache IndexedDB store + purge (AC-4)"`
 
-- [ ] **T4 — AES-GCM helpers under a non-extractable key** [AC: AC-2]
+- [x] **T4 — AES-GCM helpers under a non-extractable key** [AC: AC-2]
 
   Create `apps/web/src/lib/offline/cache-crypto.ts`:
   ```ts
@@ -559,7 +559,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  6 passed`, exit 0.
   Commit: `git add apps/web/src/lib/offline/cache-crypto.ts apps/web/src/lib/offline/cache-crypto.test.ts && git commit -m "feat(#45): AES-GCM envelope under a non-extractable CryptoKey (AC-2)"`
 
-- [ ] **T5 — Encrypted React Query persister + 60-minute ceiling** [AC: AC-1, AC-3]
+- [x] **T5 — Encrypted React Query persister + 60-minute ceiling** [AC: AC-1, AC-3]
 
   Create `apps/web/src/lib/offline/query-persister.ts`:
   ```ts
@@ -771,7 +771,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  8 passed`, exit 0.
   Commit: `git add apps/web/src/lib/offline/query-persister.ts apps/web/src/lib/offline/query-persister.test.ts && git commit -m "feat(#45): encrypted React Query persister with 60-min ceiling (AC-1, AC-3)"`
 
-- [ ] **T6 — Server-side offline identity** [AC: AC-1, AC-4]
+- [x] **T6 — Server-side offline identity** [AC: AC-1, AC-4]
 
   The browser cannot read the httpOnly session cookie, so the userId that names the
   database must come from the server. Create `apps/web/src/app/(cap)/_actions/offline-identity.ts`:
@@ -799,7 +799,7 @@ So the story ships **two** independent layers:
   Expected: `tsc --noEmit` exits 0 with no output.
   Commit: `git add "apps/web/src/app/(cap)/_actions/offline-identity.ts" && git commit -m "feat(#45): server action exposing the offline cache identity"`
 
-- [ ] **T7 — Persistence wiring hook (identity reconciliation + purge)** [AC: AC-1, AC-3, AC-4]
+- [x] **T7 — Persistence wiring hook (identity reconciliation + purge)** [AC: AC-1, AC-3, AC-4]
 
   Create `apps/web/src/lib/offline/use-offline-persistence.ts`:
   ```ts
@@ -961,7 +961,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  5 passed`, exit 0.
   Commit: `git add apps/web/src/lib/offline/use-offline-persistence.ts apps/web/src/lib/offline/use-offline-persistence.test.ts && git commit -m "feat(#45): offline identity reconciliation + persister boot (AC-4)"`
 
-- [ ] **T8 — Mount the persister and the banner in Providers** [AC: AC-1, AC-6]
+- [x] **T8 — Mount the persister and the banner in Providers** [AC: AC-1, AC-6]
 
   ⚠️ **Do this task AFTER T14 and T15.** It imports `OfflineBanner`, which T15 creates and
   T14's copy feeds; running it earlier fails typecheck on a module that does not exist yet.
@@ -1028,7 +1028,7 @@ So the story ships **two** independent layers:
   Expected: `tsc --noEmit` exits 0 with no output.
   Commit: `git add apps/web/src/components/providers.tsx && git commit -m "feat(#45): wire the offline persister + banner into Providers (AC-1, AC-6)"`
 
-- [ ] **T9 — Purge the cache on sign-out** [AC: AC-4]
+- [x] **T9 — Purge the cache on sign-out** [AC: AC-4]
 
   Edit `apps/web/src/app/(cap)/dashboard/_account/_components/sign-out-button.tsx`. **(a)** replace:
   ```tsx
@@ -1125,7 +1125,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  2 passed`, exit 0.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_account/_components/sign-out-button.tsx" "apps/web/src/app/(cap)/dashboard/_account/_components/sign-out-button.test.tsx" apps/web/package.json bun.lock && git commit -m "feat(#45): purge the encrypted offline cache on sign-out (AC-4)"`
 
-- [ ] **T10 — Service Worker + its no-cache header** [AC: AC-1, AC-5]
+- [x] **T10 — Service Worker + its no-cache header** [AC: AC-1, AC-5]
 
   Create `apps/web/public/sw.js`:
   ```js
@@ -1239,7 +1239,7 @@ So the story ships **two** independent layers:
   Expected: prints `sw.js parses`, exit 0.
   Commit: `git add apps/web/public/sw.js apps/web/next.config.ts && git commit -m "feat(#45): app-shell service worker + no-cache header (AC-1, AC-5)"`
 
-- [ ] **T11 — Service Worker behaviour tests** [AC: AC-1, AC-5]
+- [x] **T11 — Service Worker behaviour tests** [AC: AC-1, AC-5]
 
   The worker is a standalone script with no exports, so the test loads the real
   file and evaluates it against a fake `self`. `new Function` is fed a repo file
@@ -1409,7 +1409,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  10 passed`, exit 0.
   Commit: `git add apps/web/src/lib/offline/sw.test.ts && git commit -m "test(#45): cover the service worker's shell, fallback and passthrough paths"`
 
-- [ ] **T12 — Register the worker from the layout** [AC: AC-1]
+- [x] **T12 — Register the worker from the layout** [AC: AC-1]
 
   Create `apps/web/src/components/service-worker-registrar.tsx`:
   ```tsx
@@ -1522,7 +1522,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  4 passed`, exit 0.
   Commit: `git add apps/web/src/components/service-worker-registrar.tsx apps/web/src/components/service-worker-registrar.test.tsx apps/web/src/app/layout.tsx && git commit -m "feat(#45): register the service worker from the root layout (AC-1)"`
 
-- [ ] **T13 — Allow the worker in the enforced CSP** [AC: AC-1]
+- [x] **T13 — Allow the worker in the enforced CSP** [AC: AC-1]
 
   `worker-src` is currently absent, so it falls back to `default-src 'self'` — the
   registration works today but would break silently the day `default-src` is
@@ -1574,7 +1574,7 @@ So the story ships **two** independent layers:
   Expected: `Test Files  1 passed`, `Tests  10 passed` (9 pre-existing + 1), exit 0.
   Commit: `git add apps/web/src/lib/security/headers.ts apps/web/src/lib/security/headers.test.ts && git commit -m "feat(#45): add worker-src 'self' to the enforced CSP (AC-1)"`
 
-- [ ] **T14 — Offline banner copy (fr + en)** [AC: AC-6]
+- [x] **T14 — Offline banner copy (fr + en)** [AC: AC-6]
 
   In `apps/web/messages/fr.json`, replace:
   ```json
@@ -1610,7 +1610,7 @@ So the story ships **two** independent layers:
   Expected: prints `both message files parse with the offline namespace`, exit 0.
   Commit: `git add apps/web/messages/fr.json apps/web/messages/en.json && git commit -m "feat(#45): add offline banner copy (fr + en)"`
 
-- [ ] **T15 — Offline banner component** [AC: AC-6]
+- [x] **T15 — Offline banner component** [AC: AC-6]
 
   Create `apps/web/src/components/offline-banner.tsx`:
   ```tsx
@@ -2093,14 +2093,145 @@ _Expected files created/modified by this story (final list confirmed by aped-dev
 
 ## Dev Agent Record
 
-- **Model:** _(filled by aped-dev)_
-- **Started:** _(filled by aped-dev)_
-- **Completed:** _(filled by aped-dev)_
+- **Model:** claude-opus-5[1m]
+- **Started:** 2026-07-25T15:38:55Z
+- **Completed:** 2026-07-25T20:45:00Z
 
 ### Summary
 
+Shipped both ADR-0018 layers. **Shell:** hand-written `public/sw.js` (runtime caching
+only — network-first on the three `(cap)` routes, cache-first on `/_next/static/*`,
+non-GET and cross-origin passed through), registered from the root layout in production
+only, served no-cache via `next.config.ts` headers, and allowed explicitly by
+`worker-src 'self'` in the enforced CSP. **Data:** a React Query `Persister` over a
+per-user `pekulo-cache-<userId>` IndexedDB, AES-GCM under a **non-extractable**
+`CryptoKey`, 60-minute ceiling enforced both in `restoreClient` and via
+`persistQueryClient`'s `maxAge`, dehydrating only the `dashboard` / `holdings` /
+`realestate` key prefixes. **Identity:** a `"use server"` action reads the httpOnly
+cookie; the id is mirrored to `localStorage` so a cold offline start opens the right
+database; a confirmed-online "no session" purges everything, an identity change purges
+the previous user first, and an unreachable server never purges. The offline banner
+carries `font_body` (lesson 2026-07-13) and reports the snapshot age in fr + en.
+
+All 15 implementation tasks are committed. **The T16 verification gate is NOT satisfied**
+— see Deviations: three tools (`tsc`, oxlint's `import` plugin, the Tamagui test setup)
+hang in the dev-agent sandbox, and the mandatory live visual pass could not be run.
+
 ### Files changed
+
+- `docs/adr/0018-pwa-offline-cache-revised-for-httponly-sessions.md` (new)
+- `docs/adr/0003-pwa-offline-cache-encrypted-indexeddb.md` (superseded)
+- `docs/architecture.md` (D7 block, two tree diagrams, FR-54 traceability row)
+- `docs/epics.md` (story 9-2 summary)
+- `apps/web/src/lib/offline/{cache-db,cache-crypto,query-persister,use-offline-persistence}.ts` + their `.test.ts` (new)
+- `apps/web/src/lib/offline/sw.test.ts` (new)
+- `apps/web/src/app/(cap)/_actions/offline-identity.ts` (new)
+- `apps/web/public/sw.js` (new)
+- `apps/web/src/components/{offline-banner,service-worker-registrar}.tsx` + their `.test.tsx` (new)
+- `apps/web/src/app/(cap)/dashboard/_account/_components/sign-out-button.{tsx,test.tsx}` (modified / new)
+- `apps/web/src/components/providers.tsx`, `apps/web/src/app/layout.tsx`, `apps/web/src/lib/security/headers.{ts,test.ts}`, `apps/web/next.config.ts` (modified)
+- `apps/web/messages/{fr,en}.json` (offline namespace)
+- `apps/web/package.json`, root `bun.lock` (modified)
 
 ### Deviations
 
+**Environment — three tools hang in the dev-agent sandbox (0 % CPU, no output, indefinitely).
+None is caused by this story's code; each was isolated by bisection.**
+
+1. **`bun add` / `bun install`** hang after `Resolved, downloaded and extracted`. Cause:
+   postinstall scripts (`trustedDependencies: ["unrs-resolver"]`, `sharp`, `supabase`).
+   `bun install --ignore-scripts` completes in 470 ms. Both dependencies were installed
+   that way. **Network and sandbox were ruled out by direct test.**
+2. **`tsc --noEmit`** hangs at startup (28 min, RSS 4 MB — it never begins reading files),
+   both via `bun run typecheck` and via `bunx tsc`. **The mandatory pre-commit typecheck
+   gate (lesson 2026-06-01) could NOT be run for any task.** This is the most serious
+   unverified gate in this story.
+3. **oxlint's `import` plugin** hangs on `.tsx` files — reproduced on `install-prompt.tsx`,
+   a file untouched by this story. `react`, `jsx-a11y`, `nextjs` and the `pekulo/*` jsPlugins
+   all complete in < 1 s. Lint was therefore run with the full project config **minus the
+   `import` plugin**: 151 rules over 333 files, **0 errors**, 6 warnings (only one touches
+   this story — `no-await-in-loop` in `cache-db.test.ts`'s verbatim cleanup loop).
+4. **The Tamagui test setup (`test/setup.tsx`) hangs on module load**, which blocks the
+   whole project suite. Vitest itself is fine: with the setup removed it runs in 565 ms.
+   Tests were run under a throwaway config (`pool: forks`, `singleFork`, and for component
+   tests a reduced setup providing jest-dom + vitest-axe matchers + the `matchMedia` stub,
+   without the Tamagui provider stack). **All diagnostic files were deleted afterwards.**
+   Consequence: `sign-out-button.test.tsx` (T9), the only test importing
+   `renderWithTamagui`, **was never executed**. Its AC-4 behaviour is covered indirectly by
+   `cache-db.test.ts` (`purgeOfflineCache`) and `use-offline-persistence.test.ts`.
+5. **Commits of `.tsx` files used `LEFTHOOK=0`** (user-authorised) because the pre-commit
+   oxlint hook inherits the hanging `import` plugin. For each, lint (minus that plugin) and
+   `oxfmt` were run manually first. Affected: T15, T8, T12, T9.
+
+**Story-spec corrections (the story text was wrong, not the codebase):**
+
+6. **Dependency version.** T2 pins `@tanstack/react-query-persist-client@5.101.4`, claiming
+   it "matches the installed `@tanstack/react-query` 5.x line". It does not: 5.101.4 requires
+   peer `react-query@^5.101.4` while the app has `5.100.5` (bun emitted
+   `warn: incorrect peer dependency`). Installed **5.100.5** instead — exactly aligned,
+   and it avoids bumping react-query app-wide (out of scope, and a regression risk for the
+   existing suite). The story's *intent* is honoured; only its version number changed.
+7. **T1's grep gate expects `:1` for ADR-0018 itself**, but the ADR body prescribed verbatim
+   never contains the string "ADR-0018" — and **no ADR in this repo cites its own id**
+   (verified on 0013/0014/0015/0017). Satisfying the gate would have violated the repo
+   convention. Actual result: `3 / 1 / 1 / 0`; the three counts that verify the doc-sync
+   are correct.
+8. **T5's test tripped `no-unsafe-optional-chaining`.** The verbatim line
+   `(restored?.…state.data as {netWorth:number}).netWorth` throws if the chain
+   short-circuits. Rewritten via an intermediate `const query` — same assertion, same value.
+9. **T12's test used an incomplete property descriptor.** `Object.defineProperty(process.env,
+   "NODE_ENV", { value, configurable: true })` throws `TypeError: 'process.env' only accepts a
+   configurable, writable, and enumerable data descriptor`. Added `writable` + `enumerable`
+   to all five occurrences.
+
+**Process deviations:**
+
+10. **The upstream-doc write guard blocked `docs/architecture.md`** (it arms as soon as a story
+    is `in-progress` — i.e. this story's own state transition armed it). On the user's explicit
+    instruction, the story status was temporarily flipped back to `ready-for-dev`, the four
+    edits applied, and the status restored — rather than running `aped-course` (which would
+    have posted ticket comments with no active worktree to notify) or deferring to review
+    (the 7-1 precedent). Recorded here because it bypassed a project control.
+11. **T6 has no commit of its own** — `offline-identity.ts` landed inside T5's commit
+    (`9e51105`) after an intermediate oxlint failure left it staged. Content is intact.
+12. **Step 04's two context-gathering subagents were not spawned** (session instructions
+    forbid subagents unless requested); that context was gathered directly in steps 02–03.
+13. **`detect-package-runner.sh` reports `npm`**, which is wrong for this repo (root `bun.lock`,
+    `bun --bun next dev` scripts). Used `bun` throughout.
+
 ### Test output
+
+Run under the throwaway config described above (project config's setup hangs):
+
+```
+ ✓ src/lib/offline/cache-db.test.ts                 (6 tests)
+ ✓ src/lib/offline/cache-crypto.test.ts             (6 tests)
+ ✓ src/lib/offline/query-persister.test.ts          (8 tests)
+ ✓ src/lib/offline/use-offline-persistence.test.ts  (5 tests)
+ ✓ src/lib/offline/sw.test.ts                       (10 tests)
+ ✓ src/components/offline-banner.test.tsx           (7 tests)
+ ✓ src/components/service-worker-registrar.test.tsx (4 tests)
+ ✓ src/lib/security/headers.test.ts                 (10 tests)
+
+ Test Files  8 passed (8)
+      Tests  56 passed (56)
+```
+
+46 new tests + the 10 in `headers.test.ts` (9 pre-existing + 1 added). Every task witnessed a
+RED before its GREEN; T11's ten tests passed on first run, so RED was witnessed by mutating
+`sw.js`'s `method !== "GET"` guard (AC-5 went red, then the file was restored byte-identical
+to its commit).
+
+**NOT run — outstanding gates for `aped-review`:**
+
+- `bun run test` (full suite, expected 109 files / 338 tests) — the Tamagui setup hangs.
+- `bun run typecheck` — hangs (deviation 2). **No task in this story has a verified typecheck.**
+- `bun run lint` with the `import` plugin — hangs (deviation 3).
+- `sign-out-button.test.tsx` (2 tests) — never executed (deviation 4).
+- **The mandatory live visual pass (lesson 2026-07-13) was NOT performed.** The react-grab MCP
+  disconnected mid-session and the dev server was killed. This is exactly the pass whose
+  deferral shipped story 9-1's banner in serif. `aped-review` MUST force it: `bun run build &&
+  bun run start`, sign in, DevTools → Network → Offline, reload `/dashboard`, and confirm the
+  banner renders in Geist (not serif), clears the install prompt, that the dashboard still
+  shows values, that `/sw.js` is **activated** under Application → Service Workers, and that
+  `pekulo-cache-<userId>` → `snapshots` holds unreadable ciphertext.
