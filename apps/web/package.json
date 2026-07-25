@@ -34,6 +34,7 @@
     "@supabase/supabase-js": "^2.104.1",
     "@tanstack/react-form": "^1.29.1",
     "@tanstack/react-query": "^5.100.5",
+    "@tanstack/react-query-persist-client": "5.100.5",
     "@zapaction/core": "^0.2.3",
     "@zapaction/query": "^0.2.3",
     "idb": "8.0.3",
