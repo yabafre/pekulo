@@ -2359,14 +2359,14 @@ button simply re-arms and the user sees nothing happen. Observed live as a 500 f
 ## Review Record
 
 **Date:** 2026-07-25
-**Auditors:** Spec, Code, Edge & Hallucination, Aria (visual pass run by the Lead — see Verification)
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
 **Verdict:** done
 
 > **Override:** AC gap accepted — reason: "Écarts AC acceptés en review : chaque défaut est localisé au file:line avec
 > reproduction, et le gate T16 est vert (typecheck, lint, 349 tests, build). Corriger dans le cycle de review coûte
 > moins qu'un aller-retour en dev qui re-dériverait le même diagnostic."
 
-All three auditors returned CHANGES_REQUESTED, and Spec + Code converged independently on the same defect. The Lead
+All four auditors returned CHANGES_REQUESTED. Spec and Code converged independently on the same cross-account defect; Aria's live pass then found a visible dark-theme defect that no code read or unit test could have surfaced — the story was briefly closed before her report arrived and was reopened for it. The Lead
 reproduced it with a throwaway test before accepting it, and re-ran every gate the committed Dev Agent Record had
 declared impossible — they all pass. The iCloud `dataless` diagnosis in the T16 addendum is correct; the *committed*
 `### Deviations` section above it (which blames postinstall scripts and "the dev-agent sandbox") is superseded by it.
@@ -2454,6 +2454,31 @@ declared impossible — they all pass. The iCloud `dataless` diagnosis in the T1
 - [MINOR] `offline-identity.ts` broke the `<feature>-actions.ts` convention (architecture.md §361-367)
   - Source: Code · Resolution: `fee4444` — renamed to `offline-actions.ts`.
 
+- [HIGH] Opening the banner exposed a full-width WHITE band across the top of a dark app
+  [apps/web/src/components/offline-banner.tsx:27]
+  - Source: Aria (live pass). Found after the code findings were closed — no unit test or code read would have
+    caught it, which is the whole argument for the live pass this story's lesson demands.
+  - Evidence: `html` and `body` both compute to `rgba(0, 0, 0, 0)`; the only opaque surface is bento's `.shell`
+    (`rgb(0,0,0)`). `body { padding-top: 62px }` slid it to `top: 62` and uncovered the browser's default canvas.
+    Confirmed by the Lead: probing (720, 56) returned `BODY` with a fully transparent chain, and the band is plainly
+    visible in a before screenshot. Seam contrast 21:1. Invisible in the light theme only because the canvas white
+    happens to match.
+  - Resolution: `ac6c786` — the injected stylesheet now paints `html`/`body` with `var(--background)` while the
+    banner is open. Verified live: `htmlBg` and `bodyBg` both `rgb(0, 0, 0)`, band gone in the after screenshot.
+
+- [MEDIUM] The 62px page offset was a constant measured against the one-line ENGLISH copy
+  [apps/web/src/components/offline-banner.tsx:34]
+  - Source: Aria (live pass)
+  - Evidence: at 375 in **fr — the default locale** — the copy wraps to two lines, `{top: 12, height: 52, bottom: 64}`,
+    crossing the header's top at 62. T16 measured in English and hardcoded for it.
+  - Resolution: `ac6c786` — the offset is measured from the banner via a ref + `ResizeObserver`. Verified live with a
+    forced wrap: banner 38 → 52px, offset 62 → 76px, header top 62 → 76, `overlap: false`.
+
+- [LOW] In the light theme the banner's `--backgroundElevated` equals the page background, leaving a 12 %-alpha border
+  (~1.3:1) as the only surface separation [apps/web/src/components/offline-banner.tsx:154]
+  - Source: Aria · Resolution: `ac6c786` — border raised to 22 %, shadow softened (it was tuned for dark and vanished
+    in light). Text contrast was never at risk: 16:1 dark, 19.8:1 light.
+
 #### Dismissed
 
 - [MEDIUM] Hypothesis (Lead): `cache.put` on the 307 redirect a signed-out visitor gets would poison the cache and
@@ -2463,24 +2488,46 @@ declared impossible — they all pass. The iCloud `dataless` diagnosis in the T1
     `response.ok` guard at `sw.js:45` short-circuits before `cache.put`. Confirmed live: the cached document has
     `redirected: false`, `status: 200`. The guard is load-bearing and now carries a comment saying so.
 
+- [LOW] `Math.round` renders anything under 30 s as "0 min" (Aria).
+  - Rationale: "data from 0 min ago" is an accurate statement about data seconds old, and the alternative — a
+    "just now" special case — adds a fourth copy string per locale for no gain in truthfulness.
+
+- [MEDIUM] Aria also reported that the age never ticks and that a long-lived tab renders "1500 min" unbounded.
+  - Rationale: both were real against the code she audited, and both were already fixed in `e5f0e62` before her
+    report landed — the banner now ticks every 30 s and switches to `offline.expired` past the 60-minute ceiling.
+    Re-verified live: the count advanced 0 min → 1 min in the browser.
+
+- **Out of scope, recorded for triage:** `bento-module__headerRight` overflows horizontally at 375px
+  (`scrollWidth` 417 vs `clientWidth` 375), which stretches every `left:0/right:0` fixed element past the visible
+  edge — the mobile bottom nav, 9-1's install banner and this banner alike. Pre-existing in the cap shell, not
+  caused by 9-2. Deserves its own ticket.
+
 ### Verification
 
 - Typecheck: `bun --filter='@pekulo/web' run typecheck` → **exit 0**
 - Lint: `bunx oxlint src` → **0 errors**, 2 warnings, both pre-existing and outside this story
 - Test command: `bun run test` (apps/web) → **110 files / 362 tests passed** (349 before review; 13 regression tests added)
 - Build: `bun run build` → **exit 0**
-- Visual verification: **performed live** by the Lead against `https://pekulo-dev.trafijs.com` (real HTTPS origin),
-  signed in, Chrome DevTools MCP. React Grab MCP disconnected mid-session, so computed styles and
-  `getBoundingClientRect` were used instead — strictly more precise than a visual read.
-  - **AC-6 typography — the 9-1 defect class, confirmed clean**: banner and its text children both resolve
-    `font-family: Geist, ui-sans-serif, …`; `--f-family` resolves non-empty; `className` carries `font_body`.
-  - a11y: `role=status`, `aria-live=polite`, localised `aria-label`. Contrast `#EDEDED` on `#121212` = **16:1**.
-  - Geometry at 1440 px and 400 px: banner 12→50, header 62→138, **0 of 6 header controls covered**, no overlap with
-    either nav, no horizontal overflow. Offset class and `body padding-top: 62px` applied while open, removed on
-    reconnect along with the banner.
+- Visual verification: **performed live and independently twice** — by Aria and, after her findings landed, by the
+  Lead re-verifying each fix. Both against `https://pekulo-dev.trafijs.com` (real HTTPS origin), signed in, via
+  Chrome DevTools MCP. **React Grab MCP was unavailable**: `get_element_context` replays a selection a *human* makes
+  in the overlay, so an agent cannot drive it. Computed styles and `getBoundingClientRect` were used instead —
+  strictly more precise than a visual read.
+  - **AC-6 typography — the 9-1 defect class did NOT recur.** Banner, both text children and the app's own
+    `is_Text` spans all resolve `font-family: Geist, ui-sans-serif, …`; `--f-family` resolves non-empty on the
+    banner. The negative controls make it meaningful: `--f-family` is **empty** at `:root` and
+    `getComputedStyle(document.body).fontFamily` computes to **`"Times"`** — the serif fallback is live on the page,
+    and `font_body` is the only thing standing between this banner and a repeat of 9-1.
+  - Contrast: dark 16:1, light 19.8:1. a11y: `role=status`, `aria-live=polite`, localised `aria-label`, icon
+    `aria-hidden`. Interpolation real in fr and en at 0/1/2/7/59/65/1500 min; `dataUpdatedAt === 0` falls back to
+    `offline.title`. Stacking clean with 9-1's install prompt — both rendered simultaneously, no overlap.
+  - Geometry re-verified after the fixes at 1440 and 400: banner 12→50, header 62→138, gap exactly 12px,
+    **0 of 6 header controls covered**, no horizontal overflow.
   - Service Worker (production run): registered, **activated**, scope `/`, controlling the page; cached the
     `/dashboard` document (96 KB, complete, `redirected: false`) under the normalised key plus 22 static chunks, all
-    22 referenced by that document. `/sw.js` served `no-cache, no-store, must-revalidate`.
+    22 referenced by that document. `?tab=patrimoine` resolves to the same entry. `/sw.js` served
+    `no-cache, no-store, must-revalidate`. The cached document **does contain the signed-in email**, confirming the
+    shell-purge finding on evidence.
 - **Residual verification gap — AC-1 offline reload and AC-5 end-to-end.** CDP network emulation is reset by every
   navigation the MCP driver performs, so the browser could not be held offline across a reload; an in-page
   `location.reload()` under emulation hit the same reset. Offline blocking itself was confirmed (`navigator.onLine`
