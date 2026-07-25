@@ -1,7 +1,7 @@
 # PWA offline cache — encrypted IndexedDB scoped per user
 
 **Date:** 2026-05-03
-**Status:** accepted
+**Status:** superseded by [ADR-0018](0018-pwa-offline-cache-revised-for-httponly-sessions.md)
 **Decided by:** Alex
 
 ## Context

@@ -1232,7 +1232,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **As a** Pekulo user, **I want** to open dashboard, portefeuille, and immobilier in read-only mode when offline (served from the last cached snapshot for up to 60 minutes), **so that** I can check my compass even on a flaky train.
 
-**Summary:** Implement `apps/web/src/sw.ts` + an encrypted IndexedDB cache scoped per userId per ADR-0003. Honour the 60-minute staleness ceiling (NFR-20). Likely splits in `aped-story`.
+**Summary:** Implement `apps/web/public/sw.js` (app-shell runtime caching) + an encrypted IndexedDB persister for the React Query cache, scoped per userId, per ADR-0018 (which supersedes ADR-0003 — the session is httpOnly and the screens read through Server Actions). Honour the 60-minute staleness ceiling (NFR-20). Kept as one story by user decision 2026-07-25.
 
 **Covered FRs:** FR-54
 
