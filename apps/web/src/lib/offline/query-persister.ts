@@ -30,9 +30,24 @@ export function isOfflineEligibleQuery(queryKey: readonly unknown[], status: str
   return typeof prefix === "string" && OFFLINE_FEATURE_PREFIXES.includes(prefix);
 }
 
+/** Web Crypto is absent in an insecure context (plain http — a LAN IP during
+ * testing, say). Without this guard the resulting TypeError is swallowed by the
+ * catch blocks below and the app behaves exactly as if persistence worked, with
+ * the truth surfacing only once the user is offline and has nothing. */
+function subtleAvailable(): boolean {
+  const available = typeof crypto !== "undefined" && typeof crypto.subtle !== "undefined";
+  if (!available && process.env.NODE_ENV !== "production") {
+    console.warn(
+      "[offline] crypto.subtle unavailable (insecure context?) — the offline cache is disabled.",
+    );
+  }
+  return available;
+}
+
 export function createEncryptedPersister(userId: string, now: () => number = Date.now): Persister {
   return {
     async persistClient(client: PersistedClient): Promise<void> {
+      if (!subtleAvailable()) return;
       try {
         const db = await openCacheDb(userId);
         const key = await getOrCreateCacheKey(db);
@@ -50,7 +65,12 @@ export function createEncryptedPersister(userId: string, now: () => number = Dat
         const row = (await db.get(SNAPSHOTS_STORE, SNAPSHOT_ID)) as EncryptedSnapshot | undefined;
         if (!row) return undefined;
         // AC-3 — defence in depth alongside persistQueryClient's own maxAge.
-        if (now() - row.savedAt > OFFLINE_MAX_AGE_MS) {
+        // The age must be a real, non-negative number before it can be compared:
+        // `NaN > MAX` and `-1 > MAX` are both false, so a corrupt stamp or a
+        // clock that moved backwards would otherwise sail past the ceiling and
+        // serve figures of unbounded age.
+        const age = now() - row.savedAt;
+        if (!Number.isFinite(age) || age < 0 || age > OFFLINE_MAX_AGE_MS) {
           await db.delete(SNAPSHOTS_STORE, SNAPSHOT_ID);
           return undefined;
         }

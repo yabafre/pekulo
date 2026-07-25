@@ -96,6 +96,25 @@ describe("query-persister (story 9-2)", () => {
     expect(await persister.restoreClient()).toBeDefined();
   });
 
+  test("AC-3 — a snapshot with an unusable savedAt is discarded, not served", async () => {
+    // `now() - NaN > MAX` is false, and so is a negative difference, so both a
+    // corrupt stamp and a clock that moved backwards (NTP correction, manual
+    // change, DST-adjacent) slipped straight past the ceiling and served
+    // arbitrarily old figures with no limit at all.
+    for (const savedAt of [Number.NaN, 5_000_000_000_000]) {
+      const c = clock(1_000_000);
+      const persister = createEncryptedPersister(USER, c.now);
+      await persister.persistClient(snapshot(c.now()));
+
+      const db = await openCacheDb(USER);
+      const row = await db.get(SNAPSHOTS_STORE, SNAPSHOT_ID);
+      if (!row) throw new Error("the snapshot under test was not written");
+      await db.put(SNAPSHOTS_STORE, { ...row, savedAt }, SNAPSHOT_ID);
+
+      expect(await persister.restoreClient()).toBeUndefined();
+    }
+  });
+
   test("restoreClient returns undefined (never throws) when nothing is stored", async () => {
     const persister = createEncryptedPersister("user_empty");
     await expect(persister.restoreClient()).resolves.toBeUndefined();

@@ -2,6 +2,10 @@
 // displayed snapshot, localised in fr + en, carrying the font_body class."
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/dashboard") }));
+vi.mock("next/navigation", () => ({ usePathname }));
+
 import { screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,7 +14,7 @@ import { render } from "@testing-library/react";
 import { dashboardKeys } from "@/lib/zapaction/keys";
 import frMessages from "../../messages/fr.json";
 import enMessages from "../../messages/en.json";
-import { OfflineBanner } from "./offline-banner";
+import { OFFLINE_BANNER_OPEN_CLASS, OfflineBanner } from "./offline-banner";
 
 function setOnline(value: boolean): void {
   Object.defineProperty(navigator, "onLine", { value, configurable: true });
@@ -30,12 +34,14 @@ let client: QueryClient;
 
 beforeEach(() => {
   client = new QueryClient();
+  usePathname.mockReturnValue("/dashboard");
   setOnline(true);
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
   setOnline(true);
+  document.documentElement.classList.remove(OFFLINE_BANNER_OPEN_CLASS);
 });
 
 describe("OfflineBanner (story 9-2)", () => {
@@ -92,10 +98,95 @@ describe("OfflineBanner (story 9-2)", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
+  /** Seed a snapshot, then hand back a knob that moves the wall clock forward
+   * without touching react-query's recorded `dataUpdatedAt`. Only the timer
+   * functions are faked — faking `Date` too would zero the stamp. */
+  function seedSnapshotWithClock(): (ms: number) => Promise<void> {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    client.setQueryData(dashboardKeys.overview(), { netWorth: 1 });
+    const updatedAt = client.getQueryState(dashboardKeys.overview())?.dataUpdatedAt ?? 0;
+    let elapsed = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => updatedAt + elapsed);
+    return async (ms: number) => {
+      elapsed += ms;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ms);
+      });
+    };
+  }
+
+  it("AC-6 — the age keeps counting up while the tab stays offline", async () => {
+    // `Date.now()` was read in the render body with nothing to re-trigger it, so
+    // a user sitting on /dashboard for 45 minutes still read "il y a 2 min".
+    const advance = seedSnapshotWithClock();
+    setOnline(false);
+    renderBanner("fr", client);
+    expect((await screen.findByRole("status")).textContent).toContain("0 min");
+
+    await advance(5 * 60_000);
+    expect(screen.getByRole("status").textContent).toContain("5 min");
+    vi.useRealTimers();
+  });
+
+  it("AC-3 — past the 60-minute ceiling the banner stops claiming usable figures", async () => {
+    // NFR-20 caps the snapshot at 60 minutes, but the ceiling was enforced only
+    // on the RESTORE path — a tab left open offline kept displaying figures
+    // indefinitely, under a label that understated their age.
+    const advance = seedSnapshotWithClock();
+    setOnline(false);
+    renderBanner("fr", client);
+    await screen.findByRole("status");
+
+    await advance(61 * 60_000);
+    const text = screen.getByRole("status").textContent ?? "";
+    expect(text).toBe(frMessages.offline.expired);
+    expect(text).not.toContain("61 min");
+    vi.useRealTimers();
+  });
+
   it("has no axe violations", async () => {
     setOnline(false);
     const { container } = renderBanner("fr", client);
     await screen.findByRole("status");
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("stays silent on routes the offline cache does not cover", () => {
+    // The component mounts in the ROOT layout, so it renders on every screen —
+    // but only three are cached. Announcing "read-only data" on /login or
+    // /dashboard/transactions describes a state that does not exist there.
+    setOnline(false);
+    usePathname.mockReturnValue("/dashboard/transactions");
+    renderBanner("fr", client);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("stays silent on the signed-out screens", () => {
+    setOnline(false);
+    usePathname.mockReturnValue("/login");
+    renderBanner("fr", client);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("offsets the page while open so it never covers the app header", async () => {
+    // The cap-shell header is a normal flow element (bento.module.css .header),
+    // and the banner is position:fixed. Without this offset the banner sits ON
+    // TOP of the header — measured on a 390px viewport it covered the Cap /
+    // Patrimoine tabs and every header button.
+    setOnline(false);
+    renderBanner("fr", client);
+    await screen.findByRole("status");
+    expect(document.documentElement.classList.contains(OFFLINE_BANNER_OPEN_CLASS)).toBe(true);
+  });
+
+  it("removes the page offset when connectivity returns", async () => {
+    setOnline(false);
+    renderBanner("fr", client);
+    await screen.findByRole("status");
+    setOnline(true);
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    expect(document.documentElement.classList.contains(OFFLINE_BANNER_OPEN_CLASS)).toBe(false);
   });
 });

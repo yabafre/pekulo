@@ -2,7 +2,8 @@
   "offline": {
     "aria": "Offline mode",
     "title": "Offline — read-only data.",
-    "age": "Offline — data from {minutes} min ago, read-only."
+    "age": "Offline — data from {minutes} min ago, read-only.",
+    "expired": "Offline — data too old to display."
   },
   "install": {
     "aria": "Install Pekulo",
@@ -13,9 +14,20 @@
     "dismiss": "Dismiss"
   },
   "settings": {
-    "appearance": { "title": "Appearance", "theme": "Theme", "language": "Language" },
-    "theme": { "system": "System", "dark": "Dark", "light": "Light" },
-    "lang": { "fr": "French", "en": "English" }
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "language": "Language"
+    },
+    "theme": {
+      "system": "System",
+      "dark": "Dark",
+      "light": "Light"
+    },
+    "lang": {
+      "fr": "French",
+      "en": "English"
+    }
   },
   "auth": {
     "fields": {
@@ -67,7 +79,10 @@
     "signOutError": "Sign-out failed. Please try again.",
     "passwordUpdateError": "Couldn't update your password. Please try again.",
     "emailInvalid": "Invalid email",
-    "signOut": { "title": "Sign out", "label": "Sign out" }
+    "signOut": {
+      "title": "Sign out",
+      "label": "Sign out"
+    }
   },
   "common": {
     "cancel": "Cancel",
@@ -176,7 +191,12 @@
       "notes": "Notes (optional)",
       "type": "Type"
     },
-    "kinds": { "etf": "ETF", "action": "Stock", "crypto": "Crypto", "autre": "Other" },
+    "kinds": {
+      "etf": "ETF",
+      "action": "Stock",
+      "crypto": "Crypto",
+      "autre": "Other"
+    },
     "loadingSr": "Loading portfolio…",
     "loadingValue": "Portfolio value — loading",
     "loadingRepartition": "Allocation — loading",
@@ -232,7 +252,9 @@
     "saveLot": "Record the lot"
   },
   "immobilier": {
-    "errors": { "realEstateNotFound": "Property not found (already deleted?). Reload the page." },
+    "errors": {
+      "realEstateNotFound": "Property not found (already deleted?). Reload the page."
+    },
     "propertyType": {
       "residencePrincipale": "Primary residence",
       "locatif": "Rental",
@@ -317,8 +339,14 @@
       "formAria": "Update valuation",
       "dialogTitle": "Update valuation",
       "dialogDescription": "The current valuation will be replaced and the audit history added automatically.",
-      "fields": { "amount": "New valuation (EUR)", "date": "Valuation date" },
-      "errors": { "amountInvalid": "Invalid valuation (>= 0)", "dateRequired": "Date required" },
+      "fields": {
+        "amount": "New valuation (EUR)",
+        "date": "Valuation date"
+      },
+      "errors": {
+        "amountInvalid": "Invalid valuation (>= 0)",
+        "dateRequired": "Date required"
+      },
       "success": "Valuation recorded.",
       "loading": "Saving…",
       "submit": "Save valuation"
@@ -394,7 +422,10 @@
     "chooseAccount": "Choose an account",
     "chooseCategory": "Choose a category",
     "noAccountHint": "Create an account in Settings before adding a transaction.",
-    "types": { "inflow": "Inflow", "outflow": "Outflow" },
+    "types": {
+      "inflow": "Inflow",
+      "outflow": "Outflow"
+    },
     "fields": {
       "account": "Account",
       "date": "Date",
@@ -448,7 +479,9 @@
     "close": "Close"
   },
   "mensuel": {
-    "common": { "loadError": "Failed to load." },
+    "common": {
+      "loadError": "Failed to load."
+    },
     "historique": {
       "ariaLabel": "Past months",
       "title": "History",
@@ -584,7 +617,9 @@
     }
   },
   "widgets": {
-    "common": { "waitingForCap": "Waiting for the target to be set up." },
+    "common": {
+      "waitingForCap": "Waiting for the target to be set up."
+    },
     "milestones": {
       "title": "Milestones",
       "ariaLabelWaiting": "Milestones (waiting for the target)"
