@@ -14,7 +14,11 @@ import { render } from "@testing-library/react";
 import { dashboardKeys } from "@/lib/zapaction/keys";
 import frMessages from "../../messages/fr.json";
 import enMessages from "../../messages/en.json";
-import { OFFLINE_BANNER_OPEN_CLASS, OfflineBanner } from "./offline-banner";
+import {
+  OFFLINE_BANNER_OFFSET_VAR,
+  OFFLINE_BANNER_OPEN_CLASS,
+  OfflineBanner,
+} from "./offline-banner";
 
 function setOnline(value: boolean): void {
   Object.defineProperty(navigator, "onLine", { value, configurable: true });
@@ -142,6 +146,29 @@ describe("OfflineBanner (story 9-2)", () => {
     expect(text).toBe(frMessages.offline.expired);
     expect(text).not.toContain("61 min");
     vi.useRealTimers();
+  });
+
+  it("paints the band it opens, instead of exposing the browser canvas", async () => {
+    // Offsetting `body` pushes the only opaque surface (.shell, #000) down, and
+    // `html`/`body` are both rgba(0,0,0,0) — so in the dark theme the band read
+    // as a 62px PURE WHITE stripe across the whole viewport, banner floating in
+    // it. Measured live at 1280 and 375: seam contrast 21:1.
+    setOnline(false);
+    const { container } = renderBanner("fr", client);
+    await screen.findByRole("status");
+    const css = container.querySelector("style")?.textContent ?? "";
+    expect(css).toContain("background: var(--background)");
+  });
+
+  it("sizes the page offset from the banner, not from a constant", async () => {
+    // A hardcoded 62px was measured against the ENGLISH one-line copy. In fr at
+    // 375 the copy wraps to two lines (bottom 64 > header top 62) and the banner
+    // overlaps the header. Any longer locale or larger user font size does the
+    // same, so the offset has to follow the element.
+    setOnline(false);
+    renderBanner("fr", client);
+    await screen.findByRole("status");
+    expect(document.documentElement.style.getPropertyValue(OFFLINE_BANNER_OFFSET_VAR)).not.toBe("");
   });
 
   it("has no axe violations", async () => {

@@ -6,7 +6,7 @@
 // — DS COLOUR vars are global, but `--f-family` only exists under Tamagui's
 // font_* classes, and omitting it is what shipped the install banner in serif
 // (lesson 2026-07-13).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,13 +24,30 @@ const AGE_TICK_MS = 30_000;
  * without an offset the banner sits on top of it — measured on a 390px viewport
  * it covered the Cap / Patrimoine tabs and every header button. */
 export const OFFLINE_BANNER_OPEN_CLASS = "pekulo-offline-banner-open";
+/** Set on <html> from the banner's MEASURED height. A constant was tried first
+ * and was wrong the moment the copy wrapped: 62px was measured against the
+ * one-line English string, but in fr at 375px the banner takes two lines and
+ * its bottom (64px) crossed the header's top (62px). Any longer locale or a
+ * larger user font size reproduces it, so the offset follows the element. */
+export const OFFLINE_BANNER_OFFSET_VAR = "--pekulo-offline-banner-offset";
+/** Banner top inset + the gap below it. */
+const BANNER_GAP = 24;
 
 // Injected as a plain <style> — the CSP retains style-src 'unsafe-inline', the
-// same pattern install-prompt.tsx uses. The offset is the banner's own height
-// (38px) plus its 12px inset and a 12px gap below it.
+// same pattern install-prompt.tsx uses.
+//
+// The background is not decoration. `html` and `body` are both transparent in
+// this app (the only opaque surface is bento's `.shell`), so padding `body`
+// slides that surface down and uncovers the browser's default WHITE canvas —
+// a full-width white band above a dark app, seam contrast 21:1. Painting the
+// offset band is part of opening it.
 const BANNER_CSS = `
+.${OFFLINE_BANNER_OPEN_CLASS},
 .${OFFLINE_BANNER_OPEN_CLASS} body {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 62px);
+  background: var(--background);
+}
+.${OFFLINE_BANNER_OPEN_CLASS} body {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(${OFFLINE_BANNER_OFFSET_VAR}, 62px));
 }
 `;
 
@@ -58,11 +75,31 @@ export function OfflineBanner() {
   // all, and the component mounts in the ROOT layout so it reaches every route.
   const visible = offline && isOfflineRoute(pathname);
 
+  const bannerRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (!visible) return;
     const root = document.documentElement;
     root.classList.add(OFFLINE_BANNER_OPEN_CLASS);
-    return () => root.classList.remove(OFFLINE_BANNER_OPEN_CLASS);
+
+    // Follow the banner's real height rather than trusting a constant: the copy
+    // wraps at narrow widths in the longer locales, and a fixed offset lets the
+    // banner sit on the header exactly when that happens.
+    const applyOffset = () => {
+      const height = bannerRef.current?.getBoundingClientRect().height ?? 0;
+      root.style.setProperty(OFFLINE_BANNER_OFFSET_VAR, `${Math.round(height) + BANNER_GAP}px`);
+    };
+    applyOffset();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(applyOffset);
+    if (observer && bannerRef.current) observer.observe(bannerRef.current);
+    window.addEventListener("resize", applyOffset);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", applyOffset);
+      root.classList.remove(OFFLINE_BANNER_OPEN_CLASS);
+      root.style.removeProperty(OFFLINE_BANNER_OFFSET_VAR);
+    };
   }, [visible]);
 
   // The age is read from `Date.now()` at render time, and nothing else
@@ -90,6 +127,7 @@ export function OfflineBanner() {
     <>
       <style>{BANNER_CSS}</style>
       <div
+        ref={bannerRef}
         role="status"
         aria-live="polite"
         aria-label={t("aria")}
@@ -109,8 +147,12 @@ export function OfflineBanner() {
           borderRadius: 14,
           background: "var(--backgroundElevated)",
           color: "var(--color)",
-          border: "1px solid color-mix(in srgb, var(--color) 12%, transparent)",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+          // 12 % read as ~1.3:1 against the light theme, where the banner's
+          // --backgroundElevated equals the page background and the border is
+          // the only thing separating the two surfaces. The shadow is tuned for
+          // dark and all but vanishes there.
+          border: "1px solid color-mix(in srgb, var(--color) 22%, transparent)",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.28)",
           fontSize: 13,
         }}
       >
