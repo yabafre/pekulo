@@ -38,10 +38,15 @@ export async function getOrCreateCacheKey(db: KeyStoreDb): Promise<CryptoKey> {
   return key;
 }
 
+// The `<ArrayBuffer>` argument is not decoration: since TS 5.7 a bare
+// `Uint8Array` widens to `Uint8Array<ArrayBufferLike>`, which admits
+// SharedArrayBuffer and is therefore NOT assignable to WebCrypto's
+// `BufferSource`. Pinning the backing buffer keeps the `iv` usable all the way
+// from getRandomValues through IndexedDB and back into subtle.decrypt.
 export async function encryptJson(
   key: CryptoKey,
   value: unknown,
-): Promise<{ iv: Uint8Array; data: ArrayBuffer }> {
+): Promise<{ iv: Uint8Array<ArrayBuffer>; data: ArrayBuffer }> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const plaintext = new TextEncoder().encode(JSON.stringify(value));
   const data = await crypto.subtle.encrypt({ name: CACHE_ALGORITHM, iv }, key, plaintext);
@@ -50,7 +55,7 @@ export async function encryptJson(
 
 export async function decryptJson<T>(
   key: CryptoKey,
-  iv: Uint8Array,
+  iv: Uint8Array<ArrayBuffer>,
   data: ArrayBuffer,
 ): Promise<T> {
   const plaintext = await crypto.subtle.decrypt({ name: CACHE_ALGORITHM, iv }, key, data);
