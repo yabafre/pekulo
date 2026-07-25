@@ -6,6 +6,7 @@ import "@pekulo/ui/generated.css";
 import { Providers } from "@/components/providers";
 import { ReactGrabDev } from "@/components/react-grab-dev";
 import { InstallPrompt } from "@/components/install-prompt";
+import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
@@ -84,6 +85,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/* Fixed-position install banner — inside the intl provider for
               useTranslations; DOM order is irrelevant (position: fixed). */}
           <InstallPrompt />
+          {/* Registers /sw.js in production (story 9-2). Renders nothing. */}
+          <ServiceWorkerRegistrar />
         </NextIntlClientProvider>
       </body>
     </html>
