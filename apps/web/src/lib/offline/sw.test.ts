@@ -14,11 +14,25 @@ interface FetchEvent {
 
 function loadWorker() {
   const store = new Map<string, string>();
+  // Honours `ignoreSearch` the way the real Cache API does — the fake used to
+  // key on the full URL unconditionally, which reproduced the bug under test
+  // instead of exposing it.
+  const stripSearch = (url: string) => url.split("?")[0] ?? url;
   const cache = {
-    match: vi.fn(async (request: { url: string }) => store.get(request.url)),
-    put: vi.fn(async (request: { url: string }, response: { body: string }) => {
-      store.set(request.url, response.body);
+    match: vi.fn(async (request: { url: string }, options?: { ignoreSearch?: boolean }) => {
+      if (!options?.ignoreSearch) return store.get(request.url);
+      const wanted = stripSearch(request.url);
+      for (const [key, value] of store) if (stripSearch(key) === wanted) return value;
+      return undefined;
     }),
+    // The worker normalises navigation keys to a plain URL string (a valid
+    // RequestInfo) so query-string variants share one entry; build assets are
+    // still put under their Request.
+    put: vi.fn(async (key: string | { url: string }, response: { body: string }) => {
+      store.set(typeof key === "string" ? key : key.url, response.body);
+    }),
+    keys: vi.fn(async () => Array.from(store.keys()).map((url) => ({ url }))),
+    delete: vi.fn(async (request: { url: string }) => store.delete(request.url)),
   };
   const caches = {
     open: vi.fn(async () => cache),
@@ -140,6 +154,52 @@ describe("public/sw.js (story 9-2)", () => {
     const offline = navigate(`${ORIGIN}/dashboard/portefeuille`);
     worker.listeners.get("fetch")!(offline);
     await expect(offline.responded()).resolves.toBe("SHELL");
+  });
+
+  test("AC-1 — the Patrimoine tab is served offline from the /dashboard shell", async () => {
+    // `?tab=patrimoine` is a primary in-app URL (cap-shell pushes it), and the
+    // Cache API keys on the FULL url by default — so a user who had only ever
+    // loaded /dashboard online got a network-error page offline the moment they
+    // tapped Patrimoine.
+    worker.fetchMock.mockResolvedValueOnce({
+      ok: true,
+      body: "SHELL",
+      clone: () => ({ body: "SHELL" }),
+    });
+    const online = navigate(`${ORIGIN}/dashboard`);
+    worker.listeners.get("fetch")!(online);
+    await online.responded();
+
+    worker.fetchMock.mockRejectedValue(new Error("offline"));
+    const offline = navigate(`${ORIGIN}/dashboard?tab=patrimoine`);
+    worker.listeners.get("fetch")!(offline);
+    await expect(offline.responded()).resolves.toBe("SHELL");
+  });
+
+  test("a trailing slash is still an offline route", async () => {
+    worker.fetchMock.mockResolvedValue({
+      ok: true,
+      body: "SHELL",
+      clone: () => ({ body: "SHELL" }),
+    });
+    const event = navigate(`${ORIGIN}/dashboard/`);
+    worker.listeners.get("fetch")!(event);
+    expect(event.responded()).toBeDefined();
+    await event.responded();
+  });
+
+  test("a cache.put failure still returns the network response", async () => {
+    // Quota exceeded is the realistic trigger. Discarding a perfectly good
+    // response because we could not store a copy of it is the wrong trade.
+    worker.cache.put.mockRejectedValueOnce(new Error("QuotaExceededError"));
+    worker.fetchMock.mockResolvedValue({
+      ok: true,
+      body: "SHELL",
+      clone: () => ({ body: "SHELL" }),
+    });
+    const event = navigate(`${ORIGIN}/dashboard`);
+    worker.listeners.get("fetch")!(event);
+    await expect(event.responded()).resolves.toMatchObject({ body: "SHELL" });
   });
 
   test("AC-1 — an uncached route offline rejects rather than resolving empty", async () => {
