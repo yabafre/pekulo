@@ -2542,5 +2542,5 @@ declared impossible — they all pass. The iCloud `dataless` diagnosis in the T1
 
 ### Ticket sync
 
-- Ticket comment posted: see below
-- PR opened/updated: see below
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/45#issuecomment-5117299296
+- PR opened: https://github.com/yabafre/pekulo/pull/141 (draft, base `main` = sprint umbrella)
