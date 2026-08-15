@@ -220,9 +220,9 @@ phases_planned:
 - **Animation strategy (revised post-C1)**: Tamagui's `animations` prop on web AND mobile (single API). Framer Motion 12 removed from web. Moti on Reanimated 4 retained for mobile-specific gestures at V1.5 ; React Native Skia reserved for the compass donut hot-path if jank profiles at V1.5. All animations honour `prefers-reduced-motion`.
 - **C1 decision (DS migration to Tamagui _now_)** — see **ADR-0007**. Pre-flight spikes required before kickoff: Tamagui v2 ↔ Next 16 RSC integration; proto `App.tsx` port without losing palette discipline; WCAG 2.2 AA contrast preservation across both themes.
 - **PWA + offline (D7):**
-  - Service Worker: Next 16 native `app/sw.ts` (no `next-pwa` dependency). Strategy = stale-while-revalidate on routes `/dashboard`, `/portefeuille`, `/immobilier`. Network-first on every mutation. Satisfies FR-53, FR-54.
-  - Offline cache: **encrypted IndexedDB scoped per `user_id`**, encryption key derived from session via Web Crypto `SubtleCrypto.deriveKey`; cache cleared on `auth.onAuthStateChange('SIGNED_OUT')`. Cache TTL = 60 min (NFR-20).
-  - **See ADR-0003.** Satisfies FR-54, NFR-8, NFR-20.
+  - Service Worker: hand-written `apps/web/public/sw.js` (no `next-pwa`, no Serwist — Next 16's PWA guide prescribes `public/sw.js` + manual registration; there is NO native `app/sw.ts` convention). Runtime caching only: navigations to `/dashboard`, `/dashboard/portefeuille`, `/dashboard/immobilier` are network-first with cache fallback; `/_next/static/*` is cache-first; non-GET (Server-Action mutations) and cross-origin pass through. Satisfies FR-53, FR-54.
+  - Offline cache: **encrypted IndexedDB scoped per `user_id`** (`pekulo-cache-<userId>`), AES-GCM under a NON-EXTRACTABLE `CryptoKey` generated client-side — the session cookie is httpOnly since story 11-7, so no session-derived key is reachable from JS. Purged on the sign-out success path and on identity change. Cache TTL = 60 min (NFR-20). Persists the React Query cache, because the screens read through Server Actions (POST) that a Service Worker cannot cache.
+  - **See ADR-0018** (supersedes ADR-0003). Satisfies FR-54, NFR-8, NFR-20.
 - **Lint + format toolchain:**
   - **`oxlint`** (Oxc, Rust-based) replaces `eslint-config-next` — drop-in for the rules currently active, ~50–100× faster on monorepo-wide runs. Project-context flagged the existing ESLint setup as the only quality gate; oxlint keeps the gate while removing the perf cost.
   - **`oxfmt`** (Oxc formatter, alpha) replaces ad-hoc Prettier. Accepted risk: oxfmt is pre-1.0 ; pin a known-good version, audit on every bump.
@@ -426,7 +426,7 @@ pekulo/
 │   │   │   │   ├── zapaction/       ← context + tag registry
 │   │   │   │   └── otel/            ← {tracer,logger,meter}.ts SDK init
 │   │   │   ├── proxy.ts             ← middleware (auth gate)
-│   │   │   └── sw.ts                ← Service Worker (PWA, encrypted IndexedDB)
+│   │   │   └── (public/sw.js)       ← Service Worker (PWA app shell — ADR-0018)
 │   │   └── e2e/                     ← Playwright specs (j1-…spec.ts)
 │   │
 │   ├── api/                         ← Bun + Elysia HTTP service
@@ -871,7 +871,7 @@ pekulo/
 │   │   │   │   └── otel/
 │   │   │   │       └── tracer.ts                    ← only tracer ships V1 (a) ; logger/meter land alongside the GlitchTip wire-up at (b) ramp.
 │   │   │   ├── proxy.ts                             middleware (Supabase auth gate, NFR-9)
-│   │   │   └── sw.ts                                Service Worker (FR-54, ADR-0003)
+│   │   │   └── (public/sw.js)                       Service Worker app shell (FR-54, ADR-0018)
 │   │   ├── e2e/                                     ← Playwright specs (j1-…spec.ts → j9-…spec.ts)
 │   │   ├── lighthouserc.json                        Lighthouse CI budgets (NFR-3)
 │   │   └── package.json
@@ -1121,12 +1121,12 @@ pekulo/
 
 #### Group I — PWA, mobile, design system
 
-| FR    | Definition                                                      | Surface                                                                                                   |
-| ----- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| FR-53 | Install affordance (PWA on iOS/Android home screen)             | `apps/web/src/app/manifest.ts` + `apps/web/public/icons/*` + `apps/web/src/components/install-prompt.tsx` |
-| FR-54 | Offline read-only on dashboard/portefeuille/immobilier          | `apps/web/src/sw.ts` (encrypted IndexedDB scoped per userId, ADR-0003)                                    |
-| FR-55 | Single styling primitive layer from V1.5 (`@pekulo/ui` Tamagui) | `@pekulo/ui` consumed by `apps/web` and `apps/mobile` — lint rule `no-tailwind-outside-ui` enforces       |
-| FR-56 | Visual parity web ↔ mobile via per-component snapshot           | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx` + Maestro mobile snapshot suite (V1.5)        |
+| FR    | Definition                                                      | Surface                                                                                                       |
+| ----- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| FR-53 | Install affordance (PWA on iOS/Android home screen)             | `apps/web/src/app/manifest.ts` + `apps/web/public/icons/*` + `apps/web/src/components/install-prompt.tsx`     |
+| FR-54 | Offline read-only on dashboard/portefeuille/immobilier          | `apps/web/public/sw.js` (app shell) + `apps/web/src/lib/offline/*` (encrypted IndexedDB per userId, ADR-0018) |
+| FR-55 | Single styling primitive layer from V1.5 (`@pekulo/ui` Tamagui) | `@pekulo/ui` consumed by `apps/web` and `apps/mobile` — lint rule `no-tailwind-outside-ui` enforces           |
+| FR-56 | Visual parity web ↔ mobile via per-component snapshot           | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx` + Maestro mobile snapshot suite (V1.5)            |
 
 #### Group J — Hypotheses & projections (brownfield)
 

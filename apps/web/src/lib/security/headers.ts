@@ -59,6 +59,9 @@ export function buildContentSecurityPolicy(opts: SecurityHeaderOptions): string 
     "img-src": ["'self'", "data:", "blob:", "https:"],
     "font-src": ["'self'", "data:", ...fontExtra],
     "connect-src": ["'self'", ...supabase, ...connectExtra],
+    // Story 9-2 — /sw.js is same-origin. Explicit rather than inherited from
+    // default-src so tightening default-src can never silently kill the PWA.
+    "worker-src": ["'self'"],
     "frame-ancestors": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],

@@ -3,11 +3,20 @@ node_modules
 .pnp
 .pnp.*
 
+# iCloud eviction guard (per-machine). This repo lives under an iCloud-synced
+# ~/Documents; iCloud evicts files it deems cold, and a `dataless` file blocks
+# every read on it forever — which silently hangs tsc, oxlint, vitest and bun's
+# postinstall at 0 % CPU with no error. iCloud skips any path ending in
+# `.nosync`, so node_modules/.next live there with a symlink at the real name.
+*.nosync
+
 # Bun
 bun.lockb
 
 # Builds
-.next/
+# No trailing slash: `.next` is a symlink to `.next.nosync` here, and a
+# directory-only pattern would leave that symlink untracked-but-visible.
+.next
 .turbo/
 .tamagui/
 dist/
@@ -21,10 +30,13 @@ coverage/
 apps/web/tamagui-prompt.md
 
 # Env (local secrets — never commit)
-.env
-.env.local
-.env.*.local
+# Deny-by-default: `.env.bak-t16`, a hand-made backup carrying the service-role
+# key and the DB password, sat here untracked and UNIGNORED through story 9-2 —
+# one `git add .` from the history. `.env*` catches every future variant; the
+# negations below are the only files that may ever be committed.
+.env*
 !.env.example
+!.env*.example
 
 # Logs
 *.log

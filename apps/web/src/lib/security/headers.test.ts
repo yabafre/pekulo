@@ -90,4 +90,11 @@ describe("buildContentSecurityPolicy", () => {
     const csp = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
     expect(csp).toMatch(/style-src[^;]*'unsafe-inline'/);
   });
+
+  // Story 9-2 (AC-1) — /sw.js is same-origin; the enforced CSP must allow it
+  // explicitly rather than by inheritance from default-src.
+  test("worker-src allows the same-origin service worker (story 9-2, AC-1)", () => {
+    const csp = buildContentSecurityPolicy({ dev: false, nonce: NONCE });
+    expect(csp).toContain("worker-src 'self'");
+  });
 });

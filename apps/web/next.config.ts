@@ -33,6 +33,20 @@ const nextConfig: NextConfig = {
   // Story 6-10 — named Cloudflare tunnel (pekulo-dev) maps a stable
   // pekulo-dev.trafijs.com hostname, so the named-tunnel zone is allowed too.
   allowedDevOrigins: ["*.trycloudflare.com", "*.trafijs.com"],
+  // Story 9-2 — the Service Worker script must never be served from the HTTP
+  // cache, or a stale worker outlives its build (Next 16 PWA guide, § Securing
+  // your application).
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
+    ];
+  },
   turbopack: {
     resolveAlias: {
       "react-native": "react-native-web",
