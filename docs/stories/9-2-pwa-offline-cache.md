@@ -2528,6 +2528,11 @@ declared impossible — they all pass. The iCloud `dataless` diagnosis in the T1
     22 referenced by that document. `?tab=patrimoine` resolves to the same entry. `/sw.js` served
     `no-cache, no-store, must-revalidate`. The cached document **does contain the signed-in email**, confirming the
     shell-purge finding on evidence.
+- **Gap accepted by Alex, 2026-07-29** — asked how to close the AC-1/AC-5 gap before merge (prepare-and-hand-over
+  a manual pass / accept the gap / add a Playwright E2E first) and chose to accept it. PR #141 taken out of draft
+  on that decision, with the gap stated in its body under "Known gaps — read before merging". The offline replay
+  is still owed before this ships beyond personal use; a Playwright E2E is the durable fix (its
+  `context.setOffline(true)` survives navigation, which CDP emulation does not) and belongs to its own story.
 - **Residual verification gap — AC-1 offline reload and AC-5 end-to-end.** CDP network emulation is reset by every
   navigation the MCP driver performs, so the browser could not be held offline across a reload; an in-page
   `location.reload()` under emulation hit the same reset. Offline blocking itself was confirmed (`navigator.onLine`
