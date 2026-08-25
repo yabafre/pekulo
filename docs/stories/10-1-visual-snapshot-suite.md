@@ -1,7 +1,7 @@
 # Story: 10-1-visual-snapshot-suite — Close the `@pekulo/ui` snapshot coverage and lock the anti-regression gate
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** #46
 **Branch:** feature/46-10-1-visual-snapshot-suite
 **Complexity:** M
@@ -1325,7 +1325,7 @@ The measured a11y gap was **9**, not the 2 the story predicted at write time (th
 
 9. **iCloud eviction blocked every tool for ~50 minutes.** `vitest` froze at 0 % CPU on `node_modules/.bun/loupe@3.2.1/.../date.js`; `/usr/bin/find node_modules -type f -flags +dataless` reported **8871** evicted files (112.5 MB). Rematerialised with a 320-way parallel read sweep (~250 files/min — the ceiling is the iCloud daemon, not CPU). This is the failure mode recorded in `lessons.md` on 2026-07-25, misdiagnosed as "agent sandbox hangs" during story 9-2. The durable fix (move the repo out of `~/Documents`, or disable "Optimise Mac Storage") is the developer's call and was raised.
 
-### Observations for `aped-review` — recorded, deliberately not fixed
+**Observations for `aped-review` — recorded, deliberately not fixed.** None of these is fixed here: every one would require touching a component source, which this story forbids.
 
 - **`PekuloCalendar` announces its days in English** inside a French app: `aria-label="Monday, December 29th, 2025"`, caption `January 2026`. No `locale` is passed to react-day-picker, so it falls back to `en-US`. axe does not flag it, but it is an NFR-22 screen-reader gap and it is now frozen into the visual baseline. Fixing it means touching the component, which this story forbids.
 - **A breakpoint-hidden component gets a silently vacuous axe scan** (deviation 4). Today only `PekuloMobileBottomNav` combines a `display: none` breakpoint with an a11y spec — verified by scanning every component and primitive — but the next one to do so will hit the same false green. Worth a shared render helper or a lint rule; out of scope here.
