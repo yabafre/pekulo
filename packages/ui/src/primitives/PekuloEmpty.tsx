@@ -12,12 +12,10 @@ import { pekuloFontSizes, pekuloFontWeights, pekuloRadius, pekuloSpacing } from 
 // ─── Empty (root) ────────────────────────────────────────────────────────
 
 export interface PekuloEmptyProps extends Omit<ViewProps, "children"> {
-  /** When true, renders a dashed border (`border-dashed` shadcn variant). */
-  outlined?: boolean;
   children?: ReactNode;
 }
 
-export function PekuloEmpty({ outlined = false, children, style, ...props }: PekuloEmptyProps) {
+export function PekuloEmpty({ children, style, ...props }: PekuloEmptyProps) {
   return (
     <View
       data-slot="empty"
@@ -28,15 +26,7 @@ export function PekuloEmpty({ outlined = false, children, style, ...props }: Pek
       padding="$6"
       borderRadius="$xl"
       width="100%"
-      style={
-        outlined
-          ? {
-              border: "1px dashed var(--borderDefault)",
-              textAlign: "center",
-              ...(style as CSSProperties),
-            }
-          : { textAlign: "center", ...(style as CSSProperties) }
-      }
+      style={{ textAlign: "center", ...(style as CSSProperties) }}
       {...props}
     >
       {children}
@@ -84,16 +74,18 @@ export function PekuloEmptyMedia({
 }: PekuloEmptyMediaProps) {
   if (variant === "icon") {
     return (
+      // Geometry from the iso-fidelity reference, ux-preview App.tsx:880:
+      // `grid h-12 w-12 place-items-center rounded-full bg-muted mb-4`.
       <View
         data-slot="empty-icon"
         data-variant={variant}
-        width={pekuloSpacing[8]}
-        height={pekuloSpacing[8]}
+        width={pekuloSpacing[12]}
+        height={pekuloSpacing[12]}
         alignItems="center"
         justifyContent="center"
         backgroundColor="$backgroundMuted"
-        borderRadius="$lg"
-        marginBottom="$2"
+        borderRadius="$full"
+        marginBottom="$4"
         {...props}
       >
         {children}

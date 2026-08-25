@@ -6,18 +6,22 @@ import {
   PekuloResizableHandle,
 } from "./PekuloResizable";
 
-// `defaultSize` is captured as `flex-grow: 50` on every panel regardless of the
-// value passed. happy-dom reports zero-size boxes, so react-resizable-panels v4
-// has no group width to derive percentages from and falls back to an equal
-// split. The props stay because they document the intended layout; the numbers
-// simply cannot reach the DOM in this environment.
+// `defaultSize` is deliberately NOT exercised here. happy-dom reports
+// zero-size boxes, so react-resizable-panels v4 has no group width to derive
+// percentages from and every panel falls back to `flex-grow: 50` whatever
+// value is passed — a snapshot carrying the prop would imply a split ratio it
+// cannot actually assert. What these two cases DO pin is the orientation
+// contract: flex-direction, touch-action and aria-orientation on the handle.
+// Covering real split ratios needs a layout-capable environment (jsdom with a
+// stubbed ResizeObserver, or a browser runner) — out of scope for the DS
+// snapshot suite.
 describe("PekuloResizable snapshot", () => {
   it("renders a horizontal two-panel split", () => {
     const { container } = renderWithTamagui(
       <PekuloResizablePanelGroup orientation="horizontal">
-        <PekuloResizablePanel defaultSize={50}>Gauche</PekuloResizablePanel>
+        <PekuloResizablePanel>Gauche</PekuloResizablePanel>
         <PekuloResizableHandle />
-        <PekuloResizablePanel defaultSize={50}>Droite</PekuloResizablePanel>
+        <PekuloResizablePanel>Droite</PekuloResizablePanel>
       </PekuloResizablePanelGroup>,
     );
     expect(container.innerHTML).toMatchInlineSnapshot(`
@@ -67,16 +71,16 @@ describe("PekuloResizable snapshot", () => {
       .pekulo-resizable-handle[data-panel-group-direction="vertical"] .pekulo-resizable-handle-grip {
         transform: rotate(90deg);
       }
-      </style><div data-slot="resizable-panel-group" data-group="true" data-testid="_r_1_" id="_r_1_" style="height: 100%; width: 100%; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; touch-action: pan-y;"><div data-slot="resizable-panel" data-panel="true" data-testid="_r_2_" id="_r_2_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; overflow: visible; flex-shrink: 1; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-y;">Gauche</div></div><div data-slot="resizable-handle" aria-orientation="vertical" class="pekulo-resizable-handle" data-separator="inactive" data-testid="_r_3_" id="_r_3_" role="separator" style="flex-basis: auto; flex-grow: 0; flex-shrink: 0; touch-action: none;" tabindex="0"></div><div data-slot="resizable-panel" data-panel="true" data-testid="_r_4_" id="_r_4_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; overflow: visible; flex-shrink: 1; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-y;">Droite</div></div></div><div style="display: contents;"></div></span>"
+      </style><div data-slot="resizable-panel-group" data-group="true" data-testid="_r_1_" id="_r_1_" style="height: 100%; width: 100%; overflow: hidden; display: flex; flex-direction: row; flex-wrap: nowrap; touch-action: pan-y;"><div data-slot="resizable-panel" data-panel="true" data-testid="_r_2_" id="_r_2_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; flex-shrink: 1; overflow: visible; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-y;">Gauche</div></div><div data-slot="resizable-handle" aria-orientation="vertical" class="pekulo-resizable-handle" data-separator="inactive" data-testid="_r_3_" id="_r_3_" role="separator" style="flex-basis: auto; flex-grow: 0; flex-shrink: 0; touch-action: none;" tabindex="0"></div><div data-slot="resizable-panel" data-panel="true" data-testid="_r_4_" id="_r_4_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; flex-shrink: 1; overflow: visible; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-y;">Droite</div></div></div><div style="display: contents;"></div></span>"
     `);
   });
 
   it("renders a vertical split with a grip handle", () => {
     const { container } = renderWithTamagui(
       <PekuloResizablePanelGroup orientation="vertical">
-        <PekuloResizablePanel defaultSize={60}>Haut</PekuloResizablePanel>
+        <PekuloResizablePanel>Haut</PekuloResizablePanel>
         <PekuloResizableHandle withHandle />
-        <PekuloResizablePanel defaultSize={40}>Bas</PekuloResizablePanel>
+        <PekuloResizablePanel>Bas</PekuloResizablePanel>
       </PekuloResizablePanelGroup>,
     );
     expect(container.innerHTML).toMatchInlineSnapshot(`
@@ -126,7 +130,7 @@ describe("PekuloResizable snapshot", () => {
       .pekulo-resizable-handle[data-panel-group-direction="vertical"] .pekulo-resizable-handle-grip {
         transform: rotate(90deg);
       }
-      </style><div data-slot="resizable-panel-group" data-group="true" data-testid="_r_6_" id="_r_6_" style="height: 100%; width: 100%; overflow: hidden; display: flex; flex-direction: column; flex-wrap: nowrap; touch-action: pan-x;"><div data-slot="resizable-panel" data-panel="true" data-testid="_r_7_" id="_r_7_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; overflow: visible; flex-shrink: 1; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-x;">Haut</div></div><div data-slot="resizable-handle" aria-orientation="horizontal" class="pekulo-resizable-handle" data-separator="inactive" data-testid="_r_8_" id="_r_8_" role="separator" style="flex-basis: auto; flex-grow: 0; flex-shrink: 0; touch-action: none;" tabindex="0"><div class="pekulo-resizable-handle-grip"></div></div><div data-slot="resizable-panel" data-panel="true" data-testid="_r_9_" id="_r_9_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; overflow: visible; flex-shrink: 1; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-x;">Bas</div></div></div><div style="display: contents;"></div></span>"
+      </style><div data-slot="resizable-panel-group" data-group="true" data-testid="_r_6_" id="_r_6_" style="height: 100%; width: 100%; overflow: hidden; display: flex; flex-direction: column; flex-wrap: nowrap; touch-action: pan-x;"><div data-slot="resizable-panel" data-panel="true" data-testid="_r_7_" id="_r_7_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; flex-shrink: 1; overflow: visible; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-x;">Haut</div></div><div data-slot="resizable-handle" aria-orientation="horizontal" class="pekulo-resizable-handle" data-separator="inactive" data-testid="_r_8_" id="_r_8_" role="separator" style="flex-basis: auto; flex-grow: 0; flex-shrink: 0; touch-action: none;" tabindex="0"><div class="pekulo-resizable-handle-grip"></div></div><div data-slot="resizable-panel" data-panel="true" data-testid="_r_9_" id="_r_9_" style="min-height: 0; max-height: 100%; height: auto; min-width: 0; max-width: 100%; width: auto; border: 0px none none; padding: 0px; margin: 0px; display: flex; flex-basis: 0px; flex-shrink: 1; overflow: visible; flex-grow: 50;"><div style="max-height: 100%; max-width: 100%; flex-grow: 1; overflow: auto; touch-action: pan-x;">Bas</div></div></div><div style="display: contents;"></div></span>"
     `);
   });
 });

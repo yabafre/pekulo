@@ -150,10 +150,14 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
           justifyContent: "flex-start",
           padding: "0 12px",
           height: 32,
-          backgroundColor: "transparent",
+          // Matches the DS inline-pill reference (ux-preview App.tsx:896-921
+          // HeaderAction: `h-8 px-3 rounded-full bg-muted text-fg`) and
+          // CategoryPicker's trigger. Design-spec §1 bans borders; the filled
+          // muted surface is what carries the affordance.
+          backgroundColor: "var(--backgroundMuted)",
           color: "var(--color)",
-          border: "1px solid var(--borderDefault)",
-          borderRadius: 12,
+          border: "none",
+          borderRadius: 9999,
           fontFamily: "inherit",
           fontSize: pekuloFontSizes.bodySm,
           fontWeight: 500,
