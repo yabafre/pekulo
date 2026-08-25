@@ -59,6 +59,15 @@ function missing(
 }
 
 describe("design-system test coverage (architecture.md:631)", () => {
+  // AC-1 (verbatim from story 10-1-visual-snapshot-suite:44):
+  //   Given every component and primitive that `@pekulo/ui` exports publicly,
+  //   When the package's visual-test script runs, Then each one is covered by
+  //   at least one snapshot of its default state, and the run reports zero
+  //   uncovered and exits 0.
+  // AC-3 (verbatim from story 10-1-visual-snapshot-suite:46):
+  //   Given a newly-exported component or primitive shipped without its
+  //   snapshot spec, When the test suite runs, Then the suite fails and the
+  //   failure message names the uncovered component.
   it("every public component and primitive has a snapshot spec", () => {
     const gaps = [
       ...missing(componentEntries(), "snapshot.test.tsx", SNAPSHOT_EXEMPT),
@@ -67,6 +76,16 @@ describe("design-system test coverage (architecture.md:631)", () => {
     expect(gaps, `missing <name>.snapshot.test.tsx for: ${gaps.join(", ")}`).toEqual([]);
   });
 
+  // AC-5 (verbatim from story 10-1-visual-snapshot-suite:48, as widened by the
+  // 2026-08-25 scope amendment):
+  //   Given every publicly-exported component and primitive still lacking one
+  //   (`CategoryIcon`, `PekuloMobileBottomNav`, `PekuloCalendar`,
+  //   `PekuloDatePicker`, `PekuloDialogCloseX`, `PekuloDrawer`,
+  //   `PekuloNativeCheckbox`, `PekuloNativeSelect`, `PekuloTextarea`), When the
+  //   package's a11y script runs, Then each is covered by an a11y spec
+  //   reporting zero `serious` and zero `critical` axe violations.
+  // This assertion covers the "is covered by an a11y spec" half; the
+  // zero-violations half lives in each `<Name>.a11y.test.tsx`.
   it("every public component and primitive has an a11y spec", () => {
     const gaps = [
       ...missing(componentEntries(), "a11y.test.tsx", A11Y_EXEMPT),
