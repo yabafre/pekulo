@@ -54,7 +54,7 @@ So the story ships **three** things, in this order:
 
 Task order is load-bearing: **T1 first**, because it is the RED that every subsequent task turns green one slice at a time. Do not reorder.
 
-- [ ] **T1 — Write the coverage meta-test (RED: it must fail listing 25 gaps)** [AC: AC-3]
+- [x] **T1 — Write the coverage meta-test (RED: it must fail listing 25 gaps)** [AC: AC-3]
 
   Create `packages/ui/src/ds-coverage.meta.test.ts` with exactly this content:
 
@@ -142,7 +142,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: **RED — 2 tests failed.** The snapshot failure message must enumerate 23 names (`CategoryIcon, CategoryPicker, PekuloMobileBottomNav, PekuloPagination, PekuloBreadcrumb, PekuloButton, PekuloButtonGroup, PekuloCalendar, PekuloCard, PekuloDatePicker, PekuloDialogCloseX, PekuloDrawer, PekuloEmpty, PekuloField, PekuloInput, PekuloLabel, PekuloLoadingItem, PekuloNativeCheckbox, PekuloNativeSelect, PekuloResizable, PekuloSpinner, PekuloSubmitButton, PekuloTextarea`) and the a11y failure message must enumerate at least `CategoryIcon, PekuloMobileBottomNav`. **If either list is empty or the count differs from 23, STOP** — the enumeration logic is wrong, not the codebase; fix the test before writing a single snapshot.
   Commit: `git add packages/ui/src/ds-coverage.meta.test.ts && git commit -m "test(#46): add DS coverage meta-test (RED — 23 snapshot + 2 a11y gaps)"`
 
-- [ ] **T2 — Snapshot the two display components: `CategoryIcon`, `PekuloPagination`** [AC: AC-1]
+- [x] **T2 — Snapshot the two display components: `CategoryIcon`, `PekuloPagination`** [AC: AC-1]
 
   **The inline-snapshot workflow, applied to every task from here to T10 — read once, apply every time:**
   1. Write the file with `toMatchInlineSnapshot()` called with **no argument**.
@@ -200,7 +200,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  4 written`; second run `Test Files  2 passed`, `Tests  4 passed`, exit 0.
   Commit: `git add packages/ui/src/components/CategoryIcon/CategoryIcon.snapshot.test.tsx packages/ui/src/components/PekuloPagination/PekuloPagination.snapshot.test.tsx && git commit -m "test(#46): snapshot CategoryIcon + PekuloPagination"`
 
-- [ ] **T3 — Snapshot the two interactive components: `CategoryPicker`, `PekuloMobileBottomNav`** [AC: AC-1]
+- [x] **T3 — Snapshot the two interactive components: `CategoryPicker`, `PekuloMobileBottomNav`** [AC: AC-1]
 
   Create `packages/ui/src/components/CategoryPicker/CategoryPicker.snapshot.test.tsx`:
 
@@ -255,7 +255,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  3 written`; second run `Test Files  2 passed`, `Tests  3 passed`, exit 0.
   Commit: `git add packages/ui/src/components/CategoryPicker/CategoryPicker.snapshot.test.tsx packages/ui/src/components/PekuloMobileBottomNav/PekuloMobileBottomNav.snapshot.test.tsx && git commit -m "test(#46): snapshot CategoryPicker + PekuloMobileBottomNav"`
 
-- [ ] **T4 — Snapshot the form input primitives: `PekuloInput`, `PekuloTextarea`, `PekuloLabel`** [AC: AC-1]
+- [x] **T4 — Snapshot the form input primitives: `PekuloInput`, `PekuloTextarea`, `PekuloLabel`** [AC: AC-1]
 
   Primitives live flat in `src/primitives/`, so the setup import is **`../../test/setup.tsx`** (two levels), not three. Getting this wrong is the single most likely failure in T4–T10.
 
@@ -328,7 +328,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  5 written`; second run `Test Files  3 passed`, `Tests  5 passed`, exit 0.
   Commit: `git add packages/ui/src/primitives/PekuloInput.snapshot.test.tsx packages/ui/src/primitives/PekuloTextarea.snapshot.test.tsx packages/ui/src/primitives/PekuloLabel.snapshot.test.tsx && git commit -m "test(#46): snapshot form input primitives"`
 
-- [ ] **T5 — Snapshot the button primitives: `PekuloButton`, `PekuloButtonGroup`, `PekuloSubmitButton`** [AC: AC-1]
+- [x] **T5 — Snapshot the button primitives: `PekuloButton`, `PekuloButtonGroup`, `PekuloSubmitButton`** [AC: AC-1]
 
   Create `packages/ui/src/primitives/PekuloButton.snapshot.test.tsx`:
 
@@ -422,7 +422,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  7 written`; second run `Test Files  3 passed`, `Tests  7 passed`, exit 0.
   Commit: `git add packages/ui/src/primitives/PekuloButton.snapshot.test.tsx packages/ui/src/primitives/PekuloButtonGroup.snapshot.test.tsx packages/ui/src/primitives/PekuloSubmitButton.snapshot.test.tsx && git commit -m "test(#46): snapshot button primitives"`
 
-- [ ] **T6 — Snapshot the native-control primitives: `PekuloNativeCheckbox`, `PekuloNativeSelect`** [AC: AC-1]
+- [x] **T6 — Snapshot the native-control primitives: `PekuloNativeCheckbox`, `PekuloNativeSelect`** [AC: AC-1]
 
   Both are uncontrolled here on purpose — a `checked`/`value` prop without `onChange` makes React warn about a controlled input with no handler, which pollutes the test output.
 
@@ -485,7 +485,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  4 written`; second run `Test Files  2 passed`, `Tests  4 passed`, exit 0.
   Commit: `git add packages/ui/src/primitives/PekuloNativeCheckbox.snapshot.test.tsx packages/ui/src/primitives/PekuloNativeSelect.snapshot.test.tsx && git commit -m "test(#46): snapshot native control primitives"`
 
-- [ ] **T7 — Snapshot the state primitives: `PekuloSpinner`, `PekuloLoadingItem`, `PekuloEmpty`** [AC: AC-1]
+- [x] **T7 — Snapshot the state primitives: `PekuloSpinner`, `PekuloLoadingItem`, `PekuloEmpty`** [AC: AC-1]
 
   `test/setup.tsx` forces `prefers-reduced-motion: reduce`, so rAF-driven animations settle at their final frame and snapshots stay stable. `PekuloSpinner` is CSS-keyframe driven (not rAF) — its snapshot legitimately contains the `@keyframes pekulo-spin-360` `<style>` block and `animation: pekulo-spin-360 1s linear infinite`. That is expected, not a leak.
 
@@ -584,7 +584,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  6 written`; second run `Test Files  3 passed`, `Tests  6 passed`, exit 0.
   Commit: `git add packages/ui/src/primitives/PekuloSpinner.snapshot.test.tsx packages/ui/src/primitives/PekuloLoadingItem.snapshot.test.tsx packages/ui/src/primitives/PekuloEmpty.snapshot.test.tsx && git commit -m "test(#46): snapshot state primitives"`
 
-- [ ] **T8 — Snapshot the structure primitives: `PekuloCard`, `PekuloBreadcrumb`, `PekuloField`** [AC: AC-1]
+- [x] **T8 — Snapshot the structure primitives: `PekuloCard`, `PekuloBreadcrumb`, `PekuloField`** [AC: AC-1]
 
   Create `packages/ui/src/primitives/PekuloCard.snapshot.test.tsx`:
 
@@ -707,7 +707,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  5 written`; second run `Test Files  3 passed`, `Tests  5 passed`, exit 0.
   Commit: `git add packages/ui/src/primitives/PekuloCard.snapshot.test.tsx packages/ui/src/primitives/PekuloBreadcrumb.snapshot.test.tsx packages/ui/src/primitives/PekuloField.snapshot.test.tsx && git commit -m "test(#46): snapshot structure primitives"`
 
-- [ ] **T9 — Snapshot the portal/layout primitives: `PekuloDrawer`, `PekuloDialogCloseX`, `PekuloResizable`** [AC: AC-1]
+- [x] **T9 — Snapshot the portal/layout primitives: `PekuloDrawer`, `PekuloDialogCloseX`, `PekuloResizable`** [AC: AC-1]
 
   `PekuloDrawer` (vaul) renders into a portal — expect the shell-only snapshot, exactly like the existing `PekuloDialog.snapshot.test.tsx`. That is the accepted shape for portal primitives in this repo; do not chase the portal content into `document.body`.
 
@@ -803,7 +803,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  4 written`; second run `Test Files  3 passed`, `Tests  4 passed`, exit 0.
   Commit: `git add packages/ui/src/primitives/PekuloDrawer.snapshot.test.tsx packages/ui/src/primitives/PekuloDialogCloseX.snapshot.test.tsx packages/ui/src/primitives/PekuloResizable.snapshot.test.tsx && git commit -m "test(#46): snapshot portal + layout primitives"`
 
-- [ ] **T10 — Snapshot the date primitives with a frozen month: `PekuloCalendar`, `PekuloDatePicker`** [AC: AC-1, AC-4]
+- [x] **T10 — Snapshot the date primitives with a frozen month: `PekuloCalendar`, `PekuloDatePicker`** [AC: AC-1, AC-4]
 
   **This is the task that breaks silently if written naively.** react-day-picker renders the **current** month when no month is supplied. A snapshot captured today would encode August 2026 and start failing on 1 September — a red CI run with no code change, on a day nobody is looking. Every date below is an explicit literal; there is no `new Date()` without arguments anywhere in these files.
 
@@ -884,7 +884,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: first run `Snapshots  5 written`; second run `Test Files  2 passed`, `Tests  5 passed`, exit 0.
   Commit: `git add packages/ui/src/primitives/PekuloCalendar.snapshot.test.tsx packages/ui/src/primitives/PekuloDatePicker.snapshot.test.tsx && git commit -m "test(#46): snapshot date primitives with frozen month (AC-4)"`
 
-- [ ] **T11 — Add the two missing component a11y specs: `CategoryIcon`, `PekuloMobileBottomNav`** [AC: AC-5]
+- [x] **T11 — Add the two missing component a11y specs: `CategoryIcon`, `PekuloMobileBottomNav`** [AC: AC-5]
 
   Create `packages/ui/src/components/CategoryIcon/CategoryIcon.a11y.test.tsx`:
 
@@ -954,7 +954,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: `Test Files  4 passed` (2 snapshot from T2/T3 + 2 a11y), `Tests  8 passed`, exit 0.
   Commit: `git add packages/ui/src/components/CategoryIcon/CategoryIcon.a11y.test.tsx packages/ui/src/components/PekuloMobileBottomNav/PekuloMobileBottomNav.a11y.test.tsx && git commit -m "test(#46): a11y specs for CategoryIcon + PekuloMobileBottomNav"`
 
-- [ ] **T11b — Add the seven missing primitive a11y specs** [AC: AC-5] _(added 2026-08-25 by the scope amendment above)_
+- [x] **T11b — Add the seven missing primitive a11y specs** [AC: AC-5] _(added 2026-08-25 by the scope amendment above)_
 
   `PekuloCalendar`, `PekuloDatePicker`, `PekuloDialogCloseX`, `PekuloDrawer`, `PekuloNativeCheckbox`, `PekuloNativeSelect`, `PekuloTextarea`. Same shape as `PekuloSwitch.a11y.test.tsx`: one axe assertion filtered to `serious`/`critical`, plus one role/attribute assertion that makes the spec non-vacuous. Setup import is `"../../test/setup.tsx"` (two levels — primitives are flat).
 
@@ -967,7 +967,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   Expected: `Test Files  7 passed`, exit 0. **If axe reports a `serious`/`critical` violation, that is a real component defect** — record it in the Dev Agent Record and raise it at `aped-review`; do not patch the source, the story is tests-only.
   Commit: `git add packages/ui/src/primitives/*.a11y.test.tsx && git commit -m "test(#46): a11y specs for the seven uncovered primitives"`
 
-- [ ] **T12 — Prove `no-tailwind-outside-ui` is live and record the procedure** [AC: AC-2]
+- [x] **T12 — Prove `no-tailwind-outside-ui` is live and record the procedure** [AC: AC-2]
 
   A green `bun run lint` proves nothing about a self-gating rule — `no-server-action-in-component` was inert for months while lint stayed green (lesson 2026-06-15). Run the probe below and paste the **verbatim output** into the Dev Agent Record § "AC-2 probe". Both halves are required: the rule must fire outside `packages/ui/` **and** stay silent inside it.
 
@@ -1001,7 +1001,7 @@ Task order is load-bearing: **T1 first**, because it is the RED that every subse
   **If half 1 reports 0 errors, the rule is inert — STOP and raise it.** That is an AC-2 blocker and a lint-infra bug, not something to work around inside this story.
   Commit: no code changes — the probe files are deleted. Record the output in the story file, then `git add docs/stories/10-1-visual-snapshot-suite.md && git commit -m "docs(#46): record no-tailwind-outside-ui liveness probe (AC-2)"`
 
-- [ ] **T13 — Full sweep, meta-test GREEN, and doc-sync** [AC: AC-1, AC-2, AC-3, AC-4, AC-5]
+- [x] **T13 — Full sweep, meta-test GREEN, and doc-sync** [AC: AC-1, AC-2, AC-3, AC-4, AC-5]
 
   Run each gate below from the repo root, in order, and paste the tail of each into the Dev Agent Record:
 
@@ -1288,15 +1288,49 @@ No new dependency. Everything used is already in `packages/ui/devDependencies`: 
 
 ## Dev Agent Record
 
-- **Model:**
-- **Started:**
-- **Completed:**
+- **Model:** Opus 5 (1M context) — `claude-opus-5[1m]`
+- **Started:** 2026-08-25
+- **Completed:** 2026-08-25
 
 ### Summary
 
+The DS contract at `architecture.md:631` is now enforced by a meta-test and satisfied by the filesystem: **33 new test files** (1 meta-test + 23 snapshots + 9 a11y specs), **zero component source files touched**. The meta-test is the durable half — before it, a component could ship without a snapshot and CI stayed green, which is how coverage drifted to 69 % across epics 1-9. `test:visual` and `test:axe` each run their own half of the exhaustiveness check, so neither gate can pass while its suite is incomplete.
+
+The measured a11y gap was **9**, not the 2 the story predicted at write time (the write-time count only walked `src/components/` and missed 7 uncovered primitives). The gap was surfaced at step-03 and closed by writing all 9 rather than narrowing the gate or filling the exempt map — see the scope amendment near the top of this file. Both exempt maps ship empty.
+
 ### Files changed
 
+34 files, all new except the story itself. Full list under **File List** above. Nothing under `packages/ui/src/**/*.tsx` that is not a test was modified, so the header's "tests only" framing still holds.
+
 ### Deviations
+
+**Scope**
+
+1. **a11y gap was 9, not 2** — `PekuloCalendar`, `PekuloDatePicker`, `PekuloDialogCloseX`, `PekuloDrawer`, `PekuloNativeCheckbox`, `PekuloNativeSelect`, `PekuloTextarea` were uncovered on top of the two named components. T13 was unreachable as originally written: T1's meta-test enumerates primitives too, so its a11y assertion went RED with 9 names while T11 filled only 2. Task **T11b** added, AC-5 widened, user-approved before any code was written.
+
+**Test shape, where the story's proposed code did not match the source**
+
+2. **`PekuloDrawer`** — the story's tree wrapped `PekuloDrawer.Content` in `Portal` + `Overlay`, but `Content` already renders both internally (`PekuloDrawer.tsx:128-140`); following the story verbatim would have mounted two overlays. Both the snapshot and the a11y spec use the real API.
+3. **`PekuloPagination`, second case** — the story titles it "renders a single page (no gaps, both arrows dimmed)", but `pageCount <= 1` returns `null` (`PekuloPagination.tsx:96`), so nothing renders. Retitled "renders nothing at a single page"; the empty-shell capture is correct here and is the one non-portal snapshot that legitimately holds it.
+4. **`PekuloMobileBottomNav.a11y`** — needs a phone-width viewport. happy-dom's window is exactly **1024px**, where the component's `$lg={{ display: "none" }}` computes the whole subtree to `display: none`: every role query returns empty and **axe scans nothing and reports a vacuous pass**. The spec now sets a 390px viewport, restores 1024px after, and asserts `display !== "none"` before scanning — without that guard the AC-5 evidence for this component would have been a false green. The story's predicted cause (nav items rendering as plain `<div>`s) is **not** what happened: all five are real `<button>`s.
+5. **`PekuloDrawer.a11y`** scans `baseElement`, not `container` — vaul portals its content into `document.body`, so scanning `container` would pass over an empty shell.
+
+**Gate results that differ from the story's stated expectations**
+
+6. **`lint` reports `Found 4 warnings and 0 errors`**, not `0 warnings`. All 4 pre-date this story (`apps/api/src/bootstrap/runtime-dependencies.ts` ×2, `apps/web/.../recent-activity-section.tsx`, `apps/web/.../dashboard-edit-context.tsx`); none is in this story's diff. oxlint exits **0** — warnings do not fail the gate.
+7. **`format:check` exits 1**, on `.claude/settings.local.json` only. That file is **untracked and gitignored** (`~/.config/git/ignore`), so CI's `format-check` job never sees it. All **1045** git-tracked files, including all 33 written here, format clean. Not fixed: reformatting a developer's local settings file is outside this story.
+8. **Visual dev loop not run** — `mcp__react-grab-mcp__get_element_context` is unavailable in this session, and the diff changes no rendered surface, so a live pass would have verified nothing about it. The snapshots are the visual capture.
+
+**Environment**
+
+9. **iCloud eviction blocked every tool for ~50 minutes.** `vitest` froze at 0 % CPU on `node_modules/.bun/loupe@3.2.1/.../date.js`; `/usr/bin/find node_modules -type f -flags +dataless` reported **8871** evicted files (112.5 MB). Rematerialised with a 320-way parallel read sweep (~250 files/min — the ceiling is the iCloud daemon, not CPU). This is the failure mode recorded in `lessons.md` on 2026-07-25, misdiagnosed as "agent sandbox hangs" during story 9-2. The durable fix (move the repo out of `~/Documents`, or disable "Optimise Mac Storage") is the developer's call and was raised.
+
+### Observations for `aped-review` — recorded, deliberately not fixed
+
+- **`PekuloCalendar` announces its days in English** inside a French app: `aria-label="Monday, December 29th, 2025"`, caption `January 2026`. No `locale` is passed to react-day-picker, so it falls back to `en-US`. axe does not flag it, but it is an NFR-22 screen-reader gap and it is now frozen into the visual baseline. Fixing it means touching the component, which this story forbids.
+- **A breakpoint-hidden component gets a silently vacuous axe scan** (deviation 4). Today only `PekuloMobileBottomNav` combines a `display: none` breakpoint with an a11y spec — verified by scanning every component and primitive — but the next one to do so will hit the same false green. Worth a shared render helper or a lint rule; out of scope here.
+- **happy-dom mis-expands CSS shorthands.** `invalid` snapshots contain `border-width: var(--danger); border-style: var(--danger)` from the source's `border: "1px solid var(--danger)"`, and `outline: "none"` becomes `outline-color: none`. Deterministic, so harmless as a baseline, but a reviewer will read it as a DS violation.
+- **`defaultSize` is inert in `PekuloResizable` snapshots.** happy-dom reports zero-size boxes, so react-resizable-panels v4 has no group width and falls back to equal `flex-grow: 50` regardless of the prop. Documented in the file. Same root cause as the pre-existing `PekuloResizable.a11y` skip introduced by story 4-3 (`a303e4a`).
 
 ### Test output
 
@@ -1352,3 +1386,41 @@ $ find apps/web/src packages/ui/src -name "__tw-probe*" | wc -l
 The rule is live in production lint, in both directions. Not inferred from a green run.
 
 #### (3) T13 — full sweep
+
+```
+$ bun --filter='@pekulo/ui' run typecheck
+@pekulo/ui typecheck: Exited with code 0
+
+$ bun run lint
+Found 4 warnings and 0 errors.        # all 4 pre-existing, none in this diff; exit 0
+Finished in 1.0s on 980 files with 158 rules using 11 threads.
+
+$ bunx oxfmt --check <every git-tracked ts/tsx/js/json/css file>
+All matched files use the correct format.
+Finished in 344ms on 1045 files using 11 threads.
+# `bun run format:check` itself exits 1 on .claude/settings.local.json —
+# untracked + gitignored, never present in CI's checkout. See deviation 7.
+
+$ cd packages/ui && bun run test:visual     # vitest run --passWithNoTests --testNamePattern='snapshot'
+ ✓ src/ds-coverage.meta.test.ts > every public component and primitive has a snapshot spec
+ ↓ src/ds-coverage.meta.test.ts > every public component and primitive has an a11y spec
+ Test Files  76 passed | 82 skipped (158)
+      Tests  130 passed | 158 skipped (288)
+
+$ cd packages/ui && bun run test:axe        # vitest run --passWithNoTests --testNamePattern='a11y'
+ ↓ src/ds-coverage.meta.test.ts > every public component and primitive has a snapshot spec
+ ✓ src/ds-coverage.meta.test.ts > every public component and primitive has an a11y spec
+ Test Files  77 passed | 81 skipped (158)
+      Tests  127 passed | 161 skipped (288)
+
+$ cd packages/ui && bun run test
+ Test Files  158 passed (158)
+      Tests  287 passed | 1 skipped (288)
+# the 1 skip is PekuloResizable.a11y "(skipped — happy-dom limitation)",
+# pre-existing since story 4-3 (a303e4a).
+
+$ bash .aped/scripts/validate-epic-context.sh docs/epics-context/epic-10-context.md
+EXIT=0
+```
+
+Each filtered script verifies its own half of the contract: `test:visual` runs the snapshot meta-assertion and skips the a11y one, `test:axe` does the reverse. Neither gate can go green on an incomplete suite.
