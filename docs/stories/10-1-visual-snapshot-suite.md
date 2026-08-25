@@ -33,7 +33,7 @@ So the story ships **three** things, in this order:
 
 **Out of scope — deliberate, do not absorb (lesson 2026-06-05):**
 
-- **No component source changes.** This story writes tests only. If a snapshot exposes a rendering bug, record it in the Dev Agent Record and raise it at `aped-review` — do not fix it here, the diff must stay reviewable as "tests only".
+- ~~**No component source changes.** This story writes tests only. If a snapshot exposes a rendering bug, record it in the Dev Agent Record and raise it at `aped-review` — do not fix it here, the diff must stay reviewable as "tests only".~~ **Superseded 2026-08-25 (`aped-review`), user-approved.** The scope rule worked exactly as designed through `aped-dev`: the dev wrote zero source changes and routed what the snapshots exposed to review. At review the user elected to fix every finding rather than defer, so **six component sources are now touched** (`PekuloInput`, `PekuloTextarea`, `PekuloNativeSelect`, `PekuloCalendar`, `PekuloDatePicker`, `PekuloEmpty`) plus one new non-component helper (`form-focus-ring.ts`). Two of those were freezing accessibility violations into the baseline — a focus ring stripped with no replacement (NFR-24) and an `en-US` Sunday-first calendar in a French app (NFR-22) — which is the one class of finding it is actively harmful to defer: the whole point of this story is that the baseline becomes the reference the V1.5 mobile port diffs against. Every affected snapshot was re-captured. See the Review Record at the bottom of this file.
 - **No Maestro / mobile snapshot suite.** That is story `10-2-mobile-app-bootstrap`, gated on G1 (a V1.5 `aped-arch` re-run). FR-56's mobile half does not ship here.
 - **No lint-infra hardening.** The `oxlint-smoke` integration test runs against `fixture-oxlintrc.json`, not the production `.oxlintrc.json`. Widening it to the production config is a dedicated lint-infra task (the 2026-06-15 lesson says so explicitly); AC-2 is satisfied by a documented, reproducible probe instead.
 - **No `__snapshots__/` file-based snapshots.** The repo is 52/52 inline (`toMatchInlineSnapshot`). Follow the established pattern; do not introduce a second one.
@@ -1284,7 +1284,28 @@ No new dependency. Everything used is already in `packages/ui/devDependencies`: 
 - `docs/stories/10-1-visual-snapshot-suite.md` (Dev Agent Record: AC-2 probe output, gate outputs, deviations)
 - `docs/state.yaml` (`sprint.stories.10-1-visual-snapshot-suite.status`)
 
-**Explicitly NOT modified** — any file under `packages/ui/src/**/*.tsx` that is not a test. If a task requires touching a component source, stop and surface it: the story's "tests only" framing no longer holds and the scope note must be superseded.
+**Modified at `aped-review` (2026-08-25) — component sources, per the superseded scope note above:**
+
+- `packages/ui/src/primitives/PekuloInput.tsx` (focus ring — NFR-24)
+- `packages/ui/src/primitives/PekuloTextarea.tsx` (focus ring — NFR-24)
+- `packages/ui/src/primitives/PekuloNativeSelect.tsx` (focus ring — NFR-24)
+- `packages/ui/src/primitives/PekuloCalendar.tsx` (French locale, Monday-first — NFR-22)
+- `packages/ui/src/primitives/PekuloDatePicker.tsx` (trigger aligned on the ux-preview pill)
+- `packages/ui/src/primitives/PekuloEmpty.tsx` (dropped the unused `outlined` prop; icon chip geometry)
+
+**Created at `aped-review`:**
+
+- `packages/ui/src/primitives/form-focus-ring.ts` (shared `:focus-visible` contract — not a component, `.ts` by design so it is not itself a coverage target)
+
+**Modified at `aped-review` — tests:**
+
+- `packages/ui/src/ds-coverage.meta.test.ts` (gate extended to the public barrel)
+- `packages/ui/src/toast/snapshot.test.tsx`, `packages/ui/src/toast/a11y.test.tsx` (cover `PekuloToastViewport` + `ToastProvider`)
+- `packages/ui/src/components/TransactionLogo/TransactionLogo.snapshot.test.tsx` (title carried no `snapshot` keyword — `test:visual` was skipping it)
+- Re-captured snapshots: `PekuloInput`, `PekuloTextarea`, `PekuloNativeSelect`, `PekuloField`, `PekuloCalendar`, `PekuloDatePicker`, `PekuloEmpty`, `PekuloResizable`
+- `docs/epics-context/epic-10-context.md` (was generated but never committed)
+
+**Still explicitly NOT modified** — every other file under `packages/ui/src/**/*.tsx` that is not a test.
 
 ## Dev Agent Record
 
@@ -1424,3 +1445,90 @@ EXIT=0
 ```
 
 Each filtered script verifies its own half of the contract: `test:visual` runs the snapshot meta-assertion and skips the a11y one, `test:axe` does the reverse. Neither gate can go green on an incomplete suite.
+
+## Review Record
+
+**Date:** 2026-08-25
+**Auditors:** Spec, Code, Aria · **Edge & hallucination — did not report** (two dispatches, no structured verdict; the Lead ran its brief directly: disk-vs-public-surface cross-check, count reconciliation, identical-variant sweep, clock-independence)
+**Verdict:** done — 12 findings, 11 resolved, 1 recorded for `10-2` / G1
+
+The suite the story shipped held up under attack: AC-2, AC-3, AC-4 and AC-5 were each **reproduced independently** rather than read off the Dev Agent Record. What did not hold was the gate's reach — it enumerated two hard-coded folders while `src/index.ts` exports five, so three publicly-exported components sat outside it, one of them a real rendered `View` with no test at all.
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] The coverage gate enumerated `components/` + `primitives/` only, while `src/index.ts` also re-exports `toast/`, `provider/` and `animations/`. `PekuloToastViewport`, `ToastProvider` and `PekuloRootProvider` were outside it entirely. [`packages/ui/src/ds-coverage.meta.test.ts`]
+  - Source: Lead. Proved with a control: the *same* component passed in `src/toast/` and failed in `src/primitives/`.
+  - Impact: AC-1 ("every component `@pekulo/ui` exports **publicly**") and AC-3 were both partial. The Spec auditor rated AC-1 IMPLEMENTED off the meta-test, which is circular — the meta-test defined "public" as "inside one of two folders".
+  - Resolution: `4801f80`. Gate now enumerates the barrel; a new `export * from "./x"` fails until covered or given a reason in `MODULE_EXEMPT`. Module scanning walks the whole folder, not just the index — an index-only scan stayed green on a component declared in a re-exported sibling (caught by re-running the probe). `PekuloToastViewport` + `ToastProvider` covered; `PekuloRootProvider` exempt **by documented decision** (mounts `next/script`, absent from this harness — `test/setup.tsx:44` hits the same wall) rather than by invisibility.
+
+- [MAJOR] `outline: "none"` on three form primitives with nothing restoring it — keyboard-reachable, no visible indicator (NFR-24). [`PekuloInput.tsx:95`, `PekuloTextarea.tsx:22`, `PekuloNativeSelect.tsx:54`]
+  - Source: Aria; verified by the Lead. Pre-existing on `main`; **not** reported by the dev, though the scope rule required it.
+  - axe cannot see this (WCAG 2.4.7 is not machine-checkable), so the new a11y specs passed over it. `apps/web/.../form-controls.module.css` already existed to patch the same gap locally on radios.
+  - Resolution: `825533e`. The reset had to leave the inline style — an inline declaration outranks any external `:focus-visible` rule. Shared `form-focus-ring.ts`, ring geometry matching `PekuloButton`.
+
+- [MAJOR] `PekuloCalendar` frozen in `en-US`: English captions **and Sunday-first columns** inside a French app (NFR-22). [`PekuloCalendar.tsx:215`]
+  - Source: Aria + Code; verified by the Lead. The dev reported this but only the `aria-label`/caption half — the column shift, which misaligns the whole grid, was missed.
+  - Resolution: `9bbee53`. `locale={fr}` from react-day-picker's own re-export of `date-fns/locale` (no new dependency) + French nav labels. Capture now shows `lang="fr"`, `janvier 2026`, `lu ma me je ve sa di`, zero English strings.
+
+- [MINOR] `docs/epics-context/epic-10-context.md` generated but never committed — T13's `git add -u` cannot stage an untracked file.
+  - Source: Lead + Spec. Resolution: `ad38c29`.
+
+- [MINOR] `PekuloDatePicker` trigger froze a 1px bordered transparent rect while `CategoryPicker`'s trigger — same role, same PR — was already the filled pill from `ux-preview:896-921`. Two idioms about to be frozen side by side; design-spec §1 bans borders. [`PekuloDatePicker.tsx:155`]
+  - Source: Aria. Resolution: `c912410`.
+
+- [MINOR] `PekuloEmpty outlined` froze a dashed container border with no reference backing and, per `git grep`, no consumer anywhere in the repo. [`PekuloEmpty.tsx:34`]
+  - Source: Aria. Resolution: `c912410` — prop removed.
+
+- [MINOR] `PekuloEmptyMedia` icon chip at 32px/`radius-lg` against the reference's 48px/`rounded-full` (`ux-preview:880`).
+  - Source: Aria. Resolution: `c912410`.
+
+- [MINOR] `PekuloResizable` snapshot passed `defaultSize`, which happy-dom cannot express (zero-size boxes → `flex-grow: 50` regardless), implying a split ratio the capture never asserted.
+  - Source: Aria + dev self-disclosure. Resolution: `c912410` — prop dropped from the JSX, comment now states what the two cases *do* pin (the orientation contract) and what covering ratios would require.
+
+- [NIT] Meta-test cited story line numbers (`:44`, `:46`, `:48`) that had already drifted to 47/49/51.
+  - Source: Code. Resolution: re-anchored on the AC identifier, which does not move when the story grows — the numbers would have drifted again from this very Review Record.
+
+- [NIT] The gate checked that a spec *file* existed, not that its titles carried the keyword its filtered script selects on.
+  - Source: Aria, who read it as a future hole. It was already live: `TransactionLogo.snapshot.test.tsx` titled its `describe` without `snapshot`, so `test:visual` **skipped both its snapshots** (`↓ 2 tests | 2 skipped`). Resolution: `4801f80` — guard added, title fixed; the file now runs (`✓ 2 tests`).
+
+- [NIT] Gate assertions were all "the gap list is empty", which is also what an enumeration returning nothing produces — a renamed folder would have read as green.
+  - Source: Lead. Resolution: `4801f80` — floors on the enumeration.
+
+#### Dismissed
+
+- [MINOR] ~7 of the new captures freeze web-only CSS (`:focus-visible`, `::after`, `@keyframes`, `border-collapse`, literal-pixel blobs) with no React Native equivalent, which weakens the baseline for FR-56 — its stated purpose.
+  - Source: Aria. Measured at review: **11 component sources** inject raw `<style>` blocks, `PekuloSkeleton` among them (outside this story's 23). This is the DS's deliberate implementation pattern — injected CSS keeps the primitives RSC-safe without a CSS-module dependency, documented in `PekuloButton.tsx:4-10`. Fixing it means re-architecting the styling layer, and the NFR-24 fix above **added one more**. That trade-off belongs to the G1 `aped-arch` re-run that gates `10-2`, not to a review pass.
+  - Rationale: not fixable inside a review pass — it is an architecture decision about the DS styling layer, owned by the G1 `aped-arch` re-run that gates `10-2`. Carried forward so `10-2` does not assume these captures constitute a portable parity baseline.
+
+- [NIT] `.aped/aped-review/scripts/git-audit.sh` looks for `### File List`; stories write `## File List`. With `set -euo pipefail`, the empty `grep` kills the script, which **exits 0 printing nothing** — indistinguishable from "audit clean". The Lead audited by hand instead.
+  - Source: Lead.
+  - Rationale: `.aped/` is the immutable engine per `CLAUDE.md`; patching it here would be overwritten by the next APED update. Belongs upstream in APED. Flagged to the user.
+
+### Verification
+
+Captured fresh at the end of the fix cycle, not carried over from an earlier turn:
+
+```
+$ bun --filter='@pekulo/ui' run typecheck        exit 0
+$ bun run lint                                   exit 0 — 4 warnings, 0 errors (all 4 pre-existing, none in this diff)
+$ cd packages/ui && bun run test                 exit 0 — Test Files 158 passed | Tests 294 passed | 1 skipped (295)
+$ cd packages/ui && bun run test:visual          exit 0 — Test Files 77 passed | Tests 137 passed
+$ cd packages/ui && bun run test:axe             exit 0 — Test Files 77 passed | Tests 130 passed
+```
+
+Counts moved 287 → 294 passing: 3 `PekuloToastViewport` snapshots, 1 viewport a11y spec, 3 new gate assertions. `test:visual` moved 130 → 137, which includes the 2 `TransactionLogo` snapshots the keyword bug had been skipping.
+
+Gate probes, each cleaned up and the tree verified clean afterwards:
+
+| Probe | Before | After |
+|---|---|---|
+| Public component added to `src/toast/` | passed | fails naming `PekuloZzGateProbe` |
+| New module added to the root barrel | passed | fails naming `__zzmod` |
+| Spec titled without its keyword | passed | fails naming the file |
+| Public component added to `src/primitives/` | fails (control) | fails (control) |
+
+**Visual verification:** Aria ran **degraded — React Grab MCP unavailable in this session**, as it was for the dev (deviation 8). Verdict rests on captured snapshot strings, component sources, and `docs/ux-preview/src/App.tsx` citations; no rendered-pixel comparison was performed. The three reference-divergence findings (`m2`, `m3`, `m4`) were fixed against ux-preview line ranges rather than against pixels, and are worth a live pass when the MCP is available.
+
+**One correction to the auditors' reports for the record:** Aria counted "25 test cases" across the 23 new snapshot files; the actual figure is 43. Its no-identical-pairs conclusion was independently confirmed by the Lead across all 43 and stands.
