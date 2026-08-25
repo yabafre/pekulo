@@ -19,6 +19,7 @@ import { Eye, EyeOff } from "lucide-react";
 import type { CSSProperties, InputHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
+import { PEKULO_FIELD_CLASS, PEKULO_FIELD_CSS } from "./form-focus-ring";
 
 // Allowed HTML input types. `date` and `datetime-local` deliberately
 // excluded — consumers must use PekuloDatePicker for those use cases.
@@ -73,7 +74,7 @@ const SIZE_PADDING_X: Record<NonNullable<PekuloInputProps["controlSize"]>, numbe
 const REVEAL_BTN_WIDTH = 36;
 
 export const PekuloInput = forwardRef<HTMLInputElement, PekuloInputProps>(function PekuloInput(
-  { controlSize = "md", invalid = false, style, type = "text", revealable, ...props },
+  { controlSize = "md", invalid = false, className, style, type = "text", revealable, ...props },
   ref,
 ) {
   const [revealed, setRevealed] = useState(false);
@@ -92,13 +93,26 @@ export const PekuloInput = forwardRef<HTMLInputElement, PekuloInputProps>(functi
     padding: `0 ${paddingRight}px 0 ${SIZE_PADDING_X[controlSize]}px`,
     fontSize: pekuloFontSizes.bodySm,
     border: invalid ? "1px solid var(--danger)" : "none",
-    outline: "none",
     fontFamily: "inherit",
     ...style,
   };
 
+  const fieldClass = className ? `${PEKULO_FIELD_CLASS} ${className}` : PEKULO_FIELD_CLASS;
+
   if (!showRevealToggle) {
-    return <input data-slot="input" ref={ref} type={effectiveType} style={merged} {...props} />;
+    return (
+      <>
+        <style>{PEKULO_FIELD_CSS}</style>
+        <input
+          data-slot="input"
+          ref={ref}
+          type={effectiveType}
+          className={fieldClass}
+          style={merged}
+          {...props}
+        />
+      </>
+    );
   }
 
   return (
@@ -106,7 +120,15 @@ export const PekuloInput = forwardRef<HTMLInputElement, PekuloInputProps>(functi
       data-slot="input-wrapper"
       style={{ position: "relative", display: "block", width: "100%" }}
     >
-      <input data-slot="input" ref={ref} type={effectiveType} style={merged} {...props} />
+      <style>{PEKULO_FIELD_CSS}</style>
+      <input
+        data-slot="input"
+        ref={ref}
+        type={effectiveType}
+        className={fieldClass}
+        style={merged}
+        {...props}
+      />
       <button
         type="button"
         aria-label={revealed ? "Masquer le mot de passe" : "Afficher le mot de passe"}

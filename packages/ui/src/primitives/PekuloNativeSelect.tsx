@@ -15,6 +15,7 @@ import { ChevronDown } from "lucide-react";
 import type { CSSProperties, SelectHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
+import { PEKULO_FIELD_CLASS, PEKULO_FIELD_CSS } from "./form-focus-ring";
 
 export interface PekuloNativeSelectProps extends Omit<
   SelectHTMLAttributes<HTMLSelectElement>,
@@ -38,7 +39,7 @@ const CHEVRON_WIDTH = 28;
 
 export const PekuloNativeSelect = forwardRef<HTMLSelectElement, PekuloNativeSelectProps>(
   function PekuloNativeSelect(
-    { controlSize = "md", invalid = false, style, children, disabled, ...props },
+    { controlSize = "md", invalid = false, className, style, children, disabled, ...props },
     ref,
   ) {
     const merged: CSSProperties = {
@@ -51,7 +52,6 @@ export const PekuloNativeSelect = forwardRef<HTMLSelectElement, PekuloNativeSele
       padding: `0 ${CHEVRON_WIDTH}px 0 ${SIZE_PADDING_X[controlSize]}px`,
       fontSize: pekuloFontSizes.bodySm,
       border: invalid ? "1px solid var(--danger)" : "none",
-      outline: "none",
       fontFamily: "inherit",
       appearance: "none",
       WebkitAppearance: "none",
@@ -65,7 +65,15 @@ export const PekuloNativeSelect = forwardRef<HTMLSelectElement, PekuloNativeSele
         data-slot="native-select-wrapper"
         style={{ position: "relative", display: "block", width: "100%" }}
       >
-        <select data-slot="select" ref={ref} style={merged} disabled={disabled} {...props}>
+        <style>{PEKULO_FIELD_CSS}</style>
+        <select
+          data-slot="select"
+          ref={ref}
+          className={className ? `${PEKULO_FIELD_CLASS} ${className}` : PEKULO_FIELD_CLASS}
+          style={merged}
+          disabled={disabled}
+          {...props}
+        >
           {children}
         </select>
         <ChevronDown

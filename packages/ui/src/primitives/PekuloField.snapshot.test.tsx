@@ -20,7 +20,15 @@ describe("PekuloField snapshot", () => {
       </PekuloField>,
     );
     expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<span class="_dsp_contents  font_body"><div role="group" data-slot="field" data-orientation="vertical" class="is_View _fd-column _gap-c-space-2 _width-10037 _o-1"><div data-slot="field-content" class="is_View _fd-column _gap-c-space-1 _width-10037"><label for="objectif" data-slot="field-label" class="is_Text _col-colorSecond96872 _fs-f-size-capt104456 _fw-500 _ls-0--3px">Capital cible</label><input data-slot="input" style="width: 100%; height: 40px; background-color: var(--backgroundMuted); color: var(--color); border-radius: 12px; padding: 0px 12px; font-size: 14px; border: none none; font-family: inherit; outline-color: none; outline-style: none; outline-width: initial;" id="objectif" placeholder="800 000" type="text"><p data-slot="field-description" class="is_Text _col-colorTertia3655 _fs-f-size-capt104456">Montant visé à l'horizon du cap.</p></div></div><div style="display: contents;"></div></span>"`,
+      `
+      "<span class="_dsp_contents  font_body"><div role="group" data-slot="field" data-orientation="vertical" class="is_View _fd-column _gap-c-space-2 _width-10037 _o-1"><div data-slot="field-content" class="is_View _fd-column _gap-c-space-1 _width-10037"><label for="objectif" data-slot="field-label" class="is_Text _col-colorSecond96872 _fs-f-size-capt104456 _fw-500 _ls-0--3px">Capital cible</label><style>
+      .pekulo-field { outline: none; }
+      .pekulo-field:focus-visible {
+        outline: 2px solid var(--color);
+        outline-offset: 2px;
+      }
+      </style><input data-slot="input" class="pekulo-field" style="width: 100%; height: 40px; background-color: var(--backgroundMuted); color: var(--color); border-radius: 12px; padding: 0px 12px; font-size: 14px; border: none none; font-family: inherit;" id="objectif" placeholder="800 000" type="text"><p data-slot="field-description" class="is_Text _col-colorTertia3655 _fs-f-size-capt104456">Montant visé à l'horizon du cap.</p></div></div><div style="display: contents;"></div></span>"
+    `,
     );
   });
 
@@ -34,7 +42,15 @@ describe("PekuloField snapshot", () => {
       </PekuloField>,
     );
     expect(container.innerHTML).toMatchInlineSnapshot(
-      `"<span class="_dsp_contents  font_body"><div role="group" data-slot="field" data-orientation="vertical" data-invalid="true" class="is_View _fd-column _gap-c-space-2 _width-10037 _o-1"><div data-slot="field-content" class="is_View _fd-column _gap-c-space-1 _width-10037"><label for="objectif2" data-slot="field-label" class="is_Text _col-colorSecond96872 _fs-f-size-capt104456 _fw-500 _ls-0--3px">Capital cible</label><input data-slot="input" style="width: 100%; height: 40px; background-color: var(--backgroundMuted); color: var(--color); border-radius: 12px; padding: 0px 12px; font-size: 14px; border: 1px solid; font-family: inherit; border-width: var(--danger); border-style: var(--danger); border-color: var(--danger); outline-color: none; outline-style: none; outline-width: initial;" id="objectif2" type="text"></div></div><div style="display: contents;"></div></span>"`,
+      `
+      "<span class="_dsp_contents  font_body"><div role="group" data-slot="field" data-orientation="vertical" data-invalid="true" class="is_View _fd-column _gap-c-space-2 _width-10037 _o-1"><div data-slot="field-content" class="is_View _fd-column _gap-c-space-1 _width-10037"><label for="objectif2" data-slot="field-label" class="is_Text _col-colorSecond96872 _fs-f-size-capt104456 _fw-500 _ls-0--3px">Capital cible</label><style>
+      .pekulo-field { outline: none; }
+      .pekulo-field:focus-visible {
+        outline: 2px solid var(--color);
+        outline-offset: 2px;
+      }
+      </style><input data-slot="input" class="pekulo-field" style="width: 100%; height: 40px; background-color: var(--backgroundMuted); color: var(--color); border-radius: 12px; padding: 0px 12px; font-size: 14px; border: 1px solid; font-family: inherit; border-width: var(--danger); border-style: var(--danger); border-color: var(--danger);" id="objectif2" type="text"></div></div><div style="display: contents;"></div></span>"
+    `,
     );
   });
 });
