@@ -150,6 +150,17 @@ function missingModuleEntries(suffix: string, exempt: Record<string, string>): s
     .sort();
 }
 
+/** Names re-exported by an internal barrel (`components/index.ts`, `primitives/index.ts`). */
+function barrelExports(dir: string): string[] {
+  const index = join(dir, "index.ts");
+  if (!existsSync(index)) return [];
+  return [
+    ...readFileSync(index, "utf8").matchAll(/export\s+(?:\*|\{[^}]*\})\s+from\s+"\.\/([\w-]+)"/g),
+  ]
+    .map((m) => m[1])
+    .sort();
+}
+
 function missing(
   entries: Array<{ name: string; dir: string }>,
   suffix: string,
@@ -253,15 +264,27 @@ describe("design-system test coverage (architecture.md:631)", () => {
   });
 
   // Added at aped-review. Every assertion above is "the gaps list is empty",
-  // which is also what an enumeration returning NOTHING produces. A renamed or
-  // relocated folder would turn this file silently green — the exact failure
-  // mode it was written to prevent. The floors are deliberately well below the
-  // real counts (42 components, 33 primitives at the time of writing); they
-  // catch collapse, not growth.
-  it("the enumeration actually found the design system", () => {
-    expect(componentEntries().length).toBeGreaterThan(30);
-    expect(primitiveEntries().length).toBeGreaterThan(25);
-    expect(barrelModules()).toContain("components");
-    expect(barrelModules()).toContain("primitives");
+  // which is also what an enumeration returning NOTHING produces — a renamed
+  // or relocated folder would have turned this file silently green.
+  //
+  // A hard-coded floor would catch that but not a partial regression (8
+  // components quietly dropping out), and it would need bumping on every
+  // addition. Cross-checking the enumeration against the barrel that exports
+  // it needs no maintenance and catches both: the two lists are written by
+  // different hands (one is the filesystem, the other is a hand-edited
+  // index.ts) and drift between them is exactly the bug.
+  it("the enumeration agrees with the barrels that export it", () => {
+    const componentDirs = componentEntries().map(({ name }) => name);
+    const primitiveFiles = primitiveEntries().map(({ name }) => name);
+
+    expect(componentDirs.length).toBeGreaterThan(0);
+    expect(primitiveFiles.length).toBeGreaterThan(0);
+
+    // Every exported name has a source on disk, and every source on disk is
+    // exported. Either direction failing means the gate is enumerating a
+    // different set than the package actually ships.
+    expect(componentDirs).toEqual(barrelExports(COMPONENTS_DIR));
+    expect(primitiveFiles).toEqual(barrelExports(PRIMITIVES_DIR));
+    expect(barrelModules()).toEqual(expect.arrayContaining(["components", "primitives"]));
   });
 });

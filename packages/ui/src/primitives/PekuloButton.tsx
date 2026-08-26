@@ -182,7 +182,9 @@ export function PekuloButton({
   const cls = ["pekulo-btn", className].filter(Boolean).join(" ");
   return (
     <>
-      <style>{PEKULO_BUTTON_CSS}</style>
+      <style href="pekulo-button" precedence="medium">
+        {PEKULO_BUTTON_CSS}
+      </style>
       <button
         type={type}
         data-slot="button"

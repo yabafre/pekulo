@@ -41,7 +41,9 @@ const LABEL_CSS = `
 export function PekuloLabel({ style, children, ...props }: PekuloLabelProps) {
   return (
     <>
-      <style>{LABEL_CSS}</style>
+      <style href="pekulo-label" precedence="medium">
+        {LABEL_CSS}
+      </style>
       {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control --
        * lint can't see the control passed via htmlFor at the call site,
        * which is the intended pattern for a standalone Label primitive. */}

@@ -65,7 +65,9 @@ export const PekuloNativeSelect = forwardRef<HTMLSelectElement, PekuloNativeSele
         data-slot="native-select-wrapper"
         style={{ position: "relative", display: "block", width: "100%" }}
       >
-        <style>{PEKULO_FIELD_CSS}</style>
+        <style href="pekulo-field" precedence="medium">
+          {PEKULO_FIELD_CSS}
+        </style>
         <select
           data-slot="select"
           ref={ref}

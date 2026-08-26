@@ -29,7 +29,9 @@ export function PekuloButtonGroup({
 }: PekuloButtonGroupProps) {
   return (
     <>
-      <style>{GROUP_CSS}</style>
+      <style href="pekulo-button-group" precedence="medium">
+        {GROUP_CSS}
+      </style>
       <View
         role="group"
         data-slot="button-group"

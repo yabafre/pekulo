@@ -102,7 +102,9 @@ export const PekuloInput = forwardRef<HTMLInputElement, PekuloInputProps>(functi
   if (!showRevealToggle) {
     return (
       <>
-        <style>{PEKULO_FIELD_CSS}</style>
+        <style href="pekulo-field" precedence="medium">
+          {PEKULO_FIELD_CSS}
+        </style>
         <input
           data-slot="input"
           ref={ref}
@@ -120,7 +122,9 @@ export const PekuloInput = forwardRef<HTMLInputElement, PekuloInputProps>(functi
       data-slot="input-wrapper"
       style={{ position: "relative", display: "block", width: "100%" }}
     >
-      <style>{PEKULO_FIELD_CSS}</style>
+      <style href="pekulo-field" precedence="medium">
+        {PEKULO_FIELD_CSS}
+      </style>
       <input
         data-slot="input"
         ref={ref}

@@ -222,7 +222,9 @@ export type PekuloCalendarProps = DayPickerProps;
 export function PekuloCalendar(props: PekuloCalendarProps) {
   return (
     <>
-      <style>{CALENDAR_THEME_CSS}</style>
+      <style href="pekulo-calendar" precedence="medium">
+        {CALENDAR_THEME_CSS}
+      </style>
       <div data-slot="calendar" className="pekulo-calendar" style={containerStyle}>
         <DayPicker showOutsideDays locale={fr} {...props} />
       </div>

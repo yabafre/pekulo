@@ -32,7 +32,9 @@ export function PekuloSpinner({ size = 16, color, ariaLabel = "Chargement" }: Pe
       : { "aria-hidden": true as const };
   return (
     <>
-      <style>{SPIN_KEYFRAMES}</style>
+      <style href="pekulo-spinner" precedence="medium">
+        {SPIN_KEYFRAMES}
+      </style>
       <View
         display="inline-flex"
         alignItems="center"

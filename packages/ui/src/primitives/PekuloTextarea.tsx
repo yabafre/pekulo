@@ -26,7 +26,9 @@ export const PekuloTextarea = forwardRef<HTMLTextAreaElement, PekuloTextareaProp
     };
     return (
       <>
-        <style>{PEKULO_FIELD_CSS}</style>
+        <style href="pekulo-field" precedence="medium">
+          {PEKULO_FIELD_CSS}
+        </style>
         <textarea
           data-slot="textarea"
           ref={ref}
