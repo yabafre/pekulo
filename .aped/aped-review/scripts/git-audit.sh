@@ -25,7 +25,22 @@ if ! git rev-parse --is-inside-work-tree &>/dev/null; then
 fi
 
 # Extract file list from story's Dev Agent Record section
-STORY_FILES=$(sed -n '/^### File List/,/^##/p' "$STORY_FILE" | grep -E '^\s*[-*]' | sed 's/^[[:space:]]*[-*][[:space:]]*//' | sort -u)
+# Stories write `## File List` (H2); this used to look for `### File List`
+# (H3). With `set -euo pipefail` the empty grep killed the script, which then
+# exited 0 having printed nothing — indistinguishable from "audit clean".
+# Accept both depths, and never let an empty match abort the run.
+STORY_FILES=$(sed -n '/^#\{2,3\} File List/,/^#\{2,3\} /p' "$STORY_FILE" \
+  | grep -E '^\s*[-*]' \
+  | sed 's/^[[:space:]]*[-*][[:space:]]*//' \
+  | sed 's/^`//; s/`.*$//' \
+  | grep -E '\.[a-zA-Z0-9]+$' \
+  | sort -u || true)
+
+if [[ -z "$STORY_FILES" ]]; then
+  echo "ERROR: no file entries parsed from '$STORY_FILE' — refusing to report a clean audit."
+  echo "       Expected a '## File List' (or '### File List') section with bullet entries."
+  exit 1
+fi
 
 # Get git changed files
 GIT_FILES=$(git diff --name-only "HEAD~${COMMITS_BACK}" HEAD 2>/dev/null | sort -u)

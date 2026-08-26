@@ -1305,6 +1305,24 @@ No new dependency. Everything used is already in `packages/ui/devDependencies`: 
 - Re-captured snapshots: `PekuloInput`, `PekuloTextarea`, `PekuloNativeSelect`, `PekuloField`, `PekuloCalendar`, `PekuloDatePicker`, `PekuloEmpty`, `PekuloResizable`
 - `docs/epics-context/epic-10-context.md` (was generated but never committed)
 
+**Modified at `aped-review` — stylesheet deduplication (React 19 `href` + `precedence`):**
+
+- `packages/ui/src/primitives/PekuloButton.tsx`
+- `packages/ui/src/primitives/PekuloButtonGroup.tsx`
+- `packages/ui/src/primitives/PekuloCalendar.tsx`
+- `packages/ui/src/primitives/PekuloDrawer.tsx`
+- `packages/ui/src/primitives/PekuloLabel.tsx`
+- `packages/ui/src/primitives/PekuloResizable.tsx`
+- `packages/ui/src/primitives/PekuloSpinner.tsx`
+- `packages/ui/src/components/PekuloSkeleton/PekuloSkeleton.tsx`
+
+(plus `PekuloInput` / `PekuloTextarea` / `PekuloNativeSelect`, already listed above.) All 25 affected snapshots re-captured — the hoisted `<style>` no longer appears in any capture.
+
+**Also modified at `aped-review`:**
+
+- `docs/ux/design-spec.md` — §"Allowed accents" gained a bounded row for transient semantic feedback + field validation, reconciling the spec with the tokens it had always contradicted.
+- `.aped/aped-review/scripts/git-audit.sh` — parsed `### File List` while stories write `## File List`; `set -euo pipefail` then killed it on the empty grep so it **exited 0 printing nothing**, reading as a clean audit. Now accepts both depths and fails loudly when it parses nothing. ⚠️ `.aped/` is the immutable engine per `CLAUDE.md` — this fix will be overwritten by the next `aped-method --update` and needs to land upstream.
+
 **Still explicitly NOT modified** — every other file under `packages/ui/src/**/*.tsx` that is not a test.
 
 ## Dev Agent Record
@@ -1493,14 +1511,24 @@ The suite the story shipped held up under attack: AC-2, AC-3, AC-4 and AC-5 were
 - [NIT] The gate checked that a spec *file* existed, not that its titles carried the keyword its filtered script selects on.
   - Source: Aria, who read it as a future hole. It was already live: `TransactionLogo.snapshot.test.tsx` titled its `describe` without `snapshot`, so `test:visual` **skipped both its snapshots** (`↓ 2 tests | 2 skipped`). Resolution: `4801f80` — guard added, title fixed; the file now runs (`✓ 2 tests`).
 
+- [MINOR] ~7 of the new captures froze web-only CSS (`:focus-visible`, `::after`, `@keyframes`, `border-collapse`) with no React Native equivalent — the baseline was pinning rules no native port can resolve, which is the opposite of FR-56's purpose.
+  - Source: Aria. Measured at review: **11 component sources** injected a raw `<style>` per instance (a six-field form shipped six identical blocks), and the NFR-24 fix had just added a twelfth.
+  - Resolution: `50bcf97`. React 19 dedupes `<style href precedence>` and hoists it to `<head>`, which fixes the duplication *and* removes the CSS text from every capture — **13 snapshot files embedded raw CSS, now 0**. Verified: 3 instances → 1 `<style>` in `<head>`, `:focus-visible` rule intact. The rules still exist in the components (an accessible web focus ring requires `:focus-visible`); they are simply no longer part of the frozen reference. Costs nothing in RSC-safety — no CSS-module dep, no `"use client"` added.
+
+- [MINOR] The success toast froze an emerald accent on feedback chrome, which §"Allowed accents" reserved strictly for ± monetary deltas.
+  - Source: Aria. The spec and the shipped tokens had contradicted each other since before this story: `pekulo-dark.ts:24-26` documents `$success`/`$danger` as sanctioned perf-semantic aliases, and three surfaces already depended on it.
+  - Resolution: `docs/ux/design-spec.md` amended — a bounded row for transient feedback + field validation. Resolved in favour of the tokens because removing the colour costs real accessibility (a success and an error toast would differ by wording alone; an invalid field would lose its non-textual indicator, WCAG 3.3.1). Persistent control chrome stays grayscale, unchanged. **This is a product decision made at review — flag it if you disagree.**
+
+- [NIT] `.aped/aped-review/scripts/git-audit.sh` parsed `### File List` while stories write `## File List`; `set -euo pipefail` then killed it on the empty grep so it exited 0 printing nothing — indistinguishable from a clean audit.
+  - Source: Lead. Resolution: accepts both heading depths and now **fails loudly** when it parses no entries. It immediately earned its keep: the repaired script caught 9 files this review had touched but not recorded in the File List. ⚠️ `.aped/` is the immutable engine per `CLAUDE.md`, so this will be overwritten by the next `aped-method --update` and must land upstream.
+
+- [NIT] The floor assertion caught enumeration collapse but not a partial regression, and needed bumping on every addition.
+  - Source: Code auditor (`PARTIALLY RESOLVED`). Resolution: replaced with a cross-check between the filesystem enumeration and the barrel that exports it — no constant to maintain, and it catches both directions. Probed: removing a component folder fails, and adding an unexported one fails.
+
 - [NIT] Gate assertions were all "the gap list is empty", which is also what an enumeration returning nothing produces — a renamed folder would have read as green.
   - Source: Lead. Resolution: `4801f80` — floors on the enumeration.
 
 #### Dismissed
-
-- [MINOR] ~7 of the new captures freeze web-only CSS (`:focus-visible`, `::after`, `@keyframes`, `border-collapse`, literal-pixel blobs) with no React Native equivalent, which weakens the baseline for FR-56 — its stated purpose.
-  - Source: Aria. Measured at review: **11 component sources** inject raw `<style>` blocks, `PekuloSkeleton` among them (outside this story's 23). This is the DS's deliberate implementation pattern — injected CSS keeps the primitives RSC-safe without a CSS-module dependency, documented in `PekuloButton.tsx:4-10`. Fixing it means re-architecting the styling layer, and the NFR-24 fix above **added one more**. That trade-off belongs to the G1 `aped-arch` re-run that gates `10-2`, not to a review pass.
-  - Rationale: not fixable inside a review pass — it is an architecture decision about the DS styling layer, owned by the G1 `aped-arch` re-run that gates `10-2`. Carried forward so `10-2` does not assume these captures constitute a portable parity baseline.
 
 - [NIT] `.aped/aped-review/scripts/git-audit.sh` looks for `### File List`; stories write `## File List`. With `set -euo pipefail`, the empty `grep` kills the script, which **exits 0 printing nothing** — indistinguishable from "audit clean". The Lead audited by hand instead.
   - Source: Lead.
