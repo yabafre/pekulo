@@ -57,7 +57,16 @@ function componentEntries(): Array<{ name: string; dir: string }> {
     .map((name) => ({ name, dir: join(COMPONENTS_DIR, name) }));
 }
 
-/** Every `src/primitives/<Name>.tsx` source file (flat layout, not R11). */
+/**
+ * Every `src/primitives/<Name>.tsx` source file (flat layout, not R11).
+ *
+ * The `.tsx` filter is a coverage decision, not an accident: a primitive is a
+ * React component and therefore carries JSX. Non-component helpers live in
+ * `.ts` and are deliberately out of scope — `form-focus-ring.ts` (shared
+ * `:focus-visible` contract) is the current example. Declaring a component in
+ * a `.ts` file via `createElement` would slip past this; if that ever becomes
+ * a real pattern here, widen the filter rather than granting an exemption.
+ */
 function primitiveEntries(): Array<{ name: string; dir: string }> {
   return readdirSync(PRIMITIVES_DIR)
     .filter((entry) => entry.endsWith(".tsx") && !entry.includes(".test."))
