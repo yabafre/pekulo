@@ -214,19 +214,17 @@ export type PekuloCalendarProps = DayPickerProps;
 // en-US, which is not only an NFR-22 screen-reader gap: Sunday-first
 // shifts every column, so the whole grid reads wrong. `fr` comes from
 // react-day-picker's own re-export of date-fns/locale — no new dependency.
-// Consumers can still override via `locale` / `labels` since {...props}
-// spreads last.
-const NAV_LABELS: DayPickerProps["labels"] = {
-  labelPrevious: () => "Aller au mois précédent",
-  labelNext: () => "Aller au mois suivant",
-};
-
+// No `labels` override: react-day-picker already derives the nav aria-labels
+// from the locale ("Aller au mois précédent" / "suivant" — verified, byte
+// identical to what a hand-written override produced). Hardcoding them would
+// also survive a consumer's `locale={enUS}`, leaving French buttons on an
+// English calendar. {...props} spreads last, so `locale` stays overridable.
 export function PekuloCalendar(props: PekuloCalendarProps) {
   return (
     <>
       <style>{CALENDAR_THEME_CSS}</style>
       <div data-slot="calendar" className="pekulo-calendar" style={containerStyle}>
-        <DayPicker showOutsideDays locale={fr} labels={NAV_LABELS} {...props} />
+        <DayPicker showOutsideDays locale={fr} {...props} />
       </div>
     </>
   );

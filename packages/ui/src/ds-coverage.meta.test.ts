@@ -80,9 +80,15 @@ function primitiveEntries(): Array<{ name: string; dir: string }> {
  * surface — `components/` and `primitives/` are only two of its entries.
  */
 function barrelModules(): string[] {
-  return [...readFileSync(BARREL, "utf8").matchAll(/export \* from "\.\/([\w-]+)"/g)]
-    .map((m) => m[1])
-    .sort();
+  // Accepts `export *` and `export { … }`, tolerates newlines between the
+  // keywords, and keeps only the first path segment so `export * from
+  // "./client/icons"` still resolves to the `client` module. All three shapes
+  // were demonstrated to escape a narrower regex at aped-review — none exists
+  // in this barrel today, which is exactly when a gate is cheapest to widen.
+  const matches = readFileSync(BARREL, "utf8").matchAll(
+    /export\s+(?:\*|\{[^}]*\})\s+from\s+"\.\/([\w./-]+)"/g,
+  );
+  return [...new Set([...matches].map((m) => m[1].split("/")[0]))].sort();
 }
 
 /**
@@ -99,7 +105,14 @@ function moduleComponents(module: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
     .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test."))
-    .flatMap((f) => [...readFileSync(join(dir, f), "utf8").matchAll(/export function ([A-Z]\w*)/g)])
+    .flatMap((f) => [
+      ...readFileSync(join(dir, f), "utf8").matchAll(
+        // `export function Foo` and `export const Foo = …`. A default export
+        // is deliberately not matched: `export *` never re-exports a default,
+        // so it cannot reach the public barrel this way.
+        /export\s+(?:function|const)\s+([A-Z]\w*)/g,
+      ),
+    ])
     .map((m) => m[1])
     .sort();
 }
@@ -125,9 +138,14 @@ function missingModuleEntries(suffix: string, exempt: Record<string, string>): s
     .filter((m) => m !== "components" && m !== "primitives" && !(m in MODULE_EXEMPT))
     .flatMap((m) => {
       const covered = moduleSpecMentions(m, suffix);
-      return moduleComponents(m)
-        .filter((name) => !(name in exempt))
-        .filter((name) => !covered.includes(name));
+      return (
+        moduleComponents(m)
+          .filter((name) => !(name in exempt))
+          // Word-boundary, not `includes`: "PekuloToastViewport" contains
+          // "PekuloToast", so a plain substring test would have marked
+          // PekuloToast covered on the strength of its sibling's import line.
+          .filter((name) => !new RegExp(`\\b${name}\\b`).test(covered))
+      );
     })
     .sort();
 }
