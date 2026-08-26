@@ -1300,7 +1300,8 @@ No new dependency. Everything used is already in `packages/ui/devDependencies`: 
 **Modified at `aped-review` — tests:**
 
 - `packages/ui/src/ds-coverage.meta.test.ts` (gate extended to the public barrel)
-- `packages/ui/src/toast/snapshot.test.tsx`, `packages/ui/src/toast/a11y.test.tsx` (cover `PekuloToastViewport` + `ToastProvider`)
+- `packages/ui/src/toast/snapshot.test.tsx` (covers `PekuloToastViewport` + `ToastProvider`)
+- `packages/ui/src/toast/a11y.test.tsx` (covers `PekuloToastViewport`)
 - `packages/ui/src/components/TransactionLogo/TransactionLogo.snapshot.test.tsx` (title carried no `snapshot` keyword — `test:visual` was skipping it)
 - Re-captured snapshots: `PekuloInput`, `PekuloTextarea`, `PekuloNativeSelect`, `PekuloField`, `PekuloCalendar`, `PekuloDatePicker`, `PekuloEmpty`, `PekuloResizable`
 - `docs/epics-context/epic-10-context.md` (was generated but never committed)
@@ -1315,6 +1316,7 @@ No new dependency. Everything used is already in `packages/ui/devDependencies`: 
 - `packages/ui/src/primitives/PekuloResizable.tsx`
 - `packages/ui/src/primitives/PekuloSpinner.tsx`
 - `packages/ui/src/components/PekuloSkeleton/PekuloSkeleton.tsx`
+- `packages/ui/src/components/PekuloSkeleton/PekuloSkeleton.snapshot.test.tsx` (re-captured)
 
 (plus `PekuloInput` / `PekuloTextarea` / `PekuloNativeSelect`, already listed above.) All 25 affected snapshots re-captured — the hoisted `<style>` no longer appears in any capture.
 
