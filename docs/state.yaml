@@ -3,7 +3,7 @@
 # "sprint" is the final phase — covers story/dev/review cycle
 schema_version: 4
 pipeline:
-  current_phase: "dev"
+  current_phase: "sprint"
   phases:
     context:
       generated: true
@@ -119,8 +119,12 @@ pipeline:
         ratio: "63/63"
       ticket_sync: "synced"
       synced_at: "2026-06-02T12:38:14Z"
-    dev:
-      status: "done"
+    # Renamed dev -> sprint at aped-review 2026-08-25. `current_phase` was
+    # "dev", which is not in the schema enum and would have blocked
+    # aped-sprint, which requires current_phase: "sprint". This block is the
+    # story/dev/review cycle the file header already calls "sprint".
+    sprint:
+      status: "in-progress"
       started_at: "2026-05-09T15:00:00Z"
 # GitHub Issues sync (top-level, written by aped-epics step 8.7)
 ticket_sync:
@@ -178,7 +182,7 @@ sprint:
   # sprint moves to epic 10 (10-1 ships V1 per the ramp tiering; 10-2 stays
   # V1.5-deferred behind gate G1). Same rationale as above — left at "9" this
   # would send aped-dev / aped-review to epic-9-context.md while working 10-1.
-  active_epic: "10"
+  active_epic: 10
   umbrella_branch: "main"
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
