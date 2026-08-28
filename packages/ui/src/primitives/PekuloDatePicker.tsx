@@ -24,7 +24,7 @@ import type { DateRange } from "react-day-picker";
 export type { DateRange };
 import { PekuloCalendar } from "./PekuloCalendar";
 import { PekuloPopover } from "./PekuloPopover";
-import { pekuloFontSizes } from "../tokens";
+import { pekuloFontSizes, pekuloRadius } from "../tokens";
 
 const dateFmtFR = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -150,10 +150,19 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
           justifyContent: "flex-start",
           padding: "0 12px",
           height: 32,
-          backgroundColor: "transparent",
+          // Field idiom, not the section-action pill. Every one of the 7
+          // consumers renders this inside a <PekuloField> with a
+          // <PekuloFieldLabel htmlFor>, stacked between a PekuloNativeSelect
+          // and a PekuloInput — both of which use `pekuloRadius.lg`. The
+          // ux-preview pill at App.tsx:896-921 is explicitly "for inline
+          // section actions (Ajouter / Filtrer / Voir tout)", which this is
+          // not; ux-preview has no form controls at all, so it cannot
+          // arbitrate a date field. Filled + borderless still holds (§1 bans
+          // borders); only the radius follows the fields around it.
+          backgroundColor: "var(--backgroundMuted)",
           color: "var(--color)",
-          border: "1px solid var(--borderDefault)",
-          borderRadius: 12,
+          border: "none",
+          borderRadius: pekuloRadius.lg,
           fontFamily: "inherit",
           fontSize: pekuloFontSizes.bodySm,
           fontWeight: 500,

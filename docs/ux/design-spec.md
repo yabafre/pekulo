@@ -36,6 +36,29 @@
 | Negative delta (loss, "behind", "-€X", destructive action) | Red                 | `--loss` `#FF5C5C`      |
 | Neutral / on-track                                         | Mid-grey            | `--neutral` `#B3B3B3`   |
 | Single tiny data indicator (e.g. AI activity badge)        | Blue (TR exception) | `--data-blue` `#2F73FF` |
+| Transient semantic feedback + field validation             | Reuses gain / loss  | `$success` `$danger`    |
+
+**On the last row (added 2026-08-25, `aped-review` on story 10-1).** The rule
+above was written as "chromatic _only_ for ± monetary deltas", but the shipped
+tokens have always said otherwise: `packages/ui/src/themes/pekulo-dark.ts:24-26`
+documents `$success` / `$danger` as sanctioned perf-semantic aliases, and three
+surfaces already depend on it — the success toast dot, the invalid-field border,
+and the invalid select/textarea border. Story 10-1 froze all three into the
+visual baseline, which is what surfaced the contradiction.
+
+Resolved in favour of the tokens, because removing the colour would cost real
+accessibility: a success toast and an error toast would then differ by wording
+alone, and an invalid field would lose its non-textual error indicator (WCAG
+3.3.1). The extension is deliberately narrow:
+
+- ✅ **Transient feedback** — toasts, inline validation messages.
+- ✅ **Field validation state** — the invalid ring on inputs, selects, textareas.
+- ❌ **Persistent control chrome** — toggles, radios, checkboxes, sliders, tabs,
+  segmented controls, nav. These stay grayscale, exactly as before (lesson
+  2026-05-07). A snapshot freezing `$accent` on a toggle track is still
+  freezing a violation.
+
+`$accent` itself remains strictly monetary — it is not covered by this row.
 
 ---
 

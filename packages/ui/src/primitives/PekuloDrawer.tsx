@@ -133,7 +133,9 @@ function Content({ children, ...props }: ContentProps) {
     <Portal>
       <Overlay />
       <VaulDrawer.Content data-slot="drawer-content" className="pekulo-drawer-content" {...props}>
-        <style>{DRAWER_CSS}</style>
+        <style href="pekulo-drawer" precedence="medium">
+          {DRAWER_CSS}
+        </style>
         <div className="pekulo-drawer-handle" />
         {children}
       </VaulDrawer.Content>

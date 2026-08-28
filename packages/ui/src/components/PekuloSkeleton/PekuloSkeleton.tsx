@@ -31,7 +31,9 @@ export function PekuloSkeleton({ lines = 1, height = 16, block, width }: PekuloS
   if (block) {
     return (
       <>
-        <style>{KEYFRAMES}</style>
+        <style href="pekulo-skeleton" precedence="medium">
+          {KEYFRAMES}
+        </style>
         <View
           width={width ?? "100%"}
           height={height}
@@ -45,7 +47,9 @@ export function PekuloSkeleton({ lines = 1, height = 16, block, width }: PekuloS
   }
   return (
     <>
-      <style>{KEYFRAMES}</style>
+      <style href="pekulo-skeleton" precedence="medium">
+        {KEYFRAMES}
+      </style>
       <View flexDirection="column" gap={6} aria-hidden>
         {Array.from({ length: lines }, (_, i) => (
           <View

@@ -115,6 +115,7 @@
       "properties": {
         "project":         { "type": "string" },
         "active_epic":     { "type": ["integer", "null"], "minimum": 0 },
+        "scope_change_active": { "type": "boolean" },
         "umbrella_branch": { "type": ["string", "null"] },
         "mode":            { "type": "string", "enum": ["parallel", "sequential"] },
         "stack_order":     { "type": "array", "items": { "type": "string" } },
@@ -148,6 +149,8 @@
         "depends_on":           { "type": "array", "items": { "type": "string" } },
         "started_at":           { "type": ["string", "null"] },
         "completed_at":         { "type": ["string", "null"] },
+        "reviewed_at":         { "type": ["string", "null"] },
+        "source":            { "type": ["string", "null"] },
         "merged_into_umbrella": { "type": "boolean" },
         "ticket_sync_status":   { "type": ["string", "null"], "enum": ["synced", "skipped", "failed", null] },
         "ticket_sync_error":    { "type": ["string", "null"] }

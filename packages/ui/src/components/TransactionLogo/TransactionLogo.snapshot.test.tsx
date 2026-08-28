@@ -7,7 +7,7 @@ import { TransactionLogo } from "./TransactionLogo";
 //   bank → the bank logo (both arrive as the `src` proxy URL → the <img>).
 // AC-3 (verbatim from story 6-10-merchant-logos:40):
 //   No resolvable logo source (or a manual transaction) → the category icon.
-describe("TransactionLogo (story 6-10 / FR-65)", () => {
+describe("TransactionLogo snapshot (story 6-10 / FR-65)", () => {
   it("renders the <img> when src is present (tier 1/2)", () => {
     const { container } = renderWithTamagui(
       <TransactionLogo src="/v1/logos?ref=abc" category="courses" />,

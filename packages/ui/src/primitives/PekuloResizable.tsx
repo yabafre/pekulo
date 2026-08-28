@@ -79,7 +79,9 @@ const groupStyle: CSSProperties = {
 export function PekuloResizablePanelGroup({ style, orientation, ...props }: GroupProps) {
   return (
     <>
-      <style>{RESIZABLE_CSS}</style>
+      <style href="pekulo-resizable" precedence="medium">
+        {RESIZABLE_CSS}
+      </style>
       <ResizablePanelGroupPrimitive
         data-slot="resizable-panel-group"
         orientation={orientation}
