@@ -9,8 +9,15 @@
 //
 // The label rides a Tamagui <Text>, not the bare <a>: `--f-family` is scoped
 // to Tamagui's `font_*` classes, so raw DOM text inside a View renders in the
-// browser-default serif (lesson 2026-07-13). Same shape as
-// _llm/_components/llm-activity-log-link.tsx.
+// browser-default serif (lesson 2026-07-13).
+//
+// The icon lives INSIDE that <Text> so it inherits its colour via
+// `currentColor` — same shape as _account/_components/sign-out-button.tsx.
+// As a sibling it inherited nothing instead: reset.css sets `a { color:
+// inherit }`, nothing up the tree declares a colour, and no `color-scheme` is
+// set anywhere, so lucide's `stroke="currentColor"` resolved to the UA default
+// black on the #0a0a0a card — about 1.03:1. Nesting also keeps the hover
+// transition in sync between glyph and label. (aped-review, story 11-1.)
 import { Download } from "lucide-react";
 import { PekuloSettingRow } from "@pekulo/ui";
 import { Text } from "@pekulo/ui/client";
@@ -30,15 +37,28 @@ export function ExportDataRow({ label, sub, action }: ExportDataRowProps) {
         <a
           href="/v1/export"
           download
+          // The visible word is « Exporter »; out of context — a screen-reader
+          // links rotor, or beside story 11-2's identically shaped
+          // « Supprimer » row — that says nothing. The full row label carries
+          // the meaning, and it contains the visible text, so WCAG 2.5.3
+          // (Label in Name) holds.
+          aria-label={label}
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 6,
             textDecoration: "none",
           }}
         >
-          <Download size={14} strokeWidth={2} aria-hidden />
-          <Text color="$colorSecondary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
+          <Text
+            display="flex"
+            flexDirection="row"
+            alignItems="center"
+            gap="$2"
+            color="$colorSecondary"
+            fontSize="$caption"
+            hoverStyle={{ color: "$color" }}
+          >
+            <Download size={14} strokeWidth={2} color="currentColor" aria-hidden />
             {action}
           </Text>
         </a>
