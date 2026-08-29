@@ -14,6 +14,15 @@
 // Do NOT rebuild this list from scripts/rls-audit.ts: its
 // EXPECTED_POLICY_COUNTS holds 20 entries for 21 user-scoped tables
 // (dashboard_layout is absent), so it is not a complete table inventory.
+//
+// KNOWN LIMIT — no snapshot. The 21 reads are sequential and share no
+// transaction or isolation level, so a write landing between node 1 and node
+// 21 can produce a document where, say, a transaction references an account
+// that is not in the accounts node. Accepted for a portability dump, where the
+// user is the only writer and the file has no referential contract; wrapping
+// the fan-out in $transaction({ isolationLevel: "RepeatableRead" }) would fix
+// it at the cost of holding one snapshot open for the whole export.
+// (aped-review, story 11-1.)
 import type { ExtendedPrismaClient } from "../../database";
 import { EXPORT_NODE_SCHEMA_VERSION, EXPORT_SCHEMA_VERSION } from "@pekulo/validators";
 

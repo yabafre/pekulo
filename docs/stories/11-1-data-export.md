@@ -1448,7 +1448,7 @@ export * from "./settings.schemas";
 - `apps/web/src/app/(cap)/dashboard/_data/_components/export-data-row.tsx`
 - `apps/web/src/app/(cap)/dashboard/_data/_components/data-section.a11y.test.tsx`
 
-**Modified (7)**
+**Modified (9)**
 
 - `packages/validators/src/settings/index.ts` — re-export the new schemas
 - `apps/api/src/modules/settings/settings.module.ts` — expose `exportRoutes`, take `jwtVerifier`
@@ -1457,6 +1457,30 @@ export * from "./settings.schemas";
 - `apps/web/src/app/(cap)/dashboard/parametres/page.tsx` — mount `<DataSection />` after `<LlmActivityLogLink />`
 - `apps/web/messages/fr.json` + `apps/web/messages/en.json` — `settings.data.*` keys
 - `docs/epics.md` + `docs/rgpd-readiness.md` — epic-11 tiering realignment (T16)
+- `.gitleaks.toml` — widen the integration-test allowlist by exactly one optional
+  dotted segment so `settings.export.integration.test.ts` stops tripping the
+  generic-api-key rule on the fake JWT secret every sibling suite uses
+- `docs/architecture.md` — correct the FR-49 row and the `settings-actions.ts` tree
+  line: neither `settings.service.ts#exportData` nor `use-export-data.ts` exists
+  under this design (a stream cannot travel through the oRPC envelope, and the
+  browser makes no oRPC call, so ADR-0010's triad does not apply)
+
+Both were added mid-flight and recorded only in the Dev Agent Record; the
+2026-05-31 lesson requires them here too. Listed during aped-review.
+
+**Added or moved during aped-review**
+
+- `apps/api/src/modules/settings/settings.export.schema.test.ts` (NEW) — validates a
+  generated document against `docs/exports/schema-v1.json` itself (AC-1)
+- `apps/web/src/app/(cap)/dashboard/_data/_components/export-data-row.a11y.test.tsx`
+  (RENAMED from `data-section.a11y.test.tsx`) — now also mounts the `Section`
+  landmark and `DataSection`, plus fr/en key parity
+- `packages/validators/src/data-export/data-export.schemas.ts` (MOVED from
+  `settings/export.schemas.ts`) + `data-export/index.ts` — R11 conformance
+- `packages/validators/src/index.ts` — export the new `data-export` domain
+- `apps/web/src/proxy.ts` — answer `401` on the exact path `/v1/export` instead of
+  redirecting to `/login`
+- `apps/api/package.json`, `bun.lock` — `ajv` + `ajv-formats` devDependencies
 
 Per-file responsibilities and their inputs/outputs are in Dev Notes § File decisions.
 
