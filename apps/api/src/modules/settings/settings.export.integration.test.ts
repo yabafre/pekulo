@@ -142,3 +142,73 @@ describe("GET /v1/export (story 11-1)", () => {
     expect(raw).toContain("row-of-B");
   });
 });
+
+// A mid-stream Prisma failure cannot become a 5xx: status 200 and the headers
+// are already on the wire when the first chunk flushes. Added in aped-review of
+// 11-1 — before the try/catch in settings.export-routes.ts, the rejection went
+// out as an unhandled error on stderr, never reached the app .onError, and left
+// the caller holding a truncated file that looked like a completed download.
+describe("GET /v1/export — failure mid-stream (story 11-1)", () => {
+  test("aborts the body, logs the failure, and never yields a parseable document", async () => {
+    const FAILING_NODE = EXPORT_NODES[12]!;
+    const explodingClient = new Proxy(
+      {},
+      {
+        get: (_target, model: string) => ({
+          findMany: async () => {
+            // Delegate names are camelCase; the node key is snake_case.
+            if (model.toLowerCase() === FAILING_NODE.model.toLowerCase()) {
+              throw new Error("db exploded");
+            }
+            return [{ id: `${model}-1`, userId: USER_A }];
+          },
+        }),
+      },
+    ) as unknown as ExtendedPrismaClient;
+
+    const routes = registerSettingsExportRoutes({
+      client: explodingClient,
+      jwtVerifier: createJwtVerifier({ secret: SECRET, issuer: ISSUER, audience: AUDIENCE }),
+    });
+
+    const lines: string[] = [];
+    const realError = console.error;
+    console.error = (...args: unknown[]) => void lines.push(args.map(String).join(" "));
+
+    let body = "";
+    let status = 0;
+    try {
+      const res = await routes.handle(
+        new Request("http://localhost/v1/export", {
+          headers: { authorization: `Bearer ${await signFor(USER_A)}` },
+        }),
+      );
+      status = res.status;
+      try {
+        body = await res.text();
+      } catch {
+        // A read error is an acceptable outcome too — either way the caller
+        // must not end up with a document that parses.
+        body = "";
+      }
+    } finally {
+      console.error = realError;
+    }
+
+    // The status is necessarily 200 — that is the point of the finding.
+    expect(status).toBe(200);
+    // What matters: the payload stops before the closing brace, so no consumer
+    // can mistake it for a complete export.
+    expect(() => JSON.parse(body)).toThrow();
+    expect(body).not.toEndWith("}}");
+
+    // And the failure is visible to ops rather than silent.
+    const logged = lines.find((line) => line.includes("export.stream_failed"));
+    expect(
+      logged,
+      `no export.stream_failed line emitted. Captured: ${lines.join(" | ")}`,
+    ).toBeDefined();
+    expect(logged).toContain('"route":"GET /v1/export"');
+    expect(logged).toContain('"reasonClass":"Error"');
+  });
+});

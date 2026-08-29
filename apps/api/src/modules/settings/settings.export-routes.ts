@@ -22,14 +22,43 @@ export function registerSettingsExportRoutes(deps: {
 
     const encoder = new TextEncoder();
     const generator = streamUserDataExport(deps.client, { userId, email });
+    // Correlates the stdout line below with the transfer, since the app-level
+    // .onError can no longer see anything once the 200 is on the wire.
+    const requestId = crypto.randomUUID();
     const body = new ReadableStream<Uint8Array>({
       async pull(controller) {
-        const { value, done } = await generator.next();
-        if (done) {
-          controller.close();
-          return;
+        try {
+          const { value, done } = await generator.next();
+          if (done) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(encoder.encode(value));
+        } catch (err) {
+          // Status 200 + headers flushed with the FIRST chunk, so this can
+          // never become a 5xx. Without this catch the rejection surfaced as
+          // an unhandled error on stderr, bypassed the app-level .onError
+          // (no requestId, no errorCode), and left the OTel span already
+          // closed OK/200 — a failed GDPR export that looked like a success.
+          // Found in aped-review of story 11-1.
+          //
+          // The client-side signal stays weak by construction: on this runtime
+          // controller.error() does not raise a read error in the consumer, so
+          // the only guarantee is that a truncated document is not valid JSON.
+          // The log line is what makes the failure visible to ops.
+          console.error(
+            JSON.stringify({
+              event: "export.stream_failed",
+              requestId,
+              route: "GET /v1/export",
+              reasonClass: err instanceof Error ? err.constructor.name : typeof err,
+            }),
+          );
+          // Finalise the generator so its `finally` blocks run — `cancel()` is
+          // NOT invoked on the error path.
+          await generator.return(undefined).catch(() => {});
+          controller.error(err);
         }
-        controller.enqueue(encoder.encode(value));
       },
       async cancel() {
         await generator.return(undefined);
