@@ -55,6 +55,8 @@
     "@pekulo/tsconfig": "workspace:*",
     "@types/bun": "1.3.0",
     "@types/pg": "^8.11.10",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "dotenv": "^16.4.5",
     "prisma": "7.8.0"
   }

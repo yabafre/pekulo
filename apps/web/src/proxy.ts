@@ -102,6 +102,17 @@ export async function proxy(request: NextRequest) {
   const isStatic = pathname.startsWith("/_next") || pathname.includes(".");
 
   if (!isStatic) {
+    // Story 11-1 (FR-49) — the GDPR export is FETCHED as a file, never
+    // navigated to. A redirect here is followed by the `<a download>` anchor
+    // and saved to disk, so an expired session handed the user a
+    // pekulo-export-<date>.json containing the login page's HTML. Answer a
+    // status the caller can act on instead. EXACT path match, like the
+    // /v1/logos bypass above, so this can never widen to a `/v1/export*`
+    // sibling — and note this only ever REPLACES a redirect with a 401: the
+    // endpoint stays behind the session check either way. (aped-review 11-1.)
+    if (!user && pathname === "/v1/export") {
+      return withSecurity(new NextResponse("unauthorized", { status: 401 }));
+    }
     if (!user && !isPublicAuthPath && !isApi && pathname !== "/") {
       return withSecurity(NextResponse.redirect(new URL("/login", request.url)));
     }

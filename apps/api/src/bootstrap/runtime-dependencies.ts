@@ -45,6 +45,7 @@ export interface RuntimeDeps {
   llmModule: ReturnType<typeof createLlmModule>;
   transactionsModule: ReturnType<typeof createTransactionsModule>;
   logosModule: ReturnType<typeof createLogosModule>;
+  settingsModule: ReturnType<typeof createSettingsModule>;
   suggestionBackfillTask: SuggestionBackfillScheduler;
 }
 
@@ -278,7 +279,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
 
   // Story 8-2 (FR-51/FR-52) — per-user theme/lang preferences. A pure per-user
   // singleton store; only needs prismaService (mirrors dashboard's layout half).
-  const settingsModule = createSettingsModule({ prismaService });
+  const settingsModule = createSettingsModule({ prismaService, jwtVerifier });
 
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
@@ -306,6 +307,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     llmModule,
     transactionsModule,
     logosModule,
+    settingsModule,
     suggestionBackfillTask,
   };
 }

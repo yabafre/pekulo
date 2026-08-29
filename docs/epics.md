@@ -137,7 +137,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 | ------------------- | ------------------------------------------------------------------------------ |
 | V1                  | epic-0, epic-1, epic-2, epic-3, epic-4, epic-5, epic-6, epic-7, epic-8, epic-9 |
 | V1.5 deferred       | epic-10 (10-1 ships V1, 10-2 deferred per G1)                                  |
-| Public-ramp backlog | epic-11 (11-3 priorité tôt; reste gated sur (b) decision)                      |
+| Public-ramp backlog | epic-11 (11-1/11-2/11-3/11-4 = V1 (a); 11-5/11-6 gated sur (b) decision)       |
 
 ## Epic 0: Foundations — package layout, tooling, runtime substrate
 
@@ -1293,7 +1293,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.
 
-**Sequencing:** Backlog. `11-3` (RLS audit + encryption doc) is priorité — it prevents regressions in every new domain story. The other five wait for the (b) decision.
+**Sequencing:** Mixed tier. `11-3` (RLS audit + encryption doc) shipped first — it prevents regressions in every new domain story. `11-1` (export) and `11-2` (deletion) are **V1 (a)**, not (b)-gated: `docs/rgpd-readiness.md` establishes that GDPR applies from the first user other than the author, and V1 (a) onboards proches. `11-4` (axe + WCAG gates) is pulled into V1 (a) by `docs/v1-definition-of-done.md` §1. `11-5` and `11-6` still wait for the (b) decision.
 
 #### Story 11-1-data-export
 

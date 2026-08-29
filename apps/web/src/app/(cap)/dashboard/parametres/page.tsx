@@ -14,14 +14,16 @@ import { CompassEditForm } from "../_compass/_components/compass-edit-form";
 import { CompassHistoryPanel } from "../_compass/_components/compass-history-panel";
 import { LlmOptInToggle } from "../_llm/_components/llm-opt-in-toggle";
 import { LlmActivityLogLink } from "../_llm/_components/llm-activity-log-link";
+import { DataSection } from "../_data/_components/data-section";
 import { HypothesisSettings } from "../_hypothesis/_components/hypothesis-settings";
 
 // Feature code is co-located by mount: accounts → dashboard/_account,
 // appearance (theme/lang) → dashboard/_appearance, compass → dashboard/_compass.
 // Section order mirrors the ux-preview SSOT (docs/ux-preview/src/App.tsx
 // SettingsScreen): Compte → Apparence → Intelligence artificielle → … →
-// Session (Se déconnecter) → Hypothèse (last). « Vos données » (export/delete)
-// isn't built yet; Compass (cap config, a Pekulo-only addition absent from
+// Session (Se déconnecter) → Hypothèse (last). « Vos données » holds the export
+// row (story 11-1); its second preview row, "Supprimer mon compte", lands with
+// story 11-2. Compass (cap config, a Pekulo-only addition absent from
 // ux-preview) takes the slot before Session.
 
 export default function ParametresPage() {
@@ -47,6 +49,7 @@ export default function ParametresPage() {
         <AppearanceSection />
         <LlmOptInToggle />
         <LlmActivityLogLink />
+        <DataSection />
         <CompassEditForm />
         <CompassHistoryPanel />
         <SessionSection />

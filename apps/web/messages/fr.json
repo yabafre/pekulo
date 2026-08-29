@@ -27,6 +27,12 @@
     "lang": {
       "fr": "Français",
       "en": "English"
+    },
+    "data": {
+      "title": "Vos données",
+      "exportLabel": "Exporter mes données",
+      "exportSub": "JSON complet · conforme RGPD",
+      "exportAction": "Exporter"
     }
   },
   "auth": {
