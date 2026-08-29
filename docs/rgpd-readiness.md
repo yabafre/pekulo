@@ -17,7 +17,7 @@
 
 ## 1. Data-subject rights — CODE
 
-- [ ] **Access / portability** → export all user data as JSON — **#48 / story 11-1** (`pending`). DR-5, ≤ 60 s.
+- [ ] **Access / portability** → export all user data as JSON — **#48 / story 11-1** (`in-progress`, story file `docs/stories/11-1-data-export.md`). DR-5, ≤ 60 s.
 - [ ] **Erasure** → delete account, cascade across **every** user-scoped table + erase the Supabase Auth user — **#49 / story 11-2** (`pending`). Cascade must cover: accounts, holdings, holding_lots, transactions, kpis, monthly_tracking, monthly_records, hypotheses, milestones, real_estate(+mortgage/rental/valuations), compass_history, account_balance_log, **bank_connections, bridge_users**. ⚠️ Erasure must also **revoke the Bridge connection** (the proche's bank link) — not just drop local rows.
 - [x] **Rectification** → users edit their own data (CRUD exists for accounts/transactions/holdings/real-estate).
 - [ ] ⚠️ Dependency note: #48/#49 list `8-1-supabase-auth-flows` as a dep (`pending`), but auth is in fact built (server actions shipped in 11-7) — lift this plan-vs-reality gap, don't let it block.
