@@ -1650,6 +1650,11 @@ were in what the suite *proved*, not in what shipped, with three exceptions
 
 #### Resolved
 
+- **[HIGH] A review fix broke the Vercel build: a module-scope `Intl.DateTimeFormat` crashed Bun during Next's page-data collection** [`apps/web/src/app/v1/export/route.ts`]
+  - Source: CI (Vercel check on the PR) — found after the rest of this record was written
+  - Evidence: the L4 fix put `new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" })` at module scope. Next runs every route module during *Collecting page data*, and the ICU work there killed the Bun 1.3.14 baseline binary with a SIGILL segfault — compilation had already succeeded. Invisible to all 10 GitHub Actions checks and to a local `turbo run build`: `apps/web/vercel.json` pins `"installCommand": "yarn install"` while the repo carries only `bun.lock`, so the local tree is Bun-resolved on macOS arm64 and Vercel's is Yarn-resolved on Linux x64 baseline. Attribution came from the before/after check states — `Vercel: success` on `f3db440`, `failure` on `a95aa67` — not from Bun's "this indicates a bug in Bun, not your code" banner, which was misleading.
+  - Resolution: `498ebe1` — the formatter is built lazily on first request. **Rule for the next story: never evaluate anything non-trivial at module scope in an `app/**/route.ts`.**
+
 - **[HIGH] `Decimal` columns serialised as strings while the story promised numbers; the replacer was dead code and its test passed for the wrong reason** [`settings.export.ts:171-181`, `settings.export.test.ts:29-31,99-106`]
   - Source: Code + Edge + Lead (three independent executions)
   - Evidence: ECMA-262 `SerializeJSONProperty` calls `toJSON()` before the replacer, and `Prisma.Decimal` defines one — so `exportJsonReplacer` only ever received an already-serialised string and `decimalToNumber` was never invoked. 16 of the 21 exported tables carry Decimal columns. The unit test passed solely because `fakeDecimal` lacked `toJSON`.
@@ -1738,7 +1743,7 @@ were in what the suite *proved*, not in what shipped, with three exceptions
 
 ### Verification
 
-Captured fresh at `8bd3318`, working tree clean apart from unrelated untracked iCloud duplicates.
+Captured fresh at `8bd3318`, working tree clean apart from unrelated untracked iCloud duplicates. Re-verified end to end at `498ebe1`, where all **11 PR checks pass including Vercel** — the local gates below are necessary but were not sufficient, as the Vercel finding above shows.
 
 - `cd apps/api && bun test` → **932 pass, 0 fail**, 2574 expect() · 108 files · exit 0
 - `cd apps/web && bunx vitest run` → **112 files, 377 tests passed** · exit 0
