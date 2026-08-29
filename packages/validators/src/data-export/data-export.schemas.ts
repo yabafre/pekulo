@@ -1,5 +1,9 @@
 // Zod source of truth for the GDPR export envelope (story 11-1, FR-49).
 // Mirrors docs/exports/schema-v1.json — the published artefact NFR-30 names.
+// Lives in its own domain folder per R11 (<domain>/<domain>.<suffix>.ts):
+// it was the only file of the 14 validator domains flat under a sibling
+// domain's folder. Moved in aped-review of story 11-1; consumers import
+// from the @pekulo/validators root barrel, so no call site changed.
 // The per-node `rows` array stays `z.record`-loose on purpose: the export is a
 // faithful row dump, and pinning 21 row shapes here would duplicate the Prisma
 // schema and rot on the first migration. Structure is validated; row contents

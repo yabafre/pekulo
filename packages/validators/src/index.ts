@@ -5,6 +5,7 @@ export * from "./accounts";
 export * from "./auth";
 export * from "./bank-aggregator";
 export * from "./compass";
+export * from "./data-export";
 export * from "./dashboard";
 export * from "./holdings";
 export * from "./hypothesis";
