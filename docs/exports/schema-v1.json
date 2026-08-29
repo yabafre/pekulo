@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pekulo.app/exports/schema-v1.json",
+  "title": "Pekulo user data export",
+  "description": "GDPR portability export (FR-49). One file per user, produced by GET /v1/export. Every top-level node carries its own schema_version so a node can evolve independently of the document.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "identity"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of this document envelope."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp at which the export started streaming."
+    },
+    "identity": {
+      "type": "object",
+      "required": ["schema_version", "user_id", "email"],
+      "properties": {
+        "schema_version": { "type": "string" },
+        "user_id": { "type": "string", "format": "uuid" },
+        "email": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false,
+      "description": "Identity held by Supabase Auth rather than Postgres. The password hash is never exported."
+    }
+  },
+  "patternProperties": {
+    "^(?!schema_version$|generated_at$|identity$)[a-z_]+$": {
+      "type": "object",
+      "required": ["schema_version", "rows"],
+      "properties": {
+        "schema_version": { "type": "string" },
+        "rows": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false,
+      "description": "One node per user-scoped table. `rows` holds every row the exporting user owns."
+    }
+  },
+  "additionalProperties": true
+}
