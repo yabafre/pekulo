@@ -112,7 +112,11 @@ export async function startServer(): Promise<ServerHandle> {
     .use(deps.llmModule.attestRouter)
     // Story 6-10 — public logo proxy (GET /v1/logos?ref=). Elysia-native binary
     // stream, mounted BEFORE the oRPC catch-all.
-    .use(deps.logosModule.routes);
+    .use(deps.logosModule.routes)
+    // Story 11-1 — authenticated GDPR export (GET /v1/export). Elysia-native
+    // because the body is a stream. Mounted BEFORE mountOrpc, like the other
+    // Elysia-native routers, so the oRPC catch-all cannot shadow it.
+    .use(deps.settingsModule.exportRoutes);
 
   mountOrpc(app, { jwtVerifier: deps.jwtVerifier, orpcRouter: deps.orpcRouter });
 
