@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pekulo.app/exports/schema-v1.json",
   "title": "Pekulo user data export",
-  "description": "GDPR portability export (FR-49). One file per user, produced by GET /v1/export. Every top-level node carries its own schema_version so a node can evolve independently of the document.",
+  "description": "GDPR portability export (FR-49). One file per user, produced by GET /v1/export. Every top-level node carries its own schema_version so a node can evolve independently of the document. Numeric money columns are emitted as decimal STRINGS, not JSON numbers: the database holds exact decimals and a JSON number would round-trip through a float. Consumers must parse them as decimals.",
   "type": "object",
   "required": ["schema_version", "generated_at", "identity"],
   "properties": {
@@ -29,7 +29,7 @@
     }
   },
   "patternProperties": {
-    "^(?!schema_version$|generated_at$|identity$)[a-z_]+$": {
+    "^(?!schema_version$|generated_at$|identity$)[a-z][a-z0-9_]*$": {
       "type": "object",
       "required": ["schema_version", "rows"],
       "properties": {
@@ -37,8 +37,8 @@
         "rows": { "type": "array", "items": { "type": "object" } }
       },
       "additionalProperties": false,
-      "description": "One node per user-scoped table. `rows` holds every row the exporting user owns."
+      "description": "One node per user-scoped table. `rows` holds every row the exporting user owns; an empty array means the user owns none. Money columns inside a row are decimal strings."
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }
