@@ -23,7 +23,17 @@ const EXPORT_TTFB_TIMEOUT_MS = 60_000;
 
 // The user-facing stamp follows the app's locale, not UTC: an export started at
 // 00:30 Paris time was previously filed under the previous day.
-const FILENAME_DATE = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" });
+//
+// Built lazily, never at module scope. Next runs every route module during
+// "Collecting page data", and constructing an ICU-backed Intl formatter there
+// crashed the Bun 1.3.14 baseline build on Vercel with a SIGILL segfault —
+// compilation succeeded, page-data collection did not. A route module must
+// stay cheap to import; the formatter is only needed once a request arrives.
+let filenameDate: Intl.DateTimeFormat | undefined;
+function stampFor(now: Date): string {
+  filenameDate ??= new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" });
+  return filenameDate.format(now);
+}
 
 export async function GET() {
   let accessToken: string;
@@ -60,7 +70,7 @@ export async function GET() {
     return new NextResponse("export failed", { status: res.status === 401 ? 401 : 502 });
   }
 
-  const stamp = FILENAME_DATE.format(new Date());
+  const stamp = stampFor(new Date());
   return new NextResponse(res.body, {
     status: 200,
     headers: {
