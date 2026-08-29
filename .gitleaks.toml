@@ -20,6 +20,8 @@ paths = [
   # (e.g. "integration-secret-at-least-32-chars-long-...") to exercise the
   # jose HS256 signing path without contacting Supabase. The string is local
   # to the test file and never leaves the test harness. Hyphens allowed in the
-  # module dir + file stem so hyphenated modules (e.g. bank-aggregator) match.
-  '''^apps/api/src/modules/[a-z-]+/[a-z-]+\.integration\.test\.ts$''',
+  # module dir + file stem so hyphenated modules (e.g. bank-aggregator) match;
+  # ONE optional dotted segment so a module with several boundary suites
+  # (settings.export.integration.test.ts) matches without widening to `.+`.
+  '''^apps/api/src/modules/[a-z-]+/[a-z-]+(\.[a-z-]+)?\.integration\.test\.ts$''',
 ]
