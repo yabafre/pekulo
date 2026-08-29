@@ -27,6 +27,12 @@
     "lang": {
       "fr": "French",
       "en": "English"
+    },
+    "data": {
+      "title": "Your data",
+      "exportLabel": "Export my data",
+      "exportSub": "Complete JSON · GDPR compliant",
+      "exportAction": "Export"
     }
   },
   "auth": {
