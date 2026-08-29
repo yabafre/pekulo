@@ -12,14 +12,27 @@
 import { NextResponse } from "next/server";
 import { ensureRequestContext } from "@/lib/orpc/request-context";
 
-const EXPORT_TIMEOUT_MS = 60_000; // NFR-6 budget.
+// NFR-6 / AC-1 budget the moment the download STARTS — time-to-first-byte —
+// not the whole transfer. Corrected in aped-review of 11-1: the original
+// `AbortSignal.timeout(60_000)` passed to fetch also aborts the body stream, so
+// any export still transferring at T+60 s was cut mid-file. That is precisely
+// the large-volume case the chunked design exists to serve (AC-8), and the
+// caller was left with a truncated document under a 200. The clock is now
+// stopped as soon as apps/api answers with its headers.
+const EXPORT_TTFB_TIMEOUT_MS = 60_000;
+
+// The user-facing stamp follows the app's locale, not UTC: an export started at
+// 00:30 Paris time was previously filed under the previous day.
+const FILENAME_DATE = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" });
 
 export async function GET() {
   let accessToken: string;
   try {
     ({ accessToken } = await ensureRequestContext());
   } catch {
-    // No session — never touch apps/api (AC-6).
+    // No session — never touch apps/api (AC-6). proxy.ts already answers 401
+    // for this exact path before the handler runs; this is defence in depth for
+    // a session that exists but no longer resolves.
     return new NextResponse("unauthorized", { status: 401 });
   }
 
@@ -27,21 +40,27 @@ export async function GET() {
   if (!apiBase) return new NextResponse("export unavailable", { status: 503 });
 
   const upstream = `${apiBase.replace(/\/$/, "")}/v1/export`;
+  const ttfb = new AbortController();
+  const timer = setTimeout(() => ttfb.abort(), EXPORT_TTFB_TIMEOUT_MS);
   let res: Response;
   try {
     res = await fetch(upstream, {
       headers: { authorization: `Bearer ${accessToken}` },
-      signal: AbortSignal.timeout(EXPORT_TIMEOUT_MS),
+      signal: ttfb.signal,
     });
   } catch {
     return new NextResponse("export failed", { status: 504 });
+  } finally {
+    // Headers are in (or the attempt failed): release the abort so a multi-
+    // minute body transfer is never cut by the start-up budget.
+    clearTimeout(timer);
   }
 
   if (!res.ok || !res.body) {
     return new NextResponse("export failed", { status: res.status === 401 ? 401 : 502 });
   }
 
-  const stamp = new Date().toISOString().slice(0, 10);
+  const stamp = FILENAME_DATE.format(new Date());
   return new NextResponse(res.body, {
     status: 200,
     headers: {

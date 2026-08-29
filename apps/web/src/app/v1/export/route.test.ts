@@ -77,3 +77,77 @@ describe("/v1/export route handler (story 11-1 / FR-49)", () => {
     expect(res.status).toBe(401);
   });
 });
+
+// Added in aped-review of 11-1 — the three paths nothing exercised.
+describe("/v1/export route handler — failure and budget paths", () => {
+  test("missing API_BASE_URL → 503 and apps/api is never called", async () => {
+    let fetched = false;
+    globalThis.fetch = (async () => {
+      fetched = true;
+      return new Response("", { status: 200 });
+    }) as unknown as typeof fetch;
+    ensureRequestContext.mockResolvedValue({ accessToken: "t", userId: "u", email: null });
+    delete process.env.API_BASE_URL;
+
+    const res = await GET();
+    expect(res.status).toBe(503);
+    expect(fetched).toBe(false);
+  });
+
+  test("an upstream that never answers → 504", async () => {
+    globalThis.fetch = (async () => {
+      throw new Error("ECONNREFUSED");
+    }) as unknown as typeof fetch;
+    ensureRequestContext.mockResolvedValue({ accessToken: "t", userId: "u", email: null });
+
+    const res = await GET();
+    expect(res.status).toBe(504);
+  });
+
+  test("a non-401 upstream failure is relayed as 502", async () => {
+    globalThis.fetch = (async () =>
+      new Response("boom", { status: 500 })) as unknown as typeof fetch;
+    ensureRequestContext.mockResolvedValue({ accessToken: "t", userId: "u", email: null });
+
+    const res = await GET();
+    expect(res.status).toBe(502);
+  });
+
+  test("the 60 s budget covers time-to-first-byte only, never the body transfer", async () => {
+    // AC-1 budgets the moment the download STARTS. The original
+    // AbortSignal.timeout(60_000) handed to fetch also aborted the BODY, so a
+    // large export still streaming at T+60 s was truncated under a 200 — the
+    // exact case the chunked design exists for.
+    //
+    // This asserts the mechanism rather than the elapsed behaviour, on purpose:
+    // a 60 s wall-clock wait is not a test, and vi.useFakeTimers() does NOT
+    // intercept AbortSignal.timeout (verified — a fake-timer version of this
+    // test passed against the broken code). What separates the two
+    // implementations observably is that the fixed one owns a cancellable
+    // timer and releases it once the headers are in; AbortSignal.timeout owns
+    // one nobody can release. So: the signal must come from a controller, and
+    // the start-up timer must be cleared before the body is handed back.
+    const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+    try {
+      let captured: AbortSignal | undefined;
+      globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+        captured = init?.signal ?? undefined;
+        return new Response('{"schema_version":"1.0.0"}', { status: 200 });
+      }) as unknown as typeof fetch;
+      ensureRequestContext.mockResolvedValue({ accessToken: "t", userId: "u", email: null });
+
+      const before = clearSpy.mock.calls.length;
+      const res = await GET();
+
+      expect(res.status).toBe(200);
+      expect(captured, "no AbortSignal was handed to fetch").toBeInstanceOf(AbortSignal);
+      expect(captured!.aborted).toBe(false);
+      expect(
+        clearSpy.mock.calls.length,
+        "the start-up budget was never released — it will abort the body mid-transfer",
+      ).toBeGreaterThan(before);
+    } finally {
+      clearSpy.mockRestore();
+    }
+  });
+});
