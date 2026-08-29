@@ -67,6 +67,84 @@ describe("settings export map (story 11-1)", () => {
     ).toEqual(expected);
   });
 
+  // ---------------------------------------------------------------------
+  // Widened in aped-review of story 11-1. The two guards below close holes
+  // the original pair left open:
+  //   - only BankConnection was screened for secrets; the other 20 nodes do a
+  //     bare findMany, so a secret column landing on any of them would enter
+  //     the export with the suite still green;
+  //   - "user-scoped" was inferred from a field LITERALLY named `userId`, so a
+  //     future table keyed by `ownerId` (or scoped only through a parent
+  //     relation) would escape the export unnoticed — the very drift class the
+  //     2026-06-05 lesson exists to close.
+  // ---------------------------------------------------------------------
+
+  // Scalar names that read like a credential. Deliberately broad: a false
+  // positive costs one line in the allowlist below, a false negative exports a
+  // secret.
+  const SECRET_NAME_PATTERN =
+    /token|secret|password|credential|api_?key|hash|salt|vault|private_?key|cipher/i;
+
+  // Reviewed field-by-field and cleared for export. `<Model>.<field>`.
+  // Adding a line here is a deliberate act: state WHY the column is user data.
+  const SECRET_NAME_ALLOWLIST = new Set<string>([
+    // Hash of the transaction label the user already owns — their own data,
+    // used to dedupe LLM calls. No credential value.
+    "LlmCallLog.labelHash",
+  ]);
+
+  // Models that hold no user data and are therefore rightly absent from the
+  // export. Global reference caches keyed naturally, no user_id, no FK to
+  // auth.users (architecture.md § Reference caches).
+  const NON_USER_MODELS = new Set<string>(["MerchantLogoCache", "ProviderLogoCache"]);
+
+  it("exports no scalar whose name reads like a credential", () => {
+    const exported = new Set(EXPORT_NODES.map((node) => node.model));
+    const offenders: string[] = [];
+    for (const model of Prisma.dmmf.datamodel.models) {
+      if (!exported.has(model.name)) continue;
+      for (const field of model.fields) {
+        if (field.kind !== "scalar") continue;
+        const qualified = `${model.name}.${field.name}`;
+        if (!SECRET_NAME_PATTERN.test(field.name)) continue;
+        if (SECRET_NAME_ALLOWLIST.has(qualified)) continue;
+        // BankConnection's two vault columns are handled by the select
+        // allowlist above — they never reach the payload.
+        if (
+          model.name === "BankConnection" &&
+          (BANK_CONNECTION_SECRET_FIELDS as readonly string[]).includes(field.name)
+        ) {
+          continue;
+        }
+        offenders.push(qualified);
+      }
+    }
+    expect(
+      offenders,
+      `column(s) whose name reads like a credential would be exported verbatim. ` +
+        `Either exclude them behind an explicit \`select\` allowlist (as ` +
+        `bankConnectionExportSelect does), or — if the column really is the ` +
+        `user's own data — add it to SECRET_NAME_ALLOWLIST with a one-line ` +
+        `justification: ${offenders.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("accounts for every Prisma model as either exported or explicitly non-user", () => {
+    const exported = new Set(EXPORT_NODES.map((node) => node.model));
+    const unaccounted = Prisma.dmmf.datamodel.models
+      .map((model) => model.name)
+      .filter((name) => !exported.has(name) && !NON_USER_MODELS.has(name));
+    expect(
+      unaccounted,
+      `model(s) are neither in EXPORT_NODES nor declared non-user. The userId ` +
+        `guard above only sees a field literally named \`userId\`, so a table ` +
+        `scoped by another column (ownerId, or a parent relation) slips past it ` +
+        `— which is exactly how a GDPR export goes quietly incomplete. Add the ` +
+        `model to EXPORT_NODES, or to NON_USER_MODELS with its rationale: ` +
+        `${unaccounted.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("never selects a vault secret reference", () => {
     for (const secret of BANK_CONNECTION_SECRET_FIELDS) {
       expect(

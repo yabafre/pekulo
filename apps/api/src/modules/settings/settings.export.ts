@@ -15,7 +15,6 @@
 // EXPECTED_POLICY_COUNTS holds 20 entries for 21 user-scoped tables
 // (dashboard_layout is absent), so it is not a complete table inventory.
 import type { ExtendedPrismaClient } from "../../database";
-import { decimalToNumber } from "../../common/derive/decimal-to-number";
 import { EXPORT_NODE_SCHEMA_VERSION, EXPORT_SCHEMA_VERSION } from "@pekulo/validators";
 
 // Vault secret references on BankConnection — never exported (AC-4).
@@ -164,21 +163,21 @@ export const EXPORT_NODES: readonly ExportNode[] = [
   },
 ];
 
-// Prisma returns Decimal columns as decimal.js instances, which JSON.stringify
-// would serialise as an object of internal fields. Route them through the
-// repo's decimalToNumber helper (lesson L24 — inlining Number(decimal) or
-// duplicating the helper is a review fail).
-function exportJsonReplacer(_key: string, value: unknown): unknown {
-  if (
-    value !== null &&
-    typeof value === "object" &&
-    "toNumber" in value &&
-    typeof (value as { toNumber: unknown }).toNumber === "function"
-  ) {
-    return decimalToNumber(value, 0);
-  }
-  return value;
-}
+// Decimal columns are exported as JSON STRINGS, deliberately.
+//
+// A JSON.stringify replacer cannot change this: ECMA-262 SerializeJSONProperty
+// calls the value's own `toJSON()` BEFORE handing it to the replacer, and
+// Prisma's Decimal (decimal.js) defines `toJSON`. A replacer therefore only
+// ever receives the already-serialised string — the story's original
+// `exportJsonReplacer` (routed through decimalToNumber, lesson L24) was dead
+// code on every real row, and its unit test passed only because the fake
+// Decimal lacked `toJSON`. Found in aped-review of story 11-1.
+//
+// Keeping the string is the better outcome for a portability artefact: it is
+// the exact decimal the database holds, with no float rounding. Documented in
+// docs/exports/schema-v1.json. Do NOT re-add a replacer here — it cannot work;
+// forcing numbers would require mapping rows against the DMMF before
+// stringifying, and would trade exactness for a float.
 
 export interface ExportIdentityInput {
   userId: string;
@@ -201,15 +200,25 @@ export async function* streamUserDataExport(
       `"generated_at":${JSON.stringify(now.toISOString())},` +
       `"identity":{"schema_version":${JSON.stringify(EXPORT_NODE_SCHEMA_VERSION)},` +
       `"user_id":${JSON.stringify(identity.userId)},` +
-      `"email":${JSON.stringify(identity.email)}}`
+      `"email":${JSON.stringify(identity.email ?? null)}}`
   );
 
   for (const node of EXPORT_NODES) {
-    const rows = await node.read(client, identity.userId);
+    // `?? []` so a node whose read resolves undefined yields `"rows":[]`
+    // rather than the bare token `undefined`, which would silently produce a
+    // file that is not JSON at all.
+    //
+    // Sequential ON PURPOSE (AC-8): one table in flight at a time is what keeps
+    // peak memory tracking the largest single table instead of the whole
+    // export. The rule's suggested Promise.all would load all 21 tables at once
+    // and defeat the entire streaming design — suppressed rather than left as
+    // standing noise in the lint output.
+    // oxlint-disable-next-line eslint/no-await-in-loop
+    const rows = (await node.read(client, identity.userId)) ?? [];
     yield (
       `,${JSON.stringify(node.key)}:` +
         `{"schema_version":${JSON.stringify(EXPORT_NODE_SCHEMA_VERSION)},` +
-        `"rows":${JSON.stringify(rows, exportJsonReplacer)}}`
+        `"rows":${JSON.stringify(rows)}}`
     );
   }
 

@@ -1,5 +1,5 @@
 // Story 11-1 — generator-level proof: envelope shape (AC-2), one chunk per
-// node (AC-8), Decimal coercion, and no vault secret in the payload (AC-4).
+// node (AC-8), Decimal serialisation, and no vault secret in the payload (AC-4).
 //
 // AC-2 (verbatim from story 11-1-data-export:16):
 //   Given the downloaded payload, When it is parsed, Then the document root
@@ -17,31 +17,74 @@
 //   then exactly one fragment per table, then a closing fragment — so peak
 //   memory tracks the largest single table rather than the total payload.
 import { describe, expect, it } from "bun:test";
+import { Prisma } from "@generated/prisma/client";
 import type { ExtendedPrismaClient } from "../../database";
-import { EXPORT_NODES, streamUserDataExport } from "./settings.export";
+import { EXPORT_NODES, bankConnectionExportSelect, streamUserDataExport } from "./settings.export";
 import { userDataExportSchema } from "@pekulo/validators";
 
 const USER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const GENERATED_AT = new Date("2026-08-29T10:00:00.000Z");
 
-// Minimal decimal.js stand-in: the generator's replacer duck-types on
-// `toNumber`, exactly as decimalToNumber does.
-function fakeDecimal(value: number): { toNumber(): number } {
-  return { toNumber: () => value };
+// Answers `client.<anyModel>.findMany(...)` for every delegate the node map
+// reaches for, so the generator can run without a database.
+//
+// Two properties this fixture MUST keep (both added in aped-review of 11-1):
+//
+//  1. It HONOURS `select`. The previous fixture destructured `{ where }` only,
+//     so `bankConnectionExportSelect` was never exercised at the call site and
+//     deleting `select:` from settings.export.ts survived the whole suite.
+//  2. The raw `bankConnection` row CARRIES both Vault secret columns, exactly
+//     as Postgres hands them back. Without them the "no vault secret anywhere"
+//     assertion had nothing to catch and could not fail.
+//
+// Together they make the AC-4 assertions load-bearing: drop the `select`
+// allowlist and this suite goes red naming the leaked column.
+function rawRow(model: string, userId: string): Record<string, unknown> {
+  const row: Record<string, unknown> = {
+    id: `${model}-1`,
+    userId,
+    // A REAL Prisma.Decimal, not a `{ toNumber }` stand-in: decimal.js defines
+    // `toJSON`, and JSON.stringify calls it BEFORE any replacer. A fake without
+    // `toJSON` diverges from the real object on precisely the member that
+    // decides the serialised output.
+    cashBalance: new Prisma.Decimal("1234.56"),
+  };
+  if (model === "bankConnection") {
+    // The full row Postgres hands back: every allowlisted column PLUS the two
+    // Vault references. Complete on purpose — if the raw row were missing the
+    // allowlisted columns, dropping `select` would fail this suite on a missing
+    // property instead of on the leak, and AC-4 would still not be the thing
+    // under test.
+    for (const column of Object.keys(bankConnectionExportSelect)) {
+      row[column] ??= `${model}-${column}`;
+    }
+    row.accessTokenSecretId = "vault-access-ref";
+    row.refreshTokenSecretId = "vault-refresh-ref";
+  }
+  return row;
 }
 
-// Answers `client.<anyModel>.findMany({ where: { userId } })` for every
-// delegate the node map reaches for, so the generator can run without a
-// database. Each row is tagged with the delegate name so the assertions can
-// tell nodes apart. `cashBalance` exercises the Decimal replacer.
 function fakeClient(): ExtendedPrismaClient {
   return new Proxy(
     {},
     {
       get: (_target, model: string) => ({
-        findMany: async ({ where }: { where: { userId: string } }) => [
-          { id: `${model}-1`, userId: where.userId, cashBalance: fakeDecimal(1234.56) },
-        ],
+        findMany: async ({
+          where,
+          select,
+        }: {
+          where: { userId: string };
+          select?: Record<string, boolean>;
+        }) => {
+          const row = rawRow(model, where.userId);
+          if (!select) return [row];
+          // Project like Prisma does: only the keys explicitly set true.
+          const projected: Record<string, unknown> = {};
+          for (const [key, wanted] of Object.entries(select)) {
+            if (wanted) projected[key] = row[key] ?? `${model}-${key}`;
+          }
+          return [projected];
+        },
       }),
     },
   ) as unknown as ExtendedPrismaClient;
@@ -96,19 +139,60 @@ describe("streamUserDataExport (story 11-1)", () => {
     }
   });
 
-  it("serialises a Decimal column as a JSON number, not an object", async () => {
+  it("serialises a Decimal column as an exact decimal STRING, never an object", async () => {
     const { raw } = await exportDocument();
     const parsed = JSON.parse(raw) as Record<string, { rows: { cashBalance: unknown }[] }>;
     const accounts = parsed.accounts;
     expect(accounts, "accounts node missing").toBeDefined();
-    expect(accounts!.rows[0]!.cashBalance).toBe(1234.56);
+    // Strings, not numbers — decimal.js ships `toJSON`, which JSON.stringify
+    // applies before any replacer could intervene. Exactness over float
+    // round-tripping is the deliberate choice for a portability artefact;
+    // see the header of settings.export.ts and docs/exports/schema-v1.json.
+    expect(accounts!.rows[0]!.cashBalance).toBe("1234.56");
     expect(raw).not.toContain(`"cashBalance":{`);
   });
 
-  it("exposes a bank_connections node and no vault secret key anywhere", async () => {
+  it("reads bank_connections through the select allowlist and leaks no vault reference", async () => {
     const { raw } = await exportDocument();
-    expect(raw).toContain(`"bank_connections"`);
+    const parsed = JSON.parse(raw) as Record<string, { rows: Record<string, unknown>[] }>;
+    const connections = parsed.bank_connections;
+    expect(connections, "bank_connections node missing").toBeDefined();
+
+    const row = connections!.rows[0]!;
+    // The projection actually happened: every allowlisted column is present…
+    for (const column of Object.keys(bankConnectionExportSelect)) {
+      expect(row, `bank_connections dropped the allowlisted column ${column}`).toHaveProperty(
+        column,
+      );
+    }
+    // …and the two Vault references the raw row carries are gone. The fixture
+    // DOES return them when `select` is omitted, so removing the allowlist
+    // from settings.export.ts turns this red (AC-4).
+    expect(Object.keys(row)).not.toContain("accessTokenSecretId");
+    expect(Object.keys(row)).not.toContain("refreshTokenSecretId");
+    expect(raw).not.toContain("vault-access-ref");
+    expect(raw).not.toContain("vault-refresh-ref");
     expect(raw).not.toContain("accessTokenSecretId");
     expect(raw).not.toContain("refreshTokenSecretId");
+  });
+
+  it("emits an empty rows array rather than the bare token undefined", async () => {
+    // Guards the string-concatenation shape: `JSON.stringify(undefined)` is the
+    // literal `undefined`, which would make the whole document unparseable.
+    const emptyClient = new Proxy(
+      {},
+      { get: () => ({ findMany: async () => undefined }) },
+    ) as unknown as ExtendedPrismaClient;
+    const raw = (
+      await collect(
+        streamUserDataExport(emptyClient, { userId: USER_A, email: null }, GENERATED_AT),
+      )
+    ).join("");
+    expect(raw).not.toContain("undefined");
+    const parsed = JSON.parse(raw) as Record<string, { rows: unknown[] }>;
+    for (const node of EXPORT_NODES) {
+      expect(parsed[node.key]!.rows, `node ${node.key}`).toEqual([]);
+    }
+    expect((parsed as unknown as { identity: { email: null } }).identity.email).toBeNull();
   });
 });
