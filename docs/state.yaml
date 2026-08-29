@@ -258,7 +258,7 @@ sprint:
     10-1-visual-snapshot-suite: {status: done, depends_on: [0-10-pekulo-ui-migration, 0-12-custom-oxlint-rules], ticket: "#46", worktree: null, started_at: "2026-08-25T12:00:00Z", completed_at: "2026-08-25T18:35:00Z"}
     10-2-mobile-app-bootstrap: {status: pending, depends_on: [10-1-visual-snapshot-suite, 0-10-pekulo-ui-migration], ticket: "#47", worktree: null}
     # Epic 11 — Public-ramp readiness (backlog; 11-3 priorité)
-    11-1-data-export: {status: in-progress, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#48", worktree: null, started_at: "2026-08-29T13:00:00Z"}
+    11-1-data-export: {status: review, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#48", worktree: null, started_at: "2026-08-29T13:00:00Z", completed_at: "2026-08-29T15:15:00Z"}
     11-2-account-deletion: {status: pending, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#49", worktree: null}
     11-3-rls-audit-and-encryption-doc: {status: done, depends_on: [0-3-api-scaffold, 0-12-custom-oxlint-rules], ticket: "#50", worktree: null, started_at: "2026-05-29T00:00:00Z"}
     11-4-axe-and-wcag-gates: {status: pending, depends_on: [0-8-github-actions-pr, 0-10-pekulo-ui-migration], ticket: "#51", worktree: null}

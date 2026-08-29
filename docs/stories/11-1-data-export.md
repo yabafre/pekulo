@@ -1,7 +1,7 @@
 # Story: 11-1-data-export — GDPR data export: every user-scoped table streamed as one JSON file conforming to schema-v1
 
 **Epic:** Epic 11 — Public-ramp readiness
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** #48
 **Branch:** feature/48-11-1-data-export
 
@@ -22,7 +22,7 @@
 
 ## Tasks
 
-- [ ] **T1 — Publish the export JSON Schema** [AC: AC-1, AC-2]
+- [x] **T1 — Publish the export JSON Schema** [AC: AC-1, AC-2]
 
   Create `docs/exports/schema-v1.json` with the exact content below. This is the artefact NFR-30 names (“a published schema versioned in `docs/exports/schema-v1.json`”). `additionalProperties: true` on the node object is deliberate: a future table adds a node and must not invalidate previously exported files.
 
@@ -77,7 +77,7 @@
   Expected: `schema docs/exports/schema-v1.json is valid`, exit 0.
   Commit: `git add docs/exports/schema-v1.json && git commit -m "feat(#48): publish export schema-v1 (NFR-30)"`
 
-- [ ] **T2 — Zod mirror of the export envelope** [AC: AC-2]
+- [x] **T2 — Zod mirror of the export envelope** [AC: AC-2]
 
   Create `packages/validators/src/settings/export.schemas.ts` with the exact content below. It mirrors the published JSON Schema so apps/api and the tests share one definition of the envelope. Value lists are centralised per the 2026-05-09 project invariant (never inline the literals).
 
@@ -129,7 +129,7 @@
   Expected: no output, exit 0.
   Commit: `git add packages/validators/src/settings/export.schemas.ts packages/validators/src/settings/index.ts && git commit -m "feat(#48): zod mirror of the export envelope"`
 
-- [ ] **T3 — Export node map + streaming generator** [AC: AC-1, AC-2, AC-4, AC-8]
+- [x] **T3 — Export node map + streaming generator** [AC: AC-1, AC-2, AC-4, AC-8]
 
   Create `apps/api/src/modules/settings/settings.export.ts` with the exact content below.
 
@@ -360,7 +360,7 @@
   Expected: no output, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.export.ts && git commit -m "feat(#48): export node map + streaming generator (FR-49)"`
 
-- [ ] **T4 — Drift guard: Prisma DMMF vs the export map** [AC: AC-5]
+- [x] **T4 — Drift guard: Prisma DMMF vs the export map** [AC: AC-5]
 
   Create `apps/api/src/modules/settings/settings.export-map.guard.test.ts` with the exact content below. This is the task that stops the story rotting: without it, table #22 escapes the export silently, exactly as `dashboard_layout` escaped `rls-audit.ts`.
 
@@ -441,7 +441,7 @@
   Expected: `5 pass`, `0 fail`, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.export-map.guard.test.ts && git commit -m "test(#48): DMMF drift guard over the export map (AC-5)"`
 
-- [ ] **T5 — Unit tests for the generator** [AC: AC-2, AC-4, AC-8]
+- [x] **T5 — Unit tests for the generator** [AC: AC-2, AC-4, AC-8]
 
   Create `apps/api/src/modules/settings/settings.export.test.ts` with the exact content below. The fake client returns one row per node so the chunk count and the envelope shape are both asserted without a database.
 
@@ -547,7 +547,7 @@
   Expected: `6 pass`, `0 fail`, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.export.test.ts && git commit -m "test(#48): generator envelope + chunking + secret-free payload"`
 
-- [ ] **T6 — Elysia streaming route `GET /v1/export`** [AC: AC-1, AC-6, AC-8]
+- [x] **T6 — Elysia streaming route `GET /v1/export`** [AC: AC-1, AC-6, AC-8]
 
   Create `apps/api/src/modules/settings/settings.export-routes.ts` with the exact content below. Elysia-native rather than oRPC because the response is a stream, not an RPC envelope — the same reason `logos.routes.ts` is Elysia-native (lesson 2026-05-04: never annotate the chain as `Elysia`).
 
@@ -606,7 +606,7 @@
   Expected: no output, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.export-routes.ts && git commit -m "feat(#48): GET /v1/export streaming route (FR-49)"`
 
-- [ ] **T7 — Wire the export route into the settings module** [AC: AC-1, AC-6]
+- [x] **T7 — Wire the export route into the settings module** [AC: AC-1, AC-6]
 
   Replace the whole content of `apps/api/src/modules/settings/settings.module.ts` with:
 
@@ -703,7 +703,7 @@
   Expected: no output, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.module.ts apps/api/src/bootstrap/runtime-dependencies.ts && git commit -m "feat(#48): wire the export route into the settings module"`
 
-- [ ] **T8 — Mount the export route in the Elysia app** [AC: AC-1, AC-6]
+- [x] **T8 — Mount the export route in the Elysia app** [AC: AC-1, AC-6]
 
   In `apps/api/src/app.ts`, the chain currently ends with the logos proxy before `mountOrpc` is called:
 
@@ -733,7 +733,7 @@
   Expected: `tsc` silent; `bun test` reports `0 fail`, exit 0.
   Commit: `git add apps/api/src/app.ts && git commit -m "feat(#48): mount GET /v1/export before mountOrpc"`
 
-- [ ] **T9 — HTTP-boundary integration test: two-user isolation + 401** [AC: AC-3, AC-6]
+- [x] **T9 — HTTP-boundary integration test: two-user isolation + 401** [AC: AC-3, AC-6]
 
   Create `apps/api/src/modules/settings/settings.export.integration.test.ts` with the exact content below. It follows the sibling convention (`settings.integration.test.ts`): a real Elysia app, a real jose HS256 verifier, a stubbed data layer. `PORT_BASE` is picked clear of the sibling suites (hypothesis 13900, accounts 14160, holdings 14500, compass 14700, milestones 14900, settings 15100).
 
@@ -874,7 +874,7 @@
   Expected: `4 pass`, `0 fail`, exit 0.
   Commit: `git add apps/api/src/modules/settings/settings.export.integration.test.ts && git commit -m "test(#48): two-user isolation + 401 at the export HTTP boundary (AC-3, AC-6)"`
 
-- [ ] **T10 — Authenticated same-origin proxy on apps/web** [AC: AC-1, AC-6]
+- [x] **T10 — Authenticated same-origin proxy on apps/web** [AC: AC-1, AC-6]
 
   Create `apps/web/src/app/v1/export/route.ts` with the exact content below.
 
@@ -940,7 +940,7 @@
   Expected: no output, exit 0.
   Commit: `git add apps/web/src/app/v1/export/route.ts && git commit -m "feat(#48): authenticated same-origin export proxy"`
 
-- [ ] **T11 — Route-handler tests** [AC: AC-6]
+- [x] **T11 — Route-handler tests** [AC: AC-6]
 
   Create `apps/web/src/app/v1/export/route.test.ts` with the exact content below.
 
@@ -1027,7 +1027,7 @@
   Expected: `Tests  4 passed (4)`, exit 0.
   Commit: `git add apps/web/src/app/v1/export/route.test.ts && git commit -m "test(#48): export proxy auth + headers (AC-6)"`
 
-- [ ] **T12 — i18n keys for the « Vos données » section** [AC: AC-7]
+- [x] **T12 — i18n keys for the « Vos données » section** [AC: AC-7]
 
   In `apps/web/messages/fr.json`, inside the existing `"settings"` object (which currently holds `appearance`, `theme`, `lang`), add a `"data"` key so the object reads:
 
@@ -1071,7 +1071,7 @@
   Expected: `both parse`, exit 0.
   Commit: `git add apps/web/messages/fr.json apps/web/messages/en.json && git commit -m "feat(#48): i18n for the Vos données section"`
 
-- [ ] **T13 — « Vos données » section + export row** [AC: AC-7]
+- [x] **T13 — « Vos données » section + export row** [AC: AC-7]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_components/export-data-row.tsx` with the exact content below. It is a Client Component only because `PekuloSettingRow` is one; there is no oRPC call and therefore no hook and no server action — ADR-0010's Component → Hook → Server Action triad governs oRPC calls, and a plain authenticated GET does not make one. (This is the documented deviation from #48's Summary, which named a `use-export-data.ts`.)
 
@@ -1154,7 +1154,7 @@
   Expected: no output, exit 0.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data" && git commit -m "feat(#48): Vos données section + export row (FR-49)"`
 
-- [ ] **T14 — a11y test for the section** [AC: AC-7]
+- [x] **T14 — a11y test for the section** [AC: AC-7]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_components/data-section.a11y.test.tsx` with the exact content below. It renders the client row directly (the Section wrapper is an RSC and is covered by the sibling `appearance-section.a11y.test.tsx` pattern).
 
@@ -1201,7 +1201,7 @@
   Expected: `Tests  2 passed (2)`, exit 0.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_components/data-section.a11y.test.tsx" && git commit -m "test(#48): a11y for the export row (AC-7)"`
 
-- [ ] **T15 — Mount the section on the Paramètres page** [AC: AC-7]
+- [x] **T15 — Mount the section on the Paramètres page** [AC: AC-7]
 
   In `apps/web/src/app/(cap)/dashboard/parametres/page.tsx`, add the import alongside the existing ones:
 
@@ -1244,7 +1244,7 @@
   Expected: `tsc` silent; vitest reports `0 failed`, exit 0.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/parametres/page.tsx" && git commit -m "feat(#48): mount Vos données on the Paramètres page (AC-7)"`
 
-- [ ] **T16 — Doc + ticket sync** [AC: AC-1]
+- [x] **T16 — Doc + ticket sync** [AC: AC-1]
 
   Three artefacts disagree with what this story ships; fix all three in one pass (2026-05-31 lesson: doc drift introduced during a story must land inside that story, not after it).
 
@@ -1462,22 +1462,143 @@ Per-file responsibilities and their inputs/outputs are in Dev Notes § File deci
 
 ## Dev Agent Record
 
-- **Model:** _(filled by aped-dev)_
-- **Started:** _(filled by aped-dev)_
-- **Completed:** _(filled by aped-dev)_
+- **Model:** claude-opus-5[1m]
+- **Started:** 2026-08-29T13:00:00Z
+- **Completed:** 2026-08-29T15:15:00Z
 
 ### Summary
 
-_(filled by aped-dev)_
+GDPR portability export shipped end to end: a published JSON Schema, a Zod
+mirror of the envelope, a 21-node table map fronted by a chunked async
+generator, an Elysia-native `GET /v1/export` behind `requireUserContext`, an
+authenticated same-origin proxy on apps/web, and the « Vos données » row on
+Paramètres. Scope held — account deletion, ZIP packaging and IBAN redaction
+stayed out.
+
+Two things dominated the session. First, the story's verbatim code blocks did
+not compile or pass as written (seven separate defects, listed below) — every
+one was caught by `tsc` or by a witnessed RED, none by reading. Second, the
+working copy was broken before the story started: `node_modules` lives in
+iCloud Drive and several packages had been evicted to dataless stubs, so
+`@pekulo/zod` resolved to a namespace with no `z.string`. `apps/api/src/config/env.ts`
+— untouched by this story — failed the same way, meaning the API could not
+boot. A clean reinstall fixed it, and `com.apple.fileprovider.ignore#P` on the
+`node_modules` trees (user-approved) stopped iCloud starving tsc/vitest: the
+apps/web suite went from an indefinite hang at 0 % CPU to 59 s.
 
 ### Files changed
 
-_(filled by aped-dev)_
+- `docs/exports/schema-v1.json` (NEW) — the published artefact NFR-30 names
+- `packages/validators/src/settings/export.schemas.ts` (NEW) — Zod mirror of the envelope
+- `packages/validators/src/settings/index.ts` — re-export the new schemas
+- `apps/api/src/modules/settings/settings.export.ts` (NEW) — 21-node map + chunked generator
+- `apps/api/src/modules/settings/settings.export.test.ts` (NEW) — envelope, chunking, Decimal, secret-free
+- `apps/api/src/modules/settings/settings.export-map.guard.test.ts` (NEW) — DMMF drift guard
+- `apps/api/src/modules/settings/settings.export-routes.ts` (NEW) — Elysia-native `GET /v1/export`
+- `apps/api/src/modules/settings/settings.export.integration.test.ts` (NEW) — two-tenant isolation + 401
+- `apps/api/src/modules/settings/settings.module.ts` — expose `exportRoutes`, take `jwtVerifier`
+- `apps/api/src/bootstrap/runtime-dependencies.ts` — pass `jwtVerifier`, expose `settingsModule`
+- `apps/api/src/app.ts` — mount the export route before `mountOrpc`
+- `apps/web/src/app/v1/export/route.ts` (NEW) — authenticated same-origin proxy
+- `apps/web/src/app/v1/export/route.test.ts` (NEW) — proxy auth + headers
+- `apps/web/src/app/(cap)/dashboard/_data/_components/data-section.tsx` (NEW) — the RSC Section
+- `apps/web/src/app/(cap)/dashboard/_data/_components/export-data-row.tsx` (NEW) — the download row
+- `apps/web/src/app/(cap)/dashboard/_data/_components/data-section.a11y.test.tsx` (NEW) — axe + accessible name
+- `apps/web/src/app/(cap)/dashboard/parametres/page.tsx` — mount `<DataSection />`
+- `apps/web/messages/{fr,en}.json` — `settings.data.*`
+- `.gitleaks.toml` — allow one dotted segment in the apps/api integration-test path
+- `docs/epics.md`, `docs/rgpd-readiness.md`, `docs/architecture.md` — tiering + FR-49 mapping realignment
+- `docs/state.yaml`, `docs/epics-context/epic-11-context.md`, `docs/stories/11-1-data-export.md` — APED state
 
 ### Deviations
 
-_(filled by aped-dev)_
+**The story's verbatim code did not compile or pass as written.** Seven fixes:
+
+1. **T7 — `RuntimeDeps` is an explicit interface.** The story only patched the
+   `return` block; adding `settingsModule` there without adding the field to
+   `RuntimeDeps` is an excess-property error. Added the field.
+2. **T9 — `extractRequestId(request.headers)` is wrong twice.** The helper takes
+   the thrown error, not headers, and returns `string | undefined` while
+   `mapErrorToOrpcResponse` requires `string` — a typecheck error.
+3. **T9 — the `.onError` never set `set.status`.** As written the 401 responses
+   would have come back 200 and every auth assertion would have passed for the
+   wrong reason. Now mirrors `settings.integration.test.ts`.
+4. **T9 — fixed port and un-awaited `listen`.** Replaced with the sibling
+   convention: `PORT_BASE + random(200)` on `127.0.0.1`, listen callback awaited.
+5. **T13 — the bare `<a>` would have rendered « Exporter » in serif.**
+   `--f-family` is scoped to Tamagui's `font_*` classes, so raw DOM text inside
+   a `View` falls back to the browser default (lesson 2026-07-13, 4th
+   occurrence of this class). The label now rides a Tamagui `<Text>`, matching
+   `llm-activity-log-link.tsx`. The a11y test confirms the accessible name is
+   unchanged.
+6. **T5 — the test did not compile under `noUncheckedIndexedAccess`.** Five
+   TS2532/TS18048 on `parsed[node.key].rows[0]`. Bound locally + asserted.
+7. **T1 — `bunx ajv-cli compile --spec=draft2020` fails on `format: date-time`**
+   (ajv strict mode, no `ajv-formats` in the ephemeral install; `npx -p` timed
+   out). Verified instead with a one-shot ajv script in the scratchpad, strict
+   mode ON and formats enabled: the schema compiles, accepts a well-formed
+   document, and rejects a non-UUID `user_id` plus an extra node key.
+
+**Scope additions, both mandated by the 2026-05-31 doc-drift lesson:**
+
+- `.gitleaks.toml` — the allowlist regex `[a-z-]+\.integration\.test\.ts` has
+  no dotted stem, so `settings.export.integration.test.ts` tripped the
+  generic-api-key rule on the same fake JWT secret every sibling suite uses.
+  Widened by exactly one optional dotted segment, not to `.+`.
+- `docs/architecture.md` — the FR-49 row mapped the export to
+  `settings.service.ts#exportData` plus a `use-export-data.ts` hook. Neither
+  exists under this design and the story deviates deliberately (a stream cannot
+  travel through the oRPC envelope; the browser makes no oRPC call so ADR-0010's
+  triad does not apply). Row and the `settings-actions.ts` tree line corrected.
+
+**Environment repair (pre-existing, not introduced here):** `node_modules` was
+partially evicted by iCloud to dataless stubs — `zod` and `@orpc/server` read as
+empty. Full reinstall (2494 packages, `bun.lock` unchanged), then
+`com.apple.fileprovider.ignore#P` on every `node_modules` tree with the user's
+approval. Pre-commit hooks dropped from 137 s to 0.4 s as a side effect.
+
+**Known verification gaps, deliberately left for review:**
+
+- No automated test validates a produced document against
+  `docs/exports/schema-v1.json` itself — the suite validates against the Zod
+  mirror. The JSON Schema was exercised manually with ajv this session. Closing
+  it properly means adding `ajv` as an apps/api devDependency, which is a HALT
+  condition inside a story.
+- NFR-6's 60 s budget is a design argument (streaming, one chunk per table), not
+  a measurement: the tests stub the data layer, so no wall-clock figure exists
+  for Persona #1's real volume.
+- AC-7's section ORDER and the `en` rendering are not asserted by a test —
+  `tsc`, the catalogs and the page diff cover them, nothing else does.
+- **No visual pass.** `react-grab-mcp` failed to connect this session
+  (CONNECT_TIMEOUT), so the « Vos données » row was never seen rendered. Given
+  the 2026-05-24 / 2026-07-13 / 2026-07-29 run of defects that only a live pass
+  caught, this one deserves an explicit look.
+- `packages/validators` has no `typescript` devDependency, so
+  `bun --filter='@pekulo/validators' run typecheck` exits 127 (`tsc: command not
+  found`); verified with `bunx tsc --noEmit` instead. Pre-existing, same class as
+  the 2026-05-05 per-package-typescript lesson. Out of scope here.
 
 ### Test output
 
-_(filled by aped-dev)_
+```
+apps/api      bun test          → 918 pass, 0 fail, 2497 expect() · 107 files · exit 0
+apps/web      vitest run        → 112 files passed, 370 tests passed · exit 0
+packages/ui   vitest run        → 158 files passed, 294 passed | 1 skipped · exit 0
+apps/api      tsc --noEmit      → exit 0, no output
+apps/web      tsc --noEmit      → exit 0, no output
+validators    bunx tsc --noEmit → exit 0, no output
+docs/exports  ajv (strict, formats) → schema valid; accepts a conforming document,
+                                      rejects a non-UUID user_id + an extra node key
+```
+
+Story-owned suites: `settings.export.test.ts` 6 · `settings.export-map.guard.test.ts` 5
+· `settings.export.integration.test.ts` 4 · `route.test.ts` 4 ·
+`data-section.a11y.test.tsx` 2 = **21 tests**.
+
+RED witnessed before each implementation: `settings.export{,-map.guard}.test.ts`
+(module `./settings.export` missing), `settings.export.integration.test.ts`
+(module `./settings.export-routes` missing), `route.test.ts` +
+`data-section.a11y.test.tsx` (modules `./route` and `./export-data-row`
+missing). AC-5's guard was additionally mutation-tested: dropping
+`dashboard_layout` from `EXPORT_NODES` and one column from
+`bankConnectionExportSelect` turned it red and named `DashboardLayout`.
