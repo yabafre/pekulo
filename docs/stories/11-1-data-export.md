@@ -1551,6 +1551,11 @@ apps/web suite went from an indefinite hang at 0 % CPU to 59 s.
   travel through the oRPC envelope; the browser makes no oRPC call so ADR-0010's
   triad does not apply). Row and the `settings-actions.ts` tree line corrected.
 
+**Commit grouping — 12 commits for 16 tasks.** T6/T7/T8 landed together because
+the module factory's new `jwtVerifier` argument and `app.ts`'s new mount do not
+typecheck apart; T3+T5, T10+T11 and T13+T14 each landed as implementation plus
+the test that proves it, so no commit is red on its own.
+
 **Environment repair (pre-existing, not introduced here):** `node_modules` was
 partially evicted by iCloud to dataless stubs — `zod` and `@orpc/server` read as
 empty. Full reinstall (2494 packages, `bun.lock` unchanged), then
