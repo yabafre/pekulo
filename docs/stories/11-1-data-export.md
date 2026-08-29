@@ -1,7 +1,7 @@
 # Story: 11-1-data-export — GDPR data export: every user-scoped table streamed as one JSON file conforming to schema-v1
 
 **Epic:** Epic 11 — Public-ramp readiness
-**Status:** review
+**Status:** done
 **Ticket:** #48
 **Branch:** feature/48-11-1-data-export
 
@@ -1631,3 +1631,151 @@ RED witnessed before each implementation: `settings.export{,-map.guard}.test.ts`
 missing). AC-5's guard was additionally mutation-tested: dropping
 `dashboard_layout` from `EXPORT_NODES` and one column from
 `bankConnectionExportSelect` turned it red and named `DashboardLayout`.
+
+## Review Record
+
+**Date:** 2026-08-29
+**Auditors:** Spec, Code, Edge & Hallucination, Aria *(static fallback)*
+**Verdict:** done
+**Override:** AC gap accepted — reason: "The two AC gaps are test-coverage gaps, not missing implementation: the `select` allowlist IS applied in production and the published schema IS the T1 verbatim — only the proof was missing. Continuing the review decides each finding individually and records the whole audit in the story file."
+
+26 findings after merge (5 HIGH / 9 MEDIUM / 12 LOW / 0 CRITICAL). All four
+auditors returned CHANGES_REQUESTED. 23 resolved across 7 commits, 3 dismissed.
+No task was marked done without code evidence, all 21 `where: { userId }` guards
+were present, every identifier resolved, and fr/en key parity held — the defects
+were in what the suite *proved*, not in what shipped, with three exceptions
+(H1, H3, H4) where production behaviour genuinely diverged from the story.
+
+### Findings
+
+#### Resolved
+
+- **[HIGH] `Decimal` columns serialised as strings while the story promised numbers; the replacer was dead code and its test passed for the wrong reason** [`settings.export.ts:171-181`, `settings.export.test.ts:29-31,99-106`]
+  - Source: Code + Edge + Lead (three independent executions)
+  - Evidence: ECMA-262 `SerializeJSONProperty` calls `toJSON()` before the replacer, and `Prisma.Decimal` defines one — so `exportJsonReplacer` only ever received an already-serialised string and `decimalToNumber` was never invoked. 16 of the 21 exported tables carry Decimal columns. The unit test passed solely because `fakeDecimal` lacked `toJSON`.
+  - Resolution: `88fc900` — decimal strings adopted deliberately (exactness beats a float round-trip for a portability artefact), replacer and dead import removed, choice documented in `docs/exports/schema-v1.json`, and the test now builds a real `Prisma.Decimal`.
+
+- **[HIGH] AC-4: the `select` allowlist was never exercised at the call site — deleting it survived all 21 tests** [`settings.export.ts:138`]
+  - Source: Spec (+ Code)
+  - Evidence: both fake clients destructured `{ where }` only and never returned a Vault column, so `expect(raw).not.toContain("accessTokenSecretId")` could not fail.
+  - Resolution: `88fc900` — the fixture honours `select` and the raw `bankConnection` row carries both Vault references. Mutation-verified: removing `select: bankConnectionExportSelect` now fails on the leak assertion itself.
+
+- **[HIGH] The 60 s budget bounded the whole transfer instead of time-to-first-byte** [`apps/web/src/app/v1/export/route.ts:15,34`]
+  - Source: Code (measured on Node v22 / undici)
+  - Evidence: `AbortSignal.timeout()` handed to `fetch` also aborts the body stream. Any export still transferring at T+60 s was cut mid-file under an already-sent 200 — precisely the large-volume case the chunked design (AC-8) exists to serve, and contrary to AC-1's "download **starts** within 60 s".
+  - Resolution: `10dbd18` — a cancellable `AbortController` covers start-up only and is released once apps/api answers. Mutation-verified.
+
+- **[HIGH] The `Download` icon carried no theme colour — ≈ 1.03:1 on the default dark card** [`export-data-row.tsx:36`]
+  - Source: Aria + Lead
+  - Evidence: the glyph was a sibling of the Tamagui `<Text>`, so lucide's `currentColor` resolved through `reset.css`'s `a { color: inherit }` to the UA default black on `#0a0a0a`; nothing up the tree declares a colour and no `color-scheme` is set anywhere. Both in-repo precedents colour the icon explicitly; the file cited as the model (`llm-activity-log-link.tsx`) contains no icon at all.
+  - Resolution: `92fe735` — the icon moved inside the `<Text>` with `color="currentColor"`, matching `sign-out-button.tsx`, so hover recolours glyph and label together.
+
+- **[HIGH] AC-1: no test validated a produced document against `docs/exports/schema-v1.json`** [`settings.export.test.ts:71-75`]
+  - Source: Spec + Edge (ajv run over 10 documents)
+  - Evidence: only the Zod mirror was checked, and it is strictly weaker — its node object is non-strict and `.catchall()` constrains no key shape.
+  - Resolution: `e94b905` — `ajv` + `ajv-formats` added as apps/api devDependencies (a HALT condition inside a story, authorised at this gate); `settings.export.schema.test.ts` validates generator output against the published artefact, with 8 rejection cases pinning what the schema must refuse.
+
+- **[MEDIUM] A mid-stream failure returned 200 with a truncated body, no server log, and an OTel span already closed `OK`** [`settings.export-routes.ts:26-33`]
+  - Source: Code + Edge + Spec (two independent probes)
+  - Resolution: `e052f9b` — `pull()` catches, logs `export.stream_failed` with a requestId, finalises the generator (`cancel()` is not called on that path) and errors the controller. Route-level test asserts the body never parses and the log line is emitted; mutation-verified.
+
+- **[MEDIUM] Convention D2 violated on `transactions` / `llm_call_log` / `holding_lots`; the AC-8 ↔ D2 contradiction was arbitrated nowhere** [`settings.export.ts` vs `architecture.md:132`]
+  - Source: Code
+  - Resolution: `8bd3318` — recorded as a fourth explicit derogation in `architecture.md`, with the rationale (a portability dump has no caller for a `nextCursor`; bounding happens one chunk per table), the residual exposure, and the way out.
+
+- **[MEDIUM] The anti-secret guard covered only `BankConnection`; the other 20 nodes failed open** [`settings.export-map.guard.test.ts:52-77`]
+  - Source: Code
+  - Resolution: `88fc900` — a DMMF sweep over every exported model with a credential-name pattern plus an explicit, justified allowlist. Mutation-verified.
+
+- **[MEDIUM] An expired session made `<a download>` save the login page's HTML as the export** [`apps/web/src/proxy.ts:104-107`]
+  - Source: Edge (+ Code)
+  - Evidence: the export is fetched as a file, never navigated to, so the middleware's redirect was followed by the anchor and written to disk; the handler's own 401 branch was unreachable from a browser.
+  - Resolution: `10dbd18` — `proxy.ts` answers 401 for the exact path `/v1/export`. Exact match, like the `/v1/logos` bypass; the endpoint stays behind the session check either way.
+
+- **[MEDIUM] `.gitleaks.toml` and `docs/architecture.md` were missing from `## File List`** [story:1450-1458]
+  - Source: Spec + `git-audit.sh`
+  - Resolution: `8bd3318` — both listed with their rationale (lesson 2026-05-31), alongside the files this review moved or created.
+
+- **[MEDIUM] AC-7: nothing executable proved `data-section.tsx` reads the T12 keys, in either locale**
+  - Source: Spec
+  - Resolution: `92fe735` — the a11y suite now awaits and mounts the `DataSection` RSC against the real fr catalogue and asserts fr/en key parity (the setup mock can only translate through fr).
+
+- **[MEDIUM] The download link's accessible name was the bare verb « Exporter »** [`export-data-row.tsx:29-40`]
+  - Source: Aria
+  - Resolution: `92fe735` — `aria-label={label}` carries the full row label; it still contains the visible text, so WCAG 2.5.3 holds.
+
+- **[MEDIUM] R11 deviation: `export.schemas.ts` was the only one of 14 validator domains flat under a sibling's folder**
+  - Source: Code
+  - Resolution: `5d1834c` — moved to its own `data-export` domain with a barrel entry. Consumers import from the root barrel, so no call site changed.
+
+- **[MEDIUM] The string concatenation had no guard: an `undefined` would silently produce a file that is not JSON** [`settings.export.ts:199-214`]
+  - Source: Edge (latent — prevented by types today)
+  - Resolution: `88fc900` — `?? null` on the email, `?? []` on the rows, plus a test asserting the document never contains the bare token.
+
+- **[LOW] Five smaller items, all fixed in the commits above:** the published schema let any key carrying a digit or an uppercase letter bypass node validation entirely (`e94b905`); the filename stamp used UTC rather than Europe/Paris (`10dbd18`); the `503`/`504`/`502` branches had no tests (`10dbd18`); the a11y file never mounted the section it was named after (`92fe735`); the `no-await-in-loop` warning was neither suppressed nor explained (`88fc900`). Two more became moot: `decimalToNumber`'s unreachable fallback and T14's undeclared divergence, both removed with the code they described.
+
+- **[LOW] The DMMF guard only recognised a field literally named `userId`** [`settings.export-map.guard.test.ts:24`]
+  - Source: Edge
+  - Resolution: `88fc900` — a second guard requires every Prisma model to be either exported or listed in `NON_USER_MODELS` with a rationale, so a table scoped by `ownerId` or by a parent relation can no longer slip through.
+
+- **[LOW] The 21-read fan-out holds no snapshot, so a concurrent write can make the document internally inconsistent** [`settings.export.ts`]
+  - Source: Edge
+  - Resolution: `8bd3318` — documented as a known limit in the file header, with the `$transaction({ isolationLevel: "RepeatableRead" })` escape hatch and its cost.
+
+#### Dismissed
+
+- **[LOW] The SSOT renders the action as a chromed pill; the shipped row is a bare text link** [`PekuloSettingRow.tsx:42`]
+  - Source: Aria
+  - Rationale: `sign-out-button.tsx` makes the same deviation deliberately and documents it ("stays a compact text+icon link, NOT the oversized filled pill"). Existing patterns are LAW; porting the chrome is a `@pekulo/ui` change that belongs with story 11-2's destructive row, not here.
+
+- **[LOW] No download feedback; `PekuloSpinner` / `PekuloProgress` unused**
+  - Source: Aria
+  - Rationale: architecturally unavailable, not omitted. A native `<a download>` emits no completion event; showing a spinner would mean `fetch` + Blob + `createObjectURL`, abandoning the streamed `Content-Disposition` download the design rests on. AC-7 asks for no feedback. The browser's own download indicator is the affordance.
+
+- **[LOW] `/v1/*` absent from the Caddy snippet and the mount layout** [`Caddyfile.snippet:19-45`]
+  - Source: Code
+  - Rationale: false positive. `API_BASE_URL` targets apps/api directly (`.env.example:77` → `http://127.0.0.1:3001`), so the browser never requests `/v1/export` from apps/api — apps/web does, server-to-server, exactly as `/v1/logos` already does. No Caddy mount is required. Production must keep `API_BASE_URL` internal; pointing it at the public domain would loop.
+
+### Verification
+
+Captured fresh at `8bd3318`, working tree clean apart from unrelated untracked iCloud duplicates.
+
+- `cd apps/api && bun test` → **932 pass, 0 fail**, 2574 expect() · 108 files · exit 0
+- `cd apps/web && bunx vitest run` → **112 files, 377 tests passed** · exit 0
+- `cd packages/ui && bunx vitest run` → **158 files, 294 passed | 1 skipped** · exit 0
+- `bunx oxlint .` → 0 errors, 4 warnings — all four present identically on `main` (verified by checkout), none in story files
+- `tsc --noEmit` → exit 0 in `apps/api`, `apps/web` and `packages/validators`
+- `bash .aped/scripts/validate-architecture.sh` → exit 0 · `validate-story.sh` → exit 0
+
+Story-owned suites grew from 21 to **34 tests**: `settings.export.test.ts` 7 ·
+`settings.export-map.guard.test.ts` 7 · `settings.export.schema.test.ts` 10 ·
+`settings.export.integration.test.ts` 5 · `route.test.ts` 8 (apps/web) ·
+`export-data-row.a11y.test.tsx` 5 (apps/web) — note the last two are counted in
+the apps/web totals above.
+
+Four fixes were mutation-verified rather than merely asserted green: removing
+the `select` allowlist, emptying the guard's allowlist, neutralising the stream
+`try/catch`, and restoring `AbortSignal.timeout` each turn the suite red on the
+assertion that names the defect. The first version of the TTFB test passed
+against the broken code — `vi.useFakeTimers()` does not intercept
+`AbortSignal.timeout` — and was rewritten until it failed.
+
+**Not covered by a test:** the `proxy.ts` 401 branch. That file has no suite in
+this repo and building one requires mocking the Supabase SSR client; the change
+is a strictly-narrowing replacement of a redirect, and the handler's own 401 is
+tested. Left as-is rather than introducing a middleware harness inside a review.
+
+**Visual verification: deferred — React Grab MCP unavailable at
+2026-08-29T18:31:00Z (CONNECT_TIMEOUT), user-approved degraded mode.** Aria ran
+the static fallback: placement against the ux-preview SSOT, byte-level copy
+check (U+00B7 confirmed in both catalogues), `<Section>` prop parity and
+computed contrast ratios for the text (7.6:1 dark / 9.9:1 light) all conform.
+Her HIGH on the icon was reasoned from the CSS cascade, not observed — and the
+fix for it likewise has not been seen rendered. A live pass on « Vos données »
+should confirm the glyph now takes `$colorSecondary` in both themes and that the
+label still renders in the sans stack.
+
+### Ticket sync
+
+- Ticket comment posted: see below
+- PR updated: #143 (draft, base `main`)
