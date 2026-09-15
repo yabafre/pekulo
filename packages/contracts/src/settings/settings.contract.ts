@@ -21,11 +21,31 @@ import {
   userPrefSchema,
 } from "@pekulo/validators";
 
+// Typed errors for deleteAccount. oRPC only lets a handler-thrown error reach
+// the wire as a 4xx/5xx when the contract declares it; an undeclared throw
+// is collapsed to 500 before the Elysia error mapper ever sees it.
+const forbiddenError = {
+  status: 403 as const,
+  message: "confirmation email does not match the signed-in account",
+};
+// Same shape as the bank-aggregator contract's BANK_PROVIDER_UNAVAILABLE, so
+// the web tier can branch on one code for "Bridge is down" in both modules.
+const bankProviderUnavailableError = {
+  status: 503 as const,
+  message: "bank provider unavailable",
+};
+
 export const settingsContractV1 = {
   get: oc.output(userPrefSchema),
   updateTheme: oc.input(updateThemeInputSchema).output(userPrefSchema),
   updateLang: oc.input(updateLangInputSchema).output(userPrefSchema),
-  deleteAccount: oc.input(deleteUserAccountInputSchema).output(deleteUserAccountResultSchema),
+  deleteAccount: oc
+    .input(deleteUserAccountInputSchema)
+    .output(deleteUserAccountResultSchema)
+    .errors({
+      FORBIDDEN: forbiddenError,
+      BANK_PROVIDER_UNAVAILABLE: bankProviderUnavailableError,
+    }),
 } as const;
 
 export const settingsContract = settingsContractV1;

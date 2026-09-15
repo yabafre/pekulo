@@ -4,7 +4,7 @@
 // context — the Elysia error mapper translates it to a 401.
 import { implement } from "@orpc/server";
 import { settingsContract } from "@pekulo/contracts";
-import { PekuloError } from "../../common/errors";
+import { isPekuloError, PekuloError } from "../../common/errors";
 import type { SettingsService } from "./settings.service";
 
 const impl = implement(settingsContract).$context<{
@@ -37,9 +37,21 @@ export function createSettingsRouter(deps: { service: SettingsService }) {
     // against the real account. The handler does no checking of its own: the
     // confirmation is an authorization rule and belongs in the service, where
     // the unit tests can reach it.
-    deleteAccount: impl.deleteAccount.handler(async ({ context, input }) => {
+    deleteAccount: impl.deleteAccount.handler(async ({ context, input, errors }) => {
       requireUserId(context.userId);
-      return deps.service.deleteAccount(context.userId, context.email, input);
+      try {
+        return await deps.service.deleteAccount(context.userId, context.email, input);
+      } catch (err) {
+        // Re-thrown as the contract's typed errors: oRPC collapses any other
+        // throw to 500 inside handler.handle(), before the mount's mapper runs.
+        if (isPekuloError(err)) {
+          if (err.code === "FORBIDDEN") throw errors.FORBIDDEN({ message: err.message });
+          if (err.code === "BANK_PROVIDER_UNAVAILABLE") {
+            throw errors.BANK_PROVIDER_UNAVAILABLE({ message: err.message });
+          }
+        }
+        throw err;
+      }
     }),
   });
 }
