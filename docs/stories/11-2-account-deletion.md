@@ -1,7 +1,7 @@
 # Story: 11-2-account-deletion — GDPR account deletion: Bridge erasure, explicit purge of all 21 user-scoped tables, Supabase Auth user erased
 
 **Epic:** Epic 11 — Public-ramp readiness
-**Status:** review
+**Status:** done
 **Ticket:** #49
 **Branch:** feature/49-11-2-account-deletion
 
@@ -3444,5 +3444,5 @@ server restarted after the action-file rename (stale SSR module graph).
 
 ### Ticket sync
 
-- Ticket comment posted: pending — posted at finalisation
-- PR updated: pending — #144 (draft, base `main`)
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/49#issuecomment-5683302112
+- PR updated: https://github.com/yabafre/pekulo/pull/144 (ready for review, base `main`)
