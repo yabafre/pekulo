@@ -20,7 +20,6 @@
 // uncoloured icon measured ~1.03:1).
 import { useState, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import {
   PekuloDialog,
@@ -63,7 +62,6 @@ export interface DeleteAccountConfirmProps {
 export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccountConfirmProps) {
   const t = useTranslations("settings.data");
   const tCommon = useTranslations("common");
-  const router = useRouter();
   const { mutate, isPending, error, reset } = useDeleteUserAccount();
   const [typed, setTyped] = useState("");
 
@@ -94,9 +92,14 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
           // never cost the user the navigation below.
           await purgeOfflineCache().catch(() => undefined);
           // docs/ux/flows.md § Account deletion ends on `/`, not `/login`:
-          // there is no account to sign back into.
-          router.push("/");
-          router.refresh();
+          // there is no account to sign back into. A HARD navigation, not
+          // router.push + router.refresh: seen live, the refresh re-fetched
+          // the dashboard tree with the session already gone, the proxy
+          // answered with a redirect to /login, and the client router was
+          // left on a blank page. Nothing client-side may outlive the
+          // account — the React Query cache included — so a full document
+          // load is the correct end state, not a workaround.
+          window.location.assign("/");
         },
       },
     );
