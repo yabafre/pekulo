@@ -32,5 +32,14 @@ export function createSettingsRouter(deps: { service: SettingsService }) {
       requireUserId(context.userId);
       return deps.service.updateLang(context.userId, input.lang);
     }),
+    // Story 11-2 (FR-50). `context.email` is the email claim from the verified
+    // JWT — passed through so the service can check the typed confirmation
+    // against the real account. The handler does no checking of its own: the
+    // confirmation is an authorization rule and belongs in the service, where
+    // the unit tests can reach it.
+    deleteAccount: impl.deleteAccount.handler(async ({ context, input }) => {
+      requireUserId(context.userId);
+      return deps.service.deleteAccount(context.userId, context.email, input);
+    }),
   });
 }
