@@ -32,7 +32,18 @@
       "title": "Vos données",
       "exportLabel": "Exporter mes données",
       "exportSub": "JSON complet · conforme RGPD",
-      "exportAction": "Exporter"
+      "exportAction": "Exporter",
+      "deleteLabel": "Supprimer mon compte",
+      "deleteSub": "Cascade sur toutes les tables · irréversible",
+      "deleteAction": "Supprimer",
+      "deleteTitle": "Supprimer définitivement ce compte ?",
+      "deleteDescription": "Toutes vos données seront effacées : comptes, transactions, portefeuille, immobilier, objectifs et préférences. Vos connexions bancaires seront révoquées chez notre prestataire. Cette action est irréversible.",
+      "deleteConfirmPrompt": "Saisissez {email} pour confirmer.",
+      "deleteConfirmLabel": "Adresse e-mail du compte",
+      "deleteConfirm": "Supprimer définitivement",
+      "deleteLoading": "Suppression…",
+      "deleteProviderError": "Impossible de joindre notre prestataire bancaire. Aucune donnée n'a été supprimée — réessayez dans quelques minutes.",
+      "deleteGenericError": "La suppression a échoué. Aucune donnée n'a été supprimée."
     }
   },
   "auth": {
