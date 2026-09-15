@@ -5,6 +5,7 @@ const BASE = {
   DATABASE_URL: "postgres://x:y@localhost:5432/db",
   SUPABASE_JWT_SECRET: "x".repeat(32),
   SUPABASE_URL: "https://example.supabase.co",
+  SUPABASE_SERVICE_ROLE_KEY: "service-role-key-fixture-value",
   // Story 5-6 (post-review): BRIDGE_* triple is required at boot — test
   // fixtures must populate them or `loadEnv` throws ConfigError.
   BRIDGE_CLIENT_ID: "test-bridge-client-id",
@@ -82,6 +83,14 @@ describe("loadEnv", () => {
 
   test("rejects missing BRIDGE_WEBHOOK_SIGNING_SECRET", () => {
     const { BRIDGE_WEBHOOK_SIGNING_SECRET: _, ...rest } = BASE;
+    expect(() => loadEnv(rest)).toThrow(ConfigError);
+  });
+
+  // Story 11-2 (FR-50) — the Auth Admin key is the only credential that can
+  // erase a Supabase Auth user. A deployment without it must fail at boot,
+  // not at the first deletion, after the user's data is already gone.
+  test("rejects missing SUPABASE_SERVICE_ROLE_KEY", () => {
+    const { SUPABASE_SERVICE_ROLE_KEY: _, ...rest } = BASE;
     expect(() => loadEnv(rest)).toThrow(ConfigError);
   });
 

@@ -20,6 +20,23 @@ const envSchema = z.object({
   // belt+suspenders). The value is the same as `NEXT_PUBLIC_SUPABASE_URL` on
   // the web tier; it lives here too so apps/api can run independently.
   SUPABASE_URL: z.string().url(),
+  // Supabase Auth Admin API key (story 11-2, FR-50). REQUIRED — GDPR erasure
+  // cannot complete without it, and a deployment that silently lacks it would
+  // only surface as a failed deletion after the user's data is already gone.
+  // Boot fails fast instead, same posture as the Bridge credentials below.
+  //
+  // This is NOT the Postgres connection in DATABASE_URL and NOT
+  // SUPABASE_JWT_SECRET: it is the `service_role` API key from the Supabase
+  // dashboard (Project Settings -> API), and it is the only credential that
+  // can call auth.admin.deleteUser. It lives ONLY in Dokploy env — never on
+  // apps/web (docs/security.md: the service-role key is never read on the web
+  // side), never in a committed file.
+  SUPABASE_SERVICE_ROLE_KEY: z
+    .string()
+    .min(
+      20,
+      "SUPABASE_SERVICE_ROLE_KEY is required (Supabase dashboard -> Project Settings -> API -> service_role)",
+    ),
   // Price-chain providers (story 3-2). All optional — when unset, the
   // corresponding tier throws a typed `not-configured` / `missing-key`
   // error and the orchestrator falls back to the next tier.
