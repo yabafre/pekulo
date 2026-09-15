@@ -364,6 +364,25 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
       });
     },
 
+    async deleteUser({ userUuid }) {
+      // DELETE /v3/aggregation/users/{uuid} — removes the Bridge user and
+      // every item beneath it. App-level credentials (Client-Id +
+      // Client-Secret), NO user Bearer: the same posture as createUser, and
+      // minting a user token for a user we are deleting would be circular.
+      //
+      // 404 is admitted as SUCCESS. The end state this call exists to reach is
+      // "no such user at Bridge", and a 404 says we are already there. Story
+      // 11-2 is fail-closed on this call, so treating "already gone" as a
+      // failure would make a retried deletion permanently impossible.
+      await req<unknown>(`/v3/aggregation/users/${encodeURIComponent(userUuid)}`, {
+        method: "DELETE",
+        allowStatuses: [404],
+      });
+      // Drop any cached user Bearer so a later call cannot mint against a
+      // deleted user from cache.
+      userTokenCache.delete(userUuid);
+    },
+
     async getItem({ userUuid, providerItemId }) {
       const bearer = await mintUserAccessToken(userUuid);
       const data = await reqJson<{

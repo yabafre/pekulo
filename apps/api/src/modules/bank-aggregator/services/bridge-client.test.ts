@@ -521,3 +521,61 @@ test("getProviderLogo: a 404 with an EMPTY body resolves to null (not a throw)",
     globalThis.fetch = prev;
   }
 });
+
+// ───── Story 11-2 (AC-6) — provider-side erasure ────────────────────────
+// AC-6 (verbatim from story 11-2-account-deletion:19):
+//   Given a user holding at least one Bridge bank connection, When they delete
+//   their account, Then the Bridge user is deleted at the provider
+//   (`DELETE /v3/aggregation/users/{uuid}`) before any local row is removed.
+
+test("deleteUser: DELETE /v3/aggregation/users/{uuid}, app credentials, no user Bearer", async () => {
+  const seen: Array<{ url: string; method: string; hasBearer: boolean }> = [];
+  const localFetch = mock(async (url: string | URL | Request, init?: RequestInit) => {
+    seen.push({
+      url: typeof url === "string" ? url : String(url),
+      method: init?.method ?? "GET",
+      hasBearer: new Headers(init?.headers).has("Authorization"),
+    });
+    return new Response("", { status: 204 });
+  });
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const provider = createBridgeProvider({ env });
+    await provider.deleteUser({ userUuid: "bridge-uuid-1" });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.url).toContain("/v3/aggregation/users/bridge-uuid-1");
+    expect(seen[0]!.method).toBe("DELETE");
+    // App-level call like createUser: minting a user token for the user we
+    // are deleting would be circular.
+    expect(seen[0]!.hasBearer).toBe(false);
+  } finally {
+    globalThis.fetch = prev;
+  }
+});
+
+test("deleteUser: a 404 is SUCCESS — the user is already gone", async () => {
+  const localFetch = mock(async () => new Response("", { status: 404 }));
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const provider = createBridgeProvider({ env });
+    expect(await provider.deleteUser({ userUuid: "bridge-uuid-1" })).toBeUndefined();
+  } finally {
+    globalThis.fetch = prev;
+  }
+});
+
+test("deleteUser: any other non-2xx throws bankProviderUnavailable", async () => {
+  const localFetch = mock(async () => new Response("", { status: 500 }));
+  const prev = globalThis.fetch;
+  globalThis.fetch = localFetch as unknown as typeof fetch;
+  try {
+    const provider = createBridgeProvider({ env });
+    expect(provider.deleteUser({ userUuid: "bridge-uuid-1" })).rejects.toThrow(
+      "bank provider unavailable",
+    );
+  } finally {
+    globalThis.fetch = prev;
+  }
+});

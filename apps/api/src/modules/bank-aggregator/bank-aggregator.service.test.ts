@@ -71,6 +71,7 @@ function makeStubs() {
       truncated: false,
     }),
     revokeItem: async () => undefined,
+    deleteUser: async () => undefined,
     getItem: async () => ({
       providerItemId: "i",
       statusCode: 0,

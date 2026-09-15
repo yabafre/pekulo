@@ -245,6 +245,7 @@ function makeFakeProvider(): BankProvider {
       truncated: false,
     }),
     revokeItem: async () => undefined,
+    deleteUser: async () => undefined,
     getItem: async () => ({
       providerItemId: "item-42",
       statusCode: 0,
