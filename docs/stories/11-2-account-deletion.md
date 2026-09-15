@@ -1,7 +1,7 @@
 # Story: 11-2-account-deletion — GDPR account deletion: Bridge erasure, explicit purge of all 21 user-scoped tables, Supabase Auth user erased
 
 **Epic:** Epic 11 — Public-ramp readiness
-**Status:** in-progress
+**Status:** review
 **Ticket:** #49
 **Branch:** feature/49-11-2-account-deletion
 
@@ -22,7 +22,7 @@
 
 ## Tasks
 
-- [ ] **T1 — Migration: the four missing `auth.users` foreign keys** [AC: AC-1, AC-5]
+- [x] **T1 — Migration: the four missing `auth.users` foreign keys** [AC: AC-1, AC-5]
 
   Four of the 21 user-scoped tables carry no foreign key to `auth.users` on any path. Three of their migrations contain a comment asserting the opposite. Verify the gap first, then close it.
 
@@ -97,7 +97,7 @@
   Expected: the output lists `20260915120000_add_missing_auth_users_fk` as applied, exit 0.
   Commit: `git add apps/api/prisma/migrations/20260915120000_add_missing_auth_users_fk/migration.sql && git commit -m "feat(#49): add the four missing auth.users FK cascades (FR-50)"`
 
-- [ ] **T2 — RED then GREEN: extend the static gate to assert cascade reachability** [AC: AC-5]
+- [x] **T2 — RED then GREEN: extend the static gate to assert cascade reachability** [AC: AC-5]
 
   The existing gate proves RLS is enabled. Nothing proves a user-data table can be reached by the `auth.users` cascade — which is exactly how the T1 gap survived four stories.
 
@@ -301,7 +301,7 @@
   Expected: the test file reports `6 pass` for the new describe block (plus the pre-existing tests, all passing), and the script prints `[rls-migration-audit] OK — 23 user-data tables, all RLS-guarded and all reachable by the auth.users cascade.`, exit 0.
   Commit: `git add apps/api/scripts/rls-migration-audit.ts apps/api/scripts/rls-migration-audit.test.ts && git commit -m "feat(#49): gate cascade reachability to auth.users in the static RLS audit (AC-5)"`
 
-- [ ] **T3 — Restore `dashboard_layout` to the runtime RLS inventory** [AC: AC-5]
+- [x] **T3 — Restore `dashboard_layout` to the runtime RLS inventory** [AC: AC-5]
 
   `EXPECTED_POLICY_COUNTS` holds 20 entries for 21 user-scoped tables — `dashboard_layout` was never added. That omission is why story 11-1 had to warn that `rls-audit.ts` is not a usable table inventory. Its migration does declare 3 policies, so this is a reporting gap, not a security hole.
 
@@ -340,7 +340,7 @@
   Expected: typecheck exits 0 with no output, and the grep prints `21`.
   Commit: `git add apps/api/scripts/rls-audit.ts && git commit -m "feat(#49): add the missing dashboard_layout entry to the RLS policy inventory"`
 
-- [ ] **T4 — Zod schemas for the deletion contract** [AC: AC-1, AC-7]
+- [x] **T4 — Zod schemas for the deletion contract** [AC: AC-1, AC-7]
 
   Create `packages/validators/src/settings/deletion.schemas.ts` with exactly this content:
 
@@ -382,7 +382,7 @@
   Expected: exit 0, no output.
   Commit: `git add packages/validators/src/settings/deletion.schemas.ts packages/validators/src/settings/index.ts && git commit -m "feat(#49): zod schemas for the account-deletion contract (FR-50)"`
 
-- [ ] **T5 — Add `deleteAccount` to the settings oRPC contract** [AC: AC-1, AC-7]
+- [x] **T5 — Add `deleteAccount` to the settings oRPC contract** [AC: AC-1, AC-7]
 
   Replace the entire content of `packages/contracts/src/settings/settings.contract.ts` with:
 
@@ -429,7 +429,7 @@
   Expected: exit 0, no output.
   Commit: `git add packages/contracts/src/settings/settings.contract.ts && git commit -m "feat(#49): add settings.deleteAccount to the oRPC contract (FR-50)"`
 
-- [ ] **T6 — Declare `SUPABASE_SERVICE_ROLE_KEY` in the apps/api env schema** [AC: AC-1, AC-2]
+- [x] **T6 — Declare `SUPABASE_SERVICE_ROLE_KEY` in the apps/api env schema** [AC: AC-1, AC-2]
 
   `apps/api` today holds `SUPABASE_JWT_SECRET` (to verify tokens) and `DATABASE_URL` (a Postgres service-role connection). Neither can erase a Supabase Auth user — that needs the Auth Admin API key, which is a different credential and is not declared anywhere in the repo.
 
@@ -506,7 +506,7 @@
   Expected: every test passes, exit 0.
   Commit: `git add apps/api/src/config/env.ts apps/api/src/config/env.test.ts .env.example && git commit -m "feat(#49): require SUPABASE_SERVICE_ROLE_KEY for GDPR erasure (FR-50)"`
 
-- [ ] **T7 — Add `@supabase/supabase-js` to apps/api** [AC: AC-1]
+- [x] **T7 — Add `@supabase/supabase-js` to apps/api** [AC: AC-1]
 
   `apps/web` already depends on it at `^2.104.1`; apps/api does not. Pin the same major so one lockfile entry serves both.
 
@@ -514,7 +514,7 @@
   Expected: `apps/api/package.json` gains `"@supabase/supabase-js": "^2.104.1"` in `dependencies`, and `bun.lock` updates. Verify with `grep supabase apps/api/package.json`.
   Commit: `git add apps/api/package.json bun.lock && git commit -m "chore(#49): add @supabase/supabase-js to apps/api for Auth Admin erasure"`
 
-- [ ] **T8 — RED then GREEN: the Supabase Auth admin port** [AC: AC-1, AC-2]
+- [x] **T8 — RED then GREEN: the Supabase Auth admin port** [AC: AC-1, AC-2]
 
   Create `apps/api/src/platform/auth/supabase-admin.test.ts` with exactly this content:
 
@@ -640,7 +640,7 @@
   Expected: `3 pass`, `0 fail`; typecheck exits 0 with no output.
   Commit: `git add apps/api/src/platform/auth/ && git commit -m "feat(#49): supabase auth admin port for account erasure (FR-50)"`
 
-- [ ] **T9 — Add `deleteUser` to the `BankProvider` port** [AC: AC-6]
+- [x] **T9 — Add `deleteUser` to the `BankProvider` port** [AC: AC-6]
 
   In `apps/api/src/modules/bank-aggregator/bank-provider.ts`, find this existing method declaration inside `export interface BankProvider`:
 
@@ -669,7 +669,7 @@
   Expected: RED — `Property 'deleteUser' is missing in type ... but required in type 'BankProvider'`, pointing at `services/bridge-client.ts`. T10 fixes it.
   Commit: (none — T9 and T10 land together; commit at the end of T10.)
 
-- [ ] **T10 — Implement `deleteUser` on the Bridge client** [AC: AC-6]
+- [x] **T10 — Implement `deleteUser` on the Bridge client** [AC: AC-6]
 
   In `apps/api/src/modules/bank-aggregator/services/bridge-client.ts`, find this existing method in the returned object:
 
@@ -770,7 +770,7 @@
   Expected: every test in the file passes including the three new ones, `0 fail`; typecheck exits 0 with no output.
   Commit: `git add apps/api/src/modules/bank-aggregator/bank-provider.ts apps/api/src/modules/bank-aggregator/services/bridge-client.ts apps/api/src/modules/bank-aggregator/services/bridge-client.test.ts && git commit -m "feat(#49): BankProvider.deleteUser for GDPR erasure at Bridge (AC-6)"`
 
-- [ ] **T11 — RED then GREEN: `eraseUserAtProvider` on the bank-aggregator service** [AC: AC-6]
+- [x] **T11 — RED then GREEN: `eraseUserAtProvider` on the bank-aggregator service** [AC: AC-6]
 
   First, `makeStubs()` in `apps/api/src/modules/bank-aggregator/bank-aggregator.service.test.ts` types its `provider` as `BankProvider`, so T9's new method makes that object incomplete. Find this line inside `makeStubs()`:
 
@@ -990,7 +990,7 @@
   Expected: the four new tests pass, `0 fail`; typecheck exits 0 with no output.
   Commit: `git add apps/api/src/modules/bank-aggregator/bank-aggregator.service.ts apps/api/src/modules/bank-aggregator/bank-aggregator.service.test.ts && git commit -m "feat(#49): eraseUserAtProvider — revoke items then delete the Bridge user (AC-6)"`
 
-- [ ] **T12 — RED: the deletion-map guard** [AC: AC-4]
+- [x] **T12 — RED: the deletion-map guard** [AC: AC-4]
 
   This is the story's mechanical guard and it is written **before** the map it guards, so its first run proves it actually fails.
 
@@ -1107,7 +1107,7 @@
   Expected: RED — `Cannot find module './settings.deletion'`.
   Commit: (none — T12 and T13 land together; commit at the end of T13.)
 
-- [ ] **T13 — GREEN: `DELETION_NODES`, the vault purge, and `deleteUserData`** [AC: AC-1, AC-3, AC-4]
+- [x] **T13 — GREEN: `DELETION_NODES`, the vault purge, and `deleteUserData`** [AC: AC-1, AC-3, AC-4]
 
   Create `apps/api/src/modules/settings/settings.deletion.ts` with exactly this content:
 
@@ -1349,7 +1349,7 @@
   Expected: `6 pass`, `0 fail`; typecheck exits 0 with no output.
   Commit: `git add apps/api/src/modules/settings/settings.deletion.ts apps/api/src/modules/settings/settings.deletion-map.guard.test.ts && git commit -m "feat(#49): DELETION_NODES + vault purge + transactional deleteUserData (FR-50)"`
 
-- [ ] **T14 — Unit-test the local erasure fan-out** [AC: AC-1, AC-3]
+- [x] **T14 — Unit-test the local erasure fan-out** [AC: AC-1, AC-3]
 
   Create `apps/api/src/modules/settings/settings.deletion.test.ts` with exactly this content:
 
@@ -1527,7 +1527,7 @@
   Expected: `7 pass`, `0 fail`.
   Commit: `git add apps/api/src/modules/settings/settings.deletion.test.ts && git commit -m "test(#49): local erasure fan-out — order, isolation, vault purge (AC-1, AC-3)"`
 
-- [ ] **T15 — RED then GREEN: `deleteAccount` on the settings service** [AC: AC-1, AC-6, AC-7]
+- [x] **T15 — RED then GREEN: `deleteAccount` on the settings service** [AC: AC-1, AC-6, AC-7]
 
   Append this `describe` block to `apps/api/src/modules/settings/settings.service.test.ts`, and add the imports it needs at the top of that file next to the existing ones:
 
@@ -1821,7 +1821,7 @@
   Expected: every test passes including the seven new ones, `0 fail`.
   Commit: `git add apps/api/src/modules/settings/settings.service.ts apps/api/src/modules/settings/settings.service.test.ts && git commit -m "feat(#49): settings.deleteAccount — provider, data, identity, in that order (FR-50)"`
 
-- [ ] **T16 — Wire the `deleteAccount` oRPC handler** [AC: AC-1, AC-7]
+- [x] **T16 — Wire the `deleteAccount` oRPC handler** [AC: AC-1, AC-7]
 
   In `apps/api/src/modules/settings/settings.routes.ts`, find this existing block:
 
@@ -1858,7 +1858,7 @@
   Expected: it fails only in `settings.module.ts` (`Property 'providerErasure' is missing`), which T17 fixes. If any error points at `settings.routes.ts` itself, stop and fix it before continuing.
   Commit: (none — T16 and T17 land together; commit at the end of T17.)
 
-- [ ] **T17 — Compose the module and the runtime wiring** [AC: AC-1, AC-6]
+- [x] **T17 — Compose the module and the runtime wiring** [AC: AC-1, AC-6]
 
   Replace the entire content of `apps/api/src/modules/settings/settings.module.ts` with:
 
@@ -1957,7 +1957,7 @@
   Expected: typecheck exits 0 with no output; the whole apps/api suite passes, `0 fail`.
   Commit: `git add apps/api/src/modules/settings/settings.module.ts apps/api/src/modules/settings/settings.routes.ts apps/api/src/bootstrap/runtime-dependencies.ts && git commit -m "feat(#49): wire the three erasure ports into the settings module (FR-50)"`
 
-- [ ] **T18 — HTTP-boundary proof: two tenants, 401, and the confirmation gate** [AC: AC-3, AC-7]
+- [x] **T18 — HTTP-boundary proof: two tenants, 401, and the confirmation gate** [AC: AC-3, AC-7]
 
   In `apps/api/src/modules/settings/settings.integration.test.ts`, the `inMemorySettingsService()` helper no longer satisfies `SettingsService` (it lacks `deleteAccount`). Replace this existing block:
 
@@ -2070,7 +2070,7 @@
   Expected: every test in the file passes including the four new ones, `0 fail`.
   Commit: `git add apps/api/src/modules/settings/settings.integration.test.ts && git commit -m "test(#49): deleteAccount HTTP boundary — 401, 403, tenant isolation (AC-3, AC-7)"`
 
-- [ ] **T19 — i18n copy for the deletion row and dialog** [AC: AC-8]
+- [x] **T19 — i18n copy for the deletion row and dialog** [AC: AC-8]
 
   The copy comes from the ux-preview SSOT (`docs/ux-preview/src/App.tsx:1799-1809`) and `docs/ux/flows.md` § Account deletion, not from invention (2026-05-17 lesson).
 
@@ -2144,7 +2144,7 @@
   Expected: `both parse, 15 keys, fr/en in parity`, exit 0.
   Commit: `git add apps/web/messages/fr.json apps/web/messages/en.json && git commit -m "feat(#49): fr/en copy for the account-deletion row and dialog (AC-8)"`
 
-- [ ] **T20 — The server action** [AC: AC-1, AC-8]
+- [x] **T20 — The server action** [AC: AC-1, AC-8]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_actions/delete-account-action.ts` with exactly this content:
 
@@ -2203,7 +2203,7 @@
   Expected: exit 0, no output.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_actions/delete-account-action.ts" && git commit -m "feat(#49): deleteAccount server action + session teardown (FR-50)"`
 
-- [ ] **T21 — The mutation hook** [AC: AC-8]
+- [x] **T21 — The mutation hook** [AC: AC-8]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_hooks/use-delete-account.ts` with exactly this content:
 
@@ -2228,7 +2228,7 @@
   Expected: exit 0, no output.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_hooks/use-delete-account.ts" && git commit -m "feat(#49): useDeleteAccount hook (ADR-0010 triad)"`
 
-- [ ] **T22 — The confirmation dialog** [AC: AC-8]
+- [x] **T22 — The confirmation dialog** [AC: AC-8]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-confirm.tsx` with exactly this content:
 
@@ -2412,7 +2412,7 @@
   Expected: exit 0, no output.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-confirm.tsx" && git commit -m "feat(#49): destructive account-deletion confirmation dialog (AC-8)"`
 
-- [ ] **T23 — The destructive settings row** [AC: AC-8]
+- [x] **T23 — The destructive settings row** [AC: AC-8]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-row.tsx` with exactly this content:
 
@@ -2497,7 +2497,7 @@
   Expected: exit 0, no output.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-row.tsx" && git commit -m "feat(#49): destructive « Supprimer mon compte » settings row (AC-8)"`
 
-- [ ] **T24 — Mount the row in « Vos données »** [AC: AC-8]
+- [x] **T24 — Mount the row in « Vos données »** [AC: AC-8]
 
   `DataSection` is an RSC and needs the signed-in account's email to pass down. The three lines that read it are copied verbatim from the sibling `_account/_components/account-section.tsx`, which already does exactly this behind the same auth guard — one path to the value, not two.
 
@@ -2554,7 +2554,7 @@
   Expected: exit 0, no output.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_components/data-section.tsx" && git commit -m "feat(#49): mount the deletion row in « Vos données » (AC-8)"`
 
-- [ ] **T25 — Behaviour test for the dialog** [AC: AC-8]
+- [x] **T25 — Behaviour test for the dialog** [AC: AC-8]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-confirm.test.tsx` with exactly this content:
 
@@ -2634,7 +2634,7 @@
   Expected: `3 passed`, exit 0.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-confirm.test.tsx" && git commit -m "test(#49): typed-email gate on the deletion dialog (AC-8)"`
 
-- [ ] **T26 — Accessibility coverage for the row and the two-row section** [AC: AC-8]
+- [x] **T26 — Accessibility coverage for the row and the two-row section** [AC: AC-8]
 
   Create `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-row.a11y.test.tsx` with exactly this content:
 
@@ -2745,7 +2745,7 @@
   Expected: `5 passed`, exit 0.
   Commit: `git add "apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-row.a11y.test.tsx" && git commit -m "test(#49): a11y coverage for the deletion row and the two-row section (AC-8)"`
 
-- [ ] **T27 — Update the documentation the change invalidates** [AC: AC-1, AC-5, AC-6]
+- [x] **T27 — Update the documentation the change invalidates** [AC: AC-1, AC-5, AC-6]
 
   The 2026-05-31 lesson: doc debt created by a change lands in the same pass, not later.
 
@@ -2827,7 +2827,7 @@
   Expected: exits 0.
   Commit: `git add docs/security.md docs/rgpd-readiness.md docs/architecture.md docs/epics.md docs/epics-context/epic-11-context.md && git commit -m "docs(#49): erasure posture, cascade gate, RGPD readiness, epic summary"`
 
-- [ ] **T28 — Full gate sweep and live visual verification** [AC: AC-1, AC-5, AC-8]
+- [x] **T28 — Full gate sweep and live visual verification** [AC: AC-1, AC-5, AC-8]
 
   Run every gate the PR will run:
 
@@ -3139,14 +3139,175 @@ There is no service-role key anywhere in the repo today — not in `env.ts`, not
 
 ## Dev Agent Record
 
-- **Model:**
-- **Started:**
-- **Completed:**
+- **Model:** claude-fable-5-1
+- **Started:** 2026-09-15T14:01:38Z
+- **Completed:** 2026-09-15T15:40:00Z
 
 ### Summary
 
+GDPR account deletion shipped end to end: the four missing `auth.users`
+cascades plus a static gate that keeps every user table reachable, a typed
+`settings.deleteAccount` procedure that erases at Bridge first (fail-closed),
+then all 21 tables in one transaction, then the Supabase Auth user, and the
+« Supprimer mon compte » row + typed-email dialog on Paramètres. Exercised
+three times against the dev database and twice through the real UI: every
+row gone, sign-in rejected, 0.7–1.5 s per deletion (NFR-7 budget is 60 s).
+
+Two things the story did not foresee dominated the session. The story's
+verbatim identifiers collided with the accounts domain (`deleteAccountInputSchema`
+already means "delete a BANK account"), settled with the user as
+`deleteUserAccount*`. And the web flow as written left the browser on a blank
+page after a successful deletion — found only by the live pass, fixed with a
+server-side `redirect()` in the action (see Deviations).
+
 ### Files changed
+
+- `apps/api/prisma/migrations/20260915120000_add_missing_auth_users_fk/migration.sql` (NEW)
+- `apps/api/scripts/rls-migration-audit.ts` + `.test.ts`
+- `apps/api/scripts/rls-audit.ts`
+- `apps/api/src/config/env.ts` + `env.test.ts`
+- `apps/api/src/platform/observability/otel-sdk.test.ts` (fixture gained the new key)
+- `apps/api/src/platform/auth/{index,supabase-admin,supabase-admin.test}.ts` (NEW)
+- `apps/api/src/modules/bank-aggregator/bank-provider.ts`
+- `apps/api/src/modules/bank-aggregator/services/bridge-client.ts` + `.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.service.ts` + `.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.{integration,security}.test.ts`, `services/bridge-webhook-router.test.ts` (stubs gained the new port methods)
+- `apps/api/src/modules/settings/settings.deletion.ts` (NEW) + `settings.deletion.test.ts` (NEW) + `settings.deletion-map.guard.test.ts` (NEW)
+- `apps/api/src/modules/settings/settings.{service,routes,module}.ts` + `settings.service.test.ts` + `settings.integration.test.ts`
+- `apps/api/src/bootstrap/runtime-dependencies.ts`
+- `apps/api/package.json`, `bun.lock` (`@supabase/supabase-js@^2.104.1`)
+- `packages/validators/src/settings/deletion.schemas.ts` (NEW) + `index.ts`
+- `packages/contracts/src/settings/settings.contract.ts`
+- `apps/web/messages/{fr,en}.json`
+- `apps/web/src/app/(cap)/dashboard/_data/_actions/delete-account-action.ts` (NEW)
+- `apps/web/src/app/(cap)/dashboard/_data/_hooks/use-delete-account.ts` (NEW)
+- `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-{row,confirm}.tsx` (NEW) + `delete-account-confirm.test.tsx` (NEW) + `delete-account-row.a11y.test.tsx` (NEW)
+- `apps/web/src/app/(cap)/dashboard/_data/_components/data-section.tsx` + `export-data-row.a11y.test.tsx` (11-1 test mocks the SSR client the section now reads)
+- `.env.example`
+- `docs/security.md`, `docs/rgpd-readiness.md`, `docs/architecture.md`, `docs/epics.md`
+- `docs/state.yaml`, `docs/epics-context/epic-11-context.md`, `docs/stories/11-2-account-deletion.md`
 
 ### Deviations
 
+**Identifier collision (user decision).** `deleteAccountInputSchema` /
+`DeleteAccountInput` already exist in the `accounts` validators domain
+(removing a bank account, FR-10) and both ship through the same barrel — the
+story's T4 names could not compile. Renamed to `deleteUserAccountInputSchema`,
+`DeleteUserAccountInput`, `deleteUserAccountResultSchema`,
+`DeleteUserAccountResult`; the web action and hook follow
+(`deleteUserAccount`, `useDeleteUserAccount`) because `_accounts/` owns
+`deleteAccount` / `useDeleteAccount` for the bank-account case. The oRPC
+procedure stays `settings.deleteAccount`. File names are as the story wrote them.
+
+**Blank page after deletion (found live, twice).** The story's
+`router.push("/") + router.refresh()` left the browser on an empty
+`/dashboard/parametres`: clearing the auth cookies in the action makes Next
+re-render the current route inside the action response, that route cannot
+render without a session (its sections call apps/api → `UNAUTHORIZED` in the
+server log), and the action promise never settled on the client. A first fix
+(hard `window.location.assign`) never ran for the same reason. The action now
+ends with `redirect("/")`, which short-circuits the re-render (`POST … 303` →
+`GET /` → `GET /login`), and the offline-cache purge moved BEFORE the call
+since the action no longer returns. Verified with a third throwaway account:
+lands on the login page, 0 rows left, no server error. The row counts are still
+logged by apps/api; they no longer travel to the browser.
+
+**Typed errors were missing from the contract.** oRPC collapses any
+handler-thrown error that the contract does not declare to 500 before the
+mount's error mapper runs, so the service's `FORBIDDEN` reached the wire as an
+internal error and a Bridge outage was indistinguishable from a crash. Added
+`FORBIDDEN` (403) and `BANK_PROVIDER_UNAVAILABLE` (503) to `deleteAccount` in
+the contract and re-thrown them in the handler, plus a boundary test for the
+503 path (AC-6). Without this, AC-6's "the caller receives a
+`BANK_PROVIDER_UNAVAILABLE` error" and AC-7's 403 were both false in production.
+
+**Verbatim test code that did not run as written.** (a) T2's tests used `it`
+in a file that only imports `test` — import added. (b) T14's fake client
+handed the bare `root` to the `$transaction` callback, so every delegate was
+`undefined` inside the transaction — the callback now receives the proxy.
+(c) T25's `vi.mock` factories closed over top-level `vi.fn()`s — hoisting
+`ReferenceError`, lesson 2026-05-20, fixed with `vi.hoisted`. (d) T26 mounted
+the row's dialog, which reaches the real mutation hook and asks for a
+`QueryClient` — the hook is now mocked there too. (e) `createSettingsService`
+gained three required ports, so the five pre-existing pref tests needed no-op
+ports. (f) T9's new `BankProvider.deleteUser` and T11's `eraseUserAtProvider`
+broke four more test stubs than the story listed
+(`bank-aggregator.{integration,security}.test.ts`,
+`bridge-webhook-router.test.ts`, `otel-sdk.test.ts` for the env key).
+
+**Story 11-1's section test.** `DataSection` now reads the signed-in email
+through the Supabase SSR client (`cookies()` throws outside a request), so
+`export-data-row.a11y.test.tsx` mocks that client and asserts both rows render.
+
+**Smaller corrections.** T2's expected output said 23 user-data tables; the
+corpus has 21 (the count the epic cache also states). T3 needed no test of its
+own (an inventory entry; verified by count + tsc). The env key was already
+present in the root `.env` — the story pointed at `.env.local`, which does not
+exist here; the repo convention is `.env`. `docs/architecture.md`'s FR-50 row
+and the `settings-actions.ts` tree line still described the pre-story design
+(FK cascade only, a global action) and were corrected in T27's commit.
+`docs/epics-context/epic-11-context.md` was not hand-edited (its header
+forbids it) — `aped-story` regenerates it.
+
+**Tooling.** `bun --filter=@pekulo/ui test` runs Bun's own `bun test` across the
+repo rather than the package's vitest script; the ui gate was run as
+`cd packages/ui && bunx vitest run`. The root `bun run typecheck` fails with
+exit 127 on `@pekulo/zod` and `@pekulo/oxlint-config` (no `typescript`
+devDependency, pre-existing on `main`, lesson 2026-05-05 class); `bunx tsc
+--noEmit` passes in both, and in api / web / contracts / validators. The
+`react-grab-mcp` tool only returns an element the user selected in the browser,
+so the visual pass was run with Chrome DevTools MCP against the tunnel instead
+(see below). One a11y note left for review: the dialog's cancel control exposes
+the accessible name "Dialog Close" (from `PekuloDialog.Close`) while its visible
+text is « Annuler » — same as the immobilier dialog it mirrors; a `@pekulo/ui`
+change, out of scope here.
+
+**Not done from the story text.** T28's throwaway transaction: the
+`transactions/create` procedure name differs (404); the fan-out was proven on
+`accounts`, `hypotheses`, `compass_history`, `milestones`, `user_pref` and
+`dashboard_layout` rows instead. `bun run typecheck` at the root (see Tooling).
+
 ### Test output
+
+```
+apps/api      bun test                    → 974 pass, 0 fail, 2712 expect() · 111 files · exit 0
+apps/web      bunx vitest run             → 114 files passed, 385 tests passed · exit 0
+packages/ui   bunx vitest run             → 158 files passed, 294 passed | 1 skipped · exit 0
+apps/api      bun run db:rls-migration-audit → OK — 21 user-data tables, all RLS-guarded and all
+                                             reachable by the auth.users cascade · exit 0
+tsc --noEmit  apps/api, apps/web, packages/contracts, packages/validators, packages/zod,
+              packages/oxlint-config     → exit 0, no output
+bun run lint  (oxlint, 1007 files)       → 0 errors, 4 warnings (all pre-existing on main)
+prisma migrate deploy                    → 20260915120000_add_missing_auth_users_fk applied
+```
+
+Story-owned suites: `rls-migration-audit.test.ts` +6 · `env.test.ts` +1 ·
+`supabase-admin.test.ts` 3 · `bridge-client.test.ts` +3 ·
+`bank-aggregator.service.test.ts` +4 · `settings.deletion-map.guard.test.ts` 6 ·
+`settings.deletion.test.ts` 7 · `settings.service.test.ts` +7 ·
+`settings.integration.test.ts` +5 · `delete-account-confirm.test.tsx` 3 ·
+`delete-account-row.a11y.test.tsx` 5 = **50 tests**.
+
+RED witnessed before each implementation (missing module / export, "is not a
+function", tsc `Property 'deleteUser' is missing`, 500-instead-of-403 at the
+boundary). Mutation checks: the cascade gate names `tmp_y` for a table with no
+FK and names exactly the four T1 tables when the T1 migration is removed from the
+corpus; dropping `where: { userId }` on one node fails AC-3; swapping
+`holdings` before `holding_lots` fails the order guard.
+
+End-to-end against the dev database (script, throwaway user):
+`settings.deleteAccount` 200 in **1 492 ms**, `rowsDeleted` non-zero on
+`accounts`, `hypotheses`, `compass_history`, `milestones`, `user_pref`,
+`dashboard_layout`; sign-in afterwards `REJECTED (Invalid login credentials)`;
+all 21 tables and `auth.users` at 0, the four T1 tables included.
+
+Live visual pass (Chrome DevTools MCP over `https://pekulo-dev.trafijs.com`,
+signed in as a throwaway user, fr then en): « Vos données » sits after the AI
+sections and before the compass form; row 1 renders in Geist with the
+`Download` glyph at the label's colour (rgb 161,161,161 on rgb 10,10,10 =
+**7.66:1**); row 2 label and `Trash2` glyph both rgb(255,92,92) = **6.54:1**;
+sub-labels « JSON complet · conforme RGPD » / « Cascade sur toutes les tables ·
+irréversible »; the dialog opens with the confirm button disabled (opacity 0.5,
+6.94:1 enabled colours), stays disabled on `wrong@example.test`, enables on the
+exact address and on the upper-cased address; two real deletions through the UI
+(api 833 ms and 725 ms) ended on the login page with 0 rows left.
