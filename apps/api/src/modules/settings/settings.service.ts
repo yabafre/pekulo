@@ -77,6 +77,9 @@ function assertConfirmation(sessionEmail: string | null, typed: string): void {
 async function eraseIdentity(port: IdentityErasurePort, userId: string): Promise<void> {
   // Driven by the constant the budget test sums, so the two cannot drift.
   let lastError: unknown;
+  // A retry is sequential by definition: the second attempt exists only
+  // because the first one failed.
+  /* oxlint-disable eslint/no-await-in-loop */
   for (let attempt = 1; attempt <= IDENTITY_ERASE_ATTEMPTS; attempt += 1) {
     try {
       await port.deleteUser(userId);
@@ -88,6 +91,7 @@ async function eraseIdentity(port: IdentityErasurePort, userId: string): Promise
       }
     }
   }
+  /* oxlint-enable eslint/no-await-in-loop */
   // The data is already gone; only the account shell remains. This log line
   // is what lets the controller finish the job by hand, so it must identify
   // the account — as a hash (architecture.md forbids the raw id in any log):
