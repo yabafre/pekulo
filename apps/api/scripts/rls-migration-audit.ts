@@ -98,12 +98,99 @@ export function auditMigrationSql(
 // class: a user-data table must reach auth.users through ON DELETE CASCADE,
 // directly or through a parent that does (the account_balance_log shape).
 
-// `FOREIGN KEY ("col") REFERENCES <target> ON DELETE CASCADE`, with or without
-// quotes and with or without a schema qualifier. Captures the target table
-// name only; the ON DELETE CASCADE tail is mandatory, so a SET NULL / RESTRICT
-// / NO ACTION reference simply does not match and the table stays unreachable.
+// `ALTER TABLE [ONLY] child ADD [COLUMN …,] CONSTRAINT name FOREIGN KEY (…)
+// REFERENCES parent(…) [ON UPDATE …] ON DELETE CASCADE`, with or without
+// quotes and with or without a schema qualifier. Captures child, constraint
+// name and parent; the ON DELETE CASCADE tail is mandatory, so a SET NULL /
+// RESTRICT / NO ACTION reference simply does not match and the table stays
+// unreachable. The `[^;]*?` gaps admit `ONLY`, a preceding `ADD COLUMN` and an
+// `ON UPDATE` clause in either position (aped-review 11-2: five valid SQL
+// shapes used to read as drift, fail-closed but undocumented).
 const CASCADE_FK_RE =
-  /ALTER TABLE\s+(?:"?[a-z0-9_]+"?\.)?"?([a-z0-9_]+)"?\s+ADD CONSTRAINT[^;]*?FOREIGN KEY[^;]*?REFERENCES\s+(?:"?([a-z0-9_]+)"?\.)?"?([a-z0-9_]+)"?\s*\([^)]*\)\s*ON DELETE CASCADE/gi;
+  /ALTER TABLE\s+(?:ONLY\s+)?(?:"?[a-z0-9_]+"?\.)?"?([a-z0-9_]+)"?\s+[^;]*?ADD CONSTRAINT\s+"?([a-z0-9_]+)"?\s+FOREIGN KEY[^;]*?REFERENCES\s+(?:"?([a-z0-9_]+)"?\.)?"?([a-z0-9_]+)"?\s*\([^)]*\)[^;]*?ON DELETE CASCADE/gi;
+
+// Column-level shorthand inside CREATE TABLE: `"user_id" UUID NOT NULL
+// REFERENCES auth.users(id) ON DELETE CASCADE`. Prisma emits ALTER TABLE, but a
+// hand-written migration may inline it; the constraint gets Postgres' default
+// name, `<table>_<column>_fkey`, which is what a later DROP CONSTRAINT names.
+const INLINE_FK_RE =
+  /"?([a-z0-9_]+)"?\s+[a-z0-9_() ]+?\s+(?:NOT NULL\s+)?REFERENCES\s+(?:"?([a-z0-9_]+)"?\.)?"?([a-z0-9_]+)"?\s*\([^)]*\)[^,)]*?ON DELETE CASCADE/gi;
+const CREATE_TABLE_BODY_RE = /CREATE TABLE (?:IF NOT EXISTS )?"?([a-z0-9_]+)"?\s*\(([\s\S]*?)\);/gi;
+
+// `ALTER TABLE [ONLY] child DROP CONSTRAINT [IF EXISTS] name`. A dropped
+// cascade must stop counting: the corpus already carries two FK drops
+// (re-added with CASCADE today), and a future `DROP …; ADD … ON DELETE
+// RESTRICT` on a user FK must fail the gate, not pass it (aped-review 11-2).
+const DROP_CONSTRAINT_RE =
+  /ALTER TABLE\s+(?:ONLY\s+)?(?:"?[a-z0-9_]+"?\.)?"?([a-z0-9_]+)"?\s+DROP CONSTRAINT\s+(?:IF EXISTS\s+)?"?([a-z0-9_]+)"?/gi;
+
+interface CascadeEdge {
+  child: string;
+  constraint: string;
+  parent: string;
+}
+
+function toParent(schema: string | undefined, table: string): string {
+  // auth.users is the root. Any other schema qualifier is not a public table
+  // we track, and an unqualified name is public by definition. Case-folded:
+  // SQL identifiers are case-insensitive unless quoted, and Prisma never
+  // quotes `auth`.
+  return schema?.toLowerCase() === "auth" && table.toLowerCase() === "users"
+    ? "auth.users"
+    : table.toLowerCase();
+}
+
+// Statements are replayed in corpus order, so a constraint added in one
+// migration and dropped in a later one ends up absent — exactly what the
+// database ends up with.
+function collectCascadeEdges(sql: string): CascadeEdge[] {
+  const events: Array<{
+    at: number;
+    add?: CascadeEdge;
+    drop?: { child: string; constraint: string };
+  }> = [];
+  for (const m of sql.matchAll(CASCADE_FK_RE)) {
+    events.push({
+      at: m.index ?? 0,
+      add: {
+        child: m[1]!.toLowerCase(),
+        constraint: m[2]!.toLowerCase(),
+        parent: toParent(m[3], m[4]!),
+      },
+    });
+  }
+  for (const t of sql.matchAll(CREATE_TABLE_BODY_RE)) {
+    const child = t[1]!.toLowerCase();
+    for (const m of t[2]!.matchAll(INLINE_FK_RE)) {
+      events.push({
+        at: (t.index ?? 0) + (m.index ?? 0),
+        add: {
+          child,
+          constraint: `${child}_${m[1]!.toLowerCase()}_fkey`,
+          parent: toParent(m[2], m[3]!),
+        },
+      });
+    }
+  }
+  for (const m of sql.matchAll(DROP_CONSTRAINT_RE)) {
+    events.push({
+      at: m.index ?? 0,
+      drop: { child: m[1]!.toLowerCase(), constraint: m[2]!.toLowerCase() },
+    });
+  }
+  events.sort((a, b) => a.at - b.at);
+  const live: CascadeEdge[] = [];
+  for (const e of events) {
+    if (e.add) live.push(e.add);
+    if (e.drop) {
+      const i = live.findIndex(
+        (x) => x.child === e.drop!.child && x.constraint === e.drop!.constraint,
+      );
+      if (i >= 0) live.splice(i, 1);
+    }
+  }
+  return live;
+}
 
 export function auditCascadeReachability(
   sql: string,
@@ -112,17 +199,11 @@ export function auditCascadeReachability(
   const nonUser = opts.nonUser ?? NON_USER_TABLES;
   const created = createdTables(sql);
 
-  // child -> set of parents it cascade-deletes from.
+  // child -> set of parents it cascade-deletes from, after every DROP.
   const parents = new Map<string, Set<string>>();
-  for (const m of sql.matchAll(CASCADE_FK_RE)) {
-    const child = m[1]!;
-    const parentSchema = m[2];
-    const parentTable = m[3]!;
-    // auth.users is the root. Any other schema qualifier is not a public
-    // table we track, and an unqualified name is public by definition.
-    const parent = parentSchema === "auth" && parentTable === "users" ? "auth.users" : parentTable;
-    if (!parents.has(child)) parents.set(child, new Set());
-    parents.get(child)!.add(parent);
+  for (const edge of collectCascadeEdges(sql)) {
+    if (!parents.has(edge.child)) parents.set(edge.child, new Set());
+    parents.get(edge.child)!.add(edge.parent);
   }
 
   // Walk up from each table; `seen` makes a cyclic FK graph terminate
@@ -151,17 +232,24 @@ export function auditCascadeReachability(
 }
 
 // Exported so the unit test can assert the gate against the real corpus
-// rather than against hand-written SQL only.
+// rather than against hand-written SQL only. Fails closed on an empty corpus:
+// `auditCascadeReachability("")` is `[]`, so a test that only asserted the
+// empty drift would stay green with zero tables (aped-review 11-2).
 export function readAllMigrationSql(): string {
   const here = dirname(fileURLToPath(import.meta.url));
   const migrationsDir = resolve(here, "..", "prisma", "migrations");
   const files = migrationSqlFiles(migrationsDir);
+  if (files.length === 0) {
+    throw new Error(`[rls-migration-audit] no migration.sql found under ${migrationsDir}`);
+  }
   return files.map((f) => readFileSync(f, "utf8")).join("\n");
 }
 
+// Sorted: the corpus is replayed in order (a constraint added then dropped
+// must end up absent) and readdirSync's order is filesystem-defined.
 function migrationSqlFiles(dir: string): string[] {
   const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
+  for (const entry of [...readdirSync(dir)].sort()) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       out.push(...migrationSqlFiles(full));

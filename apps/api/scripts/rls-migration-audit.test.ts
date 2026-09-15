@@ -111,9 +111,82 @@ describe("auditCascadeReachability (story 11-2, AC-5)", () => {
     expect(auditCascadeReachability(sql)).toEqual([]);
   });
 
-  it("passes on the real committed migration corpus", () => {
+  it("passes on the real committed migration corpus, which is not empty", () => {
     // The whole point of the gate: the four tables T1 fixed must now be
-    // reachable, and every future table must stay reachable.
-    expect(auditCascadeReachability(readAllMigrationSql())).toEqual([]);
+    // reachable, and every future table must stay reachable. The corpus must
+    // also BE there: an empty string yields an empty drift too.
+    const sql = readAllMigrationSql();
+    expect(sql.length).toBeGreaterThan(10_000);
+    expect(auditCascadeReachability(sql)).toEqual([]);
+  });
+
+  // --- aped-review 11-2 --------------------------------------------------
+
+  it("forgets a cascade that a later migration DROPs (re-added as RESTRICT → drift)", () => {
+    const sql = `${CREATE_TWO}
+      ALTER TABLE "widgets" ADD CONSTRAINT "widgets_user_id_fkey"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "widget_logs" ADD CONSTRAINT "wl_fk"
+        FOREIGN KEY ("user_id") REFERENCES auth.users(id) ON DELETE CASCADE;
+      ALTER TABLE "widgets" DROP CONSTRAINT IF EXISTS "widgets_user_id_fkey";
+      ALTER TABLE "widgets" ADD CONSTRAINT "widgets_user_id_fkey"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;`;
+    expect(auditCascadeReachability(sql).map((d) => d.table)).toEqual(["widgets"]);
+  });
+
+  it("keeps a cascade that is dropped and re-added with CASCADE (the corpus' own shape)", () => {
+    const sql = `${CREATE_TWO}
+      ALTER TABLE "widgets" ADD CONSTRAINT "w_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "widget_logs" ADD CONSTRAINT "widget_logs_widget_id_fkey"
+        FOREIGN KEY ("widget_id") REFERENCES "widgets"("id") ON DELETE CASCADE;
+      ALTER TABLE "widget_logs" DROP CONSTRAINT "widget_logs_widget_id_fkey";
+      ALTER TABLE "widget_logs" ADD CONSTRAINT "widget_logs_widget_id_fkey"
+        FOREIGN KEY ("widget_id") REFERENCES "widgets"("id") ON DELETE CASCADE;`;
+    expect(auditCascadeReachability(sql)).toEqual([]);
+  });
+
+  it("does not let a DROP of a different constraint remove the cascade", () => {
+    const sql = `${CREATE_TWO}
+      ALTER TABLE "widgets" ADD CONSTRAINT "w_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "widgets" DROP CONSTRAINT "widgets_cash_balance_check";
+      ALTER TABLE "widget_logs" ADD CONSTRAINT "wl_fk"
+        FOREIGN KEY ("user_id") REFERENCES auth.users(id) ON DELETE CASCADE;`;
+    expect(auditCascadeReachability(sql)).toEqual([]);
+  });
+
+  it("accepts the SQL shapes a hand-written migration may use", () => {
+    // ONLY, ON UPDATE before ON DELETE, ADD COLUMN in the same statement,
+    // an upper-cased schema, and a column-level REFERENCES inside CREATE TABLE.
+    const sql = `
+      CREATE TABLE "a" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL);
+      CREATE TABLE "b" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL);
+      CREATE TABLE "c" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL);
+      CREATE TABLE "d" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL);
+      CREATE TABLE "e" (
+        "id" TEXT NOT NULL,
+        "user_id" UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+        "label" TEXT
+      );
+      ALTER TABLE ONLY "a" ADD CONSTRAINT "a_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "b" ADD CONSTRAINT "b_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON UPDATE CASCADE ON DELETE CASCADE;
+      ALTER TABLE "c" ADD COLUMN "note" TEXT, ADD CONSTRAINT "c_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "d" ADD CONSTRAINT "d_fk"
+        FOREIGN KEY ("user_id") REFERENCES AUTH.USERS(id) ON DELETE CASCADE;`;
+    expect(auditCascadeReachability(sql)).toEqual([]);
+  });
+
+  it("drops an inline column-level cascade by its Postgres default name", () => {
+    const sql = `
+      CREATE TABLE "e" (
+        "id" TEXT NOT NULL,
+        "user_id" UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+      );
+      ALTER TABLE "e" DROP CONSTRAINT "e_user_id_fkey";`;
+    expect(auditCascadeReachability(sql).map((d) => d.table)).toEqual(["e"]);
   });
 });
