@@ -74,6 +74,15 @@ const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // (a pref reset overwrites via UPDATE; row removal only via auth.users
   // cascade, story 11-2). AC-7 of story 8-2 asserts exactly this 3-policy count.
   user_pref: 3,
+  // dashboard_layout — per-user widget layout (story 7-2 / ADR-0017). Same
+  // shape as user_pref: SELECT/INSERT/UPDATE, no DELETE policy.
+  //
+  // Added in story 11-2. It was missing since 20260604172000, which left this
+  // map at 20 entries for 21 user-scoped tables — the reason story 11-1 had to
+  // derive the export's table list from the Prisma DMMF instead. With this
+  // entry the map is a complete inventory again; DELETION_NODES and
+  // EXPORT_NODES still derive from the DMMF, which stays the source of truth.
+  dashboard_layout: 3,
 };
 
 async function main(): Promise<number> {
