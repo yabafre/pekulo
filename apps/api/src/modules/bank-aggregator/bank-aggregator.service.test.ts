@@ -1376,3 +1376,129 @@ test("refreshConnection does NOT advance the watermark while the window is still
   // The DTO still reports the cursor unchanged (the original `since`).
   expect(out.lastRefreshedAt).toBe(since);
 });
+
+// ───── Story 11-2 (AC-6) — erase the user at the bank provider ──────────
+// AC-6 (verbatim from story 11-2-account-deletion:19):
+//   Given a user holding at least one Bridge bank connection, When they delete
+//   their account, Then the Bridge user is deleted at the provider
+//   (`DELETE /v3/aggregation/users/{uuid}`) before any local row is removed.
+//   And given that provider call fails, Then no local row is deleted, the
+//   Supabase Auth user is untouched, and the caller receives a
+//   `BANK_PROVIDER_UNAVAILABLE` error.
+
+const ERASE_USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+// listByUser returns full BankConnection DTOs (@pekulo/validators), so the
+// fixtures below carry every field rather than a convenient subset.
+function connectionFixture(id: string, providerItemId: string, status: "active" | "revoked") {
+  return {
+    id,
+    userId: ERASE_USER,
+    provider: "bridge" as const,
+    providerItemId,
+    status,
+    displayName: "SG",
+    lastRefreshedAt: null,
+    lastSyncedAt: null,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+test("eraseUserAtProvider: revokes each non-revoked item, then deletes the Bridge user", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  const order: string[] = [];
+  repo.findProviderUserUuid = async () => "bridge-uuid-1";
+  repo.listByUser = async () => [
+    connectionFixture("bnk_1", "item-1", "active"),
+    connectionFixture("bnk_2", "item-2", "revoked"),
+    connectionFixture("bnk_3", "item-3", "active"),
+  ];
+  provider.revokeItem = async ({ providerItemId }) => {
+    order.push(`revoke:${providerItemId}`);
+  };
+  provider.deleteUser = async ({ userUuid }) => {
+    order.push(`deleteUser:${userUuid}`);
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+
+  const result = await svc.eraseUserAtProvider(ERASE_USER);
+
+  // The already-revoked connection is skipped; deleteUser always comes last.
+  expect(order).toEqual(["revoke:item-1", "revoke:item-3", "deleteUser:bridge-uuid-1"]);
+  expect(result).toEqual({ itemsRevoked: 2, providerUserDeleted: true });
+});
+
+test("eraseUserAtProvider: no-op when the user was never mapped to Bridge", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  let called = false;
+  repo.findProviderUserUuid = async () => null;
+  repo.listByUser = async () => [];
+  provider.deleteUser = async () => {
+    called = true;
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+
+  expect(await svc.eraseUserAtProvider(ERASE_USER)).toEqual({
+    itemsRevoked: 0,
+    providerUserDeleted: false,
+  });
+  expect(called).toBe(false);
+});
+
+test("eraseUserAtProvider: a failing per-item revoke does NOT block deleteUser", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  let deleted = false;
+  repo.findProviderUserUuid = async () => "bridge-uuid-1";
+  repo.listByUser = async () => [connectionFixture("bnk_1", "item-1", "active")];
+  provider.revokeItem = async () => {
+    // Bridge mints a fresh item_id on every connect, so a stale local row can
+    // reference an item that no longer exists and answer 404.
+    throw new Error("bank provider unavailable: bridge DELETE /v3/aggregation/items/item-1 → 404");
+  };
+  provider.deleteUser = async () => {
+    deleted = true;
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+
+  expect(await svc.eraseUserAtProvider(ERASE_USER)).toEqual({
+    itemsRevoked: 0,
+    providerUserDeleted: true,
+  });
+  expect(deleted).toBe(true);
+});
+
+test("eraseUserAtProvider: a failing deleteUser propagates — the caller is fail-closed", async () => {
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  repo.findProviderUserUuid = async () => "bridge-uuid-1";
+  repo.listByUser = async () => [];
+  provider.deleteUser = async () => {
+    throw new Error("bank provider unavailable: bridge DELETE /v3/aggregation/users/x → 500");
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+  });
+
+  expect(svc.eraseUserAtProvider(ERASE_USER)).rejects.toThrow("bank provider unavailable");
+});

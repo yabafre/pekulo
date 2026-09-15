@@ -64,6 +64,19 @@ export interface BankAggregatorService {
   ): Promise<BankConnection>;
   revokeConnection(userId: string, connectionId: string): Promise<{ ok: true }>;
   /**
+   * Story 11-2 (FR-50 / AC-6) — erase the user at the bank provider, as the
+   * first step of account deletion. Revokes each non-revoked item, then
+   * deletes the provider user (the authoritative call: it removes the user and
+   * every item beneath it).
+   *
+   * A per-item revoke failure is swallowed; a deleteUser failure PROPAGATES.
+   * Account deletion is fail-closed on this method, so the distinction is
+   * load-bearing — see the implementation comment for why.
+   */
+  eraseUserAtProvider(
+    userId: string,
+  ): Promise<{ itemsRevoked: number; providerUserDeleted: boolean }>;
+  /**
    * Story 6-10 (FR-65) backfill — warm the logo caches for a user's already-
    * synced transactions (the refresh warm-up only covers each fresh batch).
    * Best-effort + idempotent (warmMany negative-caches misses). Returns the
@@ -582,6 +595,43 @@ export function createBankAggregatorService(deps: {
         await deps.repository.setStatus(userId, connectionId, "revoked");
       }
       return { ok: true as const };
+    },
+
+    async eraseUserAtProvider(userId) {
+      const userUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
+      // Never mapped to Bridge (no bank ever linked) — nothing to erase, and
+      // the common case for a V1 account. Deletion proceeds with no provider
+      // call at all, so fail-closed costs nothing on the normal path.
+      if (!userUuid) return { itemsRevoked: 0, providerUserDeleted: false };
+
+      const connections = await deps.repository.listByUser(userId);
+      let itemsRevoked = 0;
+      for (const connection of connections) {
+        if (connection.status === "revoked") continue;
+        try {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- sequential on purpose: Bridge rate-limits per user, and the loop is bounded by the user's own connection count
+          await deps.provider.revokeItem({
+            userUuid,
+            providerItemId: connection.providerItemId,
+          });
+          itemsRevoked += 1;
+        } catch {
+          // Deliberately swallowed. This pass is a courtesy: it flips each
+          // item's consent state at the bank before the relationship ends.
+          // It is also the fragile half — Bridge mints a fresh item_id on
+          // every connect, so a stale local row can reference an item that no
+          // longer exists and answer 404. Letting that abort the erasure would
+          // block a GDPR deletion on a bookkeeping mismatch.
+          //
+          // deleteUser below is what actually guarantees the end state: it
+          // removes the Bridge user and every item beneath it. If it succeeds,
+          // every item is gone whether or not this loop reached it. If it
+          // fails, we throw and nothing local is touched.
+        }
+      }
+
+      await deps.provider.deleteUser({ userUuid });
+      return { itemsRevoked, providerUserDeleted: true };
     },
 
     async backfillUserLogos(userId) {
