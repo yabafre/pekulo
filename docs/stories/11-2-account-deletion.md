@@ -3322,3 +3322,127 @@ irréversible »; the dialog opens with the confirm button disabled (opacity 0.5
 6.94:1 enabled colours), stays disabled on `wrong@example.test`, enables on the
 exact address and on the upper-cased address; two real deletions through the UI
 (api 833 ms and 725 ms) ended on the login page with 0 rows left.
+
+## Review Record
+
+**Date:** 2026-09-15
+**Auditors:** Spec, Code, Edge & Hallucination, Aria *(live, Chrome DevTools MCP on the tunnel)*
+**Verdict:** done
+
+20 findings after merge (1 HIGH / 10 MEDIUM / 9 LOW / 0 CRITICAL), plus 2 LOW
+the verification pass found in the fixes themselves. Spec approved at first
+pass; Code, Edge and Aria requested changes. All 22 resolved across 6 commits,
+0 dismissed. The server side held: the Bridge → data → identity order and the
+two-tenant isolation were mutation-verified, the export/deletion guard is
+symmetric, all 78 new identifiers resolve, and Aria deleted three throwaway
+accounts through the real UI. The defects were on the web tier's failure path
+and in what the gate and the tests *proved*.
+
+### Findings
+
+#### Resolved
+
+- **[HIGH] The dialog's only visible failure path was dead in production.** The action let the `ORPCError` through the server-action boundary, where Next 16.2.9 replaces the message; `error.message.includes("bank provider unavailable")` could never match, so every failure showed the generic copy. [`_data/_actions/data-actions.ts`, `delete-account-confirm.tsx`]
+  - Source: Edge + Code + Lead (three independent findings)
+  - Resolution: `f798516` — the repo's `{ ok: false, code, message }` envelope (as `bank-aggregator-actions.ts` already does for the same code), no `output:`, the dialog branches on `code`; three envelope-branch tests.
+
+- **[MEDIUM] « Aucune donnée n'a été supprimée » was false in two reachable states** — identity erase failed after all 21 tables were purged (the user stayed signed in to an empty account), and a local failure after the Bridge user was gone. [`settings.service.ts#eraseIdentity`, `fr.json`/`en.json`]
+  - Source: Edge + Lead
+  - Resolution: `80a7f0d` + `f798516` — a third typed code `ACCOUNT_PARTIALLY_ERASED` (registry, mapper 500, contract, route rethrow, boundary test), a dedicated `deletePartialError` copy ("erased, not closed — retry or write in"), and the generic copy reworded to be true for the 403 / 503 / unknown cases. The session is deliberately kept on the partial state: clearing cookies inside a returning action re-renders the route without a session (the blank page the dev hit), and a second confirmation is a real retry.
+
+- **[MEDIUM] Raw `userId` in the identity-erase log** — the only such line in `apps/api`; the "CI grep guard" architecture.md cites does not exist. [`settings.service.ts:88-94`]
+  - Source: Code + Lead
+  - Resolution: `80a7f0d` — `hashUserId` (SHA-256 prefix, `common/security-primitives/hash-user-id.ts`); the test asserts the line never contains the raw id.
+
+- **[MEDIUM] Action file named after the verb, not the feature** (`delete-account-action.ts`; architecture § Process Rules: one `<feature>-actions.ts`, "splitting one verb to its own file is a review fail"). 
+  - Source: Code
+  - Resolution: `f798516` — `git mv` to `data-actions.ts`; hook import and FR-50 row updated. The rename left the running Next dev server with a stale SSR module graph ("module factory is not available" on every server action of the page) until it was restarted — a dev-server artefact, not a code one.
+
+- **[MEDIUM] NFR-7's 60 s had no end-to-end bound** — the revoke loop at Bridge was unbounded (N × 10 s) before a 45 s transaction and an identity retry. [`bank-aggregator.service.ts#eraseUserAtProvider`]
+  - Source: Code
+  - Resolution: `80a7f0d` — the revoke pass races a 6 s wall-clock budget (past it no new revoke starts; `deleteUser` removes every item regardless), the transaction drops to 30 s / 3 s maxWait, the Admin API gets a 4 s abort per attempt, and `settings.deletion-budget.test.ts` sums every bounded phase: 6 000 + 10 000 + 3 000 + 30 000 + 2 × 4 000 + 250 = **57 250 ms** < 60 000. Raising one constant by 3 s turns it red. `31ba050` makes the identity loop run on the constant the test sums.
+
+- **[MEDIUM] The cascade gate ignored `DROP CONSTRAINT`** — a cascade dropped and re-added as RESTRICT still read as present; `readdirSync` order was filesystem-defined. [`rls-migration-audit.ts`]
+  - Source: Edge (scratch fixtures)
+  - Resolution: `fb513a5` — ADD/DROP replayed in sorted corpus order; five tests. `4d9f35c` then reads each `ALTER TABLE` clause by clause after the verification pass showed a multi-clause statement could pair one clause's `REFERENCES` with the next clause's `ON DELETE CASCADE`.
+
+- **[MEDIUM] The gate accepted an empty corpus** — `readAllMigrationSql` never checked `files.length`, and the corpus test only asserted an empty drift. 
+  - Source: Edge
+  - Resolution: `fb513a5` — throws on zero files; the test asserts the corpus is over 10 kB before asserting no drift.
+
+- **[MEDIUM] Cancel announced as "Dialog Close"** while showing « Annuler » (WCAG 2.5.3). [`delete-account-confirm.tsx`]
+  - Source: Aria (the dev had flagged it as a `@pekulo/ui` change; it is not — the asChild child's `aria-label` wins, as `PekuloDialogCloseX` already proves)
+  - Resolution: `f798516` — `aria-label={tCommon("cancel")}`; live: `button "Annuler"` / `button "Cancel"`.
+
+- **[MEDIUM] Focus lost on `<body>` when the dialog closed** — the dialog lives outside `PekuloDialog.Trigger`. [`delete-account-row.tsx`]
+  - Source: Aria
+  - Resolution: `f798516` — a ref on the row control refocused on close; a11y test + live: Escape and the X both return focus to « Supprimer mon compte ».
+
+- **[MEDIUM] No visible focus ring on the three buttons** (WCAG 2.4.7): the global reset strips `outline` from every button. 
+  - Source: Aria
+  - Resolution: `f798516` — Tamagui `focusVisibleStyle` with `PekuloDialogCloseX`'s exact values on the two `View render="button"` (the atomic classes already exist in the generated CSS — verified live, the 2026-05-24 trap did not bite), a CSS module `:focus-visible` on the native confirm button. Live: `solid 2px` / offset 2 on all three.
+
+- **[MEDIUM] File List omitted five changed test files.** [story `## File List`]
+  - Source: Spec + `git-audit.sh`
+  - Resolution: `0704ab2` — listed, with the review-added files; the `comm` diff against `git diff --name-only main...HEAD` is now empty both ways.
+
+- **[LOW] Dead `useRouter` mock, `purgeOfflineCache` never asserted, `onSuccess` fallback untested** [`delete-account-confirm.test.tsx`] — Spec + Code. `f798516`: mock removed, purge asserted once, `{ ok: true }` asserts `window.location.assign("/")`; `4d9f35c` wraps the callbacks in `act()`.
+- **[LOW] Comment claimed the flow "ends on `/`, not `/login`"** while the root page bounces a signed-out visitor to `/login` [`data-actions.ts`] — Spec. `f798516`: the comment states the true chain.
+- **[LOW] AC-1 "< 60 s" proven only by the live pass** — Spec. `80a7f0d`: the budget test above is the mechanical form of the clause. AC-2 (Supabase rejects sign-in) stays a manual check by nature — Aria verified it on every run.
+- **[LOW] Five valid SQL shapes read as drift** (inline column-level FK, `ON UPDATE` before `ON DELETE`, `ALTER TABLE ONLY`, `ADD COLUMN …, ADD CONSTRAINT`, upper-cased `AUTH.USERS`) — fail-closed, undocumented — Edge. `fb513a5`: all five parsed and tested; inline FKs take Postgres' default `<table>_<column>_fkey` name so a later DROP finds them.
+- **[LOW] A second confirmation with a still-valid JWT answered 500 and logged a false erase failure** [`supabase-admin.ts`] — Edge. `80a7f0d`: 404 / `user_not_found` counts as erased, the same posture as Bridge's `deleteUser` admitting a 404; the wiring forwards `error.status` / `error.code` (both on `AuthError` in auth-js 2.104.1).
+- **[LOW] `SUPABASE_SERVICE_ROLE_KEY` validated by `min(20)` only** — a pasted anon key or JWT secret would fail at the first deletion, after the Bridge user and every local row were gone [`env.ts`] — Edge. `80a7f0d`: `looksLikeServiceRoleKey` (a JWT whose `role` claim is `service_role`, or `sb_secret_…`); four tests; the root `.env` key passes (role decoded, never printed) and the dev API booted on it.
+- **[LOW] Tertiary text below 4.5:1** — the dialog prompt and « Annuler » at 3.78:1, the row sub-labels at 4.00:1 — Aria. `f798516`: prompt and cancel moved to `$colorSecondary` (live 7.25:1). The row sub-labels use `PekuloSettingRow`'s shared `$colorTertiary` token and were left as-is: a design-system token change, out of this story's scope, recorded here for the DS owner.
+- **[LOW] Row controls were 15 px tall** (WCAG 2.5.8, 24 px minimum) — Aria. `f798516`: `min-height: 24px` on the export link and the delete button (live: 24 px both).
+- **[LOW] A session with no `email` claim cannot confirm** (row hidden, RPC `FORBIDDEN`) — unreachable with e-mail + password auth — Edge. `0704ab2`: documented in `docs/rgpd-readiness.md` as a precondition for any future OAuth / OTP identity.
+- **[LOW, found in the fixes] The revoke-budget test raced real timers with 20 ms of margin** — Code (verification pass). `4d9f35c`: 150 ms items against a 50 ms budget, 100 ms of margin on every edge, exact `order` assertions.
+- **[LOW, found in the fixes] Multi-clause `ALTER TABLE` could read a RESTRICT as CASCADE** — Edge (verification pass). `4d9f35c`: see the DROP CONSTRAINT entry.
+
+#### Dismissed
+
+None.
+
+### Verification
+
+Captured fresh at ``31ba050``, working tree clean apart from the pre-existing
+untracked iCloud duplicates and `.aped/state.yaml.backup`.
+
+- `cd apps/api && bun test` → **991 pass, 0 fail**, 2741 expect() · 113 files · exit 0
+- `cd apps/api && bun run db:rls-migration-audit` → `OK — 21 user-data tables, all RLS-guarded and all reachable by the auth.users cascade` · exit 0
+- `cd apps/web && bunx vitest run` → **114 files, 391 tests passed** · exit 0
+- `cd packages/ui && bunx vitest run` → **158 files, 294 passed | 1 skipped** · exit 0
+- `bunx tsc --noEmit` in `apps/api`, `apps/web`, `packages/contracts`, `packages/validators` → exit 0 ×4, no output
+- `bunx oxlint .` → 0 errors, 4 warnings (the same four warnings as on `main`, none in story files)
+- `bash .aped/scripts/validate-story.sh` → exit 0
+
+Story-owned suites grew from 50 to **73 tests**: `+6` in
+`rls-migration-audit.test.ts` (DROP replay, re-add, foreign DROP, multi-clause,
+inline FK, SQL shapes; the corpus test now asserts a non-empty corpus), `+3` in `env.test.ts`, `+2` in `supabase-admin.test.ts`,
+`+1` in `bank-aggregator.service.test.ts`, `+1` in `settings.service.test.ts`
+(hashed log), `+1` in `settings.integration.test.ts` (500 with its code),
+`settings.deletion-budget.test.ts` 1, `hash-user-id.test.ts` 2,
+`delete-account-confirm.test.tsx` 3 → 8, `delete-account-row.a11y.test.tsx`
+5 → 6.
+
+Each auditor re-verified its own findings against the fixed tree: Spec 4/4,
+Code 5/5, Edge 8/8, Aria 5/5 — all RESOLVED, two new LOW raised and closed in
+`4d9f35c`. The `IDENTITY_ERASE_ATTEMPTS` constant, which the budget test sums,
+now drives the retry loop (`31ba050`).
+
+**Visual verification: LIVE**, Chrome DevTools MCP on
+`https://pekulo-dev.trafijs.com` (React Grab MCP only returns what a human
+clicked and was not used). Three throwaway accounts (`@example.test`, created
+through the Admin API) were deleted through the real UI: `POST` → `303` with
+`x-action-redirect: /;push` and the auth cookie cleared → `/login`; sign-in
+afterwards `REJECTED (Invalid login credentials)`; `listUsers` → gone. Section
+order, fr/en copy (U+00B7 in both), label + `Trash2` at rgb(255,92,92) =
+6.54:1, Geist on every label, the typed-email gate (wrong → disabled, exact and
+upper-cased → enabled), the focus trap, and after the fixes the cancel name,
+focus return, focus rings, 7.25:1 prompt and 24 px targets were all measured
+from the a11y tree and `getComputedStyle`. One re-measure needed the web dev
+server restarted after the action-file rename (stale SSR module graph).
+
+### Ticket sync
+
+- Ticket comment posted: pending — posted at finalisation
+- PR updated: pending — #144 (draft, base `main`)
