@@ -42,7 +42,7 @@ function authHeaders(env: Env, bearer?: string): Record<string, string> {
 // 10s budget covers the slowest happy-path seen on the sandbox; any longer is
 // a Bridge outage by V1's NFR-18 budget (provider fallback within 500ms after
 // 10s upstream timeout is the safe shape — we surface bankProviderUnavailable).
-const BRIDGE_FETCH_TIMEOUT_MS = 10_000;
+export const BRIDGE_FETCH_TIMEOUT_MS = 10_000;
 
 export function createBridgeProvider(args: { env: Env }): BankProvider {
   const { env } = args;
@@ -362,6 +362,25 @@ export function createBridgeProvider(args: { env: Env }): BankProvider {
         method: "DELETE",
         bearer,
       });
+    },
+
+    async deleteUser({ userUuid }) {
+      // DELETE /v3/aggregation/users/{uuid} — removes the Bridge user and
+      // every item beneath it. App-level credentials (Client-Id +
+      // Client-Secret), NO user Bearer: the same posture as createUser, and
+      // minting a user token for a user we are deleting would be circular.
+      //
+      // 404 is admitted as SUCCESS. The end state this call exists to reach is
+      // "no such user at Bridge", and a 404 says we are already there. Story
+      // 11-2 is fail-closed on this call, so treating "already gone" as a
+      // failure would make a retried deletion permanently impossible.
+      await req<unknown>(`/v3/aggregation/users/${encodeURIComponent(userUuid)}`, {
+        method: "DELETE",
+        allowStatuses: [404],
+      });
+      // Drop any cached user Bearer so a later call cannot mint against a
+      // deleted user from cache.
+      userTokenCache.delete(userUuid);
     },
 
     async getItem({ userUuid, providerItemId }) {

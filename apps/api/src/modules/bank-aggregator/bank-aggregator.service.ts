@@ -64,6 +64,19 @@ export interface BankAggregatorService {
   ): Promise<BankConnection>;
   revokeConnection(userId: string, connectionId: string): Promise<{ ok: true }>;
   /**
+   * Story 11-2 (FR-50 / AC-6) — erase the user at the bank provider, as the
+   * first step of account deletion. Revokes each non-revoked item, then
+   * deletes the provider user (the authoritative call: it removes the user and
+   * every item beneath it).
+   *
+   * A per-item revoke failure is swallowed; a deleteUser failure PROPAGATES.
+   * Account deletion is fail-closed on this method, so the distinction is
+   * load-bearing — see the implementation comment for why.
+   */
+  eraseUserAtProvider(
+    userId: string,
+  ): Promise<{ itemsRevoked: number; providerUserDeleted: boolean }>;
+  /**
    * Story 6-10 (FR-65) backfill — warm the logo caches for a user's already-
    * synced transactions (the refresh warm-up only covers each fresh batch).
    * Best-effort + idempotent (warmMany negative-caches misses). Returns the
@@ -91,6 +104,15 @@ function mapBridgeAccountKind(kind: ProviderBankAccount["kind"]): "banque" | "li
   return "autre";
 }
 
+// Story 11-2 (FR-50 / NFR-7). Wall-clock ceiling on the per-item revoke pass
+// inside eraseUserAtProvider. Each revokeItem is a token mint + a DELETE, up to
+// 2 × BRIDGE_FETCH_TIMEOUT_MS on a degraded Bridge, and the loop runs once per
+// connection — unbounded by itself. The revokes are a courtesy (deleteUser
+// removes every item regardless), so past this budget the loop stops
+// scheduling new ones and the erasure moves on. Added into the NFR-7 sum by
+// settings.deletion-budget.test.ts.
+export const ERASURE_REVOKE_BUDGET_MS = 6_000;
+
 export function createBankAggregatorService(deps: {
   repository: BankAggregatorRepository;
   provider: BankProvider;
@@ -98,6 +120,8 @@ export function createBankAggregatorService(deps: {
   accountsService: AccountService;
   listAllActiveConnections: () => Promise<Array<{ userId: string; connectionId: string }>>;
   clock?: () => Date;
+  /** Test seam for ERASURE_REVOKE_BUDGET_MS. */
+  erasureRevokeBudgetMs?: number;
   // Story 6-10 (FR-65) — optional logo cache warm port (off the user hot path:
   // the cron/webhook refresh warm-up + the historical backfill). Best-effort.
   logos?: Pick<LogosService, "warmMany">;
@@ -115,6 +139,49 @@ export function createBankAggregatorService(deps: {
   // starting its own. Keyed on providerItemId (the unit Bridge re-delivers) and
   // cleared in a finally so a failed run never wedges the item permanently.
   const inFlightByItem = new Map<string, Promise<void>>();
+
+  // Story 11-2. Revokes each non-revoked item, sequentially (Bridge rate-limits
+  // per user), until either the list or the wall-clock budget is exhausted.
+  // Past the budget no NEW revoke is started; one in-flight call may finish in
+  // the background and is ignored. Every failure is swallowed on purpose: this
+  // pass is a courtesy — it flips each item's consent state at the bank before
+  // the relationship ends — and it is the fragile half (Bridge mints a fresh
+  // item_id on every connect, so a stale row can reference an item that no
+  // longer exists and answer 404). Letting any of that abort the erasure would
+  // block a GDPR deletion on a bookkeeping mismatch. deleteUser is what
+  // guarantees the end state: it removes the Bridge user and every item
+  // beneath it, reached or not.
+  async function revokeItemsWithinBudget(
+    userUuid: string,
+    connections: Array<{ status: string; providerItemId: string }>,
+    budgetMs: number,
+  ): Promise<number> {
+    let revoked = 0;
+    let expired = false;
+    const loop = (async () => {
+      for (const connection of connections) {
+        if (expired) return;
+        if (connection.status === "revoked") continue;
+        try {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- sequential on purpose, bounded by the budget below
+          await deps.provider.revokeItem({ userUuid, providerItemId: connection.providerItemId });
+          if (!expired) revoked += 1;
+        } catch {
+          // see above
+        }
+      }
+    })();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<void>((resolve) => {
+      timer = setTimeout(() => {
+        expired = true;
+        resolve();
+      }, budgetMs);
+    });
+    await Promise.race([loop, deadline]);
+    clearTimeout(timer);
+    return revoked;
+  }
 
   async function resolveAccountIds(
     userId: string,
@@ -582,6 +649,24 @@ export function createBankAggregatorService(deps: {
         await deps.repository.setStatus(userId, connectionId, "revoked");
       }
       return { ok: true as const };
+    },
+
+    async eraseUserAtProvider(userId) {
+      const userUuid = await deps.repository.findProviderUserUuid(userId, "bridge");
+      // Never mapped to Bridge (no bank ever linked) — nothing to erase, and
+      // the common case for a V1 account. Deletion proceeds with no provider
+      // call at all, so fail-closed costs nothing on the normal path.
+      if (!userUuid) return { itemsRevoked: 0, providerUserDeleted: false };
+
+      const connections = await deps.repository.listByUser(userId);
+      const itemsRevoked = await revokeItemsWithinBudget(
+        userUuid,
+        connections,
+        deps.erasureRevokeBudgetMs ?? ERASURE_REVOKE_BUDGET_MS,
+      );
+
+      await deps.provider.deleteUser({ userUuid });
+      return { itemsRevoked, providerUserDeleted: true };
     },
 
     async backfillUserLogos(userId) {

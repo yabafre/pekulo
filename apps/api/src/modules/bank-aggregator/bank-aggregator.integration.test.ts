@@ -245,6 +245,7 @@ function makeFakeProvider(): BankProvider {
       truncated: false,
     }),
     revokeItem: async () => undefined,
+    deleteUser: async () => undefined,
     getItem: async () => ({
       providerItemId: "item-42",
       statusCode: 0,
@@ -423,6 +424,7 @@ function makeRouteService(): BankAggregatorService {
     refreshAll: async () => undefined,
     handleWebhookEvent: async () => undefined,
     backfillUserLogos: async () => ({ merchants: 0, providers: 0 }),
+    eraseUserAtProvider: async () => ({ itemsRevoked: 0, providerUserDeleted: false }),
     async renameConnection(_userId, connectionId, displayName) {
       if (connectionId === "bnk_missing") {
         throw new BankAggregatorError("BANK_CONNECTION_NOT_FOUND", "connection not found");

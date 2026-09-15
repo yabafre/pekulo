@@ -138,6 +138,19 @@ export interface BankProvider {
   revokeItem(args: { userUuid: string; providerItemId: string }): Promise<void>;
 
   /**
+   * Story 11-2 (FR-50) — GDPR erasure at the provider. Deletes the provider
+   * user and, with it, every item beneath it. This is the AUTHORITATIVE
+   * erasure call: `revokeItem` ends a single bank link, this ends the
+   * relationship.
+   *
+   * MUST be idempotent: "the user is already gone" is the end state this call
+   * exists to reach, so a provider answering 404 is a SUCCESS, not an error.
+   * Account deletion is fail-closed on this call, and a non-idempotent
+   * implementation would make a retried deletion unrecoverable.
+   */
+  deleteUser(args: { userUuid: string }): Promise<void>;
+
+  /**
    * Query the current item state — used by the cron-backup refresh to skip
    * items in `SCA_REQUIRED` (1010) without calling listTransactions.
    */

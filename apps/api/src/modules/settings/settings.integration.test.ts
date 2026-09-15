@@ -18,6 +18,7 @@ import { Elysia } from "elysia";
 import { SignJWT } from "jose";
 import type { UserPref } from "@pekulo/validators";
 import { extractRequestId } from "../../common/errors";
+import { PekuloError } from "../../common/errors";
 import { mapErrorToOrpcResponse } from "../../platform/http/error-mapper";
 import { mountOrpc, type PekuloRpcRouter } from "../../platform/http/orpc-mount";
 import { createJwtVerifier } from "../../platform/security";
@@ -47,6 +48,14 @@ async function signFor(userId: string): Promise<string> {
 
 // In-memory mirror of the Prisma-backed service: per-userId store with the
 // getOrCreate-default read the real service performs (settings.service.ts).
+const erased: string[] = [];
+// Flipped by the AC-6 boundary test: the in-memory service then behaves like
+// a service whose provider erasure failed, before any local row is touched.
+let providerDown = false;
+// Flipped by the ACCOUNT_PARTIALLY_ERASED boundary test: the data is gone,
+// the identity is not — the one state that is neither done nor untouched.
+let identityDown = false;
+
 function inMemorySettingsService(): SettingsService {
   const rows = new Map<string, UserPref>();
   return {
@@ -62,6 +71,32 @@ function inMemorySettingsService(): SettingsService {
       const next = { ...(rows.get(userId) ?? DEFAULT_USER_PREF), lang };
       rows.set(userId, next);
       return next;
+    },
+    // Story 11-2. Mirrors the real service's confirmation rule so the boundary
+    // test proves the rule survives the RPC envelope, and records which users
+    // were erased so tenant isolation is assertable.
+    async deleteAccount(userId, sessionEmail, input) {
+      if (
+        !sessionEmail ||
+        sessionEmail.trim().toLowerCase() !== input.confirmationEmail.trim().toLowerCase()
+      ) {
+        throw new PekuloError("FORBIDDEN", "confirmation email does not match");
+      }
+      if (providerDown) {
+        throw new PekuloError(
+          "BANK_PROVIDER_UNAVAILABLE",
+          "bank provider unavailable: bridge DELETE → 503",
+        );
+      }
+      rows.delete(userId);
+      erased.push(userId);
+      if (identityDown) {
+        throw new PekuloError(
+          "ACCOUNT_PARTIALLY_ERASED",
+          "account data was erased but the identity could not be removed",
+        );
+      }
+      return { ok: true as const, rowsDeleted: { accounts: 1 }, vaultSecretsPurged: 0 };
     },
   };
 }
@@ -150,5 +185,111 @@ describe("settings /rpc/v1/settings HTTP boundary", () => {
     const res = await call("get", {});
     expect(res.status).toBe(401);
     expect(((await res.json()) as { code: string }).code).toBe("UNAUTHORIZED");
+  });
+});
+
+describe("settings.deleteAccount HTTP boundary (story 11-2)", () => {
+  // The signer in this file puts `${userId}@pekulo.local` in the email claim,
+  // so that string is what a correct confirmation must carry.
+  const emailOf = (userId: string) => `${userId}@pekulo.local`;
+
+  // AC-7 (verbatim from story 11-2-account-deletion:20):
+  //   Given a call to settings.deleteAccount with no Authorization header or
+  //   an invalid Bearer token, Then apps/api answers 401 and no Prisma query
+  //   runs.
+  test("AC-7 — deleteAccount without a JWT returns 401 and erases nobody", async () => {
+    const before = erased.length;
+    const res = await call("deleteAccount", { confirmationEmail: emailOf(USER_A) });
+    expect(res.status).toBe(401);
+    expect(((await res.json()) as { code: string }).code).toBe("UNAUTHORIZED");
+    expect(erased.length).toBe(before);
+  });
+
+  test("AC-7 — a mismatched confirmation email returns 403 and erases nobody", async () => {
+    const before = erased.length;
+    const res = await call(
+      "deleteAccount",
+      { confirmationEmail: "someone@else.test" },
+      await signFor(USER_A),
+    );
+    expect(res.status).toBe(403);
+    expect(erased.length).toBe(before);
+  });
+
+  // AC-3 (verbatim from story 11-2-account-deletion:16):
+  //   Given two users A and B […] When A deletes their account, Then not one
+  //   row belonging to B is removed […]
+  test("AC-3 — A's deletion erases A and only A, keyed by the verified JWT subject", async () => {
+    const res = await call(
+      "deleteAccount",
+      { confirmationEmail: emailOf(USER_A) },
+      await signFor(USER_A),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: { ok: true; rowsDeleted: Record<string, number> } };
+    expect(body.json.ok).toBe(true);
+    expect(body.json.rowsDeleted).toEqual({ accounts: 1 });
+    expect(erased).toEqual([USER_A]);
+    expect(erased).not.toContain(USER_B);
+  });
+
+  // AC-6 (verbatim from story 11-2-account-deletion:19):
+  //   […] And given that provider call fails, Then no local row is deleted,
+  //   the Supabase Auth user is untouched, and the caller receives a
+  //   `BANK_PROVIDER_UNAVAILABLE` error.
+  test("AC-6 — a provider failure surfaces as 503 BANK_PROVIDER_UNAVAILABLE, not 500", async () => {
+    const { isORPCErrorJson } = await import("@orpc/client");
+    const before = [...erased];
+    providerDown = true;
+    try {
+      const res = await call(
+        "deleteAccount",
+        { confirmationEmail: emailOf(USER_B) },
+        await signFor(USER_B),
+      );
+      expect(res.status).toBe(503);
+      const inner = ((await res.json()) as { json: unknown }).json;
+      expect(isORPCErrorJson(inner)).toBe(true);
+      expect((inner as { code: string }).code).toBe("BANK_PROVIDER_UNAVAILABLE");
+      expect(erased).toEqual(before);
+    } finally {
+      providerDown = false;
+    }
+  });
+
+  test("an identity-erase failure surfaces as 500 ACCOUNT_PARTIALLY_ERASED with its code intact", async () => {
+    // aped-review 11-2. Without the contract declaring this code, oRPC
+    // collapsed it to an anonymous 500 and the web tier could only say
+    // "nothing was deleted" — false: every row is gone at this point.
+    const { isORPCErrorJson } = await import("@orpc/client");
+    identityDown = true;
+    try {
+      const res = await call(
+        "deleteAccount",
+        { confirmationEmail: emailOf(USER_B) },
+        await signFor(USER_B),
+      );
+      expect(res.status).toBe(500);
+      const inner = ((await res.json()) as { json: unknown }).json;
+      expect(isORPCErrorJson(inner)).toBe(true);
+      expect((inner as { code: string }).code).toBe("ACCOUNT_PARTIALLY_ERASED");
+      expect(erased).toContain(USER_B);
+    } finally {
+      identityDown = false;
+    }
+  });
+
+  test("AC-7 — A cannot delete B by naming B's email: the subject wins", async () => {
+    // The confirmation names the account; the JWT subject decides which
+    // account is destroyed. A token for A carrying B's email must fail the
+    // confirmation rather than reach B.
+    const before = [...erased];
+    const res = await call(
+      "deleteAccount",
+      { confirmationEmail: emailOf(USER_B) },
+      await signFor(USER_A),
+    );
+    expect(res.status).toBe(403);
+    expect(erased).toEqual(before);
   });
 });

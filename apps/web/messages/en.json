@@ -32,7 +32,19 @@
       "title": "Your data",
       "exportLabel": "Export my data",
       "exportSub": "Complete JSON · GDPR compliant",
-      "exportAction": "Export"
+      "exportAction": "Export",
+      "deleteLabel": "Delete my account",
+      "deleteSub": "Cascades across every table · irreversible",
+      "deleteAction": "Delete",
+      "deleteTitle": "Permanently delete this account?",
+      "deleteDescription": "All of your data will be erased: accounts, transactions, portfolio, real estate, goals and preferences. Your bank connections will be revoked at our provider. This cannot be undone.",
+      "deleteConfirmPrompt": "Type {email} to confirm.",
+      "deleteConfirmLabel": "Account email address",
+      "deleteConfirm": "Delete permanently",
+      "deleteLoading": "Deleting…",
+      "deleteProviderError": "We could not reach our banking provider. Nothing was deleted — please try again in a few minutes.",
+      "deletePartialError": "Your data has been erased, but the account could not be closed. Try again in a moment or contact support.",
+      "deleteGenericError": "Deletion failed before your data was erased. Nothing was deleted — please try again in a moment."
     }
   },
   "auth": {

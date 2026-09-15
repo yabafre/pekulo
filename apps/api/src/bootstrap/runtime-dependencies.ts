@@ -8,6 +8,7 @@ import type { Env } from "../config/env";
 import { createPrismaService, generateBase62Id, type PrismaService } from "../database";
 import { createReadiness, type Readiness } from "./readiness";
 import { createJwtVerifier, type JwtVerifier } from "../platform/security";
+import { createSupabaseAuthAdmin } from "../platform/auth";
 import type { PekuloRpcRouter } from "../platform/http/orpc-mount";
 import { createAccountsModule } from "../modules/accounts/accounts.module";
 import { createBankAggregatorModule } from "../modules/bank-aggregator/bank-aggregator.module";
@@ -277,9 +278,22 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
       hypothesisModule.service.getProjection(userId, currentWealthEur),
   });
 
-  // Story 8-2 (FR-51/FR-52) — per-user theme/lang preferences. A pure per-user
-  // singleton store; only needs prismaService (mirrors dashboard's layout half).
-  const settingsModule = createSettingsModule({ prismaService, jwtVerifier });
+  // Story 8-2 (FR-51/FR-52) — per-user theme/lang preferences.
+  // Story 11-2 (FR-50) — the same module owns GDPR account deletion, so it
+  // needs two ports built outside it: erasure at the bank provider (the
+  // bank-aggregator service, constructed above) and erasure of the Supabase
+  // Auth user (the admin client, which holds the service-role credential).
+  const settingsModule = createSettingsModule({
+    prismaService,
+    jwtVerifier,
+    providerErasure: {
+      eraseUser: (userId) => bankAggregatorModule.service.eraseUserAtProvider(userId),
+    },
+    authAdmin: createSupabaseAuthAdmin({
+      supabaseUrl: input.env.SUPABASE_URL,
+      serviceRoleKey: input.env.SUPABASE_SERVICE_ROLE_KEY,
+    }),
+  });
 
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,

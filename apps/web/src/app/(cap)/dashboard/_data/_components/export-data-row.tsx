@@ -47,6 +47,8 @@ export function ExportDataRow({ label, sub, action }: ExportDataRowProps) {
             display: "inline-flex",
             alignItems: "center",
             textDecoration: "none",
+            // 24 px minimum target (WCAG 2.5.8); the text alone is 15 px.
+            minHeight: 24,
           }}
         >
           <Text

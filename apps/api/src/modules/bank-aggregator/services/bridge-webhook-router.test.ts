@@ -57,6 +57,7 @@ function makeFakeService(): BankAggregatorService {
     }),
     revokeConnection: async () => ({ ok: true as const }),
     backfillUserLogos: async () => ({ merchants: 0, providers: 0 }),
+    eraseUserAtProvider: async () => ({ itemsRevoked: 0, providerUserDeleted: false }),
   };
 }
 

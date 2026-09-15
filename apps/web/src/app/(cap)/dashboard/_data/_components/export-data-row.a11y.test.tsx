@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { Section } from "@pekulo/ui";
 import { ExportDataRow } from "./export-data-row";
@@ -6,6 +6,24 @@ import { DataSection } from "./data-section";
 import { renderWithTamagui } from "../../../../../../test/setup";
 import fr from "../../../../../../messages/fr.json";
 import en from "../../../../../../messages/en.json";
+
+// Story 11-2 made DataSection read the signed-in email through the Supabase
+// SSR client (it feeds the deletion row's typed confirmation), and mounted a
+// second row whose dialog reaches the mutation hook. Outside a request scope
+// `cookies()` throws, so the client is mocked to a known user; the hook and
+// the browser-only modules the dialog touches are mocked for the same reason
+// as in delete-account-row.a11y.test.tsx.
+const SESSION_EMAIL = "alex@pekulo.local";
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: vi.fn(async () => ({
+    auth: { getUser: async () => ({ data: { user: { email: SESSION_EMAIL } } }) },
+  })),
+}));
+vi.mock("../_hooks/use-delete-account", () => ({
+  useDeleteUserAccount: () => ({ mutate: vi.fn(), isPending: false, error: null, reset: vi.fn() }),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+vi.mock("@/lib/offline/cache-db", () => ({ purgeOfflineCache: vi.fn(async () => undefined) }));
 
 // Story 11-1, AC-7. PekuloSettingRow renders Tamagui primitives, so it must be
 // mounted through the TamaguiTestProvider wrapper — a bare
@@ -73,6 +91,11 @@ describe("DataSection copy (story 11-1, AC-7)", () => {
     expect(getByText(fr.settings.data.exportLabel)).toBeInTheDocument();
     expect(getByText(fr.settings.data.exportSub)).toBeInTheDocument();
     expect(getByText(fr.settings.data.exportAction)).toBeInTheDocument();
+    // Story 11-2, AC-8: the section now holds exactly two rows, delete second,
+    // and the delete control is named after its full row label.
+    expect(getByText(fr.settings.data.deleteLabel)).toBeInTheDocument();
+    expect(getByText(fr.settings.data.deleteSub)).toBeInTheDocument();
+    expect(getByRole("button", { name: fr.settings.data.deleteLabel })).toBeInTheDocument();
   });
 
   it("ships the same settings.data keys in fr and en", () => {

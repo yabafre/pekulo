@@ -20,6 +20,53 @@ Status: V1 (a) personal-use. Items marked **(b)** are load-bearing before the pu
 - **Bridge tokens:** the `supabase_vault` extension is enabled and `bank_connections.{access,refresh}_token_secret_id` reference `vault.secrets`, **but** are vestigial NULL — Bridge v3 keeps OAuth tokens server-side and mints a short-lived user Bearer on demand, so Pekulo persists no bank tokens (ADR-0015). Nothing to decrypt = nothing to leak.
 - **Offline PWA cache (b):** encrypted IndexedDB scoped per `user_id`, key derived via Web Crypto `SubtleCrypto.deriveKey`, cleared on sign-out (ADR-0003).
 
+## Account erasure (FR-50, story 11-2)
+
+- **Order is fail-closed and fixed:** Bridge first (revoke each item, then
+  `DELETE /v3/aggregation/users/{uuid}`), then every user-scoped Postgres table
+  in one transaction, then `auth.admin.deleteUser`. A Bridge failure aborts the
+  whole deletion with nothing touched — the user retries with their session
+  intact. Erasing locally first would destroy the `bridge_users` mapping any
+  later provider-side erasure needs.
+- **There is no deferred-erasure queue.** A permanently unreachable Bridge
+  blocks the deletion and must be completed by the controller by hand. The
+  alternative — retaining an erased user's identifiers in a pending table —
+  was rejected for V1 (a) at proches scale.
+- **When the identity erase fails** (twice, 250 ms apart) after every row is
+  gone, the service answers `ACCOUNT_PARTIALLY_ERASED` (500, declared on the
+  contract) and logs `account_deletion.identity_erase_failed` with a
+  **hashed** user id (`hashUserId`, SHA-256 prefix) — never the raw UUID
+  (architecture.md § Observability). To finish the erasure by hand, hash the
+  suspected id and compare. A user Supabase no longer has (404 /
+  `user_not_found`) counts as erased, so a second confirmation is a no-op.
+- **Time budget (NFR-7):** the revoke pass at Bridge, the local transaction
+  and each Admin API attempt carry their own ceiling;
+  `settings.deletion-budget.test.ts` adds them up and fails the build past
+  60 s.
+- **`SUPABASE_SERVICE_ROLE_KEY`** is required by `apps/api` and lives in Dokploy
+  env only. At boot it must LOOK like a service-role credential (a JWT whose
+  `role` claim is `service_role`, or an `sb_secret_…` key): a pasted anon key
+  or JWT secret would otherwise fail only inside `auth.admin.deleteUser`,
+  after the Bridge user and every local row are gone. It is the Auth Admin API key, distinct from `SUPABASE_JWT_SECRET`
+  (verification only) and from the Postgres connection in `DATABASE_URL`. It is
+  never read on the web side.
+- **Raw SQL exception.** `purgeVaultSecrets` in
+  `apps/api/src/modules/settings/settings.deletion.ts` is the ONE `$executeRaw`
+  against user data in the codebase — `vault.secrets` lives outside Prisma's
+  schema so there is no delegate. The query is parameterised, never
+  interpolated. The FK from `bank_connections` is `ON DELETE SET NULL`, so
+  without this purge a written vault secret would outlive the account that owned
+  it. The columns are vestigial NULL today (ADR-0015).
+- **Cascade reachability is gated.** `db:rls-migration-audit` fails the build if
+  any user-data table cannot reach `auth.users` through an `ON DELETE CASCADE`
+  path, directly or through a cascading parent. Migration
+  `20260915120000_add_missing_auth_users_fk` closed the four tables that had no
+  path at all (`compass_history`, `milestones`, `user_pref`,
+  `dashboard_layout`) — three of which carried a migration comment claiming
+  otherwise.
+- Verification: add a `CREATE TABLE "tmp_y" ("user_id" UUID NOT NULL)` with RLS
+  DDL but no FK to a scratch migration → the gate must exit 1 naming `tmp_y`.
+
 ## Encryption strategy — what we deliberately do NOT do
 
 - **Zero-knowledge / end-to-end encryption: rejected.** Pekulo's core (compass, transfer detection, monthly aggregates) computes **server-side**, and Bridge ingestion (cron + webhook) runs while the user is offline. A true ZK model (server holds no key) cannot read the data it must aggregate. Incompatible by architecture, not just cost.
