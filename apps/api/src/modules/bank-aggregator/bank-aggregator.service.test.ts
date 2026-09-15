@@ -1485,6 +1485,46 @@ test("eraseUserAtProvider: a failing per-item revoke does NOT block deleteUser",
   expect(deleted).toBe(true);
 });
 
+test("eraseUserAtProvider: the revoke pass stops at the wall-clock budget, deleteUser still runs", async () => {
+  // aped-review 11-2 (NFR-7). Each revokeItem can take up to two Bridge
+  // round-trips on a degraded provider and the loop is one per connection —
+  // unbounded by itself. Past the budget no NEW revoke starts; the erasure
+  // moves on to deleteUser, which removes every item regardless.
+  const { repo, provider, transactionsService, accountsService } = makeStubs();
+  const order: string[] = [];
+  repo.findProviderUserUuid = async () => "bridge-uuid-1";
+  repo.listByUser = async () => [
+    connectionFixture("bnk_1", "item-1", "active"),
+    connectionFixture("bnk_2", "item-2", "active"),
+    connectionFixture("bnk_3", "item-3", "active"),
+  ];
+  provider.revokeItem = async ({ providerItemId }) => {
+    await new Promise((r) => setTimeout(r, 40));
+    order.push(`revoke:${providerItemId}`);
+  };
+  provider.deleteUser = async ({ userUuid }) => {
+    order.push(`deleteUser:${userUuid}`);
+  };
+  const svc = createBankAggregatorService({
+    repository: repo,
+    provider,
+    transactionsService,
+    accountsService,
+    listAllActiveConnections: async () => [],
+    erasureRevokeBudgetMs: 60,
+  });
+
+  const result = await svc.eraseUserAtProvider(ERASE_USER);
+
+  // 40 ms per item, 60 ms budget: the first completes, the second is in
+  // flight when the budget expires, the third is never started.
+  expect(result.providerUserDeleted).toBe(true);
+  expect(result.itemsRevoked).toBeLessThan(3);
+  expect(order[order.length - 1]).toBe("deleteUser:bridge-uuid-1");
+  await new Promise((r) => setTimeout(r, 100));
+  expect(order).not.toContain("revoke:item-3");
+});
+
 test("eraseUserAtProvider: a failing deleteUser propagates — the caller is fail-closed", async () => {
   const { repo, provider, transactionsService, accountsService } = makeStubs();
   repo.findProviderUserUuid = async () => "bridge-uuid-1";

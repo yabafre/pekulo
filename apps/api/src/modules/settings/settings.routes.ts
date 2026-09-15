@@ -49,6 +49,9 @@ export function createSettingsRouter(deps: { service: SettingsService }) {
           if (err.code === "BANK_PROVIDER_UNAVAILABLE") {
             throw errors.BANK_PROVIDER_UNAVAILABLE({ message: err.message });
           }
+          if (err.code === "ACCOUNT_PARTIALLY_ERASED") {
+            throw errors.ACCOUNT_PARTIALLY_ERASED({ message: err.message });
+          }
         }
         throw err;
       }

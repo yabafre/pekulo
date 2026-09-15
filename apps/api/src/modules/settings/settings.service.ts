@@ -15,6 +15,7 @@
 import type { ThemePref, LangPref, UserPref } from "@pekulo/validators";
 import type { DeleteUserAccountInput, DeleteUserAccountResult } from "@pekulo/validators";
 import { PekuloError } from "../../common/errors";
+import { hashUserId } from "../../common/security-primitives/hash-user-id";
 import type { SettingsRepository } from "./settings.repository";
 import type { LocalErasureResult } from "./settings.deletion";
 
@@ -52,8 +53,10 @@ export interface SettingsService {
 
 // One retry, short: a transient Supabase blip should not leave the account in
 // the "data gone, login still works" state, and two failures in 250 ms is a
-// real outage rather than a hiccup.
-const IDENTITY_RETRY_DELAY_MS = 250;
+// real outage rather than a hiccup. Exported so settings.deletion-budget.test.ts
+// can add it into the NFR-7 sum.
+export const IDENTITY_RETRY_DELAY_MS = 250;
+export const IDENTITY_ERASE_ATTEMPTS = 2;
 
 function normaliseEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -81,20 +84,21 @@ async function eraseIdentity(port: IdentityErasurePort, userId: string): Promise
   try {
     await port.deleteUser(userId);
   } catch (err) {
-    // The data is already gone; only the account shell remains, and the user
-    // has no session left to retry with. This log line is the ONLY record that
-    // can finish the job, which is why it carries the id: keeping it is
-    // necessary to complete the erasure, not retention for its own sake.
+    // The data is already gone; only the account shell remains. This log line
+    // is what lets the controller finish the job by hand, so it must identify
+    // the account — as a hash (architecture.md forbids the raw id in any log):
+    // hash the id you suspect and compare. The typed code, not INTERNAL, is
+    // what lets the client say the truth: erased, not closed, retry or write.
     console.error(
       JSON.stringify({
         event: "account_deletion.identity_erase_failed",
-        userId,
+        userIdHash: hashUserId(userId),
         reasonClass: err instanceof Error ? err.constructor.name : typeof err,
       }),
     );
     throw new PekuloError(
-      "INTERNAL",
-      "account data was erased but the identity could not be removed; contact support",
+      "ACCOUNT_PARTIALLY_ERASED",
+      "account data was erased but the identity could not be removed",
       { cause: err },
     );
   }
@@ -134,9 +138,11 @@ export function createSettingsService(deps: {
       const { rowsDeleted, vaultSecretsPurged } = await deps.localData.erase(userId);
 
       // 3. The identity LAST. If this fails the user is left with an empty but
-      //    signable-into account — degraded and loudly logged, but recoverable.
-      //    Erasing the identity first and then failing at step 2 would strand
-      //    orphan rows with no session left to retry from: worse, and silent.
+      //    signable-into account — degraded, loudly logged, and RETRYABLE: a
+      //    second confirmation skips the provider (no bridge_users row left),
+      //    deletes nothing locally, and tries the identity again. Erasing the
+      //    identity first and then failing at step 2 would strand orphan rows
+      //    with no session left to retry from: worse, and silent.
       await eraseIdentity(deps.authAdmin, userId);
 
       return { ok: true as const, rowsDeleted, vaultSecretsPurged };

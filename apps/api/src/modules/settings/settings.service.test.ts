@@ -7,6 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import type { UserPref } from "@pekulo/validators";
 import { isPekuloError } from "../../common/errors";
+import { hashUserId } from "../../common/security-primitives/hash-user-id";
 import { createSettingsService, DEFAULT_USER_PREF } from "./settings.service";
 import type { SettingsRepository } from "./settings.repository";
 
@@ -196,7 +197,10 @@ describe("settings.service deleteAccount (story 11-2)", () => {
     expect(order).toEqual(["provider", "local", "identity"]);
   });
 
-  test("AC-1 — two failing identity erases surface as INTERNAL", async () => {
+  // aped-review 11-2: this is the one state where the deletion is neither done
+  // nor untouched. It must carry its OWN code so the client can say the truth
+  // ("erased, not closed") instead of "nothing was deleted".
+  test("AC-1 — two failing identity erases surface as ACCOUNT_PARTIALLY_ERASED", async () => {
     const { service } = harness({
       authAdmin: {
         deleteUser: async () => {
@@ -208,7 +212,34 @@ describe("settings.service deleteAccount (story 11-2)", () => {
       await service.deleteAccount(USER_A, EMAIL_A, { confirmationEmail: EMAIL_A });
       throw new Error("expected deleteAccount to reject");
     } catch (err) {
-      expect(isPekuloError(err) && err.code).toBe("INTERNAL");
+      expect(isPekuloError(err) && err.code).toBe("ACCOUNT_PARTIALLY_ERASED");
     }
+  });
+
+  test("the identity-erase failure log names the account by hash, never by raw id", async () => {
+    // architecture.md § Observability: raw user_id is forbidden in any log.
+    // The line still has to identify the account for the controller to finish
+    // the erasure by hand — hence a stable hash, and nothing else.
+    const original = console.error;
+    const lines: string[] = [];
+    console.error = (...args: unknown[]) => {
+      lines.push(args.map(String).join(" "));
+    };
+    try {
+      const { service } = harness({
+        authAdmin: {
+          deleteUser: async () => {
+            throw new Error("nope");
+          },
+        },
+      });
+      await service.deleteAccount(USER_A, EMAIL_A, { confirmationEmail: EMAIL_A }).catch(() => {});
+    } finally {
+      console.error = original;
+    }
+    const line = lines.find((l) => l.includes("account_deletion.identity_erase_failed"));
+    expect(line).toBeDefined();
+    expect(line).not.toContain(USER_A);
+    expect(line).toContain(hashUserId(USER_A));
   });
 });

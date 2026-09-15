@@ -52,6 +52,9 @@ const erased: string[] = [];
 // Flipped by the AC-6 boundary test: the in-memory service then behaves like
 // a service whose provider erasure failed, before any local row is touched.
 let providerDown = false;
+// Flipped by the ACCOUNT_PARTIALLY_ERASED boundary test: the data is gone,
+// the identity is not — the one state that is neither done nor untouched.
+let identityDown = false;
 
 function inMemorySettingsService(): SettingsService {
   const rows = new Map<string, UserPref>();
@@ -87,6 +90,12 @@ function inMemorySettingsService(): SettingsService {
       }
       rows.delete(userId);
       erased.push(userId);
+      if (identityDown) {
+        throw new PekuloError(
+          "ACCOUNT_PARTIALLY_ERASED",
+          "account data was erased but the identity could not be removed",
+        );
+      }
       return { ok: true as const, rowsDeleted: { accounts: 1 }, vaultSecretsPurged: 0 };
     },
   };
@@ -245,6 +254,28 @@ describe("settings.deleteAccount HTTP boundary (story 11-2)", () => {
       expect(erased).toEqual(before);
     } finally {
       providerDown = false;
+    }
+  });
+
+  test("an identity-erase failure surfaces as 500 ACCOUNT_PARTIALLY_ERASED with its code intact", async () => {
+    // aped-review 11-2. Without the contract declaring this code, oRPC
+    // collapsed it to an anonymous 500 and the web tier could only say
+    // "nothing was deleted" — false: every row is gone at this point.
+    const { isORPCErrorJson } = await import("@orpc/client");
+    identityDown = true;
+    try {
+      const res = await call(
+        "deleteAccount",
+        { confirmationEmail: emailOf(USER_B) },
+        await signFor(USER_B),
+      );
+      expect(res.status).toBe(500);
+      const inner = ((await res.json()) as { json: unknown }).json;
+      expect(isORPCErrorJson(inner)).toBe(true);
+      expect((inner as { code: string }).code).toBe("ACCOUNT_PARTIALLY_ERASED");
+      expect(erased).toContain(USER_B);
+    } finally {
+      identityDown = false;
     }
   });
 

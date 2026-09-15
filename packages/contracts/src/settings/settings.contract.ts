@@ -34,6 +34,13 @@ const bankProviderUnavailableError = {
   status: 503 as const,
   message: "bank provider unavailable",
 };
+// The one state where the deletion is neither done nor untouched: every
+// user-scoped row is gone, the Supabase Auth user is not. Declared so the
+// web tier can name it instead of collapsing it into a generic failure.
+const accountPartiallyErasedError = {
+  status: 500 as const,
+  message: "account data was erased but the identity could not be removed",
+};
 
 export const settingsContractV1 = {
   get: oc.output(userPrefSchema),
@@ -45,6 +52,7 @@ export const settingsContractV1 = {
     .errors({
       FORBIDDEN: forbiddenError,
       BANK_PROVIDER_UNAVAILABLE: bankProviderUnavailableError,
+      ACCOUNT_PARTIALLY_ERASED: accountPartiallyErasedError,
     }),
 } as const;
 

@@ -186,11 +186,11 @@ export interface LocalErasureResult {
 }
 
 // Prisma's default interactive-transaction timeout is 5 s. NFR-7 budgets 60 s
-// for the whole deletion, of which the provider call and the identity erase
-// take their own share — 45 s leaves room for both while still failing well
-// inside the budget rather than hanging.
-const DELETION_TX_TIMEOUT_MS = 45_000;
-const DELETION_TX_MAX_WAIT_MS = 5_000;
+// for the WHOLE deletion — provider erasure, this transaction, identity
+// erasure — and settings.deletion-budget.test.ts adds every bounded phase up
+// and fails the build if the sum crosses 60 s. Raise one, lower another.
+export const DELETION_TX_TIMEOUT_MS = 30_000;
+export const DELETION_TX_MAX_WAIT_MS = 3_000;
 
 /**
  * Deletes every row the user owns, in one transaction, and returns the row

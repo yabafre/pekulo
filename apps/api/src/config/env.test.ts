@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
+import { fakeSupabaseKey, SERVICE_ROLE_KEY_FIXTURE } from "../test/fakes/service-role-key";
 import { ConfigError, loadEnv } from "./env";
 
 const BASE = {
   DATABASE_URL: "postgres://x:y@localhost:5432/db",
   SUPABASE_JWT_SECRET: "x".repeat(32),
   SUPABASE_URL: "https://example.supabase.co",
-  SUPABASE_SERVICE_ROLE_KEY: "service-role-key-fixture-value",
+  SUPABASE_SERVICE_ROLE_KEY: SERVICE_ROLE_KEY_FIXTURE,
   // Story 5-6 (post-review): BRIDGE_* triple is required at boot — test
   // fixtures must populate them or `loadEnv` throws ConfigError.
   BRIDGE_CLIENT_ID: "test-bridge-client-id",
@@ -92,6 +93,26 @@ describe("loadEnv", () => {
   test("rejects missing SUPABASE_SERVICE_ROLE_KEY", () => {
     const { SUPABASE_SERVICE_ROLE_KEY: _, ...rest } = BASE;
     expect(() => loadEnv(rest)).toThrow(ConfigError);
+  });
+
+  // aped-review 11-2: a wrong-but-long value used to boot and only fail inside
+  // auth.admin.deleteUser — after the Bridge user and every local row were
+  // already gone. The key must LOOK like a service-role credential at boot.
+  test("rejects a JWT whose role is not service_role (the anon key)", () => {
+    expect(() => loadEnv({ ...BASE, SUPABASE_SERVICE_ROLE_KEY: fakeSupabaseKey("anon") })).toThrow(
+      ConfigError,
+    );
+  });
+
+  test("rejects an opaque string that is neither a JWT nor an sb_secret_ key (the JWT secret)", () => {
+    expect(() => loadEnv({ ...BASE, SUPABASE_SERVICE_ROLE_KEY: "x".repeat(40) })).toThrow(
+      ConfigError,
+    );
+  });
+
+  test("accepts the newer sb_secret_ key shape", () => {
+    const env = loadEnv({ ...BASE, SUPABASE_SERVICE_ROLE_KEY: `sb_secret_${"y".repeat(32)}` });
+    expect(env.SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")).toBe(true);
   });
 
   test("accepts BRIDGE_WEBHOOK_SIGNING_SECRET_PREVIOUS as optional (24h rotation window)", () => {

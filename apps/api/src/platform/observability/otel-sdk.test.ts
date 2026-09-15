@@ -1,4 +1,5 @@
 // apps/api/src/platform/observability/otel-sdk.test.ts
+import { SERVICE_ROLE_KEY_FIXTURE } from "../../test/fakes/service-role-key";
 // Tests for story 0-7 SDK init module.
 //
 // Coverage:
@@ -35,7 +36,7 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
     DATABASE_URL: "postgres://stub:stub@127.0.0.1:5432/stub",
     SUPABASE_JWT_SECRET: "x".repeat(64),
     SUPABASE_URL: "http://127.0.0.1:54321",
-    SUPABASE_SERVICE_ROLE_KEY: "service-role-key-fixture-value",
+    SUPABASE_SERVICE_ROLE_KEY: SERVICE_ROLE_KEY_FIXTURE,
     OTEL_SERVICE_NAME: "pekulo-api-test",
     OTEL_EXPORTER_OTLP_ENDPOINT: undefined,
     OTEL_LOG_LEVEL: "error",
@@ -126,7 +127,7 @@ describe("loadEnv with malformed OTEL_EXPORTER_OTLP_ENDPOINT (AC-4)", () => {
     DATABASE_URL: "postgres://stub:stub@127.0.0.1:5432/stub",
     SUPABASE_JWT_SECRET: "x".repeat(64),
     SUPABASE_URL: "http://127.0.0.1:54321",
-    SUPABASE_SERVICE_ROLE_KEY: "service-role-key-fixture-value",
+    SUPABASE_SERVICE_ROLE_KEY: SERVICE_ROLE_KEY_FIXTURE,
     OTEL_SERVICE_NAME: "pekulo-api-test",
     OTEL_LOG_LEVEL: "error",
     // Story 5-6 post-review aped-review: BRIDGE_* triple now required at boot.

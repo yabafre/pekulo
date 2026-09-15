@@ -42,7 +42,7 @@ function authHeaders(env: Env, bearer?: string): Record<string, string> {
 // 10s budget covers the slowest happy-path seen on the sandbox; any longer is
 // a Bridge outage by V1's NFR-18 budget (provider fallback within 500ms after
 // 10s upstream timeout is the safe shape — we surface bankProviderUnavailable).
-const BRIDGE_FETCH_TIMEOUT_MS = 10_000;
+export const BRIDGE_FETCH_TIMEOUT_MS = 10_000;
 
 export function createBridgeProvider(args: { env: Env }): BankProvider {
   const { env } = args;

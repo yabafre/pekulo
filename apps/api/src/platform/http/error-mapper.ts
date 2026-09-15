@@ -38,6 +38,10 @@ export interface MappedErrorResponse {
  */
 const ORPC_HTTP_STATUS_BY_CODE: Record<PekuloErrorCode, number> = {
   BAD_REQUEST: 400,
+  // Story 11-2 (FR-50), aped-review: every user-scoped row is gone but the
+  // Supabase Auth user could not be removed after a retry. A 500 that the
+  // client can NAME, so the dialog stops claiming "nothing was deleted".
+  ACCOUNT_PARTIALLY_ERASED: 500,
   // Bank-aggregator domain (story 5-6, FR-60/61/62 + NFR-31/32/33).
   // _NOT_FOUND → 404 (cross-user probe / stale id on refreshConnection).
   // _ALREADY_EXISTS → 409 (re-completeConnection of an active item).

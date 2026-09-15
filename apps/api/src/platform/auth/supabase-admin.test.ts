@@ -31,6 +31,28 @@ describe("createAuthAdmin", () => {
     expect(admin.deleteUser(USER_A)).rejects.toThrow("user not allowed");
   });
 
+  // aped-review 11-2: a second confirmation from another tab (JWT still valid,
+  // data already gone) reaches the identity step for a user Supabase no longer
+  // has. "Already gone" is the end state, not a failure — same posture as the
+  // Bridge client admitting a 404 on deleteUser.
+  test("treats a 404 / user_not_found answer as success (idempotent)", async () => {
+    const byStatus = createAuthAdmin({
+      deleteUser: async () => ({ error: { message: "User not found", status: 404 } }),
+    });
+    await expect(byStatus.deleteUser(USER_A)).resolves.toBeUndefined();
+    const byCode = createAuthAdmin({
+      deleteUser: async () => ({ error: { message: "User not found", code: "user_not_found" } }),
+    });
+    await expect(byCode.deleteUser(USER_A)).resolves.toBeUndefined();
+  });
+
+  test("still throws on any other error status", async () => {
+    const admin = createAuthAdmin({
+      deleteUser: async () => ({ error: { message: "service unavailable", status: 503 } }),
+    });
+    expect(admin.deleteUser(USER_A)).rejects.toThrow("service unavailable");
+  });
+
   test("never puts the user id in the thrown message", async () => {
     // The message travels into logs and, via the error mapper, toward the
     // client. The id is already in the structured log line the service

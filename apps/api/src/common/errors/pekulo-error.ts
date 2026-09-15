@@ -15,6 +15,7 @@
  */
 export type PekuloErrorCode =
   | "ACCOUNT_NOT_FOUND"
+  | "ACCOUNT_PARTIALLY_ERASED"
   | "ACCOUNT_REFERENCED_FK"
   | "BAD_REQUEST"
   | "BANK_CONNECTION_ALREADY_EXISTS"
@@ -60,6 +61,7 @@ export type PekuloErrorCode =
 
 const PEKULO_ERROR_CODES: ReadonlySet<PekuloErrorCode> = new Set<PekuloErrorCode>([
   "ACCOUNT_NOT_FOUND",
+  "ACCOUNT_PARTIALLY_ERASED",
   "ACCOUNT_REFERENCED_FK",
   "BAD_REQUEST",
   "BANK_CONNECTION_ALREADY_EXISTS",

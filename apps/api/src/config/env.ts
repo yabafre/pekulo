@@ -3,6 +3,24 @@ import { z } from "@pekulo/zod";
 // Treat `KEY=` in .env as absent — brownfield reads process.env directly and
 // `""` is falsy. Without this, optional URL / non-empty schemas reject the
 // shell-truthy-but-content-empty pattern with a confusing validation error.
+
+// Supabase issues the service-role credential in two shapes: the legacy JWT
+// (`eyJ…`, payload `{ role: "service_role" }`) and the newer opaque
+// `sb_secret_…` key. Both are accepted; anything else is a paste error.
+export function looksLikeServiceRoleKey(value: string): boolean {
+  if (value.startsWith("sb_secret_")) return true;
+  const parts = value.split(".");
+  if (parts.length !== 3) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1]!, "base64url").toString("utf8")) as {
+      role?: unknown;
+    };
+    return payload.role === "service_role";
+  } catch {
+    return false;
+  }
+}
+
 const optionalString = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
 
@@ -36,7 +54,14 @@ const envSchema = z.object({
     .min(
       20,
       "SUPABASE_SERVICE_ROLE_KEY is required (Supabase dashboard -> Project Settings -> API -> service_role)",
-    ),
+    )
+    // Fail at BOOT, not at the first deletion. A pasted anon key or JWT secret
+    // clears `min(20)` and only fails inside auth.admin.deleteUser — after the
+    // Bridge user and every local row are already gone (aped-review 11-2).
+    .refine(looksLikeServiceRoleKey, {
+      message:
+        "SUPABASE_SERVICE_ROLE_KEY must be the service_role key: a JWT whose `role` claim is service_role, or an sb_secret_… key — not the anon key and not the JWT secret",
+    }),
   // Price-chain providers (story 3-2). All optional — when unset, the
   // corresponding tier throws a typed `not-configured` / `missing-key`
   // error and the orchestrator falls back to the next tier.
