@@ -88,6 +88,77 @@ export function auditMigrationSql(
   return drift;
 }
 
+// --- Cascade reachability gate (story 11-2, AC-5) -------------------------
+//
+// RLS proves who may READ a row. It says nothing about whether the row DIES
+// when the account does. Four tables (compass_history, milestones, user_pref,
+// dashboard_layout) shipped with no FK to auth.users at all while three of
+// their migrations carried a comment claiming the opposite — an incomplete
+// GDPR erasure (FR-50) that every gate in the repo passed. This closes that
+// class: a user-data table must reach auth.users through ON DELETE CASCADE,
+// directly or through a parent that does (the account_balance_log shape).
+
+// `FOREIGN KEY ("col") REFERENCES <target> ON DELETE CASCADE`, with or without
+// quotes and with or without a schema qualifier. Captures the target table
+// name only; the ON DELETE CASCADE tail is mandatory, so a SET NULL / RESTRICT
+// / NO ACTION reference simply does not match and the table stays unreachable.
+const CASCADE_FK_RE =
+  /ALTER TABLE\s+(?:"?[a-z0-9_]+"?\.)?"?([a-z0-9_]+)"?\s+ADD CONSTRAINT[^;]*?FOREIGN KEY[^;]*?REFERENCES\s+(?:"?([a-z0-9_]+)"?\.)?"?([a-z0-9_]+)"?\s*\([^)]*\)\s*ON DELETE CASCADE/gi;
+
+export function auditCascadeReachability(
+  sql: string,
+  opts: { nonUser?: Set<string> } = {},
+): RlsDrift[] {
+  const nonUser = opts.nonUser ?? NON_USER_TABLES;
+  const created = createdTables(sql);
+
+  // child -> set of parents it cascade-deletes from.
+  const parents = new Map<string, Set<string>>();
+  for (const m of sql.matchAll(CASCADE_FK_RE)) {
+    const child = m[1]!;
+    const parentSchema = m[2];
+    const parentTable = m[3]!;
+    // auth.users is the root. Any other schema qualifier is not a public
+    // table we track, and an unqualified name is public by definition.
+    const parent = parentSchema === "auth" && parentTable === "users" ? "auth.users" : parentTable;
+    if (!parents.has(child)) parents.set(child, new Set());
+    parents.get(child)!.add(parent);
+  }
+
+  // Walk up from each table; `seen` makes a cyclic FK graph terminate
+  // instead of recursing forever.
+  function reachesAuthUsers(table: string, seen: Set<string>): boolean {
+    if (seen.has(table)) return false;
+    seen.add(table);
+    for (const parent of parents.get(table) ?? []) {
+      if (parent === "auth.users") return true;
+      if (reachesAuthUsers(parent, seen)) return true;
+    }
+    return false;
+  }
+
+  const drift: RlsDrift[] = [];
+  for (const table of [...created].sort()) {
+    if (nonUser.has(table)) continue;
+    if (!reachesAuthUsers(table, new Set())) {
+      drift.push({
+        table,
+        reason: "no ON DELETE CASCADE path to auth.users (GDPR erasure would orphan it)",
+      });
+    }
+  }
+  return drift;
+}
+
+// Exported so the unit test can assert the gate against the real corpus
+// rather than against hand-written SQL only.
+export function readAllMigrationSql(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const migrationsDir = resolve(here, "..", "prisma", "migrations");
+  const files = migrationSqlFiles(migrationsDir);
+  return files.map((f) => readFileSync(f, "utf8")).join("\n");
+}
+
 function migrationSqlFiles(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {
@@ -126,8 +197,31 @@ function main(): number {
     console.error("or add the table to NON_USER_TABLES with a justification.");
     return 1;
   }
+
+  // Story 11-2, AC-5 — erasure reachability. Kept as a SECOND pass with its
+  // own message: "RLS is missing" and "the account cascade cannot reach it"
+  // are different bugs with different fixes, and collapsing them into one
+  // report sends the reader to the wrong file.
+  const cascadeDrift = auditCascadeReachability(sql);
+  if (cascadeDrift.length > 0) {
+    console.error(
+      "[rls-migration-audit] DRIFT — user-data tables the account cascade cannot reach:",
+    );
+    for (const d of cascadeDrift) console.error(`  ${d.table}: ${d.reason}`);
+    console.error(
+      '\nAdd `FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE`',
+    );
+    console.error(
+      "to the table's migration.sql, or give it a parent FK that cascades (see account_balance_log),",
+    );
+    console.error("or add the table to NON_USER_TABLES with a justification.");
+    return 1;
+  }
+
   const checked = [...createdTables(sql)].filter((t) => !NON_USER_TABLES.has(t)).length;
-  console.log(`[rls-migration-audit] OK — ${checked} user-data tables, all RLS-guarded.`);
+  console.log(
+    `[rls-migration-audit] OK — ${checked} user-data tables, all RLS-guarded and all reachable by the auth.users cascade.`,
+  );
   return 0;
 }
 

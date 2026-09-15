@@ -1,5 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import { auditMigrationSql } from "./rls-migration-audit";
+import { describe, expect, it, test } from "bun:test";
+import {
+  auditCascadeReachability,
+  auditMigrationSql,
+  readAllMigrationSql,
+} from "./rls-migration-audit";
 
 // AC-1 (verbatim from story 11-3-rls-audit-and-encryption-doc:14):
 //   Given a Prisma migration that creates a new public user-data table without
@@ -55,5 +59,61 @@ describe("rls-migration-audit (AC-1)", () => {
     expect(driftedTables(`CREATE TABLE leaky_unquoted ("user_id" UUID NOT NULL);`)).toEqual([
       "leaky_unquoted",
     ]);
+  });
+});
+
+// AC-5 (verbatim from story 11-2-account-deletion:18):
+//   Given the committed migration SQL, When `db:rls-migration-audit` runs,
+//   Then it fails and names the table if any public user-data table cannot
+//   reach `auth.users` through an `ON DELETE CASCADE` path — directly, or
+//   through a parent table that can. A new user-data table without that path
+//   is a build failure.
+describe("auditCascadeReachability (story 11-2, AC-5)", () => {
+  const CREATE_TWO = `
+    CREATE TABLE "widgets" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL);
+    CREATE TABLE "widget_logs" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL, "widget_id" TEXT NOT NULL);
+  `;
+
+  it("reports a user table with no path to auth.users", () => {
+    const drift = auditCascadeReachability(CREATE_TWO);
+    expect(drift.map((d) => d.table).sort()).toEqual(["widget_logs", "widgets"]);
+  });
+
+  it("accepts a direct FK to auth.users with ON DELETE CASCADE", () => {
+    const sql = `${CREATE_TWO}
+      ALTER TABLE "widgets" ADD CONSTRAINT "w_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "widget_logs" ADD CONSTRAINT "wl_fk"
+        FOREIGN KEY ("user_id") REFERENCES auth.users(id) ON DELETE CASCADE;`;
+    expect(auditCascadeReachability(sql)).toEqual([]);
+  });
+
+  it("accepts an INDIRECT path through a parent that cascades (account_balance_log shape)", () => {
+    const sql = `${CREATE_TWO}
+      ALTER TABLE "widgets" ADD CONSTRAINT "w_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "widget_logs" ADD CONSTRAINT "wl_parent_fk"
+        FOREIGN KEY ("widget_id") REFERENCES "widgets"("id") ON DELETE CASCADE;`;
+    expect(auditCascadeReachability(sql)).toEqual([]);
+  });
+
+  it("rejects a parent FK that is NOT ON DELETE CASCADE", () => {
+    const sql = `${CREATE_TWO}
+      ALTER TABLE "widgets" ADD CONSTRAINT "w_fk"
+        FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+      ALTER TABLE "widget_logs" ADD CONSTRAINT "wl_parent_fk"
+        FOREIGN KEY ("widget_id") REFERENCES "widgets"("id") ON DELETE SET NULL;`;
+    expect(auditCascadeReachability(sql).map((d) => d.table)).toEqual(["widget_logs"]);
+  });
+
+  it("skips the declared non-user tables", () => {
+    const sql = `CREATE TABLE "merchant_logo_cache" ("merchant_key" TEXT NOT NULL);`;
+    expect(auditCascadeReachability(sql)).toEqual([]);
+  });
+
+  it("passes on the real committed migration corpus", () => {
+    // The whole point of the gate: the four tables T1 fixed must now be
+    // reachable, and every future table must stay reachable.
+    expect(auditCascadeReachability(readAllMigrationSql())).toEqual([]);
   });
 });
