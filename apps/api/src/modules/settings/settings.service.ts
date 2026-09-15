@@ -75,33 +75,36 @@ function assertConfirmation(sessionEmail: string | null, typed: string): void {
 }
 
 async function eraseIdentity(port: IdentityErasurePort, userId: string): Promise<void> {
-  try {
-    await port.deleteUser(userId);
-    return;
-  } catch {
-    await new Promise((resolve) => setTimeout(resolve, IDENTITY_RETRY_DELAY_MS));
+  // Driven by the constant the budget test sums, so the two cannot drift.
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= IDENTITY_ERASE_ATTEMPTS; attempt += 1) {
+    try {
+      await port.deleteUser(userId);
+      return;
+    } catch (err) {
+      lastError = err;
+      if (attempt < IDENTITY_ERASE_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, IDENTITY_RETRY_DELAY_MS));
+      }
+    }
   }
-  try {
-    await port.deleteUser(userId);
-  } catch (err) {
-    // The data is already gone; only the account shell remains. This log line
-    // is what lets the controller finish the job by hand, so it must identify
-    // the account — as a hash (architecture.md forbids the raw id in any log):
-    // hash the id you suspect and compare. The typed code, not INTERNAL, is
-    // what lets the client say the truth: erased, not closed, retry or write.
-    console.error(
-      JSON.stringify({
-        event: "account_deletion.identity_erase_failed",
-        userIdHash: hashUserId(userId),
-        reasonClass: err instanceof Error ? err.constructor.name : typeof err,
-      }),
-    );
-    throw new PekuloError(
-      "ACCOUNT_PARTIALLY_ERASED",
-      "account data was erased but the identity could not be removed",
-      { cause: err },
-    );
-  }
+  // The data is already gone; only the account shell remains. This log line
+  // is what lets the controller finish the job by hand, so it must identify
+  // the account — as a hash (architecture.md forbids the raw id in any log):
+  // hash the id you suspect and compare. The typed code, not INTERNAL, is
+  // what lets the client say the truth: erased, not closed, retry or write.
+  console.error(
+    JSON.stringify({
+      event: "account_deletion.identity_erase_failed",
+      userIdHash: hashUserId(userId),
+      reasonClass: lastError instanceof Error ? lastError.constructor.name : typeof lastError,
+    }),
+  );
+  throw new PekuloError(
+    "ACCOUNT_PARTIALLY_ERASED",
+    "account data was erased but the identity could not be removed",
+    { cause: lastError },
+  );
 }
 
 export function createSettingsService(deps: {

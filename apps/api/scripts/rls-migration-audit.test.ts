@@ -180,6 +180,29 @@ describe("auditCascadeReachability (story 11-2, AC-5)", () => {
     expect(auditCascadeReachability(sql)).toEqual([]);
   });
 
+  it("reads each clause of a multi-clause ALTER TABLE on its own", () => {
+    // A RESTRICT to auth.users followed by a CASCADE to an orphan parent must
+    // not be read as "CASCADE to auth.users"; the mirror (SET NULL to a vault
+    // table, then CASCADE to auth.users) must not read as drift; two CASCADE
+    // clauses in one statement are both recorded.
+    const sql = `
+      CREATE TABLE "orphan" ("id" TEXT NOT NULL);
+      CREATE TABLE "t22" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL, "o" TEXT);
+      CREATE TABLE "t23" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL, "s" UUID);
+      CREATE TABLE "t24" ("id" TEXT NOT NULL, "user_id" UUID NOT NULL, "o" TEXT);
+      ALTER TABLE "t22"
+        ADD CONSTRAINT "t22_user_fk" FOREIGN KEY ("user_id") REFERENCES auth.users(id) ON DELETE RESTRICT,
+        ADD CONSTRAINT "t22_o_fk" FOREIGN KEY ("o") REFERENCES "orphan"("id") ON DELETE CASCADE;
+      ALTER TABLE "t23"
+        ADD CONSTRAINT "t23_s_fk" FOREIGN KEY ("s") REFERENCES "vault"."secrets"("id") ON DELETE SET NULL,
+        ADD CONSTRAINT "t23_user_fk" FOREIGN KEY ("user_id") REFERENCES auth.users(id) ON DELETE CASCADE;
+      ALTER TABLE "t24"
+        ADD CONSTRAINT "t24_user_fk" FOREIGN KEY ("user_id") REFERENCES auth.users(id) ON DELETE CASCADE,
+        ADD CONSTRAINT "t24_o_fk" FOREIGN KEY ("o") REFERENCES "orphan"("id") ON DELETE CASCADE;
+      ALTER TABLE "t24" DROP CONSTRAINT "t24_o_fk";`;
+    expect(auditCascadeReachability(sql).map((d) => d.table)).toEqual(["orphan", "t22"]);
+  });
+
   it("drops an inline column-level cascade by its Postgres default name", () => {
     const sql = `
       CREATE TABLE "e" (

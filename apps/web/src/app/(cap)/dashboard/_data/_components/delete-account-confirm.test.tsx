@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DeleteAccountConfirm } from "./delete-account-confirm";
 import { renderWithTamagui } from "../../../../../../test/setup";
@@ -99,13 +100,13 @@ describe("DeleteAccountConfirm (story 11-2, AC-8)", () => {
     // code, and each code is a different truth for the user.
     it("says the provider was unreachable and nothing was touched on BANK_PROVIDER_UNAVAILABLE", async () => {
       const { findByRole } = await openAndConfirm();
-      lastOnSuccess()({ ok: false, code: "BANK_PROVIDER_UNAVAILABLE" });
+      await act(async () => lastOnSuccess()({ ok: false, code: "BANK_PROVIDER_UNAVAILABLE" }));
       expect(await findByRole("alert")).toHaveTextContent(fr.settings.data.deleteProviderError);
     });
 
     it("says the data is gone but the account is not on ACCOUNT_PARTIALLY_ERASED", async () => {
       const { findByRole } = await openAndConfirm();
-      lastOnSuccess()({ ok: false, code: "ACCOUNT_PARTIALLY_ERASED" });
+      await act(async () => lastOnSuccess()({ ok: false, code: "ACCOUNT_PARTIALLY_ERASED" }));
       const alert = await findByRole("alert");
       expect(alert).toHaveTextContent(fr.settings.data.deletePartialError);
       expect(alert).not.toHaveTextContent(/rien n'a été supprimé/i);
@@ -113,7 +114,7 @@ describe("DeleteAccountConfirm (story 11-2, AC-8)", () => {
 
     it("falls back to the generic copy on any other code", async () => {
       const { findByRole } = await openAndConfirm();
-      lastOnSuccess()({ ok: false, code: "FORBIDDEN" });
+      await act(async () => lastOnSuccess()({ ok: false, code: "FORBIDDEN" }));
       expect(await findByRole("alert")).toHaveTextContent(fr.settings.data.deleteGenericError);
     });
   });
@@ -128,7 +129,7 @@ describe("DeleteAccountConfirm (story 11-2, AC-8)", () => {
       const assign = vi.fn();
       Object.defineProperty(window, "location", { value: { ...original, assign }, writable: true });
       await openAndConfirm();
-      lastOnSuccess()({ ok: true });
+      await act(async () => lastOnSuccess()({ ok: true }));
       expect(assign).toHaveBeenCalledWith("/");
     });
   });

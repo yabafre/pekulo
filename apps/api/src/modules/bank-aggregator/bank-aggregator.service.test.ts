@@ -1499,7 +1499,7 @@ test("eraseUserAtProvider: the revoke pass stops at the wall-clock budget, delet
     connectionFixture("bnk_3", "item-3", "active"),
   ];
   provider.revokeItem = async ({ providerItemId }) => {
-    await new Promise((r) => setTimeout(r, 40));
+    await new Promise((r) => setTimeout(r, 150));
     order.push(`revoke:${providerItemId}`);
   };
   provider.deleteUser = async ({ userUuid }) => {
@@ -1511,18 +1511,18 @@ test("eraseUserAtProvider: the revoke pass stops at the wall-clock budget, delet
     transactionsService,
     accountsService,
     listAllActiveConnections: async () => [],
-    erasureRevokeBudgetMs: 60,
+    erasureRevokeBudgetMs: 50,
   });
 
   const result = await svc.eraseUserAtProvider(ERASE_USER);
 
-  // 40 ms per item, 60 ms budget: the first completes, the second is in
-  // flight when the budget expires, the third is never started.
-  expect(result.providerUserDeleted).toBe(true);
-  expect(result.itemsRevoked).toBeLessThan(3);
-  expect(order[order.length - 1]).toBe("deleteUser:bridge-uuid-1");
-  await new Promise((r) => setTimeout(r, 100));
-  expect(order).not.toContain("revoke:item-3");
+  // 150 ms per item, 50 ms budget: item 1 is still in flight when the budget
+  // expires, so deleteUser runs with nothing revoked yet; the loop then sees
+  // `expired` and never starts item 2. 100 ms of margin on every edge.
+  expect(result).toEqual({ itemsRevoked: 0, providerUserDeleted: true });
+  expect(order).toEqual(["deleteUser:bridge-uuid-1"]);
+  await new Promise((r) => setTimeout(r, 250));
+  expect(order).toEqual(["deleteUser:bridge-uuid-1", "revoke:item-1"]);
 });
 
 test("eraseUserAtProvider: a failing deleteUser propagates — the caller is fail-closed", async () => {
