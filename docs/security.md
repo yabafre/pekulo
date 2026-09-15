@@ -32,8 +32,22 @@ Status: V1 (a) personal-use. Items marked **(b)** are load-bearing before the pu
   blocks the deletion and must be completed by the controller by hand. The
   alternative — retaining an erased user's identifiers in a pending table —
   was rejected for V1 (a) at proches scale.
+- **When the identity erase fails** (twice, 250 ms apart) after every row is
+  gone, the service answers `ACCOUNT_PARTIALLY_ERASED` (500, declared on the
+  contract) and logs `account_deletion.identity_erase_failed` with a
+  **hashed** user id (`hashUserId`, SHA-256 prefix) — never the raw UUID
+  (architecture.md § Observability). To finish the erasure by hand, hash the
+  suspected id and compare. A user Supabase no longer has (404 /
+  `user_not_found`) counts as erased, so a second confirmation is a no-op.
+- **Time budget (NFR-7):** the revoke pass at Bridge, the local transaction
+  and each Admin API attempt carry their own ceiling;
+  `settings.deletion-budget.test.ts` adds them up and fails the build past
+  60 s.
 - **`SUPABASE_SERVICE_ROLE_KEY`** is required by `apps/api` and lives in Dokploy
-  env only. It is the Auth Admin API key, distinct from `SUPABASE_JWT_SECRET`
+  env only. At boot it must LOOK like a service-role credential (a JWT whose
+  `role` claim is `service_role`, or an `sb_secret_…` key): a pasted anon key
+  or JWT secret would otherwise fail only inside `auth.admin.deleteUser`,
+  after the Bridge user and every local row are gone. It is the Auth Admin API key, distinct from `SUPABASE_JWT_SECRET`
   (verification only) and from the Postgres connection in `DATABASE_URL`. It is
   never read on the web side.
 - **Raw SQL exception.** `purgeVaultSecrets` in

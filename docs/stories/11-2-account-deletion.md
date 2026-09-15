@@ -3097,12 +3097,16 @@ There is no service-role key anywhere in the repo today — not in `env.ts`, not
 - `apps/api/src/modules/settings/settings.deletion.test.ts`
 - `apps/api/src/modules/settings/settings.deletion-map.guard.test.ts`
 - `packages/validators/src/settings/deletion.schemas.ts`
-- `apps/web/src/app/(cap)/dashboard/_data/_actions/delete-account-action.ts`
+- `apps/web/src/app/(cap)/dashboard/_data/_actions/data-actions.ts` (named `delete-account-action.ts` until the review; one `<feature>-actions.ts` per feature)
 - `apps/web/src/app/(cap)/dashboard/_data/_hooks/use-delete-account.ts`
 - `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-confirm.tsx`
 - `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-confirm.test.tsx`
 - `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-row.tsx`
 - `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-row.a11y.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/_data/_components/delete-account-confirm.module.css` (review: focus ring on the native confirm button)
+- `apps/api/src/modules/settings/settings.deletion-budget.test.ts` (review: NFR-7 sum of every bounded phase)
+- `apps/api/src/common/security-primitives/hash-user-id.ts` + `.test.ts` (review: hashed id in the identity-erase log)
+- `apps/api/src/test/fakes/service-role-key.ts` (review: env fixture that passes the service-role shape check)
 
 **Modified**
 
@@ -3122,11 +3126,18 @@ There is no service-role key anywhere in the repo today — not in `env.ts`, not
 - `apps/api/src/modules/bank-aggregator/services/bridge-client.test.ts`
 - `apps/api/src/modules/bank-aggregator/bank-aggregator.service.ts`
 - `apps/api/src/modules/bank-aggregator/bank-aggregator.service.test.ts`
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.integration.test.ts` (stub gained `deleteUser` / `eraseUserAtProvider`)
+- `apps/api/src/modules/bank-aggregator/bank-aggregator.security.test.ts` (same)
+- `apps/api/src/modules/bank-aggregator/services/bridge-webhook-router.test.ts` (same)
+- `apps/api/src/platform/observability/otel-sdk.test.ts` (env fixture gained `SUPABASE_SERVICE_ROLE_KEY`)
+- `apps/api/src/common/errors/pekulo-error.ts` + `apps/api/src/platform/http/error-mapper.ts` (review: `ACCOUNT_PARTIALLY_ERASED`)
 - `apps/api/package.json`
 - `bun.lock`
 - `packages/validators/src/settings/index.ts`
 - `packages/contracts/src/settings/settings.contract.ts`
 - `apps/web/src/app/(cap)/dashboard/_data/_components/data-section.tsx`
+- `apps/web/src/app/(cap)/dashboard/_data/_components/export-data-row.tsx` (review: 24 px target)
+- `apps/web/src/app/(cap)/dashboard/_data/_components/export-data-row.a11y.test.tsx` (11-1 suite mocks the SSR client the section now reads)
 - `apps/web/messages/fr.json`
 - `apps/web/messages/en.json`
 - `.env.example`
