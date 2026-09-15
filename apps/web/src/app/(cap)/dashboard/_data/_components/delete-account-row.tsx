@@ -14,7 +14,11 @@
 // stroke="currentColor" then resolves to the UA default black on the #0a0a0a
 // card — about 1.03:1. Found in story 11-1's review on the export row; the
 // same trap applies here.
-import { useState } from "react";
+//
+// The dialog is not opened through PekuloDialog.Trigger (it lives in its own
+// component, outside the dialog root), so focus is handed back here by hand
+// when the dialog closes — otherwise a keyboard user lands on <body>.
+import { useRef, useState, type ComponentRef } from "react";
 import { Trash2 } from "lucide-react";
 import { PekuloSettingRow } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
@@ -28,8 +32,26 @@ export interface DeleteAccountRowProps {
   email: string;
 }
 
+// Identical values to PekuloDialogCloseX so the atomic classes already exist
+// in the pre-generated Tamagui CSS (lesson 2026-05-24).
+const FOCUS_RING = {
+  outlineWidth: 2,
+  outlineColor: "$color",
+  outlineStyle: "solid",
+  outlineOffset: 2,
+} as const;
+
 export function DeleteAccountRow({ label, sub, action, email }: DeleteAccountRowProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<ComponentRef<typeof View>>(null);
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    // After the dialog unmounts its focus trap; the frame after is the first
+    // moment the button is focusable again.
+    if (!next) requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
   return (
     <>
       <PekuloSettingRow
@@ -38,6 +60,7 @@ export function DeleteAccountRow({ label, sub, action, email }: DeleteAccountRow
         destructive
         action={
           <View
+            ref={triggerRef}
             render="button"
             onPress={() => setOpen(true)}
             // The visible word is « Supprimer ». Out of context — a
@@ -51,8 +74,11 @@ export function DeleteAccountRow({ label, sub, action, email }: DeleteAccountRow
             backgroundColor="transparent"
             borderWidth={0}
             padding={0}
+            // 24 px minimum target (WCAG 2.5.8); the text alone is 15 px.
+            style={{ minHeight: 24 }}
             hoverStyle={{ opacity: 0.8 }}
             pressStyle={{ opacity: 0.6 }}
+            focusVisibleStyle={FOCUS_RING}
           >
             <Text
               display="flex"
@@ -68,7 +94,7 @@ export function DeleteAccountRow({ label, sub, action, email }: DeleteAccountRow
           </View>
         }
       />
-      <DeleteAccountConfirm email={email} open={open} onOpenChange={setOpen} />
+      <DeleteAccountConfirm email={email} open={open} onOpenChange={handleOpenChange} />
     </>
   );
 }

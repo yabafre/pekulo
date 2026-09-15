@@ -43,7 +43,8 @@
       "deleteConfirm": "Delete permanently",
       "deleteLoading": "Deleting…",
       "deleteProviderError": "We could not reach our banking provider. Nothing was deleted — please try again in a few minutes.",
-      "deleteGenericError": "Deletion failed. Nothing was deleted."
+      "deletePartialError": "Your data has been erased, but the account could not be closed. Try again in a moment or contact support.",
+      "deleteGenericError": "Deletion failed before your data was erased. Nothing was deleted — please try again in a moment."
     }
   },
   "auth": {

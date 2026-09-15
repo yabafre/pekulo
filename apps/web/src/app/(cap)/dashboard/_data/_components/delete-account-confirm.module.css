@@ -1,0 +1,8 @@
+/* The confirm control is a native <button> styled inline (same shape as
+   immobilier's property-delete-confirm). The global reset strips `outline`
+   from every button, so the keyboard focus ring has to be put back here —
+   same 2 px / offset 2 ring PekuloDialogCloseX draws (WCAG 2.4.7). */
+.confirm:focus-visible {
+  outline: 2px solid var(--color);
+  outline-offset: 2px;
+}

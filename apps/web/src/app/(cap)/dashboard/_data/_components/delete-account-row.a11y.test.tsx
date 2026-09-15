@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { Section } from "@pekulo/ui";
 import { DeleteAccountRow } from "./delete-account-row";
@@ -23,7 +25,6 @@ import en from "../../../../../../messages/en.json";
 vi.mock("../_hooks/use-delete-account", () => ({
   useDeleteUserAccount: () => ({ mutate: vi.fn(), isPending: false, error: null, reset: vi.fn() }),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("@/lib/offline/cache-db", () => ({ purgeOfflineCache: vi.fn(async () => undefined) }));
 
 const EMAIL = "alex@pekulo.local";
@@ -94,6 +95,27 @@ describe("DeleteAccountRow a11y (story 11-2)", () => {
     );
     expect(getByRole("link", { name: fr.settings.data.exportLabel })).toBeInTheDocument();
     expect(getByRole("button", { name: fr.settings.data.deleteLabel })).toBeInTheDocument();
+  });
+
+  it("hands focus back to the row control when the dialog closes (aped-review 11-2)", async () => {
+    // The dialog lives outside PekuloDialog.Trigger, so Tamagui cannot restore
+    // focus by itself; without the hand-off a keyboard user lands on <body>.
+    const user = userEvent.setup();
+    const { getByRole, findAllByRole } = renderWithTamagui(
+      <DeleteAccountRow
+        label={fr.settings.data.deleteLabel}
+        sub={fr.settings.data.deleteSub}
+        action={fr.settings.data.deleteAction}
+        email={EMAIL}
+      />,
+    );
+    const control = getByRole("button", { name: fr.settings.data.deleteLabel });
+    control.focus();
+    await user.keyboard("{Enter}");
+    // Tamagui mounts the adapted (sheet) variant next to the modal: two nodes.
+    await findAllByRole("dialog");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(document.activeElement).toBe(control));
   });
 
   it("ships every settings.data key in both fr and en", () => {

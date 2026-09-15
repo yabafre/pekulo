@@ -43,7 +43,8 @@
       "deleteConfirm": "Supprimer définitivement",
       "deleteLoading": "Suppression…",
       "deleteProviderError": "Impossible de joindre notre prestataire bancaire. Aucune donnée n'a été supprimée — réessayez dans quelques minutes.",
-      "deleteGenericError": "La suppression a échoué. Aucune donnée n'a été supprimée."
+      "deletePartialError": "Vos données ont été effacées, mais le compte n'a pas pu être fermé. Réessayez dans quelques instants ou contactez le support.",
+      "deleteGenericError": "La suppression a échoué avant l'effacement de vos données. Rien n'a été supprimé — réessayez dans quelques instants."
     }
   },
   "auth": {

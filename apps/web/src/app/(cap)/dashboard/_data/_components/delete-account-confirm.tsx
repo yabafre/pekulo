@@ -12,6 +12,13 @@
 // comparison against the email on the verified JWT, so a direct RPC call with
 // no dialog is refused too (AC-7).
 //
+// Failures arrive as an ENVELOPE from the action (`{ ok: false, code }`), and
+// the copy branches on the code — never on the message, which Next blanks in
+// production. Three states are named, because they are three different
+// truths for the user: the provider was unreachable (nothing touched), the
+// data is gone but the account is not (retry or write in), anything else
+// (nothing touched either).
+//
 // Every label rides a Tamagui <Text>, never bare DOM text: `--f-family` is
 // scoped to Tamagui's `font_*` classes, so raw text inside a View renders in
 // the browser-default serif (lesson 2026-07-13). Icons live INSIDE their
@@ -32,6 +39,8 @@ import {
 import { Text, View } from "@pekulo/ui/client";
 import { purgeOfflineCache } from "@/lib/offline/cache-db";
 import { useDeleteUserAccount } from "../_hooks/use-delete-account";
+import type { DeleteUserAccountErrorCode } from "../_actions/data-actions";
+import styles from "./delete-account-confirm.module.css";
 
 const dangerBtn = (disabled: boolean): CSSProperties => ({
   alignSelf: "flex-start",
@@ -52,6 +61,15 @@ const dangerBtn = (disabled: boolean): CSSProperties => ({
 
 const CONFIRM_INPUT_ID = "delete-account-confirm-email";
 
+// Identical values to PekuloDialogCloseX so the atomic classes already exist
+// in the pre-generated Tamagui CSS (lesson 2026-05-24).
+const FOCUS_RING = {
+  outlineWidth: 2,
+  outlineColor: "$color",
+  outlineStyle: "solid",
+  outlineOffset: 2,
+} as const;
+
 export interface DeleteAccountConfirmProps {
   /** The signed-in account's email — the string the user must retype. */
   email: string;
@@ -64,6 +82,7 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
   const tCommon = useTranslations("common");
   const { mutate, isPending, error, reset } = useDeleteUserAccount();
   const [typed, setTyped] = useState("");
+  const [envelopeCode, setEnvelopeCode] = useState<DeleteUserAccountErrorCode | null>(null);
 
   // Same normalisation the server applies, so the button never enables on a
   // value the server will then refuse.
@@ -72,6 +91,7 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
   const handleClose = (next: boolean) => {
     if (!next) {
       setTyped("");
+      setEnvelopeCode(null);
       reset();
     }
     onOpenChange(next);
@@ -79,35 +99,41 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
 
   const handleConfirm = async () => {
     if (!matches || isPending) return;
+    setEnvelopeCode(null);
     // AC-8 + ADR-0003: the decrypted-at-rest snapshot must not outlive the
     // account. It is purged BEFORE the call because the server action ends in
-    // a redirect (see delete-account-action.ts) and never resolves on this
-    // side, so there is no "after". Purging ahead of a deletion that then
-    // fails costs nothing: the cache is a read-through copy and refills on
-    // the next dashboard load. `onAuthStateChange('SIGNED_OUT')` never fires
-    // here (auth runs server-side under httpOnly cookies), which is why this
-    // mirrors _account/_components/sign-out-button.tsx. Exception-safe: a
-    // storage failure must never block the deletion itself.
+    // a redirect (see data-actions.ts) and never resolves on this side, so
+    // there is no "after". Purging ahead of a deletion that then fails costs
+    // nothing: the cache is a read-through copy and refills on the next
+    // dashboard load. `onAuthStateChange('SIGNED_OUT')` never fires here (auth
+    // runs server-side under httpOnly cookies), which is why this mirrors
+    // _account/_components/sign-out-button.tsx. Exception-safe: a storage
+    // failure must never block the deletion itself.
     await purgeOfflineCache().catch(() => undefined);
     mutate(
       { confirmationEmail: typed.trim() },
       {
-        onSuccess: () => {
-          // Belt and braces: the server redirect normally navigates first. If
-          // it ever resolves here instead, nothing client-side — the React
-          // Query cache included — may outlive the account, so leave with a
-          // full document load.
-          window.location.assign("/");
+        onSuccess: (result) => {
+          if (result.ok) {
+            // Belt and braces: the server redirect normally navigates first.
+            // If it ever resolves here instead, nothing client-side — the
+            // React Query cache included — may outlive the account, so leave
+            // with a full document load.
+            window.location.assign("/");
+            return;
+          }
+          setEnvelopeCode(result.code);
         },
       },
     );
   };
 
-  const errorMessage = error
-    ? error.message.includes("bank provider unavailable")
-      ? t("deleteProviderError")
-      : t("deleteGenericError")
-    : null;
+  const errorMessage = (() => {
+    if (envelopeCode === "BANK_PROVIDER_UNAVAILABLE") return t("deleteProviderError");
+    if (envelopeCode === "ACCOUNT_PARTIALLY_ERASED") return t("deletePartialError");
+    if (envelopeCode || error) return t("deleteGenericError");
+    return null;
+  })();
 
   return (
     <PekuloDialog open={open} onOpenChange={handleClose}>
@@ -121,7 +147,9 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
 
             <View flexDirection="column" gap="$2">
               <PekuloLabel htmlFor={CONFIRM_INPUT_ID}>{t("deleteConfirmLabel")}</PekuloLabel>
-              <Text color="$colorTertiary" fontSize="$caption">
+              {/* Carries the address to retype: secondary, not tertiary, so it
+                  clears 4.5:1 on the dialog surface (aped-review 11-2). */}
+              <Text color="$colorSecondary" fontSize="$caption">
                 {t("deleteConfirmPrompt", { email })}
               </Text>
               <PekuloInput
@@ -143,6 +171,7 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
             <View flexDirection="row" gap="$3" alignItems="center">
               <button
                 type="button"
+                className={styles.confirm}
                 onClick={handleConfirm}
                 disabled={!matches || isPending}
                 aria-disabled={!matches || isPending}
@@ -155,12 +184,21 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
               <PekuloDialog.Close asChild>
                 <View
                   render="button"
+                  // Tamagui's Close defaults its accessible name to "Dialog
+                  // Close"; the visible word must be in the name (WCAG 2.5.3).
+                  aria-label={tCommon("cancel")}
                   paddingVertical="$2"
                   cursor="pointer"
                   backgroundColor="transparent"
                   borderWidth={0}
+                  style={{ minHeight: 24 }}
+                  focusVisibleStyle={FOCUS_RING}
                 >
-                  <Text color="$colorTertiary" fontSize="$caption" hoverStyle={{ color: "$color" }}>
+                  <Text
+                    color="$colorSecondary"
+                    fontSize="$caption"
+                    hoverStyle={{ color: "$color" }}
+                  >
                     {tCommon("cancel")}
                   </Text>
                 </View>

@@ -10,7 +10,7 @@
 // No `invalidateWithTags`: every cached query belongs to an account that no
 // longer exists, and the component navigates away from the app on success.
 import { useActionMutation } from "@zapaction/query";
-import { deleteUserAccount } from "../_actions/delete-account-action";
+import { deleteUserAccount } from "../_actions/data-actions";
 
 export function useDeleteUserAccount() {
   return useActionMutation(deleteUserAccount, {});
