@@ -9,6 +9,15 @@
 //
 // No `tags`: there is nothing left to invalidate, and the user is about to
 // leave the app.
+//
+// The action ENDS with a server-side redirect rather than a return value.
+// Clearing the cookies makes Next re-render the current route inside the
+// action response, and that route cannot render without a session (its
+// sections call apps/api) — seen live, the client was left on a blank page
+// and the action promise never settled. `redirect()` short-circuits that
+// re-render: Next answers with a navigation to `/` instead, and the proxy
+// sends the now-anonymous visitor on to /login.
+import { redirect } from "next/navigation";
 import { defineAction } from "@zapaction/core";
 import {
   deleteUserAccountInputSchema,
@@ -47,6 +56,11 @@ export const deleteUserAccount = defineAction<
       // Intentionally swallowed — see above.
     }
 
-    return result;
+    // docs/ux/flows.md § Account deletion ends on `/`, not `/login`: there is
+    // no account to sign back into. `redirect` throws NEXT_REDIRECT, which
+    // zapaction rethrows untouched, so `result` is never returned to the
+    // caller — the row counts live in the apps/api log line, not on the wire.
+    void result;
+    redirect("/");
   },
 });

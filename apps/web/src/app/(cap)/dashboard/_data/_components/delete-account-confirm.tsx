@@ -77,28 +77,26 @@ export function DeleteAccountConfirm({ email, open, onOpenChange }: DeleteAccoun
     onOpenChange(next);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!matches || isPending) return;
+    // AC-8 + ADR-0003: the decrypted-at-rest snapshot must not outlive the
+    // account. It is purged BEFORE the call because the server action ends in
+    // a redirect (see delete-account-action.ts) and never resolves on this
+    // side, so there is no "after". Purging ahead of a deletion that then
+    // fails costs nothing: the cache is a read-through copy and refills on
+    // the next dashboard load. `onAuthStateChange('SIGNED_OUT')` never fires
+    // here (auth runs server-side under httpOnly cookies), which is why this
+    // mirrors _account/_components/sign-out-button.tsx. Exception-safe: a
+    // storage failure must never block the deletion itself.
+    await purgeOfflineCache().catch(() => undefined);
     mutate(
       { confirmationEmail: typed.trim() },
       {
-        onSuccess: async () => {
-          // AC-8 + ADR-0003: the session is gone, so the decrypted-at-rest
-          // snapshot must go with it before we leave the page.
-          // `onAuthStateChange('SIGNED_OUT')` never fires here (auth runs
-          // server-side under httpOnly cookies), which is why this mirrors
-          // _account/_components/sign-out-button.tsx. Exception-safe on both
-          // sides: the account is ALREADY deleted, so a storage failure must
-          // never cost the user the navigation below.
-          await purgeOfflineCache().catch(() => undefined);
-          // docs/ux/flows.md § Account deletion ends on `/`, not `/login`:
-          // there is no account to sign back into. A HARD navigation, not
-          // router.push + router.refresh: seen live, the refresh re-fetched
-          // the dashboard tree with the session already gone, the proxy
-          // answered with a redirect to /login, and the client router was
-          // left on a blank page. Nothing client-side may outlive the
-          // account — the React Query cache included — so a full document
-          // load is the correct end state, not a workaround.
+        onSuccess: () => {
+          // Belt and braces: the server redirect normally navigates first. If
+          // it ever resolves here instead, nothing client-side — the React
+          // Query cache included — may outlive the account, so leave with a
+          // full document load.
           window.location.assign("/");
         },
       },
