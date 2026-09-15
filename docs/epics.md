@@ -1324,7 +1324,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **As a** Pekulo user, **I want** to delete my account from settings with cascading deletion across every user-scoped table within 60 seconds, **so that** I can exercise GDPR right-to-erasure.
 
-**Summary:** Implement `settings.service.deleteAccount` (Prisma cascade via FK + Supabase Auth user erase) + `delete-account-confirm.tsx` (destructive variant). Honour the 60 s budget (NFR-7).
+**Summary:** Implement `settings.service.deleteAccount` — Bridge erasure first (fail-closed), then an explicit `DELETION_NODES` fan-out over all 21 user-scoped tables in one transaction, then `auth.admin.deleteUser` — plus `delete-account-row.tsx` + `delete-account-confirm.tsx` (destructive variant, typed-email confirmation). Adds the four missing `auth.users` FK cascades and a static gate that keeps them. Honour the 60 s budget (NFR-7).
 
 **Covered FRs:** FR-50
 
