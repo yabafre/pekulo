@@ -101,16 +101,69 @@ jobs:
           # are vitest-specific).
           bun --filter='*' run test
 
-  # test-e2e-smoke / lighthouse-ci / axe-a11y removed 2026-05-24 to
-  # free Actions quota — neither playwright config nor lhci config
-  # nor *.axe.test.* fixtures exist in the repo, so all three jobs
-  # always immediately skipped while still spinning up a runner each
-  # (~30-60s combined per PR). axe coverage already lives inside
-  # `test-unit` (every Pekulo* primitive has its own .a11y.test.tsx
-  # run by vitest-axe via per-package vitest config). Re-add per-tool
-  # when the corresponding config lands (playwright config for e2e,
-  # lighthouserc.json for Core Web Vitals gating, *.axe.test.* if a
-  # dedicated axe pass becomes desirable).
+  axe-a11y:
+    # Route-level WCAG 2.2 AA gate (story 11-4, AC-1 / AC-4 / AC-5 / DR-8).
+    # Boots the disposable local Postgres + GoTrue stack (no repo secrets),
+    # applies Prisma migrations, builds and starts @pekulo/api (:3001) and
+    # @pekulo/web (:3002), and runs @axe-core/playwright in real Chromium
+    # across all 7 priority routes × {dark desktop, light desktop, dark mobile}.
+    name: axe-a11y
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+      SUPABASE_URL: "http://127.0.0.1:54321"
+      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3002"
+      API_BASE_URL: "http://127.0.0.1:3001"
+      SUPABASE_JWT_SECRET: "local-e2e-jwt-secret-local-e2e-jwt-secret"
+      SUPABASE_SERVICE_ROLE_KEY: "sb_secret_e2e_local_placeholder_key"
+      BRIDGE_CLIENT_ID: "e2e-bridge-client-id"
+      BRIDGE_CLIENT_SECRET: "e2e-bridge-client-secret"
+      BRIDGE_WEBHOOK_SIGNING_SECRET: "e2e-bridge-webhook-secret"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-bun
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Start disposable Postgres + GoTrue stack
+        run: |
+          docker compose -f apps/web/e2e/stack/docker-compose.yml up -d --wait
+      - name: Apply Prisma migrations
+        run: bun --filter=@pekulo/api run prisma:migrate:deploy
+      - name: Mint local anon JWT and build @pekulo/web
+        run: |
+          ANON_KEY="$(bun -e 'import { mintAnonJwt } from "./apps/web/e2e/e2e-env"; console.log(mintAnonJwt());')"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" bun --filter=@pekulo/web run build
+      - name: Boot @pekulo/api and @pekulo/web, then run axe-core suite
+        run: |
+          bun --filter=@pekulo/api run start &
+          API_PID=$!
+          bun --filter=@pekulo/web run start &
+          WEB_PID=$!
+          trap "kill $API_PID $WEB_PID 2>/dev/null || true" EXIT
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3001/health/live >/dev/null && curl -sf http://localhost:3002/login >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          bun --filter=@pekulo/web run test:e2e:axe
+      - name: Upload Playwright failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: axe-playwright-traces
+          path: apps/web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
 
   gitleaks:
     # Secret-scanning backstop. The lefthook pre-commit hook (lefthook.yml)
