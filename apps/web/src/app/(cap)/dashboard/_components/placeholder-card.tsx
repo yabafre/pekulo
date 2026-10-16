@@ -125,7 +125,7 @@ export function PlaceholderCard({ variant, ownerStory, className }: PlaceholderC
           {body}
         </View>
         <View flexDirection="row" justifyContent="flex-end" marginTop="$4">
-          <Text color="$colorMuted" fontSize="$xs">
+          <Text color="$colorTertiary" fontSize="$xs">
             {t("soon", { story: ownerStory })}
           </Text>
         </View>
