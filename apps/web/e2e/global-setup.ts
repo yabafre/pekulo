@@ -85,7 +85,12 @@ async function seedPortfolioDemoRows(userId: string): Promise<void> {
   const client = new Client({ connectionString: E2E_DATABASE_URL });
   await client.connect();
   try {
-    const accountId = "acc_e2eAxeDemoPea000001";
+    // Reset the throwaway user's rows: a stack persisted across runs must not
+    // keep legacy rows whose ids violate the 21-char contract — the API's
+    // output validation 500s the whole list on a single bad row.
+    await client.query(`DELETE FROM holdings WHERE user_id = $1::uuid`, [userId]);
+    await client.query(`DELETE FROM accounts WHERE user_id = $1::uuid`, [userId]);
+    const accountId = "acc_e2eAxeDemoPea00000001";
     await client.query(
       `INSERT INTO accounts (id, user_id, label, type, currency, cash_balance)
        VALUES ($1, $2::uuid, 'PEA Bourse Direct', 'pea', 'EUR', 1250.00)
@@ -95,9 +100,9 @@ async function seedPortfolioDemoRows(userId: string): Promise<void> {
     await client.query(
       `INSERT INTO holdings (id, user_id, account_id, kind, ticker, isin, label, currency, quantity, avg_cost, last_price)
        VALUES
-         ('hld_e2eAxeDemoCw8000001', $1::uuid, $2, 'etf', 'CW8.PA', 'LU1681043599', 'Amundi MSCI World UCITS ETF', 'EUR', 25, 420.00, 512.40),
-         ('hld_e2eAxeDemoAir000002', $1::uuid, $2, 'action', 'AI.PA', 'FR0000120073', 'Air Liquide', 'EUR', 10, 175.00, 168.20),
-         ('hld_e2eAxeDemoBtc000003', $1::uuid, $2, 'crypto', 'BTC-EUR', NULL, 'Bitcoin', 'EUR', 0.15, 52000.00, 61500.00)
+         ('hld_e2eAxeDemoCw800000001', $1::uuid, $2, 'etf', 'CW8.PA', 'LU1681043599', 'Amundi MSCI World UCITS ETF', 'EUR', 25, 420.00, 512.40),
+         ('hld_e2eAxeDemoAir00000001', $1::uuid, $2, 'action', 'AI.PA', 'FR0000120073', 'Air Liquide', 'EUR', 10, 175.00, 168.20),
+         ('hld_e2eAxeDemoBtc00000001', $1::uuid, $2, 'crypto', 'BTC-EUR', NULL, 'Bitcoin', 'EUR', 0.15, 52000.00, 61500.00)
        ON CONFLICT (id) DO NOTHING`,
       [userId, accountId],
     );

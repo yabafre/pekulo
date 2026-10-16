@@ -92,6 +92,15 @@ test.describe("axe-core WCAG 2.2 AA gate across the 7 priority routes (AC-1, AC-
                 .catch(() => {});
             }
 
+            // Gate the authenticated data path: a session token the API rejects
+            // (e.g. `iss` mismatch) renders empty/error states, and the axe scan
+            // would otherwise pass on a degraded UI.
+            if (route === "/dashboard/portefeuille") {
+              await expect(page.getByText("Amundi MSCI World").first()).toBeVisible({
+                timeout: 15_000,
+              });
+            }
+
             const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
             const formatted = formatAxeViolations(route, profile.name, results.violations);
             expect(formatted, formatted).toBe("");
