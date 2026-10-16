@@ -1735,3 +1735,75 @@ Review fixes (aped-review, 2026-10-16, commits aaed0a1..55f1d15):
   @pekulo/web: ci-axe-gate.test.ts 2 passed (block-scoped assertions)
   axe-a11y E2E: 22 passed in 32.2s on fresh 127.0.0.1-bound stack; 0 API 500s; transactions profiles 1.3s (was 16.4s)
 ```
+
+## Review Record
+
+**Date:** 2026-10-16
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done
+> **Override:** AC gap accepted — reason: « on fix tout ici »
+
+### Findings
+
+#### Resolved
+
+- [MAJOR] The axe E2E gate could pass while scanning a degraded UI: seeded holdings violated the 21-char `acc_`/`hld_` ID contract (output validation → 500 → portefeuille error page) and minted tokens missed `iss` (401s). [apps/web/e2e/global-setup.ts; apps/web/e2e/stack/docker-compose.yml:45]
+  - Source: Edge & Hallucination
+  - Resolution: `aaed0a1` — 21-char seed IDs, previous throwaway rows deleted before insert, `GOTRUE_JWT_ISSUER` set, portefeuille spec asserts seeded content before scanning.
+- [MAJOR] `pr.yml` boot step probed a nonexistent `/health/live` endpoint. [.github/workflows/pr.yml:154]
+  - Source: Code
+  - Resolution: `799ac1a` — probe now hits `/ready`.
+- [MAJOR] Light `warning` token `#b45309` measured 4.49:1 on `surface.muted` — below AA — and `warning` was only tested against page-surfaces. [packages/ui/src/tokens/colors.ts:92]
+  - Source: Aria
+  - Resolution: `4e4cd79` — lifted to `#ab4f08` (4.87:1 on muted); matrix now covers `warning` × 4 surfaces (47 tests).
+- [MAJOR] `docs/a11y/screen-reader-pass.md` asserted landmarks/h1/skip-link that do not exist in the shipped UI. [docs/a11y/screen-reader-pass.md]
+  - Source: Spec
+  - Resolution: `55f1d15` (+ `d370d23` embed resync) — record corrected to shipped reality (AuthSplit `/login`, short-nav, no skip link).
+- [MAJOR] AC-3 drifted from shipped behaviour: `text.muted` said `≥ 3.0:1` and `warning` only × page-surface. [docs/stories/11-4-axe-and-wcag-gates.md:18]
+  - Source: Spec
+  - Resolution: `d370d23` — AC-3 restated (`muted ≥ 2.4:1`; `warning` × 4 surfaces) matching the shipped suite.
+- [MAJOR] File List / Dev Agent Record missing 13 branch files. [docs/stories/11-4-axe-and-wcag-gates.md]
+  - Source: Spec
+  - Resolution: `d370d23` + `93425bf` — Created/Modified completed; `bun.lock` residual fixed on re-verification.
+- [MINOR] Dev-only service-worker purge + React Grab gating (commit `26a304d`) shipped undocumented. [apps/web/src/components/service-worker-registrar.tsx:11; apps/web/src/components/react-grab-dev.tsx:24]
+  - Source: Spec
+  - Resolution: `d370d23` — Dev Notes bullet added.
+- [MINOR] The "exact content" embedded blocks in the story had drifted from the shipped files. [docs/stories/11-4-axe-and-wcag-gates.md]
+  - Source: Spec
+  - Resolution: `d370d23` — 8 blocks re-embedded 1:1 (dry-run verified old == new).
+- [MINOR] E2E stack ports published on `0.0.0.0`. [apps/web/e2e/stack/docker-compose.yml]
+  - Source: Code
+  - Resolution: `5b618d7` — bound to `127.0.0.1`.
+- [MINOR] `design-spec.md` thresholds stale: `muted` documented `3.0:1`, light tertiary unmeasured. [docs/ux/design-spec.md]
+  - Source: Spec
+  - Resolution: `4e4cd79` — muted `2.4:1` (decorative), light tertiary `5.33:1 on bg / 4.76:1 on muted`.
+- [MINOR] `ci-axe-gate.test.ts` assertions not scoped to the `axe-a11y` job block (false-green risk). [apps/web/src/test/ci-axe-gate.test.ts:20]
+  - Source: Code
+  - Resolution: `14e8706` — block-anchored assertions.
+- [NIT] `init-auth-schema.sql` comment cited a stale migration name. [apps/web/e2e/stack/init-auth-schema.sql:31]
+  - Source: Code
+  - Resolution: `8413105` — cites `20260527120000_create_bank_connections`.
+- [NIT] Axe spec skeleton-wait helper could never fail (swallowed timeout). [apps/web/e2e/axe-routes.spec.ts:91]
+  - Source: Edge & Hallucination
+  - Resolution: `da398d7` — hard `toHaveCount(0, { timeout: 15_000 })` on the skeleton pulse (no catch); portefeuille profiles dropped 16.4s → 1.3s.
+- [NIT] Light `--gain-soft` still derived from the pre-lift base `#00A852`. [docs/ux-preview/src/index.css:111]
+  - Source: Code
+  - Resolution: `ba8f49e` — derived from the lifted `--gain` (`rgba(0, 122, 61, 0.1)`); generated Tamagui CSS re-synced.
+
+#### Dismissed
+
+- [NIT] `docker compose up --wait` gates only the `db` service health, not GoTrue readiness. [apps/web/e2e/stack/docker-compose.yml]
+  - Source: Edge & Hallucination
+  - Rationale: compensated by the `/ready` + `/login` poll loops in the CI boot step (`.github/workflows/pr.yml:146-159`) and in the local recipe; `/ready` 200 implies the DB probe passed and global setup hard-fails if GoTrue is down — verified during the re-verification round.
+
+### Verification
+
+- Test command: `bun --filter=@pekulo/web run test:e2e:axe` (plus targeted `colors.contrast.test.ts`, `ci-axe-gate.test.ts`)
+- Test output (final pass): axe E2E **22 passed (29.5s)** at `ba8f49e` on a fresh loopback stack; contrast **47/47**; ci-axe-gate **2/2**; API runtime log 0×500, `holdings.list` 200 ×3
+- Visual verification: deferred — React Grab MCP unavailable at 2026-10-16; real-Chromium axe scans + the contrast matrix cover the checks
+- Re-verification round: Spec PASS (5/5), Code PASS (5/5), Edge PASS (4/4)
+
+### Ticket sync
+
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/51#issuecomment-6225227623
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/145
