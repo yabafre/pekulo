@@ -83,14 +83,18 @@ test.describe("axe-core WCAG 2.2 AA gate across the 7 priority routes (AC-1, AC-
               await expect(page.locator("form input#email")).toBeVisible({ timeout: 15_000 });
             }
 
-            // Wait for any skeleton status indicator to settle so real text/contrasts are scanned.
-            const skeletons = page.locator('[role="status"][aria-live="polite"]');
-            if ((await skeletons.count()) > 0) {
-              await skeletons
-                .first()
-                .waitFor({ state: "detached", timeout: 15_000 })
-                .catch(() => {});
-            }
+            // Wait for loading skeletons — identified by the PekuloSkeleton
+            // pulse, NOT by role alone (persistent live regions such as the
+            // transactions month label also use role="status"). A skeleton
+            // that never settles FAILS the gate: the scan must never run on
+            // a degraded UI.
+            const skeletons = page.locator(
+              '[role="status"][aria-live="polite"]:has([style*="pekulo-skeleton-pulse"])',
+            );
+            await expect(
+              skeletons,
+              "a loading skeleton never settled — axe would scan a degraded UI",
+            ).toHaveCount(0, { timeout: 15_000 });
 
             // Gate the authenticated data path: a session token the API rejects
             // (e.g. `iss` mismatch) renders empty/error states, and the axe scan
