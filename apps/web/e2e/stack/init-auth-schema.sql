@@ -28,7 +28,7 @@ GRANT ALL ON SCHEMA auth TO postgres, supabase_auth_admin, service_role;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated;
 GRANT ALL ON SCHEMA vault TO postgres, service_role;
 
--- Minimal vault.secrets table so migration 20260516120000_create_bank_connections
+-- Minimal vault.secrets table so migration 20260527120000_create_bank_connections
 -- (`REFERENCES "vault"."secrets"("id")`) succeeds on a clean Postgres container.
 CREATE TABLE IF NOT EXISTS vault.secrets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
