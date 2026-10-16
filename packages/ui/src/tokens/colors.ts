@@ -89,7 +89,7 @@ export const pekuloColors = {
       neutral: "#525252",
     },
     dataBlue: "#2f73ff",
-    warning: "#b45309",
+    warning: "#ab4f08",
     chart: {
       actual: "#0a0a0a",
       plan: "rgba(10, 10, 10, 0.32)",

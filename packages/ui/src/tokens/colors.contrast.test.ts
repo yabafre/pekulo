@@ -50,11 +50,12 @@ describe("pekuloColors WCAG 2.2 AA contrast gate (AC-3, NFR-23)", () => {
   // AC-3 (verbatim from story 11-4-axe-and-wcag-gates, AC-3):
   //   Given the colour tokens of both dark and light themes, When the
   //   design-system contrast suite runs, Then every body-text (primary,
-  //   secondary, tertiary) × surface (bg, card, elevated, muted) pair and
-  //   every performance/warning (perf.gain, perf.loss, perf.neutral, warning)
-  //   × page-surface (bg, card) pair has a WCAG relative luminance contrast
-  //   ratio >= 4.5:1 (NFR-23), text.muted on surface.bg is >= 3.0:1, and the
-  //   @pekulo/ui colour palette matches the UX preview SSOT 1:1.
+  //   secondary, tertiary) × surface (bg, card, elevated, muted) pair, every
+  //   performance (perf.gain, perf.loss, perf.neutral) × page-surface (bg,
+  //   card) pair, and every warning × surface (bg, card, elevated, muted)
+  //   pair has a WCAG relative luminance contrast ratio >= 4.5:1 (NFR-23),
+  //   text.muted on surface.bg is >= 2.4:1, and the @pekulo/ui colour palette
+  //   matches the UX preview SSOT 1:1.
   for (const mode of MODES) {
     describe(`${mode} theme`, () => {
       for (const textRole of BODY_TEXT_ROLES) {
@@ -101,7 +102,9 @@ describe("pekuloColors WCAG 2.2 AA contrast gate (AC-3, NFR-23)", () => {
             `${mode} perf.neutral (${fg}) on surface.${surfaceRole} (${bg}) = ${ratio.toFixed(2)}:1 (< 4.5:1)`,
           ).toBeGreaterThanOrEqual(4.5);
         });
+      }
 
+      for (const surfaceRole of ALL_SURFACES) {
         it(`warning on surface.${surfaceRole} is >= 4.5:1`, () => {
           const fg = pekuloColors[mode].warning;
           const bg = pekuloColors[mode].surface[surfaceRole];

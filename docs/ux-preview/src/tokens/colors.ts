@@ -90,7 +90,7 @@ export const colors = {
     // dataBlue is declared only in `:root` of index.css (not redefined in
     // `.light`) — CSS inheritance keeps it identical in both modes.
     dataBlue: "#2f73ff",
-    warning: "#b45309",
+    warning: "#ab4f08",
     donut: {
       track: "rgba(0, 0, 0, 0.08)",
       fill: "#0a0a0a",

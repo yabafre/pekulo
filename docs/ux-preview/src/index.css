@@ -25,7 +25,7 @@
   --text-primary: #ededed; /* big numbers, active tab — Vercel's text-100 — 17.4:1 */
   --text-secondary: #a1a1a1; /* body — Vercel's text-300 — 7.0:1 */
   --text-tertiary: #808080; /* labels — WCAG 2.2 AA >= 4.5:1 across all dark surfaces (5.32:1 on #000, 4.58:1 on #161616) */
-  --text-muted: #4d4d4d; /* dim — Vercel's text-700 — 3.0:1 */
+  --text-muted: #4d4d4d; /* dim — Vercel's text-700 — 2.4:1 */
 
   /* Hairline borders — Vercel signature (rgba whites, 1px) */
   --border-default: rgba(255, 255, 255, 0.1);
@@ -113,7 +113,7 @@
   --loss-soft: rgba(220, 38, 38, 0.08);
   --neutral: #525252;
 
-  --warning: #b45309;
+  --warning: #ab4f08;
 
   --donut-track: rgba(0, 0, 0, 0.08);
   --donut-fill: #0a0a0a;

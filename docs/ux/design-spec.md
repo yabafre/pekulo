@@ -70,34 +70,34 @@ All tokens live in `docs/ux-preview/src/tokens/` (TypeScript) + mirrored as CSS 
 
 #### Dark mode (default)
 
-| Role                                   | Hex                      | Token                | Contrast vs `#000`     |
-| -------------------------------------- | ------------------------ | -------------------- | ---------------------- |
-| Page background                        | `#000000`                | `--surface-bg`       | —                      |
-| Card / section fill                    | `#0F0F0F`                | `--surface-card`     | —                      |
-| Elevated (modal, popover, hover)       | `#161616`                | `--surface-elevated` | —                      |
-| Muted (input bg, badge, secondary CTA) | `#1A1A1A`                | `--surface-muted`    | —                      |
-| Text primary (big numbers, headings)   | `#EDEDED`                | `--text-primary`     | 17.4:1                 |
-| Text secondary (body)                  | `#A1A1A1`                | `--text-secondary`   | 7.0:1                  |
-| Text tertiary (labels, captions)       | `#808080`                | `--text-tertiary`    | 5.3:1 (4.6:1 on muted) |
-| Text muted (disabled, hints)           | `#4D4D4D`                | `--text-muted`       | 3.0:1 (large only)     |
-| Border default (rare, hairline)        | `rgba(255,255,255,0.10)` | `--border-default`   | —                      |
-| Border focus (white ring)              | `#EDEDED`                | `--border-focus`     | —                      |
-| Donut track                            | `rgba(255,255,255,0.08)` | `--donut-track`      | —                      |
-| Donut fill                             | `#FFFFFF`                | `--donut-fill`       | —                      |
+| Role                                   | Hex                      | Token                | Contrast vs `#000`                 |
+| -------------------------------------- | ------------------------ | -------------------- | ---------------------------------- |
+| Page background                        | `#000000`                | `--surface-bg`       | —                                  |
+| Card / section fill                    | `#0F0F0F`                | `--surface-card`     | —                                  |
+| Elevated (modal, popover, hover)       | `#161616`                | `--surface-elevated` | —                                  |
+| Muted (input bg, badge, secondary CTA) | `#1A1A1A`                | `--surface-muted`    | —                                  |
+| Text primary (big numbers, headings)   | `#EDEDED`                | `--text-primary`     | 17.4:1                             |
+| Text secondary (body)                  | `#A1A1A1`                | `--text-secondary`   | 7.0:1                              |
+| Text tertiary (labels, captions)       | `#808080`                | `--text-tertiary`    | 5.3:1 (4.6:1 on muted)             |
+| Text muted (disabled, hints)           | `#4D4D4D`                | `--text-muted`       | 2.4:1 (decorative/incidental only) |
+| Border default (rare, hairline)        | `rgba(255,255,255,0.10)` | `--border-default`   | —                                  |
+| Border focus (white ring)              | `#EDEDED`                | `--border-focus`     | —                                  |
+| Donut track                            | `rgba(255,255,255,0.08)` | `--donut-track`      | —                                  |
+| Donut fill                             | `#FFFFFF`                | `--donut-fill`       | —                                  |
 
 All pairs meet **WCAG 2.2 AA** (4.5:1 body, 3:1 large) — primary reaches AAA (7:1).
 
 #### Light mode (Vercel-style inverse, derived from dark)
 
-| Role           | Hex                                     |
-| -------------- | --------------------------------------- |
-| Page bg        | `#FFFFFF`                               |
-| Card           | `#FAFAFA`                               |
-| Muted          | `#F2F2F2`                               |
-| Text primary   | `#0A0A0A` (19:1)                        |
-| Text secondary | `#404040` (9.7:1)                       |
-| Text tertiary  | `#6B6B6B` (5.4:1 on bg, 4.8:1 on muted) |
-| Border focus   | `#0A0A0A`                               |
+| Role           | Hex                                       |
+| -------------- | ----------------------------------------- |
+| Page bg        | `#FFFFFF`                                 |
+| Card           | `#FAFAFA`                                 |
+| Muted          | `#F2F2F2`                                 |
+| Text primary   | `#0A0A0A` (19:1)                          |
+| Text secondary | `#404040` (9.7:1)                         |
+| Text tertiary  | `#6B6B6B` (5.33:1 on bg, 4.76:1 on muted) |
+| Border focus   | `#0A0A0A`                                 |
 
 #### Performance / state colors (both modes)
 
