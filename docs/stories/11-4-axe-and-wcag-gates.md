@@ -1650,6 +1650,7 @@ yarn.lock
 - `docs/ux/design-spec.md`
 - `apps/web/package.json`
 - `package.json`
+- `bun.lock`
 - `.gitignore`
 - `.github/workflows/pr.yml`
 - `apps/api/src/modules/monthly/monthly.service.ts`
