@@ -8,6 +8,7 @@
     "start": "next start -p 3002",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e:axe": "playwright test --config=playwright.config.ts",
     "lint": "bunx oxlint src",
     "generate:pwa-icons": "bun scripts/generate-pwa-icons.ts",
     "lighthouse": "lighthouse http://localhost:3002/dashboard --only-categories=performance --form-factor=mobile --throttling-method=simulate --output=html --output-path=./lighthouse-report.html --chrome-flags=\"--headless=new\""
@@ -47,7 +48,9 @@
     "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@pekulo/tsconfig": "workspace:*",
+    "@playwright/test": "^1.52.0",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.6.1",

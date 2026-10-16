@@ -31,7 +31,8 @@
     "db:rls-audit": "dotenv -c -e .env -e .env.local -- bun --filter='@pekulo/api' run db:rls-audit",
     "test:ui": "bun --filter='@pekulo/ui' run test",
     "test:ui:axe": "bun --filter='@pekulo/ui' run test:axe",
-    "test:ui:visual": "bun --filter='@pekulo/ui' run test:visual"
+    "test:ui:visual": "bun --filter='@pekulo/ui' run test:visual",
+    "test:e2e:axe": "bun --filter='@pekulo/web' run test:e2e:axe"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
