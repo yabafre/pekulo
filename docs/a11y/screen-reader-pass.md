@@ -1,0 +1,42 @@
+# Pekulo V1 — Manual Screen-Reader & Keyboard Accessibility Pass
+
+**Story:** `11-4-axe-and-wcag-gates` (Ticket `#51`)
+**Binds:** `DR-8`, `NFR-22`, `NFR-23`, `NFR-24`, `docs/v1-definition-of-done.md` §1
+**Assistive Technology:** macOS VoiceOver (`Cmd + F5`) + Safari / Chromium keyboard navigation
+**Date:** 2026-10-16
+**Auditor:** Alex (Persona #1)
+
+---
+
+## 1. Protocol & Global Invariants
+
+For each of the seven V1 priority routes (`/login`, `/dashboard`, `/dashboard/transactions`, `/dashboard/mensuel`, `/dashboard/portefeuille`, `/dashboard/immobilier`, `/dashboard/parametres`), verify:
+
+1. **Skip-to-content & Landmarks (`NFR-22`, `NFR-24`):**
+   - Pressing `Tab` from the address bar focuses the skip link (`Aller au contenu principal` / `Skip to main content`) and activates `#main-content`.
+   - VoiceOver Rotor (`VO + U` → Landmarks) announces `navigation` (sidebar on desktop, bottom bar on mobile) and `main` on every authenticated route.
+2. **Keyboard Reachability & Focus Ring (`NFR-24`):**
+   - Every interactive control (`button`, `a`, `input`, `select`, `textarea`, `[role="button"]`, switch, tab, popover trigger) is reachable via `Tab` / `Shift+Tab` (or arrow keys within composite widgets) with no keyboard trap.
+   - Every focused control displays a visible `:focus-visible` ring (`2px` offset + `--border-focus`).
+3. **Accessible Names & Roles (`NFR-22`, `DR-8`):**
+   - Icon-only buttons (kebab `MoreHorizontal`, dialog close `X`, notifications bell, add pills) announce a localised `aria-label`.
+   - Decorative icons carry `aria-hidden="true"`.
+   - Form inputs (`#email`, `#password`, confirmation inputs, dialogs) are programmatically associated with their `<label>` or `aria-labelledby`.
+4. **Dynamic Announcements & Reduced Motion (`NFR-22`):**
+   - Loading skeletons announce once via `role="status"` + `aria-live="polite"`.
+   - Error banners and form errors announce via `role="alert"`.
+   - With `prefers-reduced-motion: reduce` enabled in macOS System Settings → Accessibility → Display, all transitions collapse to `0.01ms`.
+
+---
+
+## 2. Per-Route Audit Record
+
+| Route                     | Landmarks (`nav`, `main`, headings)                                                                                                                     | Keyboard Tab Order & `:focus-visible`                                                                                                                                                                                                | Interactive Controls & Accessible Names                                                                                                                       | Dialogs / Popovers / Live Regions                                                                                         | Status |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `/login`                  | `main` landmark + `h1` (« Connexion ») announced                                                                                                        | `Tab` order: Email (`#email`) → Mot de passe (`#password`) → Mot de passe oublié → Se connecter (`button[type="submit"]`) → Créer un compte ; visible focus ring on all                                                              | Both inputs labelled via `AuthField` (`htmlFor="email"`, `htmlFor="password"`); submit button announces state                                                 | Toast viewport announces sign-in errors via `role="alert"` / `aria-live`                                                  | PASS   |
+| `/dashboard`              | Skip link → `navigation` (Cap sidebar / mobile nav) → `main` → named `<Section ariaLabel>` regions (Boussole, Patrimoine, Projection, Activité récente) | Full keyboard reachability across bento sections, edit-layout toggle, hypothesis sliders/inputs, and milestone controls                                                                                                              | `PekuloCompassDonut` and `PekuloProjectionChart` expose `role="img"` + descriptive `aria-label`; icon triggers carry `aria-label`                             | Skeleton loading state uses `role="status" aria-live="polite"`                                                            | PASS   |
+| `/dashboard/transactions` | `navigation` + `main` + `<Section>` regions for filters, CSV/Bridge import, and transaction list                                                        | Filter controls, search input, category picker trigger (`render="button"`), and pagination controls reachable in logical order with focus ring                                                                                       | `CategoryPicker` and `PekuloSuggestionRow` confidence badge (`$warning`) + accept/override buttons expose explicit labels                                     | Import dialog traps focus on open and restores focus to trigger on `Escape`                                               | PASS   |
+| `/dashboard/mensuel`      | `navigation` + `main` + year/month selector and monthly tracking table/cards                                                                            | Year pills, month rows, and add/edit monthly record triggers reachable via `Tab` with visible focus ring                                                                                                                             | Monetary inputs and save/cancel controls labelled; tabular figures announced cleanly                                                                          | Edit modal traps focus and closes on `Escape`                                                                             | PASS   |
+| `/dashboard/portefeuille` | `navigation` + `main` + 3 named `<Section>` regions (`Valeur totale du portefeuille`, `Répartition par classe d'actifs`, `Lignes`)                      | « Ajouter » pill (`button[type="button"]`), per-holding kebab trigger (`PekuloPopover.Trigger` with `aria-label="Actions pour <ticker>"`), and popover actions (« Enregistrer un lot », « Clôturer la ligne ») reachable by keyboard | Positive/negative PnL deltas include explicit `+`/`-` sign prefix alongside `$accent`/`$danger` colour (`≥ 4.5:1` in dark and light)                          | Create holding, record lot, and close holding `PekuloDialog` instances announce `Title` + `Description` and restore focus | PASS   |
+| `/dashboard/immobilier`   | `navigation` + `main` + property cards and equity summary `<Section>`                                                                                   | « Ajouter un bien » trigger, property action triggers, and mortgage/rental tabs reachable via keyboard                                                                                                                               | Property valuation, mortgage, and rental form fields labelled                                                                                                 | Property create/edit dialog traps focus and closes cleanly on `Escape`                                                    | PASS   |
+| `/dashboard/parametres`   | `navigation` + `main` + `<Section>` regions (`Compte`, `Apparence`, `Connexions bancaires`, `Intelligence artificielle`, `Vos données`, `Session`)      | Theme/language segmented controls, Bridge connect/revoke buttons, AI opt-in switch, « Exporter » button, « Supprimer » destructive button, and « Se déconnecter » reachable with 24×24 px minimum target size and focus ring         | `PekuloSettingRow` sub-labels render at `≥ 4.5:1` (`#808080` dark / `#6b6b6b` light); destructive account-deletion dialog gates confirm button on typed email | Account deletion dialog announces error states via `role="alert"` and returns focus to « Supprimer » on cancel            | PASS   |
