@@ -234,6 +234,23 @@ describe("monthly.service", () => {
     expect(out.items.every((i) => i.source === "derived")).toBe(true);
   });
 
+  it("listMonthly — falls back to the factory clock when no per-call clock is given", async () => {
+    // The integration suite pins the factory clock to 2026-05-29 and calls the
+    // route without a per-call clock — the sliding window must honour the seam
+    // or it drifts with the wall clock (time-bomb caught 2026-10-16).
+    const listRepo = makeListRepo({ now: { year: 2026, monthNum: 5 } });
+    service = createMonthlyService({
+      repository: listRepo,
+      clock: () => new Date("2026-05-29T12:00:00.000Z"),
+    });
+    const out = await service.listMonthly(USER_A, { limit: 3 });
+    expect(out.items.map((i) => `${i.record.year}-${i.record.monthNum}`)).toEqual([
+      "2026-5",
+      "2026-4",
+      "2026-3",
+    ]);
+  });
+
   it("listMonthly — persisted row wins over derive for that exact (year, monthNum)", async () => {
     const listRepo = makeListRepo({
       now: { year: 2026, monthNum: 5 },

@@ -189,7 +189,10 @@ export function createMonthlyService(deps: {
     },
 
     async listMonthly(userId, input, clock) {
-      const now = clock?.now ?? currentMonthUTC();
+      // Review F3 parity with signOff: per-call clock wins over the factory
+      // dep wins over wall clock. Integration boot pins the factory Date so
+      // the sliding window can't drift out of the fixtures' month range.
+      const now = clock?.now ?? currentMonthUTC(deps.clock?.() ?? new Date());
       // Window: [now - (limit-1) months, now] inclusive — same shape ux-preview
       // ships in MonthlyScreen (current month at index 0, past months after).
       const fromOrdinal = monthOrdinal(now.year, now.monthNum) - (input.limit - 1);
@@ -235,9 +238,8 @@ function monthOrdinal(year: number, monthNum: number): number {
   return year * 12 + (monthNum - 1);
 }
 
-function currentMonthUTC(): { year: number; monthNum: number } {
-  const now = new Date();
-  return { year: now.getUTCFullYear(), monthNum: now.getUTCMonth() + 1 };
+function currentMonthUTC(at: Date = new Date()): { year: number; monthNum: number } {
+  return { year: at.getUTCFullYear(), monthNum: at.getUTCMonth() + 1 };
 }
 
 function bucketTransactionsByMonth(transactions: Transaction[]): Map<number, Transaction[]> {
