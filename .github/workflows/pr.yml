@@ -151,7 +151,7 @@ jobs:
           WEB_PID=$!
           trap "kill $API_PID $WEB_PID 2>/dev/null || true" EXIT
           for i in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:3001/health/live >/dev/null && curl -sf http://localhost:3002/login >/dev/null; then
+            if curl -sf http://127.0.0.1:3001/ready >/dev/null && curl -sf http://localhost:3002/login >/dev/null; then
               break
             fi
             sleep 1
