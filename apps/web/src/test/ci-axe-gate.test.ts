@@ -17,12 +17,16 @@ describe("CI axe-a11y hard gate (AC-5)", () => {
   //   workflow does not fire (hard gate).
   it("defines the non-optional axe-a11y job in pr.yml running test:e2e:axe", () => {
     const prYml = readFileSync(resolve(REPO_ROOT, ".github/workflows/pr.yml"), "utf8");
-    expect(prYml).toMatch(/^\s{2}axe-a11y:\s*$/m);
+    expect(prYml).toMatch(/^ {2}axe-a11y:\s*$/m);
     expect(prYml).toContain("apps/web/e2e/stack/docker-compose.yml");
-    expect(prYml).toContain("bun --filter=@pekulo/web run test:e2e:axe");
-    // Must not set continue-on-error: true on axe-a11y
-    const axeBlock = prYml.split(/^\s{2}axe-a11y:\s*$/m)[1] ?? "";
-    expect(axeBlock).not.toContain("continue-on-error: true");
+    // Scope assertions to the axe-a11y job body: from its 2-space header to the
+    // next 2-space job header (not to EOF, which previously made every later
+    // job's keys leak into the block) and demand the exact key nowhere inside.
+    const afterAxeHeader = prYml.split(/^ {2}axe-a11y:\s*$/m)[1] ?? "";
+    const axeBlock = afterAxeHeader.split(/^ {2}[a-z0-9-]+:\s*$/m)[0] ?? "";
+    expect(axeBlock).not.toBe("");
+    expect(axeBlock).toContain("bun --filter=@pekulo/web run test:e2e:axe");
+    expect(axeBlock).not.toMatch(/continue-on-error/);
   });
 
   it("keeps deploy.yml gated on workflow_run(pr).conclusion == 'success'", () => {
