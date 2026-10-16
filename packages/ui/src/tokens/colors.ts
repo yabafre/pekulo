@@ -28,7 +28,7 @@ export const pekuloColors = {
     text: {
       primary: "#ededed",
       secondary: "#a1a1a1",
-      tertiary: "#707070",
+      tertiary: "#808080",
       muted: "#4d4d4d",
       // onAccent — text on a gain-colored surface. TR doesn't put text on
       // emerald, but Tamagui's theme-slot needs a value. Black = max contrast.
@@ -72,7 +72,7 @@ export const pekuloColors = {
     text: {
       primary: "#0a0a0a",
       secondary: "#404040",
-      tertiary: "#737373",
+      tertiary: "#6b6b6b",
       muted: "#a3a3a3",
       onAccent: "#ffffff",
     },
@@ -82,14 +82,14 @@ export const pekuloColors = {
       focus: "#0a0a0a",
     },
     perf: {
-      gain: "#00a852",
+      gain: "#007a3d",
       gainSoft: "rgba(0, 168, 82, 0.10)",
       loss: "#dc2626",
       lossSoft: "rgba(220, 38, 38, 0.08)",
       neutral: "#525252",
     },
     dataBlue: "#2f73ff",
-    warning: "#d97706",
+    warning: "#b45309",
     chart: {
       actual: "#0a0a0a",
       plan: "rgba(10, 10, 10, 0.32)",

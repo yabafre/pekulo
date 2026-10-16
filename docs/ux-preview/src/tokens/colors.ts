@@ -28,7 +28,7 @@ export const colors = {
     text: {
       primary: "#ededed",
       secondary: "#a1a1a1",
-      tertiary: "#707070",
+      tertiary: "#808080",
       muted: "#4d4d4d",
     },
     border: {
@@ -72,7 +72,7 @@ export const colors = {
     text: {
       primary: "#0a0a0a",
       secondary: "#404040",
-      tertiary: "#737373",
+      tertiary: "#6b6b6b",
       muted: "#a3a3a3",
     },
     border: {
@@ -81,7 +81,7 @@ export const colors = {
       focus: "#0a0a0a",
     },
     perf: {
-      gain: "#00a852",
+      gain: "#007a3d",
       gainSoft: "rgba(0, 168, 82, 0.10)",
       loss: "#dc2626",
       lossSoft: "rgba(220, 38, 38, 0.08)",
@@ -90,7 +90,7 @@ export const colors = {
     // dataBlue is declared only in `:root` of index.css (not redefined in
     // `.light`) — CSS inheritance keeps it identical in both modes.
     dataBlue: "#2f73ff",
-    warning: "#d97706",
+    warning: "#b45309",
     donut: {
       track: "rgba(0, 0, 0, 0.08)",
       fill: "#0a0a0a",

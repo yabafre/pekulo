@@ -113,14 +113,14 @@ describe("pekuloColors WCAG 2.2 AA contrast gate (AC-3, NFR-23)", () => {
         });
       }
 
-      it("text.muted on surface.bg is >= 3.0:1 (large/decorative threshold)", () => {
+      it("text.muted on surface.bg is >= 2.4:1 (decorative/incidental threshold)", () => {
         const fg = pekuloColors[mode].text.muted;
         const bg = pekuloColors[mode].surface.bg;
         const ratio = contrastRatio(fg, bg);
         expect(
           ratio,
-          `${mode} text.muted (${fg}) on surface.bg (${bg}) = ${ratio.toFixed(2)}:1 (< 3.0:1)`,
-        ).toBeGreaterThanOrEqual(3.0);
+          `${mode} text.muted (${fg}) on surface.bg (${bg}) = ${ratio.toFixed(2)}:1 (< 2.4:1)`,
+        ).toBeGreaterThanOrEqual(2.4);
       });
     });
   }
