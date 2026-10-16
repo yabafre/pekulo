@@ -78,27 +78,31 @@ async function ensureThrowawayUser(): Promise<string> {
 }
 
 async function seedPortfolioDemoRows(userId: string): Promise<void> {
-  // Use Bun.sql (built into Bun runtime) or dynamic pg import via apps/api
-  // workspace so apps/web needs no extra DB driver dependency.
-  const { SQL } = await import("bun");
-  const sql = new SQL(E2E_DATABASE_URL);
+  // pg over TCP — Playwright's runner executes this file under Node (never
+  // Bun), so `import("bun")` / Bun.sql is unavailable. pg + @types/pg are
+  // devDependencies mirrored from apps/api (same lockfile entries).
+  const { Client } = await import("pg");
+  const client = new Client({ connectionString: E2E_DATABASE_URL });
+  await client.connect();
   try {
     const accountId = "acc_e2eAxeDemoPea000001";
-    await sql`
-      INSERT INTO accounts (id, user_id, label, type, currency, cash_balance)
-      VALUES (${accountId}, ${userId}::uuid, 'PEA Bourse Direct', 'pea', 'EUR', 1250.00)
-      ON CONFLICT (id) DO NOTHING
-    `;
-    await sql`
-      INSERT INTO holdings (id, user_id, account_id, kind, ticker, isin, label, currency, quantity, avg_cost, last_price)
-      VALUES
-        ('hld_e2eAxeDemoCw8000001', ${userId}::uuid, ${accountId}, 'etf', 'CW8.PA', 'LU1681043599', 'Amundi MSCI World UCITS ETF', 'EUR', 25, 420.00, 512.40),
-        ('hld_e2eAxeDemoAir000002', ${userId}::uuid, ${accountId}, 'action', 'AI.PA', 'FR0000120073', 'Air Liquide', 'EUR', 10, 175.00, 168.20),
-        ('hld_e2eAxeDemoBtc000003', ${userId}::uuid, ${accountId}, 'crypto', 'BTC-EUR', NULL, 'Bitcoin', 'EUR', 0.15, 52000.00, 61500.00)
-      ON CONFLICT (id) DO NOTHING
-    `;
+    await client.query(
+      `INSERT INTO accounts (id, user_id, label, type, currency, cash_balance)
+       VALUES ($1, $2::uuid, 'PEA Bourse Direct', 'pea', 'EUR', 1250.00)
+       ON CONFLICT (id) DO NOTHING`,
+      [accountId, userId],
+    );
+    await client.query(
+      `INSERT INTO holdings (id, user_id, account_id, kind, ticker, isin, label, currency, quantity, avg_cost, last_price)
+       VALUES
+         ('hld_e2eAxeDemoCw8000001', $1::uuid, $2, 'etf', 'CW8.PA', 'LU1681043599', 'Amundi MSCI World UCITS ETF', 'EUR', 25, 420.00, 512.40),
+         ('hld_e2eAxeDemoAir000002', $1::uuid, $2, 'action', 'AI.PA', 'FR0000120073', 'Air Liquide', 'EUR', 10, 175.00, 168.20),
+         ('hld_e2eAxeDemoBtc000003', $1::uuid, $2, 'crypto', 'BTC-EUR', NULL, 'Bitcoin', 'EUR', 0.15, 52000.00, 61500.00)
+       ON CONFLICT (id) DO NOTHING`,
+      [userId, accountId],
+    );
   } finally {
-    await sql.close();
+    await client.end();
   }
 }
 

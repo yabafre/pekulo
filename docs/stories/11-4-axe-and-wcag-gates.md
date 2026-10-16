@@ -637,7 +637,7 @@
 
 - [x] **T4 — Add Playwright + `@axe-core/playwright` dependencies, config, and throwaway-user `global-setup.ts`** [AC: AC-1, AC-4]
 
-  1. In `apps/web/package.json`, add `"test:e2e:axe": "playwright test --config=playwright.config.ts"` to `scripts`, and add `"@axe-core/playwright": "^4.10.2"` and `"@playwright/test": "^1.52.0"` to `devDependencies`. Also add `apps/web/e2e/.auth` and `apps/web/playwright-report` and `apps/web/test-results` to `.gitignore` if not already ignored.
+  1. In `apps/web/package.json`, add `"test:e2e:axe": "playwright test --config=playwright.config.ts"` to `scripts`, and add `"@axe-core/playwright": "^4.10.2"`, `"@playwright/test": "^1.52.0"`, and `"pg"` + `"@types/pg"` (Postgres seed driver for `global-setup.ts`; Playwright's runner executes under Node, so Bun.sql is unavailable) to `devDependencies`. Also add `apps/web/e2e/.auth` and `apps/web/playwright-report` and `apps/web/test-results` to `.gitignore` if not already ignored.
 
   Full `apps/web/package.json` `scripts` and `devDependencies` sections:
 
@@ -667,11 +667,13 @@
       "@testing-library/user-event": "^14.6.1",
       "@types/bun": "^1.3.0",
       "@types/node": "^20",
+      "@types/pg": "^8.11.10",
       "@types/react": "^19",
       "@types/react-dom": "^19",
       "fake-indexeddb": "6.2.5",
       "happy-dom": "^20.0.0",
       "lighthouse": "^13.4.0",
+      "pg": "^8.13.1",
       "react-grab": "^0.1.48",
       "sharp": "^0.35.3",
       "supabase": "^2.95.4",
@@ -817,27 +819,31 @@
   }
 
   async function seedPortfolioDemoRows(userId: string): Promise<void> {
-    // Use Bun.sql (built into Bun runtime) or dynamic pg import via apps/api
-    // workspace so apps/web needs no extra DB driver dependency.
-    const { SQL } = await import("bun");
-    const sql = new SQL(E2E_DATABASE_URL);
+    // pg over TCP — Playwright's runner executes this file under Node (never
+    // Bun), so `import("bun")` / Bun.sql is unavailable. pg + @types/pg are
+    // devDependencies mirrored from apps/api (same lockfile entries).
+    const { Client } = await import("pg");
+    const client = new Client({ connectionString: E2E_DATABASE_URL });
+    await client.connect();
     try {
       const accountId = "acc_e2eAxeDemoPea000001";
-      await sql`
-        INSERT INTO accounts (id, user_id, label, type, currency, cash_balance)
-        VALUES (${accountId}, ${userId}::uuid, 'PEA Bourse Direct', 'pea', 'EUR', 1250.00)
-        ON CONFLICT (id) DO NOTHING
-      `;
-      await sql`
-        INSERT INTO holdings (id, user_id, account_id, kind, ticker, isin, label, currency, quantity, avg_cost, last_price)
-        VALUES
-          ('hld_e2eAxeDemoCw8000001', ${userId}::uuid, ${accountId}, 'etf', 'CW8.PA', 'LU1681043599', 'Amundi MSCI World UCITS ETF', 'EUR', 25, 420.00, 512.40),
-          ('hld_e2eAxeDemoAir000002', ${userId}::uuid, ${accountId}, 'action', 'AI.PA', 'FR0000120073', 'Air Liquide', 'EUR', 10, 175.00, 168.20),
-          ('hld_e2eAxeDemoBtc000003', ${userId}::uuid, ${accountId}, 'crypto', 'BTC-EUR', NULL, 'Bitcoin', 'EUR', 0.15, 52000.00, 61500.00)
-        ON CONFLICT (id) DO NOTHING
-      `;
+      await client.query(
+        `INSERT INTO accounts (id, user_id, label, type, currency, cash_balance)
+         VALUES ($1, $2::uuid, 'PEA Bourse Direct', 'pea', 'EUR', 1250.00)
+         ON CONFLICT (id) DO NOTHING`,
+        [accountId, userId],
+      );
+      await client.query(
+        `INSERT INTO holdings (id, user_id, account_id, kind, ticker, isin, label, currency, quantity, avg_cost, last_price)
+         VALUES
+           ('hld_e2eAxeDemoCw8000001', $1::uuid, $2, 'etf', 'CW8.PA', 'LU1681043599', 'Amundi MSCI World UCITS ETF', 'EUR', 25, 420.00, 512.40),
+           ('hld_e2eAxeDemoAir000002', $1::uuid, $2, 'action', 'AI.PA', 'FR0000120073', 'Air Liquide', 'EUR', 10, 175.00, 168.20),
+           ('hld_e2eAxeDemoBtc000003', $1::uuid, $2, 'crypto', 'BTC-EUR', NULL, 'Bitcoin', 'EUR', 0.15, 52000.00, 61500.00)
+         ON CONFLICT (id) DO NOTHING`,
+        [userId, accountId],
+      );
     } finally {
-      await sql.close();
+      await client.end();
     }
   }
 
