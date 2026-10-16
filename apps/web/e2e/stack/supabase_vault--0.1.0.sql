@@ -1,0 +1,3 @@
+-- apps/web/e2e/stack/supabase_vault--0.1.0.sql
+-- Stub SQL file for supabase_vault extension in local disposable e2e stack.
+-- Table vault.secrets is pre-created by init-auth-schema.sql.

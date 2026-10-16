@@ -16,6 +16,8 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - ./init-auth-schema.sql:/docker-entrypoint-initdb.d/01-init-auth.sql:ro
+      - ./supabase_vault.control:/usr/local/share/postgresql/extension/supabase_vault.control:ro
+      - ./supabase_vault--0.1.0.sql:/usr/local/share/postgresql/extension/supabase_vault--0.1.0.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 2s
