@@ -83,7 +83,7 @@ export const pekuloColors = {
     },
     perf: {
       gain: "#007a3d",
-      gainSoft: "rgba(0, 168, 82, 0.10)",
+      gainSoft: "rgba(0, 122, 61, 0.10)",
       loss: "#dc2626",
       lossSoft: "rgba(220, 38, 38, 0.08)",
       neutral: "#525252",

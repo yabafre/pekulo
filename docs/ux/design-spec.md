@@ -104,7 +104,7 @@ All pairs meet **WCAG 2.2 AA** (4.5:1 body, 3:1 large) — primary reaches AAA (
 | Token              | Dark                   | Light                  |
 | ------------------ | ---------------------- | ---------------------- |
 | `--gain`           | `#00D26A`              | `#007A3D`              |
-| `--gain-soft` (bg) | `rgba(0,210,106,0.12)` | `rgba(0,168,82,0.10)`  |
+| `--gain-soft` (bg) | `rgba(0,210,106,0.12)` | `rgba(0,122,61,0.10)`  |
 | `--loss`           | `#FF5C5C`              | `#DC2626`              |
 | `--loss-soft`      | `rgba(255,92,92,0.12)` | `rgba(220,38,38,0.08)` |
 | `--neutral`        | `#B3B3B3`              | `#525252`              |
