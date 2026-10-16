@@ -1,0 +1,52 @@
+# Quick Spec: Unblock PR #145 CI — axe-a11y global-setup CJS crash + listMonthly clock-seam time-bomb
+
+**Date:** 2026-10-16
+**Author:** Alex
+**Type:** fix
+**Status:** done
+
+## What
+
+Two independent CI blockers on PR #145 (run [38945481675](https://github.com/yabafre/pekulo/actions/runs/38945481675)):
+
+1. **`axe-a11y` job.** `apps/web/e2e/global-setup.ts` derives `STORAGE_STATE_PATH` from `import.meta.url`. Because `apps/web/package.json` has no `"type": "module"`, Playwright transpiles the file to CJS and Node throws `SyntaxError: Cannot use 'import.meta' outside a module` at module load — the job dies before any test runs. Replace the `import.meta` derivation with a path computed from Playwright's resolved config file (`FullConfig.configFile` / `TestInfo.config.configFile`), which works regardless of the module format Playwright picks.
+2. **`test-unit` job.** `listMonthly` (apps/api/src/modules/monthly/monthly.service.ts) ignores the factory clock seam `deps.clock` that `signOff` honours — it falls straight through to wall clock. The integration suite pins the factory clock to 2026-05-29, so the sliding 6-month window followed the real calendar and dropped April 2026 out of the fixture range on 2026-10-01 (time-bomb; fails identically on `main`, untouched by this branch). Thread the factory clock into the window walk (`currentMonthUTC(deps.clock?.() ?? new Date())`) and pin the contract with a unit test.
+
+## Why
+
+Story 11-4 (ticket #51) anchors AC-1/AC-5 on the axe job; the PR cannot go green — and the WCAG gate cannot guard anything — while global-setup crashes at load. The monthly failure is a pre-existing latent bug surfaced by the calendar; the PR's `test-unit` gate stays red without it. Both reproduced locally with Node v22.22.0: identical `SyntaxError` / window drift.
+
+## Acceptance Criteria
+
+- [x] `bun --filter=@pekulo/web run test:e2e:axe` no longer throws `SyntaxError: Cannot use 'import.meta' outside a module`; globalSetup loads and proceeds past module init.
+- [x] `resolveStorageStatePath()` resolves to `apps/web/e2e/.auth/user.json` when called with the config-file path, in both global-setup and spec contexts.
+- [x] No `import.meta` remains anywhere under `apps/web/e2e/`.
+- [x] `listMonthly` honours `deps.clock` when no per-call clock is given (new unit test, RED before the fix).
+- [x] All three `apps/api/src/modules/monthly/` test files pass with no wall-clock pinning (33/33).
+- [x] `bun --filter=@pekulo/web run typecheck` + root `bun run typecheck` exit 0.
+
+## Files to Change
+
+- `apps/web/e2e/global-setup.ts` — remove `fileURLToPath`/`import.meta`; export `resolveStorageStatePath(configFile?: string)`; call it in `globalSetup` with `config.configFile`.
+- `apps/web/e2e/axe-routes.spec.ts` — replace the `STORAGE_STATE_PATH` import with `resolveStorageStatePath(test.info().config.configFile)`.
+- `docs/stories/11-4-axe-and-wcag-gates.md` — sync the two "exact content" snippets (T4 global-setup, T5 spec) with the fixed source so the story stays the contract of record.
+- `apps/api/src/modules/monthly/monthly.service.ts` — `listMonthly` clock fallback chain + `currentMonthUTC(at?)` refactor.
+- `apps/api/src/modules/monthly/monthly.service.test.ts` — new RED→GREEN unit test for the factory-clock fallback.
+
+## Test Plan
+
+- RED #1 (captured 2026-10-16): `bun --filter=@pekulo/web run test:e2e:axe -- --grep "negative probe"` → `SyntaxError: Cannot use 'import.meta' outside a module`, exit 1.
+- GREEN #1: same command — globalSetup loads and fails later on the absent local stack (expected without docker), no SyntaxError. Full-suite verdict deferred to CI (local dev server holds port 3002 / `.next`).
+- RED #2: new unit test → received `2026-10 / 2026-9 / 2026-8` (wall clock) vs expected `2026-5 / 2026-4 / 2026-3` (pinned clock).
+- GREEN #2: `bun test apps/api/src/modules/monthly/` → 33 pass / 0 fail.
+- Full workspace: `bun --filter='*' run test` exit 0 (api 992 pass, web 395 pass), `.aped/.last-test-exit` = 0; `bun run typecheck` 8/8; `bun run format:check` clean; `bun run lint` exit 0 (5 pre-existing warnings).
+- Final verdict: `axe-a11y` + `test-unit` jobs green on PR #145.
+
+## Result
+
+- `apps/web/e2e/global-setup.ts` — `resolveStorageStatePath(configFile?)` replaces the `import.meta` derivation (line 29); `globalSetup(config)` uses `config.configFile`; SQL seeding/`FullConfig` typing unchanged.
+- `apps/web/e2e/axe-routes.spec.ts` — storageState now `resolveStorageStatePath(test.info().config.configFile)` (lines 68-70).
+- `apps/api/src/modules/monthly/monthly.service.ts:191` — `listMonthly` now `clock?.now ?? currentMonthUTC(deps.clock?.() ?? new Date())`; `currentMonthUTC(at = new Date())` takes an optional Date.
+- `apps/api/src/modules/monthly/monthly.service.test.ts` — +1 unit test (factory-clock fallback), 18 tests in file.
+- Story 11-4 snippets resynced (T4/T5 exact-content blocks).
+- Note: the monthly defect belongs to already-done story 5-5 (ticket #31) and would have failed on `main` the same day — CI on main simply had no run since 2026-09-15.

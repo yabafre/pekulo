@@ -752,7 +752,6 @@
   import { chromium, type FullConfig } from "@playwright/test";
   import { mkdirSync } from "node:fs";
   import { dirname, join } from "node:path";
-  import { fileURLToPath } from "node:url";
   import {
     E2E_ANON_KEY,
     E2E_DATABASE_URL,
@@ -762,8 +761,14 @@
     E2E_WEB_URL,
   } from "./e2e-env";
 
-  const HERE = dirname(fileURLToPath(import.meta.url));
-  export const STORAGE_STATE_PATH = join(HERE, ".auth", "user.json");
+  // Playwright transpiles this file to CJS (apps/web/package.json has no
+  // "type": "module"), so ESM-only module metadata syntax is a load-time
+  // SyntaxError. Derive the path from the resolved config file instead — same
+  // value whichever module format the loader picks.
+  export function resolveStorageStatePath(configFile?: string): string {
+    const configDir = configFile ? dirname(configFile) : process.cwd();
+    return join(configDir, "e2e", ".auth", "user.json");
+  }
 
   async function ensureThrowawayUser(): Promise<string> {
     const signUpRes = await fetch(`${E2E_SUPABASE_URL}/auth/v1/signup`, {
@@ -836,8 +841,9 @@
     }
   }
 
-  export default async function globalSetup(_config: FullConfig): Promise<void> {
-    mkdirSync(dirname(STORAGE_STATE_PATH), { recursive: true });
+  export default async function globalSetup(config: FullConfig): Promise<void> {
+    const storageStatePath = resolveStorageStatePath(config.configFile);
+    mkdirSync(dirname(storageStatePath), { recursive: true });
     const userId = await ensureThrowawayUser();
     await seedPortfolioDemoRows(userId);
 
@@ -850,7 +856,7 @@
       await page.locator('input#password').fill(E2E_USER_PASSWORD);
       await page.locator('button[type="submit"]').click();
       await page.waitForURL("**/dashboard", { timeout: 30_000 });
-      await context.storageState({ path: STORAGE_STATE_PATH });
+      await context.storageState({ path: storageStatePath });
     } finally {
       await browser.close();
     }
@@ -1037,7 +1043,7 @@
   import { expect, test, type Page } from "@playwright/test";
   import AxeBuilder from "@axe-core/playwright";
   import { formatAxeViolations } from "./axe-format";
-  import { STORAGE_STATE_PATH } from "./global-setup";
+  import { resolveStorageStatePath } from "./global-setup";
 
   const AUTHENTICATED_ROUTES = [
     "/dashboard",
@@ -1094,7 +1100,9 @@
             const context = await browser.newContext({
               viewport: profile.viewport,
               reducedMotion: "reduce",
-              storageState: isLogin ? undefined : STORAGE_STATE_PATH,
+              storageState: isLogin
+                ? undefined
+                : resolveStorageStatePath(test.info().config.configFile),
             });
             const page = await context.newPage();
             try {

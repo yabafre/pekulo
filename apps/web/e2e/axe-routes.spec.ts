@@ -5,7 +5,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { formatAxeViolations } from "./axe-format";
-import { STORAGE_STATE_PATH } from "./global-setup";
+import { resolveStorageStatePath } from "./global-setup";
 
 const AUTHENTICATED_ROUTES = [
   "/dashboard",
@@ -65,7 +65,9 @@ test.describe("axe-core WCAG 2.2 AA gate across the 7 priority routes (AC-1, AC-
           const context = await browser.newContext({
             viewport: profile.viewport,
             reducedMotion: "reduce",
-            storageState: isLogin ? undefined : STORAGE_STATE_PATH,
+            storageState: isLogin
+              ? undefined
+              : resolveStorageStatePath(test.info().config.configFile),
           });
           const page = await context.newPage();
           try {
