@@ -49,7 +49,7 @@ Story 11-4 (ticket #51) anchors AC-1/AC-5 on the axe job; the PR cannot go green
 - GREEN #2: `bun test apps/api/src/modules/monthly/` → 33 pass / 0 fail. CI run 38948575149: `test-unit` green ✓.
 - GREEN #3 (local, stack up): `docker compose ... up -d --wait` + `prisma:migrate:deploy`, then `test:e2e:axe -- --grep "negative probe"` with `E2E_WEB_URL` pointing at a closed port → globalSetup runs signup + pg seed, Chromium launches, fails only at `page.goto("/login")` (no local web server; CI boots 3002). Seed verified: `psql` returns the PEA account + 3 holdings rows.
 - RED #4 (CI run 38951462025): harness healthy — 19/22 passed; 3 fails, all `color-contrast` (serious) on `/dashboard` × 3 profiles, same selector: `PlaceholderCard` "Bientôt · 7-1" footer (`colorMuted`). String-level math from the SSOT: dark `#4d4d4d` on `#0a0a0a` ≈ 2.34:1, light `#a3a3a3` on `#fafafa` ≈ 2.42:1 — below the 4.5:1 body-text floor. Not reproducible locally (dev server holds port 3002; the prod-parity build runs only on CI).
-- GREEN #4: web unit suite + typecheck/format/lint green; verdict deferred to the CI re-run on the follow-up commit.
+- GREEN #4: web unit suite + typecheck/format/lint green; CI re-run [38953012215](https://github.com/yabafre/pekulo/actions/runs/38953012215) → `axe-a11y` success (22/22 route×profile tests) and all 10 jobs green.
 - Full workspace: `bun --filter='*' run test` exit 0 (api 992 pass, web 395 pass), `.aped/.last-test-exit` = 0; `bun run typecheck` 8/8; `bun run format:check` clean; `bun run lint` exit 0 (5 pre-existing warnings).
 - Final verdict: `axe-a11y` + `test-unit` jobs green on PR #145.
 
