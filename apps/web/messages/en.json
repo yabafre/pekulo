@@ -71,7 +71,7 @@
       "submit": "Create an account",
       "rejected": "Sign-up refused",
       "created": "Account created",
-      "checkEmails": "Check your emails to confirm.",
+      "checkEmails": "Check your emails (and spam folder) to confirm.",
       "haveAccount": "Already have an account?",
       "signInLink": "Sign in"
     },
@@ -91,6 +91,7 @@
     },
     "signInError": {
       "badCredentials": "Incorrect email or password",
+      "emailNotConfirmed": "Your email isn't confirmed yet. Check your inbox (and spam folder).",
       "generic": "Sign-in failed. Please try again later."
     },
     "signUpError": "Sign-up refused. Please try again.",

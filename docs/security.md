@@ -90,6 +90,14 @@ load-bearing for NFR-11 and must be set on every environment:
 - **Login rate-limit = 10 / IP / hour** (Auth → Rate Limits). The `signIn`
   action surfaces the blocked response as a sanitised generic line and never
   echoes the raw Supabase rate-limit hint (story 11-7).
+- **Custom SMTP** (Auth → SMTP Settings): required on every environment where
+  real users sign up. The built-in sender delivers only to project-organisation
+  addresses and is capped at 2 emails/hour — any other signup dies with
+  "Email address not authorized". Configure a provider (Brevo / Resend), a
+  verified sending domain (SPF + DKIM), FR "Confirm signup" / "Reset password"
+  templates, and raise the email rate limit (Auth → Rate Limits; 30/hour
+  default once custom SMTP is on). Signup confirmation links return through
+  `<origin>/callback` (`emailRedirectTo` in the `signUp` action).
 - **Redirect URL allowlist** (Auth → URL Configuration): add the migrated
   callback path `<origin>/callback` (story 8-1 moved `auth/` → the `(auth)`
   route group, so the URL is `/callback`, not `/auth/callback`). The
