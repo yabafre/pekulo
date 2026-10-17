@@ -71,7 +71,7 @@
       "submit": "Créer un compte",
       "rejected": "Inscription refusée",
       "created": "Compte créé",
-      "checkEmails": "Vérifie tes emails pour confirmer.",
+      "checkEmails": "Vérifie tes emails (et tes spams) pour confirmer.",
       "haveAccount": "Déjà un compte ?",
       "signInLink": "Se connecter"
     },
@@ -91,6 +91,7 @@
     },
     "signInError": {
       "badCredentials": "Email ou mot de passe incorrect",
+      "emailNotConfirmed": "Ton email n'est pas encore confirmé. Vérifie ta boîte mail (et tes spams).",
       "generic": "Connexion impossible. Réessaie plus tard."
     },
     "signUpError": "Inscription refusée. Réessaie.",

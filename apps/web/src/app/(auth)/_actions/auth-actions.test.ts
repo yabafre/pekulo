@@ -76,6 +76,21 @@ describe("signIn (server action)", () => {
     if (!r.ok) expect(r.message).not.toMatch(/rate limit/i);
   });
 
+  test("email_not_confirmed — dedicated line, no raw leak", async () => {
+    // GoTrue validates the password BEFORE the confirmation check (token.go),
+    // so this error only reaches a caller who already knows the password —
+    // surfacing it is enumeration-safe and unblocks a stuck user.
+    signInWithPassword.mockResolvedValue({
+      error: { message: "Email not confirmed", code: "email_not_confirmed", status: 400 },
+    });
+    const r = await signIn("a@b.fr", "twelvecharss");
+    expect(r).toEqual({
+      ok: false,
+      message: "Ton email n'est pas encore confirmé. Vérifie ta boîte mail (et tes spams).",
+    });
+    if (!r.ok) expect(r.message).not.toMatch(/not confirmed/i);
+  });
+
   test("AC-2 — successful sign-in returns ok:true", async () => {
     signInWithPassword.mockResolvedValue({ error: null });
     expect(await signIn("a@b.fr", "right")).toEqual({ ok: true });
@@ -96,6 +111,19 @@ describe("signUp (server action)", () => {
     signUpWithPassword.mockResolvedValue({ error: null });
     expect(await signUp("a@b.fr", "twelvecharss")).toEqual({ ok: true }); // 12 chars
     expect(signUpWithPassword).toHaveBeenCalledOnce();
+  });
+
+  test("emailRedirectTo — confirmation links go through the /callback code exchange", async () => {
+    // Without emailRedirectTo the confirmation link falls back to the bare
+    // Site URL root, which never exchanges the code — the confirmed user
+    // stays logged out. The link must point at the callback route.
+    signUpWithPassword.mockResolvedValue({ error: null });
+    await signUp("a@b.fr", "twelvecharss");
+    expect(signUpWithPassword).toHaveBeenCalledWith({
+      email: "a@b.fr",
+      password: "twelvecharss",
+      options: { emailRedirectTo: expect.stringContaining("/callback") },
+    });
   });
 
   test("AC-1 — Supabase error stays generic (no account enumeration)", async () => {

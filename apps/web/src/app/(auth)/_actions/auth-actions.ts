@@ -14,18 +14,23 @@ import { RECOVERY_MARKER_COOKIE } from "../recovery-marker";
 export type AuthResult = { ok: true } | { ok: false; message: string };
 
 // Never echo raw Supabase error strings — they can leak rate-limit hints /
-// server details (story 11-7). Surface the bad-credentials case explicitly
-// (UX); collapse everything else — including the NFR-11 login rate-limit
+// server details (story 11-7). Surface bad credentials (UX) and
+// email_not_confirmed (GoTrue returns it only AFTER validating the password —
+// token.go — so it is enumeration-safe and tells a stuck user what to do);
+// collapse everything else — including the NFR-11 login rate-limit
 // (10/IP/hour, Supabase-native) — to a generic line (AC-2).
-async function friendlySignInError(message: string): Promise<string> {
+async function friendlySignInError(error: { message: string; code?: string }): Promise<string> {
   const t = await getTranslations("auth.signInError");
-  return message === "Invalid login credentials" ? t("badCredentials") : t("generic");
+  if (error.code === "email_not_confirmed" || error.message === "Email not confirmed") {
+    return t("emailNotConfirmed");
+  }
+  return error.message === "Invalid login credentials" ? t("badCredentials") : t("generic");
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, message: await friendlySignInError(error.message) };
+  if (error) return { ok: false, message: await friendlySignInError(error) };
   return { ok: true };
 }
 
@@ -41,7 +46,15 @@ export async function signUp(email: string, password: string): Promise<AuthResul
     return { ok: false, message: issue?.message ?? PASSWORD_POLICY_MESSAGE };
   }
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({ email, password });
+  const origin = await resolveOrigin();
+  // The confirmation email must land on the callback so the one-time code
+  // gets exchanged into a session — the bare Site URL never does (see
+  // resolveOrigin for the origin trust rules).
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${origin}/callback` },
+  });
   if (error) {
     const t = await getTranslations("auth");
     return { ok: false, message: t("signUpError") };
