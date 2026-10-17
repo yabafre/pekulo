@@ -19,7 +19,7 @@ The built-in Supabase sender only delivers to addresses in the project's organis
 - [x] **AC-2** — `signIn` maps Supabase `email_not_confirmed` (code or message) to a dedicated French line ("Ton email n'est pas encore confirmé. Vérifie ta boîte mail (et tes spams)."); the raw Supabase string is never echoed, and every other error (bad credentials excepted) still collapses to the generic line — the NFR-11 rate-limit case included. (GoTrue only returns `email_not_confirmed` after validating the password, so surfacing it leaks nothing — no account enumeration.) — impl `auth-actions.ts:24,33` · test `auth-actions.test.ts:79`.
 - [x] **AC-3** — FR and EN message catalogues stay in parity: new `auth.signInError.emailNotConfirmed` key both sides; `auth.signUp.checkEmails` mentions the spam folder in both locales. — `fr.json:74,94` · `en.json:74,94` (parity verified).
 - [x] **AC-4** — `docs/security.md` § Auth flows (story 8-1) documents custom SMTP as required hosted config: built-in sender restrictions (org-only + 2/h), FR templates for "Confirm signup" + "Reset password", email rate-limit raised in Auth → Rate Limits. — `security.md:93`.
-- [ ] **Manual (dashboard)** — with provider SMTP configured, a signup from a non-team address receives the FR confirmation email (inbox, not spam) and the link lands on `/dashboard` authenticated. — **pending: Alex, dashboard ops (see Manual steps)**.
+- [x] **Manual (dashboard)** — with provider SMTP configured, a signup from a non-team address receives the FR confirmation email (inbox, not spam) and the link lands on `/dashboard` authenticated. — **verified by Alex after the dashboard setup (2026-10-17)**.
 
 ## Files to Change
 
@@ -51,11 +51,11 @@ The built-in Supabase sender only delivers to addresses in the project's organis
 
 ## Result
 
-**Done 2026-10-17** — code + docs green; the dashboard ops (manual AC) stay pending with Alex.
+**Done 2026-10-17** — code + docs green; dashboard SMTP configured and verified end-to-end by Alex.
 
 - `auth-actions.ts` — `signUp` passes `options.emailRedirectTo = <origin>/callback` (`:56`); `friendlySignInError({ message, code })` maps `email_not_confirmed` → `auth.signInError.emailNotConfirmed` without echoing raw strings (`:24`), rate-limit stays generic.
 - `auth-actions.test.ts` — 2 new cases, RED → GREEN: `:79` (dedicated unconfirmed line, no raw leak), `:116` (`emailRedirectTo` goes through `/callback`).
 - `fr.json` / `en.json` — `emailNotConfirmed` + spam-mention in `checkEmails` (`:74`, `:94` both; key parity verified).
 - `docs/security.md` — custom-SMTP bullet in § Auth flows (`:93`).
 - Evidence: file suite 17/17; full `apps/web` vitest 116 files / 397 tests green (exit 0, `.aped/.last-test-exit = 0`); `@pekulo/web` typecheck exit 0; oxlint 0/0 on the changed TS files.
-- **Pending — Alex (dashboard)**: the 6 manual steps above (Brevo/Resend account, SPF/DKIM, SMTP settings, FR templates, email rate limit, real-address re-test). Manual AC stays open until then.
+- **Dashboard ops (Alex)**: provider SMTP + domain + templates + rate limit configured and tested on 2026-10-17 — all flows working.
