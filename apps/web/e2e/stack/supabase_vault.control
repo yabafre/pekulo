@@ -1,0 +1,5 @@
+# supabase_vault extension stub for local e2e
+comment = 'Supabase Vault extension stub'
+default_version = '0.1.0'
+relocatable = false
+schema = 'vault'

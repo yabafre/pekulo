@@ -44,7 +44,7 @@ export function HoldingRow({
           <Text color="$color" fontSize="$bodySm" fontWeight="500" numberOfLines={1}>
             {holding.ticker ?? holding.label}
           </Text>
-          <Text color="$colorMuted" fontSize="$11" textTransform="uppercase" letterSpacing={1}>
+          <Text color="$colorTertiary" fontSize="$11" textTransform="uppercase" letterSpacing={1}>
             {holding.kind}
           </Text>
         </View>
@@ -59,7 +59,7 @@ export function HoldingRow({
         <Text
           display="none"
           $lg={{ display: "flex" }}
-          color="$colorMuted"
+          color="$colorTertiary"
           fontSize="$caption"
           fontVariant={["tabular-nums"]}
         >

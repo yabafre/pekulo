@@ -85,3 +85,8 @@ apps/web/supabase/.branches/
 !.yarn/releases
 .yarn/install-state.gz
 yarn.lock
+
+# Playwright E2E artefacts (story 11-4 — local auth storageState, reports, traces)
+apps/web/e2e/.auth/
+apps/web/playwright-report/
+apps/web/test-results/

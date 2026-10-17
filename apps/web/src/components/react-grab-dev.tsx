@@ -15,13 +15,15 @@ import { useEffect } from "react";
 // dev server does no react-grab work. The version is PINNED (no `@latest`), and
 // the dev CSP allows unpkg only in development (`headers.ts`).
 //
-// Injected client-side after mount (dev only) so a production build never adds
-// the tag. Renders nothing.
+// Mounted conditionally in RootLayout (Server Component) only in development,
+// so this client component is never downloaded or executed in production.
+// Does NOT reference `process` directly to avoid triggering Turbopack's node
+// process polyfill in the browser bundle.
 const REACT_GRAB_SRC = "https://unpkg.com/react-grab@0.1.48/dist/index.global.js";
 
 export function ReactGrabDev(): null {
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development") return;
+    if (typeof document === "undefined") return;
     if (document.querySelector(`script[data-react-grab]`)) return;
     const script = document.createElement("script");
     script.src = REACT_GRAB_SRC;

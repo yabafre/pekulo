@@ -24,8 +24,8 @@
   /* Text scale — pure white at the top, grayscale ramp (Geist on neutral-100..500) */
   --text-primary: #ededed; /* big numbers, active tab — Vercel's text-100 — 17.4:1 */
   --text-secondary: #a1a1a1; /* body — Vercel's text-300 — 7.0:1 */
-  --text-tertiary: #707070; /* labels — Vercel's text-500 — 4.6:1 */
-  --text-muted: #4d4d4d; /* dim — Vercel's text-700 — 3.0:1 */
+  --text-tertiary: #808080; /* labels — WCAG 2.2 AA >= 4.5:1 across all dark surfaces (5.32:1 on #000, 4.58:1 on #161616) */
+  --text-muted: #4d4d4d; /* dim — Vercel's text-700 — 2.4:1 */
 
   /* Hairline borders — Vercel signature (rgba whites, 1px) */
   --border-default: rgba(255, 255, 255, 0.1);
@@ -100,20 +100,20 @@
 
   --text-primary: #0a0a0a;
   --text-secondary: #404040;
-  --text-tertiary: #737373;
+  --text-tertiary: #6b6b6b;
   --text-muted: #a3a3a3;
 
   --border-default: rgba(0, 0, 0, 0.08);
   --border-strong: rgba(0, 0, 0, 0.14);
   --border-focus: #0a0a0a;
 
-  --gain: #00a852;
-  --gain-soft: rgba(0, 168, 82, 0.1);
+  --gain: #007a3d;
+  --gain-soft: rgba(0, 122, 61, 0.1);
   --loss: #dc2626;
   --loss-soft: rgba(220, 38, 38, 0.08);
   --neutral: #525252;
 
-  --warning: #d97706;
+  --warning: #ab4f08;
 
   --donut-track: rgba(0, 0, 0, 0.08);
   --donut-fill: #0a0a0a;

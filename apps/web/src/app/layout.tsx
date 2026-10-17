@@ -75,7 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
-        <ReactGrabDev />
+        {process.env.NODE_ENV === "development" ? <ReactGrabDev /> : null}
         {/* next-intl v4: provider auto-inherits locale + messages from
             i18n/request.ts when rendered in a Server Component — no props. */}
         <NextIntlClientProvider>

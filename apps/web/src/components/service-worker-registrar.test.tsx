@@ -36,15 +36,25 @@ describe("ServiceWorkerRegistrar (story 9-2)", () => {
     expect(registerMock).toHaveBeenCalledWith("/sw.js", { scope: "/" });
   });
 
-  test("registers nothing outside production", () => {
+  test("registers nothing outside production and unregisters existing workers", async () => {
     Object.defineProperty(process.env, "NODE_ENV", {
       value: "development",
       configurable: true,
       writable: true,
       enumerable: true,
     });
+    const unregisterMock = vi.fn().mockResolvedValue(true);
+    Object.defineProperty(navigator, "serviceWorker", {
+      value: {
+        register: registerMock,
+        getRegistrations: vi.fn().mockResolvedValue([{ unregister: unregisterMock }]),
+      },
+      configurable: true,
+    });
     render(<ServiceWorkerRegistrar />);
     expect(registerMock).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(unregisterMock).toHaveBeenCalled();
   });
 
   test("a rejected registration does not throw", async () => {
