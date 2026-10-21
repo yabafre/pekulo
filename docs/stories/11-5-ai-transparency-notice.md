@@ -22,7 +22,7 @@
 - [x] Task 1: Reset `aiNoticeSeenAt` on `false → true` opt-in transition in `llm.repository.ts` and cover with unit + two-tenant isolation tests in `llm-ai-notice.test.ts` [AC: AC-2, AC-4]
 - [x] Task 2: Wire `llmTags.optIn()` → `llmKeys.aiNotice()` cache invalidation in `keys.ts`, test in `use-llm-opt-in.test.tsx`, and add `fr`/`en` i18n keys in `fr.json` and `en.json` [AC: AC-2, AC-3]
 - [x] Task 3: Upgrade `AiTransparencyNotice` (latched visibility, accessible dismiss button, re-trigger reset, i18n) and `LlmOptInToggle` (UX SSOT intro paragraph) with unit + `vitest-axe` tests in `ai-transparency-notice.test.tsx` [AC: AC-1, AC-2, AC-3, AC-4]
-- [ ] Task 4: Run full monorepo verification suite (`@pekulo/api` tests, `@pekulo/web` tests, `lint`, `typecheck`, `db:rls-migration-audit`) [AC: AC-5]
+- [x] Task 4: Run full monorepo verification suite (`@pekulo/api` tests, `@pekulo/web` tests, `lint`, `typecheck`, `db:rls-migration-audit`) [AC: AC-5]
 
 ## Dev Notes
 
@@ -1467,16 +1467,39 @@ describe("AiTransparencyNotice (AC-3 — shown exactly once, server-flagged)", (
 
 ### Summary
 
-- Pending `aped-dev` execution.
+Shipped the EU AI Act transparency notice lifecycle: opt-out → opt-in now resets `ai_notice_seen_at`, the banner latches after it marks itself seen and stays until an accessible dismiss button is used, and the settings page gained the UX intro paragraph in FR and EN. Server-side reset, cache invalidation, component copy and i18n all stay within the story scope.
 
 ### Files changed
 
-- Pending `aped-dev` execution.
+- `apps/api/src/modules/llm/llm.repository.ts`
+- `apps/api/src/modules/llm/llm-ai-notice.test.ts`
+- `apps/api/src/modules/llm/llm-opt-in.test.ts`
+- `apps/web/src/lib/zapaction/keys.ts`
+- `apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.tsx`
+- `apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/_llm/_components/llm-opt-in-toggle.tsx`
+- `apps/web/messages/fr.json`
+- `apps/web/messages/en.json`
+- `docs/state.yaml`
+- `docs/stories/11-5-ai-transparency-notice.md`
 
 ### Deviations
 
-- Pending `aped-dev` execution.
+- Story's illustrative notice code was not copied verbatim: its dismiss handler reset `markedCycleRef`, which re-showed the banner when the seen cache had not refetched yet. Replaced with a suppressed-ref latch that re-arms only once the server reports `seen: true`, then re-shows on the next opt-in reset.
+- No `findUnique?.` optional call in the repository (story snippet); `findUnique` is a required Prisma client method, called directly.
+- `react-grab` MCP was unavailable, so no visual check was captured; frontend coverage relies on the DOM + axe tests and review.
+- `bash .aped/aped-dev/scripts/run-tests.sh` cannot detect this Bun/Turbo monorepo (no root `test` script, falls through to `npm test` and fails). Ran the three package suites directly instead and recorded the exit code in `.aped/.last-test-exit`.
+- RLS audit script is `db:rls-audit` (not `db:rls-migration-audit` as written in the story); ran the existing script.
 
 ### Test output
 
-- Pending `aped-dev` execution.
+- `bun --filter='@pekulo/api' test src/modules/llm/` → `78 pass`, `0 fail`, 189 expect() calls (14 files)
+- `bun --filter='@pekulo/api' run test` → `994 pass`, `0 fail` (113 files)
+- `bun --filter='@pekulo/web' run test 'src/app/(cap)/dashboard/_llm/'` → `18 passed` (3 files)
+- `bun --filter='@pekulo/web' run test` → `402 passed` (116 files)
+- `bun --filter='@pekulo/ui' run test` → `341 passed | 1 skipped` (159 files)
+- `bun run lint` → 5 pre-existing warnings, `0 errors`
+- `bun run typecheck` → 8/8 tasks successful
+- `bun run db:rls-audit` → `[rls-audit] OK — 21 tables checked`, exit 0
+- AC trace: AC-1/2/3/4 cite tests in `ai-transparency-notice.test.tsx:63/78/96/114` and `llm-ai-notice.test.ts:108/138`; AC-5 is the suite-level verification above.
