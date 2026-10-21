@@ -15,7 +15,10 @@ export interface LlmRepository {
   isThirdPartyOptedIn(userId: string): Promise<boolean>;
   /** Set the per-user third-party opt-in flag (story 6-3, FR-34). Upserts the
    * single `llm_opt_in` row keyed on the UNIQUE(user_id) index and returns the
-   * persisted value. Sole opt-in writer. */
+   * persisted value. Sole opt-in writer. Story 11-5 (DR-12 / AC-2): when
+   * transitioning from opt-out (`false`/absent) to opt-in (`true`), resets
+   * `ai_notice_seen_at` to `null` so the AI transparency notice is re-shown.
+   * Opt-outs and repeated `true -> true` calls preserve the seen timestamp. */
   setThirdPartyOptIn(userId: string, value: boolean): Promise<boolean>;
   /** Story 6-4 (DR-12) — has the user seen the AI transparency notice? */
   getAiNoticeSeen(userId: string): Promise<boolean>;
@@ -65,6 +68,17 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
       return row?.thirdParty ?? false;
     },
     async setThirdPartyOptIn(userId, value) {
+      // Story 11-5 (DR-12 / AC-2): re-show the AI transparency notice when
+      // transitioning from opt-out (false / absent) to opt-in (true). Idempotent
+      // `true -> true` calls and `true -> false` opt-outs preserve aiNoticeSeenAt.
+      const existing = await db.llmOptIn.findUnique({
+        where: { userId },
+        select: { thirdParty: true },
+      });
+      const resetNotice = value && existing?.thirdParty !== true;
+      const updateData = resetNotice
+        ? { thirdParty: value, aiNoticeSeenAt: null }
+        : { thirdParty: value };
       try {
         const row = await db.llmOptIn.upsert({
           where: { userId },
@@ -75,7 +89,7 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
             userId,
             thirdParty: value,
           } as unknown as Parameters<typeof db.llmOptIn.upsert>[0]["create"],
-          update: { thirdParty: value },
+          update: updateData,
           select: { thirdParty: true },
         });
         return row.thirdParty;
@@ -87,7 +101,7 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
         if ((err as { code?: string }).code === "P2002") {
           const row = await db.llmOptIn.update({
             where: { userId },
-            data: { thirdParty: value },
+            data: updateData,
             select: { thirdParty: true },
           });
           return row.thirdParty;

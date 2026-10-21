@@ -133,6 +133,7 @@ test("AC-3 concurrency: setThirdPartyOptIn re-reads via update when the create b
   const racingDb = {
     client: {
       llmOptIn: {
+        findUnique: async () => null,
         upsert: async ({ create }: { create: { thirdParty: boolean } }) => {
           upsertAttempts.push(create.thirdParty);
           throw { code: "P2002" }; // loser hits the UNIQUE(user_id) index
@@ -157,6 +158,7 @@ test("AC-3: a non-P2002 upsert error is rethrown, not swallowed", async () => {
   const failingDb = {
     client: {
       llmOptIn: {
+        findUnique: async () => null,
         upsert: async () => {
           throw { code: "P2010", message: "raw query failed" };
         },
