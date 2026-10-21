@@ -1,7 +1,7 @@
 # Story: 11-5-ai-transparency-notice — AI Transparency Notice (EU AI Act)
 
 **Epic:** Epic 11 — RGPD, Security & Accessibility Hardening
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** #52
 **Branch:** feature/52-11-5-ai-transparency-notice
 

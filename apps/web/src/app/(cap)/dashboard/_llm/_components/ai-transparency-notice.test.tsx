@@ -60,6 +60,14 @@ describe("AiTransparencyNotice (6-4 AC-3 + 6-7 AC-2 + 11-5 AC-1/AC-2/AC-3/AC-4)"
     expect(note.textContent).toContain("modifiable");
   });
 
+  // AC-1 (verbatim from docs/stories/11-5-ai-transparency-notice.md:14):
+  //   Given I have not yet seen the AI transparency notice and at least one
+  //   pending AI category suggestion or auto-applied AI categorisation is
+  //   visible on the Transactions screen, When the list renders, Then the AI
+  //   transparency notice appears once, records my seen status on the server,
+  //   remains visible on screen after the seen status refreshes, and can be
+  //   explicitly dismissed via a keyboard-accessible control. On subsequent
+  //   visits (while my seen status remains set), the notice does not appear.
   test("11-5 AC-1 — stays visible after markAiNotice refetch (seen: true) until user clicks dismiss", async () => {
     aiNoticeMock.mockReturnValue({ data: { seen: false }, isLoading: false });
     const { rerender } = renderWithTamagui(<AiTransparencyNotice />);
@@ -75,6 +83,14 @@ describe("AiTransparencyNotice (6-4 AC-3 + 6-7 AC-2 + 11-5 AC-1/AC-2/AC-3/AC-4)"
     expect(screen.queryByRole("note")).toBeNull();
   });
 
+  // AC-2 (verbatim from docs/stories/11-5-ai-transparency-notice.md:15):
+  //   Given I have already seen the AI transparency notice, When my third-party
+  //   AI model preference transitions from opted-out to opted-in (including after
+  //   an opt-in → opt-out → opt-in cycle), Then the server resets my AI
+  //   transparency notice seen status (whereas opting out or repeating an
+  //   already-enabled opt-in preserves the seen status), the client cache for the
+  //   AI notice is invalidated, and the notice is re-shown on the next user-visible
+  //   AI suggestion without requiring a hard page reload.
   test("11-5 AC-2 — re-shows the notice after opt-out → opt-in resets server seen to false", async () => {
     aiNoticeMock.mockReturnValue({ data: { seen: false }, isLoading: false });
     const { rerender } = renderWithTamagui(<AiTransparencyNotice />);
@@ -93,6 +109,14 @@ describe("AiTransparencyNotice (6-4 AC-3 + 6-7 AC-2 + 11-5 AC-1/AC-2/AC-3/AC-4)"
     await waitFor(() => expect(markMutate).toHaveBeenCalledTimes(2));
   });
 
+  // AC-3 (verbatim from docs/stories/11-5-ai-transparency-notice.md:16):
+  //   Given I open the Settings screen, When the Artificial Intelligence section
+  //   renders, Then it displays an introductory transparency explanation above
+  //   the third-party AI model toggle informing me that transactions are
+  //   categorised automatically by default on-device or on the private server and
+  //   that no data leaves that perimeter unless third-party models are explicitly
+  //   enabled, and all AI notice and settings copy is localised in both French
+  //   and English with complete key parity.
   test("11-5 AC-3 — LlmOptInToggle renders the AI transparency intro paragraph above the toggle", async () => {
     optInMock.mockReturnValue({ data: { thirdParty: false }, isLoading: false, error: null });
     renderWithTamagui(<LlmOptInToggle />);
@@ -100,6 +124,7 @@ describe("AiTransparencyNotice (6-4 AC-3 + 6-7 AC-2 + 11-5 AC-1/AC-2/AC-3/AC-4)"
     expect(screen.getByText(fr.llm.optIn.toggleLabel)).toBeInTheDocument();
   });
 
+  // AC-3 (same verbatim quote as above) — the "complete key parity" clause.
   test("11-5 AC-3 — ships identical llm.aiNotice and llm.optIn keys in fr and en", () => {
     expect(Object.keys(en.llm.aiNotice).sort()).toEqual(Object.keys(fr.llm.aiNotice).sort());
     expect(Object.keys(en.llm.optIn).sort()).toEqual(Object.keys(fr.llm.optIn).sort());
@@ -111,6 +136,15 @@ describe("AiTransparencyNotice (6-4 AC-3 + 6-7 AC-2 + 11-5 AC-1/AC-2/AC-3/AC-4)"
     }
   });
 
+  // AC-4 (verbatim from docs/stories/11-5-ai-transparency-notice.md:17):
+  //   Given two distinct users User A and User B, When User A marks the AI
+  //   transparency notice as seen or transitions from opt-out to opt-in, Then
+  //   User B's seen status and third-party opt-in preference remain completely
+  //   unaffected, and automated accessibility checks report zero WCAG 2.2 AA
+  //   violations on both the AI transparency notice and the Artificial
+  //   Intelligence settings section.
+  // The two-user half is asserted in llm-ai-notice.test.ts; this test covers the
+  // accessibility half.
   test("11-5 AC-4 — has zero axe violations on AiTransparencyNotice and LlmOptInToggle", async () => {
     aiNoticeMock.mockReturnValue({ data: { seen: false }, isLoading: false });
     optInMock.mockReturnValue({ data: { thirdParty: false }, isLoading: false, error: null });

@@ -15,10 +15,16 @@ vi.mock("../_actions/llm-actions", () => ({
 
 import { useSetLlmOptIn } from "./use-llm-opt-in";
 
-// AC-4 (story 6-3) + AC-2 (story 11-5):
-// Toggling the third-party opt-in invalidates both llmKeys.optIn() AND
-// llmKeys.aiNotice() so an opt-out → opt-in transition immediately re-triggers
-// the AI transparency notice without waiting for useAiNotice's 60s staleTime.
+// AC-2 (verbatim from docs/stories/11-5-ai-transparency-notice.md:15):
+//   Given I have already seen the AI transparency notice, When my third-party
+//   AI model preference transitions from opted-out to opted-in (including after
+//   an opt-in → opt-out → opt-in cycle), Then the server resets my AI
+//   transparency notice seen status (whereas opting out or repeating an
+//   already-enabled opt-in preserves the seen status), the client cache for the
+//   AI notice is invalidated, and the notice is re-shown on the next user-visible
+//   AI suggestion without requiring a hard page reload.
+// AC-4 (verbatim from docs/stories/6-3-llm-opt-in.md:22) is also covered by the
+// existing llmKeys.optIn() assertion below.
 describe("useSetLlmOptIn (6-3 AC-4 + 11-5 AC-2)", () => {
   test("success → invalidates llmKeys.optIn() and llmKeys.aiNotice()", async () => {
     setMock.mockReset().mockResolvedValueOnce({ thirdParty: true });
