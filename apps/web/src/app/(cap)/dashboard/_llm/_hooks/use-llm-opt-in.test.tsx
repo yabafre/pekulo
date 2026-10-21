@@ -15,18 +15,16 @@ vi.mock("../_actions/llm-actions", () => ({
 
 import { useSetLlmOptIn } from "./use-llm-opt-in";
 
-// AC-4 (verbatim from docs/stories/6-3-llm-opt-in.md:22):
-//   Given the Paramètres page, When it renders, Then an "Intelligence
-//   artificielle" section shows a toggle reflecting the stored opt-in (off by
-//   default), and toggling it persists the new value so it survives a page
-//   reload. Verified visually at GREEN.
-// This test covers the "survives a page reload" mechanism: the mutation
-// invalidates llmKeys.optIn() so the read refetches the persisted value.
-describe("useSetLlmOptIn (AC-4)", () => {
-  test("success → invalidates llmKeys.optIn()", async () => {
+// AC-4 (story 6-3) + AC-2 (story 11-5):
+// Toggling the third-party opt-in invalidates both llmKeys.optIn() AND
+// llmKeys.aiNotice() so an opt-out → opt-in transition immediately re-triggers
+// the AI transparency notice without waiting for useAiNotice's 60s staleTime.
+describe("useSetLlmOptIn (6-3 AC-4 + 11-5 AC-2)", () => {
+  test("success → invalidates llmKeys.optIn() and llmKeys.aiNotice()", async () => {
     setMock.mockReset().mockResolvedValueOnce({ thirdParty: true });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     client.setQueryData(llmKeys.optIn(), { thirdParty: false });
+    client.setQueryData(llmKeys.aiNotice(), { seen: true });
     const invalidateSpy = vi.spyOn(client, "invalidateQueries");
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -35,5 +33,6 @@ describe("useSetLlmOptIn (AC-4)", () => {
     result.current.mutate({ thirdParty: true });
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalled());
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: llmKeys.optIn() });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: llmKeys.aiNotice() });
   });
 });

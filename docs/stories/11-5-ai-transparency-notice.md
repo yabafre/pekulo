@@ -20,7 +20,7 @@
 ## Tasks
 
 - [x] Task 1: Reset `aiNoticeSeenAt` on `false → true` opt-in transition in `llm.repository.ts` and cover with unit + two-tenant isolation tests in `llm-ai-notice.test.ts` [AC: AC-2, AC-4]
-- [ ] Task 2: Wire `llmTags.optIn()` → `llmKeys.aiNotice()` cache invalidation in `keys.ts`, test in `use-llm-opt-in.test.tsx`, and add `fr`/`en` i18n keys in `fr.json` and `en.json` [AC: AC-2, AC-3]
+- [x] Task 2: Wire `llmTags.optIn()` → `llmKeys.aiNotice()` cache invalidation in `keys.ts`, test in `use-llm-opt-in.test.tsx`, and add `fr`/`en` i18n keys in `fr.json` and `en.json` [AC: AC-2, AC-3]
 - [ ] Task 3: Upgrade `AiTransparencyNotice` (latched visibility, accessible dismiss button, re-trigger reset, i18n) and `LlmOptInToggle` (UX SSOT intro paragraph) with unit + `vitest-axe` tests in `ai-transparency-notice.test.tsx` [AC: AC-1, AC-2, AC-3, AC-4]
 - [ ] Task 4: Run full monorepo verification suite (`@pekulo/api` tests, `@pekulo/web` tests, `lint`, `typecheck`, `db:rls-migration-audit`) [AC: AC-5]
 
