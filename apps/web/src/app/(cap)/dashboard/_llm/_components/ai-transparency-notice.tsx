@@ -1,53 +1,85 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Text, View } from "@pekulo/ui/client";
+import { PekuloButton } from "@pekulo/ui";
 import { Sparkles } from "lucide-react";
 import { useAiNotice, useMarkAiNotice } from "../_hooks/use-ai-notice";
 
-// Story 6-4 (DR-12 / AC-3) + 6-7 (FR-33 amended / AC-2) — minimal AI
-// transparency notice. Shown ONCE (server flag ai_notice_seen_at) when the
-// user first encounters AI categorisation: either a pending suggestion
-// (suggestions section) OR an auto-applied import row (Récentes section, 6-7).
-// Marking it seen persists server-side so it never re-appears (survives reloads
-// + devices). The full EU-AI-Act notice + the opt-out→opt-in re-trigger are
-// owned by story 11-5. The parent decides WHEN to mount it (T7 guards against a
-// double-render when both pending + applied rows exist).
+// Story 6-4 (DR-12 / AC-3) + 6-7 (FR-33 amended / AC-2) + 11-5 (EU AI Act
+// transparency notice lifecycle & opt-out → opt-in re-trigger).
+// Shown when the user first encounters AI categorisation (or after an
+// opt-out → opt-in transition resets ai_notice_seen_at to null).
+// Marks itself seen server-side on first appearance so reloads do not re-show
+// it, while latching visibility locally until the user clicks the dismiss
+// button (preventing the post-markAiNotice cache refetch from unmounting the
+// banner before the user reads or dismisses it). A local suppression ref keeps
+// the banner hidden after a dismiss even if the seen cache still says false,
+// re-arming only once the server reports seen=true — so a later opt-out →
+// opt-in reset re-triggers the notice.
 export function AiTransparencyNotice() {
+  const t = useTranslations("llm");
   const { data, isLoading } = useAiNotice();
   const markSeen = useMarkAiNotice();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const suppressedRef = useRef(false);
+
   useEffect(() => setIsHydrated(true), []);
+
   // Default to seen until the read resolves → no flash for returning users.
-  const seen = data?.seen ?? true;
-  const shouldShow = isHydrated && !isLoading && !seen;
+  const unseen = isHydrated && !isLoading && data?.seen === false;
 
   useEffect(() => {
-    if (shouldShow && !markSeen.isPending) markSeen.mutate(undefined);
-    // Mark on first appearance so AC-3 "appears once" holds across reloads.
+    if (!unseen) {
+      // Re-arm: a future opt-out → opt-in transition flips seen back to false
+      // and must re-show the notice even if the user dismissed it earlier.
+      suppressedRef.current = false;
+      return;
+    }
+    if (!suppressedRef.current && !isVisible) {
+      setIsVisible(true);
+      if (!markSeen.isPending) markSeen.mutate(undefined);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldShow]);
+  }, [unseen, isVisible]);
 
-  if (!shouldShow) return null;
+  if (!isVisible) return null;
+
+  const handleDismiss = () => {
+    setIsVisible(false);
+    suppressedRef.current = true;
+  };
+
   return (
     <View
       role="note"
-      aria-label="Information sur l'intelligence artificielle"
+      aria-label={t("aiNotice.ariaLabel")}
       flexDirection="row"
-      gap="$2"
+      gap="$3"
       alignItems="flex-start"
+      justifyContent="space-between"
       padding="$3"
       marginBottom="$2"
       borderRadius="$4"
       backgroundColor="$backgroundMuted"
     >
-      <Sparkles size={14} color="var(--colorSecondary)" aria-hidden />
-      <Text color="$colorSecondary" fontSize="$xs">
-        Vos catégories peuvent être suggérées — ou, pour vos imports (CSV / banque), appliquées
-        automatiquement — par un modèle d'IA. Vous gardez le dernier mot : chaque catégorie reste
-        modifiable à tout moment. Aucune donnée n'est envoyée à un modèle tiers sans votre accord
-        (Paramètres → Intelligence artificielle).
-      </Text>
+      <View flexDirection="row" gap="$2" alignItems="flex-start" flex={1}>
+        <Sparkles size={14} color="var(--colorSecondary)" aria-hidden />
+        <Text color="$colorSecondary" fontSize="$xs" flex={1}>
+          {t("aiNotice.body")}
+        </Text>
+      </View>
+      <PekuloButton
+        variant="ghost"
+        size="xs"
+        data-testid="ai-transparency-notice-dismiss"
+        aria-label={t("aiNotice.dismissAriaLabel")}
+        onClick={handleDismiss}
+      >
+        {t("aiNotice.dismiss")}
+      </PekuloButton>
     </View>
   );
 }
