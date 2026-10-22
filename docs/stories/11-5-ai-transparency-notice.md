@@ -1158,19 +1158,19 @@ git add apps/web/src/app/\(cap\)/dashboard/_llm/_components/ai-transparency-noti
 2. **Full Code — Verification Script Execution:**
 
 ```bash
-bun --filter='@pekulo/api' test src/modules/llm/ && bun --filter='@pekulo/web' test src/app/\(cap\)/dashboard/_llm/ && bun run lint && bun run typecheck && bun run db:rls-migration-audit
+bun --filter='@pekulo/api' test src/modules/llm/ && bun --filter='@pekulo/web' test src/app/\(cap\)/dashboard/_llm/ && bun run lint && bun run typecheck && bun --filter='@pekulo/api' run db:rls-migration-audit
 ```
 
 3. **Test Command:**
 
 ```bash
-bun --filter='@pekulo/api' test src/modules/llm/ && bun --filter='@pekulo/web' test src/app/\(cap\)/dashboard/_llm/ && bun run lint && bun run typecheck && bun run db:rls-migration-audit
+bun --filter='@pekulo/api' test src/modules/llm/ && bun --filter='@pekulo/web' test src/app/\(cap\)/dashboard/_llm/ && bun run lint && bun run typecheck && bun --filter='@pekulo/api' run db:rls-migration-audit
 ```
 
 4. **Expected Output:**
    - All `@pekulo/api` LLM tests pass (`0 fail`).
    - All `@pekulo/web` `_llm` tests pass (`0 fail`).
-   - `bun run lint`, `bun run typecheck`, and `bun run db:rls-migration-audit` exit `0`.
+   - `bun run lint`, `bun run typecheck`, and `bun --filter='@pekulo/api' run db:rls-migration-audit` exit `0`.
 
 5. **Commit Step:**
 
@@ -1455,13 +1455,18 @@ describe("AiTransparencyNotice (AC-3 — shown exactly once, server-flagged)", (
 
 - `apps/api/src/modules/llm/llm.repository.ts` (modify)
 - `apps/api/src/modules/llm/llm-ai-notice.test.ts` (modify)
+- `apps/api/src/modules/llm/llm-opt-in.test.ts` (modify)
+- `apps/api/src/modules/llm/llm.integration.test.ts` (modify)
 - `apps/web/src/lib/zapaction/keys.ts` (modify)
+- `apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.ts` (modify)
 - `apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.test.tsx` (modify)
 - `apps/web/messages/fr.json` (modify)
 - `apps/web/messages/en.json` (modify)
 - `apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.tsx` (modify)
 - `apps/web/src/app/(cap)/dashboard/_llm/_components/llm-opt-in-toggle.tsx` (modify)
 - `apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.test.tsx` (modify)
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.tsx` (modify)
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.envelope.test.tsx` (modify)
 
 ## Dev Agent Record
 
@@ -1474,11 +1479,15 @@ Shipped the EU AI Act transparency notice lifecycle: opt-out → opt-in now rese
 - `apps/api/src/modules/llm/llm.repository.ts`
 - `apps/api/src/modules/llm/llm-ai-notice.test.ts`
 - `apps/api/src/modules/llm/llm-opt-in.test.ts`
+- `apps/api/src/modules/llm/llm.integration.test.ts`
 - `apps/web/src/lib/zapaction/keys.ts`
+- `apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.ts`
 - `apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.test.tsx`
 - `apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.tsx`
 - `apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.test.tsx`
 - `apps/web/src/app/(cap)/dashboard/_llm/_components/llm-opt-in-toggle.tsx`
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.tsx`
+- `apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.envelope.test.tsx`
 - `apps/web/messages/fr.json`
 - `apps/web/messages/en.json`
 - `docs/state.yaml`
@@ -1487,19 +1496,20 @@ Shipped the EU AI Act transparency notice lifecycle: opt-out → opt-in now rese
 ### Deviations
 
 - Story's illustrative notice code was not copied verbatim: its dismiss handler reset `markedCycleRef`, which re-showed the banner when the seen cache had not refetched yet. Replaced with a suppressed-ref latch that re-arms only once the server reports `seen: true`, then re-shows on the next opt-in reset.
-- No `findUnique?.` optional call in the repository (story snippet); `findUnique` is a required Prisma client method, called directly.
+- No `findUnique?.` optional call in the repository (story snippet); `findUnique` is a required Prisma client method, called directly (short-circuited when `value === false`).
 - `react-grab` MCP was unavailable, so no visual check was captured; frontend coverage relies on the DOM + axe tests and review.
 - `bash .aped/aped-dev/scripts/run-tests.sh` cannot detect this Bun/Turbo monorepo (no root `test` script, falls through to `npm test` and fails). Ran the three package suites directly instead and recorded the exit code in `.aped/.last-test-exit`.
-- RLS audit script is `db:rls-audit` (not `db:rls-migration-audit` as written in the story); ran the existing script.
+- Static RLS migration audit script lives on `@pekulo/api` (`bun --filter='@pekulo/api' run db:rls-migration-audit`) alongside root `bun run db:rls-audit`; ran both.
 
 ### Test output
 
-- `bun --filter='@pekulo/api' test src/modules/llm/` → `78 pass`, `0 fail`, 189 expect() calls (14 files)
+- `bun --filter='@pekulo/api' test src/modules/llm/` → `79 pass`, `0 fail`, 198 expect() calls (14 files)
 - `bun --filter='@pekulo/api' run test` → `994 pass`, `0 fail` (113 files)
 - `bun --filter='@pekulo/web' run test 'src/app/(cap)/dashboard/_llm/'` → `18 passed` (3 files)
-- `bun --filter='@pekulo/web' run test` → `402 passed` (116 files)
+- `bun --filter='@pekulo/web' run test` → `403 passed` (116 files)
 - `bun --filter='@pekulo/ui' run test` → `341 passed | 1 skipped` (159 files)
 - `bun run lint` → 5 pre-existing warnings, `0 errors`
 - `bun run typecheck` → 8/8 tasks successful
+- `bun --filter='@pekulo/api' run db:rls-migration-audit` → `[rls-migration-audit] OK — 21 user-data tables, all RLS-guarded and all reachable by the auth.users cascade.`, exit 0
 - `bun run db:rls-audit` → `[rls-audit] OK — 21 tables checked`, exit 0
-- AC trace: AC-1/2/3/4 cite tests in `ai-transparency-notice.test.tsx:63/78/96/114` and `llm-ai-notice.test.ts:108/138`; AC-5 is the suite-level verification above.
+- AC trace: AC-1/2/3/4 cite tests in `ai-transparency-notice.test.tsx:63/88/126/153` and `llm-ai-notice.test.ts:108/138`; AC-5 is the suite-level verification above.
