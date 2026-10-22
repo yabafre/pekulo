@@ -1,7 +1,7 @@
 # Story: 11-5-ai-transparency-notice — AI Transparency Notice (EU AI Act)
 
 **Epic:** Epic 11 — RGPD, Security & Accessibility Hardening
-**Status:** review
+**Status:** done
 **Ticket:** #52
 **Branch:** feature/52-11-5-ai-transparency-notice
 
@@ -1513,3 +1513,53 @@ Shipped the EU AI Act transparency notice lifecycle: opt-out → opt-in now rese
 - `bun --filter='@pekulo/api' run db:rls-migration-audit` → `[rls-migration-audit] OK — 21 user-data tables, all RLS-guarded and all reachable by the auth.users cascade.`, exit 0
 - `bun run db:rls-audit` → `[rls-audit] OK — 21 tables checked`, exit 0
 - AC trace: AC-1/2/3/4 cite tests in `ai-transparency-notice.test.tsx:63/88/126/153` and `llm-ai-notice.test.ts:108/138`; AC-5 is the suite-level verification above.
+
+## Review Record
+
+**Date:** 2026-10-22
+**Auditors:** Spec, Code, Edge & Hallucination, Aria
+**Verdict:** done
+**Override:** AC gap accepted — reason: "Corriger l'ensemble des trouvailles (tests, composants et documentation) directement pendant la passe aped-review."
+
+### Findings
+
+#### Resolved
+- [MAJOR] Invalid Tamagui radius token `borderRadius="$4"` on `AiTransparencyNotice` container [`apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.tsx:65`]
+  - Source: Aria, Code
+  - Resolution: `2c8d315` — replaced `borderRadius="$4"` with valid Pekulo radius token `borderRadius="$md"` (`8px`).
+- [MAJOR] Dismiss `<PekuloButton>` opts out of Tamagui without `font_body`, falling back to browser-default serif font [`apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.tsx:74`]
+  - Source: Aria
+  - Resolution: `2c8d315` — added `className="font_body"` on `<PekuloButton>` and asserted `.toHaveClass("font_body")` in `ai-transparency-notice.test.tsx`.
+- [MAJOR] Multi-instance race condition between `TransactionsRecentSection` and `TransactionsSuggestionsSection` while `usePendingSuggestions` is loading [`apps/web/src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.tsx:141,254`]
+  - Source: Aria
+  - Resolution: `2c8d315` — gated `<AiTransparencyNotice />` in `TransactionsRecentSection` on `items.some(isAiApplied) && !pendingIsLoading && pendingTotal === 0` and added regression test in `transactions-recent-section.envelope.test.tsx`.
+- [MINOR] AC-4 two-user isolation test overwrote `user-b` before asserting `markAiNoticeSeen("user-a")` isolation, and `llm.integration.test.ts` fake DB omitted `aiNoticeSeenAt` [`apps/api/src/modules/llm/llm-ai-notice.test.ts:138-156`, `apps/api/src/modules/llm/llm.integration.test.ts:52-108`]
+  - Source: Spec, Code
+  - Resolution: `9bc3bfa` — asserted `user-b` remains `false` immediately after `user-a` mutations before seeding `user-b`, updated `makeFakeDb` to store `aiNoticeSeenAt`, and added authenticated `getAiNotice` / `markAiNotice` / `setOptIn` integration coverage.
+- [MINOR] `suppressedRef` in `AiTransparencyNotice` reset on any `!unseen` state rather than strictly `data?.seen === true`, and fast-dismiss before refetch was untested [`apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.tsx:34-46`, `apps/web/src/app/(cap)/dashboard/_llm/_components/ai-transparency-notice.test.tsx:86-110`]
+  - Source: Edge & Hallucination, Spec, Code
+  - Resolution: `2c8d315` — restricted `suppressedRef.current = false` reset to `data?.seen === true`, added `markedCycleRef` per unseen cycle, and added fast-dismiss-before-refetch test assertions.
+- [MINOR] `use-llm-opt-in.test.tsx` attached `.tags` to the mocked Server Action (Testing Anti-Pattern #3, lesson `2026-05-24`) [`apps/web/src/app/(cap)/dashboard/_llm/_hooks/use-llm-opt-in.test.tsx:8-14`]
+  - Source: Code
+  - Resolution: `9bc3bfa` — removed `.tags` from the `setLlmOptIn` mock so the test exercises `useSetLlmOptIn`'s explicit `invalidateWithTags: [llmTags.optIn()]`, and updated the comment in `use-llm-opt-in.ts`.
+- [NIT] Unnecessary `findUnique` DB query when opting out (`value === false`) in `setThirdPartyOptIn` [`apps/api/src/modules/llm/llm.repository.ts:74-78`]
+  - Source: Code
+  - Resolution: `9bc3bfa` — short-circuited `db.llmOptIn.findUnique` when `value === false`.
+- [NIT] Story `## File List` and `## Dev Agent Record` out of sync with git diff and `db:rls-migration-audit` [`docs/stories/11-5-ai-transparency-notice.md:1161,1454-1505`]
+  - Source: Spec, Edge & Hallucination, `git-audit.sh`
+  - Resolution: `707bb24` — synced `## File List`, `### Files changed`, and `@pekulo/api` `db:rls-migration-audit` command/output.
+
+#### Dismissed
+- None.
+
+#### Unresolved (story stays in `review`)
+- None.
+
+### Verification
+- Test command: `bun --filter='@pekulo/api' test src/modules/llm/ && bun --filter='@pekulo/web' run test 'src/app/(cap)/dashboard/_llm/' 'src/app/(cap)/dashboard/transactions/_components/transactions-recent-section.envelope.test.tsx' && bun run lint && bun run typecheck && bun --filter='@pekulo/api' run db:rls-migration-audit`
+- Test output (final pass): `@pekulo/api` `79 pass, 0 fail` (14 files); `@pekulo/web` `23 passed` (4 files); `oxlint` `0 errors, 5 warnings`; `typecheck` `8/8 tasks successful`; `[rls-migration-audit] OK — 21 user-data tables, all RLS-guarded and all reachable by the auth.users cascade.`
+- Visual verification: deferred — React Grab MCP unavailable at `2026-10-22T20:04:00Z`; Aria completed static UX SSOT (`docs/ux-preview/src/App.tsx:1770-1785`), Tamagui CSS token (`tamagui.generated.css`), and WCAG 2.2 AA audit (`APPROVED`).
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/52#issuecomment-6347709328
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/147
