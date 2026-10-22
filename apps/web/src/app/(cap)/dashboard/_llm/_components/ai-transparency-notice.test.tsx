@@ -78,8 +78,10 @@ describe("AiTransparencyNotice (6-4 AC-3 + 6-7 AC-2 + 11-5 AC-1/AC-2/AC-3/AC-4)"
     rerender(<AiTransparencyNotice />);
     expect(screen.getByRole("note")).toBeInTheDocument();
 
-    // Clicking the dismiss button hides the notice
-    fireEvent.click(screen.getByTestId("ai-transparency-notice-dismiss"));
+    // Dismiss button carries font_body (lesson 2026-07-13) and hides the notice on click
+    const dismissBtn = screen.getByTestId("ai-transparency-notice-dismiss");
+    expect(dismissBtn).toHaveClass("font_body");
+    fireEvent.click(dismissBtn);
     expect(screen.queryByRole("note")).toBeNull();
   });
 
@@ -91,15 +93,27 @@ describe("AiTransparencyNotice (6-4 AC-3 + 6-7 AC-2 + 11-5 AC-1/AC-2/AC-3/AC-4)"
   //   already-enabled opt-in preserves the seen status), the client cache for the
   //   AI notice is invalidated, and the notice is re-shown on the next user-visible
   //   AI suggestion without requiring a hard page reload.
-  test("11-5 AC-2 — re-shows the notice after opt-out → opt-in resets server seen to false", async () => {
+  test("11-5 AC-2 — re-shows the notice after opt-out → opt-in resets server seen to false (including after fast dismiss before markAiNotice refetch)", async () => {
     aiNoticeMock.mockReturnValue({ data: { seen: false }, isLoading: false });
     const { rerender } = renderWithTamagui(<AiTransparencyNotice />);
     expect(await screen.findByRole("note")).toBeInTheDocument();
     expect(markMutate).toHaveBeenCalledTimes(1);
 
-    // Server marks seen + user dismisses the banner
-    aiNoticeMock.mockReturnValue({ data: { seen: true }, isLoading: false });
+    // User clicks dismiss BEFORE the markAiNotice refetch resolves (data still seen: false)
     fireEvent.click(screen.getByTestId("ai-transparency-notice-dismiss"));
+    expect(screen.queryByRole("note")).toBeNull();
+
+    // Intermediate re-render while seen is still false (or loading) keeps the banner suppressed
+    aiNoticeMock.mockReturnValue({ data: { seen: false }, isLoading: false });
+    rerender(<AiTransparencyNotice />);
+    expect(screen.queryByRole("note")).toBeNull();
+    aiNoticeMock.mockReturnValue({ data: { seen: false }, isLoading: true });
+    rerender(<AiTransparencyNotice />);
+    expect(screen.queryByRole("note")).toBeNull();
+
+    // Server refetch confirms seen: true → stays hidden and re-arms suppression
+    aiNoticeMock.mockReturnValue({ data: { seen: true }, isLoading: false });
+    rerender(<AiTransparencyNotice />);
     expect(screen.queryByRole("note")).toBeNull();
 
     // User opts out then opts back in → server resets seen to false

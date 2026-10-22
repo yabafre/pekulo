@@ -25,6 +25,7 @@ export function AiTransparencyNotice() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const suppressedRef = useRef(false);
+  const markedCycleRef = useRef(false);
 
   useEffect(() => setIsHydrated(true), []);
 
@@ -33,17 +34,27 @@ export function AiTransparencyNotice() {
 
   useEffect(() => {
     if (!unseen) {
-      // Re-arm: a future opt-out → opt-in transition flips seen back to false
-      // and must re-show the notice even if the user dismissed it earlier.
-      suppressedRef.current = false;
+      // Re-arm only when the server explicitly confirms seen=true: a future
+      // opt-out → opt-in transition that flips seen back to false will then
+      // re-show the notice, while a fast dismiss before the markAiNotice
+      // refetch settles stays suppressed across intermediate renders.
+      if (data?.seen === true) {
+        suppressedRef.current = false;
+      }
+      markedCycleRef.current = false;
       return;
     }
-    if (!suppressedRef.current && !isVisible) {
-      setIsVisible(true);
-      if (!markSeen.isPending) markSeen.mutate(undefined);
+    if (!suppressedRef.current) {
+      if (!isVisible) {
+        setIsVisible(true);
+      }
+      if (!markedCycleRef.current && !markSeen.isPending) {
+        markedCycleRef.current = true;
+        markSeen.mutate(undefined);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unseen, isVisible]);
+  }, [unseen, data?.seen, isVisible]);
 
   if (!isVisible) return null;
 
@@ -62,7 +73,7 @@ export function AiTransparencyNotice() {
       justifyContent="space-between"
       padding="$3"
       marginBottom="$2"
-      borderRadius="$4"
+      borderRadius="$md"
       backgroundColor="$backgroundMuted"
     >
       <View flexDirection="row" gap="$2" alignItems="flex-start" flex={1}>
@@ -74,6 +85,7 @@ export function AiTransparencyNotice() {
       <PekuloButton
         variant="ghost"
         size="xs"
+        className="font_body"
         data-testid="ai-transparency-notice-dismiss"
         aria-label={t("aiNotice.dismissAriaLabel")}
         onClick={handleDismiss}
