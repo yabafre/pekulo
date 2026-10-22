@@ -140,10 +140,14 @@ describe("ai-notice flag (6-4 + 11-5)", () => {
 
     await repo.setThirdPartyOptIn("user-a", true);
     await repo.markAiNoticeSeen("user-a");
+
+    // User A mutations never touch an unseen / opted-out User B
+    expect(await repo.getAiNoticeSeen("user-a")).toBe(true);
+    expect(await repo.getAiNoticeSeen("user-b")).toBe(false);
+    expect(await repo.isThirdPartyOptedIn("user-b")).toBe(false);
+
     await repo.setThirdPartyOptIn("user-b", true);
     await repo.markAiNoticeSeen("user-b");
-
-    expect(await repo.getAiNoticeSeen("user-a")).toBe(true);
     expect(await repo.getAiNoticeSeen("user-b")).toBe(true);
 
     // User A cycles opt-out → opt-in: User A resets to unseen, User B stays seen

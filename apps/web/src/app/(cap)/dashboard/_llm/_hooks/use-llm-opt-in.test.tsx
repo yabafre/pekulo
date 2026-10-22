@@ -2,15 +2,14 @@ import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { llmKeys, llmTags } from "@/lib/zapaction/keys";
+import { llmKeys } from "@/lib/zapaction/keys";
 
 const setMock = vi.fn();
-// Post-ZAP-1: useActionMutation reads `action.tags` to drive the tag-registry
-// invalidation. Attach `.tags` via Object.assign so the registry edge runs.
+// The Next.js Server Action boundary strips `action.tags` on the client
+// (lessons.md 2026-05-24), so the mock is a plain function without `.tags` —
+// exercising useSetLlmOptIn's explicit `invalidateWithTags: [llmTags.optIn()]`.
 vi.mock("../_actions/llm-actions", () => ({
-  setLlmOptIn: Object.assign((input: { thirdParty: boolean }) => setMock(input), {
-    tags: [llmTags.optIn()],
-  }),
+  setLlmOptIn: (input: { thirdParty: boolean }) => setMock(input),
 }));
 
 import { useSetLlmOptIn } from "./use-llm-opt-in";

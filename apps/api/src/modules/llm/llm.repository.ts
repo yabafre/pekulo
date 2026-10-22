@@ -71,10 +71,12 @@ export function createLlmRepository(deps: { prismaService: PrismaService }): Llm
       // Story 11-5 (DR-12 / AC-2): re-show the AI transparency notice when
       // transitioning from opt-out (false / absent) to opt-in (true). Idempotent
       // `true -> true` calls and `true -> false` opt-outs preserve aiNoticeSeenAt.
-      const existing = await db.llmOptIn.findUnique({
-        where: { userId },
-        select: { thirdParty: true },
-      });
+      const existing = value
+        ? await db.llmOptIn.findUnique({
+            where: { userId },
+            select: { thirdParty: true },
+          })
+        : null;
       const resetNotice = value && existing?.thirdParty !== true;
       const updateData = resetNotice
         ? { thirdParty: value, aiNoticeSeenAt: null }

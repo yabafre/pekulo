@@ -14,7 +14,7 @@ export function useLlmOptIn() {
 }
 
 // invalidateWithTags explicit — the SA boundary strips `action.tags`
-// (lessons.md 2026-05-24). The registry maps llmTags.optIn() → llmKeys.optIn().
+// (lessons.md 2026-05-24). The registry maps llmTags.optIn() → [llmKeys.optIn(), llmKeys.aiNotice()].
 export function useSetLlmOptIn() {
   return useActionMutation(setLlmOptIn, {
     invalidateWithTags: [llmTags.optIn()],
