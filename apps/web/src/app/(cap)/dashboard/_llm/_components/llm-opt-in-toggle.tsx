@@ -6,10 +6,11 @@ import { Text, View } from "@pekulo/ui/client";
 import { PekuloToggleRow, Section } from "@pekulo/ui";
 import { useLlmOptIn, useSetLlmOptIn } from "../_hooks/use-llm-opt-in";
 
-// Story 6-3 (FR-34 / NFR-13 / DR-7) — the "Intelligence artificielle" settings
-// section. The server is the single source of truth for the opt-in (read via
-// useLlmOptIn); the toggle writes via useSetLlmOptIn and the registry
-// invalidates the read so the state persists across reloads. Default OFF until
+// Story 6-3 (FR-34 / NFR-13 / DR-7) + 11-5 (DR-12 parametres-side surface,
+// aligned with docs/ux-preview/src/App.tsx:1771-1775) — the "Intelligence
+// artificielle" settings section. The server is the single source of truth for
+// the opt-in (read via useLlmOptIn); the toggle writes via useSetLlmOptIn and
+// the registry invalidates both optIn and aiNotice reads. Default OFF until
 // the read resolves. Hydration-guarded (lessons.md 2026-05-24).
 export function LlmOptInToggle() {
   const t = useTranslations("llm");
@@ -21,6 +22,9 @@ export function LlmOptInToggle() {
   const checked = data?.thirdParty ?? false;
   return (
     <Section title={t("optIn.title")} ariaLabel={t("optIn.ariaLabel")}>
+      <Text color="$colorSecondary" fontSize="$bodySm" marginBottom="$4">
+        {t("optIn.intro")}
+      </Text>
       <PekuloToggleRow
         label={t("optIn.toggleLabel")}
         sub={t("optIn.toggleSub")}

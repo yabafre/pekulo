@@ -138,7 +138,7 @@ export function TransactionsRecentSection() {
   // are no pending suggestions (the suggestions section owns the notice in the
   // pending case). This guarantees exactly one notice renders (no double-banner
   // on a first visit that has both pending + applied rows).
-  const { data: pendingData } = usePendingSuggestions(
+  const { data: pendingData, isLoading: pendingIsLoading } = usePendingSuggestions(
     1,
     undefined,
     month ?? undefined,
@@ -251,7 +251,9 @@ export function TransactionsRecentSection() {
 
       {!showLoading && items.length > 0 && (
         <>
-          {items.some(isAiApplied) && pendingTotal === 0 ? <AiTransparencyNotice /> : null}
+          {items.some(isAiApplied) && !pendingIsLoading && pendingTotal === 0 ? (
+            <AiTransparencyNotice />
+          ) : null}
           <View flexDirection="column" role="list" aria-label={t("transactions.listAria")}>
             {items.map((tx) => {
               const activity = txToActivity(tx, accountLabelById.get(tx.accountId) ?? "—");

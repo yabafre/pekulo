@@ -262,7 +262,7 @@ sprint:
     11-2-account-deletion: {status: done, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#49", worktree: null, started_at: "2026-09-15T14:01:38Z", completed_at: "2026-09-15T15:40:00Z"}
     11-3-rls-audit-and-encryption-doc: {status: done, depends_on: [0-3-api-scaffold, 0-12-custom-oxlint-rules], ticket: "#50", worktree: null, started_at: "2026-05-29T00:00:00Z"}
     11-4-axe-and-wcag-gates: {status: done, depends_on: [0-8-github-actions-pr, 0-10-pekulo-ui-migration], ticket: "#51", worktree: null, started_at: "2026-10-16T19:34:00Z", completed_at: "2026-10-16T21:35:00Z"}
-    11-5-ai-transparency-notice: {status: pending, depends_on: [6-3-llm-opt-in, 6-4-llm-suggestion-ui], ticket: "#52", worktree: null}
+    11-5-ai-transparency-notice: {status: done, depends_on: [6-3-llm-opt-in, 6-4-llm-suggestion-ui], ticket: "#52", worktree: null, started_at: "2026-10-21T19:10:05Z", completed_at: "2026-10-22T20:04:00Z", reviewed_at: "2026-10-22T20:04:00Z"}
     11-6-restore-drill-and-glitchtip: {status: pending, depends_on: [0-7-otel-three-runtimes, 0-3-api-scaffold], ticket: "#53", worktree: null}
     # Ingested from GitHub issue #104 via aped-from-ticket (2026-05-29). Registered, NOT added to active sprint (auto_add: false).
     11-7-auth-hardening-httponly-csp: {status: done, depends_on: [], ticket: "#104", source: from_ticket, worktree: null, started_at: "2026-05-29T10:34:37Z", completed_at: "2026-05-29T11:04:11Z", reviewed_at: "2026-05-29T11:04:11Z"}

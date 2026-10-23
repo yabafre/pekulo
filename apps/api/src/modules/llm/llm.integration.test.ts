@@ -50,7 +50,7 @@ async function signFor(sub: string): Promise<string> {
 // Map-keyed fake Prisma so two users keep independent opt-in rows — the single
 // real isolation lever on the api service-role path (ADR-0013: where:{userId}).
 function makeFakeDb(): PrismaService {
-  const optIns = new Map<string, boolean>();
+  const optIns = new Map<string, { thirdParty: boolean; aiNoticeSeenAt: Date | null }>();
   const client = {
     llmCallLog: {
       create: async () => undefined,
@@ -79,29 +79,50 @@ function makeFakeDb(): PrismaService {
     },
     llmOptIn: {
       findUnique: async ({ where }: { where: { userId: string } }) =>
-        optIns.has(where.userId) ? { thirdParty: optIns.get(where.userId)! } : null,
+        optIns.get(where.userId) ?? null,
       upsert: async ({
         where,
         create,
         update,
       }: {
         where: { userId: string };
-        create: { userId: string; thirdParty: boolean };
-        update: { thirdParty: boolean };
+        create: { userId: string; thirdParty?: boolean; aiNoticeSeenAt?: Date | null };
+        update: { thirdParty?: boolean; aiNoticeSeenAt?: Date | null };
       }) => {
-        const next = optIns.has(where.userId) ? update.thirdParty : create.thirdParty;
+        const current = optIns.get(where.userId);
+        const next = current
+          ? {
+              thirdParty: update.thirdParty !== undefined ? update.thirdParty : current.thirdParty,
+              aiNoticeSeenAt:
+                update.aiNoticeSeenAt !== undefined
+                  ? update.aiNoticeSeenAt
+                  : current.aiNoticeSeenAt,
+            }
+          : {
+              thirdParty: create.thirdParty ?? false,
+              aiNoticeSeenAt: create.aiNoticeSeenAt ?? null,
+            };
         optIns.set(where.userId, next);
-        return { thirdParty: next };
+        return next;
       },
       update: async ({
         where,
         data,
       }: {
         where: { userId: string };
-        data: { thirdParty: boolean };
+        data: { thirdParty?: boolean; aiNoticeSeenAt?: Date | null };
       }) => {
-        optIns.set(where.userId, data.thirdParty);
-        return { thirdParty: data.thirdParty };
+        const current = optIns.get(where.userId) ?? {
+          thirdParty: false,
+          aiNoticeSeenAt: null,
+        };
+        const next = {
+          thirdParty: data.thirdParty !== undefined ? data.thirdParty : current.thirdParty,
+          aiNoticeSeenAt:
+            data.aiNoticeSeenAt !== undefined ? data.aiNoticeSeenAt : current.aiNoticeSeenAt,
+        };
+        optIns.set(where.userId, next);
+        return next;
       },
     },
   };
@@ -231,6 +252,68 @@ describe("llm opt-in HTTP boundary (AC-5)", () => {
       body: JSON.stringify({ json: {} }),
     });
     expect(res.status).toBe(401);
+  });
+
+  test("11-5 AC-1/AC-2 — authenticated getAiNotice / markAiNotice / setOptIn round-trip and per-user isolation", async () => {
+    const tokenA = await signFor(USER_A);
+    const tokenB = await signFor(USER_B);
+
+    // Initially unseen for User A
+    const initRes = await fetch(`${baseUrl}/rpc/v1/llm/getAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(initRes.status).toBe(200);
+    expect(((await initRes.json()) as { json: { seen: boolean } }).json.seen).toBe(false);
+
+    // Mark seen for User A -> seen: true, User B stays seen: false
+    const markRes = await fetch(`${baseUrl}/rpc/v1/llm/markAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(markRes.status).toBe(200);
+
+    const seenResA = await fetch(`${baseUrl}/rpc/v1/llm/getAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(((await seenResA.json()) as { json: { seen: boolean } }).json.seen).toBe(true);
+
+    const seenResB = await fetch(`${baseUrl}/rpc/v1/llm/getAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenB}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(((await seenResB.json()) as { json: { seen: boolean } }).json.seen).toBe(false);
+
+    // Opt-out (true -> false) preserves seen: true for User A
+    await fetch(`${baseUrl}/rpc/v1/llm/setOptIn`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ json: { thirdParty: false } }),
+    });
+    const afterOptOutRes = await fetch(`${baseUrl}/rpc/v1/llm/getAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(((await afterOptOutRes.json()) as { json: { seen: boolean } }).json.seen).toBe(true);
+
+    // Re-opt-in (false -> true) resets seen: false for User A
+    await fetch(`${baseUrl}/rpc/v1/llm/setOptIn`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ json: { thirdParty: true } }),
+    });
+    const afterReOptInRes = await fetch(`${baseUrl}/rpc/v1/llm/getAiNotice`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(((await afterReOptInRes.json()) as { json: { seen: boolean } }).json.seen).toBe(false);
   });
 });
 
