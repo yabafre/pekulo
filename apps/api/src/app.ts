@@ -9,7 +9,12 @@ import { createHealthModule } from "./modules/health/health.module";
 import { mapErrorToOrpcResponse } from "./platform/http/error-mapper";
 import { mountOrpc } from "./platform/http/orpc-mount";
 import { extractRequestId } from "./common/errors";
-import { elysiaOtelHttpPlugin, endHttpServerSpan, shutdownOtel } from "./platform/observability";
+import {
+  captureApiError,
+  elysiaOtelHttpPlugin,
+  endHttpServerSpan,
+  shutdownOtel,
+} from "./platform/observability";
 
 export interface ServerHandle {
   stop: () => Promise<void>;
@@ -88,6 +93,11 @@ export async function startServer(): Promise<ServerHandle> {
           message: error instanceof Error ? error.message : String(error),
         });
       }
+      // 11-6 — GlitchTip sees the same 5xx the operator sees in journald.
+      // The wrapper applies the capture policy (typed 4xx/5xx skipped) and
+      // sends status_code / request_id / route tags; PII is scrubbed in the
+      // SDK's beforeSend hook, not here.
+      captureApiError({ error, request, route, statusCode: status, requestId });
       set.status = mapped.status;
       // Close the OTel SERVER span with error semconv + recordException —
       // handled HERE (not in the plugin) because plugin's .onError is
