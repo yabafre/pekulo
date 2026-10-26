@@ -22,7 +22,8 @@
     "prisma:validate": "prisma validate",
     "prisma:check": "prisma format --check && prisma validate",
     "db:rls-audit": "bun run scripts/rls-audit.ts",
-    "db:rls-migration-audit": "bun run scripts/rls-migration-audit.ts"
+    "db:rls-migration-audit": "bun run scripts/rls-migration-audit.ts",
+    "db:restore-drill-check": "bun run scripts/restore-drill-check.ts"
   },
   "dependencies": {
     "@elysiajs/openapi": "^1.4.15",
@@ -38,6 +39,7 @@
     "@orpc/client": "1.14.1",
     "@orpc/server": "1.14.1",
     "@pekulo/contracts": "workspace:*",
+    "@pekulo/observability": "workspace:*",
     "@pekulo/types": "workspace:*",
     "@pekulo/validators": "workspace:*",
     "@pekulo/zod": "workspace:*",
@@ -45,6 +47,7 @@
     "@prisma/client": "7.8.0",
     "@prisma/client-runtime-utils": "7.8.0",
     "@prisma/instrumentation": "7.8.0",
+    "@sentry/bun": "11.9.0",
     "@supabase/supabase-js": "^2.104.1",
     "csv-parse": "^5.5.6",
     "elysia": "1.4.28",

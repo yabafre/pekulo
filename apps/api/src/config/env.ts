@@ -89,6 +89,13 @@ const envSchema = z.object({
   OTEL_SERVICE_NAME: z.string().min(1).default("pekulo-api"),
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString(z.string().url()),
   OTEL_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("error"),
+  // GlitchTip error capture (story 11-6 — NFR-27). Optional: when unset the
+  // capture wrapper is a no-op and OTel stdout stays the only sink, which
+  // keeps V1 (a) local dev identical to today. The DSN is a write credential
+  // for the GlitchTip project — Dokploy env only, never a committed file.
+  // GlitchTip is Sentry-compatible but ships no OTLP trace receiver (6.2),
+  // so errors travel through @sentry/bun while OTel keeps the trace spine.
+  GLITCHTIP_DSN: optionalString(z.string().url()),
   // Bridge bank-aggregator (story 5-6 — ADR-0015). The three credentials are
   // REQUIRED — boot fails fast when missing (post-review aped-review: silent
   // start-without-credentials would only surface as 503 on the first user
