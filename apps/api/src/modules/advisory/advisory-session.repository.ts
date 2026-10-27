@@ -3,11 +3,7 @@
 
 import type { ExtendedPrismaClient } from "../../database";
 import type { AdvisoryEncryptor } from "./advisory-encryption";
-import type {
-  AdvisorySession,
-  AdvisorySessionData,
-  AdvisorySessionSummary,
-} from "@pekulo/validators";
+import type { AdvisorySession, AdvisorySessionData, AdvisorySessionSummary } from "@pekulo/types";
 
 export interface AdvisorySessionRepository {
   createSession(args: {

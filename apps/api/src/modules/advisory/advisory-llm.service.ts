@@ -9,11 +9,8 @@ import type { AdvisorySessionRepository } from "./advisory-session.repository";
 import { buildAdvisoryPrompt } from "./advisory-prompt-builder";
 import { validateAdvisoryGrounding } from "./advisory-grounding-validator";
 import { assertAdvisoryProviderPosture, type AdvisoryPostureConfig } from "./advisory-posture";
-import {
-  advisoryAnalysisResultSchema,
-  type AdvisorySession,
-  type AdvisorySessionList,
-} from "@pekulo/validators";
+import { advisoryAnalysisResultSchema } from "@pekulo/validators";
+import type { AdvisorySession, AdvisorySessionList } from "@pekulo/types";
 import { PekuloError } from "../../common/errors";
 
 export interface AdvisoryLlmService {

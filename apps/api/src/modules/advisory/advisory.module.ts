@@ -68,7 +68,7 @@ export function createAdvisoryModule(
           generateAnalysis: async () => {
             throw new Error("LLM service not configured");
           },
-          getLatestSession: async () => sessionRepository.findLatestByUserId(""),
+          getLatestSession: async () => null,
           listSessions: async () => ({ sessions: [], totalCount: 0 }),
         } as unknown as AdvisoryLlmService));
 
