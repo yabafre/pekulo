@@ -533,7 +533,7 @@
 
   **Commit:** `git commit -m "feat(#114): advisory owner allowlist env parser (AC-8)"`
 
-- [ ] **T6 — Persist access decisions** [AC: AC-3, AC-4]
+- [x] **T6 — Persist access decisions** [AC: AC-3, AC-4]
   **Path:** `apps/api/src/modules/advisory/advisory.repository.ts` (create)
 
   ```ts
