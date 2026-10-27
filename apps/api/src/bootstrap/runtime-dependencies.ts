@@ -267,11 +267,11 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     prismaService,
     listAccounts: (userId) => accountsModule.service.list(userId),
     listHoldings: (userId) => holdingsModule.service.list(userId, { includeClosed: false }),
-    resolveQuote: (input) => holdingsModule.service.resolveQuote(input),
+    resolveQuote: (quoteInput) => holdingsModule.service.resolveQuote(quoteInput),
     getRates: (base) => holdingsModule.frankfurterClient.getRates(base),
     getTotalEquity: (userId) => realestateModule.service.getTotalEquity(userId),
     getCompass: (userId) => compassModule.service.getCompass(userId),
-    computeProgress: (input) => compassModule.service.computeProgress(input),
+    computeProgress: (progressInput) => compassModule.service.computeProgress(progressInput),
     // story 7-2 D3 — recent activity port (transactions + account labels)
     listRecentActivity: (userId, limit) =>
       transactionsModule.service.listRecentActivity(userId, limit),
