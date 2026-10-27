@@ -95,5 +95,20 @@ export function createAdvisoryRouter(deps: {
       requireUserId(context.userId);
       return deps.analysis.getSnapshot(context.userId);
     }),
+
+    generateAnalysis: gated.generateAnalysis.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      throw new PekuloError("INTERNAL", "Not implemented yet");
+    }),
+
+    getLatestSession: gated.getLatestSession.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return null;
+    }),
+
+    listSessions: gated.listSessions.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return { sessions: [], totalCount: 0 };
+    }),
   });
 }

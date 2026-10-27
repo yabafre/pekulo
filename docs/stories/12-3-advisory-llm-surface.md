@@ -121,7 +121,7 @@
   Expected: All tests pass, exit code 0.
   Commit: `git add apps/api/prisma/ apps/api/src/database/ apps/api/src/modules/settings/ apps/api/scripts/rls-audit.ts && git commit -m "feat(#116): register advisory_sessions table, prefix and registration gates"`
 
-- [ ] **T2 — Advisory LLM schemas, types, and contract procedures** [AC: AC-1, AC-5]
+- [x] **T2 — Advisory LLM schemas, types, and contract procedures** [AC: AC-1, AC-5]
   Define the structured Zod schemas for analysis outputs, instrument recommendations, decrypted advisory sessions, and declare the procedures on `advisoryContract`.
 
   **Path:** `packages/validators/src/advisory/advisory.llm.schemas.ts` (create)
