@@ -12,51 +12,61 @@
 import { describe, expect, test } from "bun:test";
 import { createRouterClient } from "@orpc/server";
 import { PekuloError } from "../../common/errors";
+import { advisorySnapshotFixture } from "./advisory.test-fixtures";
 import type { AdvisoryAccessService } from "./advisory.service";
+import type { AdvisoryAnalysisService } from "./advisory-analysis.service";
 import { createAdvisoryRouter } from "./advisory.routes";
 
+function service(over: Partial<AdvisoryAccessService> = {}): AdvisoryAccessService {
+  return {
+    isOwner: () => false,
+    assertAllowed: async () => {},
+    getStatus: async () => ({ access: "active", owner: false }),
+    list: async () => [],
+    grant: async () => ({}) as any,
+    ban: async () => ({}) as any,
+    ...over,
+  };
+}
+
+function analysis(over: Partial<AdvisoryAnalysisService> = {}): AdvisoryAnalysisService {
+  return {
+    getSnapshot: async () => advisorySnapshotFixture(),
+    ...over,
+  };
+}
+
 describe("createAdvisoryRouter", () => {
-  test("creates a router with status, grant, ban, list handlers", () => {
-    const service: AdvisoryAccessService = {
-      isOwner: () => false,
-      assertAllowed: async () => {},
-      getStatus: async () => ({ access: "active", owner: false }),
-      list: async () => [],
-      grant: async () => ({}) as any,
-      ban: async () => ({}) as any,
-    };
-    const router = createAdvisoryRouter({ service });
+  test("creates a router with status, snapshot, grant, ban and list handlers", () => {
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
+
     expect(router).toHaveProperty("status");
+    expect(router).toHaveProperty("snapshot");
     expect(router).toHaveProperty("grant");
     expect(router).toHaveProperty("ban");
     expect(router).toHaveProperty("list");
   });
 
   test("status handler invokes getStatus for allowlisted user", async () => {
-    const service: AdvisoryAccessService = {
-      isOwner: () => false,
-      assertAllowed: async () => {},
-      getStatus: async () => ({ access: "active", owner: false }),
-      list: async () => [],
-      grant: async () => ({}) as any,
-      ban: async () => ({}) as any,
-    };
-    const router = createAdvisoryRouter({ service });
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
     const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+
     const status = await client.status();
+
     expect(status).toEqual({ access: "active", owner: false });
   });
 
+  test("snapshot handler returns the analysis snapshot for an allowlisted user", async () => {
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+
+    const snapshot = await client.snapshot();
+
+    expect(snapshot).toEqual(advisorySnapshotFixture());
+  });
+
   test("middleware rejects missing user context with typed UNAUTHORIZED (401)", async () => {
-    const service: AdvisoryAccessService = {
-      isOwner: () => false,
-      assertAllowed: async () => {},
-      getStatus: async () => ({ access: "active", owner: false }),
-      list: async () => [],
-      grant: async () => ({}) as any,
-      ban: async () => ({}) as any,
-    };
-    const router = createAdvisoryRouter({ service });
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
     const client = createRouterClient(router, { context: { userId: "", email: null } });
     let error: any;
     try {
@@ -64,22 +74,20 @@ describe("createAdvisoryRouter", () => {
     } catch (err) {
       error = err;
     }
+
     expect(error?.code).toBe("UNAUTHORIZED");
     expect(error?.status).toBe(401);
   });
 
   test("middleware maps PekuloError FORBIDDEN to typed contract FORBIDDEN (403)", async () => {
-    const service: AdvisoryAccessService = {
-      isOwner: () => false,
-      assertAllowed: async () => {
-        throw new PekuloError("FORBIDDEN", "restricted access");
-      },
-      getStatus: async () => ({ access: "none", owner: false }),
-      list: async () => [],
-      grant: async () => ({}) as any,
-      ban: async () => ({}) as any,
-    };
-    const router = createAdvisoryRouter({ service });
+    const router = createAdvisoryRouter({
+      service: service({
+        assertAllowed: async () => {
+          throw new PekuloError("FORBIDDEN", "restricted access");
+        },
+      }),
+      analysis: analysis(),
+    });
     const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
     let error: any;
     try {
@@ -87,7 +95,36 @@ describe("createAdvisoryRouter", () => {
     } catch (err) {
       error = err;
     }
+
     expect(error?.code).toBe("FORBIDDEN");
     expect(error?.status).toBe(403);
+  });
+
+  test("AC-4 — the snapshot gate rejects before the analysis engine runs", async () => {
+    let engineCalls = 0;
+    const router = createAdvisoryRouter({
+      service: service({
+        assertAllowed: async () => {
+          throw new PekuloError("FORBIDDEN", "restricted access");
+        },
+      }),
+      analysis: analysis({
+        getSnapshot: async () => {
+          engineCalls += 1;
+          return advisorySnapshotFixture();
+        },
+      }),
+    });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+    let error: any;
+    try {
+      await client.snapshot();
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error?.code).toBe("FORBIDDEN");
+    expect(error?.status).toBe(403);
+    expect(engineCalls).toBe(0);
   });
 });
