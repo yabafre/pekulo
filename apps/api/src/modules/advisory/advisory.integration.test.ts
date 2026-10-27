@@ -14,6 +14,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import { SignJWT } from "jose";
+import type { AdvisorySnapshot } from "@pekulo/types";
 import type { AdvisoryAccessEntry } from "@pekulo/validators";
 import { extractRequestId } from "../../common/errors";
 import { mapErrorToOrpcResponse } from "../../platform/http/error-mapper";
@@ -22,6 +23,8 @@ import { createJwtVerifier } from "../../platform/security";
 import type { AdvisoryAccessRepository } from "./advisory.repository";
 import { createAdvisoryRouter } from "./advisory.routes";
 import { createAdvisoryService } from "./advisory.service";
+import type { AdvisoryAnalysisService } from "./advisory-analysis.service";
+import { advisorySnapshotFixture } from "./advisory.test-fixtures";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
 const ISSUER = "https://integration.supabase.co/auth/v1";
@@ -86,6 +89,13 @@ class InMemoryAdvisoryRepository implements AdvisoryAccessRepository {
 }
 
 const repository = new InMemoryAdvisoryRepository();
+let snapshotReads = 0;
+const analysis: AdvisoryAnalysisService = {
+  async getSnapshot() {
+    snapshotReads += 1;
+    return advisorySnapshotFixture();
+  },
+};
 
 async function signFor(userId: string): Promise<string> {
   return new SignJWT({ email: `${userId}@pekulo.local` })
@@ -122,7 +132,7 @@ beforeAll(async () => {
     repository,
     ownerUserIds: new Set([OWNER]),
   });
-  const router = createAdvisoryRouter({ service });
+  const router = createAdvisoryRouter({ service, analysis });
   const orpcRouter: PekuloRpcRouter = { advisory: router };
   const port = PORT_BASE + Math.floor(Math.random() * 200);
   const app = new Elysia().onError(({ error, set }) => {
@@ -232,5 +242,44 @@ describe("advisory /rpc/v1/advisory HTTP boundary (story 12-1)", () => {
     expect(res.status).toBe(401);
     expect(((await res.json()) as { code: string }).code).toBe("UNAUTHORIZED");
     expect(repository.statusReads).toBe(before);
+  });
+});
+
+describe("advisory snapshot /rpc/v1/advisory HTTP boundary (story 12-2)", () => {
+  test("AC-4 — an unknown caller is 403 and the engine never runs", async () => {
+    repository.rows.delete(USER_UNKNOWN);
+    const before = snapshotReads;
+
+    const res = await call("snapshot", {}, await signFor(USER_UNKNOWN));
+
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { json: { code: string } };
+    expect(body.json.code).toBe("FORBIDDEN");
+    expect(snapshotReads).toBe(before);
+  });
+
+  test("AC-4 — a banned caller is 403 and the engine never runs", async () => {
+    repository.rows.set(USER_BANNED, entry(USER_BANNED, "banned"));
+    const before = snapshotReads;
+
+    const res = await call("snapshot", {}, await signFor(USER_BANNED));
+
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { json: { code: string } };
+    expect(body.json.code).toBe("FORBIDDEN");
+    expect(snapshotReads).toBe(before);
+  });
+
+  test("AC-1 — an active allowlisted caller receives the snapshot", async () => {
+    repository.rows.set(USER_MEMBER, entry(USER_MEMBER, "active"));
+    const before = snapshotReads;
+
+    const res = await call("snapshot", {}, await signFor(USER_MEMBER));
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: AdvisorySnapshot };
+    expect(body.json.wealth.totalEur).toBe(276_000);
+    expect(body.json.portfolio?.holdingsCount).toBe(1);
+    expect(snapshotReads).toBe(before + 1);
   });
 });
