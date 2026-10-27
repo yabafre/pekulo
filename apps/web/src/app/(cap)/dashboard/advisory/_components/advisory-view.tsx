@@ -10,7 +10,6 @@
 import { useTranslations } from "next-intl";
 import type { AdvisoryStatus } from "@pekulo/validators";
 import { PekuloButton, PekuloEmptyState, PekuloSkeleton, Section } from "@pekulo/ui";
-import { Text, View } from "@pekulo/ui/client";
 import { Sparkles, CheckCircle2, AlertTriangle, PieChart } from "lucide-react";
 import { useAdvisoryLatestSession, useGenerateAdvisoryAnalysis } from "../_hooks/use-advisory";
 import { AdvisoryDisclaimer } from "./advisory-disclaimer";
@@ -22,6 +21,20 @@ export interface AdvisoryViewProps {
   initialStatus: AdvisoryStatus;
 }
 
+const eur0 = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+function signed(amount: number): string {
+  return `${amount >= 0 ? "+" : ""}${eur0.format(amount)}`;
+}
+
+function sanitizeItem(text: string): string {
+  return text.replace(/^\s*(?:⚠️|[•\-*])\s*/u, "").trim();
+}
+
 export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
   const t = useTranslations("advisory");
   const { data: session, isLoading } = useAdvisoryLatestSession();
@@ -31,30 +44,17 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
     generateMutation.mutate({ forceRefresh: true });
   };
 
+  const wealth = session?.sessionData?.snapshot?.wealth;
+  const compass = session?.sessionData?.snapshot?.compass;
+
   return (
-    <View flexDirection="column" gap="$6" width="100%">
+    <div className={styles.container}>
       {/* Top Header Bar */}
-      <View
-        flexDirection="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        flexWrap="wrap"
-        gap="$4"
-      >
-        <View flexDirection="column" gap="$1" flex={1} minWidth={260}>
-          <Text
-            color="$color"
-            fontSize="$h1"
-            fontWeight="600"
-            letterSpacing={-0.5}
-            $lg={{ fontSize: "$hero" }}
-          >
-            {t("title")}
-          </Text>
-          <Text color="$colorSecondary" fontSize="$bodySm">
-            {t("subtitle")}
-          </Text>
-        </View>
+      <header className={styles.header}>
+        <div className={styles.headerText}>
+          <h1 className={styles.pageTitle}>{t("title")}</h1>
+          <p className={styles.pageSubtitle}>{t("subtitle")}</p>
+        </div>
 
         <PekuloButton
           variant="default"
@@ -64,19 +64,15 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
           loadingLabel={t("actions.generating")}
           className="font_body"
         >
-          <View flexDirection="row" alignItems="center" gap="$2">
-            <Sparkles size={16} color="var(--colorOnAccent)" aria-hidden />
-            <Text color="$colorOnAccent" fontSize="$bodySm" fontWeight="600">
-              {session ? t("actions.refresh") : t("actions.generate")}
-            </Text>
-          </View>
+          <Sparkles size={15} color="var(--colorOnAccent)" aria-hidden />
+          <span>{session ? t("actions.refresh") : t("actions.generate")}</span>
         </PekuloButton>
-      </View>
+      </header>
 
       {/* Regulatory Notice Banner */}
       <AdvisoryDisclaimer />
 
-      {/* Provider & Sovereignty Posture */}
+      {/* Provider Posture Meta Line */}
       {session && (
         <AdvisoryProviderBadge
           provider={session.provider}
@@ -86,11 +82,11 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
       )}
 
       {isLoading ? (
-        <View flexDirection="column" gap="$6" role="status" aria-live="polite">
+        <div className={styles.container} role="status" aria-live="polite">
           <Section ariaLabel={t("actions.generating")}>
             <PekuloSkeleton width="40%" height={12} />
-            <View height={12} />
-            <PekuloSkeleton block height={60} />
+            <div style={{ height: 12 }} />
+            <PekuloSkeleton block height={80} />
           </Section>
           <div className={styles.grid2Col}>
             <Section ariaLabel={t("sections.strengths")} className={styles.cardStretch}>
@@ -100,7 +96,7 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
               <PekuloSkeleton lines={3} height={20} />
             </Section>
           </div>
-        </View>
+        </div>
       ) : !session ? (
         <Section ariaLabel={t("emptyState.title")}>
           <PekuloEmptyState
@@ -112,12 +108,49 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
           />
         </Section>
       ) : (
-        <View flexDirection="column" gap="$6">
-          {/* Synthèse stratégique */}
+        <div className={styles.container}>
+          {/* Synthèse générale + Métriques financières */}
           <Section ariaLabel={t("sections.overview")} title={t("sections.overview")}>
-            <Text color="$colorSecondary" fontSize="$body" lineHeight={24}>
-              {session.sessionData.analysis.overview}
-            </Text>
+            {wealth && (
+              <div className={styles.statsRow}>
+                <div className={styles.statTile}>
+                  <span className={styles.statLabel}>Patrimoine total</span>
+                  <span className={styles.statValue}>{eur0.format(wealth.totalEur)}</span>
+                  {compass && (
+                    <span className={styles.statSub}>{compass.percent.toFixed(1)} % du Cap</span>
+                  )}
+                </div>
+
+                {compass && (
+                  <div className={styles.statTile}>
+                    <span className={styles.statLabel}>Objectif Cap</span>
+                    <span className={styles.statValue}>{eur0.format(compass.targetEur)}</span>
+                    <span className={styles.statSub}>Écart : {eur0.format(compass.gapEur)}</span>
+                  </div>
+                )}
+
+                <div className={styles.statTile}>
+                  <span className={styles.statLabel}>Plus-values latentes</span>
+                  <span
+                    className={styles.statValue}
+                    style={{
+                      color: wealth.unrealizedPnlEur >= 0 ? "var(--gain)" : "var(--loss)",
+                    }}
+                  >
+                    {signed(wealth.unrealizedPnlEur)}
+                  </span>
+                  <span className={styles.statSub}>Portefeuille financier</span>
+                </div>
+
+                <div className={styles.statTile}>
+                  <span className={styles.statLabel}>Investissable</span>
+                  <span className={styles.statValue}>{eur0.format(wealth.investableEur)}</span>
+                  <span className={styles.statSub}>Cash + placements</span>
+                </div>
+              </div>
+            )}
+
+            <p className={styles.overviewText}>{session.sessionData.analysis.overview}</p>
           </Section>
 
           {/* Diagnostic : Forces & Risques */}
@@ -127,21 +160,19 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
               title={t("sections.strengths")}
               className={styles.cardStretch}
             >
-              <View flexDirection="column" gap="$3">
+              <div className={styles.diagnosticList}>
                 {session.sessionData.analysis.strengths.map((str) => (
-                  <View key={str} flexDirection="row" alignItems="flex-start" gap="$2.5">
+                  <div key={str} className={styles.diagnosticItem}>
                     <CheckCircle2
                       size={16}
                       color="var(--gain)"
-                      style={{ flexShrink: 0, marginTop: 3 }}
+                      className={styles.diagnosticIcon}
                       aria-hidden
                     />
-                    <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={20} flex={1}>
-                      {str}
-                    </Text>
-                  </View>
+                    <p className={styles.diagnosticItemText}>{sanitizeItem(str)}</p>
+                  </div>
                 ))}
-              </View>
+              </div>
             </Section>
 
             <Section
@@ -149,40 +180,33 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
               title={t("sections.risks")}
               className={styles.cardStretch}
             >
-              <View flexDirection="column" gap="$3">
+              <div className={styles.diagnosticList}>
                 {session.sessionData.analysis.risks.map((risk) => (
-                  <View key={risk} flexDirection="row" alignItems="flex-start" gap="$2.5">
+                  <div key={risk} className={styles.diagnosticItem}>
                     <AlertTriangle
                       size={16}
                       color="var(--warning)"
-                      style={{ flexShrink: 0, marginTop: 3 }}
+                      className={styles.diagnosticIcon}
                       aria-hidden
                     />
-                    <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={20} flex={1}>
-                      {risk}
-                    </Text>
-                  </View>
+                    <p className={styles.diagnosticItemText}>{sanitizeItem(risk)}</p>
+                  </div>
                 ))}
-              </View>
+              </div>
             </Section>
           </div>
 
-          {/* Orientation d'allocation */}
+          {/* Stratégie d'allocation */}
           <Section
             ariaLabel={t("sections.allocationAdvice")}
             title={t("sections.allocationAdvice")}
           >
-            <View flexDirection="row" alignItems="flex-start" gap="$3">
-              <PieChart
-                size={18}
-                color="var(--colorSecondary)"
-                style={{ flexShrink: 0, marginTop: 2 }}
-                aria-hidden
-              />
-              <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={22} flex={1}>
+            <div className={styles.allocationBox}>
+              <PieChart size={18} className={styles.allocationIcon} aria-hidden />
+              <p className={styles.allocationText}>
                 {session.sessionData.analysis.allocationAdvice}
-              </Text>
-            </View>
+              </p>
+            </div>
           </Section>
 
           {/* Recommandations d'arbitrage */}
@@ -190,7 +214,7 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
             ariaLabel={t("sections.recommendations")}
             title={`${t("sections.recommendations")} (${session.sessionData.analysis.recommendations.length})`}
           >
-            <View flexDirection="column" gap="$3">
+            <div className={styles.recommendationsList}>
               {session.sessionData.analysis.recommendations.map((rec) => (
                 <AdvisoryRecommendationCard
                   key={rec.id}
@@ -199,10 +223,10 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
                   model={session.model}
                 />
               ))}
-            </View>
+            </div>
           </Section>
-        </View>
+        </div>
       )}
-    </View>
+    </div>
   );
 }

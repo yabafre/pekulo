@@ -6,7 +6,7 @@
 
 import { useTranslations } from "next-intl";
 import { Cpu, ShieldCheck } from "lucide-react";
-import { Text, View } from "@pekulo/ui/client";
+import styles from "./advisory.module.css";
 
 export interface AdvisoryProviderBadgeProps {
   provider: string;
@@ -31,47 +31,27 @@ export function AdvisoryProviderBadge({
     : null;
 
   return (
-    <View
-      role="note"
-      aria-label={t("posture")}
-      flexDirection="row"
-      flexWrap="wrap"
-      alignItems="center"
-      gap="$2"
-      paddingHorizontal="$3"
-      paddingVertical="$1.5"
-      backgroundColor="$backgroundMuted"
-      borderRadius="$full"
-      alignSelf="flex-start"
-    >
-      <View flexDirection="row" alignItems="center" gap="$1.5">
+    <div role="note" aria-label={t("posture")} className={styles.providerMeta}>
+      <span className={styles.providerPill}>
         <Cpu size={13} color="var(--colorSecondary)" aria-hidden />
-        <Text color="$colorSecondary" fontSize="$caption" fontWeight="500">
+        <span>
           {provider} / {model}
-        </Text>
-      </View>
+        </span>
+      </span>
 
-      <Text color="$colorTertiary" fontSize="$caption">
-        ·
-      </Text>
+      <span>·</span>
 
-      <View flexDirection="row" alignItems="center" gap="$1.5">
+      <span className={styles.providerPill}>
         <ShieldCheck size={13} color="var(--gain)" aria-hidden />
-        <Text color="$colorSecondary" fontSize="$caption">
-          {t("posture")}
-        </Text>
-      </View>
+        <span>{t("posture")}</span>
+      </span>
 
       {formattedDate && (
         <>
-          <Text color="$colorTertiary" fontSize="$caption">
-            ·
-          </Text>
-          <Text color="$colorTertiary" fontSize="$caption">
-            {t("generatedAt", { date: formattedDate })}
-          </Text>
+          <span>·</span>
+          <span>{t("generatedAt", { date: formattedDate })}</span>
         </>
       )}
-    </View>
+    </div>
   );
 }

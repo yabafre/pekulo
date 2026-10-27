@@ -10,7 +10,7 @@
 import { useTranslations } from "next-intl";
 import type { AdvisoryRecommendation } from "@pekulo/validators";
 import { ArrowRight, Tag } from "lucide-react";
-import { Text, View } from "@pekulo/ui/client";
+import styles from "./advisory.module.css";
 
 export interface AdvisoryRecommendationCardProps {
   recommendation: AdvisoryRecommendation;
@@ -25,110 +25,59 @@ export function AdvisoryRecommendationCard({
 }: AdvisoryRecommendationCardProps) {
   const t = useTranslations("advisory.recommendations");
 
-  const actionStyle: Record<string, { bg: string; color: string }> = {
-    buy: { bg: "rgba(0, 210, 106, 0.12)", color: "var(--gain)" },
-    sell: { bg: "rgba(255, 92, 92, 0.12)", color: "var(--loss)" },
-    trim: { bg: "rgba(251, 191, 36, 0.12)", color: "var(--warning)" },
-    reduce: { bg: "rgba(251, 191, 36, 0.12)", color: "var(--warning)" },
-    hold: { bg: "var(--surface-muted)", color: "var(--colorSecondary)" },
-    rebalance: { bg: "rgba(47, 115, 255, 0.12)", color: "var(--data-blue)" },
-    allocate: { bg: "rgba(0, 210, 106, 0.12)", color: "var(--gain)" },
-  };
+  const badgeClass =
+    recommendation.action === "buy" || recommendation.action === "allocate"
+      ? styles.badgeBuy
+      : recommendation.action === "sell"
+        ? styles.badgeSell
+        : recommendation.action === "trim" || recommendation.action === "reduce"
+          ? styles.badgeTrim
+          : recommendation.action === "rebalance"
+            ? styles.badgeRebalance
+            : styles.badgeHold;
 
-  const style = actionStyle[recommendation.action] ?? {
-    bg: "var(--surface-muted)",
-    color: "var(--colorSecondary)",
-  };
+  const isHighPriority = recommendation.priority === "high";
 
   return (
-    <View
-      backgroundColor="$backgroundElevated"
-      borderRadius="$lg"
-      padding="$4"
-      flexDirection="column"
-      gap="$3"
-    >
-      <View
-        flexDirection="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        flexWrap="wrap"
-        gap="$2"
-      >
-        <View flexDirection="row" alignItems="center" gap="$2.5" flexWrap="wrap" flex={1}>
-          <View
-            style={{ backgroundColor: style.bg }}
-            paddingHorizontal="$2.5"
-            paddingVertical={4}
-            borderRadius="$xs"
-          >
-            <Text
-              style={{ color: style.color }}
-              fontSize={11}
-              fontWeight="700"
-              textTransform="uppercase"
-              letterSpacing={0.5}
-            >
-              {t(`action.${recommendation.action}`)}
-            </Text>
-          </View>
-          <Text color="$color" fontSize="$body" fontWeight="600" flex={1}>
-            {recommendation.title}
-          </Text>
-        </View>
+    <div className={styles.recommendationCard}>
+      <div className={styles.cardHeaderRow}>
+        <div className={styles.cardTitleCluster}>
+          <span className={`${styles.actionBadge} ${badgeClass}`}>
+            {t(`action.${recommendation.action}`)}
+          </span>
+          <h3 className={styles.cardTitle}>{recommendation.title}</h3>
+        </div>
 
-        <View
-          backgroundColor="$backgroundMuted"
-          paddingHorizontal="$2.5"
-          paddingVertical={3}
-          borderRadius="$full"
-        >
-          <Text color="$colorTertiary" fontSize={11} fontWeight="500">
-            {t(`priority.${recommendation.priority}`)}
-          </Text>
-        </View>
-      </View>
+        <span className={`${styles.priorityBadge} ${isHighPriority ? styles.priorityHigh : ""}`}>
+          {t(`priority.${recommendation.priority}`)}
+        </span>
+      </div>
 
-      <View flexDirection="row" alignItems="center" gap="$1.5">
+      <div className={styles.targetRow}>
         <Tag size={13} color="var(--colorTertiary)" aria-hidden />
-        <Text color="$colorTertiary" fontSize="$caption">
-          {t("target", { target: recommendation.target })}
-        </Text>
-      </View>
+        <span>{t("target", { target: recommendation.target })}</span>
+      </div>
 
-      <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={20}>
-        {recommendation.rationale}
-      </Text>
+      <p className={styles.rationaleText}>{recommendation.rationale}</p>
 
       {recommendation.instrumentRecommendation && (
-        <View
-          backgroundColor="$backgroundMuted"
-          borderRadius="$md"
-          padding="$3"
-          flexDirection="column"
-          gap="$1.5"
-        >
-          <View flexDirection="row" alignItems="center" gap="$2" flexWrap="wrap">
+        <div className={styles.instrumentBox}>
+          <div className={styles.instrumentHeader}>
             <ArrowRight size={13} color="var(--colorSecondary)" aria-hidden />
-            <Text
-              color="$color"
-              fontSize="$caption"
-              fontWeight="600"
-              fontVariant={["tabular-nums"]}
-            >
+            <span className={styles.instrumentSymbol}>
               {recommendation.instrumentRecommendation.symbol}
-            </Text>
+            </span>
             {recommendation.instrumentRecommendation.isin && (
-              <Text color="$colorTertiary" fontSize={11} fontVariant={["tabular-nums"]}>
+              <span className={styles.instrumentIsin}>
                 ({recommendation.instrumentRecommendation.isin})
-              </Text>
+              </span>
             )}
-          </View>
-          <Text color="$colorSecondary" fontSize="$caption" lineHeight={18}>
+          </div>
+          <p className={styles.instrumentRationale}>
             {recommendation.instrumentRecommendation.rationale}
-          </Text>
-        </View>
+          </p>
+        </div>
       )}
-    </View>
+    </div>
   );
 }
