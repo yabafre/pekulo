@@ -60,8 +60,9 @@ function optionalBaseUrl(): string {
 }
 
 function countCommittedMigrations(): number {
-  return readdirSync(MIGRATIONS_DIR, { withFileTypes: true }).filter((entry) => entry.isDirectory())
-    .length;
+  return readdirSync(MIGRATIONS_DIR, { withFileTypes: true }).filter(
+    (entry) => entry.isDirectory() && /^\d{14}_|0_baseline/.test(entry.name),
+  ).length;
 }
 
 async function main(): Promise<number> {
@@ -94,10 +95,14 @@ async function main(): Promise<number> {
 
     const nullRows: NullUserIdRow[] = [];
     for (const table of Object.keys(EXPECTED_POLICY_COUNTS)) {
-      const result = await client.query<{ count: string }>(
-        `SELECT COUNT(*)::text AS count FROM ${quoteIdentifier(table)} WHERE "user_id" IS NULL`,
-      );
-      nullRows.push({ table, null_count: result.rows[0]?.count ?? "0" });
+      try {
+        const result = await client.query<{ count: string }>(
+          `SELECT COUNT(*)::text AS count FROM ${quoteIdentifier(table)} WHERE "user_id" IS NULL`,
+        );
+        nullRows.push({ table, null_count: result.rows[0]?.count ?? "0" });
+      } catch (err) {
+        failures.push(`user_id: query failed on ${table} (${(err as Error).message})`);
+      }
     }
     const nullFailures = evaluateNullUserIds(nullRows);
     failures.push(...nullFailures);
