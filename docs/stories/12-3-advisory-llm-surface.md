@@ -285,7 +285,7 @@
   Expected: Tests pass, exit code 0.
   Commit: `git add apps/api/src/modules/advisory/advisory-encryption.ts apps/api/src/modules/advisory/advisory-encryption.test.ts && git commit -m "feat(#116): implement AES-256-GCM field-level encryption for advisory sessions"`
 
-- [ ] **T4 — Provider posture assertor & strict grounding validator** [AC: AC-1, AC-4]
+- [x] **T4 — Provider posture assertor & strict grounding validator** [AC: AC-1, AC-4]
   Implement the EU-region & no-train configuration check and the grounding validation algorithm that verifies numbers in LLM outputs exist in the snapshot.
 
   **Path:** `apps/api/src/modules/advisory/advisory-posture.ts` (create)
