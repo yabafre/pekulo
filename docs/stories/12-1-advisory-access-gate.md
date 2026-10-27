@@ -984,7 +984,7 @@
 
   **Commit:** `git commit -m "feat(#114): advisory access service (AC-2, AC-3, AC-4, AC-8)"`
 
-- [ ] **T8 — Gate every advisory procedure** [AC: AC-1, AC-3, AC-4, AC-8]
+- [x] **T8 — Gate every advisory procedure** [AC: AC-1, AC-3, AC-4, AC-8]
   **Path:** `apps/api/src/modules/advisory/advisory.routes.ts` (create)
 
   ```ts
