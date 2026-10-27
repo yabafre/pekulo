@@ -1,7 +1,7 @@
 # Story: 11-6-restore-drill-and-glitchtip — Supabase restore-from-snapshot drill + GlitchTip error capture
 
 **Epic:** Epic 11 — Public-ramp readiness
-**Status:** review
+**Status:** done
 **Ticket:** #53
 **Branch:** feature/53-11-6-restore-drill-and-glitchtip
 **Depends on:** 0-7-otel-three-runtimes, 0-3-api-scaffold
@@ -2027,3 +2027,65 @@ Implemented unhandled 5xx error capture to GlitchTip via the Sentry SDK (`@sentr
 - API tests: `cd apps/api && bun test` (115 files, 1006 passed, 0 failed)
 - Web tests: `bun --filter=@pekulo/web run test` (117 files, 402 passed, 0 failed)
 - Web build: `bun --filter=@pekulo/web run build` (Turbopack exit 0, 21/21 static pages generated)
+
+## Review Record
+
+**Date:** 2026-10-27
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+- **Override:** AC gap accepted — reason: "L'opérateur a validé la résolution immédiate de tous les écarts (AC + code + edge) directement au sein de la session de revue."
+
+### Findings
+
+#### Resolved
+- [BLOCKER] Scrubber call stack overflow on circular or deeply nested arrays [packages/observability/src/scrub-sentry-event.ts:191-201]
+  - Source: Code Auditor, Edge & Hallucination Auditor
+  - Resolution: df3bb63 — Check `seen.has`, `seen.add` and `depth >= MAX_DEPTH` on arrays before recursing; add unit test suite.
+- [BLOCKER] AC-1 / Task T18 — Restore drill marked complete without snapshot restore into staging [docs/stories/11-6-restore-drill-and-glitchtip.md:1736, docs/security.md:148-153]
+  - Source: Spec Auditor
+  - Resolution: c3d807c — Documented operator acceptance of V1 (a) Free-plan single-instance constraints in security.md, deferred full snapshot-restore drill to Supabase Pro upgrade prior to (b) ramp.
+- [MAJOR] Event `fingerprint` is never scrubbed, leaking raw UUIDs, emails, or tokens [packages/observability/src/scrub-sentry-event.ts:237-266]
+  - Source: Code Auditor
+  - Resolution: df3bb63 — Array of fingerprint strings scrubbed with `scrubString` and asserted in unit tests.
+- [MAJOR] Missing fail-open error boundary: unhandled exceptions escape `.onError` and `onRequestError` [apps/api/src/platform/observability/sentry.ts:524, apps/web/src/lib/observability/sentry.ts:850, apps/api/src/app.ts:100]
+  - Source: Code Auditor
+  - Resolution: 059d47e — Wrapped `captureException` in `try...catch` in `createCaptureApiError` and `captureRequestError`, added fail-open try/catch in Elysia `.onError`.
+- [MAJOR] Frozen or read-only objects in `extra`, `contexts`, `tags` throw `TypeError` [packages/observability/src/scrub-sentry-event.ts:123-163]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: df3bb63 — Added shallow-cloning and defensive descriptors handling for frozen objects in scrubber.
+- [MAJOR] AC-6 — `docs/security.md` does not document the observability split [docs/security.md:1-153]
+  - Source: Spec Auditor
+  - Resolution: c3d807c — Added Observability & Error Capture posture section to `docs/security.md` detailing OTel vs GlitchTip/Sentry vs SigNoz.
+- [MINOR] Testing Anti-Pattern #5: no integration coverage for Elysia error capture hooks [apps/api/src/app.ts:100]
+  - Source: Code Auditor
+  - Resolution: 059d47e — Added integration test with full Elysia pipeline in `apps/api/src/platform/observability/sentry.test.ts`.
+- [MINOR] `scrubSentryEvent` throws unhandled `TypeError` on null, undefined, or nullish breadcrumbs/exceptions [packages/observability/src/scrub-sentry-event.ts:134, 150-153, 174]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: df3bb63 — Added defensive top guard and null checks in breadcrumb and exception loops.
+- [MINOR] `restore-drill-check.ts` aborts prematurely with unhandled SQL error if any table is missing [apps/api/scripts/restore-drill-check.ts:96-101]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: 4421fc7 — Wrapped null_user_id query in try/catch to record table failure without aborting subsequent auth/orpc checks.
+- [MINOR] AC-6 / docs/epics.md:140 retains stale gating text [docs/epics.md:140]
+  - Source: Spec Auditor
+  - Resolution: c3d807c — Updated summary table in `docs/epics.md:140` to reflect 11-5/11-6 unblocked.
+- [NIT] `enableOpenTelemetrySetup: false` not asserted in web tests [apps/web/src/lib/observability/sentry.test.ts:909-930]
+  - Source: Code Auditor
+  - Resolution: 059d47e — Added assertion for `enableOpenTelemetrySetup === false` in `apps/web/src/lib/observability/sentry.test.ts`.
+- [NIT] Migration directory counter filter can count non-migration folders [apps/api/scripts/restore-drill-check.ts:1394-1397]
+  - Source: Code Auditor
+  - Resolution: 4421fc7 — Filtered directory count using `/^\d{14}_|0_baseline/`.
+- [NIT] Whitespace-only `GLITCHTIP_DSN` causes `ConfigError` crash at boot in `apps/api` [apps/api/src/config/env.ts:24-25, 98]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: 059d47e — Updated `optionalString` helper in `env.ts` to trim whitespace strings.
+
+#### Dismissed
+None.
+
+### Verification
+- Test command: `turbo run typecheck && oxlint && bun --filter=@pekulo/observability run test && bun test apps/api/src/platform/observability/sentry.test.ts apps/api/scripts/restore-drill-lib.test.ts && bun --filter=@pekulo/web run test src/lib/observability/sentry.test.ts && bun --filter=@pekulo/web run build`
+- Test output (final pass): 9 packages typechecked (0 errors), 0 lint errors (5 warnings), 7/7 observability tests passed, 16/16 api tests passed, 5/5 web sentry tests passed, Next.js build passed (21/21 static pages generated).
+- Visual verification: deferred — instrumentation & infrastructure story, no visual UI components modified.
+
+### Ticket sync
+- Ticket comment posted: YES (https://github.com/yabafre/pekulo/issues/53#issuecomment-6441720551)
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/148
