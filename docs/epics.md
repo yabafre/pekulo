@@ -1293,7 +1293,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.
 
-**Sequencing:** Mixed tier. `11-3` (RLS audit + encryption doc) shipped first — it prevents regressions in every new domain story. `11-1` (export) and `11-2` (deletion) are **V1 (a)**, not (b)-gated: `docs/rgpd-readiness.md` establishes that GDPR applies from the first user other than the author, and V1 (a) onboards proches. `11-4` (axe + WCAG gates) is pulled into V1 (a) by `docs/v1-definition-of-done.md` §1. `11-5` and `11-6` still wait for the (b) decision.
+**Sequencing:** Mixed tier. `11-3` (RLS audit + encryption doc) shipped first — it prevents regressions in every new domain story. `11-1` (export) and `11-2` (deletion) are **V1 (a)**, not (b)-gated: `docs/rgpd-readiness.md` establishes that GDPR applies from the first user other than the author, and V1 (a) onboards proches. `11-4` (axe + WCAG gates) is pulled into V1 (a) by `docs/v1-definition-of-done.md` §1. `11-5` and `11-6` are now unblocked: the (b) ramp decision has been taken, staging Supabase is available, and the self-hosted GlitchTip instance is deployed on Dokploy (`11-6` records the transport correction — Sentry SDK for errors, OTel/SigNoz for traces).
 
 #### Story 11-1-data-export
 
@@ -1398,7 +1398,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 #### Story 11-6-restore-drill-and-glitchtip
 
 **Ticket:** [#53](https://github.com/yabafre/pekulo/issues/53)
-**Title:** Supabase restore-from-snapshot drill + GlitchTip OTLP exporter
+**Title:** Supabase restore-from-snapshot drill + GlitchTip error capture
 
 **Depends on:** 0-7-otel-three-runtimes, 0-3-api-scaffold
 
@@ -1411,7 +1411,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Acceptance Criteria:**
 
 - **Given** the drill, **When** I restore the latest snapshot to a staging Supabase project, **Then** the result is documented in `docs/security.md` and the procedure is runnable from the doc.
-- **Given** an unhandled error in `apps/api`, **When** it fires, **Then** the trace lands in GlitchTip with PII scrubbed.
+- **Given** an unhandled 5xx in `apps/api` or `apps/web`, **When** it fires, **Then** one error event lands in GlitchTip with PII scrubbed (Sentry SDK; GlitchTip 6.2 has no OTLP trace receiver), while the trace stays in SigNoz via OTel.
 
 **Complexity:** M
 
