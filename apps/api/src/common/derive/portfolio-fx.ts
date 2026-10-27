@@ -22,7 +22,10 @@ import type {
 } from "@pekulo/validators";
 
 // INVARIANT: mirror of common/derive/holding-pnl.ts#convertToBase — keep in sync.
-function convertToBase(amount: number, from: HoldingCurrency, rates: FxRates): number {
+// Shared with holding-pnl.ts (which keeps its private mirror) and with the
+// advisory snapshot engine. Both copies are pure and identical; keep them in
+// sync if the FX rule changes.
+export function convertToBase(amount: number, from: HoldingCurrency, rates: FxRates): number {
   if (from === rates.base) return amount;
   const r = rates.rates[from];
   if (!r || r <= 0) return amount; // unknown rate → identity (best-effort, mirrors brownfield)
