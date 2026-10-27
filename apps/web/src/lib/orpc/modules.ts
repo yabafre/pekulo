@@ -35,6 +35,7 @@ import {
   llmContract,
   dashboardContract,
   settingsContract,
+  advisoryContract,
 } from "@pekulo/contracts";
 
 import { orpcLink } from "./client";
@@ -89,4 +90,10 @@ export const dashboardClient: ContractRouterClient<typeof dashboardContract> = c
 export const settingsClient: ContractRouterClient<typeof settingsContract> = createORPCClient(
   orpcLink,
   { path: ["settings"] },
+);
+
+// Story 12-1 / 12-3 — private AI advisory surface. Mount path `/rpc/v1/advisory`.
+export const advisoryClient: ContractRouterClient<typeof advisoryContract> = createORPCClient(
+  orpcLink,
+  { path: ["advisory"] },
 );

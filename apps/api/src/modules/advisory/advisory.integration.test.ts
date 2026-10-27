@@ -24,6 +24,7 @@ import type { AdvisoryAccessRepository } from "./advisory.repository";
 import { createAdvisoryRouter } from "./advisory.routes";
 import { createAdvisoryService } from "./advisory.service";
 import type { AdvisoryAnalysisService } from "./advisory-analysis.service";
+import type { AdvisoryLlmService } from "./advisory-llm.service";
 import { advisorySnapshotFixture } from "./advisory.test-fixtures";
 
 const SECRET = "integration-secret-at-least-32-chars-long-aaaa";
@@ -97,6 +98,39 @@ const analysis: AdvisoryAnalysisService = {
   },
 };
 
+let llmCalls = 0;
+const llm: AdvisoryLlmService = {
+  async generateAnalysis(userId) {
+    llmCalls += 1;
+    return {
+      id: "advs_integ_1",
+      userId,
+      snapshotVersion: 1,
+      model: "mistral-small",
+      provider: "mistral",
+      createdAt: "2026-10-27T10:00:00.000Z",
+      updatedAt: "2026-10-27T10:00:00.000Z",
+      sessionData: {
+        snapshot: advisorySnapshotFixture(),
+        analysis: {
+          overview: "Integ overview",
+          strengths: ["Strength 1"],
+          risks: ["Risk 1"],
+          allocationAdvice: "Advice",
+          recommendations: [],
+        },
+        generatedAt: "2026-10-27T10:00:00.000Z",
+      },
+    };
+  },
+  async getLatestSession() {
+    return null;
+  },
+  async listSessions() {
+    return { sessions: [], totalCount: 0 };
+  },
+};
+
 async function signFor(userId: string): Promise<string> {
   return new SignJWT({ email: `${userId}@pekulo.local` })
     .setProtectedHeader({ alg: "HS256" })
@@ -132,7 +166,7 @@ beforeAll(async () => {
     repository,
     ownerUserIds: new Set([OWNER]),
   });
-  const router = createAdvisoryRouter({ service, analysis });
+  const router = createAdvisoryRouter({ service, analysis, llm });
   const orpcRouter: PekuloRpcRouter = { advisory: router };
   const port = PORT_BASE + Math.floor(Math.random() * 200);
   const app = new Elysia().onError(({ error, set }) => {
@@ -287,5 +321,59 @@ describe("advisory snapshot /rpc/v1/advisory HTTP boundary (story 12-2)", () => 
     expect(body.json.wealth.totalEur).toBe(276_000);
     expect(body.json.portfolio?.holdingsCount).toBe(1);
     expect(snapshotReads).toBe(before + 1);
+  });
+});
+
+// AC-5 (verbatim from story 12-3:21):
+//   Given the new advisory procedures (generateAnalysis, getLatestSession, listSessions),
+//   When called via /rpc/v1/advisory, Then they inherit the access gate from story 12-1
+//   (403 for non-allowlisted or banned users) before any snapshot or LLM call is triggered.
+
+describe("advisory LLM procedures /rpc/v1/advisory HTTP boundary (story 12-3)", () => {
+  test("AC-5 — an unknown caller is 403 on generateAnalysis and LLM never runs", async () => {
+    repository.rows.delete(USER_UNKNOWN);
+    const before = llmCalls;
+
+    const res = await call("generateAnalysis", {}, await signFor(USER_UNKNOWN));
+
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { json: { code: string } };
+    expect(body.json.code).toBe("FORBIDDEN");
+    expect(llmCalls).toBe(before);
+  });
+
+  test("AC-5 — a banned caller is 403 on generateAnalysis and LLM never runs", async () => {
+    repository.rows.set(USER_BANNED, entry(USER_BANNED, "banned"));
+    const before = llmCalls;
+
+    const res = await call("generateAnalysis", {}, await signFor(USER_BANNED));
+
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { json: { code: string } };
+    expect(body.json.code).toBe("FORBIDDEN");
+    expect(llmCalls).toBe(before);
+  });
+
+  test("AC-5 — an active allowlisted caller receives the analysis session", async () => {
+    repository.rows.set(USER_MEMBER, entry(USER_MEMBER, "active"));
+    const before = llmCalls;
+
+    const res = await call("generateAnalysis", {}, await signFor(USER_MEMBER));
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { json: { id: string } };
+    expect(body.json.id).toBe("advs_integ_1");
+    expect(llmCalls).toBe(before + 1);
+  });
+
+  test("AC-5 — getLatestSession and listSessions reject unauthenticated and unknown callers", async () => {
+    const unauthLatest = await call("getLatestSession", {});
+    expect(unauthLatest.status).toBe(401);
+
+    const unknownLatest = await call("getLatestSession", {}, await signFor(USER_UNKNOWN));
+    expect(unknownLatest.status).toBe(403);
+
+    const unknownList = await call("listSessions", {}, await signFor(USER_UNKNOWN));
+    expect(unknownList.status).toBe(403);
   });
 });

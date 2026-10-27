@@ -33,3 +33,24 @@ model AdvisoryAccess {
 
   @@map("advisory_access")
 }
+
+// AC-3 (verbatim from story 12-3):
+//   Given a completed advisory session, When it is stored in advisory_sessions,
+//   Then the record carries an ON DELETE CASCADE foreign key to auth.users(id),
+//   is protected by a full symmetric RLS quartet (auth.uid() = user_id),
+//   has its sensitive payload encrypted at rest with AES-256-GCM, and is registered
+//   in id-prefixes.config.ts, settings.export.ts, settings.deletion.ts, and rls-audit.ts.
+
+model AdvisorySession {
+  id               String   @id
+  userId           String   @map("user_id") @db.Uuid
+  snapshotVersion  Int      @default(1) @map("snapshot_version")
+  encryptedPayload String   @map("encrypted_payload") @db.Text
+  model            String   @map("model")
+  provider         String   @map("provider")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([userId, createdAt(sort: Desc)], map: "advisory_sessions_user_created_idx")
+  @@map("advisory_sessions")
+}

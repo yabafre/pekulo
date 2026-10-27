@@ -14,8 +14,11 @@ import { Prisma } from "@generated/prisma/client";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 24 model entries (23 existing + 12-1 AdvisoryAccess:null)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(24);
+  // AC-3 (verbatim from story 12-3):
+  //   has its sensitive payload encrypted at rest with AES-256-GCM, and is registered
+  //   in id-prefixes.config.ts, settings.export.ts, settings.deletion.ts, and rls-audit.ts.
+  it("exposes exactly 25 model entries (24 existing + 12-3 AdvisorySession:advs)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(25);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -42,6 +45,7 @@ describe("id-prefixes.config", () => {
       "Account",
       "AccountBalanceLog",
       "AdvisoryAccess",
+      "AdvisorySession",
       "Holding",
       "HoldingLot",
       "Transaction",
@@ -65,6 +69,11 @@ describe("id-prefixes.config", () => {
       "UserPref",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
+  });
+
+  // Story 12-3 (ADR-0016 §3/§4): advisory_sessions table with synthetic id prefixed by advs
+  it("advisory session is registered with advs prefix", () => {
+    expect(getPrefix("AdvisorySession")).toBe("advs");
   });
 
   // Story 12-1 (ADR-0016 §4): advisory_access has a `user_id` PK (UUID FK to

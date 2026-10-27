@@ -9,6 +9,7 @@ import { advisoryContract } from "@pekulo/contracts";
 import { isPekuloError, PekuloError } from "../../common/errors";
 import type { AdvisoryAccessService } from "./advisory.service";
 import type { AdvisoryAnalysisService } from "./advisory-analysis.service";
+import type { AdvisoryLlmService } from "./advisory-llm.service";
 
 const impl = implement(advisoryContract).$context<{
   userId: string;
@@ -24,6 +25,7 @@ function requireUserId(userId: string | undefined): asserts userId is string {
 export function createAdvisoryRouter(deps: {
   service: AdvisoryAccessService;
   analysis: AdvisoryAnalysisService;
+  llm: AdvisoryLlmService;
 }) {
   const gated = impl.use(async ({ context, errors, next }) => {
     try {
@@ -94,6 +96,31 @@ export function createAdvisoryRouter(deps: {
     snapshot: gated.snapshot.handler(async ({ context }) => {
       requireUserId(context.userId);
       return deps.analysis.getSnapshot(context.userId);
+    }),
+
+    generateAnalysis: gated.generateAnalysis.handler(async ({ context, input, errors }) => {
+      requireUserId(context.userId);
+      try {
+        return await deps.llm.generateAnalysis(context.userId, input.forceRefresh);
+      } catch (err) {
+        if (isPekuloError(err) && err.code === "FORBIDDEN") {
+          throw errors.FORBIDDEN({ message: err.message });
+        }
+        if (isPekuloError(err) && err.code === "BAD_REQUEST") {
+          throw errors.BAD_REQUEST({ message: err.message });
+        }
+        throw err;
+      }
+    }),
+
+    getLatestSession: gated.getLatestSession.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return deps.llm.getLatestSession(context.userId);
+    }),
+
+    listSessions: gated.listSessions.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return deps.llm.listSessions(context.userId);
     }),
   });
 }

@@ -89,6 +89,9 @@ export const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // and the insert/update/delete branches keep the quartet symmetric even
   // though only apps/api writes it today.
   advisory_access: 4,
+  // advisory_sessions — private advisory session outputs (story 12-3, ADR-0016 §3/§4).
+  // Encrypted at rest with full symmetric RLS quartet: SELECT/INSERT/UPDATE/DELETE.
+  advisory_sessions: 4,
 };
 
 export interface RlsAuditResult {

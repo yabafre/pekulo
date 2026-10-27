@@ -175,6 +175,11 @@ export const EXPORT_NODES: readonly ExportNode[] = [
     model: "AdvisoryAccess",
     read: (client, userId) => client.advisoryAccess.findMany({ where: { userId } }),
   },
+  {
+    key: "advisory_sessions",
+    model: "AdvisorySession",
+    read: (client, userId) => client.advisorySession.findMany({ where: { userId } }),
+  },
 ];
 
 // Decimal columns are exported as JSON STRINGS, deliberately.

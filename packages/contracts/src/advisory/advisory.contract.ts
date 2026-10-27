@@ -9,9 +9,12 @@ import { oc } from "@orpc/contract";
 import {
   advisoryAccessEntrySchema,
   advisoryAccessListSchema,
+  advisorySessionListSchema,
+  advisorySessionSchema,
   advisorySnapshotSchema,
   advisoryStatusSchema,
   advisoryTargetInputSchema,
+  generateAnalysisInputSchema,
 } from "@pekulo/validators";
 
 const forbiddenError = {
@@ -42,6 +45,16 @@ export const advisoryContractV1 = {
     .errors(advisoryErrors),
   ban: oc.input(advisoryTargetInputSchema).output(advisoryAccessEntrySchema).errors(advisoryErrors),
   list: oc.output(advisoryAccessListSchema).errors(advisoryErrors),
+  // AC-5 (verbatim from story 12-3:21):
+  //   Given the new advisory procedures (generateAnalysis, getLatestSession, listSessions),
+  //   When called via /rpc/v1/advisory, Then they inherit the access gate from story 12-1
+  //   (403 for non-allowlisted or banned users) before any snapshot or LLM call is triggered.
+  generateAnalysis: oc
+    .input(generateAnalysisInputSchema)
+    .output(advisorySessionSchema)
+    .errors(advisoryErrors),
+  getLatestSession: oc.output(advisorySessionSchema.nullable()).errors(advisoryErrors),
+  listSessions: oc.output(advisorySessionListSchema).errors(advisoryErrors),
 } as const;
 
 export const advisoryContract = advisoryContractV1;
