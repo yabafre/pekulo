@@ -472,7 +472,7 @@
   Expected: Tests pass, exit code 0.
   Commit: `git add apps/api/src/modules/advisory/advisory-prompt-builder.ts apps/api/src/modules/advisory/advisory-prompt-builder.test.ts && git commit -m "feat(#116): implement dedicated advisory prompt builder"`
 
-- [ ] **T6 — Advisory sessions repository with encrypted persistence** [AC: AC-3]
+- [x] **T6 — Advisory sessions repository with encrypted persistence** [AC: AC-3]
   Implement repository persisting encrypted session records and mapping decrypted domain DTOs.
 
   **Path:** `apps/api/src/modules/advisory/advisory-session.repository.ts` (create)
