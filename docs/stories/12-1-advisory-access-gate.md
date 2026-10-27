@@ -1154,7 +1154,7 @@
 
   **Commit:** `git commit -m "feat(#114): mount advisory module (AC-1, AC-8)"`
 
-- [ ] **T10 — Prove the gate at the HTTP boundary** [AC: AC-1, AC-2, AC-3, AC-4, AC-8]
+- [x] **T10 — Prove the gate at the HTTP boundary** [AC: AC-1, AC-2, AC-3, AC-4, AC-8]
   **Path:** `apps/api/src/modules/advisory/advisory.integration.test.ts` (create)
 
   ```ts
