@@ -231,7 +231,7 @@
   Expected: Tests pass, exit code 0.
   Commit: `git add packages/validators/ packages/contracts/ apps/api/src/modules/advisory/advisory.llm.schemas.test.ts && git commit -m "feat(#116): add advisory LLM schemas, types, and contract procedures"`
 
-- [ ] **T3 — Field-level AES-256-GCM encryption for advisory sessions** [AC: AC-3]
+- [x] **T3 — Field-level AES-256-GCM encryption for advisory sessions** [AC: AC-3]
   Create authenticated encryption helper with tamper detection and round-trip verification.
 
   **Path:** `apps/api/src/modules/advisory/advisory-encryption.ts` (create)
