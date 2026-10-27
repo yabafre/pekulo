@@ -1,7 +1,7 @@
 # Story: 12-4-advisory-private-page — Private advisory page (gated route + UI + disclaimer)
 
 **Epic:** Epic 12 — Private internal AI advisory tool (internal / non-product)
-**Status:** in-progress
+**Status:** review
 **Source:** ticket
 **Ticket:** #117
 **Ticket URL:** https://github.com/yabafre/pekulo/issues/117
@@ -1274,3 +1274,45 @@ export const llmTags = createFeatureTags("llm", {
 - `apps/web/src/app/(cap)/dashboard/advisory/error.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/page.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/page.test.tsx`
+
+## Dev Agent Record
+
+### Summary
+
+Implemented the private AI advisory dashboard at `/dashboard/advisory` behind a strict server-side gate rejecting unauthorized and banned users with `redirect("/dashboard")`. Surfaced mandatory regulatory notice ("Outil interne privé — ne constitue pas un conseil en investissement réglementé"), provider transparency badge (model, EU sovereignty posture, timestamp), recommendation cards, and query invalidation cache wiring via `@pekulo/web` Zapaction.
+
+### Files changed
+
+- `apps/web/messages/en.json`
+- `apps/web/messages/fr.json`
+- `apps/web/src/app/(cap)/dashboard/advisory/_actions/advisory-actions.test.ts`
+- `apps/web/src/app/(cap)/dashboard/advisory/_actions/advisory-actions.ts`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-disclaimer.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-provider-badge.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-recommendation-card.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-subcomponents.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-view.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-view.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_hooks/use-advisory.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_hooks/use-advisory.ts`
+- `apps/web/src/app/(cap)/dashboard/advisory/error.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/loading.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/page.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/page.tsx`
+- `apps/web/src/lib/i18n/__tests__/advisory-messages.test.ts`
+- `apps/web/src/lib/zapaction/__tests__/advisory-registry.test.ts`
+- `apps/web/src/lib/zapaction/keys.ts`
+- `docs/state.yaml`
+- `docs/stories/12-4-advisory-private-page.md`
+
+### Deviations
+
+- Zapaction query hooks: passed `(action, options)` format with required `readPolicy: "read-only"` per `@zapaction/query` contract instead of inline `{ action }` option object.
+- Tamagui design system props: aligned border token to `$borderDefault`, `PekuloButton` variant to `"default"`, and `PekuloSkeleton` to block layout without invalid `borderRadius` prop.
+
+### Test output
+
+- `bun --filter=@pekulo/web run test advisory`: 7 test files passed (7), 20 tests passed (20), exit code 0.
+- `bun --filter=@pekulo/web run test`: 124 test files passed (124), 428 tests passed (428), exit code 0.
+- `bun --filter=@pekulo/web run typecheck`: exit code 0.
+- `bun --filter=@pekulo/web run lint`: exit code 0.
