@@ -37,7 +37,7 @@ export const advisoryRecommendationSchema = z.object({
   target: z.string().min(1),
   rationale: z.string().min(1),
   priority: advisoryRecommendationPrioritySchema,
-  instrumentRecommendation: advisoryInstrumentRecommendationSchema.optional(),
+  instrumentRecommendation: advisoryInstrumentRecommendationSchema.nullish(),
 });
 export type AdvisoryRecommendation = z.infer<typeof advisoryRecommendationSchema>;
 
