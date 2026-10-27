@@ -84,6 +84,11 @@ export const EXPECTED_POLICY_COUNTS: Record<string, number> = {
   // entry the map is a complete inventory again; DELETION_NODES and
   // EXPORT_NODES still derive from the DMMF, which stays the source of truth.
   dashboard_layout: 3,
+  // advisory_access — private advisory allowlist (story 12-1, ADR-0016 §4).
+  // Mutable per-user row with a full RLS quartet: the row owner can read it,
+  // and the insert/update/delete branches keep the quartet symmetric even
+  // though only apps/api writes it today.
+  advisory_access: 4,
 };
 
 export interface RlsAuditResult {

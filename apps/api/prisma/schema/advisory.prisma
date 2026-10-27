@@ -1,0 +1,35 @@
+// apps/api/prisma/schema/advisory.prisma
+// Private internal advisory surface — access allowlist (story 12-1 / ADR-0016 §4).
+//
+// One row per user who has ever been granted access. `status` is the single
+// source of truth the request-time gate reads; a ban is effective on the
+// next request because nothing caches the decision (AC-3).
+//
+// PK is `user_id` (one row/user, no synthetic id), so the prefixed-ids
+// extension opts out via AdvisoryAccess:null in id-prefixes.config.ts.
+// RLS quartet (SELECT/INSERT/UPDATE/DELETE where user_id = auth.uid()) is
+// appended to the migration SQL by hand — Prisma does not introspect
+// policies (ADR-0013). The auth.users FK with ON DELETE CASCADE makes the
+// row die with the account (GDPR erasure, story 11-2).
+//
+// granted_by / granted_at are nullable because an owner may ban a user who
+// was never granted a row: that insert records the ban, not a grant.
+
+enum AdvisoryAccessStatus {
+  active
+  banned
+
+  @@map("advisory_access_status")
+}
+
+model AdvisoryAccess {
+  userId    String               @id @map("user_id") @db.Uuid
+  status    AdvisoryAccessStatus @default(active)
+  grantedBy String?              @map("granted_by") @db.Uuid
+  grantedAt DateTime?            @map("granted_at") @db.Timestamptz
+  bannedAt  DateTime?            @map("banned_at") @db.Timestamptz
+  updatedAt DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("advisory_access")
+}
