@@ -1,7 +1,7 @@
 # Story: 12-1-advisory-access-gate — Allowlist + ban access gate for the private advisory surface
 
 **Epic:** Epic 12 — Private internal AI advisory tool (internal / non-product)
-**Status:** review
+**Status:** done
 **Source:** ticket
 **Ticket:** #114
 **Ticket URL:** https://github.com/yabafre/pekulo/issues/114
@@ -1753,3 +1753,40 @@ Implemented the private AI advisory access gate (story 12-1, ADR-0016 §4). Crea
 - `bun --filter='@pekulo/api' run lint`: exit 0 (1049 files, 158 rules).
 - `bun --filter='@pekulo/api' run db:rls-migration-audit`: exit 0 (22 user-data tables, all RLS-guarded).
 - `bun --filter='@pekulo/api' run db:rls-audit`: exit 0 (`advisory_access` 4 policies verified live).
+
+## Review Record
+
+**Date:** 2026-10-27
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+- [MINOR] Misplaced requireUserId call before try block in oRPC gate middleware [apps/api/src/modules/advisory/advisory.routes.ts:24-40]
+  - Source: Code Auditor
+  - Resolution: 346d69d — moved requireUserId inside try block for typed UNAUTHORIZED mapping
+- [NIT] Method getEntry(userId) present in repository without doc comment [apps/api/src/modules/advisory/advisory.repository.ts:15]
+  - Source: Code Auditor
+  - Resolution: 346d69d — documented getEntry as reserved for upcoming story 12-4 single-entry lookup
+- [NIT] Router unit test asserts property existence only [apps/api/src/modules/advisory/advisory.routes.test.ts:17-91]
+  - Source: Code Auditor
+  - Resolution: 346d69d — added real procedure invocations via createRouterClient testing status, 401 and 403 paths
+- [NIT] Repository mock upsert returns static active row for ban test [apps/api/src/modules/advisory/advisory.repository.test.ts:28-96]
+  - Source: Code Auditor
+  - Resolution: 346d69d — updated mock upsert to mirror payload and added null branch test
+
+#### Dismissed
+None.
+
+#### Unresolved (story stays in `review`)
+None.
+
+### Verification
+- Test command: `bun --filter='@pekulo/api' run test`
+- Test output (final pass): 1058 pass, 0 fail, 2915 expect() calls across 124 files [2.76s]
+- Visual verification: N/A (backend-only story; no UI components or preview app)
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/114#issuecomment-6444153389
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/149
