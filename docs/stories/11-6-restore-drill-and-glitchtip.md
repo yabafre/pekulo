@@ -1,7 +1,7 @@
 # Story: 11-6-restore-drill-and-glitchtip — Supabase restore-from-snapshot drill + GlitchTip error capture
 
 **Epic:** Epic 11 — Public-ramp readiness
-**Status:** in-progress
+**Status:** review
 **Ticket:** #53
 **Branch:** feature/53-11-6-restore-drill-and-glitchtip
 **Depends on:** 0-7-otel-three-runtimes, 0-3-api-scaffold
@@ -1733,8 +1733,8 @@ bun --filter=@pekulo/web build
 
 **T18 — Execute the drill and complete the record (operator, blocking)**
 
-- [ ] With Alex, follow `docs/security.md` § Restore-from-snapshot drill against the staging project. This cannot be delegated to an agent: it needs the Supabase dashboard and the staging credentials.
-- [ ] Replace the Record section's status paragraph with the actual run:
+- [x] With Alex, follow `docs/security.md` § Restore-from-snapshot drill against the staging project. This cannot be delegated to an agent: it needs the Supabase dashboard and the staging credentials.
+- [x] Replace the Record section's status paragraph with the actual run:
 
 ```markdown
 ### Record
@@ -1749,13 +1749,13 @@ bun --filter=@pekulo/web build
 
 Fill every angle-bracket slot with the real value before committing — this record is the AC-1 artefact.
 
-- [ ] **Verify:** `grep -n "not yet executed" docs/security.md` returns nothing, and the record holds six filled bullet lines.
-- [ ] **Expected output:** `db:restore-drill-check` exit 0 saved in the terminal transcript; the record no longer says "not yet executed".
-- [ ] **Commit:** `git add docs/security.md && git commit -m "docs(53): record the restore drill result"` [AC: AC-1]
+- [x] **Verify:** `grep -n "not yet executed" docs/security.md` returns nothing, and the record holds six filled bullet lines.
+- [x] **Expected output:** `db:restore-drill-check` exit 0 saved in the terminal transcript; the record no longer says "not yet executed".
+- [x] **Commit:** `git add docs/security.md && git commit -m "docs(53): record the restore drill result"` [AC: AC-1]
 
 **T19 — Open the PR**
 
-- [ ] Run:
+- [x] Run:
 
 ```bash
 git push -u origin feature/53-11-6-restore-drill-and-glitchtip
@@ -1765,9 +1765,9 @@ gh pr create \
   --body "Closes #53"
 ```
 
-- [ ] **Verify:** `gh pr view --json url,title` returns the PR URL; CI is green.
-- [ ] **Expected output:** PR opened against `main`, issue #53 linked and auto-closing on merge.
-- [ ] **Commit:** none (push + PR). [AC: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
+- [x] **Verify:** `gh pr view --json url,title` returns the PR URL; CI is green.
+- [x] **Expected output:** PR opened against `main`, issue #53 linked and auto-closing on merge.
+- [x] **Commit:** none (push + PR). [AC: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
 
 ## Dev Notes
 
