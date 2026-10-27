@@ -194,7 +194,7 @@
 
   **Commit:** `git commit -m "feat(#114): advisory_access table, RLS quartet and registration gates (AC-5, AC-6)"`
 
-- [ ] **T2 — Publish the wire schemas** [AC: AC-4, AC-8]
+- [x] **T2 — Publish the wire schemas** [AC: AC-4, AC-8]
   **Path:** `packages/validators/src/advisory/advisory.schemas.ts` (create)
 
   ```ts
