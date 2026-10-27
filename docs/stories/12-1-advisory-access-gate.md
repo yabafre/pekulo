@@ -1,7 +1,7 @@
 # Story: 12-1-advisory-access-gate — Allowlist + ban access gate for the private advisory surface
 
 **Epic:** Epic 12 — Private internal AI advisory tool (internal / non-product)
-**Status:** ready-for-dev
+**Status:** review
 **Source:** ticket
 **Ticket:** #114
 **Ticket URL:** https://github.com/yabafre/pekulo/issues/114
@@ -1402,7 +1402,7 @@
 
   **Commit:** `git commit -m "test(#114): advisory HTTP boundary (AC-1, AC-2, AC-3, AC-4, AC-8)"`
 
-- [ ] **T11 — Run the full gate set and fix what it surfaces** [AC: AC-9]
+- [x] **T11 — Run the full gate set and fix what it surfaces** [AC: AC-9]
   **Path:** every file touched by T1 through T10 (verification only).
 
   No new code. Run the five gates below and fix any drift they surface. Per lesson 2026-06-15, also prove the lint rule still fires on the owner-only `list()` read: temporarily delete the `oxlint-disable-next-line pekulo/no-prisma-query-without-user-id` comment, run lint, confirm it fails naming `advisory.repository.ts`, then restore the comment.
@@ -1703,9 +1703,53 @@ RESTORE_DRILL_API_BASE_URL=http://127.0.0.1:3001
 ## Dev Agent Record
 
 ### Summary
+Implemented the private AI advisory access gate (story 12-1, ADR-0016 §4). Created the `advisory_access` table with RLS quartet and `auth.users` cascade FK, registered in ID prefixes, data export, account deletion, and live RLS inventory; exposed wire schemas, oRPC contract, and platform access guard with injected reader; created domain repository, service, and gated router middleware rejecting non-allowlisted callers with 403; proved gate behavior and immediate ban/re-grant enforcement across the HTTP boundary.
 
 ### Files changed
+- .env.example
+- apps/api/prisma/migrations/20261027130000_create_advisory_access/migration.sql
+- apps/api/prisma/schema/advisory.prisma
+- apps/api/scripts/rls-audit.ts
+- apps/api/src/bootstrap/runtime-dependencies.ts
+- apps/api/src/config/advisory-owner-ids.test.ts
+- apps/api/src/config/advisory-owner-ids.ts
+- apps/api/src/config/env.ts
+- apps/api/src/database/id-prefixes.config.test.ts
+- apps/api/src/database/id-prefixes.config.ts
+- apps/api/src/modules/advisory/advisory.contract.test.ts
+- apps/api/src/modules/advisory/advisory.integration.test.ts
+- apps/api/src/modules/advisory/advisory.module.test.ts
+- apps/api/src/modules/advisory/advisory.module.ts
+- apps/api/src/modules/advisory/advisory.repository.test.ts
+- apps/api/src/modules/advisory/advisory.repository.ts
+- apps/api/src/modules/advisory/advisory.routes.test.ts
+- apps/api/src/modules/advisory/advisory.routes.ts
+- apps/api/src/modules/advisory/advisory.schemas.test.ts
+- apps/api/src/modules/advisory/advisory.service.test.ts
+- apps/api/src/modules/advisory/advisory.service.ts
+- apps/api/src/modules/settings/settings.deletion.test.ts
+- apps/api/src/modules/settings/settings.deletion.ts
+- apps/api/src/modules/settings/settings.export.ts
+- apps/api/src/platform/security/advisory-access-guard.test.ts
+- apps/api/src/platform/security/advisory-access-guard.ts
+- apps/api/src/platform/security/index.ts
+- docs/epics-context/epic-12-context.md
+- docs/state.yaml
+- docs/stories/12-1-advisory-access-gate.md
+- packages/contracts/src/advisory/advisory.contract.ts
+- packages/contracts/src/advisory/index.ts
+- packages/contracts/src/index.ts
+- packages/validators/src/advisory/advisory.schemas.ts
+- packages/validators/src/advisory/index.ts
+- packages/validators/src/index.ts
 
 ### Deviations
+- `apps/api/src/modules/settings/settings.deletion.test.ts` updated to account for `advisoryAccess` as the 22nd table in `DELETION_NODES` fan-out assertion.
+- Added unit tests for advisory schemas and contracts directly in `apps/api/src/modules/advisory/` matching existing `@pekulo/api` test runner conventions.
 
 ### Test output
+- `bun --filter='@pekulo/api' run test`: 1054 pass, 0 fail (124 test files).
+- `bun --filter='@pekulo/api' run typecheck`: exit 0.
+- `bun --filter='@pekulo/api' run lint`: exit 0 (1049 files, 158 rules).
+- `bun --filter='@pekulo/api' run db:rls-migration-audit`: exit 0 (22 user-data tables, all RLS-guarded).
+- `bun --filter='@pekulo/api' run db:rls-audit`: exit 0 (`advisory_access` 4 policies verified live).
