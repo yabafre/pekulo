@@ -9,6 +9,12 @@
 //   BAD_REQUEST; the owner is implicitly allowed without a record; and granted_by is
 //   the owner from the JWT, never a client-supplied value.
 
+// AC-4 (verbatim from story 12-2-advisory-analysis-engine:20):
+//   Given a caller who is neither an owner nor an active allowlisted user, When they
+//   request the snapshot, Then the API answers 403 `FORBIDDEN` before any accounts,
+//   holdings, equity, compass or monthly read and before any engine computation runs;
+//   an active allowlisted caller receives 200.
+
 import { describe, expect, test } from "bun:test";
 import { createRouterClient } from "@orpc/server";
 import { PekuloError } from "../../common/errors";

@@ -245,6 +245,12 @@ describe("advisory /rpc/v1/advisory HTTP boundary (story 12-1)", () => {
   });
 });
 
+// AC-4 (verbatim from story 12-2-advisory-analysis-engine:20):
+//   Given a caller who is neither an owner nor an active allowlisted user, When they
+//   request the snapshot, Then the API answers 403 `FORBIDDEN` before any accounts,
+//   holdings, equity, compass or monthly read and before any engine computation runs;
+//   an active allowlisted caller receives 200.
+
 describe("advisory snapshot /rpc/v1/advisory HTTP boundary (story 12-2)", () => {
   test("AC-4 — an unknown caller is 403 and the engine never runs", async () => {
     repository.rows.delete(USER_UNKNOWN);

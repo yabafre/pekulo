@@ -1,3 +1,20 @@
+// AC-1 (verbatim from story 12-2-advisory-analysis-engine:17):
+//   Given a user with accounts, holdings, real estate, a compass and a current month,
+//   When the advisory snapshot is requested by an allowlisted caller, Then the response
+//   exposes total wealth, investable wealth, the three-way allocation with percentages,
+//   the compass gap, the current-month cashflow envelope, a portfolio block with
+//   instrument-level positions and `byKind`, factual fiscalité signals, and FX
+//   provenance — every numeric field produced by the deterministic engine.
+// AC-2 (verbatim from story 12-2-advisory-analysis-engine:18):
+//   Given a user with no holdings, When the snapshot is requested, Then `portfolio` is
+//   `null` and every other block is still present; no price resolution is attempted and
+//   no error is returned.
+// AC-3 (verbatim from story 12-2-advisory-analysis-engine:19):
+//   Given the same accounts, holdings, rates, equity, properties, compass and monthly
+//   envelope, When the engine runs twice, Then the two snapshots are deep-equal,
+//   including array ordering and rounded percentages; the engine reads no clock and
+//   performs no IO.
+
 import { describe, expect, test } from "bun:test";
 import type {
   Account,
