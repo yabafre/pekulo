@@ -9,10 +9,28 @@ export function collectKnownSnapshotNumbers(snapshot: AdvisorySnapshot): Set<num
 
   function addNum(n: number | null | undefined) {
     if (n != null && Number.isFinite(n)) {
+      const abs = Math.abs(n);
       numbers.add(Math.round(n * 100) / 100);
       numbers.add(Math.round(n));
-      if (Math.abs(n) >= 1000) {
+      numbers.add(Math.round(abs * 100) / 100);
+      numbers.add(Math.round(abs));
+      if (abs >= 1000) {
         numbers.add(Math.round(n / 1000));
+        numbers.add(Math.round(abs / 1000));
+      }
+    }
+  }
+
+  function extractNumbersFromString(str: string | null | undefined) {
+    if (!str) return;
+    const matches = str.match(/\d+(?:[.,]\d+)?/g);
+    if (matches) {
+      for (const m of matches) {
+        const val = parseFloat(m.replace(",", "."));
+        if (Number.isFinite(val)) {
+          numbers.add(val);
+          numbers.add(Math.round(val));
+        }
       }
     }
   }
@@ -57,6 +75,8 @@ export function collectKnownSnapshotNumbers(snapshot: AdvisorySnapshot): Set<num
       addNum(pos.marketValueEur);
       addNum(pos.pnlEur);
       addNum(pos.pnlPct);
+      extractNumbersFromString(pos.ticker);
+      extractNumbersFromString(pos.label);
     }
     for (const kind of snapshot.portfolio.byKind) {
       addNum(kind.marketValueEur);
@@ -90,7 +110,21 @@ export function validateAdvisoryGrounding(
   snapshot: AdvisorySnapshot,
 ): void {
   const knownNumbers = collectKnownSnapshotNumbers(snapshot);
-  const textBlob = JSON.stringify(analysis);
+
+  // Scan user-facing narrative text only (avoiding structural recommendation IDs like "rec-11")
+  const textSegments: string[] = [
+    analysis.overview,
+    ...(analysis.strengths ?? []),
+    ...(analysis.risks ?? []),
+    analysis.allocationAdvice,
+    ...analysis.recommendations.flatMap((rec) => [
+      rec.title,
+      rec.rationale,
+      rec.target,
+      rec.instrumentRecommendation?.rationale ?? "",
+    ]),
+  ];
+  const textBlob = textSegments.join(" ");
   const numericRegex = /(?:€|\b)(\d+(?:[.,]\d+)?)\s*(?:€|k|%|EUR)?/gi;
 
   let match: RegExpExecArray | null;

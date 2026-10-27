@@ -135,4 +135,50 @@ describe("advisory-grounding-validator (story 12-3)", () => {
       PekuloError,
     );
   });
+
+  it("handles recommendation IDs > 10, ticker numbers, and negative numbers/losses without false positives", () => {
+    const snapshotWithLossAndNamedHoldings: AdvisorySnapshot = {
+      ...fixtureSnapshot,
+      wealth: {
+        ...fixtureSnapshot.wealth,
+        unrealizedPnlEur: -15000,
+      },
+      portfolio: {
+        ...fixtureSnapshot.portfolio!,
+        positions: [
+          {
+            ...fixtureSnapshot.portfolio!.positions[0]!,
+            ticker: "CAC40",
+            label: "Amundi CAC 40 ETF",
+          },
+        ],
+      },
+    };
+
+    const analysisWithEdgeCases: AdvisoryAnalysisResult = {
+      overview: "Analyse avec perte latente de 15000 €.",
+      strengths: [],
+      risks: [],
+      allocationAdvice: "Conseil",
+      recommendations: [
+        {
+          id: "rec-11", // ID > 10
+          title: "Conserver Amundi CAC 40 ETF",
+          action: "hold",
+          target: "PEA",
+          rationale: "Position CAC 40 stable avec perte de 15000 € déjà intégrée.",
+          priority: "medium",
+          instrumentRecommendation: {
+            symbol: "CAC40",
+            action: "hold",
+            rationale: "Garder le CAC 40 en fond de portefeuille.",
+          },
+        },
+      ],
+    };
+
+    expect(() =>
+      validateAdvisoryGrounding(analysisWithEdgeCases, snapshotWithLossAndNamedHoldings),
+    ).not.toThrow();
+  });
 });
