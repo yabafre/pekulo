@@ -2,16 +2,21 @@
 // Next.js 16 instrumentation hook — invoked once per server runtime instance
 // (Node and Edge each call register() in their own runtime).
 //
-// Per Next.js docs (apps/web/node_modules/next/dist/docs/01-app/02-guides/open-telemetry.md):
-//   "NodeSDK is not compatible with edge runtime, so you need to make sure
-//    that you are importing them only when process.env.NEXT_RUNTIME === 'nodejs'."
+// Two responsibilities, in order:
+//   1. GlitchTip error capture (story 11-6) — init is a no-op without
+//      GLITCHTIP_DSN, and Sentry is told NOT to create an OTel provider.
+//   2. OTel NodeSDK (story 0-7) — traces only, opt-in in dev.
 //
-// Story 0-7 wires the node-side SDK only — apps/web has no edge-runtime
-// routes at V1 (a). If any future story introduces an edge route, it must
-// ship a sibling `instrumentation.edge.ts` with @vercel/otel.
+// onRequestError is exported for Next's server-error hook. No edge route
+// exists at V1 (a); if one lands, it must get its own Sentry init branch
+// (the SDK no-ops without a client, so this stays safe meanwhile).
+
+import { captureRequestError, initWebErrorCapture } from "./lib/observability/sentry";
 
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  initWebErrorCapture();
 
   // Dev gate (L11). Without this, BatchSpanProcessor + FetchInstrumentation +
   // require-in-the-middle's dynamic-require patching compound with Next 16
@@ -24,4 +29,12 @@ export async function register(): Promise<void> {
   if (isDev && !hasOtlp) return;
 
   await import("./instrumentation.node");
+}
+
+export function onRequestError(
+  error: unknown,
+  request: { path?: string; method?: string },
+  context: { routerKind?: string; routePath?: string; routeType?: string },
+): void {
+  captureRequestError(error, request, context);
 }
