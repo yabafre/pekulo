@@ -1086,7 +1086,7 @@
 
   **Commit:** `git commit -m "feat(#114): gated advisory routes (AC-1, AC-3, AC-4, AC-8)"`
 
-- [ ] **T9 — Wire the module at the composition root** [AC: AC-1, AC-8]
+- [x] **T9 — Wire the module at the composition root** [AC: AC-1, AC-8]
   **Path:** `apps/api/src/modules/advisory/advisory.module.ts` (create)
 
   ```ts
