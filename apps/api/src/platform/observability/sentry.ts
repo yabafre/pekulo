@@ -95,24 +95,28 @@ export function createCaptureApiError(
     const route = input.route?.trim() || "<unmatched>";
     const path = safePathname(input.request);
 
-    captureException(input.error, {
-      tags: {
-        route,
-        status_code: String(input.statusCode),
-        request_id: input.requestId,
-        method: input.request.method,
-      },
-      contexts: {
-        pekulo: {
+    try {
+      captureException(input.error, {
+        tags: {
           route,
-          statusCode: input.statusCode,
-          requestId: input.requestId,
+          status_code: String(input.statusCode),
+          request_id: input.requestId,
           method: input.request.method,
-          path,
         },
-      },
-      fingerprint: ["{{ default }}", route],
-    });
+        contexts: {
+          pekulo: {
+            route,
+            statusCode: input.statusCode,
+            requestId: input.requestId,
+            method: input.request.method,
+            path,
+          },
+        },
+        fingerprint: ["{{ default }}", route],
+      });
+    } catch (captureErr) {
+      console.error("[observability] Failed to capture error to GlitchTip:", captureErr);
+    }
   };
 }
 

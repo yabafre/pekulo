@@ -15,6 +15,7 @@
 //   over instrumentation. (ADR-0005 amendment)
 
 import { describe, expect, test } from "bun:test";
+import { Elysia } from "elysia";
 
 import { PekuloError } from "../../common/errors";
 import {
@@ -94,6 +95,62 @@ describe("createCaptureApiError", () => {
     const { calls, capture } = harness(false);
     capture(input());
     expect(calls).toHaveLength(0);
+  });
+
+  test("fails open without throwing if captureException throws", () => {
+    const capture = createCaptureApiError(
+      () => {
+        throw new Error("Sentry transport failure");
+      },
+      () => true,
+    );
+    expect(() => capture(input())).not.toThrow();
+  });
+
+  test("integration: captures unhandled 5xx from an Elysia route and skips 4xx/typed errors", async () => {
+    const { calls, capture } = harness();
+    const app = new Elysia()
+      .onError(({ error, set, request, route }) => {
+        const status = (error as { status?: number }).status ?? 500;
+        capture({
+          error,
+          request,
+          route,
+          statusCode: status,
+          requestId: "req-123",
+        });
+        set.status = status;
+        return { message: (error as Error).message };
+      })
+      .get("/boom", () => {
+        throw new Error("unexpected explosion");
+      })
+      .get("/typed-skip", () => {
+        throw new PekuloError("BANK_PROVIDER_UNAVAILABLE", "skip me");
+      })
+      .get("/typed-capture", () => {
+        throw new PekuloError("ACCOUNT_PARTIALLY_ERASED", "capture me");
+      });
+
+    const resBoom = await app.handle(new Request("http://localhost/boom"));
+    expect(resBoom.status).toBe(500);
+
+    const resSkip = await app.handle(new Request("http://localhost/typed-skip"));
+    expect(resSkip.status).toBe(500);
+
+    const resCapture = await app.handle(new Request("http://localhost/typed-capture"));
+    expect(resCapture.status).toBe(500);
+
+    const res404 = await app.handle(new Request("http://localhost/not-found"));
+    expect(res404.status).toBe(404);
+
+    expect(calls).toHaveLength(2);
+    const firstCall = calls[0];
+    const secondCall = calls[1];
+    expect(firstCall).toBeDefined();
+    expect(secondCall).toBeDefined();
+    expect((firstCall!.error as Error).message).toBe("unexpected explosion");
+    expect((secondCall!.error as PekuloError).code).toBe("ACCOUNT_PARTIALLY_ERASED");
   });
 });
 

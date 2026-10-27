@@ -22,7 +22,10 @@ export function looksLikeServiceRoleKey(value: string): boolean {
 }
 
 const optionalString = <T extends z.ZodTypeAny>(schema: T) =>
-  z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
+  z.preprocess(
+    (v) => (typeof v === "string" ? (v.trim() === "" ? undefined : v.trim()) : v),
+    schema.optional(),
+  );
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),

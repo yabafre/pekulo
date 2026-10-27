@@ -54,10 +54,12 @@ describe("initWebErrorCapture", () => {
     const options = mocks.init.mock.calls[0]?.[0] as {
       dsn: string;
       sendDefaultPii: boolean;
+      enableOpenTelemetrySetup: boolean;
       beforeSend: (event: unknown) => unknown;
     };
     expect(options.dsn).toBe("https://key@glitchtip.example/2");
     expect(options.sendDefaultPii).toBe(false);
+    expect(options.enableOpenTelemetrySetup).toBe(false);
 
     const event = {
       message: "alice@example.com",

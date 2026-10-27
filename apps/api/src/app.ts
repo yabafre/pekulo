@@ -97,7 +97,11 @@ export async function startServer(): Promise<ServerHandle> {
       // The wrapper applies the capture policy (typed 4xx/5xx skipped) and
       // sends status_code / request_id / route tags; PII is scrubbed in the
       // SDK's beforeSend hook, not here.
-      captureApiError({ error, request, route, statusCode: status, requestId });
+      try {
+        captureApiError({ error, request, route, statusCode: status, requestId });
+      } catch (captureErr) {
+        console.error("[observability] captureApiError failed fail-open", captureErr);
+      }
       set.status = mapped.status;
       // Close the OTel SERVER span with error semconv + recordException —
       // handled HERE (not in the plugin) because plugin's .onError is

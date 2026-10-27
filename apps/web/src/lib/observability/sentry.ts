@@ -66,15 +66,19 @@ export function captureRequestError(
   const path = request.path?.split("?")[0] ?? "<unknown>";
   const route = context.routePath?.trim() || path;
 
-  Sentry.captureException(error, {
-    tags: {
-      route,
-      router_kind: context.routerKind ?? "unknown",
-      route_type: context.routeType ?? "unknown",
-    },
-    contexts: {
-      nextjs: { path, method: request.method ?? "unknown" },
-    },
-    fingerprint: ["{{ default }}", route],
-  });
+  try {
+    Sentry.captureException(error, {
+      tags: {
+        route,
+        router_kind: context.routerKind ?? "unknown",
+        route_type: context.routeType ?? "unknown",
+      },
+      contexts: {
+        nextjs: { path, method: request.method ?? "unknown" },
+      },
+      fingerprint: ["{{ default }}", route],
+    });
+  } catch (err) {
+    console.error("[observability] Failed to capture web error to GlitchTip:", err);
+  }
 }
