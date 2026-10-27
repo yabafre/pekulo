@@ -1183,7 +1183,8 @@
   - `apps/web/src/app/(cap)/dashboard/advisory/_actions/advisory-actions.test.ts`
   - `apps/web/src/app/(cap)/dashboard/advisory/_hooks/use-advisory.ts`
   - `apps/web/src/app/(cap)/dashboard/advisory/_hooks/use-advisory.test.tsx`
-  - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-disclaimer.tsx`
+  - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory.module.css`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-disclaimer.tsx`
   - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-provider-badge.tsx`
   - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-recommendation-card.tsx`
   - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-view.tsx`
@@ -1265,6 +1266,7 @@ export const llmTags = createFeatureTags("llm", {
 - `apps/web/src/app/(cap)/dashboard/advisory/_actions/advisory-actions.test.ts`
 - `apps/web/src/app/(cap)/dashboard/advisory/_hooks/use-advisory.ts`
 - `apps/web/src/app/(cap)/dashboard/advisory/_hooks/use-advisory.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory.module.css`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-disclaimer.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-provider-badge.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-recommendation-card.tsx`
@@ -1287,6 +1289,7 @@ Implemented the private AI advisory dashboard at `/dashboard/advisory` behind a 
 - `apps/web/messages/fr.json`
 - `apps/web/src/app/(cap)/dashboard/advisory/_actions/advisory-actions.test.ts`
 - `apps/web/src/app/(cap)/dashboard/advisory/_actions/advisory-actions.ts`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory.module.css`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-disclaimer.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-provider-badge.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-recommendation-card.tsx`

@@ -1,4 +1,4 @@
-import { PekuloSkeleton } from "@pekulo/ui";
+import { PekuloSkeleton, Section } from "@pekulo/ui";
 
 export default function AdvisoryLoading() {
   return (
@@ -7,16 +7,17 @@ export default function AdvisoryLoading() {
         display: "flex",
         flexDirection: "column",
         gap: 24,
-        padding: "16px 8px",
+        padding: "8px 4px 0",
         width: "100%",
-        maxWidth: 880,
-        margin: "0 auto",
       }}
     >
-      <PekuloSkeleton block height={100} />
-      <PekuloSkeleton block height={48} width="60%" />
-      <PekuloSkeleton block height={180} />
-      <PekuloSkeleton block height={240} />
+      <Section ariaLabel="Chargement du conseil financier">
+        <PekuloSkeleton width="40%" height={12} />
+        <div style={{ height: 12 }} />
+        <PekuloSkeleton block height={120} />
+        <div style={{ height: 16 }} />
+        <PekuloSkeleton lines={3} height={32} />
+      </Section>
     </div>
   );
 }

@@ -38,16 +38,15 @@ export function AdvisoryProviderBadge({
       flexWrap="wrap"
       alignItems="center"
       gap="$2"
-      paddingHorizontal="$2.5"
+      paddingHorizontal="$3"
       paddingVertical="$1.5"
       backgroundColor="$backgroundMuted"
-      borderWidth={1}
-      borderColor="$borderDefault"
-      borderRadius="$sm"
+      borderRadius="$full"
+      alignSelf="flex-start"
     >
       <View flexDirection="row" alignItems="center" gap="$1.5">
-        <Cpu size={14} color="var(--colorSecondary)" aria-hidden />
-        <Text color="$colorSecondary" fontSize="$caption" fontWeight="medium">
+        <Cpu size={13} color="var(--colorSecondary)" aria-hidden />
+        <Text color="$colorSecondary" fontSize="$caption" fontWeight="500">
           {provider} / {model}
         </Text>
       </View>
@@ -57,7 +56,7 @@ export function AdvisoryProviderBadge({
       </Text>
 
       <View flexDirection="row" alignItems="center" gap="$1.5">
-        <ShieldCheck size={14} color="var(--positive)" aria-hidden />
+        <ShieldCheck size={13} color="var(--gain)" aria-hidden />
         <Text color="$colorSecondary" fontSize="$caption">
           {t("posture")}
         </Text>

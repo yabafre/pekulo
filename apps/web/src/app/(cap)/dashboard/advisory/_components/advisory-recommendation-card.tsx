@@ -11,7 +11,6 @@ import { useTranslations } from "next-intl";
 import type { AdvisoryRecommendation } from "@pekulo/validators";
 import { ArrowRight, Tag } from "lucide-react";
 import { Text, View } from "@pekulo/ui/client";
-import { AdvisoryProviderBadge } from "./advisory-provider-badge";
 
 export interface AdvisoryRecommendationCardProps {
   recommendation: AdvisoryRecommendation;
@@ -21,35 +20,30 @@ export interface AdvisoryRecommendationCardProps {
 
 export function AdvisoryRecommendationCard({
   recommendation,
-  provider,
-  model,
+  provider: _,
+  model: __,
 }: AdvisoryRecommendationCardProps) {
   const t = useTranslations("advisory.recommendations");
 
-  const actionColors: Record<
-    string,
-    { bg: "$backgroundMuted" | "$backgroundElevated"; color: string }
-  > = {
-    buy: { bg: "$backgroundMuted", color: "var(--positive)" },
-    sell: { bg: "$backgroundMuted", color: "var(--negative)" },
-    trim: { bg: "$backgroundMuted", color: "var(--warning)" },
-    reduce: { bg: "$backgroundMuted", color: "var(--warning)" },
-    hold: { bg: "$backgroundMuted", color: "var(--colorSecondary)" },
-    rebalance: { bg: "$backgroundMuted", color: "var(--color)" },
-    allocate: { bg: "$backgroundMuted", color: "var(--positive)" },
+  const actionStyle: Record<string, { bg: string; color: string }> = {
+    buy: { bg: "rgba(0, 210, 106, 0.12)", color: "var(--gain)" },
+    sell: { bg: "rgba(255, 92, 92, 0.12)", color: "var(--loss)" },
+    trim: { bg: "rgba(251, 191, 36, 0.12)", color: "var(--warning)" },
+    reduce: { bg: "rgba(251, 191, 36, 0.12)", color: "var(--warning)" },
+    hold: { bg: "var(--surface-muted)", color: "var(--colorSecondary)" },
+    rebalance: { bg: "rgba(47, 115, 255, 0.12)", color: "var(--data-blue)" },
+    allocate: { bg: "rgba(0, 210, 106, 0.12)", color: "var(--gain)" },
   };
 
-  const actionStyle = actionColors[recommendation.action] ?? {
-    bg: "$backgroundMuted",
+  const style = actionStyle[recommendation.action] ?? {
+    bg: "var(--surface-muted)",
     color: "var(--colorSecondary)",
   };
 
   return (
     <View
       backgroundColor="$backgroundElevated"
-      borderWidth={1}
-      borderColor="$borderDefault"
-      borderRadius="$md"
+      borderRadius="$lg"
       padding="$4"
       flexDirection="column"
       gap="$3"
@@ -61,76 +55,80 @@ export function AdvisoryRecommendationCard({
         flexWrap="wrap"
         gap="$2"
       >
-        <View flexDirection="row" alignItems="center" gap="$2" flexWrap="wrap">
+        <View flexDirection="row" alignItems="center" gap="$2.5" flexWrap="wrap" flex={1}>
           <View
-            backgroundColor={actionStyle.bg}
-            paddingHorizontal="$2"
-            paddingVertical="$1"
+            style={{ backgroundColor: style.bg }}
+            paddingHorizontal="$2.5"
+            paddingVertical={4}
             borderRadius="$xs"
           >
-            <Text style={{ color: actionStyle.color }} fontSize="$caption" fontWeight="bold">
+            <Text
+              style={{ color: style.color }}
+              fontSize={11}
+              fontWeight="700"
+              textTransform="uppercase"
+              letterSpacing={0.5}
+            >
               {t(`action.${recommendation.action}`)}
             </Text>
           </View>
-          <Text color="$color" fontSize="$body" fontWeight="bold">
+          <Text color="$color" fontSize="$body" fontWeight="600" flex={1}>
             {recommendation.title}
           </Text>
         </View>
 
         <View
           backgroundColor="$backgroundMuted"
-          paddingHorizontal="$2"
-          paddingVertical="$1"
-          borderRadius="$xs"
+          paddingHorizontal="$2.5"
+          paddingVertical={3}
+          borderRadius="$full"
         >
-          <Text color="$colorSecondary" fontSize="$caption">
+          <Text color="$colorTertiary" fontSize={11} fontWeight="500">
             {t(`priority.${recommendation.priority}`)}
           </Text>
         </View>
       </View>
 
-      <View flexDirection="row" alignItems="center" gap="$2">
-        <Tag size={14} color="var(--colorSecondary)" aria-hidden />
-        <Text color="$colorSecondary" fontSize="$caption">
+      <View flexDirection="row" alignItems="center" gap="$1.5">
+        <Tag size={13} color="var(--colorTertiary)" aria-hidden />
+        <Text color="$colorTertiary" fontSize="$caption">
           {t("target", { target: recommendation.target })}
         </Text>
       </View>
 
-      <View flexDirection="column" gap="$1">
-        <Text color="$colorTertiary" fontSize="$caption" fontWeight="medium">
-          {t("rationale")}
-        </Text>
-        <Text color="$color" fontSize="$body" lineHeight="$sm">
-          {recommendation.rationale}
-        </Text>
-      </View>
+      <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={20}>
+        {recommendation.rationale}
+      </Text>
 
       {recommendation.instrumentRecommendation && (
         <View
           backgroundColor="$backgroundMuted"
-          borderRadius="$sm"
+          borderRadius="$md"
           padding="$3"
           flexDirection="column"
-          gap="$2"
+          gap="$1.5"
         >
-          <View flexDirection="row" alignItems="center" gap="$2">
-            <ArrowRight size={14} color="var(--color)" aria-hidden />
-            <Text color="$color" fontSize="$caption" fontWeight="bold">
-              {t("instrument")} {recommendation.instrumentRecommendation.symbol}
-              {recommendation.instrumentRecommendation.isin
-                ? ` (${recommendation.instrumentRecommendation.isin})`
-                : ""}
+          <View flexDirection="row" alignItems="center" gap="$2" flexWrap="wrap">
+            <ArrowRight size={13} color="var(--colorSecondary)" aria-hidden />
+            <Text
+              color="$color"
+              fontSize="$caption"
+              fontWeight="600"
+              fontVariant={["tabular-nums"]}
+            >
+              {recommendation.instrumentRecommendation.symbol}
             </Text>
+            {recommendation.instrumentRecommendation.isin && (
+              <Text color="$colorTertiary" fontSize={11} fontVariant={["tabular-nums"]}>
+                ({recommendation.instrumentRecommendation.isin})
+              </Text>
+            )}
           </View>
-          <Text color="$colorSecondary" fontSize="$caption">
+          <Text color="$colorSecondary" fontSize="$caption" lineHeight={18}>
             {recommendation.instrumentRecommendation.rationale}
           </Text>
         </View>
       )}
-
-      <View marginTop="$1">
-        <AdvisoryProviderBadge provider={provider} model={model} />
-      </View>
     </View>
   );
 }

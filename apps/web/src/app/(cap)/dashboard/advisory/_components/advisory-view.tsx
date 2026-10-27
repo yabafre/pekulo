@@ -9,13 +9,14 @@
 
 import { useTranslations } from "next-intl";
 import type { AdvisoryStatus } from "@pekulo/validators";
-import { PekuloButton, PekuloEmptyState } from "@pekulo/ui";
+import { PekuloButton, PekuloEmptyState, PekuloSkeleton, Section } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { Sparkles, CheckCircle2, AlertTriangle, PieChart } from "lucide-react";
 import { useAdvisoryLatestSession, useGenerateAdvisoryAnalysis } from "../_hooks/use-advisory";
 import { AdvisoryDisclaimer } from "./advisory-disclaimer";
 import { AdvisoryProviderBadge } from "./advisory-provider-badge";
 import { AdvisoryRecommendationCard } from "./advisory-recommendation-card";
+import styles from "./advisory.module.css";
 
 export interface AdvisoryViewProps {
   initialStatus: AdvisoryStatus;
@@ -31,52 +32,51 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
   };
 
   return (
-    <View
-      flexDirection="column"
-      gap="$6"
-      width="100%"
-      maxWidth={880}
-      alignSelf="center"
-      paddingBottom="$8"
-    >
-      <AdvisoryDisclaimer />
-
+    <View flexDirection="column" gap="$6" width="100%">
+      {/* Top Header Bar */}
       <View
         flexDirection="row"
         justifyContent="space-between"
-        alignItems="center"
+        alignItems="flex-start"
         flexWrap="wrap"
         gap="$4"
       >
-        <View flexDirection="column" gap="$1">
-          <Text color="$color" fontSize="$title" fontWeight="bold">
+        <View flexDirection="column" gap="$1" flex={1} minWidth={260}>
+          <Text
+            color="$color"
+            fontSize="$h1"
+            fontWeight="600"
+            letterSpacing={-0.5}
+            $lg={{ fontSize: "$hero" }}
+          >
             {t("title")}
           </Text>
-          <Text color="$colorSecondary" fontSize="$caption">
+          <Text color="$colorSecondary" fontSize="$bodySm">
             {t("subtitle")}
           </Text>
         </View>
 
         <PekuloButton
           variant="default"
-          size="sm"
+          size="default"
           onClick={handleGenerate}
-          disabled={generateMutation.isPending}
+          loading={generateMutation.isPending}
+          loadingLabel={t("actions.generating")}
           className="font_body"
         >
           <View flexDirection="row" alignItems="center" gap="$2">
-            <Sparkles size={16} color="currentColor" aria-hidden />
-            <Text color="$colorOnAccent" fontSize="$body" fontWeight="medium">
-              {generateMutation.isPending
-                ? t("actions.generating")
-                : session
-                  ? t("actions.refresh")
-                  : t("actions.generate")}
+            <Sparkles size={16} color="var(--colorOnAccent)" aria-hidden />
+            <Text color="$colorOnAccent" fontSize="$bodySm" fontWeight="600">
+              {session ? t("actions.refresh") : t("actions.generate")}
             </Text>
           </View>
         </PekuloButton>
       </View>
 
+      {/* Regulatory Notice Banner */}
+      <AdvisoryDisclaimer />
+
+      {/* Provider & Sovereignty Posture */}
       {session && (
         <AdvisoryProviderBadge
           provider={session.provider}
@@ -86,122 +86,121 @@ export function AdvisoryView({ initialStatus: _ }: AdvisoryViewProps) {
       )}
 
       {isLoading ? (
-        <View padding="$8" alignItems="center">
-          <Text color="$colorSecondary">{t("actions.generating")}</Text>
+        <View flexDirection="column" gap="$6" role="status" aria-live="polite">
+          <Section ariaLabel={t("actions.generating")}>
+            <PekuloSkeleton width="40%" height={12} />
+            <View height={12} />
+            <PekuloSkeleton block height={60} />
+          </Section>
+          <div className={styles.grid2Col}>
+            <Section ariaLabel={t("sections.strengths")} className={styles.cardStretch}>
+              <PekuloSkeleton lines={3} height={20} />
+            </Section>
+            <Section ariaLabel={t("sections.risks")} className={styles.cardStretch}>
+              <PekuloSkeleton lines={3} height={20} />
+            </Section>
+          </div>
         </View>
       ) : !session ? (
-        <PekuloEmptyState
-          icon={Sparkles}
-          title={t("emptyState.title")}
-          message={t("emptyState.description")}
-          ctaLabel={t("actions.generate")}
-          onCta={handleGenerate}
-        />
+        <Section ariaLabel={t("emptyState.title")}>
+          <PekuloEmptyState
+            icon={Sparkles}
+            title={t("emptyState.title")}
+            message={t("emptyState.description")}
+            ctaLabel={t("actions.generate")}
+            onCta={handleGenerate}
+          />
+        </Section>
       ) : (
-        <View flexDirection="column" gap="$5">
-          {/* Overview */}
-          <View
-            backgroundColor="$backgroundElevated"
-            borderWidth={1}
-            borderColor="$borderDefault"
-            borderRadius="$md"
-            padding="$4"
-            flexDirection="column"
-            gap="$2"
-          >
-            <Text color="$color" fontSize="$body" fontWeight="bold">
-              {t("sections.overview")}
-            </Text>
-            <Text color="$colorSecondary" fontSize="$body" lineHeight="$sm">
+        <View flexDirection="column" gap="$6">
+          {/* Synthèse stratégique */}
+          <Section ariaLabel={t("sections.overview")} title={t("sections.overview")}>
+            <Text color="$colorSecondary" fontSize="$body" lineHeight={24}>
               {session.sessionData.analysis.overview}
             </Text>
-          </View>
+          </Section>
 
-          {/* Strengths & Risks */}
-          <View flexDirection="row" gap="$4" $max-md={{ flexDirection: "column" }}>
-            <View
-              flex={1}
-              backgroundColor="$backgroundElevated"
-              borderWidth={1}
-              borderColor="$borderDefault"
-              borderRadius="$md"
-              padding="$4"
-              flexDirection="column"
-              gap="$2"
+          {/* Diagnostic : Forces & Risques */}
+          <div className={styles.grid2Col}>
+            <Section
+              ariaLabel={t("sections.strengths")}
+              title={t("sections.strengths")}
+              className={styles.cardStretch}
             >
-              <View flexDirection="row" alignItems="center" gap="$2">
-                <CheckCircle2 size={16} color="var(--positive)" aria-hidden />
-                <Text color="$color" fontSize="$body" fontWeight="bold">
-                  {t("sections.strengths")}
-                </Text>
+              <View flexDirection="column" gap="$3">
+                {session.sessionData.analysis.strengths.map((str) => (
+                  <View key={str} flexDirection="row" alignItems="flex-start" gap="$2.5">
+                    <CheckCircle2
+                      size={16}
+                      color="var(--gain)"
+                      style={{ flexShrink: 0, marginTop: 3 }}
+                      aria-hidden
+                    />
+                    <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={20} flex={1}>
+                      {str}
+                    </Text>
+                  </View>
+                ))}
               </View>
-              {session.sessionData.analysis.strengths.map((str) => (
-                <Text key={str} color="$colorSecondary" fontSize="$caption">
-                  • {str}
-                </Text>
-              ))}
-            </View>
+            </Section>
 
-            <View
-              flex={1}
-              backgroundColor="$backgroundElevated"
-              borderWidth={1}
-              borderColor="$borderDefault"
-              borderRadius="$md"
-              padding="$4"
-              flexDirection="column"
-              gap="$2"
+            <Section
+              ariaLabel={t("sections.risks")}
+              title={t("sections.risks")}
+              className={styles.cardStretch}
             >
-              <View flexDirection="row" alignItems="center" gap="$2">
-                <AlertTriangle size={16} color="var(--warning)" aria-hidden />
-                <Text color="$color" fontSize="$body" fontWeight="bold">
-                  {t("sections.risks")}
-                </Text>
+              <View flexDirection="column" gap="$3">
+                {session.sessionData.analysis.risks.map((risk) => (
+                  <View key={risk} flexDirection="row" alignItems="flex-start" gap="$2.5">
+                    <AlertTriangle
+                      size={16}
+                      color="var(--warning)"
+                      style={{ flexShrink: 0, marginTop: 3 }}
+                      aria-hidden
+                    />
+                    <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={20} flex={1}>
+                      {risk}
+                    </Text>
+                  </View>
+                ))}
               </View>
-              {session.sessionData.analysis.risks.map((risk) => (
-                <Text key={risk} color="$colorSecondary" fontSize="$caption">
-                  • {risk}
-                </Text>
-              ))}
-            </View>
-          </View>
+            </Section>
+          </div>
 
-          {/* Allocation Advice */}
-          <View
-            backgroundColor="$backgroundElevated"
-            borderWidth={1}
-            borderColor="$borderDefault"
-            borderRadius="$md"
-            padding="$4"
-            flexDirection="column"
-            gap="$2"
+          {/* Orientation d'allocation */}
+          <Section
+            ariaLabel={t("sections.allocationAdvice")}
+            title={t("sections.allocationAdvice")}
           >
-            <View flexDirection="row" alignItems="center" gap="$2">
-              <PieChart size={16} color="var(--color)" aria-hidden />
-              <Text color="$color" fontSize="$body" fontWeight="bold">
-                {t("sections.allocationAdvice")}
+            <View flexDirection="row" alignItems="flex-start" gap="$3">
+              <PieChart
+                size={18}
+                color="var(--colorSecondary)"
+                style={{ flexShrink: 0, marginTop: 2 }}
+                aria-hidden
+              />
+              <Text color="$colorSecondary" fontSize="$bodySm" lineHeight={22} flex={1}>
+                {session.sessionData.analysis.allocationAdvice}
               </Text>
             </View>
-            <Text color="$colorSecondary" fontSize="$body" lineHeight="$sm">
-              {session.sessionData.analysis.allocationAdvice}
-            </Text>
-          </View>
+          </Section>
 
-          {/* Recommendations List */}
-          <View flexDirection="column" gap="$3">
-            <Text color="$color" fontSize="$body" fontWeight="bold">
-              {t("sections.recommendations")} ({session.sessionData.analysis.recommendations.length}
-              )
-            </Text>
-            {session.sessionData.analysis.recommendations.map((rec) => (
-              <AdvisoryRecommendationCard
-                key={rec.id}
-                recommendation={rec}
-                provider={session.provider}
-                model={session.model}
-              />
-            ))}
-          </View>
+          {/* Recommandations d'arbitrage */}
+          <Section
+            ariaLabel={t("sections.recommendations")}
+            title={`${t("sections.recommendations")} (${session.sessionData.analysis.recommendations.length})`}
+          >
+            <View flexDirection="column" gap="$3">
+              {session.sessionData.analysis.recommendations.map((rec) => (
+                <AdvisoryRecommendationCard
+                  key={rec.id}
+                  recommendation={rec}
+                  provider={session.provider}
+                  model={session.model}
+                />
+              ))}
+            </View>
+          </Section>
         </View>
       )}
     </View>

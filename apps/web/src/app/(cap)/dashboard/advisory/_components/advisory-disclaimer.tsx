@@ -15,33 +15,46 @@ export function AdvisoryDisclaimer() {
     <View
       role="region"
       aria-label={t("disclaimer.title")}
+      flexDirection="row"
+      alignItems="flex-start"
+      gap="$3"
+      paddingVertical="$3.5"
+      paddingHorizontal="$4"
+      borderRadius="$lg"
       backgroundColor="$backgroundMuted"
-      borderWidth={1}
-      borderColor="$borderDefault"
-      borderRadius="$md"
-      padding="$4"
-      flexDirection="column"
-      gap="$2"
     >
-      <View flexDirection="row" alignItems="center" gap="$2">
-        <ShieldAlert size={18} color="var(--warning)" aria-hidden />
-        <View
-          backgroundColor="$backgroundElevated"
-          paddingHorizontal="$2"
-          paddingVertical="$1"
-          borderRadius="$xs"
-        >
-          <Text color="$warning" fontSize="$caption" fontWeight="bold">
-            {t("disclaimer.badge")}
+      <ShieldAlert
+        size={16}
+        color="var(--warning)"
+        style={{ flexShrink: 0, marginTop: 2 }}
+        aria-hidden
+      />
+      <View flexDirection="column" gap="$1" flex={1}>
+        <View flexDirection="row" alignItems="center" gap="$2" flexWrap="wrap">
+          <Text color="$color" fontSize="$bodySm" fontWeight="600">
+            {t("disclaimer.title")}
           </Text>
+          <View
+            backgroundColor="$backgroundElevated"
+            paddingHorizontal="$2"
+            paddingVertical={2}
+            borderRadius="$xs"
+          >
+            <Text
+              color="$warning"
+              fontSize={11}
+              fontWeight="600"
+              textTransform="uppercase"
+              letterSpacing={0.5}
+            >
+              {t("disclaimer.badge")}
+            </Text>
+          </View>
         </View>
-        <Text color="$color" fontSize="$body" fontWeight="bold">
-          {t("disclaimer.title")}
+        <Text color="$colorSecondary" fontSize="$caption" lineHeight={18}>
+          {t("disclaimer.body")}
         </Text>
       </View>
-      <Text color="$colorSecondary" fontSize="$caption" lineHeight="$sm">
-        {t("disclaimer.body")}
-      </Text>
     </View>
   );
 }

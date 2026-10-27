@@ -30,7 +30,7 @@ export default async function AdvisoryPage() {
         display: "flex",
         flexDirection: "column",
         gap: 24,
-        padding: "16px 8px 0",
+        padding: "8px 4px 0",
         width: "100%",
       }}
     >
