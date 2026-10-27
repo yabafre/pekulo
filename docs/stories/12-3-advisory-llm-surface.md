@@ -1,7 +1,7 @@
 # Story: 12-3-advisory-llm-surface — Advisory LLM surface : analyse & recommandations sur le snapshot déterministe
 
 **Epic:** Epic 12 — Private internal AI advisory tool (internal / non-product)
-**Status:** in-progress
+**Status:** review
 **Source:** ticket
 **Ticket:** #116
 **Ticket URL:** https://github.com/yabafre/pekulo/issues/116
