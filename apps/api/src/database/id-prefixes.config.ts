@@ -79,6 +79,11 @@ export const ID_PREFIXES = {
   // as UserPref: the prefixed-ids extension MUST NOT inject, or the grant
   // upsert's create branch throws MissingPrefixError.
   AdvisoryAccess: null,
+
+  // AC-3 (verbatim from story 12-3):
+  //   has its sensitive payload encrypted at rest with AES-256-GCM, and is registered
+  //   in id-prefixes.config.ts, settings.export.ts, settings.deletion.ts, and rls-audit.ts.
+  AdvisorySession: "advs",
 } as const satisfies Record<string, string | null>;
 
 export type ModelName = keyof typeof ID_PREFIXES;

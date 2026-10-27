@@ -146,6 +146,11 @@ export const DELETION_NODES: readonly DeletionNode[] = [
     model: "AdvisoryAccess",
     remove: (client, userId) => client.advisoryAccess.deleteMany({ where: { userId } }),
   },
+  {
+    key: "advisory_sessions",
+    model: "AdvisorySession",
+    remove: (client, userId) => client.advisorySession.deleteMany({ where: { userId } }),
+  },
 ];
 
 /**
