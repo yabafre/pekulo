@@ -417,7 +417,7 @@
   Expected: Tests pass, exit code 0.
   Commit: `git add apps/api/src/modules/advisory/advisory-posture.ts apps/api/src/modules/advisory/advisory-posture.test.ts apps/api/src/modules/advisory/advisory-grounding-validator.ts apps/api/src/modules/advisory/advisory-grounding-validator.test.ts && git commit -m "feat(#116): add EU-posture assertor and strict grounding validator"`
 
-- [ ] **T5 — Dedicated advisory prompt builder** [AC: AC-1]
+- [x] **T5 — Dedicated advisory prompt builder** [AC: AC-1]
   Build the prompt composer that feeds the snapshot and strictly sets rules for grounding and instrument advice.
 
   **Path:** `apps/api/src/modules/advisory/advisory-prompt-builder.ts` (create)
