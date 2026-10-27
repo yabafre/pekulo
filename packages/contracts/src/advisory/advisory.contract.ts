@@ -9,6 +9,7 @@ import { oc } from "@orpc/contract";
 import {
   advisoryAccessEntrySchema,
   advisoryAccessListSchema,
+  advisorySnapshotSchema,
   advisoryStatusSchema,
   advisoryTargetInputSchema,
 } from "@pekulo/validators";
@@ -34,6 +35,7 @@ const advisoryErrors = {
 
 export const advisoryContractV1 = {
   status: oc.output(advisoryStatusSchema).errors(advisoryErrors),
+  snapshot: oc.output(advisorySnapshotSchema).errors(advisoryErrors),
   grant: oc
     .input(advisoryTargetInputSchema)
     .output(advisoryAccessEntrySchema)
