@@ -74,7 +74,7 @@ describe("deleteUserData (story 11-2)", () => {
     const recorder = newRecorder();
     const result = await deleteUserData(fakeClient(recorder), USER_A);
 
-    expect(DELETION_NODES).toHaveLength(21);
+    expect(DELETION_NODES).toHaveLength(22);
     expect(Object.keys(result.rowsDeleted).sort()).toEqual(
       DELETION_NODES.map((node) => node.key).sort(),
     );
@@ -109,6 +109,7 @@ describe("deleteUserData (story 11-2)", () => {
       "llmOptIn",
       "userPref",
       "dashboardLayout",
+      "advisoryAccess",
     ]);
   });
 

@@ -14,8 +14,8 @@ import { Prisma } from "@generated/prisma/client";
 import { ID_PREFIXES, MissingPrefixError, getPrefix } from "./id-prefixes.config";
 
 describe("id-prefixes.config", () => {
-  it("exposes exactly 23 model entries (… + 8-2 UserPref:null)", () => {
-    expect(Object.keys(ID_PREFIXES)).toHaveLength(23);
+  it("exposes exactly 24 model entries (23 existing + 12-1 AdvisoryAccess:null)", () => {
+    expect(Object.keys(ID_PREFIXES)).toHaveLength(24);
   });
 
   it("every prefix matches /^[a-z]{2,4}$/ (or is null for brownfield models)", () => {
@@ -41,6 +41,7 @@ describe("id-prefixes.config", () => {
     const expected = [
       "Account",
       "AccountBalanceLog",
+      "AdvisoryAccess",
       "Holding",
       "HoldingLot",
       "Transaction",
@@ -64,6 +65,13 @@ describe("id-prefixes.config", () => {
       "UserPref",
     ].sort();
     expect(Object.keys(ID_PREFIXES).sort()).toEqual(expected);
+  });
+
+  // Story 12-1 (ADR-0016 §4): advisory_access has a `user_id` PK (UUID FK to
+  // auth.users), no synthetic id — opt out of prefix injection (null), same
+  // shape as DashboardLayout / UserPref.
+  it("advisory access is registered null (user_id PK, opt-out)", () => {
+    expect(getPrefix("AdvisoryAccess")).toBeNull();
   });
 
   // Story 6-10 (FR-65): the logo caches use a natural-key PK (merchantKey /

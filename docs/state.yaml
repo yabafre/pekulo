@@ -267,7 +267,7 @@ sprint:
     # Ingested from GitHub issue #104 via aped-from-ticket (2026-05-29). Registered, NOT added to active sprint (auto_add: false).
     11-7-auth-hardening-httponly-csp: {status: done, depends_on: [], ticket: "#104", source: from_ticket, worktree: null, started_at: "2026-05-29T10:34:37Z", completed_at: "2026-05-29T11:04:11Z", reviewed_at: "2026-05-29T11:04:11Z"}
     # Epic 12 — Private internal AI advisory tool (internal/non-product; ADR-0016). Registered via aped-epics append 2026-06-02; NOT added to active sprint (active_epic stays 6).
-    12-1-advisory-access-gate: {status: pending, depends_on: [], ticket: "#114", worktree: null}
+    12-1-advisory-access-gate: {status: done, depends_on: [], ticket: "#114", worktree: null, started_at: "2026-10-27T13:04:00Z", completed_at: "2026-10-27T15:09:00Z", reviewed_at: "2026-10-27T15:09:00Z"}
     12-2-advisory-analysis-engine: {status: pending, depends_on: [12-1-advisory-access-gate, 1-1-compass-domain, 3-1-holdings-orpc-port, 4-1-realestate-domain, 5-1-transactions-record], ticket: "#115", worktree: null}
     12-3-advisory-llm-surface: {status: pending, depends_on: [12-2-advisory-analysis-engine, 6-1-llm-routing-and-providers], ticket: "#116", worktree: null}
     12-4-advisory-private-page: {status: pending, depends_on: [12-1-advisory-access-gate, 12-3-advisory-llm-surface, 0-10-pekulo-ui-migration], ticket: "#117", worktree: null}

@@ -24,6 +24,8 @@ import { createRealestateModule } from "../modules/realestate/realestate.module"
 import { createDashboardModule } from "../modules/dashboard/dashboard.module";
 import { createSettingsModule } from "../modules/settings/settings.module";
 import { createTransactionsModule } from "../modules/transactions/transactions.module";
+import { parseAdvisoryOwnerUserIds } from "../config/advisory-owner-ids";
+import { createAdvisoryModule } from "../modules/advisory/advisory.module";
 import {
   createSuggestionBackfillScheduler,
   type SuggestionBackfillScheduler,
@@ -47,6 +49,7 @@ export interface RuntimeDeps {
   transactionsModule: ReturnType<typeof createTransactionsModule>;
   logosModule: ReturnType<typeof createLogosModule>;
   settingsModule: ReturnType<typeof createSettingsModule>;
+  advisoryModule: ReturnType<typeof createAdvisoryModule>;
   suggestionBackfillTask: SuggestionBackfillScheduler;
 }
 
@@ -295,6 +298,14 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     }),
   });
 
+  // Story 12-1 (ADR-0016 §4) — private advisory access gate. The owner set is
+  // parsed from env here, at the composition root; the module itself never
+  // reads process.env.
+  const advisoryModule = createAdvisoryModule({
+    prismaService,
+    ownerUserIds: parseAdvisoryOwnerUserIds(input.env.ADVISORY_OWNER_USER_IDS),
+  });
+
   const orpcRouter: PekuloRpcRouter = {
     hypothesis: hypothesisModule.router,
     compass: compassModule.router,
@@ -308,6 +319,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     bankaggregator: bankAggregatorModule.router,
     llm: llmModule.router,
     settings: settingsModule.router,
+    advisory: advisoryModule.router,
   };
 
   return {
@@ -322,6 +334,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     transactionsModule,
     logosModule,
     settingsModule,
+    advisoryModule,
     suggestionBackfillTask,
   };
 }

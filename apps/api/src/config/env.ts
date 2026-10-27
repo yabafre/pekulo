@@ -129,6 +129,13 @@ const envSchema = z.object({
   BRANDFETCH_SEARCH_BASE: z.string().url().default("https://api.brandfetch.io/v2/search"),
   BRANDFETCH_LOGO_BASE: z.string().url().default("https://cdn.brandfetch.io"),
   BRANDFETCH_LOGO_CLIENT_ID: optionalString(z.string().min(1)),
+  // Private advisory surface (story 12-1 — ADR-0016 §4). Comma-separated
+  // Supabase user IDs that own the surface: they are implicitly allowlisted
+  // and are the only callers allowed to grant/ban. Optional — unset locks
+  // the owner set down and leaves only explicit advisory_access rows.
+  // Parsed into a Set at boot by config/advisory-owner-ids.ts; an invalid
+  // UUID fails boot rather than silently dropping an owner.
+  ADVISORY_OWNER_USER_IDS: optionalString(z.string()),
 });
 
 export type Env = z.infer<typeof envSchema>;

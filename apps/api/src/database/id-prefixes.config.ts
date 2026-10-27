@@ -73,6 +73,12 @@ export const ID_PREFIXES = {
   // shape as DashboardLayout: the prefixed-ids extension MUST NOT inject,
   // or the getOrCreate upsert's create branch throws MissingPrefixError.
   UserPref: null,
+
+  // AdvisoryAccess (story 12-1, ADR-0016 §4) — PK is `user_id` (UUID FK to
+  // auth.users), one row per user, no synthetic id column. Same opt-out shape
+  // as UserPref: the prefixed-ids extension MUST NOT inject, or the grant
+  // upsert's create branch throws MissingPrefixError.
+  AdvisoryAccess: null,
 } as const satisfies Record<string, string | null>;
 
 export type ModelName = keyof typeof ID_PREFIXES;

@@ -6,3 +6,4 @@ export { createJwtVerifier } from "./jwt-verifier";
 export type { UserContext } from "./require-user-context";
 export { requireUserContext } from "./require-user-context";
 export * from "./opt-in-guard";
+export * from "./advisory-access-guard";
