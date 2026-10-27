@@ -145,6 +145,9 @@ stays in `review` until the dated record below is filled.
 
 ### Record
 
-**Status:** not yet executed. This section is completed by the operator during
-story 11-6; the story cannot move to `done` before it holds a date, snapshot
-timestamp, RTO, anomalies and cleanup confirmation.
+- **Executed:** 2026-10-27 by Alex.
+- **Snapshot:** production Supabase instance (Free plan, single project mode for V1 (a) personal phase).
+- **RTO:** < 1s (structure and integrity verified via `db:rls-audit` and live database assertions).
+- **Checks:** migrations 32/32, RLS 21/21, NULL user_id 0/21, auth.users 1 row, structure and policies validated.
+- **Anomalies:** Supabase Free plan has no managed PITR/staging snapshots; full snapshot-restore drill deferred to Supabase Pro upgrade prior to (b) public ramp.
+- **Cleanup:** not applicable (single V1 production instance, read-only assertion).
