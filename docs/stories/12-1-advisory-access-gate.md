@@ -355,7 +355,7 @@
 
   **Commit:** `git commit -m "feat(#114): advisory oRPC contract (AC-8)"`
 
-- [ ] **T4 — Add the platform guard** [AC: AC-1, AC-7]
+- [x] **T4 — Add the platform guard** [AC: AC-1, AC-7]
   **Path:** `apps/api/src/platform/security/advisory-access-guard.ts` (create)
 
   ```ts
