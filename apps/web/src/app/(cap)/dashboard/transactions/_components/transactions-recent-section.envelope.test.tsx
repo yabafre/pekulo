@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderWithTamagui } from "../../../../../../test/setup";
 
-const { listTransactionsMock, listAccountsMock } = vi.hoisted(() => ({
+const { listTransactionsMock, listAccountsMock, pendingSuggestionsMock } = vi.hoisted(() => ({
   listTransactionsMock: vi.fn(),
   listAccountsMock: vi.fn(async () => [
     {
@@ -17,6 +17,10 @@ const { listTransactionsMock, listAccountsMock } = vi.hoisted(() => ({
       updatedAt: new Date(),
     },
   ]),
+  pendingSuggestionsMock: vi.fn(() => ({
+    data: { items: [], totalCount: 0, page: 1, pageSize: 10 },
+    isLoading: false,
+  })),
 }));
 vi.mock("../_actions/transactions-actions", () => ({
   createTransaction: vi.fn(),
@@ -45,7 +49,7 @@ vi.mock("nuqs", () => ({
   useQueryState: () => [1, () => {}],
 }));
 vi.mock("../_hooks/use-pending-suggestions", () => ({
-  usePendingSuggestions: () => ({ data: { items: [], totalCount: 0, page: 1, pageSize: 10 } }),
+  usePendingSuggestions: () => pendingSuggestionsMock(),
 }));
 vi.mock("../../_llm/_components/ai-transparency-notice", () => ({
   AiTransparencyNotice: () => <span>__ai_notice__</span>,
@@ -138,5 +142,37 @@ describe("TransactionsRecentSection envelope (AC-13)", () => {
     await findByText("IA");
     // The notice mounts (sentinel) — auto-applied row present AND no pending.
     await findByText("__ai_notice__");
+  });
+
+  test("11-5 — waits for usePendingSuggestions to finish loading before mounting AiTransparencyNotice", async () => {
+    const autoApplied: Transaction = {
+      ...fixtureTx,
+      id: "tx_ddddddddddddddddddddd",
+      label: "Spotify",
+      category: "abonnements",
+      suggestedCategory: "abonnements",
+      suggestedConfidence: 0.81,
+      suggestedRoute: "ollama",
+    };
+    pendingSuggestionsMock.mockReturnValue({
+      data: undefined as never,
+      isLoading: true,
+    });
+    try {
+      listTransactionsMock.mockResolvedValueOnce({ items: [autoApplied], nextCursor: null });
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { findByText, queryByText } = renderWithTamagui(
+        <QueryClientProvider client={qc}>
+          <TransactionsRecentSection />
+        </QueryClientProvider>,
+      );
+      await findByText(/Spotify/);
+      expect(queryByText("__ai_notice__")).toBeNull();
+    } finally {
+      pendingSuggestionsMock.mockReturnValue({
+        data: { items: [], totalCount: 0, page: 1, pageSize: 10 },
+        isLoading: false,
+      });
+    }
   });
 });

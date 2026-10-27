@@ -562,9 +562,16 @@
     "optIn": {
       "title": "Intelligence artificielle",
       "ariaLabel": "Paramètres d'intelligence artificielle",
+      "intro": "Pekulo catégorise vos transactions automatiquement. Les modèles tournent par défaut sur votre appareil (Apple Intelligence) ou notre serveur privé (Ollama). Aucune donnée ne quitte ce périmètre sauf si vous activez explicitement les modèles tiers ci-dessous.",
       "toggleLabel": "Modèles d'IA tiers",
       "toggleSub": "Autoriser l'envoi de certaines transactions à une API tierce (Mistral, hébergée en UE) pour la catégorisation. Désactivé par défaut.",
       "loading": "Chargement…"
+    },
+    "aiNotice": {
+      "ariaLabel": "Information sur l'intelligence artificielle",
+      "body": "Vos catégories peuvent être suggérées — ou, pour vos imports (CSV / banque), appliquées automatiquement — par un modèle d'IA. Vous gardez le dernier mot : chaque catégorie reste modifiable à tout moment. Aucune donnée n'est envoyée à un modèle tiers sans votre accord (Paramètres → Intelligence artificielle).",
+      "dismiss": "Compris",
+      "dismissAriaLabel": "Compris — fermer l'information sur l'intelligence artificielle"
     },
     "activityLogLink": {
       "title": "Journal d'activité IA",

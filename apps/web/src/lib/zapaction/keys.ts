@@ -231,10 +231,12 @@ setTagRegistry({
   [milestonesTags.list()]: [milestonesKeys.list(), compassKeys.setup()],
   [accountsTags.all()]: [accountsKeys.list(), dashboardKeys.overview()],
   [accountsTags.list()]: [accountsKeys.list(), dashboardKeys.overview()],
-  // Story 6-3 — llm opt-in. The setLlmOptIn mutation invalidates the single
-  // optIn read so the toggle state survives a reload.
-  [llmTags.all()]: [llmKeys.optIn()],
-  [llmTags.optIn()]: [llmKeys.optIn()],
+  // Story 6-3 + 11-5 (DR-12 / AC-2) — llm opt-in. The setLlmOptIn mutation
+  // invalidates both the optIn read AND aiNotice so an opt-out → opt-in
+  // transition immediately re-triggers the AI transparency notice without
+  // waiting for useAiNotice's 60s staleTime.
+  [llmTags.all()]: [llmKeys.optIn(), llmKeys.aiNotice()],
+  [llmTags.optIn()]: [llmKeys.optIn(), llmKeys.aiNotice()],
   // Story 6-4 (DR-12) — markAiNotice invalidates the seen-state read.
   [llmTags.aiNotice()]: [llmKeys.aiNotice()],
   // Holdings — `list` invalidates the holdings list. Once the portfolio
