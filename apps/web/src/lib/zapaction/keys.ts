@@ -61,6 +61,22 @@ export const llmTags = createFeatureTags("llm", {
   aiNotice: () => ["aiNotice"] as const,
 });
 
+// AC-1 (verbatim from story 12-4-advisory-private-page:17):
+//   Given an allowlisted user (status: "active" or owner: true), When they open /dashboard/advisory,
+//   Then the analysis + recommendations render with the prominent "private internal tool — not regulated investment advice" notice visible.
+// AC-3 (verbatim from story 12-4-advisory-private-page:19):
+//   Given the rendered advisory page, When analysis and recommendations are shown,
+//   Then the active provider, model, EU-region posture, and no-train guarantee are surfaced for transparency.
+const ADVISORY_KEY = "advisory" as const;
+export const advisoryKeys = createFeatureKeys(ADVISORY_KEY, {
+  status: () => ["status"] as const,
+  latestSession: () => ["latestSession"] as const,
+  snapshot: () => ["snapshot"] as const,
+});
+export const advisoryTags = createFeatureTags(ADVISORY_KEY, {
+  session: () => ["session"] as const,
+});
+
 const HOLDINGS_KEY = "holdings" as const;
 export const holdingsKeys = createFeatureKeys(HOLDINGS_KEY, {
   list: () => ["list"] as const,
@@ -303,4 +319,7 @@ setTagRegistry({
     [MONTHLY_KEY],
     dashboardKeys.overview(),
   ],
+  // Story 12-4 — advisory session invalidation. Invalidation refreshes both
+  // latest session analysis and the snapshot cache.
+  [advisoryTags.session()]: [advisoryKeys.latestSession(), advisoryKeys.snapshot()],
 });

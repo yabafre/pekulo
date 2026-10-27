@@ -671,5 +671,55 @@
     "historyTitle": "Historique",
     "mensuelCurrent": "Chargement du mois en cours",
     "mensuelCloture": "Chargement de la clôture"
+  },
+  "advisory": {
+    "title": "Conseil patrimonial IA — Espace Privé",
+    "subtitle": "Analyse patrimoniale et recommandations d'arbitrage strictement confidentielles",
+    "disclaimer": {
+      "badge": "Outil interne privé",
+      "title": "Avertissement réglementaire",
+      "body": "Cet outil est strictement réservé à un usage interne et personnel au sein d'un cercle restreint autorisé. Il ne constitue en aucun cas un conseil en investissement réglementé (au sens du statut CIF ou de la directive MIF II), ni une incitation à négocier des instruments financiers."
+    },
+    "actions": {
+      "generate": "Générer une analyse",
+      "generating": "Analyse en cours…",
+      "refresh": "Actualiser l'analyse"
+    },
+    "emptyState": {
+      "title": "Aucune analyse disponible",
+      "description": "Lancez votre première analyse patrimoniale privée pour générer un diagnostic complet et des recommandations d'arbitrage."
+    },
+    "sections": {
+      "overview": "Synthèse générale",
+      "strengths": "Points forts du patrimoine",
+      "risks": "Points de vigilance & Risques",
+      "allocationAdvice": "Stratégie d'allocation",
+      "recommendations": "Recommandations d'arbitrage"
+    },
+    "recommendations": {
+      "action": {
+        "buy": "Achat",
+        "sell": "Vente",
+        "hold": "Conserver",
+        "trim": "Alléger",
+        "rebalance": "Rééquilibrer",
+        "allocate": "Allouer",
+        "reduce": "Réduire"
+      },
+      "priority": {
+        "high": "Priorité Haute",
+        "medium": "Priorité Moyenne",
+        "low": "Priorité Basse"
+      },
+      "target": "Cible : {target}",
+      "instrument": "Instrument proposé :",
+      "rationale": "Justification :"
+    },
+    "providerBadge": {
+      "posture": "Hébergement UE · Politique Zero Data Retention · Aucun entraînement",
+      "model": "Modèle : {model}",
+      "provider": "Fournisseur : {provider}",
+      "generatedAt": "Généré le {date}"
+    }
   }
 }

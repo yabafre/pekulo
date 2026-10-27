@@ -1,0 +1,397 @@
+/* apps/web/src/app/(cap)/dashboard/advisory/_components/advisory.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.pageTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color);
+  letter-spacing: -0.015em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+@media (min-width: 1024px) {
+  .pageTitle {
+    font-size: 26px;
+  }
+}
+
+.pageSubtitle {
+  font-size: 13px;
+  color: var(--colorTertiary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Disclaimer Banner */
+.disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background-color: var(--backgroundMuted);
+}
+
+.disclaimerIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--warning);
+}
+
+.disclaimerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.disclaimerHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.disclaimerTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color);
+  margin: 0;
+}
+
+.disclaimerBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background-color: var(--backgroundElevated);
+  color: var(--warning);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.disclaimerBody {
+  font-size: 12px;
+  color: var(--colorSecondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Provider Meta Pill */
+.providerMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--colorTertiary);
+  padding: 0 2px;
+}
+
+.providerPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background-color: var(--backgroundMuted);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--colorSecondary);
+}
+
+/* Financial Stats Row in Overview */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 768px) {
+  .statsRow {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+.statTile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background-color: var(--backgroundElevated);
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--colorTertiary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.statSub {
+  font-size: 11px;
+  color: var(--colorTertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.overviewText {
+  font-size: 14px;
+  color: var(--colorSecondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 2-Column Grid for Diagnostic */
+.grid2Col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .grid2Col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.cardStretch {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.diagnosticList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diagnosticItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.diagnosticIcon {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.diagnosticItemText {
+  font-size: 13px;
+  color: var(--colorSecondary);
+  line-height: 1.5;
+  flex: 1;
+  margin: 0;
+}
+
+/* Stratégie d'allocation */
+.allocationBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.allocationIcon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--colorSecondary);
+}
+
+.allocationText {
+  font-size: 14px;
+  color: var(--colorSecondary);
+  line-height: 1.6;
+  flex: 1;
+  margin: 0;
+}
+
+/* Recommandations d'arbitrage */
+.recommendationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendationCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background-color: var(--backgroundElevated);
+  transition: background-color 150ms ease-out;
+}
+
+.recommendationCard:hover {
+  background-color: var(--backgroundMuted);
+}
+
+.cardHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cardTitleCluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.actionBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.badgeBuy {
+  background-color: rgba(0, 210, 106, 0.12);
+  color: var(--gain);
+}
+
+.badgeSell {
+  background-color: rgba(255, 92, 92, 0.12);
+  color: var(--loss);
+}
+
+.badgeTrim {
+  background-color: rgba(251, 191, 36, 0.12);
+  color: var(--warning);
+}
+
+.badgeRebalance {
+  background-color: rgba(47, 115, 255, 0.12);
+  color: var(--data-blue);
+}
+
+.badgeHold {
+  background-color: var(--backgroundMuted);
+  color: var(--colorSecondary);
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.priorityBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: var(--backgroundMuted);
+  color: var(--colorTertiary);
+}
+
+.priorityHigh {
+  color: var(--warning);
+  background-color: rgba(251, 191, 36, 0.10);
+}
+
+.targetRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--colorTertiary);
+  font-weight: 500;
+}
+
+.rationaleText {
+  font-size: 13px;
+  color: var(--colorSecondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.instrumentBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: var(--backgroundMuted);
+}
+
+.instrumentHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.instrumentSymbol {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color);
+  font-variant-numeric: tabular-nums;
+}
+
+.instrumentIsin {
+  font-size: 11px;
+  color: var(--colorTertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.instrumentRationale {
+  font-size: 12px;
+  color: var(--colorSecondary);
+  line-height: 1.45;
+  margin: 0;
+}
