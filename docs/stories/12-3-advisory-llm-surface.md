@@ -1,7 +1,7 @@
 # Story: 12-3-advisory-llm-surface — Advisory LLM surface : analyse & recommandations sur le snapshot déterministe
 
 **Epic:** Epic 12 — Private internal AI advisory tool (internal / non-product)
-**Status:** review
+**Status:** done
 **Source:** ticket
 **Ticket:** #116
 **Ticket URL:** https://github.com/yabafre/pekulo/issues/116
@@ -896,3 +896,48 @@ Successfully implemented Story 12-3 (advisory LLM surface):
 - `bun --filter='@pekulo/api' run typecheck`: tsc --noEmit exit 0.
 - `bun --filter='@pekulo/api' run lint`: oxlint exit 0.
 - `bun --filter='@pekulo/api' run db:rls-migration-audit`: OK — 23 user-data tables, all RLS-guarded and reachable by auth.users cascade.
+
+## Review Record
+
+**Date:** 2026-10-27
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+- [HIGH] Grounding validator false-positives on recommendation IDs > 10, tickers and holding labels [apps/api/src/modules/advisory/advisory-grounding-validator.ts:92-112]
+  - Source: Code & Edge Auditor
+  - Resolution: `5083cbf` fix(116): eliminate grounding validator false-positives [aped-review]
+- [HIGH] Grounding validator failure on negative numbers / losses in financial snapshot [apps/api/src/modules/advisory/advisory-grounding-validator.ts:10-18]
+  - Source: Edge Auditor
+  - Resolution: `5083cbf` fix(116): eliminate grounding validator false-positives [aped-review]
+- [HIGH] Fragile markdown code-fence parsing in advisory LLM service [apps/api/src/modules/advisory/advisory-llm.service.ts:96-99]
+  - Source: Code & Edge Auditor
+  - Resolution: `5d6c79b` fix(116): harden json fence parsing and client timeout [aped-review]
+- [LOW] Hardcoded 10-second timeout on 2048-token advisory LLM client [apps/api/src/modules/llm/services/third-party-client.ts:19, 26-30]
+  - Source: Edge Auditor
+  - Resolution: `5d6c79b` fix(116): harden json fence parsing and client timeout [aped-review]
+- [LOW] Substring matching in provider posture assertion [apps/api/src/modules/advisory/advisory-posture.ts:22-24]
+  - Source: Edge Auditor
+  - Resolution: `5d6c79b` fix(116): harden json fence parsing and client timeout [aped-review]
+- [LOW] Advisory LLM types not re-exported from `@pekulo/types` [packages/types/src/advisory/advisory.types.ts:1-19]
+  - Source: Code Auditor
+  - Resolution: `75a5ec1` fix(116): re-export advisory LLM types and clean module stub [aped-review]
+- [LOW] Unconfigured fallback stub in advisory module queries database with empty userId [apps/api/src/modules/advisory/advisory.module.ts:71]
+  - Source: Edge Auditor
+  - Resolution: `75a5ec1` fix(116): re-export advisory LLM types and clean module stub [aped-review]
+
+#### Dismissed
+- [LOW] Pre-existing doc-sync gap for ADR-0016 in PRD and Architecture [docs/epics-context/epic-12-context.md:9]
+  - Source: Code Auditor
+  - Rationale: Pre-existing doc-debt item documented in epic-12-context and ADR-0016 §Consequences, to be addressed in a dedicated doc-sync pass.
+
+### Verification
+- Test command: `bun --filter='@pekulo/api' run test && bun --filter='@pekulo/api' run typecheck && bun --filter='@pekulo/api' run lint && bun run scripts/rls-audit.ts && bun run scripts/rls-migration-audit.ts`
+- Test output (final pass): 1123 pass, 0 fail across 135 files; tsc --noEmit exit 0; oxlint exit 0; 23 user-data tables checked and RLS-guarded.
+- Visual verification: N/A — backend-only story without preview app (Aria not dispatched).
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/116#issuecomment-6448353030
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/151
