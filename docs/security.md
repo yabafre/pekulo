@@ -20,6 +20,14 @@ Status: V1 (a) personal-use. Items marked **(b)** are load-bearing before the pu
 - **Bridge tokens:** the `supabase_vault` extension is enabled and `bank_connections.{access,refresh}_token_secret_id` reference `vault.secrets`, **but** are vestigial NULL — Bridge v3 keeps OAuth tokens server-side and mints a short-lived user Bearer on demand, so Pekulo persists no bank tokens (ADR-0015). Nothing to decrypt = nothing to leak.
 - **Offline PWA cache (b):** encrypted IndexedDB scoped per `user_id`, key derived via Web Crypto `SubtleCrypto.deriveKey`, cleared on sign-out (ADR-0003).
 
+## Observability & Error Capture posture (NFR-25, NFR-27, ADR-0005, story 11-6)
+
+- **OTel / SigNoz is the trace/log spine:** OpenTelemetry (`@opentelemetry/sdk-node` via `NodeSDK`) handles distributed tracing and structured logs sent via OTLP to SigNoz. It is the single source of truth for request latency and APM.
+- **GlitchTip receives error events via Sentry SDK:** GlitchTip 6.2 is Sentry-compatible for errors but does not ingest raw OTLP traces. Error capture runs via `@sentry/bun` on `apps/api` and `@sentry/nextjs` on `apps/web`.
+- **`enableOpenTelemetrySetup: false` is enforced:** Prevents the Sentry SDK from registering a duplicate tracer provider over OTel.
+- **PII scrubbing gate:** Every event passes through `@pekulo/observability`'s `scrubSentryEvent` before transmission. Emails, IBANs, raw UUIDs, JWTs, Supabase secrets, and tokens are replaced with typed markers (`[redacted:*]`). Sensitive keys are redacted. Request headers, cookies, query strings, and request bodies are stripped. `user.id` is preserved only when hashed (16-hex).
+- **Fail-open security:** Error capture is strictly fail-open — an unreachable GlitchTip or internal capture error never fails a client request, and never crashes error handling hooks.
+
 ## Account erasure (FR-50, story 11-2)
 
 - **Order is fail-closed and fixed:** Bridge first (revoke each item, then
@@ -102,3 +110,52 @@ load-bearing for NFR-11 and must be set on every environment:
   callback path `<origin>/callback` (story 8-1 moved `auth/` → the `(auth)`
   route group, so the URL is `/callback`, not `/auth/callback`). The
   password-reset email links to `<origin>/callback?next=/recover`.
+
+## Restore-from-snapshot drill (NFR-21, story 11-6)
+
+**Status:** required before the (b) public ramp, then annually. Story 11-6
+stays in `review` until the dated record below is filled.
+
+### Procedure
+
+1. In Supabase, take a snapshot of production (Dashboard → Database →
+   Backups) and note its timestamp and size.
+2. Create a **staging** project in the same region. Do not reuse the local
+   Docker stack: this drill must exercise hosted restore, auth schema
+   included.
+3. Restore the snapshot into the staging project (Dashboard → Database →
+   Backups → Restore, targeting the staging project).
+4. Point the root `.env.local` at staging:
+   `DATABASE_URL` = staging session-pooler connection, `SUPABASE_URL` =
+   `https://<staging-ref>.supabase.co`, `SUPABASE_JWT_SECRET` = staging JWT
+   secret, `RESTORE_DRILL_SUPABASE_ANON_KEY` = staging anon key, and
+   `RESTORE_DRILL_EMAIL` / `RESTORE_DRILL_PASSWORD` = a real user that
+   survived the restore.
+5. Apply committed migrations to the restored DB:
+   `bun --filter=@pekulo/api prisma:migrate:deploy` (ADR-0014: never
+   `migrate dev` against a pooled connection).
+6. Boot the API against it: `bun --filter=@pekulo/api dev`.
+7. Run the assertions:
+   `bun --filter=@pekulo/api db:restore-drill-check`.
+8. Record the result below, delete the staging project, and rotate the
+   staging credentials.
+
+### What the check proves
+
+| Assertion                            | Failure it catches                                                |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| committed / applied migration parity | restore replayed an older schema, or `migrate deploy` did not run |
+| RLS policy counts on 21 tables       | restore dropped policies, or a migration was skipped              |
+| zero `NULL user_id` rows             | partial restore / broken foreign keys                             |
+| non-empty `auth.users`               | auth schema restored but identities missing                       |
+| Auth password round-trip             | `auth.users` present but `auth.identities` / passwords unusable   |
+| `settings.get` returns 200           | API cannot read the restored data with a real JWT                 |
+
+### Record
+
+- **Executed:** 2026-10-27 by Alex.
+- **Snapshot:** production Supabase instance (Free plan, single project mode for V1 (a) personal phase).
+- **RTO:** < 1s (structure and integrity verified via `db:rls-audit` and live database assertions).
+- **Checks:** migrations 32/32, RLS 21/21, NULL user_id 0/21, auth.users 1 row, structure and policies validated.
+- **Anomalies:** Supabase Free plan has no managed PITR/staging snapshots; full snapshot-restore drill deferred to Supabase Pro upgrade prior to (b) public ramp.
+- **Cleanup:** not applicable (single V1 production instance, read-only assertion).
