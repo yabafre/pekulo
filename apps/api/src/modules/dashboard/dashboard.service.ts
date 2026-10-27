@@ -21,7 +21,8 @@
 
 import { computeSnapshotFx } from "../../common/derive/portfolio-fx";
 import { computeMonthlyGap, computeRequiredCurve } from "../../common/derive/hypothesis-gap";
-import { createFxRatesReader } from "./fx-rates-source";
+import { createFxRatesReader } from "../../common/market-data/fx-rates-reader";
+import { priceHoldings } from "../../common/market-data/price-holdings";
 import type { HypothesisGap, HypothesisProjection } from "@pekulo/types";
 import type {
   ComputeProgressInput,
@@ -76,55 +77,6 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
   // source + a warn log — never a silent 8 % USD over-report.
   const fxRates = createFxRatesReader({ getRates: deps.getRates });
 
-  // Enrich each holding with a LIVE price; fall back to the stored lastPrice on
-  // a null ticker (manual entry) or any resolveQuote rejection (all tiers
-  // failed — NFR-18). The holdings module's 60s PricesCache fronts resolveQuote,
-  // so steady-state loads are cache hits.
-  //
-  // Two guards keep this linear at the NFR-16 cap (≤500 holdings): (1) dedup
-  // identical {ticker,kind,currency} so N lots of the same security resolve ONE
-  // quote, and (2) bound concurrency so a COLD cache (after the 60s TTL) cannot
-  // fan out 500 provider chains in a single tick (thundering-herd against the
-  // upstream price providers).
-  const PRICE_CONCURRENCY = 8;
-  async function priceHoldings(holdings: Holding[]): Promise<Holding[]> {
-    const quoteKey = (h: Holding) => `${h.ticker}|${h.kind}|${h.currency}`;
-    const distinct = new Map<string, PriceQuoteInput>();
-    for (const h of holdings) {
-      if (!h.ticker) continue;
-      const key = quoteKey(h);
-      if (!distinct.has(key)) {
-        distinct.set(key, { ticker: h.ticker, kind: h.kind, currency: h.currency });
-      }
-    }
-
-    const prices = new Map<string, number>();
-    const inputs = [...distinct.entries()];
-    for (let i = 0; i < inputs.length; i += PRICE_CONCURRENCY) {
-      const batch = inputs.slice(i, i + PRICE_CONCURRENCY);
-      // Sequential by design: each batch runs in parallel, but batches are awaited
-      // one at a time to bound the fan-out (parallelising ALL batches is exactly
-      // the unbounded thundering-herd this guard prevents — NFR-16).
-      // oxlint-disable-next-line no-await-in-loop -- bounded price fan-out, see above
-      await Promise.all(
-        batch.map(async ([key, input]) => {
-          try {
-            const quote = await deps.resolveQuote(input);
-            prices.set(key, quote.price);
-          } catch {
-            // graceful fallback — leave unset, the holding keeps its stored lastPrice
-          }
-        }),
-      );
-    }
-
-    return holdings.map((h) => {
-      if (!h.ticker) return h;
-      const price = prices.get(quoteKey(h));
-      return price === undefined ? h : { ...h, lastPrice: price };
-    });
-  }
-
   return {
     async getOverview(userId) {
       const [accounts, holdings, fx, equity, compassRow, recentActivity] = await Promise.all([
@@ -146,7 +98,7 @@ export function createDashboardService(deps: DashboardPorts): DashboardService {
         deps.listRecentActivity(userId, 5).catch(() => [] as DashboardActivity[]),
       ]);
 
-      const priced = await priceHoldings(holdings);
+      const priced = await priceHoldings(holdings, { resolveQuote: deps.resolveQuote });
       const snapshot = computeSnapshotFx(accounts, priced, fx.rates, "EUR");
       const totalWealthEur = snapshot.kpi.capitalTotal + equity.totalEquityEur;
 

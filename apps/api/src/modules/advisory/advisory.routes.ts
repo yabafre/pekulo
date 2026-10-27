@@ -8,6 +8,7 @@ import { implement } from "@orpc/server";
 import { advisoryContract } from "@pekulo/contracts";
 import { isPekuloError, PekuloError } from "../../common/errors";
 import type { AdvisoryAccessService } from "./advisory.service";
+import type { AdvisoryAnalysisService } from "./advisory-analysis.service";
 
 const impl = implement(advisoryContract).$context<{
   userId: string;
@@ -20,7 +21,10 @@ function requireUserId(userId: string | undefined): asserts userId is string {
   }
 }
 
-export function createAdvisoryRouter(deps: { service: AdvisoryAccessService }) {
+export function createAdvisoryRouter(deps: {
+  service: AdvisoryAccessService;
+  analysis: AdvisoryAnalysisService;
+}) {
   const gated = impl.use(async ({ context, errors, next }) => {
     try {
       requireUserId(context.userId);
@@ -85,6 +89,11 @@ export function createAdvisoryRouter(deps: { service: AdvisoryAccessService }) {
         }
         throw err;
       }
+    }),
+
+    snapshot: gated.snapshot.handler(async ({ context }) => {
+      requireUserId(context.userId);
+      return deps.analysis.getSnapshot(context.userId);
     }),
   });
 }

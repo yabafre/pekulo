@@ -1,7 +1,7 @@
-// apps/api/src/modules/dashboard/fx-rates-source.test.ts
+// apps/api/src/common/market-data/fx-rates-reader.test.ts
 // Last-known-good FX caching layer: live → stale → unavailable, never silent 1:1.
 import { describe, expect, test } from "bun:test";
-import { createFxRatesReader } from "./fx-rates-source";
+import { createFxRatesReader } from "./fx-rates-reader";
 import type { FxRates } from "@pekulo/validators";
 
 const RATES_A: FxRates = {
@@ -52,16 +52,16 @@ describe("createFxRatesReader", () => {
       },
     });
 
-    await reader.read("EUR"); // caches A
+    await reader.read("EUR");
     current = RATES_B;
-    const live = await reader.read("EUR"); // caches B
+    const live = await reader.read("EUR");
     expect(live.source).toBe("live");
     expect(live.rates).toEqual(RATES_B);
 
     current = new Error("down");
     const stale = await reader.read("EUR");
     expect(stale.source).toBe("stale");
-    expect(stale.rates).toEqual(RATES_B); // most recent live snapshot, not A
+    expect(stale.rates).toEqual(RATES_B);
   });
 
   test("cold start + failure → source 'unavailable', rates null, AND a structured warn log", async () => {
@@ -70,7 +70,7 @@ describe("createFxRatesReader", () => {
       getRates: async () => {
         throw new Error("frankfurter down");
       },
-      warn: (m) => logs.push(m),
+      warn: (message) => logs.push(message),
     });
 
     const out = await reader.read("EUR");
@@ -90,7 +90,7 @@ describe("createFxRatesReader", () => {
       },
       warn: () => {},
     });
-    // Should resolve, not reject.
+
     await expect(reader.read("EUR")).resolves.toMatchObject({ source: "unavailable" });
   });
 });

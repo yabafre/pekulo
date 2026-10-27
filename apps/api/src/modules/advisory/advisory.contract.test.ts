@@ -14,8 +14,9 @@ import {
 } from "@pekulo/contracts";
 
 describe("advisory contract", () => {
-  test("exposes status, grant, ban, list procedures", () => {
+  test("exposes status, snapshot, grant, ban, list procedures", () => {
     expect(advisoryContract).toHaveProperty("status");
+    expect(advisoryContract).toHaveProperty("snapshot");
     expect(advisoryContract).toHaveProperty("grant");
     expect(advisoryContract).toHaveProperty("ban");
     expect(advisoryContract).toHaveProperty("list");
