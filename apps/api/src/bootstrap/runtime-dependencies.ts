@@ -308,12 +308,12 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
     ownerUserIds: parseAdvisoryOwnerUserIds(input.env.ADVISORY_OWNER_USER_IDS),
     listAccounts: (userId) => accountsModule.service.list(userId),
     listHoldings: (userId) => holdingsModule.service.list(userId, { includeClosed: false }),
-    resolveQuote: (input) => holdingsModule.service.resolveQuote(input),
+    resolveQuote: (quoteInput) => holdingsModule.service.resolveQuote(quoteInput),
     getRates: (base) => holdingsModule.frankfurterClient.getRates(base),
     getTotalEquity: (userId) => realestateModule.service.getTotalEquity(userId),
     listProperties: (userId) => realestateModule.service.listProperties(userId),
     getCompass: (userId) => compassModule.service.getCompass(userId),
-    getMonthly: (userId, input) => monthlyModule.service.getMonthly(userId, input),
+    getMonthly: (userId, period) => monthlyModule.service.getMonthly(userId, period),
   });
 
   const orpcRouter: PekuloRpcRouter = {
