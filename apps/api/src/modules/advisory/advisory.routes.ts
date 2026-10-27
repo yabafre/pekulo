@@ -22,8 +22,8 @@ function requireUserId(userId: string | undefined): asserts userId is string {
 
 export function createAdvisoryRouter(deps: { service: AdvisoryAccessService }) {
   const gated = impl.use(async ({ context, errors, next }) => {
-    requireUserId(context.userId);
     try {
+      requireUserId(context.userId);
       await deps.service.assertAllowed(context.userId);
     } catch (err) {
       // Re-thrown as the contract's typed errors: oRPC collapses any other

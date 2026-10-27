@@ -10,6 +10,8 @@
 //   the owner from the JWT, never a client-supplied value.
 
 import { describe, expect, test } from "bun:test";
+import { createRouterClient } from "@orpc/server";
+import { PekuloError } from "../../common/errors";
 import type { AdvisoryAccessService } from "./advisory.service";
 import { createAdvisoryRouter } from "./advisory.routes";
 
@@ -28,5 +30,64 @@ describe("createAdvisoryRouter", () => {
     expect(router).toHaveProperty("grant");
     expect(router).toHaveProperty("ban");
     expect(router).toHaveProperty("list");
+  });
+
+  test("status handler invokes getStatus for allowlisted user", async () => {
+    const service: AdvisoryAccessService = {
+      isOwner: () => false,
+      assertAllowed: async () => {},
+      getStatus: async () => ({ access: "active", owner: false }),
+      list: async () => [],
+      grant: async () => ({}) as any,
+      ban: async () => ({}) as any,
+    };
+    const router = createAdvisoryRouter({ service });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+    const status = await client.status();
+    expect(status).toEqual({ access: "active", owner: false });
+  });
+
+  test("middleware rejects missing user context with typed UNAUTHORIZED (401)", async () => {
+    const service: AdvisoryAccessService = {
+      isOwner: () => false,
+      assertAllowed: async () => {},
+      getStatus: async () => ({ access: "active", owner: false }),
+      list: async () => [],
+      grant: async () => ({}) as any,
+      ban: async () => ({}) as any,
+    };
+    const router = createAdvisoryRouter({ service });
+    const client = createRouterClient(router, { context: { userId: "", email: null } });
+    let error: any;
+    try {
+      await client.status();
+    } catch (err) {
+      error = err;
+    }
+    expect(error?.code).toBe("UNAUTHORIZED");
+    expect(error?.status).toBe(401);
+  });
+
+  test("middleware maps PekuloError FORBIDDEN to typed contract FORBIDDEN (403)", async () => {
+    const service: AdvisoryAccessService = {
+      isOwner: () => false,
+      assertAllowed: async () => {
+        throw new PekuloError("FORBIDDEN", "restricted access");
+      },
+      getStatus: async () => ({ access: "none", owner: false }),
+      list: async () => [],
+      grant: async () => ({}) as any,
+      ban: async () => ({}) as any,
+    };
+    const router = createAdvisoryRouter({ service });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+    let error: any;
+    try {
+      await client.status();
+    } catch (err) {
+      error = err;
+    }
+    expect(error?.code).toBe("FORBIDDEN");
+    expect(error?.status).toBe(403);
   });
 });

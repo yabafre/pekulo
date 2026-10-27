@@ -26,9 +26,19 @@ const ROW = {
 };
 
 function makeClient() {
-  const findUnique = mock(async (_args: unknown) => ROW);
+  const findUnique = mock(async (_args: unknown) => ROW as typeof ROW | null);
   const findMany = mock(async (_args: unknown) => [ROW]);
-  const upsert = mock(async (_args: unknown) => ROW);
+  const upsert = mock(
+    async (args: {
+      create?: { status?: "active" | "banned"; bannedAt?: Date | null; grantedBy?: string | null };
+      update?: { status?: "active" | "banned"; bannedAt?: Date | null; grantedBy?: string | null };
+    }) => ({
+      ...ROW,
+      status: args.create?.status ?? args.update?.status ?? ROW.status,
+      bannedAt: args.create?.bannedAt ?? args.update?.bannedAt ?? ROW.bannedAt,
+      grantedBy: args.create?.grantedBy ?? args.update?.grantedBy ?? ROW.grantedBy,
+    }),
+  );
   const client = {
     advisoryAccess: { findUnique, findMany, upsert },
   } as unknown as ExtendedPrismaClient;
@@ -42,6 +52,13 @@ describe("createAdvisoryRepository", () => {
     expect(await repo.getAccessStatus(USER)).toBe("active");
     const args = findUnique.mock.calls[0]![0] as { where: { userId: string } };
     expect(args.where.userId).toBe(USER);
+  });
+
+  test("getAccessStatus returns null when row does not exist", async () => {
+    const { client, findUnique } = makeClient();
+    findUnique.mockImplementation(async () => null);
+    const repo = createAdvisoryRepository({ client });
+    expect(await repo.getAccessStatus(USER)).toBeNull();
   });
 
   test("getEntry maps every Date to an ISO string", async () => {
@@ -84,7 +101,8 @@ describe("createAdvisoryRepository", () => {
   test("ban upserts banned and stamps banned_at", async () => {
     const { client, upsert } = makeClient();
     const repo = createAdvisoryRepository({ client });
-    await repo.ban(USER);
+    const result = await repo.ban(USER);
+    expect(result.status).toBe("banned");
     const args = upsert.mock.calls[0]![0] as {
       update: { status: string; bannedAt: Date };
       create: { userId: string; status: string; bannedAt: Date };

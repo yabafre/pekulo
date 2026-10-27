@@ -12,6 +12,7 @@ import type { AdvisoryAccessEntry, AdvisoryAccessStatus } from "@pekulo/validato
 
 export interface AdvisoryAccessRepository {
   getAccessStatus(userId: string): Promise<AdvisoryAccessStatus | null>;
+  // Single-entry lookup reserved for upcoming advisory UI/admin detail view (story 12-4)
   getEntry(userId: string): Promise<AdvisoryAccessEntry | null>;
   list(): Promise<AdvisoryAccessEntry[]>;
   grant(userId: string, grantedBy: string): Promise<AdvisoryAccessEntry>;
