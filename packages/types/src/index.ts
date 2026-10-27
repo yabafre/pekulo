@@ -16,6 +16,7 @@
 // re-exports each domain index.
 
 export * from "./shared";
+export * from "./advisory";
 export * from "./account";
 export * from "./holding";
 export * from "./transaction";
