@@ -80,7 +80,8 @@ export function computeAdvisorySnapshot(input: AdvisorySnapshotInput): AdvisoryS
     .map((holding) => positionOf(holding, input.rates))
     .sort(
       (left, right) =>
-        right.marketValueEur - left.marketValueEur || left.holdingId.localeCompare(right.holdingId),
+        right.marketValueEur - left.marketValueEur ||
+        (left.holdingId < right.holdingId ? -1 : left.holdingId > right.holdingId ? 1 : 0),
     );
 
   return {
