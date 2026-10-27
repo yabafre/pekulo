@@ -14,17 +14,45 @@ import type { PrismaService } from "../../database";
 import { createAdvisoryModule } from "./advisory.module";
 
 describe("createAdvisoryModule", () => {
-  test("wires repository, service, router with owner set", () => {
+  test("wires repository, services and router with owner set", () => {
     const prismaService = {
       client: {
         advisoryAccess: {},
       },
     } as unknown as PrismaService;
+
     const mod = createAdvisoryModule({
       prismaService,
       ownerUserIds: new Set(["owner-1"]),
+      listAccounts: async () => [],
+      listHoldings: async () => [],
+      resolveQuote: async () => {
+        throw new Error("unused");
+      },
+      getRates: async () => ({
+        base: "EUR",
+        date: "2026-10-27",
+        rates: { EUR: 1, USD: 1.08, GBP: 0.85, CHF: 0.95 },
+      }),
+      getTotalEquity: async () => ({ totalEquityEur: 0, perProperty: [] }),
+      listProperties: async () => [],
+      getCompass: async () => null,
+      getMonthly: async (_userId, input) => ({
+        source: "derived",
+        record: {
+          year: input.year,
+          monthNum: input.monthNum,
+          incomeEur: 0,
+          spendingEur: 0,
+          transfersEur: 0,
+          netChangeEur: 0,
+          signedOffAt: null,
+        },
+      }),
     });
+
     expect(mod).toHaveProperty("service");
+    expect(mod).toHaveProperty("analysis");
     expect(mod).toHaveProperty("router");
     expect(mod.service.isOwner("owner-1")).toBe(true);
     expect(mod.service.isOwner("other")).toBe(false);
