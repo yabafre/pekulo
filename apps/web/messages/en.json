@@ -671,5 +671,55 @@
     "historyTitle": "History",
     "mensuelCurrent": "Loading current month",
     "mensuelCloture": "Loading close-out"
+  },
+  "advisory": {
+    "title": "AI Wealth Advisory — Private Area",
+    "subtitle": "Strictly confidential wealth analysis and arbitrage recommendations",
+    "disclaimer": {
+      "badge": "Private internal tool",
+      "title": "Regulatory notice",
+      "body": "This tool is strictly restricted to private and internal use within an authorized circle. It does not constitute regulated investment advice (CIF / MiFID II) or an offer/solicitation to trade financial instruments."
+    },
+    "actions": {
+      "generate": "Generate analysis",
+      "generating": "Generating analysis…",
+      "refresh": "Refresh analysis"
+    },
+    "emptyState": {
+      "title": "No analysis available",
+      "description": "Run your first private wealth analysis to generate a comprehensive diagnostic and arbitrage recommendations."
+    },
+    "sections": {
+      "overview": "General overview",
+      "strengths": "Wealth strengths",
+      "risks": "Risks & Points of attention",
+      "allocationAdvice": "Allocation strategy",
+      "recommendations": "Arbitrage recommendations"
+    },
+    "recommendations": {
+      "action": {
+        "buy": "Buy",
+        "sell": "Sell",
+        "hold": "Hold",
+        "trim": "Trim",
+        "rebalance": "Rebalance",
+        "allocate": "Allocate",
+        "reduce": "Reduce"
+      },
+      "priority": {
+        "high": "High Priority",
+        "medium": "Medium Priority",
+        "low": "Low Priority"
+      },
+      "target": "Target: {target}",
+      "instrument": "Proposed instrument:",
+      "rationale": "Rationale:"
+    },
+    "providerBadge": {
+      "posture": "EU hosted · Zero Data Retention · No training posture",
+      "model": "Model: {model}",
+      "provider": "Provider: {provider}",
+      "generatedAt": "Generated on {date}"
+    }
   }
 }
