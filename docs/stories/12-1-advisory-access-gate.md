@@ -259,7 +259,7 @@
 
   **Commit:** `git commit -m "feat(#114): advisory access wire schemas (AC-4, AC-8)"`
 
-- [ ] **T3 — Publish the oRPC contract** [AC: AC-8]
+- [x] **T3 — Publish the oRPC contract** [AC: AC-8]
   **Path:** `packages/contracts/src/advisory/advisory.contract.ts` (create)
 
   ```ts
