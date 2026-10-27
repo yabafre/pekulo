@@ -301,9 +301,19 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // Story 12-1 (ADR-0016 §4) — private advisory access gate. The owner set is
   // parsed from env here, at the composition root; the module itself never
   // reads process.env.
+  // Story 12-2 (ADR-0016 §3) — deterministic snapshot ports. The advisory
+  // module composes existing services; it owns no table and no LLM path.
   const advisoryModule = createAdvisoryModule({
     prismaService,
     ownerUserIds: parseAdvisoryOwnerUserIds(input.env.ADVISORY_OWNER_USER_IDS),
+    listAccounts: (userId) => accountsModule.service.list(userId),
+    listHoldings: (userId) => holdingsModule.service.list(userId, { includeClosed: false }),
+    resolveQuote: (input) => holdingsModule.service.resolveQuote(input),
+    getRates: (base) => holdingsModule.frankfurterClient.getRates(base),
+    getTotalEquity: (userId) => realestateModule.service.getTotalEquity(userId),
+    listProperties: (userId) => realestateModule.service.listProperties(userId),
+    getCompass: (userId) => compassModule.service.getCompass(userId),
+    getMonthly: (userId, input) => monthlyModule.service.getMonthly(userId, input),
   });
 
   const orpcRouter: PekuloRpcRouter = {
