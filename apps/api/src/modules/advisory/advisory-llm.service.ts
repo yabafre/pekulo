@@ -92,14 +92,16 @@ export function createAdvisoryLlmService(deps: {
         );
       }
 
-      // Clean markdown backticks if present
-      const jsonText = rawCompletionText
-        .replace(/^```json\s*/i, "")
-        .replace(/\s*```$/i, "")
-        .trim();
+      // Extract valid JSON between first '{' and last '}' (resilient against markdown fences and preamble)
+      const start = rawCompletionText.indexOf("{");
+      const end = rawCompletionText.lastIndexOf("}");
+      if (start === -1 || end === -1 || end <= start) {
+        throw new PekuloError("INTERNAL", "LLM completion did not produce valid JSON");
+      }
+
       let parsedJson: unknown;
       try {
-        parsedJson = JSON.parse(jsonText);
+        parsedJson = JSON.parse(rawCompletionText.slice(start, end + 1));
       } catch {
         throw new PekuloError("INTERNAL", "LLM completion did not produce valid JSON");
       }

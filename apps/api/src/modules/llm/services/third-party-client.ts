@@ -23,11 +23,16 @@ const THIRD_PARTY_TIMEOUT_MS = 10_000;
 const DEFAULT_BASE_URL = "https://api.mistral.ai/v1/chat/completions";
 const DEFAULT_MODEL = "mistral-small-latest";
 
-export function createThirdPartyClient(deps: { env: Env; maxTokens?: number }): LlmProvider {
+export function createThirdPartyClient(deps: {
+  env: Env;
+  maxTokens?: number;
+  timeoutMs?: number;
+}): LlmProvider {
   const apiKey = deps.env.THIRD_PARTY_LLM_API_KEY;
   const baseUrl = deps.env.THIRD_PARTY_LLM_BASE_URL ?? DEFAULT_BASE_URL;
   const model = deps.env.THIRD_PARTY_LLM_MODEL ?? DEFAULT_MODEL;
   const maxTokens = deps.maxTokens ?? 64;
+  const timeoutMs = deps.timeoutMs ?? THIRD_PARTY_TIMEOUT_MS;
   return {
     route: "third_party",
     async complete(prompt: string): Promise<LlmProviderCompletion> {
@@ -36,7 +41,7 @@ export function createThirdPartyClient(deps: { env: Env; maxTokens?: number }): 
       }
       const startedAt = performance.now();
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), THIRD_PARTY_TIMEOUT_MS);
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const res = await fetch(baseUrl, {
           method: "POST",

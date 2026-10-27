@@ -307,6 +307,7 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   const advisoryThirdPartyClient = createThirdPartyClient({
     env: input.env,
     maxTokens: 2048,
+    timeoutMs: 30_000,
   });
 
   const advisoryModule = createAdvisoryModule({

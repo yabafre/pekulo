@@ -19,9 +19,16 @@ export function assertAdvisoryProviderPosture(config: AdvisoryPostureConfig): {
   noTrain: true;
 } {
   const baseUrl = config.baseUrl ?? "https://api.mistral.ai/v1/chat/completions";
-  const isMistral = baseUrl.includes("mistral.ai");
-  const isEuOpenRouter = baseUrl.includes("openrouter.ai") || baseUrl.includes("eu-");
-  const isLocalhost = baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
+  let hostname = "";
+  try {
+    hostname = new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    hostname = baseUrl.toLowerCase();
+  }
+
+  const isMistral = hostname === "api.mistral.ai" || hostname.endsWith(".mistral.ai");
+  const isEuOpenRouter = hostname === "openrouter.ai" || hostname.startsWith("eu-");
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
   if (!isMistral && !isEuOpenRouter && !isLocalhost) {
     throw new PekuloError(
