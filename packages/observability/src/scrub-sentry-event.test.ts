@@ -100,12 +100,67 @@ describe("scrubSentryEvent", () => {
   test("survives cycles, Dates and unbounded nesting without throwing", () => {
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
+
+    const cyclicArr: unknown[] = [];
+    cyclicArr.push(cyclicArr);
+
     const event: SentryEventLike = {
-      extra: { cyclic, when: new Date("2026-10-23T10:00:00.000Z") },
+      extra: { cyclic, cyclicArr, when: new Date("2026-10-23T10:00:00.000Z") },
     };
 
     expect(() => scrubSentryEvent(event)).not.toThrow();
     expect((event.extra?.cyclic as Record<string, unknown> | undefined)?.self).toBe(REDACTED);
+    expect((event.extra?.cyclicArr as unknown[])?.[0]).toBe(REDACTED);
     expect(event.extra?.when).toBe("2026-10-23T10:00:00.000Z");
+  });
+
+  test("scrubs fingerprint strings to avoid leaking raw identifiers", () => {
+    const event: SentryEventLike = {
+      fingerprint: [
+        "{{ default }}",
+        "/accounts/8f14e45f-ceea-467f-a8c1-6f0f9d3b2a11",
+        "user:alice@example.com",
+      ],
+    };
+
+    scrubSentryEvent(event);
+
+    expect(event.fingerprint).toEqual([
+      "{{ default }}",
+      "/accounts/[redacted:uuid]",
+      "user:[redacted:email]",
+    ]);
+  });
+
+  test("handles null, undefined, non-objects and nullish breadcrumbs/exceptions gracefully", () => {
+    expect(scrubSentryEvent(null)).toBeNull();
+    expect(scrubSentryEvent(undefined)).toBeUndefined();
+    expect(scrubSentryEvent("not-an-event" as unknown as SentryEventLike)).toBe("not-an-event");
+
+    const event: SentryEventLike = {
+      breadcrumbs: [null as unknown as SentryEventLike, { message: "ok" }],
+      exception: {
+        values: [null as unknown as SentryEventLike, { value: "error for bob@example.com" }],
+      },
+    };
+
+    expect(() => scrubSentryEvent(event)).not.toThrow();
+    expect(event.exception?.values?.[1]?.value).toBe("error for [redacted:email]");
+  });
+
+  test("safely handles frozen and read-only objects without throwing", () => {
+    const frozenExtra = Object.freeze({
+      secret: "super-secret-value",
+      nested: Object.freeze({
+        email: "alice@example.com",
+      }),
+    });
+
+    const event: SentryEventLike = {
+      extra: frozenExtra as Record<string, unknown>,
+    };
+
+    expect(() => scrubSentryEvent(event)).not.toThrow();
+    expect(event.extra?.secret).toBe(REDACTED);
   });
 });

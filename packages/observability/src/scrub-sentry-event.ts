@@ -82,6 +82,7 @@ export interface SentryEventLike {
   tags?: Record<string, unknown>;
   breadcrumbs?: SentryBreadcrumbLike[] | { values?: SentryBreadcrumbLike[] };
   exception?: { values?: SentryExceptionValueLike[] };
+  fingerprint?: unknown[];
   [key: string]: unknown;
 }
 
@@ -102,15 +103,21 @@ function stripQueryAndFragment(raw: string): string {
 
 function scrubValue(value: unknown, seen: WeakSet<object>, depth: number): unknown {
   if (typeof value === "string") return scrubString(value);
-  if (Array.isArray(value)) {
-    return value.map((entry) => scrubValue(entry, seen, depth + 1));
-  }
   if (value !== null && typeof value === "object") {
     if (seen.has(value)) return REDACTED;
     seen.add(value);
-    if (value instanceof Date) return value.toISOString();
     if (depth >= MAX_DEPTH) return REDACTED;
-    scrubRecord(value as Record<string, unknown>, seen, depth);
+    if (value instanceof Date) return value.toISOString();
+    if (Array.isArray(value)) {
+      return value.map((entry) => scrubValue(entry, seen, depth + 1));
+    }
+    if (Object.isFrozen(value)) {
+      const copy: Record<string, unknown> = { ...(value as Record<string, unknown>) };
+      seen.add(copy);
+      scrubRecord(copy, seen, depth + 1);
+      return copy;
+    }
+    scrubRecord(value as Record<string, unknown>, seen, depth + 1);
     return value;
   }
   return value;
@@ -119,11 +126,15 @@ function scrubValue(value: unknown, seen: WeakSet<object>, depth: number): unkno
 function scrubRecord(record: Record<string, unknown>, seen: WeakSet<object>, depth: number): void {
   for (const key of Object.keys(record)) {
     if (PRESERVE_KEYS.has(key)) continue;
-    if (SENSITIVE_KEY.test(key)) {
-      record[key] = REDACTED;
-      continue;
+    try {
+      if (SENSITIVE_KEY.test(key)) {
+        record[key] = REDACTED;
+        continue;
+      }
+      record[key] = scrubValue(record[key], seen, depth + 1);
+    } catch {
+      // Guard against non-writable/read-only descriptors
     }
-    record[key] = scrubValue(record[key], seen, depth + 1);
   }
 }
 
@@ -131,46 +142,78 @@ function scrubBreadcrumbs(event: SentryEventLike, seen: WeakSet<object>): void {
   const crumbs = Array.isArray(event.breadcrumbs) ? event.breadcrumbs : event.breadcrumbs?.values;
   if (!crumbs) return;
   for (const crumb of crumbs) {
+    if (!crumb || typeof crumb !== "object") continue;
     if (typeof crumb.message === "string") crumb.message = scrubString(crumb.message);
-    if (crumb.data) scrubRecord(crumb.data, seen, 0);
+    if (crumb.data && typeof crumb.data === "object") {
+      if (Object.isFrozen(crumb.data)) {
+        crumb.data = { ...crumb.data };
+      }
+      scrubRecord(crumb.data, seen, 0);
+    }
   }
 }
 
 function scrubUser(event: SentryEventLike): void {
   if (!event.user) return;
   const id = event.user.id;
-  if (typeof id === "string" && HASHED_USER_ID.test(id)) {
-    event.user = { id };
-    return;
+  try {
+    if (typeof id === "string" && HASHED_USER_ID.test(id)) {
+      event.user = { id };
+      return;
+    }
+    delete event.user;
+  } catch {
+    // In case event is frozen
   }
-  delete event.user;
 }
 
 export function scrubSentryEvent<T>(event: T): T {
+  if (!event || typeof event !== "object") return event;
+
   const e = event as unknown as SentryEventLike;
   const seen = new WeakSet<object>();
 
   if (typeof e.message === "string") e.message = scrubString(e.message);
   if (typeof e.transaction === "string") e.transaction = scrubString(e.transaction);
 
+  if (Array.isArray(e.fingerprint)) {
+    e.fingerprint = e.fingerprint.map((entry) =>
+      typeof entry === "string" ? scrubString(entry) : entry,
+    );
+  }
+
   if (e.request) {
     if (typeof e.request.url === "string") {
       e.request.url = stripQueryAndFragment(e.request.url);
     }
-    delete e.request.query_string;
-    delete e.request.headers;
-    delete e.request.cookies;
-    delete e.request.data;
+    try {
+      delete e.request.query_string;
+      delete e.request.headers;
+      delete e.request.cookies;
+      delete e.request.data;
+    } catch {
+      // In case e.request is frozen
+    }
   }
 
   scrubUser(e);
 
-  if (e.extra) scrubRecord(e.extra, seen, 0);
-  if (e.contexts) scrubRecord(e.contexts, seen, 0);
-  if (e.tags) scrubRecord(e.tags, seen, 0);
+  if (e.extra) {
+    if (Object.isFrozen(e.extra)) e.extra = { ...e.extra };
+    scrubRecord(e.extra, seen, 0);
+  }
+  if (e.contexts) {
+    if (Object.isFrozen(e.contexts)) e.contexts = { ...e.contexts };
+    scrubRecord(e.contexts, seen, 0);
+  }
+  if (e.tags) {
+    if (Object.isFrozen(e.tags)) e.tags = { ...e.tags };
+    scrubRecord(e.tags, seen, 0);
+  }
   scrubBreadcrumbs(e, seen);
 
   for (const value of e.exception?.values ?? []) {
+    if (!value || typeof value !== "object") continue;
     if (typeof value.value === "string") value.value = scrubString(value.value);
   }
 
