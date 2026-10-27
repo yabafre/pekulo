@@ -1,18 +1,19 @@
-// apps/api/src/modules/dashboard/fx-rates-source.ts
+// apps/api/src/common/market-data/fx-rates-reader.ts
 // Last-known-good caching layer over the FX provider (frankfurter-client).
 //
-// WHY: the dashboard converts USD/GBP/CHF holdings to EUR. The brownfield
-// path did `getRates(...).catch(() => null)`, and computeSnapshotFx silently
-// converts 1:1 when rates are null — so when Frankfurter is down, a USD
-// holding was over-reported by ~8 % (the EUR/USD spread) with NO signal to
-// the user. This wrapper removes that silent 1:1 fallback:
+// WHY: the dashboard and the advisory snapshot convert USD/GBP/CHF holdings
+// to EUR. The brownfield path did `getRates(...).catch(() => null)`, and
+// computeSnapshotFx silently converts 1:1 when rates are null — so when
+// Frankfurter is down, a USD holding was over-reported by ~8 % (the EUR/USD
+// spread) with NO signal to the user. This wrapper removes that silent 1:1
+// fallback:
 //
 //   - success            → cache rates + stamp source "live".
 //   - failure WITH cache  → serve the last-known-good rates + source "stale"
 //                           (conversion still happens, never 1:1).
 //   - failure NO cache    → rates null + source "unavailable" + a structured
 //                           warn log. The 1:1 identity conversion still occurs
-//                           (the dashboard must not 500 on a cold FX outage —
+//                           (the caller must not 500 on a cold FX outage —
 //                           NFR-18 spirit), but it is now EXPLICITLY surfaced
 //                           via the source instead of being silent.
 //
