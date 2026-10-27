@@ -1,7 +1,7 @@
 # Story: 12-2-advisory-analysis-engine — Deterministic advisory analysis engine (the numbers layer)
 
 **Epic:** Epic 12 — Private internal AI advisory tool (internal / non-product)
-**Status:** review
+**Status:** done
 **Source:** ticket
 **Ticket:** #115
 **Ticket URL:** https://github.com/yabafre/pekulo/issues/115
@@ -2915,3 +2915,34 @@ Implemented the deterministic advisory snapshot (schema, types, pure engine), ex
 
 ### Test output
 `bun --filter='@pekulo/api' run test` → 1089 pass, 0 fail, 3002 expect() calls, 128 files, exit 0. `bun --filter='@pekulo/api' run typecheck` → exit 0. `bun run lint` → 0 errors (warnings pre-existing in apps/web).
+
+## Review Record
+
+**Date:** 2026-10-27
+**Auditors:** Spec, Code, Edge & Hallucination
+**Verdict:** done
+
+### Findings
+
+#### Resolved
+- [NIT] Outer parameter shadowing in runtime-dependencies [apps/api/src/bootstrap/runtime-dependencies.ts:311,316]
+  - Source: Spec, Code, Edge & Hallucination
+  - Resolution: 85381aa fix(#115): avoid shadowing input in advisory wiring [aped-review]
+- [NIT] Identifier collation in position tie-breaking [apps/api/src/common/derive/advisory-snapshot.ts:83]
+  - Source: Edge & Hallucination
+  - Resolution: a1d5e99 fix(#115): strict ascii string comparison on holdingId [aped-review]
+
+#### Dismissed
+none
+
+#### Unresolved (story stays in `review`)
+none
+
+### Verification
+- Test command: `bun --filter='@pekulo/api' run test src/modules/advisory src/common/derive/advisory-snapshot.test.ts src/common/market-data`
+- Test output (final pass): 76 pass, 0 fail, 202 expect() calls across 12 files (exit 0)
+- Visual verification: none — backend-only story (Aria skipped)
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/115#issuecomment-6446051458
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/150
