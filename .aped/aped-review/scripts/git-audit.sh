@@ -24,17 +24,25 @@ if ! git rev-parse --is-inside-work-tree &>/dev/null; then
   exit 0
 fi
 
-# Extract file list from story's Dev Agent Record section
-# Stories write `## File List` (H2); this used to look for `### File List`
-# (H3). With `set -euo pipefail` the empty grep killed the script, which then
-# exited 0 having printed nothing — indistinguishable from "audit clean".
-# Accept both depths, and never let an empty match abort the run.
-STORY_FILES=$(sed -n '/^#\{2,3\} File List/,/^#\{2,3\} /p' "$STORY_FILE" \
+# Extract file list from story's Dev Agent Record or File List section
+# Stories write `## File List` (H2), often containing `### File decision template` (H3),
+# before the next H2 `## Dev Agent Record`.
+STORY_FILES=$(sed -n '/^## File List/,/^## [^#]/p' "$STORY_FILE" \
   | grep -E '^\s*[-*]' \
   | sed 's/^[[:space:]]*[-*][[:space:]]*//' \
   | sed 's/^`//; s/`.*$//' \
   | grep -E '\.[a-zA-Z0-9]+$' \
   | sort -u || true)
+
+if [[ -z "$STORY_FILES" ]]; then
+  # Fallback to ### File List if written at H3 depth
+  STORY_FILES=$(sed -n '/^### File List/,/^### /p' "$STORY_FILE" \
+    | grep -E '^\s*[-*]' \
+    | sed 's/^[[:space:]]*[-*][[:space:]]*//' \
+    | sed 's/^`//; s/`.*$//' \
+    | grep -E '\.[a-zA-Z0-9]+$' \
+    | sort -u || true)
+fi
 
 if [[ -z "$STORY_FILES" ]]; then
   echo "ERROR: no file entries parsed from '$STORY_FILE' — refusing to report a clean audit."
