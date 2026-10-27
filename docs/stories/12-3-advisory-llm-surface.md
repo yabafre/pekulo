@@ -579,7 +579,7 @@
   Expected: Tests pass, exit code 0.
   Commit: `git add apps/api/src/modules/advisory/advisory-session.repository.ts apps/api/src/modules/advisory/advisory-session.repository.test.ts && git commit -m "feat(#116): add encrypted advisory session repository"`
 
-- [ ] **T7 — Advisory LLM service with audit logging** [AC: AC-1, AC-2, AC-3, AC-4]
+- [x] **T7 — Advisory LLM service with audit logging** [AC: AC-1, AC-2, AC-3, AC-4]
   Orchestrate analysis execution: retrieve snapshot, invoke LLM via provider, parse JSON, validate grounding, record audit event pair via `llmService.recordLlmCallPair`, and persist encrypted session.
 
   **Path:** `apps/api/src/modules/advisory/advisory-llm.service.ts` (create)
