@@ -434,7 +434,7 @@
 
   **Commit:** `git commit -m "feat(#114): advisory access guard (AC-1, AC-7)"`
 
-- [ ] **T5 — Parse the owner allowlist from env** [AC: AC-8]
+- [x] **T5 — Parse the owner allowlist from env** [AC: AC-8]
   **Path:** `apps/api/src/config/advisory-owner-ids.ts` (create)
 
   ```ts
