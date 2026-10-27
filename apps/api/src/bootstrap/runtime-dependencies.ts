@@ -15,6 +15,7 @@ import { createBankAggregatorModule } from "../modules/bank-aggregator/bank-aggr
 import { createBridgeProvider } from "../modules/bank-aggregator/services/bridge-client";
 import { createLogosModule } from "../modules/logos/logos.module";
 import { createLlmModule } from "../modules/llm/llm.module";
+import { createThirdPartyClient } from "../modules/llm/services/third-party-client";
 import { createCompassModule } from "../modules/compass/compass.module";
 import { createHoldingsModule } from "../modules/holdings/holdings.module";
 import { createHypothesisModule } from "../modules/hypothesis/hypothesis.module";
@@ -301,11 +302,23 @@ export async function createRuntimeDependencies(input: { env: Env }): Promise<Ru
   // Story 12-1 (ADR-0016 §4) — private advisory access gate. The owner set is
   // parsed from env here, at the composition root; the module itself never
   // reads process.env.
-  // Story 12-2 (ADR-0016 §3) — deterministic snapshot ports. The advisory
-  // module composes existing services; it owns no table and no LLM path.
+  // Story 12-2 (ADR-0016 §3) — deterministic snapshot ports.
+  // Story 12-3 (ADR-0016 §3/§4) — advisory LLM surface + encrypted session persistence.
+  const advisoryThirdPartyClient = createThirdPartyClient({
+    env: input.env,
+    maxTokens: 2048,
+  });
+
   const advisoryModule = createAdvisoryModule({
     prismaService,
     ownerUserIds: parseAdvisoryOwnerUserIds(input.env.ADVISORY_OWNER_USER_IDS),
+    llmService: llmModule.service,
+    llmProvider: advisoryThirdPartyClient,
+    advisorySecretKey: input.env.SUPABASE_SERVICE_ROLE_KEY,
+    postureConfig: {
+      baseUrl: input.env.THIRD_PARTY_LLM_BASE_URL,
+      model: input.env.THIRD_PARTY_LLM_MODEL,
+    },
     listAccounts: (userId) => accountsModule.service.list(userId),
     listHoldings: (userId) => holdingsModule.service.list(userId, { includeClosed: false }),
     resolveQuote: (quoteInput) => holdingsModule.service.resolveQuote(quoteInput),

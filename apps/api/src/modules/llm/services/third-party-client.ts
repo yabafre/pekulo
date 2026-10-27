@@ -23,10 +23,11 @@ const THIRD_PARTY_TIMEOUT_MS = 10_000;
 const DEFAULT_BASE_URL = "https://api.mistral.ai/v1/chat/completions";
 const DEFAULT_MODEL = "mistral-small-latest";
 
-export function createThirdPartyClient(deps: { env: Env }): LlmProvider {
+export function createThirdPartyClient(deps: { env: Env; maxTokens?: number }): LlmProvider {
   const apiKey = deps.env.THIRD_PARTY_LLM_API_KEY;
   const baseUrl = deps.env.THIRD_PARTY_LLM_BASE_URL ?? DEFAULT_BASE_URL;
   const model = deps.env.THIRD_PARTY_LLM_MODEL ?? DEFAULT_MODEL;
+  const maxTokens = deps.maxTokens ?? 64;
   return {
     route: "third_party",
     async complete(prompt: string): Promise<LlmProviderCompletion> {
@@ -46,7 +47,7 @@ export function createThirdPartyClient(deps: { env: Env }): LlmProvider {
           },
           body: JSON.stringify({
             model,
-            max_tokens: 64,
+            max_tokens: maxTokens,
             // Closed-list categorisation → deterministic, no creativity needed.
             temperature: 0,
             messages: [{ role: "user", content: prompt }],

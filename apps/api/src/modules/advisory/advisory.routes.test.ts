@@ -21,6 +21,7 @@ import { PekuloError } from "../../common/errors";
 import { advisorySnapshotFixture } from "./advisory.test-fixtures";
 import type { AdvisoryAccessService } from "./advisory.service";
 import type { AdvisoryAnalysisService } from "./advisory-analysis.service";
+import type { AdvisoryLlmService } from "./advisory-llm.service";
 import { createAdvisoryRouter } from "./advisory.routes";
 
 function service(over: Partial<AdvisoryAccessService> = {}): AdvisoryAccessService {
@@ -42,19 +43,50 @@ function analysis(over: Partial<AdvisoryAnalysisService> = {}): AdvisoryAnalysis
   };
 }
 
+function llm(over: Partial<AdvisoryLlmService> = {}): AdvisoryLlmService {
+  return {
+    generateAnalysis: async () => ({
+      id: "advs_1",
+      userId: "11111111-1111-4111-8111-111111111111",
+      snapshotVersion: 1,
+      model: "mistral-small",
+      provider: "mistral",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionData: {
+        snapshot: advisorySnapshotFixture(),
+        analysis: {
+          overview: "Overview",
+          strengths: [],
+          risks: [],
+          allocationAdvice: "Advice",
+          recommendations: [],
+        },
+        generatedAt: new Date().toISOString(),
+      },
+    }),
+    getLatestSession: async () => null,
+    listSessions: async () => ({ sessions: [], totalCount: 0 }),
+    ...over,
+  };
+}
+
 describe("createAdvisoryRouter", () => {
   test("creates a router with status, snapshot, grant, ban and list handlers", () => {
-    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis(), llm: llm() });
 
     expect(router).toHaveProperty("status");
     expect(router).toHaveProperty("snapshot");
     expect(router).toHaveProperty("grant");
     expect(router).toHaveProperty("ban");
     expect(router).toHaveProperty("list");
+    expect(router).toHaveProperty("generateAnalysis");
+    expect(router).toHaveProperty("getLatestSession");
+    expect(router).toHaveProperty("listSessions");
   });
 
   test("status handler invokes getStatus for allowlisted user", async () => {
-    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis(), llm: llm() });
     const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
 
     const status = await client.status();
@@ -63,7 +95,7 @@ describe("createAdvisoryRouter", () => {
   });
 
   test("snapshot handler returns the analysis snapshot for an allowlisted user", async () => {
-    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis(), llm: llm() });
     const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
 
     const snapshot = await client.snapshot();
@@ -71,8 +103,32 @@ describe("createAdvisoryRouter", () => {
     expect(snapshot).toEqual(advisorySnapshotFixture());
   });
 
+  test("generateAnalysis returns session for allowlisted user", async () => {
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis(), llm: llm() });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+
+    const res = await client.generateAnalysis({});
+    expect(res.id).toBe("advs_1");
+  });
+
+  test("getLatestSession returns session or null", async () => {
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis(), llm: llm() });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+
+    const res = await client.getLatestSession();
+    expect(res).toBeNull();
+  });
+
+  test("listSessions returns session list summary", async () => {
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis(), llm: llm() });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+
+    const res = await client.listSessions();
+    expect(res.totalCount).toBe(0);
+  });
+
   test("middleware rejects missing user context with typed UNAUTHORIZED (401)", async () => {
-    const router = createAdvisoryRouter({ service: service(), analysis: analysis() });
+    const router = createAdvisoryRouter({ service: service(), analysis: analysis(), llm: llm() });
     const client = createRouterClient(router, { context: { userId: "", email: null } });
     let error: any;
     try {
@@ -93,6 +149,7 @@ describe("createAdvisoryRouter", () => {
         },
       }),
       analysis: analysis(),
+      llm: llm(),
     });
     const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
     let error: any;
@@ -120,6 +177,7 @@ describe("createAdvisoryRouter", () => {
           return advisorySnapshotFixture();
         },
       }),
+      llm: llm(),
     });
     const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
     let error: any;
@@ -132,5 +190,34 @@ describe("createAdvisoryRouter", () => {
     expect(error?.code).toBe("FORBIDDEN");
     expect(error?.status).toBe(403);
     expect(engineCalls).toBe(0);
+  });
+
+  test("AC-5 — generateAnalysis rejects before LLM runs for unallowed user", async () => {
+    let llmCalls = 0;
+    const router = createAdvisoryRouter({
+      service: service({
+        assertAllowed: async () => {
+          throw new PekuloError("FORBIDDEN", "restricted access");
+        },
+      }),
+      analysis: analysis(),
+      llm: llm({
+        generateAnalysis: async () => {
+          llmCalls += 1;
+          return {} as any;
+        },
+      }),
+    });
+    const client = createRouterClient(router, { context: { userId: "user-1", email: null } });
+    let error: any;
+    try {
+      await client.generateAnalysis({});
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error?.code).toBe("FORBIDDEN");
+    expect(error?.status).toBe(403);
+    expect(llmCalls).toBe(0);
   });
 });

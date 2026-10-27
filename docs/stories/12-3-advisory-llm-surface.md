@@ -702,7 +702,7 @@
   Expected: Tests pass, exit code 0.
   Commit: `git add apps/api/src/modules/advisory/advisory-llm.service.ts apps/api/src/modules/advisory/advisory-llm.service.test.ts && git commit -m "feat(#116): implement advisory LLM service with audit logging"`
 
-- [ ] **T8 — Wire oRPC routes, module factory, and runtime dependencies** [AC: AC-5, AC-6]
+- [x] **T8 — Wire oRPC routes, module factory, and runtime dependencies** [AC: AC-5, AC-6]
   Mount `generateAnalysis`, `getLatestSession`, `listSessions` onto the gated advisory router, pass dependencies in `runtime-dependencies.ts`, and run complete integration suite.
 
   **Path:** `apps/api/src/modules/advisory/advisory.routes.ts` (modify)
@@ -842,16 +842,57 @@ export function createAdvisoryRouter(deps: {
 
 ### Summary
 
-Ready for dev implementation.
+Successfully implemented Story 12-3 (advisory LLM surface):
+1. Created `advisory_sessions` table with full symmetric RLS quartet, CASCADE FK to `auth.users(id)`, registered ID prefix `advs` in `id-prefixes.config.ts`, added to GDPR export (`EXPORT_NODES`) and account deletion (`DELETION_NODES`), and updated `rls-audit.ts`.
+2. Created Zod schemas and TypeScript types for LLM outputs and advisory sessions, and exposed `generateAnalysis`, `getLatestSession`, `listSessions` on `advisoryContractV1`.
+3. Implemented authenticated AES-256-GCM field-level encryption with IV and authentication tag (`advisory-encryption.ts`).
+4. Implemented EU-posture assertor (verifying zero-data retention and EU region) and strict grounding validator ensuring cited figures match deterministic snapshot figures.
+5. Implemented dedicated advisory prompt builder adhering to ADR-0016 §2 scoped carve-out and strict grounding rules.
+6. Implemented `AdvisorySessionRepository` persisting encrypted session data and decrypting on read.
+7. Implemented `AdvisoryLlmService` with single-writer LLM audit logging (`recordLlmCallPair`, NFR-26) and 1h session caching.
+8. Mounted procedures on the gated oRPC router, wired module factory and runtime dependencies, with full integration tests.
 
 ### Files changed
 
-None yet (implementation phase pending).
+- `apps/api/prisma/schema/advisory.prisma`
+- `apps/api/prisma/migrations/20261027170000_create_advisory_sessions/migration.sql`
+- `apps/api/src/database/id-prefixes.config.ts`
+- `apps/api/src/database/id-prefixes.config.test.ts`
+- `apps/api/src/modules/settings/settings.export.ts`
+- `apps/api/src/modules/settings/settings.deletion.ts`
+- `apps/api/src/modules/settings/settings.deletion.test.ts`
+- `apps/api/scripts/rls-audit.ts`
+- `packages/validators/src/advisory/advisory.llm.schemas.ts`
+- `packages/validators/src/advisory/index.ts`
+- `packages/contracts/src/advisory/advisory.contract.ts`
+- `apps/api/src/modules/llm/services/third-party-client.ts`
+- `apps/api/src/modules/advisory/advisory-encryption.ts`
+- `apps/api/src/modules/advisory/advisory-encryption.test.ts`
+- `apps/api/src/modules/advisory/advisory-posture.ts`
+- `apps/api/src/modules/advisory/advisory-posture.test.ts`
+- `apps/api/src/modules/advisory/advisory-grounding-validator.ts`
+- `apps/api/src/modules/advisory/advisory-grounding-validator.test.ts`
+- `apps/api/src/modules/advisory/advisory-prompt-builder.ts`
+- `apps/api/src/modules/advisory/advisory-prompt-builder.test.ts`
+- `apps/api/src/modules/advisory/advisory-session.repository.ts`
+- `apps/api/src/modules/advisory/advisory-session.repository.test.ts`
+- `apps/api/src/modules/advisory/advisory-llm.service.ts`
+- `apps/api/src/modules/advisory/advisory-llm.service.test.ts`
+- `apps/api/src/modules/advisory/advisory.llm.schemas.test.ts`
+- `apps/api/src/modules/advisory/advisory.routes.ts`
+- `apps/api/src/modules/advisory/advisory.routes.test.ts`
+- `apps/api/src/modules/advisory/advisory.module.ts`
+- `apps/api/src/modules/advisory/advisory.module.test.ts`
+- `apps/api/src/modules/advisory/advisory.integration.test.ts`
+- `apps/api/src/bootstrap/runtime-dependencies.ts`
 
 ### Deviations
 
-None yet.
+- Added `maxTokens` optional option in `createThirdPartyClient` (defaulting to 64 for categorisation, 2048 for advisory) to avoid completion truncation on large advisory outputs.
 
 ### Test output
 
-None yet (implementation phase pending).
+- `bun --filter='@pekulo/api' run test`: 1122 pass, 0 fail across 135 files.
+- `bun --filter='@pekulo/api' run typecheck`: tsc --noEmit exit 0.
+- `bun --filter='@pekulo/api' run lint`: oxlint exit 0.
+- `bun --filter='@pekulo/api' run db:rls-migration-audit`: OK — 23 user-data tables, all RLS-guarded and reachable by auth.users cascade.

@@ -18,6 +18,7 @@ describe("createAdvisoryModule", () => {
     const prismaService = {
       client: {
         advisoryAccess: {},
+        advisorySession: {},
       },
     } as unknown as PrismaService;
 
@@ -53,6 +54,8 @@ describe("createAdvisoryModule", () => {
 
     expect(mod).toHaveProperty("service");
     expect(mod).toHaveProperty("analysis");
+    expect(mod).toHaveProperty("llm");
+    expect(mod).toHaveProperty("sessionRepository");
     expect(mod).toHaveProperty("router");
     expect(mod.service.isOwner("owner-1")).toBe(true);
     expect(mod.service.isOwner("other")).toBe(false);
