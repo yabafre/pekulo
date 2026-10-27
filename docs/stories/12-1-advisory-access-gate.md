@@ -761,7 +761,7 @@
 
   **Commit:** `git commit -m "feat(#114): advisory access repository (AC-3, AC-4)"`
 
-- [ ] **T7 — Own the access decisions** [AC: AC-2, AC-3, AC-4, AC-8]
+- [x] **T7 — Own the access decisions** [AC: AC-2, AC-3, AC-4, AC-8]
   **Path:** `apps/api/src/modules/advisory/advisory.service.ts` (create)
 
   ```ts
