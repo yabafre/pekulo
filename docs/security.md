@@ -20,6 +20,14 @@ Status: V1 (a) personal-use. Items marked **(b)** are load-bearing before the pu
 - **Bridge tokens:** the `supabase_vault` extension is enabled and `bank_connections.{access,refresh}_token_secret_id` reference `vault.secrets`, **but** are vestigial NULL — Bridge v3 keeps OAuth tokens server-side and mints a short-lived user Bearer on demand, so Pekulo persists no bank tokens (ADR-0015). Nothing to decrypt = nothing to leak.
 - **Offline PWA cache (b):** encrypted IndexedDB scoped per `user_id`, key derived via Web Crypto `SubtleCrypto.deriveKey`, cleared on sign-out (ADR-0003).
 
+## Observability & Error Capture posture (NFR-25, NFR-27, ADR-0005, story 11-6)
+
+- **OTel / SigNoz is the trace/log spine:** OpenTelemetry (`@opentelemetry/sdk-node` via `NodeSDK`) handles distributed tracing and structured logs sent via OTLP to SigNoz. It is the single source of truth for request latency and APM.
+- **GlitchTip receives error events via Sentry SDK:** GlitchTip 6.2 is Sentry-compatible for errors but does not ingest raw OTLP traces. Error capture runs via `@sentry/bun` on `apps/api` and `@sentry/nextjs` on `apps/web`.
+- **`enableOpenTelemetrySetup: false` is enforced:** Prevents the Sentry SDK from registering a duplicate tracer provider over OTel.
+- **PII scrubbing gate:** Every event passes through `@pekulo/observability`'s `scrubSentryEvent` before transmission. Emails, IBANs, raw UUIDs, JWTs, Supabase secrets, and tokens are replaced with typed markers (`[redacted:*]`). Sensitive keys are redacted. Request headers, cookies, query strings, and request bodies are stripped. `user.id` is preserved only when hashed (16-hex).
+- **Fail-open security:** Error capture is strictly fail-open — an unreachable GlitchTip or internal capture error never fails a client request, and never crashes error handling hooks.
+
 ## Account erasure (FR-50, story 11-2)
 
 - **Order is fail-closed and fixed:** Bridge first (revoke each item, then

@@ -137,7 +137,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 | ------------------- | ------------------------------------------------------------------------------ |
 | V1                  | epic-0, epic-1, epic-2, epic-3, epic-4, epic-5, epic-6, epic-7, epic-8, epic-9 |
 | V1.5 deferred       | epic-10 (10-1 ships V1, 10-2 deferred per G1)                                  |
-| Public-ramp backlog | epic-11 (11-1/11-2/11-3/11-4 = V1 (a); 11-5/11-6 gated sur (b) decision)       |
+| Public-ramp backlog | epic-11 (11-1/11-2/11-3/11-4/11-6 unblocked in V1 (a); 11-5 readiness)         |
 
 ## Epic 0: Foundations — package layout, tooling, runtime substrate
 
