@@ -102,3 +102,49 @@ load-bearing for NFR-11 and must be set on every environment:
   callback path `<origin>/callback` (story 8-1 moved `auth/` → the `(auth)`
   route group, so the URL is `/callback`, not `/auth/callback`). The
   password-reset email links to `<origin>/callback?next=/recover`.
+
+## Restore-from-snapshot drill (NFR-21, story 11-6)
+
+**Status:** required before the (b) public ramp, then annually. Story 11-6
+stays in `review` until the dated record below is filled.
+
+### Procedure
+
+1. In Supabase, take a snapshot of production (Dashboard → Database →
+   Backups) and note its timestamp and size.
+2. Create a **staging** project in the same region. Do not reuse the local
+   Docker stack: this drill must exercise hosted restore, auth schema
+   included.
+3. Restore the snapshot into the staging project (Dashboard → Database →
+   Backups → Restore, targeting the staging project).
+4. Point the root `.env.local` at staging:
+   `DATABASE_URL` = staging session-pooler connection, `SUPABASE_URL` =
+   `https://<staging-ref>.supabase.co`, `SUPABASE_JWT_SECRET` = staging JWT
+   secret, `RESTORE_DRILL_SUPABASE_ANON_KEY` = staging anon key, and
+   `RESTORE_DRILL_EMAIL` / `RESTORE_DRILL_PASSWORD` = a real user that
+   survived the restore.
+5. Apply committed migrations to the restored DB:
+   `bun --filter=@pekulo/api prisma:migrate:deploy` (ADR-0014: never
+   `migrate dev` against a pooled connection).
+6. Boot the API against it: `bun --filter=@pekulo/api dev`.
+7. Run the assertions:
+   `bun --filter=@pekulo/api db:restore-drill-check`.
+8. Record the result below, delete the staging project, and rotate the
+   staging credentials.
+
+### What the check proves
+
+| Assertion                            | Failure it catches                                                |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| committed / applied migration parity | restore replayed an older schema, or `migrate deploy` did not run |
+| RLS policy counts on 21 tables       | restore dropped policies, or a migration was skipped              |
+| zero `NULL user_id` rows             | partial restore / broken foreign keys                             |
+| non-empty `auth.users`               | auth schema restored but identities missing                       |
+| Auth password round-trip             | `auth.users` present but `auth.identities` / passwords unusable   |
+| `settings.get` returns 200           | API cannot read the restored data with a real JWT                 |
+
+### Record
+
+**Status:** not yet executed. This section is completed by the operator during
+story 11-6; the story cannot move to `done` before it holds a date, snapshot
+timestamp, RTO, anomalies and cleanup confirmation.
