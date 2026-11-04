@@ -38,7 +38,8 @@ function iconColor(active: boolean): string {
 }
 
 export interface PekuloMobileBottomNavProps {
-  activeKey: PekuloNavKey;
+  /** null = no item is active (private surfaces outside the public nav). */
+  activeKey: PekuloNavKey | null;
   onSelect: (key: PekuloNavKey) => void;
 }
 
