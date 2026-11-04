@@ -14,15 +14,9 @@ import styles from "./advisory.module.css";
 
 export interface AdvisoryRecommendationCardProps {
   recommendation: AdvisoryRecommendation;
-  provider: string;
-  model: string;
 }
 
-export function AdvisoryRecommendationCard({
-  recommendation,
-  provider: _,
-  model: __,
-}: AdvisoryRecommendationCardProps) {
+export function AdvisoryRecommendationCard({ recommendation }: AdvisoryRecommendationCardProps) {
   const t = useTranslations("advisory.recommendations");
 
   const badgeClass =

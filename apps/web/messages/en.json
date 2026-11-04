@@ -696,6 +696,24 @@
       "allocationAdvice": "Allocation strategy",
       "recommendations": "Arbitrage recommendations"
     },
+    "stats": {
+      "totalWealth": "Total wealth",
+      "compassPercent": "{percent}% of target",
+      "compassTarget": "Target",
+      "compassGap": "Gap: {gap}",
+      "unrealizedPnl": "Unrealized gains",
+      "financialPortfolio": "Financial portfolio",
+      "investable": "Investable",
+      "cashAndInvestments": "Cash + investments"
+    },
+    "errors": {
+      "loadTitle": "Analysis unavailable",
+      "loadDescription": "Could not load your wealth analysis.",
+      "generate": "Analysis generation failed",
+      "retry": "Retry",
+      "emptyStrengths": "No strengths reported.",
+      "emptyRisks": "No risks reported."
+    },
     "recommendations": {
       "action": {
         "buy": "Buy",

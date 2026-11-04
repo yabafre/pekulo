@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { ORPCError } from "@orpc/client";
 
 // AC-1 (verbatim from story 12-4-advisory-private-page:17):
 //   Given an allowlisted user (status: "active" or owner: true), When they open /dashboard/advisory,
@@ -32,6 +33,83 @@ import {
   generateAdvisoryAnalysis,
 } from "./advisory-actions";
 
+function makeSession() {
+  return {
+    id: "advs_123",
+    userId: "11111111-1111-4111-8111-111111111111",
+    snapshotVersion: 1,
+    model: "claude-3-5-sonnet",
+    provider: "anthropic",
+    createdAt: "2026-10-27T18:00:00.000Z",
+    updatedAt: "2026-10-27T18:00:00.000Z",
+    sessionData: {
+      snapshot: {
+        schemaVersion: 1,
+        baseCurrency: "EUR",
+        wealth: {
+          totalEur: 100000,
+          investableEur: 60000,
+          cashEur: 20000,
+          investmentsEur: 40000,
+          realEstateEquityEur: 40000,
+          unrealizedPnlEur: 5000,
+        },
+        allocation: [
+          { key: "cash", amountEur: 20000, pct: 20 },
+          { key: "investments", amountEur: 40000, pct: 40 },
+          { key: "real-estate", amountEur: 40000, pct: 40 },
+        ],
+        compass: {
+          targetEur: 200000,
+          currentWealthEur: 100000,
+          percent: 50,
+          gapEur: 100000,
+        },
+        monthlyCashflow: {
+          year: 2026,
+          monthNum: 10,
+          incomeEur: 3000,
+          spendingEur: 2000,
+          transfersEur: 0,
+          netChangeEur: 1000,
+          source: "derived",
+        },
+        portfolio: null,
+        fiscalite: {
+          computation: "none",
+          envelopes: [],
+          properties: [],
+          cryptoEur: 0,
+        },
+        fx: { base: "EUR", source: "live", asOf: "2026-10-27" },
+      },
+      analysis: {
+        overview: "Solid financial base.",
+        strengths: ["Strong savings rate"],
+        risks: ["Equity concentration"],
+        allocationAdvice: "Diversify across global ETFs.",
+        recommendations: [
+          {
+            id: "rec_1",
+            title: "Buy global bonds",
+            action: "buy",
+            target: "Bonds",
+            rationale: "Reduce portfolio volatility.",
+            priority: "high",
+            instrumentRecommendation: {
+              symbol: "AGGH",
+              isin: "IE00BDBRDM35",
+              action: "buy",
+              rationale: "EUR-hedged global aggregate ETF.",
+            },
+          },
+        ],
+      },
+      generatedAt: "2026-10-27T18:00:00.000Z",
+    },
+  };
+}
+
 describe("advisory-actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,41 +130,39 @@ describe("advisory-actions", () => {
   });
 
   it("generateAdvisoryAnalysis forwards input to advisoryClient", async () => {
-    const fakeSession = {
-      id: "advs_123",
-      userId: "11111111-1111-4111-8111-111111111111",
-      snapshotVersion: 1,
-      model: "claude-3-5-sonnet",
-      provider: "anthropic",
-      createdAt: "2026-10-27T18:00:00.000Z",
-      updatedAt: "2026-10-27T18:00:00.000Z",
-      sessionData: {
-        snapshot: {
-          asOf: "2026-10-27T18:00:00.000Z",
-          wealth: { totalGross: 100000, totalDebt: 0, totalNet: 100000 },
-          allocation: [],
-          compass: { targetWealth: 200000, gap: 100000, onTrack: true },
-          monthlyCashflow: { income: 3000, expenses: 2000, savings: 1000, savingsRate: 33.3 },
-          portfolio: { totalValue: 50000, unrealizedGain: 5000, returnPct: 10 },
-          positions: [],
-          byKind: [],
-          fiscalite: { totalTaxEstimate: 0, byAccount: [], computation: "none" },
-          fx: { ratesUsed: {}, hasCrossCurrency: false },
-        },
-        analysis: {
-          overview: "Solid financial base.",
-          strengths: ["Strong savings rate"],
-          risks: ["Equity concentration"],
-          allocationAdvice: "Diversify across global ETFs.",
-          recommendations: [],
-        },
-        generatedAt: "2026-10-27T18:00:00.000Z",
-      },
-    };
+    const fakeSession = makeSession();
     mockGenerateAnalysis.mockResolvedValueOnce(fakeSession);
 
     const res = await generateAdvisoryAnalysis({ forceRefresh: true });
     expect(res).toEqual(fakeSession);
     expect(mockGenerateAnalysis).toHaveBeenCalledWith({ forceRefresh: true });
+  });
+
+  // AC-2: the oRPC client is the enforcement point; the wrappers must not
+  // swallow its 403. Each Server Action is asserted independently.
+  it("getAdvisoryStatus rejects with FORBIDDEN for a non-allowlisted user", async () => {
+    mockStatus.mockRejectedValueOnce(
+      new ORPCError("FORBIDDEN", { message: "advisory access required" }),
+    );
+
+    await expect(getAdvisoryStatus()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("getLatestAdvisorySession rejects with FORBIDDEN for a non-allowlisted user", async () => {
+    mockGetLatestSession.mockRejectedValueOnce(
+      new ORPCError("FORBIDDEN", { message: "advisory access required" }),
+    );
+
+    await expect(getLatestAdvisorySession()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("generateAdvisoryAnalysis rejects with FORBIDDEN for a non-allowlisted user", async () => {
+    mockGenerateAnalysis.mockRejectedValueOnce(
+      new ORPCError("FORBIDDEN", { message: "advisory access required" }),
+    );
+
+    await expect(generateAdvisoryAnalysis({ forceRefresh: true })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 });

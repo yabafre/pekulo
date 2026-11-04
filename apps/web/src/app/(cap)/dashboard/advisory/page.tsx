@@ -5,6 +5,7 @@
 //   Given a non-allowlisted or banned user (status: "none" or "banned"), When they navigate to /dashboard/advisory,
 //   Then they cannot reach the surface (server-side gate triggers redirect("/dashboard"), no advisory data leaks to the client, and all underlying Server Actions reject with 403 FORBIDDEN).
 
+import { ORPCError } from "@orpc/client";
 import { redirect } from "next/navigation";
 import { advisoryClient } from "@/lib/orpc/modules";
 import { ensureRequestContext } from "@/lib/orpc/request-context";
@@ -16,8 +17,16 @@ export default async function AdvisoryPage() {
   let status;
   try {
     status = await advisoryClient.status();
-  } catch {
-    redirect("/dashboard");
+  } catch (error) {
+    if (
+      error instanceof ORPCError &&
+      (error.code === "FORBIDDEN" || error.code === "UNAUTHORIZED")
+    ) {
+      redirect("/dashboard");
+    }
+    // Anything else is a real failure — let the route error boundary surface it
+    // instead of masking it as an access denial.
+    throw error;
   }
 
   if (!status || status.access !== "active") {
@@ -26,6 +35,7 @@ export default async function AdvisoryPage() {
 
   return (
     <div
+      className="font_body"
       style={{
         display: "flex",
         flexDirection: "column",

@@ -696,6 +696,24 @@
       "allocationAdvice": "Stratégie d'allocation",
       "recommendations": "Recommandations d'arbitrage"
     },
+    "stats": {
+      "totalWealth": "Patrimoine total",
+      "compassPercent": "{percent} % du Cap",
+      "compassTarget": "Objectif Cap",
+      "compassGap": "Écart : {gap}",
+      "unrealizedPnl": "Plus-values latentes",
+      "financialPortfolio": "Portefeuille financier",
+      "investable": "Investissable",
+      "cashAndInvestments": "Cash + placements"
+    },
+    "errors": {
+      "loadTitle": "Analyse indisponible",
+      "loadDescription": "Impossible de charger votre analyse patrimoniale.",
+      "generate": "Échec de la génération de l'analyse",
+      "retry": "Réessayer",
+      "emptyStrengths": "Aucun point fort signalé.",
+      "emptyRisks": "Aucun risque signalé."
+    },
     "recommendations": {
       "action": {
         "buy": "Achat",

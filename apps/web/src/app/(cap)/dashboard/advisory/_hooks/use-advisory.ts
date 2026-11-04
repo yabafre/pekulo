@@ -7,6 +7,7 @@
 //   Given the rendered advisory page, When analysis and recommendations are shown,
 //   Then the active provider, model, EU-region posture, and no-train guarantee are surfaced for transparency.
 
+import type { AdvisoryStatus } from "@pekulo/validators";
 import { useActionMutation, useActionQuery } from "@zapaction/query";
 import { advisoryKeys, advisoryTags } from "@/lib/zapaction/keys";
 import {
@@ -15,12 +16,13 @@ import {
   generateAdvisoryAnalysis,
 } from "../_actions/advisory-actions";
 
-export function useAdvisoryStatus() {
+export function useAdvisoryStatus(options?: { initialData?: AdvisoryStatus }) {
   return useActionQuery(getAdvisoryStatus, {
     input: undefined,
     queryKey: advisoryKeys.status(),
     readPolicy: "read-only",
     staleTime: 60_000,
+    initialData: options?.initialData,
   });
 }
 

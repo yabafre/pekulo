@@ -4,7 +4,7 @@
 //   Given the rendered advisory page, When analysis and recommendations are shown,
 //   Then the active provider, model, EU-region posture, and no-train guarantee are surfaced for transparency.
 
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Cpu, ShieldCheck } from "lucide-react";
 import styles from "./advisory.module.css";
 
@@ -20,14 +20,16 @@ export function AdvisoryProviderBadge({
   generatedAt,
 }: AdvisoryProviderBadgeProps) {
   const t = useTranslations("advisory.providerBadge");
+  const format = useFormatter();
 
   const formattedDate = generatedAt
-    ? new Intl.DateTimeFormat("fr-FR", {
+    ? format.dateTime(new Date(generatedAt), {
         day: "numeric",
         month: "short",
         hour: "2-digit",
         minute: "2-digit",
-      }).format(new Date(generatedAt))
+        timeZone: "Europe/Paris",
+      })
     : null;
 
   return (
@@ -42,7 +44,7 @@ export function AdvisoryProviderBadge({
       <span>·</span>
 
       <span className={styles.providerPill}>
-        <ShieldCheck size={13} color="var(--gain)" aria-hidden />
+        <ShieldCheck size={13} color="var(--perfGain)" aria-hidden />
         <span>{t("posture")}</span>
       </span>
 

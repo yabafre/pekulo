@@ -71,7 +71,6 @@ const ADVISORY_KEY = "advisory" as const;
 export const advisoryKeys = createFeatureKeys(ADVISORY_KEY, {
   status: () => ["status"] as const,
   latestSession: () => ["latestSession"] as const,
-  snapshot: () => ["snapshot"] as const,
 });
 export const advisoryTags = createFeatureTags(ADVISORY_KEY, {
   session: () => ["session"] as const,
@@ -319,7 +318,7 @@ setTagRegistry({
     [MONTHLY_KEY],
     dashboardKeys.overview(),
   ],
-  // Story 12-4 — advisory session invalidation. Invalidation refreshes both
-  // latest session analysis and the snapshot cache.
-  [advisoryTags.session()]: [advisoryKeys.latestSession(), advisoryKeys.snapshot()],
+  // Story 12-4 — advisory session invalidation. Only the latest-session read
+  // has a consumer; the snapshot cache key returns when a UI actually reads it.
+  [advisoryTags.session()]: [advisoryKeys.latestSession()],
 });

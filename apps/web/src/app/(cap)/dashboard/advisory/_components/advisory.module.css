@@ -192,7 +192,9 @@
   }
 }
 
-.cardStretch {
+/* Stretch both cards to the tallest one without threading a className through
+   the DS Section primitive (lesson 2026-05-26). */
+.grid2Col > section {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -296,23 +298,23 @@
 }
 
 .badgeBuy {
-  background-color: rgba(0, 210, 106, 0.12);
-  color: var(--gain);
+  background-color: var(--perfGainSoft);
+  color: var(--perfGain);
 }
 
 .badgeSell {
-  background-color: rgba(255, 92, 92, 0.12);
-  color: var(--loss);
+  background-color: var(--perfLossSoft);
+  color: var(--perfLoss);
 }
 
 .badgeTrim {
-  background-color: rgba(251, 191, 36, 0.12);
+  background-color: color-mix(in srgb, var(--warning) 12%, transparent);
   color: var(--warning);
 }
 
 .badgeRebalance {
-  background-color: rgba(47, 115, 255, 0.12);
-  color: var(--data-blue);
+  background-color: color-mix(in srgb, var(--dataBlue) 12%, transparent);
+  color: var(--dataBlue);
 }
 
 .badgeHold {
@@ -341,7 +343,7 @@
 
 .priorityHigh {
   color: var(--warning);
-  background-color: rgba(251, 191, 36, 0.10);
+  background-color: color-mix(in srgb, var(--warning) 10%, transparent);
 }
 
 .targetRow {

@@ -32,6 +32,8 @@ describe("advisory subcomponents", () => {
     );
     expect(screen.getByText(/anthropic \/ claude-3-5-sonnet/i)).toBeInTheDocument();
     expect(screen.getByText(/Hébergement UE · Politique Zero Data Retention/i)).toBeInTheDocument();
+    // AC-3 — no-train guarantee is part of the surfaced posture.
+    expect(screen.getByText(/Aucun entraînement/i)).toBeInTheDocument();
   });
 
   it("renders AdvisoryRecommendationCard with action, title, and instrument", () => {
@@ -50,13 +52,7 @@ describe("advisory subcomponents", () => {
       },
     };
 
-    renderWithTamagui(
-      <AdvisoryRecommendationCard
-        recommendation={recommendation}
-        provider="anthropic"
-        model="claude-3-5-sonnet"
-      />,
-    );
+    renderWithTamagui(<AdvisoryRecommendationCard recommendation={recommendation} />);
 
     expect(screen.getByText("Achat")).toBeInTheDocument();
     expect(screen.getByText("Arbitrage vers obligations souveraines")).toBeInTheDocument();

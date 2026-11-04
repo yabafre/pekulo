@@ -89,6 +89,9 @@ export function CapShell({ email, children }: CapShellProps) {
     setMounted(true);
   }, []);
   const isDashboardRoot = pathname === "/dashboard";
+  // The advisory surface is private and deliberately absent from the public nav
+  // (AC-4): no rail item is active and no cap-level contextual CTA points at it.
+  const isAdvisory = pathname.startsWith("/dashboard/advisory");
   const activeTab: PekuloTopTab = searchParams.get("tab") === "patrimoine" ? "patrimoine" : "cap";
   const navActiveKey: PekuloNavKey = pathname.startsWith("/dashboard/portefeuille")
     ? "portfolio"
@@ -129,7 +132,7 @@ export function CapShell({ email, children }: CapShellProps) {
     transactions: t("dashboard.newTransaction"),
     realestate: t("dashboard.newProperty"),
   };
-  const contextualAddLabel = CONTEXTUAL_LABEL[navActiveKey];
+  const contextualAddLabel = isAdvisory ? undefined : CONTEXTUAL_LABEL[navActiveKey];
   const today = dateFmt.format(new Date());
   const initial = (email ?? "?").charAt(0).toUpperCase();
 
@@ -166,8 +169,8 @@ export function CapShell({ email, children }: CapShellProps) {
 
   return (
     <DashboardEditProvider>
-      <div className={styles.shell}>
-        <PekuloNavRail activeKey={navActiveKey} onSelect={handleNav} />
+      <div className={`${styles.shell} font_body`}>
+        <PekuloNavRail activeKey={isAdvisory ? null : navActiveKey} onSelect={handleNav} />
         <header className={styles.header}>
           <div className={styles.headerLeft}>
             <p className={styles.dateLabel} translate="no">
@@ -201,7 +204,7 @@ export function CapShell({ email, children }: CapShellProps) {
           </div>
         </header>
         <main className={styles.main}>{children}</main>
-        <PekuloMobileBottomNav activeKey={navActiveKey} onSelect={handleNav} />
+        <PekuloMobileBottomNav activeKey={isAdvisory ? null : navActiveKey} onSelect={handleNav} />
 
         <PekuloDialog open={newTxOpen} onOpenChange={setNewTxOpen}>
           <PekuloDialog.Portal>

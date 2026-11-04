@@ -3,6 +3,7 @@ import { PekuloSkeleton, Section } from "@pekulo/ui";
 export default function AdvisoryLoading() {
   return (
     <div
+      className="font_body"
       style={{
         display: "flex",
         flexDirection: "column",

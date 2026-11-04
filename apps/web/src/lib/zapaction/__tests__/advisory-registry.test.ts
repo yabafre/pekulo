@@ -13,20 +13,16 @@ describe("advisory zapaction registry keys and tags", () => {
   it("generates correct query keys scoped under advisory", () => {
     expect(advisoryKeys.status()[0]).toBe("advisory");
     expect(advisoryKeys.latestSession()[0]).toBe("advisory");
-    expect(advisoryKeys.snapshot()[0]).toBe("advisory");
   });
 
-  it("invalidateTags(advisoryTags.session()) invalidates latestSession and snapshot caches", async () => {
+  it("invalidateTags(advisoryTags.session()) invalidates the latest-session cache", async () => {
     const qc = new QueryClient();
     qc.setQueryData(advisoryKeys.latestSession(), { id: "advs_1" });
-    qc.setQueryData(advisoryKeys.snapshot(), { asOf: "2026-10-27" });
 
     expect(qc.getQueryState(advisoryKeys.latestSession())?.isInvalidated).toBe(false);
-    expect(qc.getQueryState(advisoryKeys.snapshot())?.isInvalidated).toBe(false);
 
     await invalidateTags(qc, [advisoryTags.session()]);
 
     expect(qc.getQueryState(advisoryKeys.latestSession())?.isInvalidated).toBe(true);
-    expect(qc.getQueryState(advisoryKeys.snapshot())?.isInvalidated).toBe(true);
   });
 });

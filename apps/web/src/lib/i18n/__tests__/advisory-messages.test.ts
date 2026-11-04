@@ -19,6 +19,8 @@ describe("advisory localization messages", () => {
     );
     expect(adv.actions.generate).toBeDefined();
     expect(adv.providerBadge.posture).toContain("Hébergement UE");
+    expect(adv.providerBadge.posture).toContain("Aucun entraînement");
+    expect(adv.stats.totalWealth).toBe("Patrimoine total");
     expect(adv.recommendations.action.buy).toBe("Achat");
   });
 
@@ -30,6 +32,8 @@ describe("advisory localization messages", () => {
     expect(adv.disclaimer.body).toContain("does not constitute regulated investment advice");
     expect(adv.actions.generate).toBeDefined();
     expect(adv.providerBadge.posture).toContain("EU hosted");
+    expect(adv.providerBadge.posture).toContain("No training");
+    expect(adv.stats.totalWealth).toBe("Total wealth");
     expect(adv.recommendations.action.buy).toBe("Buy");
   });
 });

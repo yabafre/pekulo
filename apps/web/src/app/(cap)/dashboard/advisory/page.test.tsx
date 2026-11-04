@@ -1,4 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { screen } from "@testing-library/react";
+import { ORPCError } from "@orpc/client";
+import { renderWithTamagui } from "../../../../../test/setup";
 
 // AC-1 (verbatim from story 12-4-advisory-private-page:17):
 //   Given an allowlisted user (status: "active" or owner: true), When they open /dashboard/advisory,
@@ -37,10 +40,19 @@ describe("AdvisoryPage Server Component Gate", () => {
     vi.clearAllMocks();
   });
 
-  it("renders AdvisoryView for active allowlisted user (AC-1)", async () => {
+  it("renders AdvisoryView for an active non-owner allowlisted user (AC-1)", async () => {
     mockStatus.mockResolvedValueOnce({ access: "active", owner: false });
     const jsx = await AdvisoryPage();
-    expect(jsx).toBeDefined();
+    renderWithTamagui(jsx);
+    expect(screen.getByTestId("advisory-view")).toBeInTheDocument();
+    expect(mockRedirect).not.toHaveBeenCalled();
+  });
+
+  it("renders AdvisoryView for the owner (AC-1)", async () => {
+    mockStatus.mockResolvedValueOnce({ access: "active", owner: true });
+    const jsx = await AdvisoryPage();
+    renderWithTamagui(jsx);
+    expect(screen.getByTestId("advisory-view")).toBeInTheDocument();
     expect(mockRedirect).not.toHaveBeenCalled();
   });
 
@@ -57,8 +69,16 @@ describe("AdvisoryPage Server Component Gate", () => {
   });
 
   it("redirects to /dashboard when oRPC status throws 403 (AC-2)", async () => {
-    mockStatus.mockRejectedValueOnce(new Error("FORBIDDEN: advisory access required"));
+    mockStatus.mockRejectedValueOnce(
+      new ORPCError("FORBIDDEN", { message: "advisory access required" }),
+    );
     await expect(AdvisoryPage()).rejects.toThrow("REDIRECT:/dashboard");
     expect(mockRedirect).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("surfaces non-authorization failures to the route error boundary", async () => {
+    mockStatus.mockRejectedValueOnce(new Error("upstream unavailable"));
+    await expect(AdvisoryPage()).rejects.toThrow("upstream unavailable");
+    expect(mockRedirect).not.toHaveBeenCalled();
   });
 });
