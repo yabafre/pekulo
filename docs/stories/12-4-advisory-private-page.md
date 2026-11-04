@@ -1416,5 +1416,5 @@ Implemented the private AI advisory dashboard at `/dashboard/advisory` behind a 
 - Visual verification: deferred — React Grab MCP unavailable at 2026-11-04T02:20:00Z.
 
 ### Ticket sync
-- Ticket comment posted: pending
-- PR opened/updated: pending
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/117#issuecomment-6619927517
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/152
