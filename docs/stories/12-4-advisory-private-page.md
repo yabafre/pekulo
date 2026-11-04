@@ -1272,10 +1272,18 @@ export const llmTags = createFeatureTags("llm", {
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-recommendation-card.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-view.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-view.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-subcomponents.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/advisory/_components/advisory-nav-isolation.test.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/loading.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/error.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/page.tsx`
 - `apps/web/src/app/(cap)/dashboard/advisory/page.test.tsx`
+- `apps/web/src/app/(cap)/dashboard/_components/cap-shell.tsx`
+- `apps/web/src/lib/i18n/__tests__/advisory-messages.test.ts`
+- `packages/ui/src/components/PekuloNavRail/PekuloNavRail.tsx`
+- `packages/ui/src/components/PekuloMobileBottomNav/PekuloMobileBottomNav.tsx`
+- `docs/state.yaml`
+- `docs/stories/12-4-advisory-private-page.md`
 
 ## Dev Agent Record
 
@@ -1312,10 +1320,101 @@ Implemented the private AI advisory dashboard at `/dashboard/advisory` behind a 
 
 - Zapaction query hooks: passed `(action, options)` format with required `readPolicy: "read-only"` per `@zapaction/query` contract instead of inline `{ action }` option object.
 - Tamagui design system props: aligned border token to `$borderDefault`, `PekuloButton` variant to `"default"`, and `PekuloSkeleton` to block layout without invalid `borderRadius` prop.
+- `advisoryKeys.snapshot()` removed during review: no hook or UI read it (forward-pointer). Re-add the key with its first consumer.
+- `useAdvisoryStatus` is now consumed by `AdvisoryView` with the server-fetched status as `initialData`, so `getAdvisoryStatus` is not a test-only action.
+- `PekuloNavRail` / `PekuloMobileBottomNav` accept `activeKey: null` so the private advisory surface shows no active public-nav item.
+- Status failures only redirect on `FORBIDDEN`/`UNAUTHORIZED`; other transport failures reach the route error boundary instead of masquerading as access denial.
+- Date formatting pins `Europe/Paris` explicitly to avoid next-intl's `ENVIRONMENT_FALLBACK` timezone warning under tests.
 
 ### Test output
 
-- `bun --filter=@pekulo/web run test advisory`: 7 test files passed (7), 20 tests passed (20), exit code 0.
-- `bun --filter=@pekulo/web run test`: 124 test files passed (124), 428 tests passed (428), exit code 0.
-- `bun --filter=@pekulo/web run typecheck`: exit code 0.
-- `bun --filter=@pekulo/web run lint`: exit code 0.
+- `bun --filter=@pekulo/web run test advisory`: 8 test files passed (8), 27 tests passed (27), exit code 0.
+- `bun --filter=@pekulo/web run test`: 125 test files passed (125), 435 tests passed (435), exit code 0.
+- `bun --filter=@pekulo/ui run test`: 159 test files passed (159), 341 tests passed, 1 skipped, exit code 0.
+- `bun run typecheck`: 9/9 workspace tasks successful, exit code 0.
+- `bun --filter=@pekulo/web run lint`: 0 errors, 2 pre-existing warnings outside advisory, exit code 0.
+
+## Review Record
+
+**Date:** 2026-11-04
+**Auditors:** Spec, Code, Edge & Hallucination (Aria deferred)
+**Verdict:** done
+**Override:** AC gap accepted — reason: "Alex: fix all findings in this review pass; AC gaps closed by added tests."
+
+### Findings
+
+#### Resolved
+- [MAJOR] Undefined `--gain` / `--loss` / `--data-blue` tokens and hardcoded rgba badges [advisory.module.css:300-315, advisory-view.tsx:137]
+  - Source: Spec, Code, Edge
+  - Resolution: `b717089` — map to shipped `--perfGain` / `--perfLoss` / `--dataBlue`; soft backgrounds use theme-aware tokens / `color-mix`.
+- [MAJOR] Page inherited the serif root font because no `font_body` wrapper existed [advisory-view.tsx:60, cap-shell.tsx:181]
+  - Source: Spec, Edge
+  - Resolution: `b717089` — add `font_body` to the shell, page, loading and view roots.
+- [MAJOR] AC-2 "all Server Actions reject 403 FORBIDDEN" was untested at the web boundary [advisory-actions.test.ts:31]
+  - Source: Spec
+  - Resolution: `b717089` — each of the three Server Actions now has a FORBIDDEN rejection test.
+- [MAJOR] Invalid `AdvisorySession` fixture hid schema drift behind the zapaction stub [advisory-actions.test.ts:55, vitest.config.ts:38]
+  - Source: Code
+  - Resolution: `b717089` — fixture rebuilt against the real snapshot/session shape; assertions exercise the current contract.
+- [MAJOR] French stats labels and `fr-FR` formatters were hardcoded in a bilingual app [advisory-view.tsx:30-40,120-149]
+  - Source: Code, Edge
+  - Resolution: `b717089` — stats copy moved to `advisory.stats` (fr/en); currency/date rendering uses `useFormatter()`.
+- [MINOR] Silent query/generation failures rendered an empty state or nothing [advisory-view.tsx:66]
+  - Source: Code, Edge
+  - Resolution: `b717089` — query error state with retry; generation failure raises a danger toast.
+- [MINOR] Empty-state CTA could fire concurrent paid LLM generations [advisory-view.tsx:67]
+  - Source: Code
+  - Resolution: `b717089` — re-entrancy guard plus CTA hidden while pending.
+- [MINOR] `Section className={styles.cardStretch}` brittle coupling [advisory-view.tsx:150]
+  - Source: Code
+  - Resolution: `b717089` — stretch expressed as `.grid2Col > section` in the module stylesheet.
+- [MINOR] `generatedAt` showed `session.createdAt`, not the analysis timestamp [advisory-view.tsx:78]
+  - Source: Code
+  - Resolution: `b717089` — use `session.sessionData.generatedAt`.
+- [MINOR] React keys could collide on duplicate LLM strings [advisory-view.tsx:211]
+  - Source: Code
+  - Resolution: `b717089` — stable key helper disambiguates duplicate text/ids.
+- [MINOR] Dead code: unused status hook, `initialStatus`, provider/model props, snapshot cache key [use-advisory.ts:15, advisory-recommendation-card.tsx:17, keys.ts:76]
+  - Source: Code
+  - Resolution: `b717089` — status hook wired with server `initialData`; props and snapshot key removed.
+- [MINOR] Advisory route highlighted "Cap" and exposed the contextual add FAB [cap-shell.tsx:104]
+  - Source: Code
+  - Resolution: `b717089` — nav `activeKey` accepts `null`; advisory hides the contextual CTA.
+- [MINOR] Page redirected on every status failure, masking transport errors [page.tsx:21]
+  - Source: Code
+  - Resolution: `b717089` — redirect only on `FORBIDDEN` / `UNAUTHORIZED`; other errors reach the boundary.
+- [MINOR] AC-3 no-train clause and AC-1 owner/rendered page lacked assertions [advisory-subcomponents.test.tsx:31, page.test.tsx:43]
+  - Source: Spec
+  - Resolution: `b717089` — assertions added; AC-4 gets a nav-isolation regression test.
+- [NIT] Story File List omitted test/shell/DS files [story File List]
+  - Source: git-audit
+  - Resolution: `b717089` — File List and Deviations updated.
+
+#### Dismissed
+- [MINOR] Hydration mismatch from persisted advisory data [providers]
+  - Source: Spec
+  - Rationale: false positive — `advisory` is absent from `OFFLINE_FEATURE_PREFIXES` and `OFFLINE_ROUTES`, so the query is never dehydrated or restored.
+- [MINOR] French copy in `error.tsx` / `loading.tsx` [error.tsx:1, loading.tsx:1]
+  - Source: Code
+  - Rationale: shared `SegmentError` convention used by every route; outside this story's AC scope. Stats/date copy, which the page owns, is localized.
+- [MINOR] Two round trips on cold load [page.tsx:33]
+  - Source: Code
+  - Rationale: client query dedupes and honours staleTime; server-side prefetch would add coupling without a correctness win.
+- [MINOR] Global "Nouvelle transaction" header pill appears on advisory [cap-shell.tsx:193]
+  - Source: Code
+  - Rationale: global chrome present on every Cap screen; hiding it would be a shell-wide UX decision, not a private-surface leak. Nav highlight + contextual FAB were fixed.
+- [NIT] `useAdvisoryStatus` fetched status the page already had [use-advisory.ts:15]
+  - Source: Code
+  - Rationale: addressed by seeding it with the server status as `initialData`, so it acts as revocation defence without an extra network read.
+
+### Verification
+- Test command: `bun --filter=@pekulo/web run test advisory`
+- Test output (final pass): 8 files / 27 tests passed, exit 0.
+- Full suites: `bun --filter=@pekulo/web run test` 125 files / 435 tests; `bun --filter=@pekulo/ui run test` 159 files / 341 passed + 1 skipped; both exit 0.
+- Typecheck: `bun run typecheck` 9/9 tasks successful, exit 0.
+- Lint: `bun --filter=@pekulo/web run lint` 0 errors, 2 pre-existing warnings outside advisory, exit 0.
+- Visual verification: deferred — React Grab MCP unavailable at 2026-11-04T02:20:00Z.
+
+### Ticket sync
+- Ticket comment posted: pending
+- PR opened/updated: pending
