@@ -257,7 +257,7 @@ sprint:
     9-2-pwa-offline-cache: {status: done, depends_on: [9-1-pwa-manifest-and-install, 7-2-dashboard-cap-page, 3-4-portfolio-ui, 4-3-realestate-ui], ticket: "#45", worktree: null, started_at: "2026-07-25T15:38:55Z", completed_at: "2026-07-25T20:50:00Z"}
     # Epic 10 — Design system parity (10-1 V1 / 10-2 V1.5 deferred per G1)
     10-1-visual-snapshot-suite: {status: done, depends_on: [0-10-pekulo-ui-migration, 0-12-custom-oxlint-rules], ticket: "#46", worktree: null, started_at: "2026-08-25T12:00:00Z", completed_at: "2026-08-25T18:35:00Z"}
-    10-2-mobile-app-bootstrap: {status: review, depends_on: [10-1-visual-snapshot-suite, 0-10-pekulo-ui-migration], ticket: "#47", worktree: null, started_at: "2026-11-16T12:29:30Z", completed_at: "2026-11-16T13:07:00Z"}
+    10-2-mobile-app-bootstrap: {status: done, depends_on: [10-1-visual-snapshot-suite, 0-10-pekulo-ui-migration], ticket: "#47", worktree: null, started_at: "2026-11-16T12:29:30Z", completed_at: "2026-11-16T13:07:00Z", reviewed_at: "2026-11-16T16:00:00Z"}
     # Epic 11 — Public-ramp readiness (backlog; 11-3 priorité)
     11-1-data-export: {status: done, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#48", completed_at: "2026-08-29T19:03:48Z"}
     11-2-account-deletion: {status: done, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#49", worktree: null, started_at: "2026-09-15T14:01:38Z", completed_at: "2026-09-15T15:40:00Z"}
