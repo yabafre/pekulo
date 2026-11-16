@@ -125,6 +125,32 @@ function BombChild(): never {
   throw new Error("Boom test");
 }
 
+// Story 10-3-ui-native-parity AC trace:
+// AC-1 (verbatim from story 10-3-ui-native-parity, AC-1):
+//   Given the complete `@pekulo/ui` public barrel surface (`provider`, `toast`,
+//   `tokens`, `themes`, `animations`, all 33 primitives, and all 42 components),
+//   When the design-system coverage suite runs, Then it excludes React Native
+//   sibling variants from web primitive enumeration AND asserts that every public
+//   module and symbol exposed on web is also exported by the React Native barrel
+//   entrypoint.
+// AC-3 (verbatim from story 10-3-ui-native-parity, AC-3):
+//   Given `PekuloDonut`, `PekuloTrajectoryChart`, `PekuloProjectionChart`,
+//   `CategoryIcon`, `TransactionLogo`, and every icon-bearing component or
+//   primitive, When rendered inside `PekuloRootProvider` in both `pekulo-dark`
+//   and `pekulo-light` themes under React Native Jest, Then colors resolve from
+//   Tamagui theme tokens (`donutTrack`, `donutFill`, `chartActual`, `chartPlan`,
+//   `color`, `colorSecondary`, `colorTertiary`, `success`, `danger`) without CSS
+//   custom properties, `currentColor`, HTML `<svg>`, or HTML `<img>`.
+// AC-4 (verbatim from story 10-3-ui-native-parity, AC-4):
+//   Given all ported primitives and domain components, When mounted and
+//   interacted with in Jest (`@testing-library/react-native`), Then each renders
+//   without native view/DOM errors and honours its core interactions (press,
+//   text input, password reveal, toggle/checkbox, native picker selection, date
+//   selection, segmented switch, pagination, toast display).
+// AC-5 (verbatim from story 10-3-ui-native-parity, AC-5):
+//   Given all workspace packages and apps, When `bun run typecheck`, `bun run
+//   lint`, `bun run format:check`, `bun --filter='@pekulo/mobile' run test`, and
+//   `bun --filter='@pekulo/ui' run test` run, Then every command exits 0.
 describe("@pekulo/ui native parity", () => {
   it("exports every public component and primitive from index.native.ts (AC-1)", () => {
     const expected = [

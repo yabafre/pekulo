@@ -1,6 +1,6 @@
 // packages/ui/src/primitives/PekuloDrawer.native.tsx
 import { Sheet as TamaSheet } from "@tamagui/sheet";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { Text, View, styled, type TextProps, type ViewProps } from "tamagui";
 
 interface DrawerContextValue {
@@ -30,12 +30,16 @@ function Root({
 }: PekuloDrawerProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
   const open = controlledOpen ?? uncontrolledOpen;
-  const setOpen = (next: boolean) => {
-    if (controlledOpen === undefined) setUncontrolledOpen(next);
-    onOpenChange?.(next);
-  };
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (controlledOpen === undefined) setUncontrolledOpen(next);
+      onOpenChange?.(next);
+    },
+    [controlledOpen, onOpenChange],
+  );
+  const value = useMemo(() => ({ open, setOpen }), [open, setOpen]);
 
-  return <DrawerContext.Provider value={{ open, setOpen }}>{children}</DrawerContext.Provider>;
+  return <DrawerContext.Provider value={value}>{children}</DrawerContext.Provider>;
 }
 
 function Trigger({ children, ...props }: Omit<ViewProps, "children"> & { children: ReactNode }) {

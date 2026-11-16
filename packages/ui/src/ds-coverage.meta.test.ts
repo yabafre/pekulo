@@ -292,6 +292,19 @@ describe("design-system test coverage (architecture.md:631)", () => {
     expect(barrelModules()).toEqual(expect.arrayContaining(["components", "primitives"]));
   });
 
+  // AC-1 (verbatim from story 10-3-ui-native-parity, AC-1):
+  //   Given the complete `@pekulo/ui` public barrel surface (`provider`, `toast`,
+  //   `tokens`, `themes`, `animations`, all 33 primitives, and all 42 components),
+  //   When the design-system coverage suite runs, Then it excludes React Native
+  //   sibling variants from web primitive enumeration AND asserts that every public
+  //   module and symbol exposed on web is also exported by the React Native barrel
+  //   entrypoint.
+  // AC-2 (verbatim from story 10-3-ui-native-parity, AC-2):
+  //   Given the existing `@pekulo/ui` visual snapshots, accessibility specs,
+  //   `@pekulo/web` test suite, and generated Tamagui stylesheet artifact, When
+  //   the web unit, visual snapshot, accessibility, web application, and CSS
+  //   generation checks run, Then every check exits 0 with zero snapshot diffs
+  //   and zero generated CSS diffs.
   it("exports the complete public barrel surface on React Native (index.native.ts)", () => {
     const nativeMatches = readFileSync(NATIVE_BARREL, "utf8").matchAll(
       /export\s+(?:\*|\{[^}]*\})\s+from\s+"\.\/([\w./-]+)"/g,
