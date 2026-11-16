@@ -6,7 +6,6 @@
     "customConditions": ["react-native"],
     "moduleSuffixes": [".native", ".ios", ".android", ""],
     "types": ["jest"],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     }
