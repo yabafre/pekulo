@@ -16,8 +16,9 @@
 //   `Immobilier`) are navigable, and `Paramètres` opens in one tap from the
 //   Cap header.
 
-import type { ReactNode } from "react";
-import { ScrollView } from "react-native";
+import { useContext, type ReactNode } from "react";
+import { Platform, ScrollView } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { Text, View } from "@pekulo/ui/client";
 
 export interface ScreenShellProps {
@@ -27,17 +28,25 @@ export interface ScreenShellProps {
 }
 
 export function ScreenShell({ title, subtitle, children }: ScreenShellProps) {
+  const insets = useContext(SafeAreaInsetsContext);
+  const topInset = Platform.OS === "android" ? (insets?.top ?? 0) : 0;
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: "transparent" }}
-      contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, gap: 24 }}
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingTop: 20 + topInset,
+        paddingBottom: 20,
+        gap: 24,
+      }}
     >
       <View gap="$1">
         <Text color="$color" fontSize="$h1" fontWeight="600">
           {title}
         </Text>
-        {subtitle !== undefined && (
+        {Boolean(subtitle) && (
           <Text color="$colorSecondary" fontSize="$bodySm">
             {subtitle}
           </Text>

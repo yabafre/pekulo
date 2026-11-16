@@ -22,7 +22,7 @@ export default function CapScreen() {
         />
         <View flexDirection="row" gap="$4">
           <View flex={1}>
-            <PekuloStat label="Avancement" value="22,6 %" tone="gain" />
+            <PekuloStat label="Avancement" value="22,6 %" />
           </View>
           <View flex={1}>
             <PekuloStat label="Prochain palier" value="100 k€ · 2032" />

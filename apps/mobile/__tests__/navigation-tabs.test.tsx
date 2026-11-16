@@ -1,4 +1,6 @@
 import { renderRouter, screen, testRouter } from "expo-router/testing-library";
+import * as ExpoFont from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 
 import appConfig from "../app.json";
 
@@ -55,5 +57,31 @@ describe("apps/mobile navigation graph", () => {
     await testRouter.push("/parametres");
     expect(screen).toHavePathname("/parametres");
     expect(screen.getByText("Design System")).toBeTruthy();
+  });
+
+  it("renders +not-found fallback on an unknown route", async () => {
+    await renderRouter("./app", {
+      initialUrl: "/route-inconnue",
+    });
+
+    expect(screen.getByText("Page introuvable")).toBeTruthy();
+  });
+
+  it("keeps splash screen up while fonts load and hides it on fontError", async () => {
+    const useFontsMock = ExpoFont.useFonts as jest.Mock;
+    const hideSpy = jest.spyOn(SplashScreen, "hideAsync");
+
+    useFontsMock.mockReturnValue([false, null]);
+    await renderRouter("./app", { initialUrl: "/" });
+    expect(screen.queryByText("Patrimoine total")).toBeNull();
+
+    hideSpy.mockClear();
+    useFontsMock.mockReturnValue([false, new Error("font failed")]);
+    await renderRouter("./app", { initialUrl: "/" });
+    expect(hideSpy).toHaveBeenCalled();
+    expect(screen.getByText("Patrimoine total")).toBeTruthy();
+
+    useFontsMock.mockReturnValue([true, null]);
+    hideSpy.mockRestore();
   });
 });

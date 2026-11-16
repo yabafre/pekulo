@@ -23,6 +23,7 @@ const geistMonoFace = {
   400: { normal: "GeistMono_400Regular" },
   500: { normal: "GeistMono_500Medium" },
   600: { normal: "GeistMono_600SemiBold" },
+  700: { normal: "GeistMono_700Bold" },
 };
 
 export function createPekuloFonts() {

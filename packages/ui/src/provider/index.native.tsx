@@ -13,7 +13,7 @@
 
 import type { ReactNode } from "react";
 import { useColorScheme } from "react-native";
-import { TamaguiProvider } from "tamagui";
+import { TamaguiProvider, Theme } from "tamagui";
 
 import { config } from "../config/tamagui";
 
@@ -30,7 +30,7 @@ export function PekuloRootProvider({ children, theme = "system" }: PekuloRootPro
 
   return (
     <TamaguiProvider config={config} defaultTheme={resolvedTheme}>
-      {children}
+      <Theme name={resolvedTheme}>{children}</Theme>
     </TamaguiProvider>
   );
 }

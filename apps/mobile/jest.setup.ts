@@ -16,7 +16,7 @@ jest.mock("react-native-reanimated", () => {
 
 // Ensure expo-font resolves immediately in tests.
 jest.mock("expo-font", () => ({
-  useFonts: () => [true, null],
+  useFonts: jest.fn(() => [true, null]),
   isLoaded: () => true,
   loadAsync: jest.fn().mockResolvedValue(undefined),
 }));

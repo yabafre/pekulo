@@ -26,6 +26,7 @@ import {
   GeistMono_400Regular,
   GeistMono_500Medium,
   GeistMono_600SemiBold,
+  GeistMono_700Bold,
 } from "@expo-google-fonts/geist-mono";
 import { PekuloRootProvider } from "@pekulo/ui";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
@@ -36,7 +37,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 
-void SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -48,11 +49,12 @@ export default function RootLayout() {
     GeistMono_400Regular,
     GeistMono_500Medium,
     GeistMono_600SemiBold,
+    GeistMono_700Bold,
   });
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      void SplashScreen.hideAsync();
+      void SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded, fontError]);
 

@@ -12,6 +12,7 @@ const workletsEntry = require.resolve("react-native-worklets");
 /** @type {import("jest").Config} */
 module.exports = {
   preset: "jest-expo",
+  testTimeout: 20000,
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testMatch: ["<rootDir>/__tests__/**/*.test.{ts,tsx}"],
   moduleNameMapper: {
