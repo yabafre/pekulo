@@ -1,0 +1,17 @@
+appId: app.pekulo.mobile
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Patrimoine total"
+- tapOn: "Transactions"
+- assertVisible: "Solde du mois"
+- tapOn: "Mensuel"
+- assertVisible: "Épargne nette"
+- tapOn: "Portefeuille"
+- assertVisible: "Plus-value latente"
+- tapOn: "Immobilier"
+- assertVisible: "Équité nette"
+- tapOn: "Cap"
+- tapOn:
+    id: "open-settings-btn"
+- assertVisible: "Design System"

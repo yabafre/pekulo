@@ -4,12 +4,12 @@
   "compilerOptions": {
     "lib": ["dom", "esnext"],
     "jsx": "react-jsx",
-    "customConditions": ["react-native"],
+    "customConditions": ["react-native", "react-native-legacy-deep-imports"],
     "moduleSuffixes": [".native", ".ios", ".android", ""],
     "types": ["jest"],
     "paths": {
       "@/*": ["./*"],
-      "react-native": ["./node_modules/react-native/types_generated/index.d.ts"]
+      "react-native": ["./node_modules/react-native/types_DEPRECATED/index.d.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
