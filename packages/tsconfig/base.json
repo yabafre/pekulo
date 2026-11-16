@@ -4,6 +4,7 @@
     "target": "ES2022",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "customConditions": ["react-native-legacy-deep-imports"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

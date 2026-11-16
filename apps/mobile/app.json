@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Pekulo",
+    "slug": "pekulo",
+    "version": "0.1.0",
+    "scheme": "pekulo",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#000000",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.pekulo.mobile"
+    },
+    "android": {
+      "package": "app.pekulo.mobile",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-dev-client",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#000000",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

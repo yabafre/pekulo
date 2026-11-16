@@ -1289,6 +1289,46 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Complexity:** L
 
+> **Realized scope (2026-11-16, Option A split) — supersedes the summary above without deleting it.** Rescoped at `aped-story` step-04 (user-approved) per Lesson 2026-06-05: `10-2` aligns the monorepo on `react@19.3.0` + `next@16.4.6` and delivers the `@pekulo/mobile` Expo SDK 58 Dev Build (`expo-dev-client`) + `expo-router` (`expo-router/native-tabs` + `Stack`, 5 tabs + Paramètres modal), the `@pekulo/ui` dual web/native foundation (`animations.{ts,native.ts}`, `fonts.{ts,native.ts}`, `provider/index.native.tsx`, `index.native.ts` via `"react-native"` export condition), Tamagui optimizing compiler (`@tamagui/babel-plugin` + `@tamagui/metro-plugin`), two cross-platform pilot components (`PekuloHero`, `PekuloStat`), Jest 30 / RNTL tests, and `.maestro/smoke.yaml`. Remaining V1.5 work is split into three follow-up stories below.
+
+**Complexity:** M (rescoped from L via Option A split)
+
+#### Story 10-3-ui-native-parity
+
+**Ticket:** unscheduled (split from #47)
+**Title:** Port remaining 41 web-coupled `@pekulo/ui` files to cross-platform React Native
+
+**Depends on:** 10-2-mobile-app-bootstrap
+
+**As a** Pekulo developer, **I want** all remaining `@pekulo/ui` primitives and `Pekulo*` components (`lucide-react-native`, `react-native-svg` for `PekuloDonut`/charts, native sheets/pickers, removal of `var(--)` / `<style>`) ported to native and re-exported from `index.native.ts`, **so that** mobile screens consume the complete Pekulo Design System without web-DOM forks.
+
+**Covered FRs:** FR-55, FR-56 (native DS component parity)
+**Complexity:** L
+
+#### Story 10-4-mobile-auth-and-orpc
+
+**Ticket:** unscheduled (split from #47)
+**Title:** Wire Supabase Auth (`expo-secure-store`) and `@pekulo/contracts` oRPC client in `apps/mobile`
+
+**Depends on:** 10-2-mobile-app-bootstrap, 10-3-ui-native-parity
+
+**As a** Pekulo user, **I want** to sign in on mobile and view my live Cap, Transactions, Mensuel, Portefeuille, and Immobilier data via `@pekulo/contracts`, **so that** my mobile app mirrors my live Pekulo account.
+
+**Covered FRs:** FR-46, FR-56 (live mobile data)
+**Complexity:** L
+
+#### Story 10-5-mobile-parity-and-maestro
+
+**Ticket:** unscheduled (split from #47)
+**Title:** Automated iOS/Android pixel-diff parity assertions and CI Maestro E2E suite
+
+**Depends on:** 10-3-ui-native-parity, 10-4-mobile-auth-and-orpc
+
+**As a** Pekulo developer, **I want** visual parity checks against the `10-1` web snapshots and the full Maestro E2E suite wired into CI, **so that** visual regressions and navigation breaks are caught before App Store / Play Store release.
+
+**Covered FRs:** FR-56 (parity verification & Maestro CI)
+**Complexity:** M
+
 ## Epic 11: Public-ramp readiness
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.

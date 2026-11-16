@@ -32,7 +32,7 @@
       "rootDir": "apps/web/"
     },
     "react": {
-      "version": "19.2.4"
+      "version": "19.3.0"
     }
   },
   "ignorePatterns": [
@@ -44,6 +44,9 @@
     "out/",
     "coverage/",
     "apps/prices/",
+    "apps/mobile/.expo/",
+    "apps/mobile/ios/",
+    "apps/mobile/android/",
     "docs/ux-preview/",
     ".aped/",
     ".agents/",
