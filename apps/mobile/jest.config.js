@@ -5,6 +5,7 @@ const babelRuntimeDir = path.dirname(
     paths: [require.resolve("react-native/package.json")],
   }),
 );
+const reactNativeEntry = require.resolve("react-native");
 const reanimatedEntry = require.resolve("react-native-reanimated");
 const workletsEntry = require.resolve("react-native-worklets");
 
@@ -15,6 +16,7 @@ module.exports = {
   testMatch: ["<rootDir>/__tests__/**/*.test.{ts,tsx}"],
   moduleNameMapper: {
     "^@babel/runtime/(.*)$": `${babelRuntimeDir}/$1`,
+    "^react-native$": reactNativeEntry,
     "^react-native-reanimated$": reanimatedEntry,
     "^react-native-worklets$": workletsEntry,
     "^@pekulo/ui$": "<rootDir>/../../packages/ui/src/index.native.ts",
