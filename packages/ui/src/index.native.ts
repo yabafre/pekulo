@@ -1,21 +1,23 @@
 // packages/ui/src/index.native.ts
 // React Native public barrel for @pekulo/ui (resolved via package.json
-// "react-native" export condition by Metro and apps/mobile tsconfig).
-//
-// Exposes only native-safe modules and ported pilot components so Metro never
-// pulls web-only DOM dependencies (lucide-react, vaul, react-day-picker,
-// react-resizable-panels, @tamagui/next-theme) before story 10-3 completes
-// the full 41-file native parity pass.
+// "react-native" export condition by Metro, Jest, and apps/mobile tsconfig).
+// Mirrors 100% of packages/ui/src/index.ts.
 
-export { PekuloRootProvider, type PekuloRootProviderProps } from "./provider/index.native";
+// Provider (native TamaguiProvider + Theme + ToastProvider + useThemeSetting)
+export * from "./provider/index.native";
+
+// Toast (hook + native absolute-positioned viewport)
+export * from "./toast/index.native";
 
 // Pure design tokens and theme maps
 export * from "./tokens";
 export * from "./themes";
 
-// Native-safe animation hook (guards window.matchMedia)
-export { useCountUp, type UseCountUpOptions } from "./animations/use-count-up";
+// Animation hooks (window.matchMedia guarded)
+export * from "./animations";
 
-// Cross-platform pilot components (pure Tamagui Text + View)
-export { PekuloStat, type PekuloStatProps } from "./components/PekuloStat";
-export { PekuloHero, type PekuloHeroProps } from "./components/PekuloHero";
+// Primitives (Metro / TS moduleSuffixes resolve *.native.tsx automatically)
+export * from "./primitives";
+
+// Domain components (Metro / TS moduleSuffixes resolve *.native.tsx automatically)
+export * from "./components";

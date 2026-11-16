@@ -21,6 +21,7 @@ const SRC = dirname(fileURLToPath(import.meta.url));
 const COMPONENTS_DIR = join(SRC, "components");
 const PRIMITIVES_DIR = join(SRC, "primitives");
 const BARREL = join(SRC, "index.ts");
+const NATIVE_BARREL = join(SRC, "index.native.ts");
 
 /**
  * Components/primitives exempt from a given suite, with the reason.
@@ -69,7 +70,10 @@ function componentEntries(): Array<{ name: string; dir: string }> {
  */
 function primitiveEntries(): Array<{ name: string; dir: string }> {
   return readdirSync(PRIMITIVES_DIR)
-    .filter((entry) => entry.endsWith(".tsx") && !entry.includes(".test."))
+    .filter(
+      (entry) =>
+        entry.endsWith(".tsx") && !entry.includes(".test.") && !entry.endsWith(".native.tsx"),
+    )
     .map((entry) => entry.replace(/\.tsx$/, ""))
     .sort()
     .map((name) => ({ name, dir: PRIMITIVES_DIR }));
@@ -104,7 +108,7 @@ function moduleComponents(module: string): string[] {
   const dir = join(SRC, module);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
-    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test."))
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !/\.native\.tsx?$/.test(f))
     .flatMap((f) => [
       ...readFileSync(join(dir, f), "utf8").matchAll(
         // `export function Foo` and `export const Foo = …`. A default export
@@ -286,5 +290,13 @@ describe("design-system test coverage (architecture.md:631)", () => {
     expect(componentDirs).toEqual(barrelExports(COMPONENTS_DIR));
     expect(primitiveFiles).toEqual(barrelExports(PRIMITIVES_DIR));
     expect(barrelModules()).toEqual(expect.arrayContaining(["components", "primitives"]));
+  });
+
+  it("exports the complete public barrel surface on React Native (index.native.ts)", () => {
+    const nativeMatches = readFileSync(NATIVE_BARREL, "utf8").matchAll(
+      /export\s+(?:\*|\{[^}]*\})\s+from\s+"\.\/([\w./-]+)"/g,
+    );
+    const nativeModules = [...new Set([...nativeMatches].map((m) => m[1].split("/")[0]))].sort();
+    expect(nativeModules).toEqual(barrelModules());
   });
 });
