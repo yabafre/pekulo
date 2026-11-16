@@ -5,7 +5,9 @@
   "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start --dev-client",
+    "dev:go": "expo start --go",
     "ios": "expo run:ios",
+    "ios:device": "expo run:ios --device",
     "android": "expo run:android",
     "prebuild": "expo prebuild",
     "typecheck": "tsc --noEmit",

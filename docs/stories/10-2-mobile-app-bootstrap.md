@@ -1667,6 +1667,7 @@ apps/web/test-results/
 - `.oxlintrc.json`
 - `.oxfmtrc.json`
 - `bun.lock`
+- `package.json`
 - `apps/web/package.json`
 - `packages/tsconfig/base.json`
 - `packages/ui/package.json`
@@ -1758,6 +1759,7 @@ Aligned the monorepo on `react@19.3.0`, `react-dom@19.3.0`, and `next@16.4.6` (`
 - `docs/epics.md`
 - `docs/state.yaml`
 - `docs/stories/10-2-mobile-app-bootstrap.md`
+- `package.json`
 - `packages/tsconfig/base.json`
 - `packages/ui/package.json`
 - `packages/ui/src/config/animations.native.ts`

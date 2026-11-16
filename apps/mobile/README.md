@@ -8,21 +8,27 @@ Expo SDK 58 + `expo-router` + Tamagui v2 (`@pekulo/ui` native entrypoint) on Rea
 - Bun (`bun@1.3.13`)
 - Optional for E2E smoke: Maestro CLI (`curl -Ls "https://get.maestro.mobile.dev" | bash`)
 
-## Local Dev Build (iOS Simulator)
+## Launch from Repo Root
 
 ```bash
-# 1. Generate native ios/ project (Expo CNG — gitignored) and build Dev Client
-bun --filter='@pekulo/mobile' run ios
+# Build & install Dev Client on a physical iPhone (USB / Xcode signing)
+bun run mobile:ios:device
 
-# 2. Start Metro with Dev Client + clear cache after babel/metro changes
-bun --filter='@pekulo/mobile' run dev -- --clear
+# Build & run Dev Client on iOS Simulator
+bun run mobile:ios
+
+# Start Metro for Dev Client (once installed on iPhone or Simulator)
+bun run dev:mobile
+
+# Start Metro in Expo Go mode
+bun run dev:mobile:go
 ```
 
-## Verification
+## Verification (from Repo Root)
 
 ```bash
-# Unit & navigation tests (runs in CI via bun --filter='*' run test)
-bun --filter='@pekulo/mobile' run test
+# Unit & navigation tests
+bun run test:mobile
 
 # Typecheck (uses "react-native" export condition against @pekulo/ui)
 bun --filter='@pekulo/mobile' run typecheck
