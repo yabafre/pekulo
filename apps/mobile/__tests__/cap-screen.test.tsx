@@ -1,8 +1,14 @@
-import { PekuloRootProvider } from "@pekulo/ui";
+import { PekuloHero, PekuloRootProvider, PekuloStat, pekuloDark, pekuloLight } from "@pekulo/ui";
 import { render, screen } from "@testing-library/react-native";
 
 import CapScreen from "../app/(tabs)/(cap)/index";
 
+// AC-1 (verbatim from story 10-2-mobile-app-bootstrap:36):
+//   Given the mobile workspace and the cross-platform design-system additions,
+//   When workspace installation, typechecking, linting, formatting,
+//   design-system tests, and Tamagui CSS regeneration checks run, Then every
+//   check exits 0 with zero regressions and zero drift on the pre-generated
+//   web stylesheet.
 // AC-2 (verbatim from story 10-2-mobile-app-bootstrap:37):
 //   Given the shared design-system configuration and native theme provider,
 //   When the mobile application compiles with the Tamagui optimizing compiler
@@ -14,6 +20,14 @@ import CapScreen from "../app/(tabs)/(cap)/index";
 //   suite runs, Then all mobile component-rendering and route-navigation
 //   assertions pass cleanly without requiring a native simulator.
 describe("CapScreen with @pekulo/ui native", () => {
+  it("resolves @pekulo/ui native barrel exports and theme tokens (AC-1, AC-2)", () => {
+    expect(typeof PekuloRootProvider).toBe("function");
+    expect(typeof PekuloHero).toBe("function");
+    expect(typeof PekuloStat).toBe("function");
+    expect(pekuloDark.background).toBe("#000000");
+    expect(pekuloLight.background).toBe("#ffffff");
+  });
+
   it("renders PekuloHero and PekuloStat inside PekuloRootProvider (dark)", async () => {
     await render(
       <PekuloRootProvider theme="pekulo-dark">
