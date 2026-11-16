@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@pekulo/tsconfig/apps.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "customConditions": ["react-native"],
+    "moduleSuffixes": [".native", ".ios", ".android", ""],
+    "types": ["jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["node_modules", "ios", "android"]
+}
