@@ -64,6 +64,8 @@
   },
   "devDependencies": {
     "@pekulo/tsconfig": "workspace:*",
+    "@react-native-community/datetimepicker": "9.2.1",
+    "@react-native-picker/picker": "2.11.4",
     "@tamagui/cli": "2.3.1",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
@@ -73,14 +75,34 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^3.2.6",
     "happy-dom": "^20.0.0",
+    "lucide-react-native": "^1.73.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-native-svg": "15.16.0",
     "typescript": "^6.0.3",
     "vitest": "^3.2.6",
     "vitest-axe": "^0.1.0"
   },
   "peerDependencies": {
+    "@react-native-community/datetimepicker": "9.2.1",
+    "@react-native-picker/picker": "2.11.4",
+    "lucide-react-native": "^1.73.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-native-svg": "15.16.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-native-community/datetimepicker": {
+      "optional": true
+    },
+    "@react-native-picker/picker": {
+      "optional": true
+    },
+    "lucide-react-native": {
+      "optional": true
+    },
+    "react-native-svg": {
+      "optional": true
+    }
   }
 }
