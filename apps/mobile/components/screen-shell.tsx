@@ -1,20 +1,11 @@
 // apps/mobile/components/screen-shell.tsx
-// Scrollable safe-area wrapper for mobile tab/stack screens. Uses Tamagui's
-// View/Text via @pekulo/ui/client and React Native's ScrollView with
+// Scrollable safe-area wrapper for mobile tab/stack screens. Paints the Tamagui
+// `$background` token (so the screen follows pekulo-dark / pekulo-light instead
+// of whatever the OS shows behind a transparent ScrollView) and applies
 // automatic content inset adjustment (Apple HIG / Expo Router guideline).
 //
-// AC-2 (verbatim from story 10-2-mobile-app-bootstrap:37):
-//   Given the shared design-system configuration and native theme provider,
-//   When the mobile application compiles with the Tamagui optimizing compiler
-//   and mounts its root screen, Then both dark and light Pekulo themes apply
-//   cleanly and the shared hero and stat components render without web-only
-//   runtime errors.
-// AC-3 (verbatim from story 10-2-mobile-app-bootstrap:38):
-//   Given the mobile navigation shell, When the application launches at the
-//   root route, Then the Cap tab renders as the initial screen, all five
-//   primary destinations (`Cap`, `Transactions`, `Mensuel`, `Portefeuille`,
-//   `Immobilier`) are navigable, and `Paramètres` opens in one tap from the
-//   Cap header.
+// `showTitle={false}` is for screens whose native header already renders a
+// large title (Cap) — avoids a duplicated, misaligned title.
 
 import { useContext, type ReactNode } from "react";
 import { Platform, ScrollView } from "react-native";
@@ -24,35 +15,42 @@ import { Text, View } from "@pekulo/ui/client";
 export interface ScreenShellProps {
   title: string;
   subtitle?: string;
+  showTitle?: boolean;
   children: ReactNode;
 }
 
-export function ScreenShell({ title, subtitle, children }: ScreenShellProps) {
+export function ScreenShell({ title, subtitle, showTitle = true, children }: ScreenShellProps) {
   const insets = useContext(SafeAreaInsetsContext);
   const topInset = Platform.OS === "android" ? (insets?.top ?? 0) : 0;
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: "transparent" }}
-      contentContainerStyle={{
-        paddingHorizontal: 20,
-        paddingTop: 20 + topInset,
-        paddingBottom: 20,
-        gap: 24,
-      }}
-    >
-      <View gap="$1">
-        <Text color="$color" fontSize="$h1" fontWeight="600">
-          {title}
-        </Text>
-        {Boolean(subtitle) && (
-          <Text color="$colorSecondary" fontSize="$bodySm">
-            {subtitle}
-          </Text>
+    <View flex={1} backgroundColor="$background">
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 20 + topInset,
+          paddingBottom: 20,
+          gap: 24,
+        }}
+      >
+        {(showTitle || Boolean(subtitle)) && (
+          <View gap="$1">
+            {showTitle && (
+              <Text color="$color" fontSize="$h1" fontWeight="600">
+                {title}
+              </Text>
+            )}
+            {Boolean(subtitle) && (
+              <Text color="$colorSecondary" fontSize="$bodySm">
+                {subtitle}
+              </Text>
+            )}
+          </View>
         )}
-      </View>
-      {children}
-    </ScrollView>
+        {children}
+      </ScrollView>
+    </View>
   );
 }

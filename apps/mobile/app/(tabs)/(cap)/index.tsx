@@ -10,7 +10,11 @@ import { ScreenShell } from "../../../components/screen-shell";
 
 export default function CapScreen() {
   return (
-    <ScreenShell title="Cap" subtitle="Trajectoire vers votre objectif patrimonial">
+    <ScreenShell
+      title="Cap"
+      showTitle={false}
+      subtitle="Trajectoire vers votre objectif patrimonial"
+    >
       <View backgroundColor="$backgroundCard" borderRadius="$xl" padding="$5" gap="$5">
         <PekuloHero
           variant="card"

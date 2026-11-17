@@ -43,7 +43,9 @@ describe("CapScreen with @pekulo/ui native", () => {
       </PekuloRootProvider>,
     );
 
-    expect(screen.getAllByText("Cap").length).toBeGreaterThanOrEqual(2);
+    // The native header owns the "Cap" large title; the screen body must not repeat it.
+    expect(screen.getAllByText("Cap")).toHaveLength(1);
+    expect(screen.getByText("Trajectoire vers votre objectif patrimonial")).toBeTruthy();
     expect(screen.getByText("Patrimoine total")).toBeTruthy();
     expect(screen.getByText("Avancement")).toBeTruthy();
     expect(screen.getByText("22,6 %")).toBeTruthy();

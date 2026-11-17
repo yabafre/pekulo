@@ -5,11 +5,22 @@
 //   primary destinations (`Cap`, `Transactions`, `Mensuel`, `Portefeuille`,
 //   `Immobilier`) are navigable, and `Paramètres` opens in one tap from the
 //   Cap header.
+import { pekuloColors } from "@pekulo/ui";
 import { NativeTabs } from "expo-router/native-tabs";
+import { useColorScheme } from "react-native";
 
 export default function TabsLayout() {
+  // TR-strict chrome: grayscale only, driven by the Pekulo tokens so the glass
+  // bar keeps ≥ 4.5:1 contrast in both themes.
+  const palette = useColorScheme() === "light" ? pekuloColors.light : pekuloColors.dark;
+
   return (
-    <NativeTabs minimizeBehavior="onScrollDown">
+    <NativeTabs
+      minimizeBehavior="onScrollDown"
+      tintColor={palette.text.primary}
+      iconColor={palette.text.secondary}
+      labelStyle={{ color: palette.text.secondary }}
+    >
       <NativeTabs.Trigger name="(cap)">
         <NativeTabs.Trigger.Icon sf={{ default: "safari", selected: "safari.fill" }} md="explore" />
         <NativeTabs.Trigger.Label>Cap</NativeTabs.Trigger.Label>

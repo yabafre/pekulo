@@ -58,7 +58,8 @@ export function PekuloRootProvider({ children, theme = "system" }: PekuloRootPro
 
   return (
     <NativeThemeContext.Provider value={setting}>
-      <TamaguiProvider config={config} defaultTheme={resolvedTheme}>
+      {/* key: defaultTheme is read once — remount so an OS scheme flip after the first paint re-resolves every token. */}
+      <TamaguiProvider key={resolvedTheme} config={config} defaultTheme={resolvedTheme}>
         <Theme name={resolvedTheme}>
           <ToastProvider>
             {children}
