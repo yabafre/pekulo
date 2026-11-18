@@ -1,7 +1,7 @@
 # Story: 10-3-ui-native-parity — Port remaining web-coupled `@pekulo/ui` files to cross-platform React Native
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** done
 **Ticket:** #154
 **Branch:** feature/154-10-3-ui-native-parity
 **Complexity:** L
@@ -5087,3 +5087,74 @@ Implemented 100% React Native platform parity across `@pekulo/ui` (`.native.tsx`
 - `bun --filter='@pekulo/web' run test` — exit 0 (`125 passed (125)`, `435 passed (435)`)
 - `bun --filter='@pekulo/mobile' run test` — exit 0 (`Test Suites: 3 passed, 3 total`, `Tests: 12 passed, 12 total`)
 - `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css` — exit 0 (zero diff)
+
+## Review Record
+
+**Date:** 2026-11-19
+**Auditors:** Spec, Code, Edge & Hallucination (Aria / React Grab deferred — React Grab MCP unavailable and React Native surface)
+**Verdict:** done
+**Override:** User chose to override Spec NACK exit and fix all findings from all three auditors in-session (`"fix tout"`), then re-verify on `HEAD`.
+
+### Findings
+
+#### Resolved
+- [CRITICAL] `PekuloRootProvider` set `key={resolvedTheme}` on `<TamaguiProvider>`, remounting the entire app/navigation tree on theme switch [`packages/ui/src/provider/index.native.tsx:62`, `apps/mobile/app/_layout.tsx`, `apps/mobile/app/(tabs)/_layout.tsx`]
+  - Source: Code Auditor + Edge & Hallucination Auditor + Spec Auditor
+  - Resolution: `b8c3792` — Removed `key={resolvedTheme}`, reconciled controlled `theme` prop changes with `override`, and switched `RootNavigator` + `TabsLayout` to `useThemeSetting().resolvedTheme`.
+- [CRITICAL] `PekuloCalendar.native.tsx` committed on Android cancel/dismiss and unconditionally mounted `<DateTimePicker>` on Android (reopen loop + ignored `disabled`) [`packages/ui/src/primitives/PekuloCalendar.native.tsx:54-70,105-138`]
+  - Source: Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Migrated to `onValueChange` + `onDismiss` and imperative `DateTimePickerAndroid.open(...)` behind an Android press trigger with `disabled` and `isValidDate` guards.
+- [MAJOR] `PekuloCheckbox.native.tsx` omitted `activeStyle` (missing `$backgroundActive` token → invisible checkmark) and sized `size="$3"` smaller than its 14px icon [`packages/ui/src/primitives/PekuloCheckbox.native.tsx:7-18`]
+  - Source: Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Added `activeStyle={{ backgroundColor: "$color" }}` and `width={20} height={20}`.
+- [MAJOR] `PekuloDatePicker.native.tsx` opened when `disabled`, closed prematurely during range re-edit, crashed on invalid `Date`, ignored `placeholder`, and omitted `"auto"` width [`packages/ui/src/primitives/PekuloDatePicker.native.tsx:30-109`]
+  - Source: Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Guarded `onOpenChange` + `Trigger` with `disabled`, implemented and wired `resetOnSelect`, guarded `isValidDate`, wired `placeholder`, and widened `width`.
+- [MAJOR] `PekuloCardTitle` passed non-existent native font token `lineHeight="$2"` and `PekuloCardHeader` dropped extra `PekuloCardAction` children [`packages/ui/src/primitives/PekuloCard.native.tsx:61-88`]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Replaced `lineHeight="$2"` with `lineHeight={TITLE_FONT_SIZE[size]}` and switched `find` to `filter` for `actionChildren`.
+- [MAJOR] `PekuloSelect.native.tsx` gated `<TamaSelect.Adapt>` on `when="max-md"`, breaking native sheet adaptation on iPad / landscape phones (`>= 768pt`) [`packages/ui/src/primitives/PekuloSelect.native.tsx:16`]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Changed to `<TamaSelect.Adapt platform="touch">`.
+- [MAJOR] Native `Animated.loop` animations ignored reduced motion (`PekuloSpinner`, `PekuloSkeleton`, `use-stagger`), allocated `spin.interpolate` per render, and emitted negative `%` skeleton widths when `lines >= 9` [`packages/ui/src/primitives/PekuloSpinner.native.tsx`, `packages/ui/src/components/PekuloSkeleton/PekuloSkeleton.native.tsx`, `packages/ui/src/animations/use-stagger.native.ts`]
+  - Source: Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Added `use-stagger.native.ts` (`AccessibilityInfo`), stopped loops under reduced motion, memoized `rotate`, and clamped widths to `Math.max(20, 100 - i * 12)`.
+- [MAJOR] AC-1/AC-3/AC-4 verification and mock gaps (`ds-coverage.meta.test.ts` folder-only check, vacuous `"<svg"`/`"<img"` checks, 11 omitted icon components, closed `Dialog`/`Drawer` and unexercised toggles, incomplete Jest mocks) [`packages/ui/src/ds-coverage.meta.test.ts:308-314`, `apps/mobile/jest.setup.ts`, `apps/mobile/__tests__/ui-native-parity.test.tsx`, `apps/mobile/__tests__/cap-screen.test.tsx`]
+  - Source: Spec Auditor + Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Added transitive TypeScript AST value + type export parity in `ds-coverage.meta.test.ts`, upgraded Jest mocks, verified all icon components and resolved token colors (`processColor`) + JSON node types in both themes, and added full interactive & edge-case tests.
+- [MAJOR] Post-dev commits `f180572`/`0acf432` and `PekuloTooltip.tsx` missing from `## File List`, plus TR-banned border on Cap `SettingsAvatarLink` [`docs/stories/10-3-ui-native-parity.md:4929-4990`, `apps/mobile/app/(tabs)/(cap)/index.tsx:27-28`]
+  - Source: Spec Auditor + Code Auditor + `git-audit.sh`
+  - Resolution: `b8c3792` — Removed `borderWidth`/`borderColor` on `SettingsAvatarLink` and synced `## File List` (`git-audit.sh` zero discrepancies).
+- [MINOR] `TransactionLogo.native.tsx` lacked URI scheme validation [`packages/ui/src/components/TransactionLogo/TransactionLogo.native.tsx:13-37`]
+  - Source: Code Auditor
+  - Resolution: `b8c3792` — Added `isSafeLogoUri` allowing `https://` (plus `__DEV__` localhost/127.0.0.1).
+- [MINOR] `PekuloDrawer.native.tsx` allowed caller `onPress` to clobber `setOpen`, lacked `asChild`, failed standalone `Overlay`, and lost `DrawerContext` across `<TamaSheet modal>` portal [`packages/ui/src/primitives/PekuloDrawer.native.tsx:45-104`]
+  - Source: Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Composed `onPress`, added `asChild`, guarded standalone `Overlay` via `InsideSheetContext`, and re-provided `DrawerContext` inside `<TamaSheet.Frame>`.
+- [MINOR] Equal-column native flex rows omitted `flexBasis: 0` / `minWidth: 0` (and `numberOfLines={1}` on segmented labels) [`packages/ui/src/components/PekuloMobileBottomNav/PekuloMobileBottomNav.native.tsx:24-35`, `packages/ui/src/components/PekuloSegmentedControl/PekuloSegmentedControl.native.tsx:20-71`, `packages/ui/src/primitives/PekuloResizable.native.tsx:38`]
+  - Source: Code Auditor
+  - Resolution: `b8c3792` — Added `flexBasis: 0` and `minWidth: 0` (plus `numberOfLines={1}` on segmented labels).
+- [MINOR] `PekuloDonut`, `PekuloProgress`, `PekuloTrajectoryChart`, and `PekuloProjectionChart` propagated `NaN` / empty series / negative radius [`packages/ui/src/components/PekuloDonut/PekuloDonut.native.tsx`, `packages/ui/src/primitives/PekuloProgress.native.tsx`, `packages/ui/src/components/PekuloTrajectoryChart/PekuloTrajectoryChart.native.tsx`, `packages/ui/src/components/PekuloProjectionChart/PekuloProjectionChart.native.tsx`]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Added `Number.isFinite`, empty-series, and non-negative radius/max guards.
+- [MINOR] `PekuloInput.native.tsx` `{...props}` spread order and active reveal button when `disabled` [`packages/ui/src/primitives/PekuloInput.native.tsx:85-136`]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Destructured `keyboardType`/`autoCapitalize` defaults before `{...props}` and disabled the reveal button when `disabled`.
+- [MINOR] `PekuloSpinner` / `CategoryIcon` passed `"currentColor"` and `CategoryIcon` allowed `Object.prototype` lookup [`packages/ui/src/primitives/PekuloSpinner.native.tsx:37`, `packages/ui/src/components/CategoryIcon/CategoryIcon.native.tsx:59-60`]
+  - Source: Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Guarded `color !== "currentColor"` in both and `Object.hasOwn(CATEGORY_ICONS, category)` in `CategoryIcon`.
+- [MINOR] `PekuloNativeSelect.native.tsx` coerced nullish values to `"undefined"` and dropped `<optgroup>` / `Fragment` children [`packages/ui/src/primitives/PekuloNativeSelect.native.tsx:32-51,91-98`]
+  - Source: Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Added nullish guard and recursive `collectOptions`.
+- [MINOR] `PekuloErrorBoundary` empty error string, `PekuloPagination` NaN/out-of-range clamping, `PekuloButton` RN `ViewProps` forwarding, and `PekuloStaggerList` `no-array-index-key` warning [`packages/ui/src/components/PekuloErrorBoundary/PekuloErrorBoundary.native.tsx:45`, `packages/ui/src/components/PekuloPagination/PekuloPagination.native.tsx:62-66`, `packages/ui/src/primitives/PekuloButton.native.tsx:26-91`, `packages/ui/src/components/PekuloStaggerList/PekuloStaggerList.native.tsx:14-24`]
+  - Source: Spec Auditor + Code Auditor + Edge & Hallucination Auditor
+  - Resolution: `b8c3792` — Used `||` fallback, clamped pagination bounds, forwarded `ViewProps`, and eliminated the `no-array-index-key` oxlint warning.
+
+### Verification
+- Test command: `bun --filter='@pekulo/mobile' run test -- --no-cache && bun --filter='@pekulo/ui' run test && bun --filter='@pekulo/ui' run test:visual && bun --filter='@pekulo/ui' run test:axe && bun --filter='@pekulo/web' run test && bun run typecheck && bun run lint && bun run format:check && bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css`
+- Test output (final pass on `b8c3792`): `@pekulo/mobile` Jest `3 passed / 3 suites, 13 passed / 13 tests` (exit 0); `@pekulo/ui` Vitest `159 passed (159), 342 passed | 1 skipped (343)` (exit 0); `test:visual` `77 passed | 82 skipped (159)` (exit 0); `test:axe` `77 passed | 82 skipped (159), 130 passed | 213 skipped (343)` (exit 0); `@pekulo/web` Vitest `125 passed (125), 435 passed (435)` (exit 0); `typecheck` `10 successful, 10 total` (exit 0); `lint` `0 errors, 3 pre-existing web warnings` (exit 0); `format:check` `1348 files` (exit 0); `tamagui.generated.css` zero diff (exit 0); `git-audit.sh` zero discrepancies.
+- Visual verification: Visual Review: deferred — React Grab MCP unavailable at `2026-11-19T00:55:00Z` (React Native component surface; user-waived at review approval).
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/154#issuecomment-6995209617
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/157
