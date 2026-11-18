@@ -25,3 +25,139 @@ jest.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: jest.fn().mockResolvedValue(true),
   hideAsync: jest.fn().mockResolvedValue(true),
 }));
+
+jest.mock("@react-native-community/datetimepicker", () => {
+  const React = require("react") as typeof import("react");
+  const { View, Pressable, Text } = require("react-native") as typeof import("react-native");
+
+  const DateTimePickerAndroid = {
+    open: jest.fn(),
+    dismiss: jest.fn().mockResolvedValue(true),
+  };
+
+  function MockDateTimePicker({
+    value,
+    onChange,
+    onValueChange,
+    onDismiss,
+    disabled,
+    testID,
+    accessibilityLabel,
+  }: {
+    value: Date;
+    onChange?: (
+      event: { type: string; nativeEvent: { timestamp: number; utcOffset: number } },
+      date?: Date,
+    ) => void;
+    onValueChange?: (
+      event: { nativeEvent: { timestamp: number; utcOffset: number } },
+      date: Date,
+    ) => void;
+    onDismiss?: () => void;
+    disabled?: boolean;
+    testID?: string;
+    accessibilityLabel?: string;
+  }) {
+    const tid = testID ?? "native-datetimepicker";
+    const nextDate = new Date(value.getTime() + 24 * 60 * 60 * 1000);
+    return React.createElement(
+      View,
+      null,
+      React.createElement(
+        Pressable,
+        {
+          testID: tid,
+          disabled,
+          accessibilityLabel,
+          onPress: () => {
+            if (disabled) return;
+            const nativeEvent = { timestamp: nextDate.getTime(), utcOffset: 0 };
+            if (onValueChange) {
+              onValueChange({ nativeEvent }, nextDate);
+            } else {
+              onChange?.({ type: "set", nativeEvent }, nextDate);
+            }
+          },
+        },
+        React.createElement(Text, null, value.toISOString()),
+      ),
+      React.createElement(
+        Pressable,
+        {
+          testID: `${tid}-dismiss`,
+          disabled,
+          onPress: () => {
+            if (disabled) return;
+            if (onDismiss) {
+              onDismiss();
+            } else {
+              onChange?.(
+                { type: "dismissed", nativeEvent: { timestamp: value.getTime(), utcOffset: 0 } },
+                value,
+              );
+            }
+          },
+        },
+        React.createElement(Text, null, "Annuler"),
+      ),
+    );
+  }
+
+  return {
+    __esModule: true,
+    default: MockDateTimePicker,
+    DateTimePickerAndroid,
+  };
+});
+
+jest.mock("@react-native-picker/picker", () => {
+  const React = require("react") as typeof import("react");
+  const { View, Pressable, Text } = require("react-native") as typeof import("react-native");
+  function MockPicker({
+    children,
+    selectedValue,
+    onValueChange,
+    enabled = true,
+    testID,
+    accessibilityLabel,
+  }: {
+    children?: React.ReactNode;
+    selectedValue?: string;
+    onValueChange?: (value: string, index: number) => void;
+    enabled?: boolean;
+    testID?: string;
+    accessibilityLabel?: string;
+  }) {
+    return React.createElement(
+      View,
+      {
+        testID: testID ?? "native-picker",
+        accessibilityLabel,
+        accessibilityState: { disabled: !enabled },
+        accessibilityValue: { text: selectedValue },
+      },
+      React.Children.map(children, (child, index) => {
+        if (!React.isValidElement(child)) return child;
+        const itemProps = child.props as { label?: string; value?: string };
+        return React.createElement(
+          Pressable,
+          {
+            key: itemProps.value ?? index,
+            disabled: !enabled,
+            onPress: () => {
+              if (!enabled) return;
+              if (itemProps.value !== undefined) {
+                onValueChange?.(itemProps.value, index);
+              }
+            },
+          },
+          React.createElement(Text, null, itemProps.label ?? String(itemProps.value ?? "")),
+        );
+      }),
+    );
+  }
+  MockPicker.Item = function MockPickerItem() {
+    return null;
+  };
+  return { Picker: MockPicker };
+});

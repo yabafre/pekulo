@@ -11,13 +11,14 @@
 import { useMemo, useSyncExternalStore } from "react";
 
 function getReducedMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return Boolean(window.matchMedia("(prefers-reduced-motion: reduce)")?.matches);
 }
 
 function subscribeReducedMotion(cb: () => void): () => void {
-  if (typeof window === "undefined") return () => {};
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
   const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (!mq || typeof mq.addEventListener !== "function") return () => {};
   mq.addEventListener("change", cb);
   return () => mq.removeEventListener("change", cb);
 }

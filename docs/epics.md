@@ -1295,7 +1295,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 #### Story 10-3-ui-native-parity
 
-**Ticket:** unscheduled (split from #47)
+**Ticket:** [#154](https://github.com/yabafre/pekulo/issues/154)
 **Title:** Port remaining 41 web-coupled `@pekulo/ui` files to cross-platform React Native
 
 **Depends on:** 10-2-mobile-app-bootstrap
@@ -1307,7 +1307,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 #### Story 10-4-mobile-auth-and-orpc
 
-**Ticket:** unscheduled (split from #47)
+**Ticket:** [#155](https://github.com/yabafre/pekulo/issues/155)
 **Title:** Wire Supabase Auth (`expo-secure-store`) and `@pekulo/contracts` oRPC client in `apps/mobile`
 
 **Depends on:** 10-2-mobile-app-bootstrap, 10-3-ui-native-parity
@@ -1319,7 +1319,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 #### Story 10-5-mobile-parity-and-maestro
 
-**Ticket:** unscheduled (split from #47)
+**Ticket:** [#156](https://github.com/yabafre/pekulo/issues/156)
 **Title:** Automated iOS/Android pixel-diff parity assertions and CI Maestro E2E suite
 
 **Depends on:** 10-3-ui-native-parity, 10-4-mobile-auth-and-orpc

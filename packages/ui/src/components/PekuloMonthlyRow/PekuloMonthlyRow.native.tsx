@@ -1,0 +1,52 @@
+// packages/ui/src/components/PekuloMonthlyRow/PekuloMonthlyRow.native.tsx
+import { Check } from "lucide-react-native";
+import { Text, View, useTheme } from "tamagui";
+import type { MonthlyDisplayRow } from "@pekulo/types";
+
+const eur0 = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+export interface PekuloMonthlyRowProps {
+  month: MonthlyDisplayRow;
+}
+
+export function PekuloMonthlyRow({ month }: PekuloMonthlyRowProps) {
+  const theme = useTheme();
+  const sign = month.netEur >= 0 ? "+" : "−";
+  const tone = month.netEur >= 0 ? "$success" : "$danger";
+  return (
+    <View flexDirection="row" alignItems="center" gap="$3" paddingVertical="$3">
+      <View flex={1}>
+        <Text color="$color" fontSize="$bodySm" fontWeight="500" textTransform="capitalize">
+          {month.monthLabel}
+        </Text>
+        <Text color="$colorTertiary" fontSize="$xs">
+          +{eur0.format(month.incomeEur)} · −{eur0.format(month.spendingEur)}
+        </Text>
+      </View>
+      <Text color={tone as never} fontSize="$bodySm" fontWeight="500">
+        {sign}
+        {eur0.format(Math.abs(month.netEur))}
+      </Text>
+      {month.closed && (
+        <View
+          flexDirection="row"
+          alignItems="center"
+          gap="$1"
+          paddingHorizontal="$2"
+          paddingVertical={3}
+          borderRadius="$full"
+          backgroundColor="$backgroundMuted"
+        >
+          <Check size={12} color={theme.colorSecondary.val} />
+          <Text color="$colorSecondary" fontSize="$11">
+            Clôturé
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}

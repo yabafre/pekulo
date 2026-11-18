@@ -1,9 +1,12 @@
 "use client";
 
-import { Tooltip as TamaTooltip, type TooltipProps } from "@tamagui/tooltip";
+import { Tooltip as TamaTooltip } from "@tamagui/tooltip";
 import type { ComponentProps, ReactNode } from "react";
 
-function Root({ delay = 400, ...props }: TooltipProps & { children: ReactNode }) {
+function Root({
+  delay = 400,
+  ...props
+}: ComponentProps<typeof TamaTooltip> & { children: ReactNode }) {
   return <TamaTooltip delay={delay} {...props} />;
 }
 
