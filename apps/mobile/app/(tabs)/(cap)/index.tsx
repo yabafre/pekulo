@@ -4,16 +4,46 @@
 // until story 10-4 wires @pekulo/contracts oRPC data.
 
 import { PekuloHero, PekuloStat } from "@pekulo/ui";
-import { View } from "@pekulo/ui/client";
+import { Text, View } from "@pekulo/ui/client";
+import { Link } from "expo-router";
+import { Pressable } from "react-native";
 
 import { ScreenShell } from "../../../components/screen-shell";
+
+function SettingsAvatarLink() {
+  return (
+    <Link href="/parametres" asChild>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ouvrir les paramètres"
+        hitSlop={8}
+        testID="open-settings-btn"
+      >
+        <View
+          width={36}
+          height={36}
+          borderRadius="$full"
+          backgroundColor="$backgroundMuted"
+          borderWidth={1}
+          borderColor="$borderDefault"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Text color="$color" fontSize="$bodySm" fontWeight="600">
+            A
+          </Text>
+        </View>
+      </Pressable>
+    </Link>
+  );
+}
 
 export default function CapScreen() {
   return (
     <ScreenShell
       title="Cap"
-      showTitle={false}
       subtitle="Trajectoire vers votre objectif patrimonial"
+      headerRight={<SettingsAvatarLink />}
     >
       <View backgroundColor="$backgroundCard" borderRadius="$xl" padding="$5" gap="$5">
         <PekuloHero

@@ -3,9 +3,6 @@
 // `$background` token (so the screen follows pekulo-dark / pekulo-light instead
 // of whatever the OS shows behind a transparent ScrollView) and applies
 // automatic content inset adjustment (Apple HIG / Expo Router guideline).
-//
-// `showTitle={false}` is for screens whose native header already renders a
-// large title (Cap) — avoids a duplicated, misaligned title.
 
 import { useContext, type ReactNode } from "react";
 import { Platform, ScrollView } from "react-native";
@@ -15,11 +12,11 @@ import { Text, View } from "@pekulo/ui/client";
 export interface ScreenShellProps {
   title: string;
   subtitle?: string;
-  showTitle?: boolean;
+  headerRight?: ReactNode;
   children: ReactNode;
 }
 
-export function ScreenShell({ title, subtitle, showTitle = true, children }: ScreenShellProps) {
+export function ScreenShell({ title, subtitle, headerRight, children }: ScreenShellProps) {
   const insets = useContext(SafeAreaInsetsContext);
   const topInset = Platform.OS === "android" ? (insets?.top ?? 0) : 0;
 
@@ -35,20 +32,19 @@ export function ScreenShell({ title, subtitle, showTitle = true, children }: Scr
           gap: 24,
         }}
       >
-        {(showTitle || Boolean(subtitle)) && (
-          <View gap="$1">
-            {showTitle && (
-              <Text color="$color" fontSize="$h1" fontWeight="600">
-                {title}
-              </Text>
-            )}
-            {Boolean(subtitle) && (
-              <Text color="$colorSecondary" fontSize="$bodySm">
-                {subtitle}
-              </Text>
-            )}
+        <View gap="$1">
+          <View flexDirection="row" alignItems="center" justifyContent="space-between" gap="$3">
+            <Text color="$color" fontSize="$h1" fontWeight="600" flexShrink={1}>
+              {title}
+            </Text>
+            {headerRight}
           </View>
-        )}
+          {Boolean(subtitle) && (
+            <Text color="$colorSecondary" fontSize="$bodySm">
+              {subtitle}
+            </Text>
+          )}
+        </View>
         {children}
       </ScrollView>
     </View>
