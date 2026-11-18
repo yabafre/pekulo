@@ -1,6 +1,7 @@
 import { PekuloHero, PekuloRootProvider, PekuloStat, pekuloDark, pekuloLight } from "@pekulo/ui";
 import { Text } from "@pekulo/ui/client";
 import { render, screen } from "@testing-library/react-native";
+import { useState } from "react";
 import { useTheme } from "tamagui";
 
 import CapScreen from "../app/(tabs)/(cap)/index";
@@ -54,37 +55,52 @@ describe("CapScreen with @pekulo/ui native", () => {
     expect(screen.getByText("100 k€ · 2032")).toBeTruthy();
   });
 
-  it("supports switching explicitly and dynamically to pekulo-light theme", async () => {
+  it("supports switching explicitly and dynamically to pekulo-light theme without remounting children", async () => {
+    let mounts = 0;
+    function MountCounter() {
+      const [mounted] = useState(() => ++mounts);
+      return <Text testID="mount-count">{mounted}</Text>;
+    }
+
     const view = await render(
       <PekuloRootProvider theme="pekulo-dark">
+        <MountCounter />
         <ThemeProbe />
         <CapScreen />
       </PekuloRootProvider>,
     );
 
     expect(screen.getByTestId("theme-bg").props.children).toBe("#000000");
+    expect(screen.getByTestId("mount-count").props.children).toBe(1);
 
     await view.rerender(
       <PekuloRootProvider theme="pekulo-light">
+        <MountCounter />
         <ThemeProbe />
         <CapScreen />
       </PekuloRootProvider>,
     );
 
     expect(screen.getByTestId("theme-bg").props.children).toBe("#ffffff");
+    expect(screen.getByTestId("mount-count").props.children).toBe(1);
     expect(screen.getByText("Patrimoine total")).toBeTruthy();
   });
 
-  it("omits subtitle Text node when subtitle is empty string", async () => {
+  it("renders ScreenShell headerRight inline alongside title and omits subtitle when empty", async () => {
     await render(
       <PekuloRootProvider theme="pekulo-dark">
-        <ScreenShell title="Titre seul" subtitle="">
+        <ScreenShell
+          title="Titre seul"
+          subtitle=""
+          headerRight={<Text testID="header-right-probe">Action</Text>}
+        >
           <Text>Contenu</Text>
         </ScreenShell>
       </PekuloRootProvider>,
     );
 
     expect(screen.getByText("Titre seul")).toBeTruthy();
+    expect(screen.getByTestId("header-right-probe")).toBeTruthy();
     expect(screen.queryByText("")).toBeNull();
   });
 });

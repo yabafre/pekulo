@@ -56,7 +56,10 @@ export interface CategoryIconProps {
 
 export function CategoryIcon({ category, size = 14, color }: CategoryIconProps) {
   const theme = useTheme();
-  const Icon = CATEGORY_ICONS[category] ?? Tag;
-  const resolvedColor = color && !color.startsWith("var(") ? color : theme.colorTertiary.val;
+  const Icon = Object.hasOwn(CATEGORY_ICONS, category) ? (CATEGORY_ICONS[category] ?? Tag) : Tag;
+  const resolvedColor =
+    color && !color.startsWith("var(") && color !== "currentColor"
+      ? color
+      : theme.colorTertiary.val;
   return <Icon size={size} color={resolvedColor} />;
 }

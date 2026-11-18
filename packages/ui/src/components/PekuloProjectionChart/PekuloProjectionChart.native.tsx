@@ -30,15 +30,23 @@ export function PekuloProjectionChart({
     ...required,
     ...(nowMarker ? [nowMarker.value] : []),
     ...(capMarker ? [capMarker.value] : []),
-  ];
-  const min = Math.min(...all);
-  const max = Math.max(...all);
+  ].filter(Number.isFinite);
+  const min = all.length > 0 ? Math.min(...all) : 0;
+  const max = all.length > 0 ? Math.max(...all) : 1;
   const range = Math.max(max - min, 1);
   const xStep = (width - 2 * padding) / Math.max(years.length - 1, 1);
   const toX = (i: number) => padding + i * xStep;
   const toY = (v: number) => padding + (height - 2 * padding) * (1 - (v - min) / range);
-  const toPath = (d: number[]) =>
-    d.map((v, i) => `${i === 0 ? "M" : "L"} ${toX(i)} ${toY(v)}`).join(" ");
+  const toPath = (d: number[]) => {
+    const segments: string[] = [];
+    let hasStart = false;
+    d.forEach((v, i) => {
+      if (!Number.isFinite(v)) return;
+      segments.push(`${hasStart ? "L" : "M"} ${toX(i)} ${toY(v)}`);
+      hasStart = true;
+    });
+    return segments.join(" ");
+  };
   const idxOf = (y: number) => Math.max(0, years.indexOf(y));
 
   return (
@@ -53,7 +61,7 @@ export function PekuloProjectionChart({
             fill="none"
           />
           <Path d={toPath(actual)} stroke={theme.chartActual.val} strokeWidth={2} fill="none" />
-          {nowMarker && (
+          {nowMarker && Number.isFinite(nowMarker.value) && (
             <Circle
               cx={toX(idxOf(nowMarker.year))}
               cy={toY(nowMarker.value)}
@@ -61,7 +69,7 @@ export function PekuloProjectionChart({
               fill={theme.chartActual.val}
             />
           )}
-          {capMarker && (
+          {capMarker && Number.isFinite(capMarker.value) && (
             <Circle
               cx={toX(idxOf(capMarker.year))}
               cy={toY(capMarker.value)}

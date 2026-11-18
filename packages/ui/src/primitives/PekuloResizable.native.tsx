@@ -35,7 +35,7 @@ export function PekuloResizablePanel({
   ...props
 }: PekuloResizablePanelProps) {
   return (
-    <View flex={defaultSize ?? 1} minWidth={0} minHeight={0} {...props}>
+    <View flex={defaultSize ?? 1} flexBasis={0} minWidth={0} minHeight={0} {...props}>
       {children}
     </View>
   );

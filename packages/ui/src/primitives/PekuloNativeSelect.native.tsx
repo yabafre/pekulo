@@ -29,12 +29,7 @@ const SIZE_HEIGHT: Record<NonNullable<PekuloNativeSelectProps["controlSize"]>, n
   md: pekuloSpacing[10],
 };
 
-function extractOptions(
-  options: ReadonlyArray<PekuloNativeSelectOption> | undefined,
-  children: ReactNode,
-): PekuloNativeSelectOption[] {
-  if (options) return [...options];
-  const resolved: PekuloNativeSelectOption[] = [];
+function collectOptions(children: ReactNode, resolved: PekuloNativeSelectOption[]): void {
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) return;
     const props = child.props as { value?: string; label?: string; children?: ReactNode };
@@ -45,8 +40,19 @@ function extractOptions(
           ? String(props.children)
           : props.value);
       resolved.push({ value: String(props.value), label });
+    } else if (props.children !== undefined) {
+      collectOptions(props.children, resolved);
     }
   });
+}
+
+function extractOptions(
+  options: ReadonlyArray<PekuloNativeSelectOption> | undefined,
+  children: ReactNode,
+): PekuloNativeSelectOption[] {
+  if (options) return [...options];
+  const resolved: PekuloNativeSelectOption[] = [];
+  collectOptions(children, resolved);
   return resolved;
 }
 
@@ -89,7 +95,7 @@ export function PekuloNativeSelect({
         dropdownIconColor={theme.colorTertiary.val}
         style={{ color: theme.color.val, width: "100%" }}
         onValueChange={(nextValue) => {
-          const str = String(nextValue);
+          const str = nextValue == null ? "" : String(nextValue);
           if (controlledValue === undefined) {
             setUncontrolled(str);
           }

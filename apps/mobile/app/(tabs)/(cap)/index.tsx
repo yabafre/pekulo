@@ -24,8 +24,6 @@ function SettingsAvatarLink() {
           height={36}
           borderRadius="$full"
           backgroundColor="$backgroundMuted"
-          borderWidth={1}
-          borderColor="$borderDefault"
           alignItems="center"
           justifyContent="center"
         >

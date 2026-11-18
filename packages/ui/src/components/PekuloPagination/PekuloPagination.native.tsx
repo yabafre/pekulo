@@ -59,9 +59,13 @@ export function PekuloPagination({
   nextLabel = "Page suivante",
 }: PekuloPaginationProps) {
   const theme = useTheme();
-  if (pageCount <= 1) return null;
-  const atStart = page <= 1;
-  const atEnd = page >= pageCount;
+  const safePageCount = Number.isFinite(pageCount) ? Math.trunc(pageCount) : 0;
+  if (safePageCount <= 1) return null;
+  const safePage = Number.isFinite(page)
+    ? Math.max(1, Math.min(safePageCount, Math.trunc(page)))
+    : 1;
+  const atStart = safePage <= 1;
+  const atEnd = safePage >= safePageCount;
 
   return (
     <View
@@ -79,13 +83,13 @@ export function PekuloPagination({
         aria-disabled={atStart}
         aria-label={previousLabel}
         onPress={() => {
-          if (!atStart) onPageChange(page - 1);
+          if (!atStart) onPageChange(safePage - 1);
         }}
       >
         <ChevronLeft size={16} color={theme.colorSecondary.val} />
       </PaginationLink>
 
-      {pageWindow(page, pageCount).map((entry) =>
+      {pageWindow(safePage, safePageCount).map((entry) =>
         entry.kind === "gap" ? (
           <View
             key={`gap-${entry.side}`}
@@ -100,15 +104,15 @@ export function PekuloPagination({
         ) : (
           <PaginationLink
             key={entry.page}
-            active={entry.page === page}
+            active={entry.page === safePage}
             aria-label={`Page ${entry.page}`}
-            aria-selected={entry.page === page}
+            aria-selected={entry.page === safePage}
             onPress={() => onPageChange(entry.page)}
           >
             <Text
-              color={entry.page === page ? "$colorOnAccent" : "$color"}
+              color={entry.page === safePage ? "$colorOnAccent" : "$color"}
               fontSize="$xs"
-              fontWeight={entry.page === page ? "600" : "400"}
+              fontWeight={entry.page === safePage ? "600" : "400"}
             >
               {entry.page}
             </Text>
@@ -122,7 +126,7 @@ export function PekuloPagination({
         aria-disabled={atEnd}
         aria-label={nextLabel}
         onPress={() => {
-          if (!atEnd) onPageChange(page + 1);
+          if (!atEnd) onPageChange(safePage + 1);
         }}
       >
         <ChevronRight size={16} color={theme.colorSecondary.val} />

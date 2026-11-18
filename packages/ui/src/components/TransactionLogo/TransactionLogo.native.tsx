@@ -10,10 +10,24 @@ export interface TransactionLogoProps {
   size?: number;
 }
 
+function isSafeLogoUri(uri: string | null | undefined): uri is string {
+  if (!uri) return false;
+  if (uri.startsWith("https://")) return true;
+  if (
+    typeof __DEV__ !== "undefined" &&
+    __DEV__ &&
+    (uri.startsWith("http://localhost") || uri.startsWith("http://127.0.0.1"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function TransactionLogo({ src, category, size = 28 }: TransactionLogoProps) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
-  const showImg = Boolean(src) && !failed;
+  const safeSrc = isSafeLogoUri(src) ? src : null;
+  const showImg = Boolean(safeSrc) && !failed;
 
   return (
     <View
@@ -26,9 +40,9 @@ export function TransactionLogo({ src, category, size = 28 }: TransactionLogoPro
       backgroundColor="$backgroundMuted"
       accessibilityElementsHidden
     >
-      {showImg && src ? (
+      {showImg && safeSrc ? (
         <Image
-          source={{ uri: src }}
+          source={{ uri: safeSrc }}
           style={{ width: size, height: size }}
           resizeMode="contain"
           onError={() => setFailed(true)}

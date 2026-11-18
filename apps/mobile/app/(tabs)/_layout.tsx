@@ -5,14 +5,14 @@
 //   primary destinations (`Cap`, `Transactions`, `Mensuel`, `Portefeuille`,
 //   `Immobilier`) are navigable, and `Paramètres` opens in one tap from the
 //   Cap header.
-import { pekuloColors } from "@pekulo/ui";
+import { pekuloColors, useThemeSetting } from "@pekulo/ui";
 import { NativeTabs } from "expo-router/native-tabs";
-import { useColorScheme } from "react-native";
 
 export default function TabsLayout() {
   // TR-strict chrome: grayscale only, driven by the Pekulo tokens so the glass
   // bar keeps ≥ 4.5:1 contrast in both themes.
-  const palette = useColorScheme() === "light" ? pekuloColors.light : pekuloColors.dark;
+  const { resolvedTheme } = useThemeSetting();
+  const palette = resolvedTheme === "pekulo-light" ? pekuloColors.light : pekuloColors.dark;
 
   return (
     <NativeTabs

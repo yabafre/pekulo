@@ -13,7 +13,7 @@ function Root<Value extends string = string>(props: SelectProps<Value>) {
   return (
     <TamaSelect {...props}>
       {props.children}
-      <TamaSelect.Adapt when="max-md" platform="touch">
+      <TamaSelect.Adapt platform="touch">
         <TamaSheet modal dismissOnSnapToBottom snapPointsMode="fit">
           <TamaSheet.Frame backgroundColor="$backgroundElevated" padding="$3">
             <TamaSheet.ScrollView>

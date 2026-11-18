@@ -38,6 +38,11 @@ export function useThemeSetting(): NativeThemeSetting {
 export function PekuloRootProvider({ children, theme = "system" }: PekuloRootProviderProps) {
   const colorScheme = useColorScheme();
   const [override, setOverride] = useState<"pekulo-dark" | "pekulo-light" | "system" | null>(null);
+  const [prevThemeProp, setPrevThemeProp] = useState(theme);
+  if (theme !== prevThemeProp) {
+    setPrevThemeProp(theme);
+    setOverride(null);
+  }
   const activeChoice = override ?? theme;
   const resolvedTheme: "pekulo-dark" | "pekulo-light" =
     activeChoice === "system"
@@ -58,8 +63,7 @@ export function PekuloRootProvider({ children, theme = "system" }: PekuloRootPro
 
   return (
     <NativeThemeContext.Provider value={setting}>
-      {/* key: defaultTheme is read once — remount so an OS scheme flip after the first paint re-resolves every token. */}
-      <TamaguiProvider key={resolvedTheme} config={config} defaultTheme={resolvedTheme}>
+      <TamaguiProvider config={config} defaultTheme={resolvedTheme}>
         <Theme name={resolvedTheme}>
           <ToastProvider>
             {children}

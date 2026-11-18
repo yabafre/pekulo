@@ -53,6 +53,8 @@ export const PekuloInput = forwardRef<TextInput, PekuloInputProps>(function Peku
     "aria-label": ariaLabel,
     onChangeText,
     onChange,
+    keyboardType: customKeyboardType,
+    autoCapitalize: customAutoCapitalize,
     ...props
   },
   ref,
@@ -67,7 +69,8 @@ export const PekuloInput = forwardRef<TextInput, PekuloInputProps>(function Peku
   const paddingRight = showRevealToggle ? REVEAL_BTN_WIDTH : SIZE_PADDING_X[controlSize];
 
   const keyboardType =
-    type === "email"
+    customKeyboardType ??
+    (type === "email"
       ? "email-address"
       : type === "number"
         ? "numeric"
@@ -75,14 +78,16 @@ export const PekuloInput = forwardRef<TextInput, PekuloInputProps>(function Peku
           ? "phone-pad"
           : type === "url"
             ? "url"
-            : "default";
+            : "default");
 
   const autoCapitalize =
-    type === "email" || type === "password" || type === "url" ? "none" : props.autoCapitalize;
+    customAutoCapitalize ??
+    (type === "email" || type === "password" || type === "url" ? "none" : undefined);
 
   return (
     <View position="relative" width="100%">
       <TextInput
+        {...props}
         ref={ref}
         editable={!disabled}
         secureTextEntry={isPassword && (!showRevealToggle || !revealed)}
@@ -110,14 +115,16 @@ export const PekuloInput = forwardRef<TextInput, PekuloInputProps>(function Peku
           },
           style,
         ]}
-        {...props}
       />
       {showRevealToggle && (
         <Pressable
+          disabled={disabled}
           accessibilityRole="button"
           accessibilityLabel={revealed ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-          accessibilityState={{ selected: revealed }}
-          onPress={() => setRevealed((v) => !v)}
+          accessibilityState={{ selected: revealed, disabled: Boolean(disabled) }}
+          onPress={() => {
+            if (!disabled) setRevealed((v) => !v);
+          }}
           style={{
             position: "absolute",
             top: 0,

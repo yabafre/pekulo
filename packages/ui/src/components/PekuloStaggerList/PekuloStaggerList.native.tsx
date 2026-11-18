@@ -1,9 +1,8 @@
 // packages/ui/src/components/PekuloStaggerList/PekuloStaggerList.native.tsx
 // Native stagger container using Tamagui View (omits web <ul>/<li> and CSS animationDelay).
 
-import { Children, type ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 import { View } from "tamagui";
-import { useStagger } from "../../animations/use-stagger";
 
 export interface PekuloStaggerListProps {
   children: ReactNode;
@@ -12,13 +11,14 @@ export interface PekuloStaggerListProps {
   ariaLabel?: string;
 }
 
-export function PekuloStaggerList({ children, delayMs = 40, ariaLabel }: PekuloStaggerListProps) {
+export function PekuloStaggerList({ children, ariaLabel }: PekuloStaggerListProps) {
   const items = Children.toArray(children);
-  useStagger(items.length, delayMs);
   return (
     <View aria-label={ariaLabel} flexDirection="column">
-      {items.map((child, i) => (
-        <View key={i}>{child}</View>
+      {items.map((child) => (
+        <View key={isValidElement(child) && child.key != null ? String(child.key) : String(child)}>
+          {child}
+        </View>
       ))}
     </View>
   );

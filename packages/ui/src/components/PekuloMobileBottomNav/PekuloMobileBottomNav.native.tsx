@@ -25,6 +25,8 @@ const NavTabButton = styled(View, {
   name: "PekuloMobileBottomNavItem",
   role: "button",
   flex: 1,
+  flexBasis: 0,
+  minWidth: 0,
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",

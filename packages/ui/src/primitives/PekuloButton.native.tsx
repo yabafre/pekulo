@@ -1,7 +1,7 @@
 // packages/ui/src/primitives/PekuloButton.native.tsx
 import type { ReactNode } from "react";
 import type { GestureResponderEvent, ViewStyle } from "react-native";
-import { Text, View, styled, useTheme } from "tamagui";
+import { Text, View, styled, useTheme, type ViewProps } from "tamagui";
 import { pekuloFontSizes, pekuloFontWeights, pekuloRadius, pekuloSpacing } from "../tokens";
 import { PekuloSpinner } from "./PekuloSpinner.native";
 
@@ -23,7 +23,10 @@ export type PekuloButtonSize =
   | "icon-sm"
   | "icon-lg";
 
-export interface PekuloButtonProps {
+export interface PekuloButtonProps extends Omit<
+  ViewProps,
+  "children" | "onPress" | "onClick" | "disabled" | "style"
+> {
   variant?: PekuloButtonVariant;
   size?: PekuloButtonSize;
   loading?: boolean;
@@ -84,6 +87,8 @@ export function PekuloButton({
   "aria-label": ariaLabel,
   testID,
   style,
+  type: _type,
+  ...rest
 }: PekuloButtonProps) {
   const theme = useTheme();
   const isDisabled = Boolean(disabled || loading);
@@ -106,6 +111,7 @@ export function PekuloButton({
 
   return (
     <ButtonSurface
+      {...rest}
       testID={testID}
       aria-label={accessibilityLabel ?? ariaLabel}
       aria-busy={loading}

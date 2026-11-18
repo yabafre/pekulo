@@ -23,14 +23,22 @@ export function PekuloTrajectoryChart({
   const width = 600;
   const height = tall ? 220 : 180;
   const padding = 8;
-  const all = [...actual, ...plan];
-  const min = Math.min(...all);
-  const max = Math.max(...all);
+  const all = [...actual, ...plan].filter(Number.isFinite);
+  const min = all.length > 0 ? Math.min(...all) : 0;
+  const max = all.length > 0 ? Math.max(...all) : 1;
   const range = Math.max(max - min, 1);
   const xStep = (width - 2 * padding) / Math.max(months.length - 1, 1);
   const toY = (v: number) => padding + (height - 2 * padding) * (1 - (v - min) / range);
-  const toPath = (data: number[]) =>
-    data.map((v, i) => `${i === 0 ? "M" : "L"} ${padding + i * xStep} ${toY(v)}`).join(" ");
+  const toPath = (data: number[]) => {
+    const segments: string[] = [];
+    let hasStart = false;
+    data.forEach((v, i) => {
+      if (!Number.isFinite(v)) return;
+      segments.push(`${hasStart ? "L" : "M"} ${padding + i * xStep} ${toY(v)}`);
+      hasStart = true;
+    });
+    return segments.join(" ");
+  };
 
   const inner = (
     <View

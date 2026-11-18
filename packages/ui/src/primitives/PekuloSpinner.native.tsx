@@ -2,9 +2,10 @@
 // Native loading spinner using lucide-react-native Loader2 + Animated rotation.
 
 import { Loader2 } from "lucide-react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing } from "react-native";
 import { View, useTheme } from "tamagui";
+import { usePrefersReducedMotion } from "../animations/use-stagger.native";
 
 export interface PekuloSpinnerProps {
   size?: number;
@@ -14,9 +15,14 @@ export interface PekuloSpinnerProps {
 
 export function PekuloSpinner({ size = 16, color, ariaLabel = "Chargement" }: PekuloSpinnerProps) {
   const theme = useTheme();
+  const reducedMotion = usePrefersReducedMotion();
   const spin = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (reducedMotion) {
+      spin.setValue(0);
+      return;
+    }
     const loop = Animated.loop(
       Animated.timing(spin, {
         toValue: 1,
@@ -27,14 +33,19 @@ export function PekuloSpinner({ size = 16, color, ariaLabel = "Chargement" }: Pe
     );
     loop.start();
     return () => loop.stop();
-  }, [spin]);
+  }, [spin, reducedMotion]);
 
-  const rotate = spin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
+  const rotate = useMemo(
+    () =>
+      spin.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0deg", "360deg"],
+      }),
+    [spin],
+  );
 
-  const resolvedColor = color && !color.startsWith("var(") ? color : theme.color.val;
+  const resolvedColor =
+    color && !color.startsWith("var(") && color !== "currentColor" ? color : theme.color.val;
 
   return (
     <View

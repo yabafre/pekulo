@@ -4920,7 +4920,7 @@ function moduleComponents(module: string): string[] {
 
 ### Architecture & Dependency Notes
 
-- **Zero web regression (`docs/stories/10-1-visual-snapshot-suite.md`, `10-2`):** Web `*.tsx` component and primitive files stay untouched (except the 1-line `window.matchMedia` check in `use-stagger.ts`). `packages/ui/tsconfig.json` already excludes `**/*.native.{ts,tsx}`, and `bun run generate:tamagui-css` ignores `.native.tsx` files, keeping `packages/ui/public/tamagui.generated.css` byte-identical.
+- **Zero web regression (`docs/stories/10-1-visual-snapshot-suite.md`, `10-2`):** Web `*.tsx` component and primitive files stay runtime-untouched (only the `window.matchMedia` guard in `use-stagger.ts` and the type-only `ComponentProps<typeof TamaTooltip>` adjustment in `PekuloTooltip.tsx`). `packages/ui/tsconfig.json` already excludes `**/*.native.{ts,tsx}`, and `bun run generate:tamagui-css` ignores `.native.tsx` files, keeping `packages/ui/public/tamagui.generated.css` byte-identical.
 - **Native package pins (`apps/mobile/node_modules/expo/bundledNativeModules.json`):** `react-native-svg@15.16.0`, `@react-native-community/datetimepicker@9.2.1`, `@react-native-picker/picker@2.11.4`, and `lucide-react-native@^1.73.0` (`react@^19.0.0`, `react-native-svg@^15.0.0`).
 - **TR-strict palette discipline (`docs/ux/design-spec.md` §1):** All native components resolve surface, typography, chart, and perf delta tokens through Tamagui's `pekulo-dark` / `pekulo-light` themes (`useTheme()`), keeping `$accent` / `$success` / `$danger` strictly scoped to monetary deltas, validation states, and transient feedback.
 - **Testing & Typecheck gates (Lessons 2026-05-07, 2026-05-19, 2026-06-01):** Always use `bun --filter='@pekulo/ui'` / `bun --filter='@pekulo/mobile'` / `bun --filter='@pekulo/web'`. Run `bun run typecheck` manually before committing because lefthook pre-commit does not invoke `tsc`.
@@ -4933,16 +4933,26 @@ function moduleComponents(module: string): string[] {
 - `apps/mobile/package.json`
 - `apps/mobile/jest.config.js`
 - `apps/mobile/jest.setup.ts`
+- `apps/mobile/app/_layout.tsx`
+- `apps/mobile/app/(tabs)/_layout.tsx`
+- `apps/mobile/app/(tabs)/(cap)/_layout.tsx`
+- `apps/mobile/app/(tabs)/(cap)/index.tsx`
+- `apps/mobile/components/screen-shell.tsx`
+- `apps/mobile/__tests__/cap-screen.test.tsx`
 - `packages/ui/package.json`
 - `packages/ui/src/animations/use-stagger.ts`
+- `packages/ui/src/primitives/PekuloTooltip.tsx`
 - `packages/ui/src/provider/index.native.tsx`
 - `packages/ui/src/index.native.ts`
 - `packages/ui/src/ds-coverage.meta.test.ts`
 - `bun.lock`
+- `docs/epics.md`
+- `docs/epics-context/epic-10-context.md`
 - `docs/state.yaml`
 
 **Created (`@pekulo/ui` native implementations & tests):**
 
+- `packages/ui/src/animations/use-stagger.native.ts`
 - `packages/ui/src/toast/index.native.tsx`
 - `packages/ui/src/components/CategoryIcon/CategoryIcon.native.tsx`
 - `packages/ui/src/components/PekuloActivityRow/PekuloActivityRow.native.tsx`

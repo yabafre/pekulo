@@ -42,7 +42,7 @@ export class PekuloErrorBoundary extends Component<PekuloErrorBoundaryProps, Sta
             Une erreur s'est produite.
           </Text>
           <Text color="$colorSecondary" fontSize="$caption" marginTop="$1">
-            {this.state.error?.message ?? "Détails indisponibles."}
+            {this.state.error?.message || "Détails indisponibles."}
           </Text>
         </View>
       );

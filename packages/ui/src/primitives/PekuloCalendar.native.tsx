@@ -1,6 +1,9 @@
 // packages/ui/src/primitives/PekuloCalendar.native.tsx
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import { useState } from "react";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  type DateTimePickerChangeEvent,
+} from "@react-native-community/datetimepicker";
+import { useCallback, useState } from "react";
 import { Platform } from "react-native";
 import { Text, View, styled } from "tamagui";
 import { useThemeSetting } from "../provider/index.native";
@@ -10,10 +13,38 @@ const EdgeButton = styled(View, {
   name: "PekuloCalendarEdgeButton",
   role: "button",
   flex: 1,
+  flexBasis: 0,
+  minWidth: 0,
   paddingVertical: "$2",
   borderRadius: "$md",
   alignItems: "center",
 });
+
+const AndroidPickerTrigger = styled(View, {
+  name: "PekuloCalendarAndroidTrigger",
+  role: "button",
+  paddingVertical: "$3",
+  paddingHorizontal: "$3",
+  borderRadius: "$md",
+  backgroundColor: "$backgroundMuted",
+  alignItems: "center",
+});
+
+const dateFmtFR = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+function isValidDate(d?: Date): d is Date {
+  return d instanceof Date && !Number.isNaN(d.getTime());
+}
+
+function safeDate(primary?: Date, fallback?: Date): Date {
+  if (isValidDate(primary)) return primary;
+  if (isValidDate(fallback)) return fallback;
+  return new Date();
+}
 
 export interface NativeDateRange {
   from: Date | undefined;
@@ -46,28 +77,64 @@ export function PekuloCalendar(props: PekuloCalendarProps) {
   const themeVariant = resolvedTheme === "pekulo-light" ? "light" : "dark";
   const [activeEdge, setActiveEdge] = useState<"from" | "to">("from");
 
-  if (props.mode === "range") {
-    const fromDate = props.selected?.from ?? props.month ?? new Date();
-    const toDate = props.selected?.to ?? fromDate;
-    const activeValue = activeEdge === "from" ? fromDate : toDate;
+  const isRange = props.mode === "range";
+  const rangeSelected = isRange ? props.selected : undefined;
+  const rangeResetOnSelect = isRange ? Boolean(props.resetOnSelect) : false;
+  const rangeOnSelect = isRange ? props.onSelect : undefined;
+  const singleOnSelect = !isRange ? props.onSelect : undefined;
 
-    const handleRangeChange = (_event: DateTimePickerEvent, date?: Date) => {
-      if (!date) return;
-      if (activeEdge === "from") {
-        const currentTo = props.selected?.to;
-        const nextRange: NativeDateRange =
-          currentTo && date > currentTo
-            ? { from: date, to: undefined }
-            : { from: date, to: currentTo };
-        props.onSelect?.(nextRange);
-        setActiveEdge("to");
+  const commitDate = useCallback(
+    (_event: DateTimePickerChangeEvent, date: Date) => {
+      if (props.disabled || !isValidDate(date)) return;
+      if (isRange) {
+        if (activeEdge === "from") {
+          const currentTo = isValidDate(rangeSelected?.to) ? rangeSelected.to : undefined;
+          const shouldReset =
+            rangeResetOnSelect && isValidDate(rangeSelected?.from) && currentTo !== undefined;
+          const nextRange: NativeDateRange =
+            shouldReset || (currentTo && date > currentTo)
+              ? { from: date, to: undefined }
+              : { from: date, to: currentTo };
+          rangeOnSelect?.(nextRange);
+          setActiveEdge("to");
+        } else {
+          const currentFrom = isValidDate(rangeSelected?.from) ? rangeSelected.from : date;
+          const nextRange: NativeDateRange =
+            date < currentFrom ? { from: date, to: currentFrom } : { from: currentFrom, to: date };
+          rangeOnSelect?.(nextRange);
+        }
       } else {
-        const currentFrom = props.selected?.from ?? date;
-        const nextRange: NativeDateRange =
-          date < currentFrom ? { from: date, to: currentFrom } : { from: currentFrom, to: date };
-        props.onSelect?.(nextRange);
+        singleOnSelect?.(date);
       }
-    };
+    },
+    [
+      activeEdge,
+      isRange,
+      props.disabled,
+      rangeOnSelect,
+      rangeResetOnSelect,
+      rangeSelected,
+      singleOnSelect,
+    ],
+  );
+
+  const openAndroidDialog = useCallback(
+    (value: Date) => {
+      if (props.disabled) return;
+      DateTimePickerAndroid.open({
+        value,
+        mode: "date",
+        onValueChange: commitDate,
+        onDismiss: () => {},
+      });
+    },
+    [commitDate, props.disabled],
+  );
+
+  if (props.mode === "range") {
+    const fromDate = safeDate(props.selected?.from, props.month);
+    const toDate = safeDate(props.selected?.to, fromDate);
+    const activeValue = activeEdge === "from" ? fromDate : toDate;
 
     return (
       <View
@@ -78,8 +145,11 @@ export function PekuloCalendar(props: PekuloCalendarProps) {
       >
         <View flexDirection="row" gap="$2">
           <EdgeButton
+            disabled={props.disabled}
             backgroundColor={activeEdge === "from" ? "$color" : "$backgroundMuted"}
-            onPress={() => setActiveEdge("from")}
+            onPress={() => {
+              if (!props.disabled) setActiveEdge("from");
+            }}
           >
             <Text
               fontSize="$caption"
@@ -90,8 +160,11 @@ export function PekuloCalendar(props: PekuloCalendarProps) {
             </Text>
           </EdgeButton>
           <EdgeButton
+            disabled={props.disabled}
             backgroundColor={activeEdge === "to" ? "$color" : "$backgroundMuted"}
-            onPress={() => setActiveEdge("to")}
+            onPress={() => {
+              if (!props.disabled) setActiveEdge("to");
+            }}
           >
             <Text
               fontSize="$caption"
@@ -102,21 +175,36 @@ export function PekuloCalendar(props: PekuloCalendarProps) {
             </Text>
           </EdgeButton>
         </View>
-        <View pointerEvents={props.disabled ? "none" : "auto"} opacity={props.disabled ? 0.5 : 1}>
-          <DateTimePicker
-            value={activeValue}
-            mode="date"
-            display={Platform.OS === "ios" ? "inline" : "default"}
-            locale="fr-FR"
-            themeVariant={themeVariant}
-            onChange={handleRangeChange}
-          />
-        </View>
+        {Platform.OS === "android" ? (
+          <AndroidPickerTrigger
+            testID="native-android-date-trigger"
+            disabled={props.disabled}
+            opacity={props.disabled ? 0.5 : 1}
+            onPress={() => openAndroidDialog(activeValue)}
+          >
+            <Text fontSize="$bodySm" color="$color" fontWeight="500">
+              {dateFmtFR.format(activeValue)}
+            </Text>
+          </AndroidPickerTrigger>
+        ) : (
+          <View pointerEvents={props.disabled ? "none" : "auto"} opacity={props.disabled ? 0.5 : 1}>
+            <DateTimePicker
+              value={activeValue}
+              mode="date"
+              display="inline"
+              locale="fr-FR"
+              themeVariant={themeVariant}
+              disabled={props.disabled}
+              onValueChange={commitDate}
+              onDismiss={() => {}}
+            />
+          </View>
+        )}
       </View>
     );
   }
 
-  const singleValue = props.selected ?? props.month ?? new Date();
+  const singleValue = safeDate(props.selected, props.month);
 
   return (
     <View
@@ -126,16 +214,28 @@ export function PekuloCalendar(props: PekuloCalendarProps) {
       pointerEvents={props.disabled ? "none" : "auto"}
       opacity={props.disabled ? 0.5 : 1}
     >
-      <DateTimePicker
-        value={singleValue}
-        mode="date"
-        display={Platform.OS === "ios" ? "inline" : "default"}
-        locale="fr-FR"
-        themeVariant={themeVariant}
-        onChange={(_event: DateTimePickerEvent, date?: Date) => {
-          if (date) props.onSelect?.(date);
-        }}
-      />
+      {Platform.OS === "android" ? (
+        <AndroidPickerTrigger
+          testID="native-android-date-trigger"
+          disabled={props.disabled}
+          onPress={() => openAndroidDialog(singleValue)}
+        >
+          <Text fontSize="$bodySm" color="$color" fontWeight="500">
+            {dateFmtFR.format(singleValue)}
+          </Text>
+        </AndroidPickerTrigger>
+      ) : (
+        <DateTimePicker
+          value={singleValue}
+          mode="date"
+          display="inline"
+          locale="fr-FR"
+          themeVariant={themeVariant}
+          disabled={props.disabled}
+          onValueChange={commitDate}
+          onDismiss={() => {}}
+        />
+      )}
     </View>
   );
 }

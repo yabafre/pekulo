@@ -1,6 +1,16 @@
 // packages/ui/src/primitives/PekuloDrawer.native.tsx
 import { Sheet as TamaSheet } from "@tamagui/sheet";
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  cloneElement,
+  createContext,
+  isValidElement,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { Text, View, styled, type TextProps, type ViewProps } from "tamagui";
 
 interface DrawerContextValue {
@@ -9,6 +19,7 @@ interface DrawerContextValue {
 }
 
 const DrawerContext = createContext<DrawerContextValue | null>(null);
+const InsideSheetContext = createContext(false);
 
 const DrawerAction = styled(View, {
   name: "PekuloDrawerAction",
@@ -42,10 +53,30 @@ function Root({
   return <DrawerContext.Provider value={value}>{children}</DrawerContext.Provider>;
 }
 
-function Trigger({ children, ...props }: Omit<ViewProps, "children"> & { children: ReactNode }) {
+type DrawerActionProps = Omit<ViewProps, "children"> & {
+  asChild?: boolean;
+  children?: ReactNode;
+};
+
+function Trigger({ asChild, children, onPress, ...props }: DrawerActionProps) {
   const ctx = useContext(DrawerContext);
+  const handlePress = (event: Parameters<NonNullable<ViewProps["onPress"]>>[0]) => {
+    onPress?.(event);
+    ctx?.setOpen(true);
+  };
+
+  if (asChild && isValidElement<{ onPress?: ViewProps["onPress"] }>(children)) {
+    const childOnPress = children.props.onPress;
+    return cloneElement(children as ReactElement<{ onPress?: ViewProps["onPress"] }>, {
+      onPress: (event) => {
+        childOnPress?.(event);
+        handlePress(event);
+      },
+    });
+  }
+
   return (
-    <DrawerAction onPress={() => ctx?.setOpen(true)} {...props}>
+    <DrawerAction {...props} onPress={handlePress}>
       {children}
     </DrawerAction>
   );
@@ -55,16 +86,33 @@ function Portal({ children }: { children?: ReactNode }) {
   return <>{children}</>;
 }
 
-function Close({ children, ...props }: Omit<ViewProps, "children"> & { children?: ReactNode }) {
+function Close({ asChild, children, onPress, ...props }: DrawerActionProps) {
   const ctx = useContext(DrawerContext);
+  const handlePress = (event: Parameters<NonNullable<ViewProps["onPress"]>>[0]) => {
+    onPress?.(event);
+    ctx?.setOpen(false);
+  };
+
+  if (asChild && isValidElement<{ onPress?: ViewProps["onPress"] }>(children)) {
+    const childOnPress = children.props.onPress;
+    return cloneElement(children as ReactElement<{ onPress?: ViewProps["onPress"] }>, {
+      onPress: (event) => {
+        childOnPress?.(event);
+        handlePress(event);
+      },
+    });
+  }
+
   return (
-    <DrawerAction onPress={() => ctx?.setOpen(false)} {...props}>
+    <DrawerAction {...props} onPress={handlePress}>
       {children}
     </DrawerAction>
   );
 }
 
 function Overlay(props: ViewProps) {
+  const insideSheet = useContext(InsideSheetContext);
+  if (!insideSheet) return null;
   return <TamaSheet.Overlay backgroundColor="$backgroundOverlay" {...props} />;
 }
 
@@ -80,25 +128,29 @@ function Content({ children, ...props }: Omit<ViewProps, "children"> & { childre
       snapPoints={[80, 45]}
       dismissOnSnapToBottom
     >
-      <Overlay />
-      <TamaSheet.Frame
-        backgroundColor="$backgroundElevated"
-        borderTopLeftRadius={16}
-        borderTopRightRadius={16}
-        padding="$4"
-        gap="$3"
-        {...props}
-      >
-        <TamaSheet.Handle
-          backgroundColor="$backgroundMuted"
-          height={4}
-          width={64}
-          borderRadius="$full"
-          alignSelf="center"
-          marginBottom="$2"
-        />
-        {children}
-      </TamaSheet.Frame>
+      <InsideSheetContext.Provider value={true}>
+        <Overlay />
+        <TamaSheet.Frame
+          backgroundColor="$backgroundElevated"
+          borderTopLeftRadius={16}
+          borderTopRightRadius={16}
+          padding="$4"
+          gap="$3"
+          {...props}
+        >
+          <DrawerContext.Provider value={ctx}>
+            <TamaSheet.Handle
+              backgroundColor="$backgroundMuted"
+              height={4}
+              width={64}
+              borderRadius="$full"
+              alignSelf="center"
+              marginBottom="$2"
+            />
+            {children}
+          </DrawerContext.Provider>
+        </TamaSheet.Frame>
+      </InsideSheetContext.Provider>
     </TamaSheet>
   );
 }

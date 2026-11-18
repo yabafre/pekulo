@@ -15,17 +15,20 @@ export interface PekuloDonutProps {
 
 export function PekuloDonut({ pct, size = 96, stroke = 8, centered, ariaLabel }: PekuloDonutProps) {
   const theme = useTheme();
-  const clamped = Math.max(0, Math.min(1, pct));
+  const safeSize = Number.isFinite(size) && size > 0 ? size : 96;
+  const safeStroke = Number.isFinite(stroke) && stroke >= 0 ? stroke : 8;
+  const clamped = Number.isFinite(pct) ? Math.max(0, Math.min(1, pct)) : 0;
   const animated = useCountUp(clamped, { durationMs: 900, fromZero: true });
-  const radius = (size - stroke) / 2;
+  const safeAnimated = Number.isFinite(animated) ? Math.max(0, Math.min(1, animated)) : clamped;
+  const radius = Math.max(0, (safeSize - safeStroke) / 2);
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - animated);
-  const labelPct = Math.round(animated * 100);
+  const offset = circumference * (1 - safeAnimated);
+  const labelPct = Math.round(safeAnimated * 100);
 
   return (
     <View
-      width={size}
-      height={size}
+      width={safeSize}
+      height={safeSize}
       alignItems="center"
       justifyContent="center"
       position="relative"
@@ -33,32 +36,32 @@ export function PekuloDonut({ pct, size = 96, stroke = 8, centered, ariaLabel }:
       accessibilityLabel={ariaLabel}
       accessibilityElementsHidden={!ariaLabel}
     >
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <Svg width={safeSize} height={safeSize} viewBox={`0 0 ${safeSize} ${safeSize}`}>
         <Circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={safeSize / 2}
+          cy={safeSize / 2}
           r={radius}
           fill="none"
           stroke={theme.donutTrack.val}
-          strokeWidth={stroke}
+          strokeWidth={safeStroke}
         />
         <Circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={safeSize / 2}
+          cy={safeSize / 2}
           r={radius}
           fill="none"
           stroke={theme.donutFill.val}
-          strokeWidth={stroke}
+          strokeWidth={safeStroke}
           strokeDasharray={`${circumference}`}
           strokeDashoffset={offset}
           strokeLinecap="round"
           rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
+          origin={`${safeSize / 2}, ${safeSize / 2}`}
         />
       </Svg>
       {centered && (
         <View position="absolute" alignItems="center" justifyContent="center">
-          <Text color="$color" fontSize={size * 0.34} fontWeight="600">
+          <Text color="$color" fontSize={safeSize * 0.34} fontWeight="600">
             {labelPct}%
           </Text>
         </View>

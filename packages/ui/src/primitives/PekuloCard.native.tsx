@@ -58,7 +58,7 @@ export interface PekuloCardHeaderProps extends Omit<ViewProps, "children"> {
 export function PekuloCardHeader({ children, ...props }: PekuloCardHeaderProps) {
   const size = useContext(PekuloCardSizeContext);
   const items = Children.toArray(children);
-  const actionChild = items.find((c) => isValidElement(c) && c.type === PekuloCardAction);
+  const actionChildren = items.filter((c) => isValidElement(c) && c.type === PekuloCardAction);
   const bodyChildren = items.filter((c) => !(isValidElement(c) && c.type === PekuloCardAction));
 
   return (
@@ -73,7 +73,7 @@ export function PekuloCardHeader({ children, ...props }: PekuloCardHeaderProps) 
       <View flex={1} flexDirection="column" gap="$1">
         {bodyChildren}
       </View>
-      {actionChild}
+      {actionChildren.length > 0 ? actionChildren : null}
     </View>
   );
 }
@@ -85,7 +85,7 @@ export function PekuloCardTitle(props: TextProps) {
       color="$color"
       fontSize={TITLE_FONT_SIZE[size]}
       fontWeight="500"
-      lineHeight="$2"
+      lineHeight={TITLE_FONT_SIZE[size]}
       {...props}
     />
   );

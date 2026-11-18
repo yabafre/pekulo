@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react";
 import { Animated } from "react-native";
 import { View, useTheme } from "tamagui";
+import { usePrefersReducedMotion } from "../../animations/use-stagger.native";
 
 export interface PekuloSkeletonProps {
   lines?: number;
@@ -14,9 +15,14 @@ export interface PekuloSkeletonProps {
 
 export function PekuloSkeleton({ lines = 1, height = 16, block, width }: PekuloSkeletonProps) {
   const theme = useTheme();
+  const reducedMotion = usePrefersReducedMotion();
   const opacity = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
+    if (reducedMotion) {
+      opacity.setValue(0.6);
+      return;
+    }
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.3, duration: 750, useNativeDriver: true }),
@@ -25,7 +31,7 @@ export function PekuloSkeleton({ lines = 1, height = 16, block, width }: PekuloS
     );
     pulse.start();
     return () => pulse.stop();
-  }, [opacity]);
+  }, [opacity, reducedMotion]);
 
   if (block) {
     return (
@@ -42,14 +48,16 @@ export function PekuloSkeleton({ lines = 1, height = 16, block, width }: PekuloS
     );
   }
 
+  const lineCount = Math.max(0, Math.trunc(Number.isFinite(lines) ? lines : 1));
+
   return (
     <View flexDirection="column" gap={6} accessibilityElementsHidden>
-      {Array.from({ length: lines }, (_, i) => (
+      {Array.from({ length: lineCount }, (_, i) => (
         <Animated.View
-          key={i}
+          key={`skeleton-line-${i}`}
           style={{
             height,
-            width: width ?? `${100 - i * 12}%`,
+            width: width ?? `${Math.max(20, 100 - i * 12)}%`,
             borderRadius: 6,
             backgroundColor: theme.backgroundMuted.val,
             opacity,

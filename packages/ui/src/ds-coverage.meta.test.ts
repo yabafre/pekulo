@@ -14,8 +14,9 @@
 // exhaustiveness, not just the specs that happen to exist.
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const SRC = dirname(fileURLToPath(import.meta.url));
 const COMPONENTS_DIR = join(SRC, "components");
@@ -311,5 +312,114 @@ describe("design-system test coverage (architecture.md:631)", () => {
     );
     const nativeModules = [...new Set([...nativeMatches].map((m) => m[1].split("/")[0]))].sort();
     expect(nativeModules).toEqual(barrelModules());
+
+    // Transitive symbol-level parity (values + types) across web vs React Native resolution.
+    function resolveModuleFile(
+      fromFile: string,
+      specifier: string,
+      native: boolean,
+    ): string | null {
+      const base = resolve(dirname(fromFile), specifier);
+      const suffixes = native
+        ? [
+            ".native.tsx",
+            ".native.ts",
+            ".tsx",
+            ".ts",
+            "/index.native.tsx",
+            "/index.native.ts",
+            "/index.tsx",
+            "/index.ts",
+          ]
+        : [".tsx", ".ts", "/index.tsx", "/index.ts"];
+      for (const suffix of suffixes) {
+        const candidate = `${base}${suffix}`;
+        if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+      }
+      if (existsSync(base) && statSync(base).isFile()) return base;
+      return null;
+    }
+
+    function collectExports(
+      entryFile: string,
+      native: boolean,
+      visited = new Set<string>(),
+    ): { values: Set<string>; types: Set<string> } {
+      const values = new Set<string>();
+      const types = new Set<string>();
+      if (visited.has(entryFile)) return { values, types };
+      visited.add(entryFile);
+
+      const source = readFileSync(entryFile, "utf8");
+      const sf = ts.createSourceFile(entryFile, source, ts.ScriptTarget.Latest, true);
+      const hasExportMod = (node: ts.Node) =>
+        ts.canHaveModifiers(node) &&
+        Boolean(ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword));
+
+      for (const stmt of sf.statements) {
+        if (ts.isExportDeclaration(stmt)) {
+          const spec =
+            stmt.moduleSpecifier && ts.isStringLiteral(stmt.moduleSpecifier)
+              ? stmt.moduleSpecifier.text
+              : null;
+          if (!stmt.exportClause && spec?.startsWith(".")) {
+            const target = resolveModuleFile(entryFile, spec, native);
+            if (target) {
+              const nested = collectExports(target, native, visited);
+              nested.values.forEach((v) => values.add(v));
+              nested.types.forEach((t) => types.add(t));
+            }
+          } else if (stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
+            for (const el of stmt.exportClause.elements) {
+              const name = el.name.text;
+              if (stmt.isTypeOnly || el.isTypeOnly) {
+                types.add(name);
+              } else {
+                values.add(name);
+              }
+            }
+          }
+        } else if (hasExportMod(stmt)) {
+          if (ts.isVariableStatement(stmt)) {
+            for (const decl of stmt.declarationList.declarations) {
+              if (ts.isIdentifier(decl.name)) values.add(decl.name.text);
+            }
+          } else if (
+            (ts.isFunctionDeclaration(stmt) ||
+              ts.isClassDeclaration(stmt) ||
+              ts.isEnumDeclaration(stmt)) &&
+            stmt.name
+          ) {
+            values.add(stmt.name.text);
+          } else if (ts.isInterfaceDeclaration(stmt) || ts.isTypeAliasDeclaration(stmt)) {
+            types.add(stmt.name.text);
+          }
+        }
+      }
+
+      return { values, types };
+    }
+
+    const webSurface = collectExports(BARREL, false);
+    const nativeSurface = collectExports(NATIVE_BARREL, true);
+
+    expect(webSurface.values.size).toBeGreaterThan(0);
+    expect(webSurface.types.size).toBeGreaterThan(0);
+
+    const missingValues = [...webSurface.values]
+      .filter((name) => !nativeSurface.values.has(name))
+      .sort();
+    const missingTypes = [...webSurface.types]
+      .filter((name) => !nativeSurface.types.has(name) && !nativeSurface.values.has(name))
+      .sort();
+
+    expect(
+      missingValues,
+      `value exports missing from index.native.ts: ${missingValues.join(", ")}`,
+    ).toEqual([]);
+    expect(
+      missingTypes,
+      `type exports missing from index.native.ts: ${missingTypes.join(", ")}`,
+    ).toEqual([]);
   });
 });

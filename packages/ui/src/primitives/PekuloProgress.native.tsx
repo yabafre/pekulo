@@ -20,14 +20,16 @@ function Root({
   ariaLabel = "Progression",
   style,
 }: PekuloProgressProps) {
-  const clamped = Math.max(0, Math.min(max, value));
-  const pct = max === 0 ? 0 : (clamped / max) * 100;
+  const safeMax = Number.isFinite(max) && max > 0 ? max : 0;
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const clamped = Math.max(0, Math.min(safeMax, safeValue));
+  const pct = safeMax === 0 ? 0 : (clamped / safeMax) * 100;
 
   return (
     <View
       accessibilityRole="progressbar"
       accessibilityLabel={ariaLabel}
-      accessibilityValue={{ min: 0, max, now: Math.round(clamped) }}
+      accessibilityValue={{ min: 0, max: safeMax, now: Math.round(clamped) }}
       width="100%"
       height={height}
       backgroundColor="$backgroundMuted"

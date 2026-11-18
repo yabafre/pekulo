@@ -5,7 +5,17 @@ import type { ComponentProps } from "react";
 import { useTheme } from "tamagui";
 
 function Root(props: CheckboxProps) {
-  return <TamaCheckbox size="$3" backgroundColor="$backgroundMuted" borderWidth={0} {...props} />;
+  return (
+    <TamaCheckbox
+      size="$3"
+      width={20}
+      height={20}
+      backgroundColor="$backgroundMuted"
+      activeStyle={{ backgroundColor: "$color" }}
+      borderWidth={0}
+      {...props}
+    />
+  );
 }
 
 function Indicator(props: ComponentProps<typeof TamaCheckbox.Indicator>) {

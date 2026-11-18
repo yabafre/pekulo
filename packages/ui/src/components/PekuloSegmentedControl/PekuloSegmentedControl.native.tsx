@@ -25,6 +25,8 @@ const Segment = styled(View, {
   justifyContent: "center",
   gap: 6,
   flex: 1,
+  flexBasis: 0,
+  minWidth: 0,
   height: 36,
   borderRadius: "$md",
   variants: {
@@ -66,6 +68,7 @@ export function PekuloSegmentedControl<T extends string>({
               color={(active ? "$color" : "$colorSecondary") as never}
               fontSize="$caption"
               fontWeight="500"
+              numberOfLines={1}
             >
               {opt.label}
             </Text>

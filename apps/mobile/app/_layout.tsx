@@ -28,19 +28,49 @@ import {
   GeistMono_600SemiBold,
   GeistMono_700Bold,
 } from "@expo-google-fonts/geist-mono";
-import { PekuloRootProvider } from "@pekulo/ui";
+import { PekuloRootProvider, useThemeSetting } from "@pekulo/ui";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import Stack from "expo-router/stack";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { useColorScheme } from "react-native";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
+function RootNavigator() {
+  const { resolvedTheme } = useThemeSetting();
+  const isLight = resolvedTheme === "pekulo-light";
+
+  const navTheme = isLight
+    ? {
+        ...DefaultTheme,
+        colors: { ...DefaultTheme.colors, background: "#ffffff", card: "#fafafa" },
+      }
+    : {
+        ...DarkTheme,
+        colors: { ...DarkTheme.colors, background: "#000000", card: "#0a0a0a" },
+      };
+
+  return (
+    <ThemeProvider value={navTheme}>
+      <StatusBar style={isLight ? "dark" : "light"} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="parametres"
+          options={{
+            headerShown: true,
+            title: "Paramètres",
+            presentation: "modal",
+          }}
+        />
+      </Stack>
+    </ThemeProvider>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts({
     Geist_400Regular,
     Geist_500Medium,
@@ -62,33 +92,9 @@ export default function RootLayout() {
     return null;
   }
 
-  const navTheme =
-    colorScheme === "light"
-      ? {
-          ...DefaultTheme,
-          colors: { ...DefaultTheme.colors, background: "#ffffff", card: "#fafafa" },
-        }
-      : {
-          ...DarkTheme,
-          colors: { ...DarkTheme.colors, background: "#000000", card: "#0a0a0a" },
-        };
-
   return (
     <PekuloRootProvider>
-      <ThemeProvider value={navTheme}>
-        <StatusBar style={colorScheme === "light" ? "dark" : "light"} />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="parametres"
-            options={{
-              headerShown: true,
-              title: "Paramètres",
-              presentation: "modal",
-            }}
-          />
-        </Stack>
-      </ThemeProvider>
+      <RootNavigator />
     </PekuloRootProvider>
   );
 }

@@ -27,14 +27,18 @@ const dateFmtFR = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 });
 
-function defaultFormatSingle(d?: Date): string {
-  if (!d) return "Choisir une date";
+function isValidDate(d?: Date): d is Date {
+  return d instanceof Date && !Number.isNaN(d.getTime());
+}
+
+function defaultFormatSingle(d?: Date, placeholder = "Choisir une date"): string {
+  if (!isValidDate(d)) return placeholder;
   return dateFmtFR.format(d);
 }
 
-function defaultFormatRange(r?: DateRange): string {
-  if (!r?.from) return "Choisir une plage";
-  if (!r.to) return dateFmtFR.format(r.from);
+function defaultFormatRange(r?: DateRange, placeholder = "Choisir une plage"): string {
+  if (!isValidDate(r?.from)) return placeholder;
+  if (!isValidDate(r.to)) return dateFmtFR.format(r.from);
   return `${dateFmtFR.format(r.from)} → ${dateFmtFR.format(r.to)}`;
 }
 
@@ -44,7 +48,7 @@ export interface PekuloDatePickerSingleProps {
   onChange: (d: Date | undefined) => void;
   placeholder?: string;
   formatLabel?: (d?: Date) => string;
-  width?: number | `${number}%`;
+  width?: number | `${number}%` | "auto";
   disabled?: boolean;
   id?: string;
 }
@@ -55,7 +59,7 @@ export interface PekuloDatePickerRangeProps {
   onChange: (r: DateRange | undefined) => void;
   placeholder?: string;
   formatLabel?: (r?: DateRange) => string;
-  width?: number | `${number}%`;
+  width?: number | `${number}%` | "auto";
   disabled?: boolean;
   numberOfMonths?: number;
   id?: string;
@@ -70,18 +74,26 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
 
   const label =
     props.mode === "range"
-      ? (props.formatLabel ?? defaultFormatRange)(props.value)
-      : (props.formatLabel ?? defaultFormatSingle)(props.value);
+      ? props.formatLabel
+        ? props.formatLabel(props.value)
+        : defaultFormatRange(props.value, props.placeholder)
+      : props.formatLabel
+        ? props.formatLabel(props.value)
+        : defaultFormatSingle(props.value, props.placeholder);
+
+  const handleOpenChange = (next: boolean) => {
+    if (next && props.disabled) return;
+    setOpen(next);
+  };
 
   return (
-    <PekuloDialog open={open} onOpenChange={setOpen}>
-      <PekuloDialog.Trigger asChild>
+    <PekuloDialog open={open} onOpenChange={handleOpenChange}>
+      <PekuloDialog.Trigger asChild disabled={props.disabled}>
         <PickerTrigger
+          disabled={props.disabled}
           aria-label="Sélectionner une date"
           aria-disabled={props.disabled}
-          onPress={() => {
-            if (!props.disabled) setOpen(true);
-          }}
+          accessibilityState={{ disabled: Boolean(props.disabled) }}
           width={width}
           opacity={props.disabled ? 0.5 : 1}
         >
@@ -100,9 +112,11 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
             <PekuloCalendar
               mode="range"
               selected={props.value}
+              resetOnSelect
+              disabled={props.disabled}
               onSelect={(r) => {
                 props.onChange(r);
-                if (r?.from && r?.to) {
+                if (isValidDate(r?.from) && isValidDate(r?.to)) {
                   setOpen(false);
                 }
               }}
@@ -111,6 +125,7 @@ export function PekuloDatePicker(props: PekuloDatePickerProps) {
             <PekuloCalendar
               mode="single"
               selected={props.value}
+              disabled={props.disabled}
               onSelect={(d) => {
                 props.onChange(d);
                 setOpen(false);

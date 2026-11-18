@@ -28,28 +28,85 @@ jest.mock("expo-splash-screen", () => ({
 
 jest.mock("@react-native-community/datetimepicker", () => {
   const React = require("react") as typeof import("react");
-  const { Pressable, Text } = require("react-native") as typeof import("react-native");
-  return function MockDateTimePicker({
+  const { View, Pressable, Text } = require("react-native") as typeof import("react-native");
+
+  const DateTimePickerAndroid = {
+    open: jest.fn(),
+    dismiss: jest.fn().mockResolvedValue(true),
+  };
+
+  function MockDateTimePicker({
     value,
     onChange,
+    onValueChange,
+    onDismiss,
+    disabled,
     testID,
     accessibilityLabel,
   }: {
     value: Date;
-    onChange?: (event: { type: string; nativeEvent: { timestamp: number } }, date?: Date) => void;
+    onChange?: (
+      event: { type: string; nativeEvent: { timestamp: number; utcOffset: number } },
+      date?: Date,
+    ) => void;
+    onValueChange?: (
+      event: { nativeEvent: { timestamp: number; utcOffset: number } },
+      date: Date,
+    ) => void;
+    onDismiss?: () => void;
+    disabled?: boolean;
     testID?: string;
     accessibilityLabel?: string;
   }) {
+    const tid = testID ?? "native-datetimepicker";
+    const nextDate = new Date(value.getTime() + 24 * 60 * 60 * 1000);
     return React.createElement(
-      Pressable,
-      {
-        testID: testID ?? "native-datetimepicker",
-        accessibilityLabel,
-        onPress: () =>
-          onChange?.({ type: "set", nativeEvent: { timestamp: value.getTime() } }, value),
-      },
-      React.createElement(Text, null, value.toISOString()),
+      View,
+      null,
+      React.createElement(
+        Pressable,
+        {
+          testID: tid,
+          disabled,
+          accessibilityLabel,
+          onPress: () => {
+            if (disabled) return;
+            const nativeEvent = { timestamp: nextDate.getTime(), utcOffset: 0 };
+            if (onValueChange) {
+              onValueChange({ nativeEvent }, nextDate);
+            } else {
+              onChange?.({ type: "set", nativeEvent }, nextDate);
+            }
+          },
+        },
+        React.createElement(Text, null, value.toISOString()),
+      ),
+      React.createElement(
+        Pressable,
+        {
+          testID: `${tid}-dismiss`,
+          disabled,
+          onPress: () => {
+            if (disabled) return;
+            if (onDismiss) {
+              onDismiss();
+            } else {
+              onChange?.(
+                { type: "dismissed", nativeEvent: { timestamp: value.getTime(), utcOffset: 0 } },
+                value,
+              );
+            }
+          },
+        },
+        React.createElement(Text, null, "Annuler"),
+      ),
     );
+  }
+
+  return {
+    __esModule: true,
+    default: MockDateTimePicker,
+    DateTimePickerAndroid,
   };
 });
 
@@ -60,12 +117,14 @@ jest.mock("@react-native-picker/picker", () => {
     children,
     selectedValue,
     onValueChange,
+    enabled = true,
     testID,
     accessibilityLabel,
   }: {
     children?: React.ReactNode;
     selectedValue?: string;
     onValueChange?: (value: string, index: number) => void;
+    enabled?: boolean;
     testID?: string;
     accessibilityLabel?: string;
   }) {
@@ -74,6 +133,7 @@ jest.mock("@react-native-picker/picker", () => {
       {
         testID: testID ?? "native-picker",
         accessibilityLabel,
+        accessibilityState: { disabled: !enabled },
         accessibilityValue: { text: selectedValue },
       },
       React.Children.map(children, (child, index) => {
@@ -83,7 +143,9 @@ jest.mock("@react-native-picker/picker", () => {
           Pressable,
           {
             key: itemProps.value ?? index,
+            disabled: !enabled,
             onPress: () => {
+              if (!enabled) return;
               if (itemProps.value !== undefined) {
                 onValueChange?.(itemProps.value, index);
               }
