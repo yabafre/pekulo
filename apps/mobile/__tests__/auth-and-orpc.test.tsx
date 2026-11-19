@@ -5,7 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
 import type { ReactNode } from "react";
-import { Pressable } from "react-native";
+import { Alert, Pressable } from "react-native";
 
 import appConfig from "../app.json";
 import CapScreen from "../app/(tabs)/(cap)/index";
@@ -61,6 +61,9 @@ jest.mock("expo-router/stack", () => {
     return React.createElement(React.Fragment, null, children);
   }
   MockStack.Screen = function MockStackScreen() {
+    return null;
+  };
+  MockStack.SearchBar = function MockStackSearchBar() {
     return null;
   };
   return { __esModule: true, default: MockStack };
@@ -731,14 +734,55 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
       expect(updateLangSpy).toHaveBeenCalledWith({ lang: "en" });
     });
 
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
+      const destructive = buttons?.find((btn) => btn.style === "destructive");
+      destructive?.onPress?.();
+    });
+
     await fireEvent.press(screen.getByTestId("settings-auth-action-btn"));
     await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Se déconnecter ?",
+        expect.any(String),
+        expect.any(Array),
+      );
       expect(signOutSpy).toHaveBeenCalled();
       expect(mockReplace).toHaveBeenCalledWith("/login");
     });
 
     await settingsView.unmount();
+    alertSpy.mockRestore();
     signOutSpy.mockRestore();
+  });
+
+  it("shows loading skeleton and retryable error state on authenticated CapScreen instead of fake preview balances (AC-4)", async () => {
+    const overviewSpy = jest
+      .spyOn(dashboardClient, "getOverview")
+      .mockRejectedValueOnce(new Error("API unavailable"));
+    jest.spyOn(compassClient, "getCompass").mockResolvedValue(null);
+    jest.spyOn(milestonesClient, "list").mockResolvedValue([]);
+    jest.spyOn(accountsClient, "list").mockResolvedValue([]);
+
+    const view = await renderWithLiveProviders(<CapScreen />, FAKE_SESSION);
+    await waitFor(() => {
+      expect(screen.getByText("Impossible de charger votre cap")).toBeTruthy();
+      expect(screen.getByText("Réessayer")).toBeTruthy();
+      expect(screen.queryByText("180 400 €")).toBeNull();
+    });
+
+    overviewSpy.mockResolvedValueOnce({
+      totalWealthEur: 200000,
+      composition: { liquideEur: 50000, placementsEur: 150000, immobilierEur: 0 },
+      compass: { percent: 25, objectif: 800000, gap: 600000, currentWealth: 200000 },
+      fx: { source: "live", asOf: "2026-11-19" },
+      recentActivity: [],
+    });
+    await fireEvent.press(screen.getByText("Réessayer"));
+    await waitFor(() => {
+      expect(screen.getByText("25,0 %")).toBeTruthy();
+    });
+
+    await view.unmount();
   });
 
   // AC-3 (verbatim from story 10-4-mobile-auth-and-orpc:18):

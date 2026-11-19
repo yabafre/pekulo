@@ -1,25 +1,34 @@
 // apps/mobile/app/login.tsx
-// Mobile sign-in screen (FR-46, NFR-11 12-char password policy). Consumes
-// @pekulo/ui native form primitives (PekuloInput, PekuloLabel, PekuloSubmitButton)
-// and `useAuth().signInWithPassword`.
+// Mobile sign-in screen (FR-46, NFR-11 12-char password policy). Follows Apple
+// HIG and mobile form ergonomics: native ScrollView keyboard insets
+// (`automaticallyAdjustKeyboardInsets`), interactive scroll dismissal, iOS
+// autofill (`textContentType`/`autoComplete`), Next → Done return-key chaining,
+// immediate error revalidation on edit, and a preview-mode escape hatch when
+// auth enforcement is inactive.
 
-import { PekuloInput, PekuloLabel, PekuloSubmitButton } from "@pekulo/ui";
+import { PekuloButton, PekuloInput, PekuloLabel, PekuloSubmitButton } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Compass } from "lucide-react-native";
+import { useRef, useState } from "react";
+import type { TextInput } from "react-native";
+import { useTheme } from "tamagui";
 
 import { ScreenShell } from "../components/screen-shell";
 import { useAuth } from "../lib/auth/auth-context";
 
 export default function LoginScreen() {
-  const { signInWithPassword } = useAuth();
+  const { signInWithPassword, requireAuth } = useAuth();
   const router = useRouter();
+  const theme = useTheme();
+  const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit() {
+    if (isSubmitting) return;
     setErrorMessage(null);
     setIsSubmitting(true);
     try {
@@ -35,11 +44,36 @@ export default function LoginScreen() {
   }
 
   return (
-    <ScreenShell
-      title="Connexion"
-      subtitle="Connectez-vous à votre compte Pekulo pour synchroniser votre cap"
-    >
-      <View backgroundColor="$backgroundCard" borderRadius="$xl" padding="$5" gap="$4">
+    <ScreenShell respectTopSafeArea>
+      <View gap="$3" paddingTop="$6">
+        <View
+          width={48}
+          height={48}
+          borderRadius="$lg"
+          backgroundColor="$backgroundCard"
+          alignItems="center"
+          justifyContent="center"
+          style={{ borderCurve: "continuous" }}
+        >
+          <Compass size={24} color={theme.color.val} />
+        </View>
+        <View gap="$1">
+          <Text color="$color" fontSize="$h1" fontWeight="600">
+            Connexion
+          </Text>
+          <Text color="$colorSecondary" fontSize="$bodySm">
+            Synchronisez votre cap et vos comptes Pekulo
+          </Text>
+        </View>
+      </View>
+
+      <View
+        backgroundColor="$backgroundCard"
+        borderRadius="$xl"
+        padding="$5"
+        gap="$4"
+        style={{ borderCurve: "continuous" }}
+      >
         <View gap="$2">
           <PekuloLabel htmlFor="login-email">Adresse e-mail</PekuloLabel>
           <PekuloInput
@@ -48,26 +82,56 @@ export default function LoginScreen() {
             aria-label="Adresse e-mail"
             type="email"
             placeholder="alex@pekulo.app"
+            autoComplete="email"
+            textContentType="emailAddress"
+            autoCorrect={false}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            invalid={errorMessage !== null && !email.includes("@")}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errorMessage) setErrorMessage(null);
+            }}
+            onSubmitEditing={() => {
+              passwordRef.current?.focus();
+            }}
           />
         </View>
 
         <View gap="$2">
           <PekuloLabel htmlFor="login-password">Mot de passe</PekuloLabel>
           <PekuloInput
+            ref={passwordRef}
             id="login-password"
             testID="login-password-input"
             aria-label="Mot de passe"
             type="password"
             placeholder="12 caractères minimum"
+            autoComplete="current-password"
+            textContentType="password"
+            returnKeyType="done"
+            invalid={errorMessage !== null}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errorMessage) setErrorMessage(null);
+            }}
+            onSubmitEditing={() => {
+              void handleSubmit();
+            }}
           />
         </View>
 
         {errorMessage !== null && (
-          <Text color="$danger" fontSize="$bodySm" testID="login-error-msg">
+          <Text
+            color="$danger"
+            fontSize="$bodySm"
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            selectable
+            testID="login-error-msg"
+          >
             {errorMessage}
           </Text>
         )}
@@ -84,6 +148,19 @@ export default function LoginScreen() {
           Se connecter
         </PekuloSubmitButton>
       </View>
+
+      {!requireAuth && (
+        <PekuloButton
+          variant="ghost"
+          style={{ width: "100%" }}
+          testID="login-preview-btn"
+          onPress={() => {
+            router.replace("/");
+          }}
+        >
+          Continuer en mode aperçu
+        </PekuloButton>
+      )}
     </ScreenShell>
   );
 }

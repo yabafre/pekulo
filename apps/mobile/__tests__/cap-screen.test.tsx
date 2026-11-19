@@ -49,9 +49,9 @@ describe("CapScreen with @pekulo/ui native", () => {
       </QueryClientProvider>,
     );
 
-    // Screen title + PekuloTopTabToggle "Cap" button + hero "Cap" label.
-    expect(screen.getAllByText("Cap")).toHaveLength(3);
-    expect(screen.getByText("Trajectoire vers votre objectif patrimonial")).toBeTruthy();
+    // Cap | Patrimoine toggle replaces duplicate title (ux-preview mobile parity).
+    expect(screen.getByText("Cap")).toBeTruthy();
+    expect(screen.getByText("Patrimoine")).toBeTruthy();
     expect(screen.getByTestId("open-settings-btn")).toBeTruthy();
     expect(screen.getByText("Patrimoine total")).toBeTruthy();
     expect(screen.getByText("Avancement")).toBeTruthy();

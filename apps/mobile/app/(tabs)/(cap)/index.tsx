@@ -1,15 +1,17 @@
 // apps/mobile/app/(tabs)/(cap)/index.tsx
-// Cap & Patrimoine root screen ("/"). Consumes `useMobileCapData()` (live oRPC
-// `dashboard.getOverview`, `compass.getCompass`, `milestones.list/getStatuses`,
-// `accounts.list`, with deterministic preview fallback) and renders @pekulo/ui
-// native components (`PekuloTopTabToggle`, `PekuloHero`, `PekuloStat`,
-// `PekuloCompositionRow`, `PekuloMilestoneRow`, `PekuloActivityRow`,
-// `PekuloAccountRow`).
+// Cap & Patrimoine root screen ("/"). Follows docs/ux-preview/src/App.tsx
+// mobile layout 1:1: `Cap | Patrimoine` top-bar toggle inline with the 44x44pt
+// profile button (zero duplicate title), unboxed TR-minimal `PekuloHero`,
+// compact KPI tiles with `PekuloDonut` ring, flat sections, pull-to-refresh,
+// and honest loading/error/empty states.
 
 import {
+  HeaderAction,
   PekuloAccountRow,
   PekuloActivityRow,
   PekuloCompositionRow,
+  PekuloDonut,
+  PekuloEmptyState,
   PekuloHero,
   PekuloMilestoneRow,
   PekuloStat,
@@ -18,42 +20,35 @@ import {
   type PekuloTopTab,
 } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
+import { Wallet } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable } from "react-native";
 
 import { ScreenShell } from "../../../components/screen-shell";
+import { ScreenErrorState, ScreenLoadingSkeleton } from "../../../components/screen-states";
+import { SettingsHeaderButton } from "../../../components/tab-stack-layout";
+import { useAuth } from "../../../lib/auth/auth-context";
 import { useMobileCapData } from "../../../lib/hooks/use-mobile-queries";
 
-function SettingsAvatarLink() {
-  return (
-    <Link href="/parametres" asChild>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ouvrir les paramètres"
-        hitSlop={8}
-        testID="open-settings-btn"
-      >
-        <View
-          width={36}
-          height={36}
-          borderRadius="$full"
-          backgroundColor="$backgroundMuted"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Text color="$color" fontSize="$bodySm" fontWeight="600">
-            A
-          </Text>
-        </View>
-      </Pressable>
-    </Link>
-  );
-}
+const eur0 = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+const eurCompact = new Intl.NumberFormat("fr-FR", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 export default function CapScreen() {
   const [topTab, setTopTab] = useState<PekuloTopTab>("cap");
-  const { data } = useMobileCapData();
+  const { isAuthenticated } = useAuth();
+  const { data, isLoading, isError, isRefetching, refetch } = useMobileCapData();
+  const router = useRouter();
+
+  const showLoading = isAuthenticated && isLoading && !data;
+  const showError = isAuthenticated && isError && !data;
 
   const viewData = data ?? {
     totalEur: 180400,
@@ -61,6 +56,7 @@ export default function CapScreen() {
     targetCapital: 800000,
     targetYear: 2055,
     requiredYearlyEur: 20653,
+    progressRatio: 0.226,
     progressLabel: "22,6 %",
     nextMilestoneLabel: "100 k€ · 2032",
     composition: [],
@@ -71,35 +67,83 @@ export default function CapScreen() {
 
   return (
     <ScreenShell
-      title="Cap"
-      subtitle="Trajectoire vers votre objectif patrimonial"
-      headerRight={<SettingsAvatarLink />}
+      respectTopSafeArea
+      topBar={<PekuloTopTabToggle topTab={topTab} onChange={setTopTab} />}
+      headerRight={<SettingsHeaderButton testID="open-settings-btn" />}
+      refreshing={isRefetching}
+      onRefresh={refetch}
     >
-      <PekuloTopTabToggle topTab={topTab} onChange={setTopTab} />
+      {showLoading ? (
+        <ScreenLoadingSkeleton sections={3} />
+      ) : showError ? (
+        <ScreenErrorState
+          title="Impossible de charger votre cap"
+          onRetry={() => {
+            void refetch();
+          }}
+        />
+      ) : topTab === "cap" ? (
+        <View gap="$7">
+          <PekuloHero
+            variant="mobile"
+            label="Patrimoine total"
+            totalEur={viewData.totalEur}
+            aheadEur={viewData.aheadEur}
+          />
 
-      {topTab === "cap" ? (
-        <View gap="$5">
-          <View backgroundColor="$backgroundCard" borderRadius="$xl" padding="$5" gap="$5">
-            <PekuloHero
-              variant="card"
-              totalEur={viewData.totalEur}
-              aheadEur={viewData.aheadEur}
-              targetCapital={viewData.targetCapital}
-              targetYear={viewData.targetYear}
-              requiredYearlyEur={viewData.requiredYearlyEur}
-            />
-            <View flexDirection="row" gap="$4">
-              <View flex={1}>
-                <PekuloStat label="Avancement" value={viewData.progressLabel} />
+          <View gap="$3">
+            <View flexDirection="row" gap="$3">
+              <View
+                flex={1}
+                backgroundColor="$backgroundCard"
+                borderRadius="$lg"
+                padding="$4"
+                gap="$2"
+                style={{ borderCurve: "continuous" }}
+              >
+                <View flexDirection="row" alignItems="center" justifyContent="space-between">
+                  <Text color="$colorTertiary" fontSize="$xs" letterSpacing={0.5}>
+                    Avancement
+                  </Text>
+                  <PekuloDonut pct={viewData.progressRatio} size={28} stroke={3} />
+                </View>
+                <Text
+                  color="$color"
+                  fontSize="$h2"
+                  fontWeight="600"
+                  selectable
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {viewData.progressLabel}
+                </Text>
+                <Text color="$colorTertiary" fontSize="$xs">
+                  Objectif {eurCompact.format(viewData.targetCapital)} € · {viewData.targetYear}
+                </Text>
               </View>
-              <View flex={1}>
+
+              <View
+                flex={1}
+                backgroundColor="$backgroundCard"
+                borderRadius="$lg"
+                padding="$4"
+                justifyContent="space-between"
+                gap="$2"
+                style={{ borderCurve: "continuous" }}
+              >
                 <PekuloStat label="Prochain palier" value={viewData.nextMilestoneLabel} />
+                <Text
+                  color="$colorTertiary"
+                  fontSize="$xs"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  Plan {eurCompact.format(viewData.requiredYearlyEur)} € / an
+                </Text>
               </View>
             </View>
           </View>
 
           {viewData.milestones.length > 0 && (
-            <Section title="Paliers" ariaLabel="Paliers du cap">
+            <Section flat title="Paliers" ariaLabel="Paliers du cap">
               {viewData.milestones.map((milestone) => (
                 <PekuloMilestoneRow
                   key={milestone.id ?? `${milestone.label}-${milestone.targetYear}`}
@@ -110,7 +154,7 @@ export default function CapScreen() {
           )}
 
           {viewData.composition.length > 0 && (
-            <Section title="Composition" ariaLabel="Composition du patrimoine">
+            <Section flat title="Composition" ariaLabel="Composition du patrimoine">
               {viewData.composition.map((item) => (
                 <PekuloCompositionRow
                   key={item.label}
@@ -124,7 +168,19 @@ export default function CapScreen() {
           )}
 
           {viewData.recentActivity.length > 0 && (
-            <Section title="Activité récente" ariaLabel="Activité récente">
+            <Section
+              flat
+              title="Activité récente"
+              ariaLabel="Activité récente"
+              action={
+                <HeaderAction
+                  label="Voir tout"
+                  onPress={() => {
+                    router.push("/transactions");
+                  }}
+                />
+              }
+            >
               {viewData.recentActivity.map((tx) => (
                 <PekuloActivityRow
                   key={`${tx.label}-${tx.account}-${tx.category}-${tx.direction}-${tx.amountEur}`}
@@ -135,20 +191,55 @@ export default function CapScreen() {
           )}
         </View>
       ) : (
-        <View gap="$5">
-          <Section title="Comptes" ariaLabel="Comptes bancaires et livrets">
-            {viewData.accounts.map((acc) => (
-              <PekuloAccountRow
-                key={`${acc.label}-${acc.type}`}
-                label={acc.label}
-                type={acc.type}
-                balanceEur={acc.balanceEur}
+        <View gap="$7">
+          <View gap="$1">
+            <Text color="$colorTertiary" fontSize="$xs" letterSpacing={0.5}>
+              Total
+            </Text>
+            <Text
+              color="$color"
+              fontSize="$hero"
+              fontWeight="600"
+              letterSpacing={-0.5}
+              selectable
+              style={{ fontVariant: ["tabular-nums"] }}
+            >
+              {eur0.format(viewData.totalEur)}
+            </Text>
+            {viewData.composition.length > 0 && (
+              <Text
+                color="$colorTertiary"
+                fontSize="$bodySm"
+                style={{ fontVariant: ["tabular-nums"] }}
+              >
+                {viewData.composition
+                  .map((c) => `${eurCompact.format(c.amount)} € ${c.label.toLowerCase()}`)
+                  .join(" · ")}
+              </Text>
+            )}
+          </View>
+
+          <Section flat title="Comptes" ariaLabel="Comptes bancaires et livrets">
+            {viewData.accounts.length > 0 ? (
+              viewData.accounts.map((acc) => (
+                <PekuloAccountRow
+                  key={`${acc.label}-${acc.type}`}
+                  label={acc.label}
+                  type={acc.type}
+                  balanceEur={acc.balanceEur}
+                />
+              ))
+            ) : (
+              <PekuloEmptyState
+                icon={Wallet}
+                title="Aucun compte"
+                message="Ajoutez un livret, PEA ou compte bancaire depuis votre espace web Pekulo."
               />
-            ))}
+            )}
           </Section>
 
           {viewData.composition.length > 0 && (
-            <Section title="Composition" ariaLabel="Composition du patrimoine">
+            <Section flat title="Composition" ariaLabel="Composition du patrimoine">
               {viewData.composition.map((item) => (
                 <PekuloCompositionRow
                   key={item.label}

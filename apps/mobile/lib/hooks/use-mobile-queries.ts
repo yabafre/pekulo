@@ -62,6 +62,7 @@ export interface MobileCapViewData {
   targetCapital: number;
   targetYear: number;
   requiredYearlyEur: number;
+  progressRatio: number;
   progressLabel: string;
   nextMilestoneLabel: string;
   composition: CompositionItem[];
@@ -76,6 +77,7 @@ const PREVIEW_CAP_DATA: MobileCapViewData = {
   targetCapital: 800000,
   targetYear: 2055,
   requiredYearlyEur: 20653,
+  progressRatio: 0.226,
   progressLabel: "22,6 %",
   nextMilestoneLabel: "100 k€ · 2032",
   composition: [
@@ -244,6 +246,7 @@ export function useMobileCapData() {
         targetCapital,
         targetYear,
         requiredYearlyEur,
+        progressRatio: Math.max(0, Math.min(1, percentNum / 100)),
         progressLabel,
         nextMilestoneLabel,
         composition,

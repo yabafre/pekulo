@@ -1,3 +1,5 @@
+import { act } from "@testing-library/react-native";
+import { router } from "expo-router";
 import { renderRouter, screen, testRouter } from "expo-router/testing-library";
 import * as ExpoFont from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -38,25 +40,26 @@ describe("apps/mobile navigation graph", () => {
     expect(screen.getByText("Patrimoine total")).toBeTruthy();
     expect(screen.getByTestId("open-settings-btn")).toBeTruthy();
 
-    await testRouter.push("/transactions");
+    await act(() => router.navigate("/transactions"));
     expect(screen).toHavePathname("/transactions");
     expect(screen.getByText("Solde du mois")).toBeTruthy();
 
-    await testRouter.push("/mensuel");
+    await act(() => router.navigate("/mensuel"));
     expect(screen).toHavePathname("/mensuel");
     expect(screen.getByText("Épargne nette")).toBeTruthy();
 
-    await testRouter.push("/portefeuille");
+    await act(() => router.navigate("/portefeuille"));
     expect(screen).toHavePathname("/portefeuille");
     expect(screen.getByText("Plus-value latente")).toBeTruthy();
 
-    await testRouter.push("/immobilier");
+    await act(() => router.navigate("/immobilier"));
     expect(screen).toHavePathname("/immobilier");
     expect(screen.getByText("Équité nette")).toBeTruthy();
 
     await testRouter.push("/parametres");
     expect(screen).toHavePathname("/parametres");
-    expect(screen.getByText("Design System")).toBeTruthy();
+    expect(screen.getByText("Compte")).toBeTruthy();
+    expect(screen.getByText("Apparence")).toBeTruthy();
   });
 
   it("renders +not-found fallback on an unknown route", async () => {

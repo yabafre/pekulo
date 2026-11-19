@@ -3281,25 +3281,28 @@ export default function ParametresScreen() {
   - Single responsibility: Mount `QueryClientProvider` + `AuthProvider`, enforce optional auth redirect to `/login`, and register the `login` Stack screen alongside `(tabs)` and `parametres`.
   - Inputs + outputs: Root Expo Router layout component.
 - **`apps/mobile/app/(tabs)/(cap)/index.tsx`**
-  - Single responsibility: Render the `Cap` and `Patrimoine` views with live oRPC data from `useMobileCapData()`.
+  - Single responsibility: Render the `Cap` and `Patrimoine` views with live oRPC data from `useMobileCapData()`, unboxed `PekuloHero`, compact KPI tiles with `PekuloDonut`, pull-to-refresh, and loading/error/empty states.
   - Inputs + outputs: Consumes `useMobileCapData()`; renders Cap tab screen.
-- **`apps/mobile/app/(tabs)/transactions.tsx`**
-  - Single responsibility: Render monthly transaction stats, pending AI suggestions (with 1-tap `confirmCategorisation`), and recent transactions from `useMobileTransactionsData()`.
-  - Inputs + outputs: Consumes `useMobileTransactionsData()` + `useConfirmMobileSuggestion()`; renders Transactions tab screen.
-- **`apps/mobile/app/(tabs)/mensuel.tsx`**
-  - Single responsibility: Render current month aggregates (`Épargne nette`, `Entrées`, `Sorties`) and monthly history rows (`PekuloMonthlyRow`) from `useMobileMonthlyData()`.
-  - Inputs + outputs: Consumes `useMobileMonthlyData()`; renders Mensuel tab screen.
-- **`apps/mobile/app/(tabs)/portefeuille.tsx`**
-  - Single responsibility: Render live portfolio total, unrealised PnL (`Plus-value latente`), asset-class breakdown (`PekuloClassRow`), and holding rows (`PekuloHoldingRow`) from `useMobilePortfolioData()`.
-  - Inputs + outputs: Consumes `useMobilePortfolioData()`; renders Portefeuille tab screen.
-- **`apps/mobile/app/(tabs)/immobilier.tsx`**
-  - Single responsibility: Render total net equity (`Équité nette`), total valuation, remaining debt, and per-property `PekuloPropertyCard` items from `useMobileRealEstateData()`.
-  - Inputs + outputs: Consumes `useMobileRealEstateData()`; renders Immobilier tab screen.
+- **`apps/mobile/components/screen-shell.tsx`, `apps/mobile/components/screen-states.tsx`, & `apps/mobile/components/tab-stack-layout.tsx`**
+  - Single responsibility: Provide first-child native `<ScrollView>` with `contentInsetAdjustmentBehavior="automatic"` and `RefreshControl`, honest loading skeletons (`ScreenLoadingSkeleton`) and retryable error states (`ScreenErrorState`), and shared native iOS Large Title `<Stack>` headers with a 44×44pt settings button (`SettingsHeaderButton`).
+  - Inputs + outputs: Consumed by all five tabs, `/login`, and `/parametres`.
+- **`apps/mobile/app/(tabs)/transactions/{_layout,index}.tsx`**
+  - Single responsibility: Render monthly transaction stats, native iOS `Stack.SearchBar` filtering, pending AI suggestions (with 1-tap `confirmCategorisation` + toast feedback), and recent transactions from `useMobileTransactionsData()`.
+  - Inputs + outputs: Consumes `useMobileTransactionsData()` + `useConfirmMobileSuggestion()`; renders Transactions tab stack & screen.
+- **`apps/mobile/app/(tabs)/mensuel/{_layout,index}.tsx`**
+  - Single responsibility: Render current month aggregates (`Épargne nette`, `Entrées`, `Sorties`) and monthly history rows (`PekuloMonthlyRow`) from `useMobileMonthlyData()` inside a native iOS Large Title Stack.
+  - Inputs + outputs: Consumes `useMobileMonthlyData()`; renders Mensuel tab stack & screen.
+- **`apps/mobile/app/(tabs)/portefeuille/{_layout,index}.tsx`**
+  - Single responsibility: Render live portfolio total, unrealised PnL (`Plus-value latente`), asset-class breakdown (`PekuloClassRow`), and holding rows (`PekuloHoldingRow`) from `useMobilePortfolioData()` inside a native iOS Large Title Stack.
+  - Inputs + outputs: Consumes `useMobilePortfolioData()`; renders Portefeuille tab stack & screen.
+- **`apps/mobile/app/(tabs)/immobilier/{_layout,index}.tsx`**
+  - Single responsibility: Render total net equity (`Équité nette`), total valuation, remaining debt, and per-property `PekuloPropertyCard` items from `useMobileRealEstateData()` inside a native iOS Large Title Stack.
+  - Inputs + outputs: Consumes `useMobileRealEstateData()`; renders Immobilier tab stack & screen.
 - **`apps/mobile/app/parametres.tsx`**
-  - Single responsibility: Render user account status, sign-in / sign-out action, live theme & language `PekuloSegmentedControl` synced with `useThemeSetting()` and `settingsClient`, and DS version info.
-  - Inputs + outputs: Consumes `useAuth()` + `useMobileSettingsData()`; renders Paramètres modal screen.
+  - Single responsibility: Render user account status, native iOS destructive sign-out confirmation (`Alert.alert`), live theme & language `PekuloSegmentedControl` synced with `useThemeSetting()` and `settingsClient` (with error toast feedback) inside a native iOS `formSheet`.
+  - Inputs + outputs: Consumes `useAuth()` + `useMobileSettingsData()`; renders Paramètres formSheet screen.
 - **`apps/mobile/__tests__/auth-and-orpc.test.tsx`**
-  - Single responsibility: Verify chunked `expo-secure-store` (< 2 KB and > 2 KB payloads + cleanup), `RPCLink` Bearer token forwarding to `/rpc/v1/<module>/<procedure>`, `/login` validation & sign-in/sign-out lifecycle, and live oRPC data rendering + mutations across all 5 tabs and `Paramètres`.
+  - Single responsibility: Verify chunked `expo-secure-store` (< 2 KB and > 2 KB payloads + cleanup), `RPCLink` Bearer token forwarding to `/rpc/v1/<module>/<procedure>`, `/login` validation & sign-in/sign-out lifecycle (including native `Alert.alert` sign-out confirmation), honest loading/error/retry states, and live oRPC data rendering + mutations across all 5 tabs and `Paramètres`.
   - Inputs + outputs: Jest + RNTL test suite run by `bun --filter='@pekulo/mobile' run test`.
 
 ### Architecture & Lessons Applied
@@ -3316,22 +3319,37 @@ export default function ParametresScreen() {
 **Modified:**
 
 - `apps/mobile/__tests__/cap-screen.test.tsx`
+- `apps/mobile/__tests__/navigation-tabs.test.tsx`
 - `apps/mobile/package.json`
 - `apps/mobile/app.json`
 - `apps/mobile/jest.config.js`
 - `apps/mobile/jest.setup.ts`
 - `apps/mobile/app/_layout.tsx`
 - `apps/mobile/app/(tabs)/(cap)/index.tsx`
-- `apps/mobile/app/(tabs)/transactions.tsx`
-- `apps/mobile/app/(tabs)/mensuel.tsx`
-- `apps/mobile/app/(tabs)/portefeuille.tsx`
-- `apps/mobile/app/(tabs)/immobilier.tsx`
 - `apps/mobile/app/parametres.tsx`
+- `apps/mobile/components/screen-shell.tsx`
 - `bun.lock`
 - `docs/state.yaml`
 
+**Moved (flat tab routes converted to native iOS Large Title Stacks, preserving identical URLs):**
+
+- `apps/mobile/app/(tabs)/transactions.tsx` → `apps/mobile/app/(tabs)/transactions/{_layout,index}.tsx`
+- `apps/mobile/app/(tabs)/mensuel.tsx` → `apps/mobile/app/(tabs)/mensuel/{_layout,index}.tsx`
+- `apps/mobile/app/(tabs)/portefeuille.tsx` → `apps/mobile/app/(tabs)/portefeuille/{_layout,index}.tsx`
+- `apps/mobile/app/(tabs)/immobilier.tsx` → `apps/mobile/app/(tabs)/immobilier/{_layout,index}.tsx`
+
 **Created:**
 
+- `apps/mobile/components/screen-states.tsx`
+- `apps/mobile/components/tab-stack-layout.tsx`
+- `apps/mobile/app/(tabs)/transactions/_layout.tsx`
+- `apps/mobile/app/(tabs)/transactions/index.tsx`
+- `apps/mobile/app/(tabs)/mensuel/_layout.tsx`
+- `apps/mobile/app/(tabs)/mensuel/index.tsx`
+- `apps/mobile/app/(tabs)/portefeuille/_layout.tsx`
+- `apps/mobile/app/(tabs)/portefeuille/index.tsx`
+- `apps/mobile/app/(tabs)/immobilier/_layout.tsx`
+- `apps/mobile/app/(tabs)/immobilier/index.tsx`
 - `apps/mobile/lib/supabase/secure-storage.ts`
 - `apps/mobile/lib/supabase/client.ts`
 - `apps/mobile/lib/orpc/client.ts`
@@ -3346,25 +3364,33 @@ export default function ParametresScreen() {
 
 - **Model:** Gemini 4 Neon (High)
 - **Started:** 2026-11-19T01:51:40Z
-- **Completed:** 2026-11-19T02:27:20Z
+- **Completed:** 2026-11-19T04:40:00Z
 
 ### Summary
 
-Implemented chunked `expo-secure-store` session persistence, mobile Supabase Auth (`AuthProvider` + `/login` + root navigation route gating), typed `@pekulo/contracts` oRPC clients with Bearer JWT forwarding, React Query orchestration hooks (`use-mobile-queries.ts`), live wiring across all five tabs (`Cap`/`Patrimoine`, `Transactions` with 1-tap AI suggestion confirmation, `Mensuel`, `Portefeuille`, `Immobilier`) and `Paramètres`, plus the full Jest/RNTL test suite with zero web snapshot or Tamagui CSS regressions.
+Implemented chunked `expo-secure-store` session persistence, mobile Supabase Auth (`AuthProvider` + `/login` + root navigation route gating), typed `@pekulo/contracts` oRPC clients with Bearer JWT forwarding, React Query orchestration hooks (`use-mobile-queries.ts`), live wiring across all five tabs (`Cap`/`Patrimoine`, `Transactions` with 1-tap AI suggestion confirmation, `Mensuel`, `Portefeuille`, `Immobilier`) and `Paramètres`, plus a native iOS UI/UX polish pass (first-child `<ScrollView>` with `contentInsetAdjustmentBehavior="automatic"`, per-tab native iOS Large Title Stacks, native `Stack.SearchBar` on Transactions, native `formSheet` presentation on Paramètres, native `Alert.alert` destructive sign-out confirmation, pull-to-refresh, toast feedback, and honest loading/error/empty states) with zero web snapshot or Tamagui CSS regressions.
 
 ### Files changed
 
 - `apps/mobile/__tests__/auth-and-orpc.test.tsx`
 - `apps/mobile/__tests__/cap-screen.test.tsx`
+- `apps/mobile/__tests__/navigation-tabs.test.tsx`
 - `apps/mobile/app.json`
 - `apps/mobile/app/(tabs)/(cap)/index.tsx`
-- `apps/mobile/app/(tabs)/immobilier.tsx`
-- `apps/mobile/app/(tabs)/mensuel.tsx`
-- `apps/mobile/app/(tabs)/portefeuille.tsx`
-- `apps/mobile/app/(tabs)/transactions.tsx`
+- `apps/mobile/app/(tabs)/immobilier/_layout.tsx`
+- `apps/mobile/app/(tabs)/immobilier/index.tsx`
+- `apps/mobile/app/(tabs)/mensuel/_layout.tsx`
+- `apps/mobile/app/(tabs)/mensuel/index.tsx`
+- `apps/mobile/app/(tabs)/portefeuille/_layout.tsx`
+- `apps/mobile/app/(tabs)/portefeuille/index.tsx`
+- `apps/mobile/app/(tabs)/transactions/_layout.tsx`
+- `apps/mobile/app/(tabs)/transactions/index.tsx`
 - `apps/mobile/app/_layout.tsx`
 - `apps/mobile/app/login.tsx`
 - `apps/mobile/app/parametres.tsx`
+- `apps/mobile/components/screen-shell.tsx`
+- `apps/mobile/components/screen-states.tsx`
+- `apps/mobile/components/tab-stack-layout.tsx`
 - `apps/mobile/jest.config.js`
 - `apps/mobile/jest.setup.ts`
 - `apps/mobile/lib/auth/auth-context.tsx`
@@ -3386,18 +3412,22 @@ Implemented chunked `expo-secure-store` session persistence, mobile Supabase Aut
   - Short-circuited `supabase.auth.onAuthStateChange` whenever `!configured` so placeholder Supabase's async `INITIAL_SESSION: null` never clobbers an injected `initialSession` in tests/preview mode.
   - Updated `setAccessTokenResolver` immediately before `queryClient.invalidateQueries()` on sign-in (and reset on unmount/sign-out) to eliminate a refetch race before React commits `useEffect`.
   - Used `gcTime: Infinity` under `NODE_ENV === "test"` on queries and mutations so TanStack Query v5's `MutationCache` GC timers do not leave open handles in Jest.
-- **Negative-balance clamping (`apps/mobile/lib/hooks/use-mobile-queries.ts`):** Clamped all three composition terms (`liquideEur`, `placementsEur`, `immobilierEur`) with `Math.max(0, ...)` when summing `totalPositive` so composition percentages stay bounded in `[0, 1]` even with an overdrawn cash account.
-- **Data-derived keys (`apps/mobile/app/(tabs)/(cap)/index.tsx`, `apps/mobile/app/(tabs)/transactions.tsx`):** Replaced array-index keys with composite data keys to clear `no-array-index-key` oxlint warnings (`0 warnings` in `@pekulo/mobile`).
-- **Existing test update (`apps/mobile/__tests__/cap-screen.test.tsx`):** Wrapped `<CapScreen />` renders with `<QueryClientProvider client={createMobileQueryClient()}>` (required now that `CapScreen` calls `useMobileCapData`) and updated the `"Cap"` text count expectation from `2` to `3` to reflect `<PekuloTopTabToggle>`.
-- **oRPC test harness fixes (`apps/mobile/__tests__/auth-and-orpc.test.tsx`):** Read headers from `input instanceof Request ? input.headers : new Headers(init?.headers)` in the AC-2 fetch spy (`@orpc/client@1.14.1` passes headers on the `Request` instance), mocked default oRPC module singletons while preserving real `createMobileOrpcClients` for AC-2 wire tests (`createORPCClient` `Proxy` ignores `jest.spyOn` own-property descriptors), and added explicit route-gating (`RootLayout` → `/login`) and invalid-email/error-surfacing tests (`6 passed` in suite).
-- **Visual verification (`AGENTS.md` / Step 5):** React Grab MCP (`mcp__react-grab-mcp__get_element_context`) is unavailable in this environment (and target surface is React Native); visual verification is deferred to `aped-review`.
+- **Negative-balance clamping & progress ratio (`apps/mobile/lib/hooks/use-mobile-queries.ts`):** Clamped all three composition terms (`liquideEur`, `placementsEur`, `immobilierEur`) with `Math.max(0, ...)` when summing `totalPositive` so composition percentages stay bounded in `[0, 1]` even with an overdrawn cash account; exposed `progressRatio` on `MobileCapViewData` for `PekuloDonut`.
+- **Native iOS UI/UX polish (`apps/mobile/components/{screen-shell,screen-states,tab-stack-layout}.tsx`, `apps/mobile/app/**`):**
+  - Made `<ScrollView contentInsetAdjustmentBehavior="automatic" automaticallyAdjustKeyboardInsets>` the direct root child in `ScreenShell` (with Android-only manual SafeAreaInsets to avoid double insets on iOS) and added pull-to-refresh (`RefreshControl`).
+  - Converted the 4 flat tab files (`transactions.tsx`, `mensuel.tsx`, `portefeuille.tsx`, `immobilier.tsx`) into folder Stacks (`<tab>/{_layout,index}.tsx`) preserving identical URLs to unlock native iOS translucent Large Titles, native `Stack.SearchBar` on `Transactions`, and a 44×44pt HIG settings button.
+  - Presented `parametres` as a native iOS `formSheet` (`sheetGrabberVisible`, `sheetAllowedDetents: [0.85, 1.0]`), held `SplashScreen` until both fonts and auth resolve, added native `Alert.alert` destructive sign-out confirmation, `useToast()` feedback, and honest `ScreenLoadingSkeleton` / `ScreenErrorState` states across all 5 tabs.
+  - Removed duplicate inline `"Cap"` title above `PekuloTopTabToggle` to match `docs/ux-preview/src/App.tsx` 1:1.
+- **Existing test updates (`apps/mobile/__tests__/{cap-screen,navigation-tabs,auth-and-orpc}.test.tsx`):** Wrapped `<CapScreen />` renders with `<QueryClientProvider>`, updated `navigation-tabs.test.tsx` to use `router.navigate` + `toHavePathname` for nested Stack tabs (Expo Router 58 injects `?__internal_expo_router_no_animation=true`), and added native `Alert.alert` sign-out and loading/error/retry test coverage (`20 passed` across 4 suites).
+- **oRPC test harness fixes (`apps/mobile/__tests__/auth-and-orpc.test.tsx`):** Read headers from `input instanceof Request ? input.headers : new Headers(init?.headers)` in the AC-2 fetch spy and mocked default oRPC module singletons while preserving real `createMobileOrpcClients` for AC-2 wire tests.
+- **Visual verification (`AGENTS.md` / Step 5):** React Grab MCP (`mcp__react-grab-mcp__get_element_context`) is unavailable in this environment; live iOS Simulator visual verification requires rebuilding the native Dev Build (`cd apps/mobile && bun run prebuild && bun run ios`) so `ExpoSecureStore` is linked in `apps/mobile/ios/Podfile.lock`.
 
 ### Test output
 
-- `bun run format:check` — exit 0 (`1356 files`)
-- `bun run lint` — exit 0 (`0 errors`, `3` pre-existing web warnings across `1167 files`; `0 warnings` in `@pekulo/mobile`)
+- `bun run format:check` — exit 0
+- `bun run lint` — exit 0 (`0 warnings, 0 errors` in `@pekulo/mobile`)
 - `bun run typecheck` — exit 0 (`10 successful, 10 total`)
-- `bun --filter='@pekulo/mobile' run test` — exit 0 (`Test Suites: 4 passed, 4 total`, `Tests: 19 passed, 19 total`)
+- `bun --filter='@pekulo/mobile' run test` — exit 0 (`Test Suites: 4 passed, 4 total`, `Tests: 20 passed, 20 total`)
 - `bun --filter='@pekulo/ui' run test` — exit 0 (`Test Files: 159 passed (159)`, `Tests: 342 passed | 1 skipped (343)`)
 - `bun --filter='@pekulo/web' run test` — exit 0 (`Test Files: 125 passed (125)`, `Tests: 435 passed (435)`)
 - `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css` — exit 0 (zero diff)
