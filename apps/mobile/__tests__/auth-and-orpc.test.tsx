@@ -8,7 +8,13 @@ import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 
 import appConfig from "../app.json";
+import CapScreen from "../app/(tabs)/(cap)/index";
+import ImmobilierScreen from "../app/(tabs)/immobilier";
+import MensuelScreen from "../app/(tabs)/mensuel";
+import PortefeuilleScreen from "../app/(tabs)/portefeuille";
+import TransactionsScreen from "../app/(tabs)/transactions";
 import LoginScreen from "../app/login";
+import ParametresScreen from "../app/parametres";
 import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
 import {
   mobileQueryKeys,
@@ -16,7 +22,18 @@ import {
   useMobileSettingsData,
 } from "../lib/hooks/use-mobile-queries";
 import { createMobileOrpcLink, getApiBaseUrl } from "../lib/orpc/client";
-import { createMobileOrpcClients, settingsClient } from "../lib/orpc/modules";
+import {
+  accountsClient,
+  compassClient,
+  createMobileOrpcClients,
+  dashboardClient,
+  holdingsClient,
+  milestonesClient,
+  monthlyClient,
+  realestateClient,
+  settingsClient,
+  transactionsClient,
+} from "../lib/orpc/modules";
 import { getSupabaseConfig, isSupabaseConfigured, supabase } from "../lib/supabase/client";
 import { CHUNK_SIZE, createChunkedSecureStorage } from "../lib/supabase/secure-storage";
 
@@ -385,6 +402,294 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
 
     getSpy.mockRestore();
     langSpy.mockRestore();
+  });
+
+  // AC-4 (verbatim from story 10-4-mobile-auth-and-orpc:19):
+  //   Given an authenticated mobile session with live remote responses, When the user
+  //   visits `Cap` (including the `Cap` and `Patrimoine` view toggle), `Transactions`
+  //   (with one-tap AI category suggestion confirmation), `Mensuel`, `Portefeuille`,
+  //   `Immobilier`, and `Paramètres` (theme and language controls plus sign-out),
+  //   Then each screen renders the live domain figures through the shared native
+  //   design-system components and reflects mutations immediately.
+  it("renders live oRPC data on Cap (including Patrimoine toggle), Transactions (with suggestion confirm), Mensuel, Portefeuille, Immobilier, and Paramètres (AC-4)", async () => {
+    jest.spyOn(dashboardClient, "getOverview").mockResolvedValue({
+      totalWealthEur: 245000,
+      composition: {
+        liquideEur: 35000,
+        placementsEur: 120000,
+        immobilierEur: 90000,
+      },
+      compass: {
+        percent: 24.5,
+        objectif: 1000000,
+        gap: 755000,
+        currentWealth: 155000,
+      },
+      fx: { source: "live", asOf: "2026-11-19" },
+      recentActivity: [
+        {
+          label: "Dividende ETF World",
+          account: "PEA Bourse Direct",
+          category: "bonus",
+          direction: "in",
+          amountEur: 420,
+          logoUrl: null,
+        },
+      ],
+    });
+    jest.spyOn(compassClient, "getCompass").mockResolvedValue({
+      objectif: 1000000,
+      horizonYears: 25,
+    });
+    jest.spyOn(milestonesClient, "list").mockResolvedValue([
+      {
+        id: "mst_123456789012345678901",
+        userId: FAKE_SESSION.user.id,
+        targetCapital: 250000,
+        targetYear: 2030,
+        label: "Cap Quart de Million",
+        position: 0,
+        createdAt: new Date("2026-05-03T00:00:00Z"),
+        updatedAt: new Date("2026-05-03T00:00:00Z"),
+      },
+    ]);
+    jest.spyOn(milestonesClient, "getStatuses").mockResolvedValue([
+      {
+        id: "mst_123456789012345678901",
+        status: "ahead",
+        expectedAt: 140000,
+        delta: -15000,
+      },
+    ]);
+    jest.spyOn(accountsClient, "list").mockResolvedValue([
+      {
+        id: "acc_123456789012345678901",
+        userId: FAKE_SESSION.user.id,
+        label: "PEA Bourse Direct",
+        type: "pea",
+        currency: "EUR",
+        cashBalance: 35000,
+        notes: null,
+        createdAt: new Date("2026-05-03T00:00:00Z"),
+        updatedAt: new Date("2026-05-03T00:00:00Z"),
+      },
+    ]);
+
+    // 1. Cap screen + Patrimoine top-tab toggle
+    const capView = await renderWithLiveProviders(<CapScreen />);
+    await waitFor(() => {
+      expect(screen.getByText("24,5 %")).toBeTruthy();
+      expect(screen.getByText("250 k€ · 2030")).toBeTruthy();
+      expect(screen.getByText("Cap Quart de Million")).toBeTruthy();
+      expect(screen.getByText("Dividende ETF World")).toBeTruthy();
+    });
+
+    await fireEvent.press(screen.getByText("Patrimoine"));
+    await waitFor(() => {
+      expect(screen.getByText("PEA Bourse Direct")).toBeTruthy();
+    });
+    await capView.unmount();
+
+    // 2. Transactions screen + 1-tap AI suggestion confirmation
+    jest.spyOn(transactionsClient, "monthSummary").mockResolvedValue({
+      month: "2026-11",
+      incomeEur: 4500,
+      spendingEur: 1800,
+      netChangeEur: 2700,
+    });
+    jest.spyOn(transactionsClient, "listPendingSuggestions").mockResolvedValue({
+      items: [
+        {
+          id: "tx_123456789012345678901",
+          accountId: "acc_123456789012345678901",
+          occurredOn: "2026-11-18",
+          label: "Boulangerie Paul",
+          amount: 14,
+          type: "outflow",
+          category: "autre",
+          isImprevu: false,
+          notes: null,
+          transferPairId: null,
+          suggestedCategory: "restauration",
+          suggestedConfidence: 0.92,
+          suggestedRoute: "ollama",
+          suggestedAt: "2026-11-18T10:00:00Z",
+          logoUrl: null,
+          createdAt: "2026-11-18T10:00:00Z",
+        },
+      ],
+      totalCount: 1,
+      page: 1,
+      pageSize: 10,
+    });
+    jest.spyOn(transactionsClient, "listTransactions").mockResolvedValue({
+      items: [
+        {
+          id: "tx_223456789012345678902",
+          accountId: "acc_123456789012345678901",
+          occurredOn: "2026-11-15",
+          label: "Salaire Novembre",
+          amount: 4500,
+          type: "inflow",
+          category: "salaire",
+          isImprevu: false,
+          notes: null,
+          transferPairId: null,
+          createdAt: "2026-11-15T08:00:00Z",
+        },
+      ],
+      nextCursor: null,
+    });
+    const confirmSpy = jest.spyOn(transactionsClient, "confirmCategorisation").mockResolvedValue({
+      id: "tx_123456789012345678901",
+      accountId: "acc_123456789012345678901",
+      occurredOn: "2026-11-18",
+      label: "Boulangerie Paul",
+      amount: 14,
+      type: "outflow",
+      category: "restauration",
+      isImprevu: false,
+      notes: null,
+      transferPairId: null,
+      createdAt: "2026-11-18T10:00:00Z",
+    });
+
+    const txView = await renderWithLiveProviders(<TransactionsScreen />);
+    await waitFor(() => {
+      expect(screen.getByText("Boulangerie Paul")).toBeTruthy();
+      expect(screen.getByText("Salaire Novembre")).toBeTruthy();
+    });
+
+    await fireEvent.press(screen.getByText("✓ Confirmer"));
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalledWith({
+        id: "tx_123456789012345678901",
+        category: "restauration",
+      });
+    });
+    await txView.unmount();
+
+    // 3. Mensuel screen
+    jest.spyOn(monthlyClient, "listMonthly").mockResolvedValue({
+      items: [
+        {
+          source: "persisted",
+          record: {
+            id: "mr_123456789012345678901",
+            year: 2026,
+            monthNum: 11,
+            incomeEur: 4500,
+            spendingEur: 1800,
+            transfersEur: 1000,
+            netChangeEur: 2700,
+            signedOffAt: "2026-11-30T00:00:00Z",
+            createdAt: "2026-11-01T00:00:00Z",
+          },
+        },
+      ],
+    });
+
+    const monthlyView = await renderWithLiveProviders(<MensuelScreen />);
+    await waitFor(() => {
+      expect(screen.getByText("nov. 2026")).toBeTruthy();
+      expect(screen.getByText("Clôturé")).toBeTruthy();
+    });
+    await monthlyView.unmount();
+
+    // 4. Portefeuille screen
+    jest.spyOn(holdingsClient, "list").mockResolvedValue([
+      {
+        id: "hld_123456789012345678901",
+        userId: FAKE_SESSION.user.id,
+        accountId: "acc_123456789012345678901",
+        kind: "etf",
+        ticker: "VWCE.DE",
+        isin: null,
+        label: "Vanguard FTSE All-World",
+        currency: "EUR",
+        quantity: 100,
+        avgCost: 100,
+        lastPrice: 125,
+        lastPriceAt: new Date("2026-11-19T00:00:00Z"),
+        notes: null,
+        createdAt: new Date("2026-05-03T00:00:00Z"),
+        updatedAt: new Date("2026-11-19T00:00:00Z"),
+        closedAt: null,
+      },
+    ]);
+
+    const pfView = await renderWithLiveProviders(<PortefeuilleScreen />);
+    await waitFor(() => {
+      expect(screen.getByText("VWCE.DE")).toBeTruthy();
+      expect(screen.getByText("Vanguard FTSE All-World · PEA Bourse Direct")).toBeTruthy();
+    });
+    await pfView.unmount();
+
+    // 5. Immobilier screen
+    jest.spyOn(realestateClient, "listProperties").mockResolvedValue([
+      {
+        id: "res_123456789012345678901",
+        userId: FAKE_SESSION.user.id,
+        label: "Loft Bordeaux Chartrons",
+        propertyType: "residence-principale",
+        currentValuation: 380000,
+        lastValuedOn: new Date("2026-11-01T00:00:00Z"),
+        createdAt: new Date("2026-05-03T00:00:00Z"),
+        updatedAt: new Date("2026-11-01T00:00:00Z"),
+      },
+    ]);
+    jest.spyOn(realestateClient, "listPropertyDerives").mockResolvedValue([
+      {
+        propertyId: "res_123456789012345678901",
+        monthlyCashFlowEur: null,
+        netEquityEur: 190000,
+      },
+    ]);
+    jest.spyOn(realestateClient, "getTotalEquity").mockResolvedValue({
+      totalEquityEur: 190000,
+      perProperty: [{ propertyId: "res_123456789012345678901", netEquityEur: 190000 }],
+    });
+
+    const immoView = await renderWithLiveProviders(<ImmobilierScreen />);
+    await waitFor(() => {
+      expect(screen.getByText("Loft Bordeaux Chartrons")).toBeTruthy();
+      expect(screen.getByText("50% remboursé")).toBeTruthy();
+    });
+    await immoView.unmount();
+
+    // 6. Paramètres screen theme + language switch + sign-out
+    jest.spyOn(settingsClient, "get").mockResolvedValue({ theme: "dark", lang: "fr" });
+    const updateThemeSpy = jest
+      .spyOn(settingsClient, "updateTheme")
+      .mockResolvedValue({ theme: "light", lang: "fr" });
+    const updateLangSpy = jest
+      .spyOn(settingsClient, "updateLang")
+      .mockResolvedValue({ theme: "light", lang: "en" });
+    const signOutSpy = jest.spyOn(supabase.auth, "signOut").mockResolvedValue({ error: null });
+
+    const settingsView = await renderWithLiveProviders(<ParametresScreen />);
+    await waitFor(() => {
+      expect(screen.getByText("alex@pekulo.app")).toBeTruthy();
+    });
+
+    await fireEvent.press(screen.getByText("Clair"));
+    await waitFor(() => {
+      expect(updateThemeSpy).toHaveBeenCalledWith({ theme: "light" });
+    });
+
+    await fireEvent.press(screen.getByText("English"));
+    await waitFor(() => {
+      expect(updateLangSpy).toHaveBeenCalledWith({ lang: "en" });
+    });
+
+    await fireEvent.press(screen.getByTestId("settings-auth-action-btn"));
+    await waitFor(() => {
+      expect(signOutSpy).toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith("/login");
+    });
+
+    await settingsView.unmount();
+    signOutSpy.mockRestore();
   });
 });
 
