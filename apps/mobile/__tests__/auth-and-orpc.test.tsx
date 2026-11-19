@@ -10,8 +10,13 @@ import { Pressable } from "react-native";
 import appConfig from "../app.json";
 import LoginScreen from "../app/login";
 import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
+import {
+  mobileQueryKeys,
+  useMobileCapData,
+  useMobileSettingsData,
+} from "../lib/hooks/use-mobile-queries";
 import { createMobileOrpcLink, getApiBaseUrl } from "../lib/orpc/client";
-import { createMobileOrpcClients } from "../lib/orpc/modules";
+import { createMobileOrpcClients, settingsClient } from "../lib/orpc/modules";
 import { getSupabaseConfig, isSupabaseConfigured, supabase } from "../lib/supabase/client";
 import { CHUNK_SIZE, createChunkedSecureStorage } from "../lib/supabase/secure-storage";
 
@@ -27,6 +32,38 @@ jest.mock("expo-router", () => {
       push: mockPush,
       back: jest.fn(),
     }),
+  };
+});
+
+// oRPC Proxy clients ignore own-property `jest.spyOn` descriptors; expose spyable
+// mock procedures for default module singletons while keeping the real
+// `createMobileOrpcClients` factory intact for AC-2 wire-level tests.
+jest.mock("../lib/orpc/modules", () => {
+  const actual = jest.requireActual("../lib/orpc/modules");
+  return {
+    ...actual,
+    dashboardClient: { getOverview: jest.fn() },
+    compassClient: { getCompass: jest.fn() },
+    milestonesClient: { list: jest.fn(), getStatuses: jest.fn() },
+    accountsClient: { list: jest.fn() },
+    transactionsClient: {
+      monthSummary: jest.fn(),
+      listPendingSuggestions: jest.fn(),
+      listTransactions: jest.fn(),
+      confirmCategorisation: jest.fn(),
+    },
+    monthlyClient: { listMonthly: jest.fn() },
+    holdingsClient: { list: jest.fn() },
+    realestateClient: {
+      listProperties: jest.fn(),
+      listPropertyDerives: jest.fn(),
+      getTotalEquity: jest.fn(),
+    },
+    settingsClient: {
+      get: jest.fn(),
+      updateTheme: jest.fn(),
+      updateLang: jest.fn(),
+    },
   };
 });
 
@@ -47,19 +84,23 @@ const FAKE_SESSION: Session = {
   },
 };
 
-function renderWithLiveProviders(ui: ReactNode, session: Session | null = FAKE_SESSION) {
+const activeQueryClients: ReturnType<typeof createMobileQueryClient>[] = [];
+
+async function renderWithLiveProviders(ui: ReactNode, session: Session | null = FAKE_SESSION) {
   const queryClient = createMobileQueryClient();
+  activeQueryClients.push(queryClient);
+  const view = await render(
+    <QueryClientProvider client={queryClient}>
+      <PekuloRootProvider theme="pekulo-dark">
+        <AuthProvider initialSession={session} requireAuth={session !== null}>
+          {ui}
+        </AuthProvider>
+      </PekuloRootProvider>
+    </QueryClientProvider>,
+  );
   return {
     queryClient,
-    ...render(
-      <QueryClientProvider client={queryClient}>
-        <PekuloRootProvider theme="pekulo-dark">
-          <AuthProvider initialSession={session} requireAuth={session !== null}>
-            {ui}
-          </AuthProvider>
-        </PekuloRootProvider>
-      </QueryClientProvider>,
-    ),
+    ...view,
   };
 }
 
@@ -70,6 +111,12 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
       SecureStore as unknown as Record<string, Map<string, string> | undefined>
     )["__store"];
     internalStore?.clear();
+  });
+
+  afterEach(() => {
+    for (const qc of activeQueryClients.splice(0)) {
+      qc.clear();
+    }
   });
 
   // AC-1 (verbatim from story 10-4-mobile-auth-and-orpc:16):
@@ -222,6 +269,7 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
     }
 
     const queryClient = createMobileQueryClient();
+    activeQueryClients.push(queryClient);
     queryClient.setQueryData(["mobile", "probe"], { cached: true });
 
     await render(
@@ -273,6 +321,70 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
 
     signInSpy.mockRestore();
     signOutSpy.mockRestore();
+  });
+
+  // AC-3 + AC-4 (verbatim from story 10-4-mobile-auth-and-orpc:18-19):
+  //   And when running in unconfigured local or CI preview mode without a session, screens
+  //   degrade gracefully to deterministic preview data so existing navigation and smoke
+  //   flows remain green.
+  it("serves deterministic preview data when unauthenticated and live settings mutations when authenticated (AC-3, AC-4)", async () => {
+    expect(mobileQueryKeys.cap()).toEqual(["mobile", "cap"]);
+
+    function PreviewProbe() {
+      const cap = useMobileCapData();
+      const settings = useMobileSettingsData();
+      return (
+        <>
+          <Text testID="preview-progress">{cap.data?.progressLabel ?? "loading"}</Text>
+          <Text testID="preview-lang">{settings.prefs.lang}</Text>
+        </>
+      );
+    }
+
+    function LiveSettingsProbe() {
+      const settings = useMobileSettingsData();
+      return (
+        <>
+          <Text testID="live-lang">{settings.prefs.lang}</Text>
+          <Pressable
+            testID="switch-lang-btn"
+            onPress={() => {
+              void settings.updateLang("en");
+            }}
+          >
+            <Text>EN</Text>
+          </Pressable>
+        </>
+      );
+    }
+
+    const previewView = await renderWithLiveProviders(<PreviewProbe />, null);
+    await waitFor(() => {
+      expect(screen.getByTestId("preview-progress").props.children).toBe("22,6 %");
+      expect(screen.getByTestId("preview-lang").props.children).toBe("fr");
+    });
+    await previewView.unmount();
+
+    const getSpy = jest
+      .spyOn(settingsClient, "get")
+      .mockResolvedValue({ theme: "dark", lang: "fr" });
+    const langSpy = jest
+      .spyOn(settingsClient, "updateLang")
+      .mockResolvedValue({ theme: "dark", lang: "en" });
+
+    const liveView = await renderWithLiveProviders(<LiveSettingsProbe />, FAKE_SESSION);
+    await waitFor(() => {
+      expect(getSpy).toHaveBeenCalled();
+    });
+    await fireEvent.press(screen.getByTestId("switch-lang-btn"));
+    await waitFor(() => {
+      expect(langSpy).toHaveBeenCalledWith({ lang: "en" });
+      expect(screen.getByTestId("live-lang").props.children).toBe("en");
+    });
+    await liveView.unmount();
+
+    getSpy.mockRestore();
+    langSpy.mockRestore();
   });
 });
 

@@ -21,15 +21,18 @@ import { resetAccessTokenResolver, setAccessTokenResolver } from "../orpc/client
 import { isSupabaseConfigured, supabase } from "../supabase/client";
 
 export function createMobileQueryClient(): QueryClient {
+  // Infinite gcTime in Jest avoids TanStack Query's 5-minute GC setTimeout keeping Node open.
+  const gcTime = process.env.NODE_ENV === "test" ? Infinity : 5 * 60_000;
   return new QueryClient({
     defaultOptions: {
       queries: {
         retry: false,
         staleTime: 30_000,
-        gcTime: 5 * 60_000,
+        gcTime,
       },
       mutations: {
         retry: false,
+        gcTime,
       },
     },
   });
@@ -82,7 +85,7 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
   }, [session]);
 
   useEffect(() => {
-    if (!configured && initialSession === null) {
+    if (!configured) {
       setIsLoading(false);
       return;
     }
