@@ -1,20 +1,8 @@
 // apps/mobile/app/_layout.tsx
 // Root Expo Router layout: loads Geist + Geist Mono fonts, mounts
-// PekuloRootProvider (@pekulo/ui), syncs React Navigation ThemeProvider with OS
-// scheme, and mounts the (tabs) navigator plus the Paramètres modal route.
-//
-// AC-2 (verbatim from story 10-2-mobile-app-bootstrap:37):
-//   Given the shared design-system configuration and native theme provider,
-//   When the mobile application compiles with the Tamagui optimizing compiler
-//   and mounts its root screen, Then both dark and light Pekulo themes apply
-//   cleanly and the shared hero and stat components render without web-only
-//   runtime errors.
-// AC-3 (verbatim from story 10-2-mobile-app-bootstrap:38):
-//   Given the mobile navigation shell, When the application launches at the
-//   root route, Then the Cap tab renders as the initial screen, all five
-//   primary destinations (`Cap`, `Transactions`, `Mensuel`, `Portefeuille`,
-//   `Immobilier`) are navigable, and `Paramètres` opens in one tap from the
-//   Cap header.
+// PekuloRootProvider (@pekulo/ui), QueryClientProvider (@tanstack/react-query),
+// and AuthProvider (Supabase Auth + expo-secure-store), syncs React Navigation
+// ThemeProvider with active Pekulo theme, and mounts (tabs), parametres, and login.
 
 import {
   Geist_400Regular,
@@ -30,17 +18,33 @@ import {
 } from "@expo-google-fonts/geist-mono";
 import { PekuloRootProvider, useThemeSetting } from "@pekulo/ui";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
+import { usePathname, useRouter } from "expo-router";
 import Stack from "expo-router/stack";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
   const { resolvedTheme } = useThemeSetting();
+  const { isAuthenticated, isLoading, requireAuth } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
   const isLight = resolvedTheme === "pekulo-light";
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (requireAuth && !isAuthenticated && pathname !== "/login") {
+      router.replace("/login");
+    } else if (isAuthenticated && pathname === "/login") {
+      router.replace("/");
+    }
+  }, [isAuthenticated, isLoading, pathname, requireAuth, router]);
 
   const navTheme = isLight
     ? {
@@ -65,12 +69,20 @@ function RootNavigator() {
             presentation: "modal",
           }}
         />
+        <Stack.Screen
+          name="login"
+          options={{
+            headerShown: false,
+            title: "Connexion",
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );
 }
 
 export default function RootLayout() {
+  const [queryClient] = useState(() => createMobileQueryClient());
   const [fontsLoaded, fontError] = useFonts({
     Geist_400Regular,
     Geist_500Medium,
@@ -93,8 +105,12 @@ export default function RootLayout() {
   }
 
   return (
-    <PekuloRootProvider>
-      <RootNavigator />
-    </PekuloRootProvider>
+    <QueryClientProvider client={queryClient}>
+      <PekuloRootProvider>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </PekuloRootProvider>
+    </QueryClientProvider>
   );
 }

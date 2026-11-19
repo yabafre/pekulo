@@ -1,10 +1,67 @@
+import { PekuloRootProvider } from "@pekulo/ui";
+import { Text } from "@pekulo/ui/client";
+import type { Session } from "@supabase/supabase-js";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
+import type { ReactNode } from "react";
+import { Pressable } from "react-native";
 
 import appConfig from "../app.json";
+import LoginScreen from "../app/login";
+import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
 import { createMobileOrpcLink, getApiBaseUrl } from "../lib/orpc/client";
 import { createMobileOrpcClients } from "../lib/orpc/modules";
 import { getSupabaseConfig, isSupabaseConfigured, supabase } from "../lib/supabase/client";
 import { CHUNK_SIZE, createChunkedSecureStorage } from "../lib/supabase/secure-storage";
+
+const mockReplace = jest.fn();
+const mockPush = jest.fn();
+
+jest.mock("expo-router", () => {
+  const actual = jest.requireActual("expo-router");
+  return {
+    ...actual,
+    useRouter: () => ({
+      replace: mockReplace,
+      push: mockPush,
+      back: jest.fn(),
+    }),
+  };
+});
+
+const FAKE_SESSION: Session = {
+  access_token: "jwt-mobile-live-token-155",
+  refresh_token: "refresh-token-155",
+  expires_in: 3600,
+  expires_at: 1999999999,
+  token_type: "bearer",
+  user: {
+    id: "11111111-1111-4111-8111-111111111111",
+    aud: "authenticated",
+    role: "authenticated",
+    email: "alex@pekulo.app",
+    app_metadata: {},
+    user_metadata: {},
+    created_at: "2026-05-03T00:00:00Z",
+  },
+};
+
+function renderWithLiveProviders(ui: ReactNode, session: Session | null = FAKE_SESSION) {
+  const queryClient = createMobileQueryClient();
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <PekuloRootProvider theme="pekulo-dark">
+          <AuthProvider initialSession={session} requireAuth={session !== null}>
+            {ui}
+          </AuthProvider>
+        </PekuloRootProvider>
+      </QueryClientProvider>,
+    ),
+  };
+}
 
 describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oRPC", () => {
   beforeEach(() => {
@@ -130,4 +187,93 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
     await anonClients.settingsClient.get();
     expect(capturedAuthHeader).toBeNull();
   });
+
+  // AC-3 (verbatim from story 10-4-mobile-auth-and-orpc:18):
+  //   Given the mobile root navigation, When authentication enforcement is active and no
+  //   session is present, Then unauthenticated users are directed to the sign-in screen
+  //   where submitting valid credentials signs in and navigates to the primary dashboard;
+  //   And when running in unconfigured local or CI preview mode without a session, screens
+  //   degrade gracefully to deterministic preview data so existing navigation and smoke
+  //   flows remain green.
+  it("validates credentials on /login, signs in via Supabase Auth, and clears cache on sign-out (AC-1, AC-3)", async () => {
+    const signInSpy = jest.spyOn(supabase.auth, "signInWithPassword");
+    const signOutSpy = jest.spyOn(supabase.auth, "signOut").mockResolvedValue({ error: null });
+
+    function AuthStatusProbe() {
+      const { userEmail, isAuthenticated, signOut } = useAuth();
+      return (
+        <>
+          <LoginScreen />
+          {isAuthenticated && (
+            <>
+              <Text testID="probe-email">{userEmail}</Text>
+              <Pressable
+                testID="probe-signout-btn"
+                onPress={() => {
+                  void signOut();
+                }}
+              >
+                <Text>Sign out</Text>
+              </Pressable>
+            </>
+          )}
+        </>
+      );
+    }
+
+    const queryClient = createMobileQueryClient();
+    queryClient.setQueryData(["mobile", "probe"], { cached: true });
+
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <PekuloRootProvider theme="pekulo-dark">
+          <AuthProvider initialSession={null} requireAuth={false}>
+            <AuthStatusProbe />
+          </AuthProvider>
+        </PekuloRootProvider>
+      </QueryClientProvider>,
+    );
+
+    // 1. Rejects short password (< 12 chars) before hitting Supabase
+    await fireEvent.changeText(screen.getByTestId("login-email-input"), "alex@pekulo.app");
+    await fireEvent.changeText(screen.getByTestId("login-password-input"), "short123");
+    await fireEvent.press(screen.getByTestId("login-submit-btn"));
+
+    expect(screen.getByText("Le mot de passe doit contenir au moins 12 caractères.")).toBeTruthy();
+    expect(signInSpy).not.toHaveBeenCalled();
+
+    // 2. Valid 12+ char password calls supabase.auth.signInWithPassword and redirects to "/"
+    signInSpy.mockResolvedValueOnce({
+      data: { session: FAKE_SESSION, user: FAKE_SESSION.user },
+      error: null,
+    });
+
+    await fireEvent.changeText(
+      screen.getByTestId("login-password-input"),
+      "super-secret-password-2026",
+    );
+    await fireEvent.press(screen.getByTestId("login-submit-btn"));
+
+    await waitFor(() => {
+      expect(signInSpy).toHaveBeenCalledWith({
+        email: "alex@pekulo.app",
+        password: "super-secret-password-2026",
+      });
+      expect(mockReplace).toHaveBeenCalledWith("/");
+      expect(screen.getByTestId("probe-email")).toBeTruthy();
+    });
+
+    // 3. Sign out clears session and purges React Query cache
+    await fireEvent.press(screen.getByTestId("probe-signout-btn"));
+    await waitFor(() => {
+      expect(signOutSpy).toHaveBeenCalled();
+      expect(screen.queryByTestId("probe-email")).toBeNull();
+      expect(queryClient.getQueryData(["mobile", "probe"])).toBeUndefined();
+    });
+
+    signInSpy.mockRestore();
+    signOutSpy.mockRestore();
+  });
 });
+
+export { renderWithLiveProviders };
