@@ -15,6 +15,7 @@ import PortefeuilleScreen from "../app/(tabs)/portefeuille";
 import TransactionsScreen from "../app/(tabs)/transactions";
 import LoginScreen from "../app/login";
 import ParametresScreen from "../app/parametres";
+import RootLayout from "../app/_layout";
 import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
 import {
   mobileQueryKeys,
@@ -39,17 +40,30 @@ import { CHUNK_SIZE, createChunkedSecureStorage } from "../lib/supabase/secure-s
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
+let mockPathname = "/";
 
 jest.mock("expo-router", () => {
   const actual = jest.requireActual("expo-router");
   return {
     ...actual,
+    usePathname: () => mockPathname,
     useRouter: () => ({
       replace: mockReplace,
       push: mockPush,
       back: jest.fn(),
     }),
   };
+});
+
+jest.mock("expo-router/stack", () => {
+  const React = require("react") as typeof import("react");
+  function MockStack({ children }: { children?: React.ReactNode }) {
+    return React.createElement(React.Fragment, null, children);
+  }
+  MockStack.Screen = function MockStackScreen() {
+    return null;
+  };
+  return { __esModule: true, default: MockStack };
 });
 
 // oRPC Proxy clients ignore own-property `jest.spyOn` descriptors; expose spyable
@@ -124,6 +138,7 @@ async function renderWithLiveProviders(ui: ReactNode, session: Session | null = 
 describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oRPC", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPathname = "/";
     const internalStore = (
       SecureStore as unknown as Record<string, Map<string, string> | undefined>
     )["__store"];
@@ -241,6 +256,15 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
     expect(capturedAuthHeader).toBe("Bearer jwt-test-bearer-999");
     expect(prefs).toEqual({ theme: "dark", lang: "fr" });
 
+    // Spot-check additional domain contract module paths
+    await clients.dashboardClient.getOverview();
+    expect(capturedUrl).toBe("https://api.pekulo.app/rpc/v1/dashboard/getOverview");
+    expect(capturedAuthHeader).toBe("Bearer jwt-test-bearer-999");
+
+    await clients.realestateClient.getTotalEquity();
+    expect(capturedUrl).toBe("https://api.pekulo.app/rpc/v1/realestate/getTotalEquity");
+    expect(capturedAuthHeader).toBe("Bearer jwt-test-bearer-999");
+
     // Unauthenticated call omits Authorization header
     const anonLink = createMobileOrpcLink({
       baseUrl: () => "https://api.pekulo.app",
@@ -299,13 +323,38 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
       </QueryClientProvider>,
     );
 
-    // 1. Rejects short password (< 12 chars) before hitting Supabase
+    // 1. Rejects invalid email and short password (< 12 chars) before hitting Supabase
+    await fireEvent.changeText(screen.getByTestId("login-email-input"), "not-an-email");
+    await fireEvent.changeText(
+      screen.getByTestId("login-password-input"),
+      "super-secret-password-2026",
+    );
+    await fireEvent.press(screen.getByTestId("login-submit-btn"));
+    expect(screen.getByText("Veuillez saisir une adresse e-mail valide.")).toBeTruthy();
+    expect(signInSpy).not.toHaveBeenCalled();
+
     await fireEvent.changeText(screen.getByTestId("login-email-input"), "alex@pekulo.app");
     await fireEvent.changeText(screen.getByTestId("login-password-input"), "short123");
     await fireEvent.press(screen.getByTestId("login-submit-btn"));
 
     expect(screen.getByText("Le mot de passe doit contenir au moins 12 caractères.")).toBeTruthy();
     expect(signInSpy).not.toHaveBeenCalled();
+
+    // 1b. Surfaces Supabase authentication errors on rejected credentials
+    signInSpy.mockResolvedValueOnce({
+      data: { session: null, user: null },
+      error: { message: "Invalid login credentials" } as never,
+    });
+    await fireEvent.changeText(
+      screen.getByTestId("login-password-input"),
+      "wrong-secret-password-2026",
+    );
+    await fireEvent.press(screen.getByTestId("login-submit-btn"));
+    await waitFor(() => {
+      expect(screen.getByTestId("login-error-msg").props.children).toBe(
+        "Invalid login credentials",
+      );
+    });
 
     // 2. Valid 12+ char password calls supabase.auth.signInWithPassword and redirects to "/"
     signInSpy.mockResolvedValueOnce({
@@ -690,6 +739,49 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
 
     await settingsView.unmount();
     signOutSpy.mockRestore();
+  });
+
+  // AC-3 (verbatim from story 10-4-mobile-auth-and-orpc:18):
+  //   Given the mobile root navigation, When authentication enforcement is active and no
+  //   session is present, Then unauthenticated users are directed to the sign-in screen
+  //   where submitting valid credentials signs in and navigates to the primary dashboard;
+  it("redirects unauthenticated users to /login when Supabase Auth enforcement is active (AC-3)", async () => {
+    const prevUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const prevKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    process.env.EXPO_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+
+    const getSessionSpy = jest.spyOn(supabase.auth, "getSession").mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+    const unsubscribe = jest.fn();
+    const onAuthSpy = jest.spyOn(supabase.auth, "onAuthStateChange").mockReturnValue({
+      data: { subscription: { id: "sub-1", callback: jest.fn(), unsubscribe } },
+    });
+
+    try {
+      mockPathname = "/";
+      const view = await render(<RootLayout />);
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith("/login");
+      });
+      await view.unmount();
+      expect(unsubscribe).toHaveBeenCalled();
+    } finally {
+      if (prevUrl === undefined) {
+        delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+      } else {
+        process.env.EXPO_PUBLIC_SUPABASE_URL = prevUrl;
+      }
+      if (prevKey === undefined) {
+        delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      } else {
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = prevKey;
+      }
+      getSessionSpy.mockRestore();
+      onAuthSpy.mockRestore();
+    }
   });
 });
 
