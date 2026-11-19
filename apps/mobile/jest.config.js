@@ -12,6 +12,7 @@ const svgEntry = require.resolve("react-native-svg");
 const lucideNativeEntry = require.resolve("lucide-react-native");
 const dateTimePickerEntry = require.resolve("@react-native-community/datetimepicker");
 const pickerEntry = require.resolve("@react-native-picker/picker");
+const secureStoreEntry = require.resolve("expo-secure-store");
 
 /** @type {import("jest").Config} */
 module.exports = {
@@ -28,12 +29,17 @@ module.exports = {
     "^lucide-react-native$": lucideNativeEntry,
     "^@react-native-community/datetimepicker$": dateTimePickerEntry,
     "^@react-native-picker/picker$": pickerEntry,
+    "^expo-secure-store$": secureStoreEntry,
     "^@pekulo/ui$": "<rootDir>/../../packages/ui/src/index.native.ts",
     "^@pekulo/ui/client$": "<rootDir>/../../packages/ui/src/client.ts",
     "^@pekulo/ui/tamagui-config$": "<rootDir>/../../packages/ui/src/config/tamagui.ts",
+    "^@pekulo/contracts$": "<rootDir>/../../packages/contracts/src/index.ts",
+    "^@pekulo/validators$": "<rootDir>/../../packages/validators/src/index.ts",
+    "^@pekulo/types$": "<rootDir>/../../packages/types/src/index.ts",
+    "^@pekulo/zod$": "<rootDir>/../../packages/zod/src/index.ts",
     "^@/(.*)$": "<rootDir>/$1",
   },
   transformIgnorePatterns: [
-    "node_modules/(?!((?:\\.bun/[^/]+/node_modules/)?(?:(jest-)?react-native|@react-native(-community)?|@react-native-picker/.*|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|lucide-react-native|react-native-svg|tamagui|@tamagui/.*|@pekulo/.*)))",
+    "node_modules/(?!((?:\\.bun/[^/]+/node_modules/)?(?:(jest-)?react-native|@react-native(-community)?|@react-native-picker/.*|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|lucide-react-native|react-native-svg|@orpc/.*|@supabase/.*|@tanstack/.*|tamagui|@tamagui/.*|@pekulo/.*)))",
   ],
 };
