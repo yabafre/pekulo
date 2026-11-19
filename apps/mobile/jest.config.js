@@ -1,4 +1,5 @@
 const path = require("node:path");
+const jestExpoPreset = require("jest-expo/jest-preset");
 
 const babelRuntimeDir = path.dirname(
   require.resolve("@babel/runtime/package.json", {
@@ -14,12 +15,20 @@ const dateTimePickerEntry = require.resolve("@react-native-community/datetimepic
 const pickerEntry = require.resolve("@react-native-picker/picker");
 const secureStoreEntry = require.resolve("expo-secure-store");
 
+// jest-expo's default transform only matches `\.[jt]sx?$`, skipping `.mjs` ESM
+// entrypoints shipped by `@orpc/*` and `zod` v4 under Jest CommonJS mode.
+const { "\\.[jt]sx?$": babelTransform, ...assetTransforms } = jestExpoPreset.transform;
+
 /** @type {import("jest").Config} */
 module.exports = {
   preset: "jest-expo",
   testTimeout: 20000,
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testMatch: ["<rootDir>/__tests__/**/*.test.{ts,tsx}"],
+  transform: {
+    ...assetTransforms,
+    "\\.m?[jt]sx?$": babelTransform,
+  },
   moduleNameMapper: {
     "^@babel/runtime/(.*)$": `${babelRuntimeDir}/$1`,
     "^react-native$": reactNativeEntry,
@@ -40,6 +49,6 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/$1",
   },
   transformIgnorePatterns: [
-    "node_modules/(?!((?:\\.bun/[^/]+/node_modules/)?(?:(jest-)?react-native|@react-native(-community)?|@react-native-picker/.*|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|lucide-react-native|react-native-svg|@orpc/.*|@supabase/.*|@tanstack/.*|tamagui|@tamagui/.*|@pekulo/.*)))",
+    "node_modules/(?!((?:\\.bun/[^/]+/node_modules/)?(?:(jest-)?react-native|@react-native(-community)?|@react-native-picker/.*|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|lucide-react-native|react-native-svg|@orpc/.*|@supabase/.*|@tanstack/.*|@standard-schema/.*|zod|tamagui|@tamagui/.*|@pekulo/.*)))",
   ],
 };

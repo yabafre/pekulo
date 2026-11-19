@@ -1,6 +1,8 @@
 import * as SecureStore from "expo-secure-store";
 
 import appConfig from "../app.json";
+import { createMobileOrpcLink, getApiBaseUrl } from "../lib/orpc/client";
+import { createMobileOrpcClients } from "../lib/orpc/modules";
 import { getSupabaseConfig, isSupabaseConfigured, supabase } from "../lib/supabase/client";
 import { CHUNK_SIZE, createChunkedSecureStorage } from "../lib/supabase/secure-storage";
 
@@ -71,5 +73,61 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
     await storage.removeItem("sb-session-remove");
     expect(await storage.getItem("sb-session-remove")).toBeNull();
     expect(await SecureStore.getItemAsync("sb-session-remove__chunk_0")).toBeNull();
+  });
+
+  // AC-2 (verbatim from story 10-4-mobile-auth-and-orpc:17):
+  //   Given an authenticated user session on mobile, When any domain contract client
+  //   (dashboard, compass, milestones, accounts, holdings, real-estate, transactions,
+  //   monthly, or settings) invokes a remote procedure, Then the request targets the
+  //   configured versioned RPC endpoint for that module and procedure and attaches
+  //   the active session access token as a Bearer authorization header.
+  it("forwards Authorization: Bearer <access_token> to /rpc/v1/<module>/<procedure> on @pekulo/contracts calls (AC-2)", async () => {
+    expect(getApiBaseUrl({ EXPO_PUBLIC_API_BASE_URL: "https://api.pekulo.app///" })).toBe(
+      "https://api.pekulo.app",
+    );
+
+    let capturedUrl = "";
+    let capturedAuthHeader: string | null = null;
+
+    const customFetch = jest.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+      capturedUrl =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const headers = input instanceof Request ? input.headers : new Headers(init?.headers);
+      capturedAuthHeader = headers.get("authorization");
+      return new Response(
+        JSON.stringify({
+          json: {
+            theme: "dark",
+            lang: "fr",
+          },
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    }) as unknown as typeof globalThis.fetch;
+
+    const link = createMobileOrpcLink({
+      baseUrl: () => "https://api.pekulo.app",
+      tokenResolver: async () => "jwt-test-bearer-999",
+      fetch: customFetch,
+    });
+    const clients = createMobileOrpcClients(link);
+
+    const prefs = await clients.settingsClient.get();
+    expect(capturedUrl).toBe("https://api.pekulo.app/rpc/v1/settings/get");
+    expect(capturedAuthHeader).toBe("Bearer jwt-test-bearer-999");
+    expect(prefs).toEqual({ theme: "dark", lang: "fr" });
+
+    // Unauthenticated call omits Authorization header
+    const anonLink = createMobileOrpcLink({
+      baseUrl: () => "https://api.pekulo.app",
+      tokenResolver: async () => null,
+      fetch: customFetch,
+    });
+    const anonClients = createMobileOrpcClients(anonLink);
+    await anonClients.settingsClient.get();
+    expect(capturedAuthHeader).toBeNull();
   });
 });
