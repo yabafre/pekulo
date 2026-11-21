@@ -7,7 +7,9 @@ import { pekuloColors, useThemeSetting } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { Link } from "expo-router";
 import Stack from "expo-router/stack";
+import { SymbolView } from "expo-symbols";
 import { Pressable } from "react-native";
+import { useTheme } from "tamagui";
 
 import { useAuth } from "../lib/auth/auth-context";
 
@@ -44,6 +46,67 @@ export function SettingsHeaderButton({ testID = "header-settings-btn" }: { testI
         </View>
       </Pressable>
     </Link>
+  );
+}
+
+/** 44×44pt SF Symbol "plus" button for a tab's primary create action. */
+export function HeaderAddButton({
+  onPress,
+  accessibilityLabel,
+  testID = "header-add-btn",
+}: {
+  onPress: () => void;
+  accessibilityLabel: string;
+  testID?: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={4}
+      testID={testID}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <SymbolView
+        name="plus"
+        size={20}
+        weight="semibold"
+        tintColor={theme.color.val}
+        fallback={
+          <Text color="$color" fontSize="$h2" fontWeight="500">
+            +
+          </Text>
+        }
+      />
+    </Pressable>
+  );
+}
+
+/** Header trailing items: optional create button, then the settings avatar. */
+export function TabHeaderActions({
+  onAdd,
+  addLabel,
+  settingsTestID,
+}: {
+  onAdd?: () => void;
+  addLabel?: string;
+  settingsTestID?: string;
+}) {
+  return (
+    <View flexDirection="row" alignItems="center">
+      {onAdd ? (
+        <HeaderAddButton onPress={onAdd} accessibilityLabel={addLabel ?? "Ajouter"} />
+      ) : null}
+      <SettingsHeaderButton testID={settingsTestID} />
+    </View>
   );
 }
 

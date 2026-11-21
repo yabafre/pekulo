@@ -33,6 +33,24 @@ import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Edit/create flows presented as native iOS form sheets. Short forms open at a
+// medium detent and can be dragged to full height; long forms open full height.
+const SHEET_ROUTES: { name: string; detents: number[] }[] = [
+  { name: "sheets/transaction", detents: [1.0] },
+  { name: "sheets/milestone", detents: [0.6, 1.0] },
+  { name: "sheets/account", detents: [1.0] },
+  { name: "sheets/account-balance", detents: [0.5, 1.0] },
+  { name: "sheets/holding", detents: [1.0] },
+  { name: "sheets/lot", detents: [1.0] },
+  { name: "sheets/property", detents: [0.75, 1.0] },
+  { name: "sheets/valuation", detents: [0.5, 1.0] },
+  { name: "sheets/valuations", detents: [0.6, 1.0] },
+  { name: "sheets/mortgage", detents: [1.0] },
+  { name: "sheets/rental", detents: [0.6, 1.0] },
+  { name: "sheets/cloture", detents: [1.0] },
+  { name: "sheets/compass", detents: [0.6, 1.0] },
+];
+
 function SheetCloseButton() {
   const router = useRouter();
   return (
@@ -121,6 +139,23 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             headerRight: () => <SheetCloseButton />,
           }}
         />
+        {SHEET_ROUTES.map((sheet) => (
+          <Stack.Screen
+            key={sheet.name}
+            name={sheet.name}
+            options={{
+              headerShown: true,
+              presentation: "formSheet",
+              sheetGrabberVisible: true,
+              sheetAllowedDetents: sheet.detents,
+              headerTransparent: true,
+              headerShadowVisible: false,
+              headerTitleStyle: { color: palette.text.primary },
+              headerTintColor: palette.text.primary,
+              contentStyle: { backgroundColor: palette.surface.bg },
+            }}
+          />
+        ))}
         <Stack.Screen
           name="login"
           options={{
