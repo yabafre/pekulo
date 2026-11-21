@@ -21,14 +21,21 @@ import {
 } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useRouter } from "expo-router";
-import { Wallet } from "lucide-react-native";
+import { Plus, Wallet } from "lucide-react-native";
 import { useState } from "react";
+import { Pressable } from "react-native";
 
+import { useMutationRunner } from "../../../components/form/sheet";
 import { ScreenShell } from "../../../components/screen-shell";
 import { ScreenErrorState, ScreenLoadingSkeleton } from "../../../components/screen-states";
-import { SettingsHeaderButton } from "../../../components/tab-stack-layout";
+import { TabHeaderActions } from "../../../components/tab-stack-layout";
+import { confirmDestructive, showActions } from "../../../lib/actions";
 import { useAuth } from "../../../lib/auth/auth-context";
 import { formatCompactEur, formatEur } from "../../../lib/format";
+import {
+  useAccountMutations,
+  useMilestoneMutations,
+} from "../../../lib/hooks/use-mobile-mutations";
 import { useMobileCapData } from "../../../lib/hooks/use-mobile-queries";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -42,6 +49,51 @@ export default function CapScreen() {
   const { isAuthenticated } = useAuth();
   const { data, isLoading, isError, isRefetching, refetch } = useMobileCapData();
   const router = useRouter();
+  const milestoneMutations = useMilestoneMutations();
+  const accountMutations = useAccountMutations();
+  const { run } = useMutationRunner();
+
+  function openCreateMenu() {
+    showActions("Ajouter", [
+      { label: "Nouvelle transaction", onPress: () => router.push("/sheets/transaction") },
+      { label: "Nouveau palier", onPress: () => router.push("/sheets/milestone") },
+      { label: "Nouveau compte", onPress: () => router.push("/sheets/account") },
+    ]);
+  }
+
+  function deleteMilestone(id: string, label: string) {
+    confirmDestructive({
+      title: `Supprimer « ${label} » ?`,
+      message: "Le palier sera retiré de votre trajectoire.",
+      confirmLabel: "Supprimer",
+      onConfirm: () => {
+        void run(() => milestoneMutations.remove.mutateAsync({ id }), "Palier supprimé");
+      },
+    });
+  }
+
+  function openAccountActions(id: string, label: string) {
+    showActions(label, [
+      {
+        label: "Mettre à jour le solde",
+        onPress: () => router.push(`/sheets/account-balance?id=${id}`),
+      },
+      { label: "Modifier", onPress: () => router.push(`/sheets/account?id=${id}`) },
+      {
+        label: "Supprimer",
+        destructive: true,
+        onPress: () =>
+          confirmDestructive({
+            title: `Supprimer « ${label} » ?`,
+            message: "Le compte et son historique de solde seront supprimés.",
+            confirmLabel: "Supprimer",
+            onConfirm: () => {
+              void run(() => accountMutations.remove.mutateAsync({ id }), "Compte supprimé");
+            },
+          }),
+      },
+    ]);
+  }
 
   const showLoading = isAuthenticated && isLoading && !data;
   const showError = isAuthenticated && isError && !data;
@@ -59,13 +111,20 @@ export default function CapScreen() {
     milestones: [],
     recentActivity: [],
     accounts: [],
+    accountEntities: [],
   };
 
   return (
     <ScreenShell
       respectTopSafeArea
       topBar={<PekuloTopTabToggle topTab={topTab} onChange={setTopTab} />}
-      headerRight={<SettingsHeaderButton testID="open-settings-btn" />}
+      headerRight={
+        <TabHeaderActions
+          addLabel="Ajouter"
+          onAdd={openCreateMenu}
+          settingsTestID="open-settings-btn"
+        />
+      }
       refreshing={isRefetching}
       onRefresh={refetch}
     >
@@ -150,6 +209,8 @@ export default function CapScreen() {
                 <PekuloMilestoneRow
                   key={milestone.id ?? `${milestone.label}-${milestone.targetYear}`}
                   milestone={milestone}
+                  isDeleting={milestoneMutations.remove.isPending}
+                  onDelete={(id) => deleteMilestone(id, milestone.label)}
                 />
               ))}
             </Section>
@@ -221,21 +282,46 @@ export default function CapScreen() {
             )}
           </View>
 
-          <Section flat title="Comptes" ariaLabel="Comptes bancaires et livrets">
+          <Section
+            flat
+            title="Comptes"
+            ariaLabel="Comptes bancaires et livrets"
+            action={
+              <HeaderAction
+                icon={Plus}
+                label="Ajouter"
+                onPress={() => router.push("/sheets/account")}
+              />
+            }
+          >
             {viewData.accounts.length > 0 ? (
-              viewData.accounts.map((acc) => (
-                <PekuloAccountRow
-                  key={`${acc.label}-${acc.type}`}
-                  label={acc.label}
-                  type={acc.type}
-                  balanceEur={acc.balanceEur}
-                />
-              ))
+              viewData.accounts.map((acc, index) => {
+                const entity = viewData.accountEntities[index];
+                return (
+                  <Pressable
+                    key={entity?.id ?? `${acc.label}-${acc.type}`}
+                    testID={entity ? `account-row-${entity.id}` : undefined}
+                    accessibilityRole="button"
+                    accessibilityHint="Ouvre les actions du compte"
+                    disabled={!entity}
+                    onPress={() => entity && openAccountActions(entity.id, entity.label)}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                  >
+                    <PekuloAccountRow
+                      label={acc.label}
+                      type={acc.type}
+                      balanceEur={acc.balanceEur}
+                    />
+                  </Pressable>
+                );
+              })
             ) : (
               <PekuloEmptyState
                 icon={Wallet}
                 title="Aucun compte"
-                message="Ajoutez un livret, PEA ou compte bancaire depuis votre espace web Pekulo."
+                message="Ajoutez un livret, un PEA ou un compte courant pour suivre votre patrimoine."
+                ctaLabel="Ajouter un compte"
+                onCta={() => router.push("/sheets/account")}
               />
             )}
           </Section>

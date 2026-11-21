@@ -312,3 +312,37 @@ export function FormError({ message }: { message?: string | null }) {
     </Text>
   );
 }
+
+/** iOS-style destructive cell: full-width, 44pt, red label on the card surface. */
+export function DestructiveButton({
+  label,
+  onPress,
+  testID,
+}: {
+  label: string;
+  onPress: () => void;
+  testID?: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={testID}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      <View
+        backgroundColor="$backgroundCard"
+        borderRadius="$xl"
+        minHeight={44}
+        alignItems="center"
+        justifyContent="center"
+        style={{ borderCurve: "continuous" }}
+      >
+        <Text color="$danger" fontSize="$body" fontWeight="500">
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}

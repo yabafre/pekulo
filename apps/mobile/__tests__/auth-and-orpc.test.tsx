@@ -66,6 +66,42 @@ jest.mock("expo-router/stack", () => {
   MockStack.SearchBar = function MockStackSearchBar() {
     return null;
   };
+  // Native toolbar items rendered as plain buttons so tests can press them.
+  function MockToolbar({ children }: { children?: React.ReactNode }) {
+    return React.createElement(React.Fragment, null, children);
+  }
+  MockToolbar.Button = function MockToolbarButton({
+    children,
+    onPress,
+    accessibilityLabel,
+    variant,
+    disabled,
+  }: {
+    children?: React.ReactNode;
+    onPress?: () => void;
+    accessibilityLabel?: string;
+    variant?: string;
+    disabled?: boolean;
+  }) {
+    const RN = require("react-native") as typeof import("react-native");
+    return React.createElement(
+      RN.Pressable,
+      {
+        accessibilityRole: "button",
+        accessibilityLabel,
+        disabled,
+        onPress,
+        testID: variant === "done" ? "sheet-primary-btn" : undefined,
+      },
+      typeof children === "string" ? React.createElement(RN.Text, null, children) : null,
+    );
+  };
+  MockToolbar.Menu = MockToolbar;
+  MockToolbar.MenuAction = MockToolbar.Button;
+  MockToolbar.Spacer = function MockSpacer() {
+    return null;
+  };
+  MockStack.Toolbar = MockToolbar;
   return { __esModule: true, default: MockStack };
 });
 

@@ -12,22 +12,76 @@ import {
   useToast,
 } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
+import { useRouter } from "expo-router";
 import Stack from "expo-router/stack";
+import { SymbolView } from "expo-symbols";
 import { Receipt, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
+import { Pressable } from "react-native";
+import { useTheme } from "tamagui";
 
+import { useMutationRunner } from "../../../components/form/sheet";
 import { ScreenShell } from "../../../components/screen-shell";
 import { ScreenErrorState, ScreenLoadingSkeleton } from "../../../components/screen-states";
+import { TabToolbar } from "../../../components/tab-stack-layout";
+import { confirmDestructive, showActions } from "../../../lib/actions";
 import { useAuth } from "../../../lib/auth/auth-context";
-import {
-  useConfirmMobileSuggestion,
-  useMobileTransactionsData,
-} from "../../../lib/hooks/use-mobile-queries";
+import { currentMonthKey, formatMonthKey, shiftMonthKey } from "../../../lib/forms";
+import { useTransactionMutations } from "../../../lib/hooks/use-mobile-mutations";
+import { useMobileTransactionsData } from "../../../lib/hooks/use-mobile-queries";
+import { SUGGESTABLE_CATEGORY_OPTIONS } from "../../../lib/options";
+
+function MonthStepButton({
+  direction,
+  disabled,
+  onPress,
+}: {
+  direction: "prev" | "next";
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={direction === "prev" ? "Mois précédent" : "Mois suivant"}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      disabled={disabled}
+      testID={direction === "prev" ? "month-prev-btn" : "month-next-btn"}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: disabled ? 0.3 : pressed ? 0.6 : 1,
+      })}
+    >
+      <SymbolView
+        name={direction === "prev" ? "chevron.left" : "chevron.right"}
+        size={17}
+        weight="semibold"
+        tintColor={theme.color.val}
+        fallback={
+          <Text color="$color" fontSize="$h3">
+            {direction === "prev" ? "‹" : "›"}
+          </Text>
+        }
+      />
+    </Pressable>
+  );
+}
 
 export default function TransactionsScreen() {
   const { isAuthenticated } = useAuth();
-  const { data, isLoading, isError, isRefetching, refetch } = useMobileTransactionsData();
-  const confirmMutation = useConfirmMobileSuggestion();
+  const router = useRouter();
+  const thisMonth = currentMonthKey();
+  const [month, setMonth] = useState(thisMonth);
+  const { data, isLoading, isError, isRefetching, refetch } = useMobileTransactionsData(month);
+  const mutations = useTransactionMutations();
+  const confirmMutation = mutations.confirmCategory;
+  const { run } = useMutationRunner();
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -42,22 +96,67 @@ export default function TransactionsScreen() {
     spendingFormatted: "−2 150 €",
     pendingSuggestions: [],
     recentTransactions: [],
+    rows: [],
+    accountOptions: [],
   };
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredTransactions = useMemo(() => {
-    if (!normalizedQuery) return viewData.recentTransactions;
-    return viewData.recentTransactions.filter(
-      (tx) =>
+  const filteredRows = useMemo(() => {
+    if (!normalizedQuery) return viewData.rows;
+    return viewData.rows.filter(
+      ({ activity: tx }) =>
         tx.label.toLowerCase().includes(normalizedQuery) ||
         tx.account.toLowerCase().includes(normalizedQuery) ||
         tx.category.toLowerCase().includes(normalizedQuery),
     );
-  }, [normalizedQuery, viewData.recentTransactions]);
+  }, [normalizedQuery, viewData.rows]);
+
+  function openRowActions(id: string, label: string) {
+    showActions(label, [
+      {
+        label: "Modifier",
+        onPress: () => router.push(`/sheets/transaction?id=${id}&month=${month}`),
+      },
+      {
+        label: "Supprimer",
+        destructive: true,
+        onPress: () =>
+          confirmDestructive({
+            title: "Supprimer la transaction ?",
+            message: "Elle sera retirée de vos totaux. Cette action est définitive.",
+            confirmLabel: "Supprimer",
+            onConfirm: () => {
+              void run(() => mutations.remove.mutateAsync({ id }), "Transaction supprimée");
+            },
+          }),
+      },
+    ]);
+  }
 
   return (
     <>
+      <TabToolbar
+        addLabel="Nouvelle transaction"
+        onAdd={() => router.push(`/sheets/transaction?month=${month}`)}
+      />
       <ScreenShell refreshing={isRefetching} onRefresh={refetch}>
+        <View flexDirection="row" alignItems="center" justifyContent="space-between">
+          <MonthStepButton direction="prev" onPress={() => setMonth((m) => shiftMonthKey(m, -1))} />
+          <Text
+            color="$color"
+            fontSize="$body"
+            fontWeight="600"
+            accessibilityRole="header"
+            testID="month-label"
+          >
+            {formatMonthKey(month)}
+          </Text>
+          <MonthStepButton
+            direction="next"
+            disabled={month >= thisMonth}
+            onPress={() => setMonth((m) => shiftMonthKey(m, 1))}
+          />
+        </View>
         {showLoading ? (
           <ScreenLoadingSkeleton sections={2} />
         ) : showError ? (
@@ -111,6 +210,25 @@ export default function TransactionsScreen() {
                     key={item.id}
                     tx={item.suggestion}
                     disabled={confirmMutation.isPending}
+                    onEdit={() =>
+                      showActions(
+                        "Choisir la catégorie",
+                        SUGGESTABLE_CATEGORY_OPTIONS.map((option) => ({
+                          label: option.label,
+                          onPress: () => {
+                            void run(
+                              () =>
+                                confirmMutation.mutateAsync({
+                                  id: item.id,
+                                  category: option.value,
+                                }),
+                              "Catégorie mise à jour",
+                            );
+                          },
+                        })),
+                        item.suggestion.label,
+                      )
+                    }
                     onConfirm={() => {
                       confirmMutation.mutate(
                         {
@@ -133,12 +251,18 @@ export default function TransactionsScreen() {
             )}
 
             <Section flat title="Récentes" ariaLabel="Transactions récentes">
-              {filteredTransactions.length > 0 ? (
-                filteredTransactions.map((tx) => (
-                  <PekuloActivityRow
-                    key={`${tx.label}-${tx.account}-${tx.category}-${tx.direction}-${tx.amountEur}`}
-                    tx={tx}
-                  />
+              {filteredRows.length > 0 ? (
+                filteredRows.map(({ id, activity }) => (
+                  <Pressable
+                    key={id}
+                    testID={`tx-row-${id}`}
+                    accessibilityRole="button"
+                    accessibilityHint="Ouvre les actions de la transaction"
+                    onPress={() => openRowActions(id, activity.label)}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                  >
+                    <PekuloActivityRow tx={activity} />
+                  </Pressable>
                 ))
               ) : normalizedQuery ? (
                 <PekuloEmptyState
@@ -151,6 +275,8 @@ export default function TransactionsScreen() {
                   icon={Receipt}
                   title="Aucune transaction"
                   message="Aucune transaction enregistrée sur la période."
+                  ctaLabel="Ajouter une transaction"
+                  onCta={() => router.push(`/sheets/transaction?month=${month}`)}
                 />
               )}
             </Section>

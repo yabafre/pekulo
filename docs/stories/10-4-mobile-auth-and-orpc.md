@@ -2855,7 +2855,7 @@ Task order is load-bearing: **dependencies & Jest wiring (T1)**, **Supabase chun
   `apps/mobile/lib/hooks/use-mobile-mutations.ts`: one hook per domain (transactions, milestones, accounts, holdings, realestate, monthly, compass, llm opt-in, account deletion) calling the exact contract procedures listed in the web inventory, invalidating the affected `mobileQueryKeys`, and throwing `PreviewModeError` without a remote call when unauthenticated. Read hooks expose entity ids and raw values needed by edit forms; Transactions accepts a `month` key.
 - [x] **T10 — Native form-sheet infrastructure** [AC: AC-6]
   Shared form primitives (`components/form/*`): labelled text / amount fields (French decimal parsing), native compact `DateTimePicker`, `ActionSheetIOS`-backed select, switch row, header Cancel/Save buttons, zod error surfacing, `useRowActions` action sheet and destructive `Alert` confirmations, preview sign-in prompt. Sheets live under `app/sheets/*` and are presented as iOS `formSheet`.
-- [ ] **T11 — Transactions & Cap/Patrimoine interactions** [AC: AC-6]
+- [x] **T11 — Transactions & Cap/Patrimoine interactions** [AC: AC-6]
   Create/edit/delete transaction, month navigation, AI category override; add/delete milestone; create/edit/balance/delete account; header "+" entry points.
 - [ ] **T12 — Mensuel, Portefeuille & Immobilier interactions** [AC: AC-6]
   Sign-off sheet gated by the close window + reopen confirmation; add holding, record lot, close holding; create property, record valuation, valuation history, attach/update mortgage and rental, delete property.

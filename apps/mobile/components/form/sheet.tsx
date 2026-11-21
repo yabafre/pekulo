@@ -5,54 +5,14 @@
 // centralises success toasts, dismissal and error routing (sign-in prompt in
 // preview mode, inline message for validation, toast otherwise).
 
-import { useToast } from "@pekulo/ui";
-import { Text } from "@pekulo/ui/client";
+import { pekuloColors, useThemeSetting, useToast } from "@pekulo/ui";
 import { useRouter } from "expo-router";
 import Stack from "expo-router/stack";
 import { useState, type ReactNode } from "react";
-import { Pressable } from "react-native";
 
 import { handleMutationError } from "../../lib/actions";
 import { ScreenShell } from "../screen-shell";
 import { FormError } from "./fields";
-
-export function HeaderTextButton({
-  label,
-  onPress,
-  prominent,
-  disabled,
-  testID,
-}: {
-  label: string;
-  onPress: () => void;
-  prominent?: boolean;
-  disabled?: boolean;
-  testID?: string;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: Boolean(disabled) }}
-      disabled={disabled}
-      hitSlop={8}
-      testID={testID}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minWidth: 44,
-        minHeight: 44,
-        paddingHorizontal: 4,
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
-      })}
-    >
-      <Text color="$color" fontSize="$body" fontWeight={prominent ? "600" : "400"}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 /**
  * Runs a mutation with consistent feedback. `dismiss` closes the sheet on
@@ -108,33 +68,36 @@ export function SheetScaffold({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const { resolvedTheme } = useThemeSetting();
+  // TR-strict chrome: the primary action uses the Pekulo ink, not system blue.
+  const ink = (resolvedTheme === "pekulo-light" ? pekuloColors.light : pekuloColors.dark).text
+    .primary;
   return (
     <>
-      <Stack.Screen
-        options={{
-          title,
-          headerLeft: () => (
-            <HeaderTextButton
-              label={onPrimary ? "Annuler" : "Fermer"}
-              testID="sheet-cancel-btn"
-              onPress={() => {
-                if (router.canGoBack()) router.back();
-              }}
-            />
-          ),
-          headerRight: onPrimary
-            ? () => (
-                <HeaderTextButton
-                  label={primaryLabel}
-                  prominent
-                  disabled={primaryDisabled}
-                  testID="sheet-primary-btn"
-                  onPress={onPrimary}
-                />
-              )
-            : undefined,
-        }}
-      />
+      <Stack.Screen options={{ title }} />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          accessibilityLabel={onPrimary ? "Annuler" : "Fermer"}
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+          }}
+        >
+          {onPrimary ? "Annuler" : "Fermer"}
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      {onPrimary ? (
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            variant="done"
+            tintColor={ink}
+            accessibilityLabel={primaryLabel}
+            disabled={primaryDisabled}
+            onPress={onPrimary}
+          >
+            {primaryLabel}
+          </Stack.Toolbar.Button>
+        </Stack.Toolbar>
+      ) : null}
       <ScreenShell>
         {children}
         <FormError message={error} />

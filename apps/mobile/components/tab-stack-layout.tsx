@@ -5,7 +5,7 @@
 
 import { pekuloColors, useThemeSetting } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import Stack from "expo-router/stack";
 import { SymbolView } from "expo-symbols";
 import { Pressable } from "react-native";
@@ -110,6 +110,31 @@ export function TabHeaderActions({
   );
 }
 
+/**
+ * Native header items for a tab screen (real `UIBarButtonItem`s on iOS 26):
+ * render inside the screen, e.g. `<TabToolbar onAdd={…} addLabel="…" />`.
+ * `Stack.Toolbar.*` children must stay direct children of `Stack.Toolbar`.
+ */
+export function TabToolbar({ onAdd, addLabel }: { onAdd?: () => void; addLabel?: string }) {
+  const router = useRouter();
+  return (
+    <Stack.Toolbar placement="right">
+      {onAdd ? (
+        <Stack.Toolbar.Button
+          icon="plus"
+          accessibilityLabel={addLabel ?? "Ajouter"}
+          onPress={onAdd}
+        />
+      ) : null}
+      <Stack.Toolbar.Button
+        icon="person.crop.circle"
+        accessibilityLabel="Ouvrir les paramètres"
+        onPress={() => router.push("/parametres")}
+      />
+    </Stack.Toolbar>
+  );
+}
+
 export interface TabStackLayoutProps {
   title: string;
 }
@@ -133,13 +158,7 @@ export function TabStackLayout({ title }: TabStackLayoutProps) {
         contentStyle: { backgroundColor: palette.surface.bg },
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          title,
-          headerRight: () => <SettingsHeaderButton />,
-        }}
-      />
+      <Stack.Screen name="index" options={{ title }} />
     </Stack>
   );
 }
