@@ -2,5 +2,5 @@
 import { TabStackLayout } from "../../../components/tab-stack-layout";
 
 export default function MensuelStackLayout() {
-  return <TabStackLayout title="Mensuel" />;
+  return <TabStackLayout titleKey="common.tabs.monthly" />;
 }

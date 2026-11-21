@@ -2,5 +2,5 @@
 import { TabStackLayout } from "../../../components/tab-stack-layout";
 
 export default function ImmobilierStackLayout() {
-  return <TabStackLayout title="Immobilier" />;
+  return <TabStackLayout titleKey="common.tabs.realestate" />;
 }

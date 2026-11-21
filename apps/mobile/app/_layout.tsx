@@ -25,9 +25,11 @@ import { usePathname, useRouter } from "expo-router";
 import Stack from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
+import { useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
+import { I18nProvider, useI18n } from "../lib/i18n";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -54,6 +56,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { isAuthenticated, isLoading, requireAuth } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const isLight = resolvedTheme === "pekulo-light";
   const palette = isLight ? pekuloColors.light : pekuloColors.dark;
 
@@ -95,7 +98,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
           name="parametres"
           options={{
             headerShown: true,
-            title: "Paramètres",
+            title: t("settings.title"),
             presentation: "formSheet",
             sheetGrabberVisible: true,
             sheetAllowedDetents: [0.7, 1.0],
@@ -137,6 +140,12 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   );
 }
 
+/** Drives the UI language from the saved `settings.lang` preference. */
+function LocalizedRoot({ children }: { children: ReactNode }) {
+  const { prefs } = useMobileSettingsData();
+  return <I18nProvider lang={prefs.lang}>{children}</I18nProvider>;
+}
+
 export default function RootLayout() {
   const [queryClient] = useState(() => createMobileQueryClient());
   const [fontsLoaded, fontError] = useFonts({
@@ -160,7 +169,9 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <PekuloRootProvider>
         <AuthProvider>
-          <RootNavigator fontsReady={fontsReady} />
+          <LocalizedRoot>
+            <RootNavigator fontsReady={fontsReady} />
+          </LocalizedRoot>
         </AuthProvider>
       </PekuloRootProvider>
     </QueryClientProvider>

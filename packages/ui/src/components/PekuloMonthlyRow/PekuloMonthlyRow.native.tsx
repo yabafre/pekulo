@@ -11,9 +11,11 @@ const eur0 = new Intl.NumberFormat("fr-FR", {
 
 export interface PekuloMonthlyRowProps {
   month: MonthlyDisplayRow;
+  /** Localised "closed" badge label (default French). */
+  closedLabel?: string;
 }
 
-export function PekuloMonthlyRow({ month }: PekuloMonthlyRowProps) {
+export function PekuloMonthlyRow({ month, closedLabel = "Clôturé" }: PekuloMonthlyRowProps) {
   const theme = useTheme();
   const sign = month.netEur >= 0 ? "+" : "−";
   const tone = month.netEur >= 0 ? "$success" : "$danger";
@@ -43,7 +45,7 @@ export function PekuloMonthlyRow({ month }: PekuloMonthlyRowProps) {
         >
           <Check size={12} color={theme.colorSecondary.val} />
           <Text color="$colorSecondary" fontSize="$11">
-            Clôturé
+            {closedLabel}
           </Text>
         </View>
       )}

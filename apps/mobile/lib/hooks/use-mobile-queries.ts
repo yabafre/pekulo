@@ -20,17 +20,16 @@ import type {
 } from "@pekulo/types";
 import {
   formatMonthLabel,
-  TRANSACTION_CATEGORY_LABELS,
   type LangPref,
   type SuggestableTransactionCategory,
   type ThemePref,
   type Transaction,
-  type TransactionCategory,
 } from "@pekulo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../auth/auth-context";
 import { currentUtcMonth } from "../forms";
+import { useI18n, type Lang, type Translate } from "../i18n";
 import {
   accountsClient,
   compassClient,
@@ -66,6 +65,54 @@ export interface MobileSelectOption {
   label: string;
 }
 
+/** Localised category label for a raw transaction category. */
+function categoryLabel(t: Translate, category: string): string {
+  return t(`common.categories.${category}` as Parameters<Translate>[0]);
+}
+
+const MONTH_SHORT_EN = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function monthLabel(lang: Lang, year: number, monthNum: number): string {
+  if (lang === "fr") return formatMonthLabel(year, monthNum);
+  return MONTH_SHORT_EN.format(new Date(Date.UTC(year, monthNum - 1, 1)));
+}
+
+function compositionItems(
+  t: Translate,
+  amounts: { liquid: number; investments: number; realestate: number },
+): CompositionItem[] {
+  const total = Math.max(
+    1,
+    Math.max(0, amounts.liquid) +
+      Math.max(0, amounts.investments) +
+      Math.max(0, amounts.realestate),
+  );
+  return [
+    {
+      label: t("common.composition.liquid"),
+      amount: amounts.liquid,
+      pct: Math.max(0, amounts.liquid) / total,
+      sub: t("common.composition.liquidSub"),
+    },
+    {
+      label: t("common.composition.investments"),
+      amount: amounts.investments,
+      pct: Math.max(0, amounts.investments) / total,
+      sub: t("common.composition.investmentsSub"),
+    },
+    {
+      label: t("common.composition.realestate"),
+      amount: amounts.realestate,
+      pct: Math.max(0, amounts.realestate) / total,
+      sub: t("common.composition.realestateSub"),
+    },
+  ];
+}
+
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
@@ -98,7 +145,7 @@ export interface MobileAccountEntity {
   notes: string | null;
 }
 
-const PREVIEW_CAP_DATA: MobileCapViewData = {
+const previewCapData = (t: Translate): MobileCapViewData => ({
   totalEur: 180400,
   aheadEur: 2781,
   targetCapital: 800000,
@@ -107,11 +154,7 @@ const PREVIEW_CAP_DATA: MobileCapViewData = {
   progressRatio: 0.226,
   progressLabel: "22,6 %",
   nextMilestoneLabel: "100 k€ · 2032",
-  composition: [
-    { label: "Liquide", amount: 24500, pct: 0.14, sub: "Livrets & comptes" },
-    { label: "Placements", amount: 85900, pct: 0.48, sub: "PEA, CTO & crypto" },
-    { label: "Immobilier", amount: 70000, pct: 0.38, sub: "Équité nette" },
-  ],
+  composition: compositionItems(t, { liquid: 24500, investments: 85900, realestate: 70000 }),
   milestones: [
     {
       id: "mst_preview_1",
@@ -136,14 +179,14 @@ const PREVIEW_CAP_DATA: MobileCapViewData = {
     {
       label: "Virement programmé PEA",
       account: "Trade Republic",
-      category: "Transfert",
+      category: categoryLabel(t, "transfer"),
       direction: "in",
       amountEur: 600,
     },
     {
       label: "Courses Carrefour",
       account: "Société Générale",
-      category: "Courses",
+      category: categoryLabel(t, "courses"),
       direction: "out",
       amountEur: 84,
     },
@@ -170,7 +213,7 @@ const PREVIEW_CAP_DATA: MobileCapViewData = {
       notes: null,
     },
   ],
-};
+});
 
 function formatCompactMilestone(targetCapital: number, targetYear: number): string {
   if (targetCapital >= 1000 && targetCapital % 1000 === 0) {
@@ -181,12 +224,13 @@ function formatCompactMilestone(targetCapital: number, targetYear: number): stri
 
 export function useMobileCapData() {
   const { isAuthenticated } = useAuth();
+  const { lang, t } = useI18n();
 
   return useQuery<MobileCapViewData>({
-    queryKey: [...mobileQueryKeys.cap(), isAuthenticated],
+    queryKey: [...mobileQueryKeys.cap(), isAuthenticated, lang],
     queryFn: async () => {
       if (!isAuthenticated) {
-        return PREVIEW_CAP_DATA;
+        return previewCapData(t);
       }
 
       const [overview, compass, milestonesList, accountsList] = await Promise.all([
@@ -226,7 +270,7 @@ export function useMobileCapData() {
             : 0;
         return {
           id: m.id,
-          label: m.label ?? `Palier ${m.targetYear}`,
+          label: m.label ?? t("common.fallback.milestone", { year: m.targetYear }),
           targetEur: m.targetCapital,
           targetYear: m.targetYear,
           progressPct,
@@ -238,40 +282,18 @@ export function useMobileCapData() {
       const nextMilestone = milestonesList[0];
       const nextMilestoneLabel = nextMilestone
         ? formatCompactMilestone(nextMilestone.targetCapital, nextMilestone.targetYear)
-        : "Aucun palier";
+        : t("common.fallback.noMilestone");
 
-      const totalPositive = Math.max(
-        1,
-        Math.max(0, overview.composition.liquideEur) +
-          Math.max(0, overview.composition.placementsEur) +
-          Math.max(0, overview.composition.immobilierEur),
-      );
-
-      const composition: CompositionItem[] = [
-        {
-          label: "Liquide",
-          amount: overview.composition.liquideEur,
-          pct: Math.max(0, overview.composition.liquideEur) / totalPositive,
-          sub: "Livrets & comptes",
-        },
-        {
-          label: "Placements",
-          amount: overview.composition.placementsEur,
-          pct: Math.max(0, overview.composition.placementsEur) / totalPositive,
-          sub: "PEA, CTO & crypto",
-        },
-        {
-          label: "Immobilier",
-          amount: overview.composition.immobilierEur,
-          pct: Math.max(0, overview.composition.immobilierEur) / totalPositive,
-          sub: "Équité nette",
-        },
-      ];
+      const composition = compositionItems(t, {
+        liquid: overview.composition.liquideEur,
+        investments: overview.composition.placementsEur,
+        realestate: overview.composition.immobilierEur,
+      });
 
       const recentActivity: Activity[] = overview.recentActivity.map((act) => ({
         label: act.label,
         account: act.account,
-        category: TRANSACTION_CATEGORY_LABELS[act.category as TransactionCategory] ?? act.category,
+        category: categoryLabel(t, act.category),
         direction: act.direction,
         amountEur: act.amountEur,
         logoUrl: act.logoUrl ?? null,
@@ -339,38 +361,38 @@ export interface MobileTransactionRow {
   activity: Activity;
 }
 
-const PREVIEW_TRANSACTION_ACTIVITIES: Activity[] = [
+const previewTransactionActivities = (t: Translate): Activity[] => [
   {
     label: "Salaire Mai",
     account: "Société Générale",
-    category: "Salaire",
+    category: categoryLabel(t, "salaire"),
     direction: "in",
     amountEur: 3200,
   },
   {
     label: "Courses Carrefour",
     account: "Société Générale",
-    category: "Courses",
+    category: categoryLabel(t, "courses"),
     direction: "out",
     amountEur: 120,
   },
 ];
 
-const PREVIEW_TRANSACTIONS_DATA: MobileTransactionsViewData = {
+const previewTransactionsData = (t: Translate): MobileTransactionsViewData => ({
   monthLabel: "2026-05",
   netFormatted: "+1 050 €",
   netTone: "gain",
   incomeFormatted: "+3 200 €",
   spendingFormatted: "−2 150 €",
   pendingSuggestions: [],
-  recentTransactions: PREVIEW_TRANSACTION_ACTIVITIES,
-  rows: PREVIEW_TRANSACTION_ACTIVITIES.map((activity, index) => ({
+  recentTransactions: previewTransactionActivities(t),
+  rows: previewTransactionActivities(t).map((activity, index) => ({
     id: `tx_preview${index}`,
     raw: null,
     activity,
   })),
   accountOptions: [{ value: "acc_previewCourant000000", label: "Société Générale" }],
-};
+});
 
 function mapLlmRouteToBadge(route: string | null | undefined): LlmRouteBadge {
   if (route === "foundation_models" || route === "ios") return "ios";
@@ -386,14 +408,14 @@ function formatSignedEur(amount: number): string {
 /** `month` is a `YYYY-MM` key; omitted means the server's current month. */
 export function useMobileTransactionsData(month?: string) {
   const { isAuthenticated } = useAuth();
+  const { lang, t } = useI18n();
 
   return useQuery<MobileTransactionsViewData>({
-    queryKey: [...mobileQueryKeys.transactions(), isAuthenticated, month ?? "current"],
+    queryKey: [...mobileQueryKeys.transactions(), isAuthenticated, month ?? "current", lang],
     queryFn: async () => {
       if (!isAuthenticated) {
-        return month
-          ? { ...PREVIEW_TRANSACTIONS_DATA, monthLabel: month }
-          : PREVIEW_TRANSACTIONS_DATA;
+        const preview = previewTransactionsData(t);
+        return month ? { ...preview, monthLabel: month } : preview;
       }
 
       const [summary, pending, list, accounts] = await Promise.all([
@@ -414,12 +436,11 @@ export function useMobileTransactionsData(month?: string) {
             rawCategory: rawCat,
             suggestion: {
               label: tx.label,
-              account: accountLabelById.get(tx.accountId) ?? "Compte",
+              account: accountLabelById.get(tx.accountId) ?? t("common.fallback.account"),
               dateLabel: tx.occurredOn,
               direction: tx.type === "inflow" ? "in" : "out",
               amountEur: tx.amount,
-              suggestedCategory:
-                TRANSACTION_CATEGORY_LABELS[rawCat as TransactionCategory] ?? rawCat,
+              suggestedCategory: categoryLabel(t, rawCat),
               confidence: tx.suggestedConfidence ?? 0.9,
               route: mapLlmRouteToBadge(tx.suggestedRoute),
               logoUrl: tx.logoUrl ?? null,
@@ -432,8 +453,8 @@ export function useMobileTransactionsData(month?: string) {
         raw: tx,
         activity: {
           label: tx.label,
-          account: accountLabelById.get(tx.accountId) ?? "Compte",
-          category: TRANSACTION_CATEGORY_LABELS[tx.category] ?? tx.category,
+          account: accountLabelById.get(tx.accountId) ?? t("common.fallback.account"),
+          category: categoryLabel(t, tx.category),
           direction: tx.type === "inflow" ? "in" : "out",
           amountEur: tx.amount,
           logoUrl: tx.logoUrl ?? null,
@@ -530,9 +551,10 @@ const PREVIEW_MONTHLY_DATA: MobileMonthlyViewData = {
 
 export function useMobileMonthlyData() {
   const { isAuthenticated } = useAuth();
+  const { lang } = useI18n();
 
   return useQuery<MobileMonthlyViewData>({
-    queryKey: [...mobileQueryKeys.monthly(), isAuthenticated],
+    queryKey: [...mobileQueryKeys.monthly(), isAuthenticated, lang],
     queryFn: async () => {
       if (!isAuthenticated) {
         return PREVIEW_MONTHLY_DATA;
@@ -554,7 +576,7 @@ export function useMobileMonthlyData() {
         signedOff: currentRecord.signedOffAt !== null,
       };
       const months: MonthlyDisplayRow[] = response.items.map((item) => ({
-        monthLabel: formatMonthLabel(item.record.year, item.record.monthNum),
+        monthLabel: monthLabel(lang, item.record.year, item.record.monthNum),
         incomeEur: item.record.incomeEur,
         spendingEur: item.record.spendingEur,
         netEur: item.record.netChangeEur,
@@ -624,12 +646,27 @@ const PREVIEW_PORTFOLIO_DATA: MobilePortfolioViewData = {
 
 export function useMobilePortfolioData() {
   const { isAuthenticated } = useAuth();
+  const { lang, t } = useI18n();
 
   return useQuery<MobilePortfolioViewData>({
-    queryKey: [...mobileQueryKeys.portfolio(), isAuthenticated],
+    queryKey: [...mobileQueryKeys.portfolio(), isAuthenticated, lang],
     queryFn: async () => {
       if (!isAuthenticated) {
-        return PREVIEW_PORTFOLIO_DATA;
+        return {
+          ...PREVIEW_PORTFOLIO_DATA,
+          classes: PREVIEW_PORTFOLIO_DATA.classes.map((c, i) => ({
+            ...c,
+            label: t(
+              (
+                [
+                  "common.assetClasses.etf",
+                  "common.assetClasses.action",
+                  "common.assetClasses.crypto",
+                ] as const
+              )[i] ?? "common.assetClasses.etf",
+            ),
+          })),
+        };
       }
 
       const [holdingsList, accountsList] = await Promise.all([
@@ -662,7 +699,7 @@ export function useMobilePortfolioData() {
         return {
           ticker: h.ticker ?? h.label.slice(0, 8).toUpperCase(),
           label: h.label,
-          account: accountLabelById.get(h.accountId) ?? "Portefeuille",
+          account: accountLabelById.get(h.accountId) ?? t("common.fallback.portfolio"),
           kind: h.kind,
           quantity: h.quantity,
           pricePerUnit: unitPrice,
@@ -676,9 +713,17 @@ export function useMobilePortfolioData() {
       const safeTotal = Math.max(1, totalMarketValue);
 
       const classes: MobilePortfolioClassSummary[] = [
-        { label: "ETF", amountEur: byKind.etf, pct: byKind.etf / safeTotal },
-        { label: "Actions", amountEur: byKind.action, pct: byKind.action / safeTotal },
-        { label: "Crypto", amountEur: byKind.crypto, pct: byKind.crypto / safeTotal },
+        { label: t("common.assetClasses.etf"), amountEur: byKind.etf, pct: byKind.etf / safeTotal },
+        {
+          label: t("common.assetClasses.action"),
+          amountEur: byKind.action,
+          pct: byKind.action / safeTotal,
+        },
+        {
+          label: t("common.assetClasses.crypto"),
+          amountEur: byKind.crypto,
+          pct: byKind.crypto / safeTotal,
+        },
       ];
 
       return {

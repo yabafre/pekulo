@@ -2,5 +2,5 @@
 import { TabStackLayout } from "../../../components/tab-stack-layout";
 
 export default function TransactionsStackLayout() {
-  return <TabStackLayout title="Transactions" />;
+  return <TabStackLayout titleKey="common.tabs.transactions" />;
 }

@@ -12,6 +12,7 @@ import { Pressable } from "react-native";
 import { useTheme } from "tamagui";
 
 import { useAuth } from "../lib/auth/auth-context";
+import { useI18n, type MessageKey } from "../lib/i18n";
 
 export function SettingsHeaderButton({ testID = "header-settings-btn" }: { testID?: string }) {
   const { userEmail } = useAuth();
@@ -117,18 +118,19 @@ export function TabHeaderActions({
  */
 export function TabToolbar({ onAdd, addLabel }: { onAdd?: () => void; addLabel?: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   return (
     <Stack.Toolbar placement="right">
       {onAdd ? (
         <Stack.Toolbar.Button
           icon="plus"
-          accessibilityLabel={addLabel ?? "Ajouter"}
+          accessibilityLabel={addLabel ?? t("common.actions.add")}
           onPress={onAdd}
         />
       ) : null}
       <Stack.Toolbar.Button
         icon="person.crop.circle"
-        accessibilityLabel="Ouvrir les paramètres"
+        accessibilityLabel={t("common.actions.openSettings")}
         onPress={() => router.push("/parametres")}
       />
     </Stack.Toolbar>
@@ -136,10 +138,12 @@ export function TabToolbar({ onAdd, addLabel }: { onAdd?: () => void; addLabel?:
 }
 
 export interface TabStackLayoutProps {
-  title: string;
+  titleKey: MessageKey;
 }
 
-export function TabStackLayout({ title }: TabStackLayoutProps) {
+export function TabStackLayout({ titleKey }: TabStackLayoutProps) {
+  const { t } = useI18n();
+  const title = t(titleKey);
   const { resolvedTheme } = useThemeSetting();
   const palette = resolvedTheme === "pekulo-light" ? pekuloColors.light : pekuloColors.dark;
 
