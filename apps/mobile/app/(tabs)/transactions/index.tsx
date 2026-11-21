@@ -29,7 +29,7 @@ import { useAuth } from "../../../lib/auth/auth-context";
 import { currentMonthKey, formatMonthKey, shiftMonthKey } from "../../../lib/forms";
 import { useTransactionMutations } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobileTransactionsData } from "../../../lib/hooks/use-mobile-queries";
-import { SUGGESTABLE_CATEGORY_OPTIONS } from "../../../lib/options";
+import { useOptions } from "../../../lib/options";
 
 function MonthStepButton({
   direction,
@@ -74,6 +74,7 @@ function MonthStepButton({
 }
 
 export default function TransactionsScreen() {
+  const options = useOptions();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const thisMonth = currentMonthKey();
@@ -229,7 +230,7 @@ export default function TransactionsScreen() {
                     onEdit={() =>
                       showActions(
                         "Choisir la catégorie",
-                        SUGGESTABLE_CATEGORY_OPTIONS.map((option) => ({
+                        options.suggestableCategories.map((option) => ({
                           label: option.label,
                           onPress: () => {
                             void run(

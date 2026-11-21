@@ -25,9 +25,10 @@ import { confirmDestructive } from "../../lib/actions";
 import { formatAmountInput, fromIsoDate, parseAmountInput, toIsoDate } from "../../lib/forms";
 import { useTransactionMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileTransactionsData } from "../../lib/hooks/use-mobile-queries";
-import { TRANSACTION_CATEGORY_OPTIONS } from "../../lib/options";
+import { useOptions } from "../../lib/options";
 
 export default function TransactionSheet() {
+  const options = useOptions();
   const params = useLocalSearchParams<{ id?: string; month?: string }>();
   const router = useRouter();
   const editId = params.id;
@@ -152,7 +153,7 @@ export default function TransactionSheet() {
         <SelectField
           label="Catégorie"
           value={category}
-          options={TRANSACTION_CATEGORY_OPTIONS}
+          options={options.transactionCategories}
           onChange={edit(setCategory)}
           testID="tx-category"
         />

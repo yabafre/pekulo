@@ -13,11 +13,12 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput } from "../../lib/forms";
 import { useAccountMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileCapData } from "../../lib/hooks/use-mobile-queries";
-import { ACCOUNT_TYPE_OPTIONS } from "../../lib/options";
+import { useOptions } from "../../lib/options";
 
 const FORCED_CURRENCY = "EUR" as const;
 
 export default function AccountSheet() {
+  const options = useOptions();
   const { id: editId } = useLocalSearchParams<{ id?: string }>();
   const { data } = useMobileCapData();
   const { create, update } = useAccountMutations();
@@ -85,7 +86,7 @@ export default function AccountSheet() {
         <SelectField
           label="Type"
           value={type}
-          options={ACCOUNT_TYPE_OPTIONS}
+          options={options.accountTypes}
           onChange={edit(setType)}
           testID="acc-type"
         />

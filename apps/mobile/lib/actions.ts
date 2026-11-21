@@ -7,6 +7,7 @@
 import { ActionSheetIOS, Alert, Platform } from "react-native";
 
 import { FormValidationError } from "./forms";
+import { tNow } from "./i18n";
 import { PreviewModeError } from "./hooks/use-mobile-mutations";
 
 export interface RowAction {
@@ -16,7 +17,7 @@ export interface RowAction {
 }
 
 export function showActions(title: string, actions: RowAction[], message?: string) {
-  const labels = [...actions.map((a) => a.label), "Annuler"];
+  const labels = [...actions.map((a) => a.label), tNow("common.actions.cancel")];
   const destructive = actions.flatMap((a, i) => (a.destructive ? [i] : []));
 
   if (Platform.OS === "ios") {
@@ -41,7 +42,7 @@ export function showActions(title: string, actions: RowAction[], message?: strin
       style: a.destructive ? ("destructive" as const) : ("default" as const),
       onPress: a.onPress,
     })),
-    { text: "Annuler", style: "cancel" as const },
+    { text: tNow("common.actions.cancel"), style: "cancel" as const },
   ]);
 }
 
@@ -57,7 +58,7 @@ export function confirmDestructive({
   onConfirm: () => void;
 }) {
   Alert.alert(title, message, [
-    { text: "Annuler", style: "cancel" },
+    { text: tNow("common.actions.cancel"), style: "cancel" },
     { text: confirmLabel, style: "destructive", onPress: onConfirm },
   ]);
 }
@@ -74,19 +75,15 @@ export function handleMutationError(
   }: { goToLogin: () => void; toastDanger: (title: string, message?: string) => void },
 ): string | null {
   if (error instanceof PreviewModeError) {
-    Alert.alert(
-      "Mode aperçu",
-      "Connectez-vous pour enregistrer des modifications sur votre compte.",
-      [
-        { text: "Plus tard", style: "cancel" },
-        { text: "Se connecter", onPress: goToLogin },
-      ],
-    );
+    Alert.alert(tNow("common.errors.previewTitle"), tNow("common.errors.previewMessage"), [
+      { text: tNow("common.actions.later"), style: "cancel" },
+      { text: tNow("common.actions.signIn"), onPress: goToLogin },
+    ]);
     return null;
   }
   if (error instanceof FormValidationError) {
     return error.message;
   }
-  toastDanger("Enregistrement impossible", "Vérifiez votre connexion puis réessayez.");
+  toastDanger(tNow("common.errors.saveFailedTitle"), tNow("common.errors.saveFailedMessage"));
   return null;
 }

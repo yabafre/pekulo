@@ -79,11 +79,11 @@ export function shiftMonthKey(key: string, delta: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
 
-const MONTH_LABEL = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
-
-export function formatMonthKey(key: string): string {
+export function formatMonthKey(key: string, locale = "fr-FR"): string {
   const [y, m] = key.split("-").map(Number);
-  const label = MONTH_LABEL.format(new Date(y ?? 1970, (m ?? 1) - 1, 1));
+  const label = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(
+    new Date(y ?? 1970, (m ?? 1) - 1, 1),
+  );
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -100,9 +100,9 @@ export function isWithinCloseWindow(year: number, monthNum: number, now: Date): 
   return nowMs >= startMs && nowMs <= endMs;
 }
 
-export function closeWindowLabel(year: number, monthNum: number): string {
+export function closeWindowLabel(year: number, monthNum: number, locale = "fr-FR"): string {
   const lastDay = lastDayOfMonthUTC(year, monthNum);
-  const fmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: "UTC" });
+  const fmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" });
   const start = new Date(Date.UTC(year, monthNum - 1, lastDay - 4));
   const end = new Date(Date.UTC(year, monthNum - 1, lastDay + 5));
   return `${fmt.format(start)} – ${fmt.format(end)}`;

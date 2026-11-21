@@ -11,6 +11,7 @@ import Stack from "expo-router/stack";
 import { useState, type ReactNode } from "react";
 
 import { handleMutationError } from "../../lib/actions";
+import { useI18n } from "../../lib/i18n";
 import { ScreenShell } from "../screen-shell";
 import { FormError } from "./fields";
 
@@ -54,7 +55,7 @@ export function useMutationRunner({ dismiss = false }: { dismiss?: boolean } = {
 
 export function SheetScaffold({
   title,
-  primaryLabel = "Enregistrer",
+  primaryLabel,
   onPrimary,
   primaryDisabled,
   error,
@@ -68,6 +69,9 @@ export function SheetScaffold({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const primary = primaryLabel ?? t("common.actions.save");
+  const dismissLabel = onPrimary ? t("common.actions.cancel") : t("common.actions.close");
   const { resolvedTheme } = useThemeSetting();
   // TR-strict chrome: the primary action uses the Pekulo ink, not system blue.
   const ink = (resolvedTheme === "pekulo-light" ? pekuloColors.light : pekuloColors.dark).text
@@ -77,12 +81,12 @@ export function SheetScaffold({
       <Stack.Screen options={{ title }} />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button
-          accessibilityLabel={onPrimary ? "Annuler" : "Fermer"}
+          accessibilityLabel={dismissLabel}
           onPress={() => {
             if (router.canGoBack()) router.back();
           }}
         >
-          {onPrimary ? "Annuler" : "Fermer"}
+          {dismissLabel}
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
       {onPrimary ? (
@@ -90,11 +94,11 @@ export function SheetScaffold({
           <Stack.Toolbar.Button
             variant="done"
             tintColor={ink}
-            accessibilityLabel={primaryLabel}
+            accessibilityLabel={primary}
             disabled={primaryDisabled}
             onPress={onPrimary}
           >
-            {primaryLabel}
+            {primary}
           </Stack.Toolbar.Button>
         </Stack.Toolbar>
       ) : null}

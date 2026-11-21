@@ -38,7 +38,22 @@ export function translate(lang: Lang, key: MessageKey, vars?: TranslateVars): st
 
 const I18nContext = createContext<Lang>("fr");
 
+// Plain functions (action sheets, alerts) run outside React; they read the
+// language the provider last rendered with.
+let activeLang: Lang = "fr";
+
+/** Language of the mounted provider, for helpers that are not components. */
+export function currentLang(): Lang {
+  return activeLang;
+}
+
+/** Translate outside React, using the provider's current language. */
+export function tNow(key: MessageKey, vars?: TranslateVars): string {
+  return translate(activeLang, key, vars);
+}
+
 export function I18nProvider({ lang, children }: { lang: Lang; children: ReactNode }) {
+  activeLang = lang;
   return <I18nContext value={lang}>{children}</I18nContext>;
 }
 

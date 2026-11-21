@@ -7,6 +7,8 @@ import { PekuloEmptyState, PekuloSkeleton } from "@pekulo/ui";
 import { View } from "@pekulo/ui/client";
 import { AlertCircle } from "lucide-react-native";
 
+import { useI18n } from "../lib/i18n";
+
 export function ScreenLoadingSkeleton({ sections = 2 }: { sections?: number }) {
   return (
     <View gap="$5" testID="screen-loading-skeleton">
@@ -37,20 +39,21 @@ export function ScreenLoadingSkeleton({ sections = 2 }: { sections?: number }) {
 }
 
 export function ScreenErrorState({
-  title = "Chargement impossible",
-  message = "Vérifiez votre connexion et réessayez.",
+  title,
+  message,
   onRetry,
 }: {
   title?: string;
   message?: string;
   onRetry: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <PekuloEmptyState
       icon={AlertCircle}
-      title={title}
-      message={message}
-      ctaLabel="Réessayer"
+      title={title ?? t("common.errors.loadFailedTitle")}
+      message={message ?? t("common.errors.loadFailedMessage")}
+      ctaLabel={t("common.actions.retry")}
       onCta={onRetry}
     />
   );

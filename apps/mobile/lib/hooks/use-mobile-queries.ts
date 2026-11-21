@@ -30,6 +30,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/auth-context";
 import { currentUtcMonth } from "../forms";
 import { useI18n, type Lang, type Translate } from "../i18n";
+import { categoryLabel } from "../options";
 import {
   accountsClient,
   compassClient,
@@ -63,11 +64,6 @@ export const mobileQueryKeys = {
 export interface MobileSelectOption {
   value: string;
   label: string;
-}
-
-/** Localised category label for a raw transaction category. */
-function categoryLabel(t: Translate, category: string): string {
-  return t(`common.categories.${category}` as Parameters<Translate>[0]);
 }
 
 const MONTH_SHORT_EN = new Intl.DateTimeFormat("en-GB", {

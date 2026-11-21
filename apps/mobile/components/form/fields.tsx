@@ -13,6 +13,7 @@ import { Pressable, Switch, type KeyboardTypeOptions } from "react-native";
 import { useTheme } from "tamagui";
 
 import { showActions } from "../../lib/actions";
+import { useI18n } from "../../lib/i18n";
 
 export function FormSection({
   title,
@@ -212,7 +213,7 @@ export function SelectField<T extends string>({
   onChange,
   testID,
   error,
-  placeholder = "Choisir",
+  placeholder,
 }: {
   label: string;
   value: T | "";
@@ -223,14 +224,16 @@ export function SelectField<T extends string>({
   placeholder?: string;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
+  const emptyLabel = placeholder ?? t("common.fields.choose");
   const selected = options.find((o) => o.value === value);
   return (
     <RowShell label={label} error={error}>
       <Pressable
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel={`${label} : ${selected?.label ?? placeholder}`}
-        accessibilityHint="Ouvre la liste des choix"
+        accessibilityLabel={`${label} : ${selected?.label ?? emptyLabel}`}
+        accessibilityHint={t("common.fields.chooseHint")}
         hitSlop={8}
         onPress={() =>
           showActions(
@@ -256,7 +259,7 @@ export function SelectField<T extends string>({
           numberOfLines={1}
           flexShrink={1}
         >
-          {selected?.label ?? placeholder}
+          {selected?.label ?? emptyLabel}
         </Text>
         <SymbolView
           name="chevron.up.chevron.down"

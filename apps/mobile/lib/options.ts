@@ -1,7 +1,7 @@
 // apps/mobile/lib/options.ts
-// Select options for the mobile sheets. Values come from the shared enums in
-// `@pekulo/types` / `@pekulo/validators`; labels mirror apps/web/messages/fr.json
-// so both platforms name things identically.
+// Localised select options for the mobile sheets. Values come from the shared
+// enums in `@pekulo/types` / `@pekulo/validators`; labels come from the i18n
+// dictionaries (aligned with apps/web/messages).
 
 import {
   ACCOUNT_TYPES,
@@ -15,62 +15,62 @@ import {
   HOLDING_CURRENCIES,
   SUGGESTABLE_TRANSACTION_CATEGORIES,
   TRANSACTION_CATEGORIES,
-  TRANSACTION_CATEGORY_LABELS,
   type SuggestableTransactionCategory,
   type TransactionCategory,
 } from "@pekulo/validators";
+import { useMemo } from "react";
 
 import type { SelectOption } from "../components/form/fields";
+import { useI18n, type MessageKey, type Translate } from "./i18n";
 
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  livret: "Livret",
-  pea: "PEA",
-  cto: "CTO",
-  av: "Assurance vie",
-  autre: "Autre",
-  banque: "Compte courant",
+const PROPERTY_TYPE_KEY: Record<PropertyType, MessageKey> = {
+  "residence-principale": "common.propertyTypes.residencePrincipale",
+  locatif: "common.propertyTypes.locatif",
+  autre: "common.propertyTypes.autre",
 };
 
-const HOLDING_KIND_LABELS: Record<HoldingKind, string> = {
-  etf: "ETF",
-  action: "Action",
-  crypto: "Crypto",
-  autre: "Autre",
-};
+export function categoryLabel(t: Translate, category: string): string {
+  return t(`common.categories.${category}` as MessageKey);
+}
 
-const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
-  "residence-principale": "Résidence principale",
-  locatif: "Locatif",
-  autre: "Autre",
-};
+export function accountTypeLabel(t: Translate, type: AccountType): string {
+  return t(`common.accountTypes.${type}` as MessageKey);
+}
 
-export const TRANSACTION_CATEGORY_OPTIONS: SelectOption<TransactionCategory>[] =
-  TRANSACTION_CATEGORIES.map((value) => ({ value, label: TRANSACTION_CATEGORY_LABELS[value] }));
+export function holdingKindLabel(t: Translate, kind: HoldingKind): string {
+  return t(`common.holdingKinds.${kind}` as MessageKey);
+}
 
-export const SUGGESTABLE_CATEGORY_OPTIONS: SelectOption<SuggestableTransactionCategory>[] =
-  SUGGESTABLE_TRANSACTION_CATEGORIES.map((value) => ({
-    value,
-    label: TRANSACTION_CATEGORY_LABELS[value],
-  }));
+export function propertyTypeLabel(t: Translate, type: PropertyType): string {
+  return t(PROPERTY_TYPE_KEY[type]);
+}
 
-export const ACCOUNT_TYPE_OPTIONS: SelectOption<AccountType>[] = ACCOUNT_TYPES.map((value) => ({
-  value,
-  label: ACCOUNT_TYPE_LABELS[value],
-}));
-
-export const HOLDING_KIND_OPTIONS: SelectOption<HoldingKind>[] = HOLDING_KINDS.map((value) => ({
-  value,
-  label: HOLDING_KIND_LABELS[value],
-}));
-
-export const HOLDING_CURRENCY_OPTIONS: SelectOption<(typeof HOLDING_CURRENCIES)[number]>[] =
-  HOLDING_CURRENCIES.map((value) => ({ value, label: value }));
-
-export const PROPERTY_TYPE_OPTIONS: SelectOption<PropertyType>[] = PROPERTY_TYPES.map((value) => ({
-  value,
-  label: PROPERTY_TYPE_LABELS[value],
-}));
-
-export function propertyTypeLabel(value: PropertyType): string {
-  return PROPERTY_TYPE_LABELS[value];
+export function useOptions() {
+  const { t } = useI18n();
+  return useMemo(
+    () => ({
+      transactionCategories: TRANSACTION_CATEGORIES.map(
+        (value): SelectOption<TransactionCategory> => ({ value, label: categoryLabel(t, value) }),
+      ),
+      suggestableCategories: SUGGESTABLE_TRANSACTION_CATEGORIES.map(
+        (value): SelectOption<SuggestableTransactionCategory> => ({
+          value,
+          label: categoryLabel(t, value),
+        }),
+      ),
+      accountTypes: ACCOUNT_TYPES.map(
+        (value): SelectOption<AccountType> => ({ value, label: accountTypeLabel(t, value) }),
+      ),
+      holdingKinds: HOLDING_KINDS.map(
+        (value): SelectOption<HoldingKind> => ({ value, label: holdingKindLabel(t, value) }),
+      ),
+      holdingCurrencies: HOLDING_CURRENCIES.map(
+        (value): SelectOption<(typeof HOLDING_CURRENCIES)[number]> => ({ value, label: value }),
+      ),
+      propertyTypes: PROPERTY_TYPES.map(
+        (value): SelectOption<PropertyType> => ({ value, label: propertyTypeLabel(t, value) }),
+      ),
+    }),
+    [t],
+  );
 }

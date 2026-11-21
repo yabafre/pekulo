@@ -18,11 +18,12 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput } from "../../lib/forms";
 import { useHoldingMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobilePortfolioData } from "../../lib/hooks/use-mobile-queries";
-import { HOLDING_CURRENCY_OPTIONS, HOLDING_KIND_OPTIONS } from "../../lib/options";
+import { useOptions } from "../../lib/options";
 
 type HoldingCurrency = (typeof HOLDING_CURRENCIES)[number];
 
 export default function HoldingSheet() {
+  const options = useOptions();
   const { data } = useMobilePortfolioData();
   const { create } = useHoldingMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
@@ -109,14 +110,14 @@ export default function HoldingSheet() {
         <SelectField
           label="Type"
           value={kind}
-          options={HOLDING_KIND_OPTIONS}
+          options={options.holdingKinds}
           onChange={setKind}
           testID="hld-kind"
         />
         <SelectField
           label="Devise"
           value={currency}
-          options={HOLDING_CURRENCY_OPTIONS}
+          options={options.holdingCurrencies}
           onChange={setCurrency}
           testID="hld-currency"
         />

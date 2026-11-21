@@ -15,9 +15,10 @@ import {
 import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput, toUtcDay } from "../../lib/forms";
 import { useRealEstateMutations } from "../../lib/hooks/use-mobile-mutations";
-import { PROPERTY_TYPE_OPTIONS } from "../../lib/options";
+import { useOptions } from "../../lib/options";
 
 export default function PropertySheet() {
+  const options = useOptions();
   const { createProperty } = useRealEstateMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
   const [label, setLabel] = useState("");
@@ -56,7 +57,7 @@ export default function PropertySheet() {
         <SelectField
           label="Type"
           value={propertyType}
-          options={PROPERTY_TYPE_OPTIONS}
+          options={options.propertyTypes}
           onChange={setPropertyType}
           testID="prop-type"
         />
