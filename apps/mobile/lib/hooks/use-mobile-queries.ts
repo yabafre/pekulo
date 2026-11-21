@@ -30,6 +30,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../auth/auth-context";
+import { currentUtcMonth } from "../forms";
 import {
   accountsClient,
   compassClient,
@@ -490,11 +491,6 @@ export interface MobileMonthlyCurrent {
   transfersEur: number;
   netChangeEur: number;
   signedOff: boolean;
-}
-
-function currentUtcMonth() {
-  const now = new Date();
-  return { year: now.getUTCFullYear(), monthNum: now.getUTCMonth() + 1 };
 }
 
 const PREVIEW_MONTHLY_DATA: MobileMonthlyViewData = {

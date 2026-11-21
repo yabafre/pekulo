@@ -2857,7 +2857,7 @@ Task order is load-bearing: **dependencies & Jest wiring (T1)**, **Supabase chun
   Shared form primitives (`components/form/*`): labelled text / amount fields (French decimal parsing), native compact `DateTimePicker`, `ActionSheetIOS`-backed select, switch row, header Cancel/Save buttons, zod error surfacing, `useRowActions` action sheet and destructive `Alert` confirmations, preview sign-in prompt. Sheets live under `app/sheets/*` and are presented as iOS `formSheet`.
 - [x] **T11 — Transactions & Cap/Patrimoine interactions** [AC: AC-6]
   Create/edit/delete transaction, month navigation, AI category override; add/delete milestone; create/edit/balance/delete account; header "+" entry points.
-- [ ] **T12 — Mensuel, Portefeuille & Immobilier interactions** [AC: AC-6]
+- [x] **T12 — Mensuel, Portefeuille & Immobilier interactions** [AC: AC-6]
   Sign-off sheet gated by the close window + reopen confirmation; add holding, record lot, close holding; create property, record valuation, valuation history, attach/update mortgage and rental, delete property.
 - [ ] **T13 — Paramètres interactions** [AC: AC-6]
   Compass objective/horizon sheet, third-party AI opt-in switch, account deletion with typed-email confirmation then sign-out.

@@ -12,16 +12,47 @@ import {
   Section,
 } from "@pekulo/ui";
 import { View } from "@pekulo/ui/client";
+import { useRouter } from "expo-router";
 import { LineChart } from "lucide-react-native";
+import { Pressable } from "react-native";
 
+import { useMutationRunner } from "../../../components/form/sheet";
 import { ScreenShell } from "../../../components/screen-shell";
 import { ScreenErrorState, ScreenLoadingSkeleton } from "../../../components/screen-states";
+import { TabToolbar } from "../../../components/tab-stack-layout";
+import { confirmDestructive, showActions } from "../../../lib/actions";
 import { useAuth } from "../../../lib/auth/auth-context";
+import { useHoldingMutations } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobilePortfolioData } from "../../../lib/hooks/use-mobile-queries";
 
 export default function PortefeuilleScreen() {
   const { isAuthenticated } = useAuth();
   const { data, isLoading, isError, isRefetching, refetch } = useMobilePortfolioData();
+  const router = useRouter();
+  const { close } = useHoldingMutations();
+  const { run } = useMutationRunner();
+
+  function openHoldingActions(id: string, label: string) {
+    showActions(label, [
+      {
+        label: "Enregistrer un achat ou une vente",
+        onPress: () => router.push(`/sheets/lot?id=${id}`),
+      },
+      {
+        label: "Clôturer la ligne",
+        destructive: true,
+        onPress: () =>
+          confirmDestructive({
+            title: `Clôturer « ${label} » ?`,
+            message: "La ligne sortira de votre portefeuille actif.",
+            confirmLabel: "Clôturer",
+            onConfirm: () => {
+              void run(() => close.mutateAsync({ id }), "Ligne clôturée");
+            },
+          }),
+      },
+    ]);
+  }
 
   const showLoading = isAuthenticated && isLoading && !data;
   const showError = isAuthenticated && isError && !data;
@@ -32,10 +63,13 @@ export default function PortefeuilleScreen() {
     pnlTone: "gain" as const,
     classes: [],
     holdings: [],
+    holdingIds: [],
+    accountOptions: [],
   };
 
   return (
     <ScreenShell refreshing={isRefetching} onRefresh={refetch}>
+      <TabToolbar addLabel="Nouvelle ligne" onAdd={() => router.push("/sheets/holding")} />
       {showLoading ? (
         <ScreenLoadingSkeleton sections={2} />
       ) : showError ? (
@@ -77,14 +111,29 @@ export default function PortefeuilleScreen() {
 
           <Section flat title="Lignes" ariaLabel="Lignes du portefeuille">
             {viewData.holdings.length > 0 ? (
-              viewData.holdings.map((holding) => (
-                <PekuloHoldingRow key={`${holding.ticker}-${holding.account}`} holding={holding} />
-              ))
+              viewData.holdings.map((holding, index) => {
+                const id = viewData.holdingIds[index];
+                return (
+                  <Pressable
+                    key={id ?? `${holding.ticker}-${holding.account}`}
+                    testID={id ? `holding-row-${id}` : undefined}
+                    accessibilityRole="button"
+                    accessibilityHint="Ouvre les actions de la ligne"
+                    disabled={!id}
+                    onPress={() => id && openHoldingActions(id, holding.label)}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                  >
+                    <PekuloHoldingRow holding={holding} />
+                  </Pressable>
+                );
+              })
             ) : (
               <PekuloEmptyState
                 icon={LineChart}
                 title="Aucune position ouverte"
-                message="Ajoutez vos ETF, actions ou crypto depuis votre espace Pekulo pour suivre vos plus-values."
+                message="Ajoutez vos ETF, actions ou crypto pour suivre vos plus-values."
+                ctaLabel="Ajouter une ligne"
+                onCta={() => router.push("/sheets/holding")}
               />
             )}
           </Section>

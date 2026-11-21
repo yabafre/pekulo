@@ -56,6 +56,17 @@ export function toUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 }
 
+/** Current time — a seam so tests can pin the close window. */
+export function nowDate(): Date {
+  return new Date();
+}
+
+/** Current calendar month in UTC (the month the web lets you sign off). */
+export function currentUtcMonth(): { year: number; monthNum: number } {
+  const now = nowDate();
+  return { year: now.getUTCFullYear(), monthNum: now.getUTCMonth() + 1 };
+}
+
 export function currentMonthKey(now: Date = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
