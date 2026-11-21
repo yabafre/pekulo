@@ -1,6 +1,6 @@
 // apps/mobile/app/(tabs)/transactions/index.tsx
-// Mobile Transactions screen inside a native iOS Large Title Stack with a
-// native `Stack.SearchBar`, pull-to-refresh, toast feedback on 1-tap AI
+// Mobile Transactions screen inside a native iOS Large Title Stack with an
+// in-content iOS search field, month navigation, pull-to-refresh, toast feedback on 1-tap AI
 // suggestion confirmation, and full loading/error/empty states.
 
 import {
@@ -13,7 +13,6 @@ import {
 } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useRouter } from "expo-router";
-import Stack from "expo-router/stack";
 import { SymbolView } from "expo-symbols";
 import { Receipt, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
@@ -22,6 +21,7 @@ import { useTheme } from "tamagui";
 
 import { useMutationRunner } from "../../../components/form/sheet";
 import { ScreenShell } from "../../../components/screen-shell";
+import { SearchField } from "../../../components/search-field";
 import { ScreenErrorState, ScreenLoadingSkeleton } from "../../../components/screen-states";
 import { TabToolbar } from "../../../components/tab-stack-layout";
 import { confirmDestructive, showActions } from "../../../lib/actions";
@@ -101,6 +101,9 @@ export default function TransactionsScreen() {
   };
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  // While searching, only the matching rows are shown (no month header,
+  // summary or suggestions competing with the results).
+  const searching = normalizedQuery.length > 0;
   const filteredRows = useMemo(() => {
     if (!normalizedQuery) return viewData.rows;
     return viewData.rows.filter(
@@ -140,23 +143,34 @@ export default function TransactionsScreen() {
         onAdd={() => router.push(`/sheets/transaction?month=${month}`)}
       />
       <ScreenShell refreshing={isRefetching} onRefresh={refetch}>
-        <View flexDirection="row" alignItems="center" justifyContent="space-between">
-          <MonthStepButton direction="prev" onPress={() => setMonth((m) => shiftMonthKey(m, -1))} />
-          <Text
-            color="$color"
-            fontSize="$body"
-            fontWeight="600"
-            accessibilityRole="header"
-            testID="month-label"
-          >
-            {formatMonthKey(month)}
-          </Text>
-          <MonthStepButton
-            direction="next"
-            disabled={month >= thisMonth}
-            onPress={() => setMonth((m) => shiftMonthKey(m, 1))}
-          />
-        </View>
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Rechercher une transaction"
+          testID="tx-search"
+        />
+        {searching ? null : (
+          <View flexDirection="row" alignItems="center" justifyContent="space-between">
+            <MonthStepButton
+              direction="prev"
+              onPress={() => setMonth((m) => shiftMonthKey(m, -1))}
+            />
+            <Text
+              color="$color"
+              fontSize="$body"
+              fontWeight="600"
+              accessibilityRole="header"
+              testID="month-label"
+            >
+              {formatMonthKey(month)}
+            </Text>
+            <MonthStepButton
+              direction="next"
+              disabled={month >= thisMonth}
+              onPress={() => setMonth((m) => shiftMonthKey(m, 1))}
+            />
+          </View>
+        )}
         {showLoading ? (
           <ScreenLoadingSkeleton sections={2} />
         ) : showError ? (
@@ -168,29 +182,31 @@ export default function TransactionsScreen() {
           />
         ) : (
           <View gap="$8">
-            <View
-              backgroundColor="$backgroundCard"
-              borderRadius="$xl"
-              padding="$5"
-              gap="$4"
-              style={{ borderCurve: "continuous" }}
-            >
-              <PekuloStat
-                label="Solde du mois"
-                value={viewData.netFormatted}
-                tone={viewData.netTone}
-              />
-              <View flexDirection="row" gap="$4">
-                <View flex={1}>
-                  <PekuloStat label="Entrées" value={viewData.incomeFormatted} tone="gain" />
-                </View>
-                <View flex={1}>
-                  <PekuloStat label="Sorties" value={viewData.spendingFormatted} />
+            {searching ? null : (
+              <View
+                backgroundColor="$backgroundCard"
+                borderRadius="$xl"
+                padding="$5"
+                gap="$4"
+                style={{ borderCurve: "continuous" }}
+              >
+                <PekuloStat
+                  label="Solde du mois"
+                  value={viewData.netFormatted}
+                  tone={viewData.netTone}
+                />
+                <View flexDirection="row" gap="$4">
+                  <View flex={1}>
+                    <PekuloStat label="Entrées" value={viewData.incomeFormatted} tone="gain" />
+                  </View>
+                  <View flex={1}>
+                    <PekuloStat label="Sorties" value={viewData.spendingFormatted} />
+                  </View>
                 </View>
               </View>
-            </View>
+            )}
 
-            {viewData.pendingSuggestions.length > 0 && (
+            {!searching && viewData.pendingSuggestions.length > 0 && (
               <Section
                 flat
                 title="Suggestions IA"
@@ -250,7 +266,15 @@ export default function TransactionsScreen() {
               </Section>
             )}
 
-            <Section flat title="Récentes" ariaLabel="Transactions récentes">
+            <Section
+              flat
+              title={
+                searching
+                  ? `${filteredRows.length} résultat${filteredRows.length > 1 ? "s" : ""}`
+                  : "Récentes"
+              }
+              ariaLabel="Transactions récentes"
+            >
               {filteredRows.length > 0 ? (
                 filteredRows.map(({ id, activity }) => (
                   <Pressable
@@ -283,14 +307,6 @@ export default function TransactionsScreen() {
           </View>
         )}
       </ScreenShell>
-      <Stack.SearchBar
-        placeholder="Rechercher une transaction"
-        cancelButtonText="Annuler"
-        hideWhenScrolling={false}
-        placement="stacked"
-        onChangeText={(event) => setSearchQuery(event.nativeEvent.text)}
-        onCancelButtonPress={() => setSearchQuery("")}
-      />
     </>
   );
 }

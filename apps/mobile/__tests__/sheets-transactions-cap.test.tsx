@@ -293,6 +293,28 @@ describe("AC-6 — Transactions interactions", () => {
     );
   });
 
+  it("filters rows with the in-content search field and hides the month header", async () => {
+    (transactionsClient.listTransactions as jest.Mock).mockResolvedValue({
+      items: [
+        RAW_TX,
+        {
+          ...RAW_TX,
+          id: "tx_BBBBBBBBBBBBBBBBBBBBB",
+          label: "Paie novembre",
+          category: "salaire",
+          type: "inflow",
+        },
+      ],
+    });
+    await renderLive(<TransactionsScreen />);
+    await waitFor(() => expect(screen.getByText("Paie novembre")).toBeTruthy());
+    await fireEvent.changeText(screen.getByTestId("tx-search"), "loy");
+    await waitFor(() => expect(screen.queryByText("Paie novembre")).toBeNull());
+    expect(screen.getByTestId(`tx-row-${TX}`)).toBeTruthy();
+    expect(screen.getByText("1 résultat")).toBeTruthy();
+    expect(screen.queryByTestId("month-prev-btn")).toBeNull();
+  });
+
   it("navigates to the previous month", async () => {
     await renderLive(<TransactionsScreen />);
     await waitFor(() => expect(screen.getByTestId("month-prev-btn")).toBeTruthy());

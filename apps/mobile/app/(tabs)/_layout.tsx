@@ -8,8 +8,6 @@
 import { pekuloColors, useThemeSetting } from "@pekulo/ui";
 import { NativeTabs } from "expo-router/native-tabs";
 
-// Cap sits in the centre slot of the native tab bar (Transactions · Mensuel ·
-// Cap · Portefeuille · Immobilier); "/" keeps it as the launch route.
 export default function TabsLayout() {
   // TR-strict chrome: grayscale only, driven by the Pekulo tokens so the glass
   // bar keeps ≥ 4.5:1 contrast in both themes.
@@ -23,31 +21,47 @@ export default function TabsLayout() {
       iconColor={palette.text.secondary}
       labelStyle={{ color: palette.text.secondary }}
     >
-      <NativeTabs.Trigger name="transactions">
-        <NativeTabs.Trigger.Icon sf="arrow.up.arrow.down" md="swap_vert" />
-        <NativeTabs.Trigger.Label>Transactions</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="mensuel">
-        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
-        <NativeTabs.Trigger.Label>Mensuel</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(cap)">
-        <NativeTabs.Trigger.Icon sf={{ default: "safari", selected: "safari.fill" }} md="explore" />
-        <NativeTabs.Trigger.Label>Cap</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="portefeuille">
+      {/* Icon-only bar: labels stay for VoiceOver but are visually hidden.
+          Outline at rest, filled when selected. */}
+      <NativeTabs.Trigger name="(cap)" accessibilityLabel="Cap" testID="tab-cap">
         <NativeTabs.Trigger.Icon
-          sf={{ default: "chart.line.uptrend.xyaxis", selected: "chart.line.uptrend.xyaxis" }}
-          md="show_chart"
+          sf={{ default: "location.north.circle", selected: "location.north.circle.fill" }}
+          md="explore"
         />
-        <NativeTabs.Trigger.Label>Portefeuille</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label hidden>Cap</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="immobilier">
+      <NativeTabs.Trigger
+        name="transactions"
+        accessibilityLabel="Transactions"
+        testID="tab-transactions"
+      >
         <NativeTabs.Trigger.Icon
-          sf={{ default: "building.2", selected: "building.2.fill" }}
-          md="apartment"
+          sf={{ default: "creditcard", selected: "creditcard.fill" }}
+          md="credit_card"
         />
-        <NativeTabs.Trigger.Label>Immobilier</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label hidden>Transactions</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="mensuel" accessibilityLabel="Mensuel" testID="tab-mensuel">
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "chart.bar", selected: "chart.bar.fill" }}
+          md="bar_chart"
+        />
+        <NativeTabs.Trigger.Label hidden>Mensuel</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger
+        name="portefeuille"
+        accessibilityLabel="Portefeuille"
+        testID="tab-portefeuille"
+      >
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "chart.pie", selected: "chart.pie.fill" }}
+          md="pie_chart"
+        />
+        <NativeTabs.Trigger.Label hidden>Portefeuille</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="immobilier" accessibilityLabel="Immobilier" testID="tab-immobilier">
+        <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} md="home" />
+        <NativeTabs.Trigger.Label hidden>Immobilier</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
