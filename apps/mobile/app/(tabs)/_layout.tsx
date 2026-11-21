@@ -8,6 +8,8 @@
 import { pekuloColors, useThemeSetting } from "@pekulo/ui";
 import { NativeTabs } from "expo-router/native-tabs";
 
+// Cap sits in the centre slot of the native tab bar (Transactions · Mensuel ·
+// Cap · Portefeuille · Immobilier); "/" keeps it as the launch route.
 export default function TabsLayout() {
   // TR-strict chrome: grayscale only, driven by the Pekulo tokens so the glass
   // bar keeps ≥ 4.5:1 contrast in both themes.
@@ -21,10 +23,6 @@ export default function TabsLayout() {
       iconColor={palette.text.secondary}
       labelStyle={{ color: palette.text.secondary }}
     >
-      <NativeTabs.Trigger name="(cap)">
-        <NativeTabs.Trigger.Icon sf={{ default: "safari", selected: "safari.fill" }} md="explore" />
-        <NativeTabs.Trigger.Label>Cap</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="transactions">
         <NativeTabs.Trigger.Icon sf="arrow.up.arrow.down" md="swap_vert" />
         <NativeTabs.Trigger.Label>Transactions</NativeTabs.Trigger.Label>
@@ -32,6 +30,10 @@ export default function TabsLayout() {
       <NativeTabs.Trigger name="mensuel">
         <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
         <NativeTabs.Trigger.Label>Mensuel</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(cap)">
+        <NativeTabs.Trigger.Icon sf={{ default: "safari", selected: "safari.fill" }} md="explore" />
+        <NativeTabs.Trigger.Label>Cap</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="portefeuille">
         <NativeTabs.Trigger.Icon

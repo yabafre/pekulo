@@ -28,17 +28,13 @@ import { ScreenShell } from "../../../components/screen-shell";
 import { ScreenErrorState, ScreenLoadingSkeleton } from "../../../components/screen-states";
 import { SettingsHeaderButton } from "../../../components/tab-stack-layout";
 import { useAuth } from "../../../lib/auth/auth-context";
+import { formatCompactEur, formatEur } from "../../../lib/format";
 import { useMobileCapData } from "../../../lib/hooks/use-mobile-queries";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
   maximumFractionDigits: 0,
-});
-
-const eurCompact = new Intl.NumberFormat("fr-FR", {
-  notation: "compact",
-  maximumFractionDigits: 1,
 });
 
 export default function CapScreen() {
@@ -83,7 +79,7 @@ export default function CapScreen() {
           }}
         />
       ) : topTab === "cap" ? (
-        <View gap="$7">
+        <View gap="$8">
           <PekuloHero
             variant="mobile"
             label="Patrimoine total"
@@ -116,8 +112,13 @@ export default function CapScreen() {
                 >
                   {viewData.progressLabel}
                 </Text>
-                <Text color="$colorTertiary" fontSize="$xs">
-                  Objectif {eurCompact.format(viewData.targetCapital)} € · {viewData.targetYear}
+                <Text
+                  color="$colorTertiary"
+                  fontSize="$xs"
+                  numberOfLines={1}
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  Objectif {formatCompactEur(viewData.targetCapital)} · {viewData.targetYear}
                 </Text>
               </View>
 
@@ -134,9 +135,10 @@ export default function CapScreen() {
                 <Text
                   color="$colorTertiary"
                   fontSize="$xs"
+                  numberOfLines={1}
                   style={{ fontVariant: ["tabular-nums"] }}
                 >
-                  Plan {eurCompact.format(viewData.requiredYearlyEur)} € / an
+                  Plan {formatEur(viewData.requiredYearlyEur)} / an
                 </Text>
               </View>
             </View>
@@ -191,7 +193,7 @@ export default function CapScreen() {
           )}
         </View>
       ) : (
-        <View gap="$7">
+        <View gap="$8">
           <View gap="$1">
             <Text color="$colorTertiary" fontSize="$xs" letterSpacing={0.5}>
               Total
@@ -213,7 +215,7 @@ export default function CapScreen() {
                 style={{ fontVariant: ["tabular-nums"] }}
               >
                 {viewData.composition
-                  .map((c) => `${eurCompact.format(c.amount)} € ${c.label.toLowerCase()}`)
+                  .map((c) => `${formatCompactEur(c.amount)} ${c.label.toLowerCase()}`)
                   .join(" · ")}
               </Text>
             )}

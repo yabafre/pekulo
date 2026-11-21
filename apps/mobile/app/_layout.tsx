@@ -112,7 +112,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             title: "Paramètres",
             presentation: "formSheet",
             sheetGrabberVisible: true,
-            sheetAllowedDetents: [0.85, 1.0],
+            sheetAllowedDetents: [0.7, 1.0],
             headerTransparent: true,
             headerShadowVisible: false,
             headerTitleStyle: { color: palette.text.primary },

@@ -68,7 +68,7 @@ export default function TransactionsScreen() {
             }}
           />
         ) : (
-          <View gap="$7">
+          <View gap="$8">
             <View
               backgroundColor="$backgroundCard"
               borderRadius="$xl"
@@ -160,6 +160,8 @@ export default function TransactionsScreen() {
       <Stack.SearchBar
         placeholder="Rechercher une transaction"
         cancelButtonText="Annuler"
+        hideWhenScrolling={false}
+        placement="stacked"
         onChangeText={(event) => setSearchQuery(event.nativeEvent.text)}
         onCancelButtonPress={() => setSearchQuery("")}
       />

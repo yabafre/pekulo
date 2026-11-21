@@ -39,7 +39,7 @@ export default function MensuelScreen() {
           }}
         />
       ) : (
-        <View gap="$7">
+        <View gap="$8">
           <View
             backgroundColor="$backgroundCard"
             borderRadius="$xl"

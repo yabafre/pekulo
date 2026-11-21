@@ -46,7 +46,7 @@ export default function PortefeuilleScreen() {
           }}
         />
       ) : (
-        <View gap="$7">
+        <View gap="$8">
           <View
             backgroundColor="$backgroundCard"
             borderRadius="$xl"

@@ -97,7 +97,7 @@ export default function ParametresScreen() {
                 {initial}
               </Text>
             </View>
-            <View flex={1} gap="$0.5">
+            <View flex={1} gap={2}>
               <Text color="$color" fontSize="$body" fontWeight="600" numberOfLines={1} selectable>
                 {userEmail ?? "Mode aperçu"}
               </Text>
@@ -109,7 +109,8 @@ export default function ParametresScreen() {
 
           <PekuloButton
             variant={isAuthenticated ? "secondary" : "default"}
-            style={{ width: "100%" }}
+            size="lg"
+            style={{ width: "100%", height: 44, borderCurve: "continuous" }}
             testID="settings-auth-action-btn"
             onPress={handleAuthAction}
           >

@@ -152,7 +152,8 @@ export default function LoginScreen() {
       {!requireAuth && (
         <PekuloButton
           variant="ghost"
-          style={{ width: "100%" }}
+          size="lg"
+          style={{ width: "100%", height: 44 }}
           testID="login-preview-btn"
           onPress={() => {
             router.replace("/");
