@@ -1,7 +1,7 @@
 # Story: 10-4-mobile-auth-and-orpc — Wire Supabase Auth (`expo-secure-store`) and `@pekulo/contracts` oRPC client in `apps/mobile`
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** in-progress
+**Status:** review
 **Ticket:** #155
 **Branch:** feature/155-10-4-mobile-auth-and-orpc
 **Complexity:** L
@@ -2861,7 +2861,7 @@ Task order is load-bearing: **dependencies & Jest wiring (T1)**, **Supabase chun
   Sign-off sheet gated by the close window + reopen confirmation; add holding, record lot, close holding; create property, record valuation, valuation history, attach/update mortgage and rental, delete property.
 - [x] **T13 — Paramètres interactions** [AC: AC-6]
   Compass objective/horizon sheet, third-party AI opt-in switch, account deletion with typed-email confirmation then sign-out.
-- [ ] **T14 — Tests, quality sweep and Simulator visual pass** [AC: AC-5, AC-6]
+- [x] **T14 — Tests, quality sweep and Simulator visual pass** [AC: AC-5, AC-6]
   Jest coverage for every mutation hook and the key sheet flows; typecheck, oxlint, oxfmt; AXe-driven iOS Simulator walkthrough of each new interaction.
 
 ## Dev Notes
@@ -3373,12 +3373,49 @@ export default function ParametresScreen() {
 - `apps/mobile/app/login.tsx`
 - `apps/mobile/__tests__/auth-and-orpc.test.tsx`
 - `docs/stories/10-4-mobile-auth-and-orpc.md`
+- `apps/mobile/lib/format.ts`
+- `apps/mobile/lib/forms.ts`
+- `apps/mobile/lib/actions.ts`
+- `apps/mobile/lib/options.ts`
+- `apps/mobile/lib/hooks/use-mobile-mutations.ts`
+- `apps/mobile/components/form/fields.tsx`
+- `apps/mobile/components/form/sheet.tsx`
+- `apps/mobile/app/(tabs)/_layout.tsx`
+- `apps/mobile/app/sheets/transaction.tsx`
+- `apps/mobile/app/sheets/milestone.tsx`
+- `apps/mobile/app/sheets/account.tsx`
+- `apps/mobile/app/sheets/account-balance.tsx`
+- `apps/mobile/app/sheets/holding.tsx`
+- `apps/mobile/app/sheets/lot.tsx`
+- `apps/mobile/app/sheets/property.tsx`
+- `apps/mobile/app/sheets/valuation.tsx`
+- `apps/mobile/app/sheets/valuations.tsx`
+- `apps/mobile/app/sheets/mortgage.tsx`
+- `apps/mobile/app/sheets/rental.tsx`
+- `apps/mobile/app/sheets/cloture.tsx`
+- `apps/mobile/app/sheets/compass.tsx`
+- `apps/mobile/__tests__/mutations.test.tsx`
+- `apps/mobile/__tests__/form-kit.test.tsx`
+- `apps/mobile/__tests__/sheets-transactions-cap.test.tsx`
+- `apps/mobile/__tests__/sheets-monthly-portfolio-realestate.test.tsx`
+- `apps/mobile/__tests__/settings-interactions.test.tsx`
 
 ## Dev Agent Record
 
 - **Model:** Gemini 4 Neon (High)
 - **Started:** 2026-11-19T01:51:40Z
 - **Completed:** 2026-11-19T04:40:00Z
+
+### Interaction parity (2026-11-21, AC-6 / T9–T14)
+
+- **Model:** Claude Opus 5.5
+- **Write path:** `use-mobile-mutations.ts` validates every input with the same `@pekulo/validators` schema as the web server actions (types via `@pekulo/zod`, now a mobile workspace dependency), calls the matching `@pekulo/contracts` procedure, invalidates the affected screens, and throws `PreviewModeError` without any remote call in preview mode.
+- **Native iOS surfaces:** form sheets under `app/sheets/*` (`formSheet` with detents), native `Stack.Toolbar` header items (custom React views in `headerRight` stopped receiving touches on the iOS 26 navigation bar), `ActionSheetIOS` row menus, destructive `Alert` confirmations, `Alert.prompt` typed-email confirmation for account deletion, native compact `DateTimePicker`, native `Switch`.
+- **Parity choices mirrored from the web:** EUR-locked account currency (story 2-3 review HIGH #6), the monthly close window (last 5 days → 5 days after, UTC), the per-user milestone cap.
+- **Bug found by the tests:** edit sheets overwrote what the user had typed when cached data arrived late; prefill now stops once a field is edited.
+- **Verification:** `@pekulo/mobile` Jest 9 suites / 67 tests pass; `bun run typecheck` 10/10; mobile oxlint 0/0 (3 pre-existing warnings in `apps/web` only); `packages/ui` unchanged vs `main`. Simulator (iPhone 17 Pro, iOS 26, preview mode) walkthrough with AXe: tab toolbars, transaction sheet, row action sheets, month navigation, milestone delete → preview sign-in prompt, Cap add menu, milestone sheet, Mensuel close gating, holding rows, property action menu, Paramètres sections and native close.
+- **Not verified live:** no authenticated session was available on the Simulator, so mutations were exercised against mocked contracts (Jest) and against the preview guard (device), not against the real API.
+- **Known:** `PekuloPropertyCard` (shared `@pekulo/ui`) still renders the English label "EQUITY"; root `format:check` flags only the untracked third-party `.claude/skills/{ui-taste,ios-design}` files.
 
 ### Scope override (2026-11-21)
 
