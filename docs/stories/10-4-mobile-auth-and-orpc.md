@@ -1,7 +1,7 @@
 # Story: 10-4-mobile-auth-and-orpc — Wire Supabase Auth (`expo-secure-store`) and `@pekulo/contracts` oRPC client in `apps/mobile`
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** in-progress
 **Ticket:** #155
 **Branch:** feature/155-10-4-mobile-auth-and-orpc
 **Complexity:** L
@@ -18,6 +18,7 @@
 - **AC-3 (Authentication screen & route gating with seamless preview fallback)** — **Given** the mobile root navigation, **When** authentication enforcement is active and no session is present, **Then** unauthenticated users are directed to the sign-in screen where submitting valid credentials signs in and navigates to the primary dashboard; **And** when running in unconfigured local or CI preview mode without a session, screens degrade gracefully to deterministic preview data so existing navigation and smoke flows remain green.
 - **AC-4 (Live domain data across all five primary tabs and settings)** — **Given** an authenticated mobile session with live remote responses, **When** the user visits `Cap` (including the `Cap` and `Patrimoine` view toggle), `Transactions` (with one-tap AI category suggestion confirmation), `Mensuel`, `Portefeuille`, `Immobilier`, and `Paramètres` (theme and language controls plus sign-out), **Then** each screen renders the live domain figures through the shared native design-system components and reflects mutations immediately.
 - **AC-5 (Automated mobile test suite & full monorepo quality gates)** — **Given** the unit and integration test suites covering chunked secure storage, Bearer header forwarding, sign-in and sign-out flows, and live data rendering across all five tabs and settings, **When** the mobile tests, design-system tests, typechecking, linting, formatting, and stylesheet freshness checks execute, **Then** every check exits 0 with zero web snapshot or stylesheet regressions.
+- **AC-6 (Web interaction parity on mobile)** — **Given** an authenticated mobile session, **When** the user creates, edits, or deletes a transaction (with month navigation and AI category override), adds or deletes a milestone, creates, edits, re-balances, or deletes an account, adds a holding, records a lot, or closes a holding, creates a property, records a valuation, views the valuation history, attaches or updates a mortgage or a rental, or deletes a property, signs off the current month inside its close window or reopens a signed-off month, edits the compass objective and horizon, toggles the third-party AI opt-in, or deletes the account, **Then** each action calls the matching `@pekulo/contracts` procedure with input validated by the shared `@pekulo/validators` schema through native iOS sheets, action sheets, and destructive confirmations, the affected screens refresh immediately, **And** in unauthenticated preview mode every mutation is blocked with a sign-in prompt and no remote call.
 
 ## Tasks
 
@@ -2850,6 +2851,19 @@ Task order is load-bearing: **dependencies & Jest wiring (T1)**, **Supabase chun
   Expected: every command exits 0; `packages/ui/public/tamagui.generated.css` has zero diff; `@pekulo/mobile` Jest 30 (`4 passed` suites, `17 passed` tests), `@pekulo/ui` Vitest, and `@pekulo/web` Vitest all pass cleanly.
   Commit: `git add -u && git commit -m "chore(#155): format and verify full 10-4 mobile auth and oRPC sweep"` (only if formatting touched tracked files; otherwise confirm clean working tree).
 
+- [x] **T9 — Mutation hooks for every web interaction, with preview-mode guard** [AC: AC-6]
+  `apps/mobile/lib/hooks/use-mobile-mutations.ts`: one hook per domain (transactions, milestones, accounts, holdings, realestate, monthly, compass, llm opt-in, account deletion) calling the exact contract procedures listed in the web inventory, invalidating the affected `mobileQueryKeys`, and throwing `PreviewModeError` without a remote call when unauthenticated. Read hooks expose entity ids and raw values needed by edit forms; Transactions accepts a `month` key.
+- [ ] **T10 — Native form-sheet infrastructure** [AC: AC-6]
+  Shared form primitives (`components/form/*`): labelled text / amount fields (French decimal parsing), native compact `DateTimePicker`, `ActionSheetIOS`-backed select, switch row, header Cancel/Save buttons, zod error surfacing, `useRowActions` action sheet and destructive `Alert` confirmations, preview sign-in prompt. Sheets live under `app/sheets/*` and are presented as iOS `formSheet`.
+- [ ] **T11 — Transactions & Cap/Patrimoine interactions** [AC: AC-6]
+  Create/edit/delete transaction, month navigation, AI category override; add/delete milestone; create/edit/balance/delete account; header "+" entry points.
+- [ ] **T12 — Mensuel, Portefeuille & Immobilier interactions** [AC: AC-6]
+  Sign-off sheet gated by the close window + reopen confirmation; add holding, record lot, close holding; create property, record valuation, valuation history, attach/update mortgage and rental, delete property.
+- [ ] **T13 — Paramètres interactions** [AC: AC-6]
+  Compass objective/horizon sheet, third-party AI opt-in switch, account deletion with typed-email confirmation then sign-out.
+- [ ] **T14 — Tests, quality sweep and Simulator visual pass** [AC: AC-5, AC-6]
+  Jest coverage for every mutation hook and the key sheet flows; typecheck, oxlint, oxfmt; AXe-driven iOS Simulator walkthrough of each new interaction.
+
 ## Dev Notes
 
 ### Existing code at write time (Step-0 verbatim quotes)
@@ -3365,6 +3379,10 @@ export default function ParametresScreen() {
 - **Model:** Gemini 4 Neon (High)
 - **Started:** 2026-11-19T01:51:40Z
 - **Completed:** 2026-11-19T04:40:00Z
+
+### Scope override (2026-11-21)
+
+The user directed that full web-interaction parity be implemented inside this story rather than a new one (branch `feature/155-10-4-mobile-auth-and-orpc`). Added AC-6 and tasks T9–T14. Out of scope on mobile, matching contract limits: bank-aggregator OAuth connect (Bridge redirect), CSV import, dashboard widget layout editing (no widget grid on mobile), and data export (REST `GET /v1/export`, outside `@pekulo/contracts`).
 
 ### Summary
 

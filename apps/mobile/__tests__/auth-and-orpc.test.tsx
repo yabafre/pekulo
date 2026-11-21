@@ -86,7 +86,7 @@ jest.mock("../lib/orpc/modules", () => {
       listTransactions: jest.fn(),
       confirmCategorisation: jest.fn(),
     },
-    monthlyClient: { listMonthly: jest.fn() },
+    monthlyClient: { listMonthly: jest.fn(), getMonthly: jest.fn() },
     holdingsClient: { list: jest.fn() },
     realestateClient: {
       listProperties: jest.fn(),
@@ -639,6 +639,19 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
           },
         },
       ],
+    });
+
+    jest.spyOn(monthlyClient, "getMonthly").mockResolvedValue({
+      source: "derived",
+      record: {
+        year: 2026,
+        monthNum: 11,
+        incomeEur: 4500,
+        spendingEur: 1800,
+        transfersEur: 1000,
+        netChangeEur: 2700,
+        signedOffAt: null,
+      },
     });
 
     const monthlyView = await renderWithLiveProviders(<MensuelScreen />);

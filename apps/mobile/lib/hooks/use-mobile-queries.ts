@@ -24,6 +24,7 @@ import {
   type LangPref,
   type SuggestableTransactionCategory,
   type ThemePref,
+  type Transaction,
   type TransactionCategory,
 } from "@pekulo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,7 +49,21 @@ export const mobileQueryKeys = {
   portfolio: () => ["mobile", "portfolio"] as const,
   realestate: () => ["mobile", "realestate"] as const,
   settings: () => ["mobile", "settings"] as const,
+  compass: () => ["mobile", "compass"] as const,
+  llm: () => ["mobile", "llm"] as const,
+  // Called without an id these are prefixes, so invalidating them refreshes
+  // every property detail / valuation history currently cached.
+  property: (id?: string) =>
+    id ? (["mobile", "property", id] as const) : (["mobile", "property"] as const),
+  valuations: (id?: string) =>
+    id ? (["mobile", "valuations", id] as const) : (["mobile", "valuations"] as const),
 };
+
+/** `{ value, label }` pairs for the native select fields of the edit sheets. */
+export interface MobileSelectOption {
+  value: string;
+  label: string;
+}
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -69,6 +84,17 @@ export interface MobileCapViewData {
   milestones: MilestoneCardItem[];
   recentActivity: Activity[];
   accounts: AccountCardItem[];
+  /** Raw accounts (ids + editable fields) behind `accounts`, same order. */
+  accountEntities: MobileAccountEntity[];
+}
+
+export interface MobileAccountEntity {
+  id: string;
+  label: string;
+  type: AccountCardItem["type"];
+  currency: "EUR" | "USD" | "GBP" | "CHF";
+  cashBalance: number;
+  notes: string | null;
 }
 
 const PREVIEW_CAP_DATA: MobileCapViewData = {
@@ -124,6 +150,24 @@ const PREVIEW_CAP_DATA: MobileCapViewData = {
   accounts: [
     { label: "Livret A", type: "livret", balanceEur: 22950 },
     { label: "Compte courant", type: "banque", balanceEur: 1550 },
+  ],
+  accountEntities: [
+    {
+      id: "acc_previewLivretA000000",
+      label: "Livret A",
+      type: "livret",
+      currency: "EUR",
+      cashBalance: 22950,
+      notes: null,
+    },
+    {
+      id: "acc_previewCourant000000",
+      label: "Compte courant",
+      type: "banque",
+      currency: "EUR",
+      cashBalance: 1550,
+      notes: null,
+    },
   ],
 };
 
@@ -238,6 +282,15 @@ export function useMobileCapData() {
         balanceEur: acc.cashBalance,
       }));
 
+      const accountEntities: MobileAccountEntity[] = accountsList.map((acc) => ({
+        id: acc.id,
+        label: acc.label,
+        type: acc.type,
+        currency: acc.currency,
+        cashBalance: acc.cashBalance,
+        notes: acc.notes,
+      }));
+
       const firstDelta = statuses[0] ? -statuses[0].delta : 0;
 
       return {
@@ -253,6 +306,7 @@ export function useMobileCapData() {
         milestones,
         recentActivity,
         accounts,
+        accountEntities,
       };
     },
   });
@@ -272,7 +326,34 @@ export interface MobileTransactionsViewData {
   spendingFormatted: string;
   pendingSuggestions: MobilePendingSuggestionItem[];
   recentTransactions: Activity[];
+  /** Same order as `recentTransactions`, with the raw row for edit sheets. */
+  rows: MobileTransactionRow[];
+  accountOptions: MobileSelectOption[];
 }
+
+export interface MobileTransactionRow {
+  id: string;
+  /** `null` in preview mode, where no editable record exists. */
+  raw: Transaction | null;
+  activity: Activity;
+}
+
+const PREVIEW_TRANSACTION_ACTIVITIES: Activity[] = [
+  {
+    label: "Salaire Mai",
+    account: "Société Générale",
+    category: "Salaire",
+    direction: "in",
+    amountEur: 3200,
+  },
+  {
+    label: "Courses Carrefour",
+    account: "Société Générale",
+    category: "Courses",
+    direction: "out",
+    amountEur: 120,
+  },
+];
 
 const PREVIEW_TRANSACTIONS_DATA: MobileTransactionsViewData = {
   monthLabel: "2026-05",
@@ -281,22 +362,13 @@ const PREVIEW_TRANSACTIONS_DATA: MobileTransactionsViewData = {
   incomeFormatted: "+3 200 €",
   spendingFormatted: "−2 150 €",
   pendingSuggestions: [],
-  recentTransactions: [
-    {
-      label: "Salaire Mai",
-      account: "Société Générale",
-      category: "Salaire",
-      direction: "in",
-      amountEur: 3200,
-    },
-    {
-      label: "Courses Carrefour",
-      account: "Société Générale",
-      category: "Courses",
-      direction: "out",
-      amountEur: 120,
-    },
-  ],
+  recentTransactions: PREVIEW_TRANSACTION_ACTIVITIES,
+  rows: PREVIEW_TRANSACTION_ACTIVITIES.map((activity, index) => ({
+    id: `tx_preview${index}`,
+    raw: null,
+    activity,
+  })),
+  accountOptions: [{ value: "acc_previewCourant000000", label: "Société Générale" }],
 };
 
 function mapLlmRouteToBadge(route: string | null | undefined): LlmRouteBadge {
@@ -310,20 +382,23 @@ function formatSignedEur(amount: number): string {
   return `${sign}${eur0.format(Math.abs(amount))}`;
 }
 
-export function useMobileTransactionsData() {
+/** `month` is a `YYYY-MM` key; omitted means the server's current month. */
+export function useMobileTransactionsData(month?: string) {
   const { isAuthenticated } = useAuth();
 
   return useQuery<MobileTransactionsViewData>({
-    queryKey: [...mobileQueryKeys.transactions(), isAuthenticated],
+    queryKey: [...mobileQueryKeys.transactions(), isAuthenticated, month ?? "current"],
     queryFn: async () => {
       if (!isAuthenticated) {
-        return PREVIEW_TRANSACTIONS_DATA;
+        return month
+          ? { ...PREVIEW_TRANSACTIONS_DATA, monthLabel: month }
+          : PREVIEW_TRANSACTIONS_DATA;
       }
 
       const [summary, pending, list, accounts] = await Promise.all([
-        transactionsClient.monthSummary({}),
+        transactionsClient.monthSummary(month ? { month } : {}),
         transactionsClient.listPendingSuggestions({ page: 1, pageSize: 10 }),
-        transactionsClient.listTransactions({ limit: 20 }),
+        transactionsClient.listTransactions(month ? { limit: 100, month } : { limit: 100 }),
         accountsClient.list(),
       ]);
 
@@ -351,14 +426,19 @@ export function useMobileTransactionsData() {
           };
         });
 
-      const recentTransactions: Activity[] = list.items.map((tx) => ({
-        label: tx.label,
-        account: accountLabelById.get(tx.accountId) ?? "Compte",
-        category: TRANSACTION_CATEGORY_LABELS[tx.category] ?? tx.category,
-        direction: tx.type === "inflow" ? "in" : "out",
-        amountEur: tx.amount,
-        logoUrl: tx.logoUrl ?? null,
+      const rows: MobileTransactionRow[] = list.items.map((tx) => ({
+        id: tx.id,
+        raw: tx,
+        activity: {
+          label: tx.label,
+          account: accountLabelById.get(tx.accountId) ?? "Compte",
+          category: TRANSACTION_CATEGORY_LABELS[tx.category] ?? tx.category,
+          direction: tx.type === "inflow" ? "in" : "out",
+          amountEur: tx.amount,
+          logoUrl: tx.logoUrl ?? null,
+        },
       }));
+      const recentTransactions: Activity[] = rows.map((row) => row.activity);
 
       return {
         monthLabel: summary.month,
@@ -368,6 +448,8 @@ export function useMobileTransactionsData() {
         spendingFormatted: `−${eur0.format(summary.spendingEur)}`,
         pendingSuggestions,
         recentTransactions,
+        rows,
+        accountOptions: accounts.map((a) => ({ value: a.id, label: a.label })),
       };
     },
   });
@@ -394,6 +476,25 @@ export interface MobileMonthlyViewData {
   currentIncomeFormatted: string;
   currentSpendingFormatted: string;
   months: MonthlyDisplayRow[];
+  /** Year / month behind each `months` row (same order), for reopen. */
+  monthKeys: { year: number; monthNum: number }[];
+  /** Current UTC month figures, prefilled into the sign-off sheet. */
+  current: MobileMonthlyCurrent;
+}
+
+export interface MobileMonthlyCurrent {
+  year: number;
+  monthNum: number;
+  incomeEur: number;
+  spendingEur: number;
+  transfersEur: number;
+  netChangeEur: number;
+  signedOff: boolean;
+}
+
+function currentUtcMonth() {
+  const now = new Date();
+  return { year: now.getUTCFullYear(), monthNum: now.getUTCMonth() + 1 };
 }
 
 const PREVIEW_MONTHLY_DATA: MobileMonthlyViewData = {
@@ -417,6 +518,18 @@ const PREVIEW_MONTHLY_DATA: MobileMonthlyViewData = {
       closed: true,
     },
   ],
+  monthKeys: [
+    { year: 2026, monthNum: 5 },
+    { year: 2026, monthNum: 4 },
+  ],
+  current: {
+    ...currentUtcMonth(),
+    incomeEur: 3400,
+    spendingEur: 2160,
+    transfersEur: 0,
+    netChangeEur: 1240,
+    signedOff: false,
+  },
 };
 
 export function useMobileMonthlyData() {
@@ -429,7 +542,21 @@ export function useMobileMonthlyData() {
         return PREVIEW_MONTHLY_DATA;
       }
 
-      const response = await monthlyClient.listMonthly({ limit: 12 });
+      const { year, monthNum } = currentUtcMonth();
+      const [response, currentMonthly] = await Promise.all([
+        monthlyClient.listMonthly({ limit: 12 }),
+        monthlyClient.getMonthly({ year, monthNum }),
+      ]);
+      const currentRecord = currentMonthly.record;
+      const current: MobileMonthlyCurrent = {
+        year,
+        monthNum,
+        incomeEur: currentRecord.incomeEur,
+        spendingEur: currentRecord.spendingEur,
+        transfersEur: currentRecord.transfersEur,
+        netChangeEur: currentRecord.netChangeEur,
+        signedOff: currentRecord.signedOffAt !== null,
+      };
       const months: MonthlyDisplayRow[] = response.items.map((item) => ({
         monthLabel: formatMonthLabel(item.record.year, item.record.monthNum),
         incomeEur: item.record.incomeEur,
@@ -438,15 +565,19 @@ export function useMobileMonthlyData() {
         closed: item.record.signedOffAt !== null,
       }));
 
-      const current = months[0];
-      const netEur = current?.netEur ?? 0;
+      const netEur = current.netChangeEur;
 
       return {
         currentNetFormatted: formatSignedEur(netEur),
         currentNetTone: netEur >= 0 ? "gain" : "loss",
-        currentIncomeFormatted: `+${eur0.format(current?.incomeEur ?? 0)}`,
-        currentSpendingFormatted: `−${eur0.format(current?.spendingEur ?? 0)}`,
+        currentIncomeFormatted: `+${eur0.format(current.incomeEur)}`,
+        currentSpendingFormatted: `−${eur0.format(current.spendingEur)}`,
         months,
+        monthKeys: response.items.map((item) => ({
+          year: item.record.year,
+          monthNum: item.record.monthNum,
+        })),
+        current,
       };
     },
   });
@@ -464,6 +595,9 @@ export interface MobilePortfolioViewData {
   pnlTone?: "gain" | "loss";
   classes: MobilePortfolioClassSummary[];
   holdings: HoldingCardItem[];
+  /** Holding ids, same order as `holdings`. */
+  holdingIds: string[];
+  accountOptions: MobileSelectOption[];
 }
 
 const PREVIEW_PORTFOLIO_DATA: MobilePortfolioViewData = {
@@ -488,6 +622,8 @@ const PREVIEW_PORTFOLIO_DATA: MobilePortfolioViewData = {
       pnlPct: 18.8,
     },
   ],
+  holdingIds: ["hld_previewCW8000000000000"],
+  accountOptions: [{ value: "acc_previewPEA00000000000", label: "PEA" }],
 };
 
 export function useMobilePortfolioData() {
@@ -555,6 +691,8 @@ export function useMobilePortfolioData() {
         pnlTone: totalPnl >= 0 ? "gain" : "loss",
         classes,
         holdings,
+        holdingIds: holdingsList.map((h) => h.id),
+        accountOptions: accountsList.map((a) => ({ value: a.id, label: a.label })),
       };
     },
   });
@@ -565,6 +703,8 @@ export interface MobileRealEstateViewData {
   totalValuationFormatted: string;
   totalDebtFormatted: string;
   properties: PropertyCardItem[];
+  /** Property ids, same order as `properties`. */
+  propertyIds: string[];
 }
 
 const PREVIEW_REALESTATE_DATA: MobileRealEstateViewData = {
@@ -581,6 +721,7 @@ const PREVIEW_REALESTATE_DATA: MobileRealEstateViewData = {
       repaidPct: 0.28,
     },
   ],
+  propertyIds: ["res_previewLyon7e0000000"],
 };
 
 export function useMobileRealEstateData() {
@@ -631,8 +772,38 @@ export function useMobileRealEstateData() {
         totalValuationFormatted: eur0.format(totalValuation),
         totalDebtFormatted: eur0.format(totalDebt),
         properties,
+        propertyIds: propertiesList.map((p) => p.id),
       };
     },
+  });
+}
+
+/** Property with its mortgage / rental, for the attach-vs-update sheets. */
+export function useMobilePropertyDetail(propertyId: string | undefined) {
+  const { isAuthenticated } = useAuth();
+  return useQuery({
+    queryKey: [...mobileQueryKeys.property(propertyId), isAuthenticated],
+    enabled: isAuthenticated && Boolean(propertyId),
+    queryFn: async () => await realestateClient.getProperty({ id: propertyId ?? "" }),
+  });
+}
+
+export function useMobileValuations(propertyId: string | undefined) {
+  const { isAuthenticated } = useAuth();
+  return useQuery({
+    queryKey: [...mobileQueryKeys.valuations(propertyId), isAuthenticated],
+    enabled: isAuthenticated && Boolean(propertyId),
+    queryFn: async () => await realestateClient.listValuations({ propertyId: propertyId ?? "" }),
+  });
+}
+
+/** Current compass (objective + horizon) for the Paramètres edit sheet. */
+export function useMobileCompassData() {
+  const { isAuthenticated } = useAuth();
+  return useQuery({
+    queryKey: [...mobileQueryKeys.compass(), isAuthenticated],
+    queryFn: async () =>
+      isAuthenticated ? await compassClient.getCompass() : { objectif: 800000, horizonYears: 30 },
   });
 }
 

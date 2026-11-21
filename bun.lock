@@ -68,6 +68,7 @@
         "@pekulo/types": "workspace:*",
         "@pekulo/ui": "workspace:*",
         "@pekulo/validators": "workspace:*",
+        "@pekulo/zod": "workspace:*",
         "@react-native-community/datetimepicker": "9.2.1",
         "@react-native-picker/picker": "2.11.4",
         "@react-navigation/native": "^7.1.6",
