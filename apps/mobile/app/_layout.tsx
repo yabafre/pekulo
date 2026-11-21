@@ -18,7 +18,6 @@ import {
   GeistMono_700Bold,
 } from "@expo-google-fonts/geist-mono";
 import { PekuloRootProvider, pekuloColors, useThemeSetting } from "@pekulo/ui";
-import { Text } from "@pekulo/ui/client";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
@@ -27,7 +26,6 @@ import Stack from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Pressable } from "react-native";
 
 import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
 
@@ -50,36 +48,6 @@ const SHEET_ROUTES: { name: string; detents: number[] }[] = [
   { name: "sheets/cloture", detents: [1.0] },
   { name: "sheets/compass", detents: [0.6, 1.0] },
 ];
-
-function SheetCloseButton() {
-  const router = useRouter();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Fermer les paramètres"
-      hitSlop={8}
-      testID="close-settings-btn"
-      onPress={() => {
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          router.replace("/");
-        }
-      }}
-      style={({ pressed }) => ({
-        minWidth: 44,
-        minHeight: 44,
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Text color="$color" fontSize="$bodySm" fontWeight="600">
-        Fermer
-      </Text>
-    </Pressable>
-  );
-}
 
 function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { resolvedTheme } = useThemeSetting();
@@ -136,7 +104,6 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             headerTitleStyle: { color: palette.text.primary },
             headerTintColor: palette.text.primary,
             contentStyle: { backgroundColor: palette.surface.bg },
-            headerRight: () => <SheetCloseButton />,
           }}
         />
         {SHEET_ROUTES.map((sheet) => (

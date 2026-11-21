@@ -2859,7 +2859,7 @@ Task order is load-bearing: **dependencies & Jest wiring (T1)**, **Supabase chun
   Create/edit/delete transaction, month navigation, AI category override; add/delete milestone; create/edit/balance/delete account; header "+" entry points.
 - [x] **T12 — Mensuel, Portefeuille & Immobilier interactions** [AC: AC-6]
   Sign-off sheet gated by the close window + reopen confirmation; add holding, record lot, close holding; create property, record valuation, valuation history, attach/update mortgage and rental, delete property.
-- [ ] **T13 — Paramètres interactions** [AC: AC-6]
+- [x] **T13 — Paramètres interactions** [AC: AC-6]
   Compass objective/horizon sheet, third-party AI opt-in switch, account deletion with typed-email confirmation then sign-out.
 - [ ] **T14 — Tests, quality sweep and Simulator visual pass** [AC: AC-5, AC-6]
   Jest coverage for every mutation hook and the key sheet flows; typecheck, oxlint, oxfmt; AXe-driven iOS Simulator walkthrough of each new interaction.
