@@ -132,6 +132,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('bun.lock') }}
       - name: Install Playwright Chromium
+        # Run from apps/web so `bunx` resolves the Playwright pinned in bun.lock. From the
+        # repo root it downloads the latest Playwright, whose Chromium revision (v1255) is not
+        # the one the tests launch (v1248) -> "browserType.launch: Executable doesn't exist".
+        working-directory: apps/web
         run: bunx playwright install --with-deps chromium
       - name: Start disposable Postgres + GoTrue stack
         run: |
