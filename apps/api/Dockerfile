@@ -24,6 +24,7 @@ USER bun
 # workspace, ignored by Bun's glob). Lesson 2026-05-04 (L1) — load-bearing.
 COPY --chown=bun:bun package.json bun.lock turbo.json ./
 COPY --chown=bun:bun apps/api/package.json apps/api/
+COPY --chown=bun:bun apps/mobile/package.json apps/mobile/
 COPY --chown=bun:bun apps/web/package.json apps/web/
 COPY --chown=bun:bun packages packages
 
