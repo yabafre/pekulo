@@ -5,7 +5,7 @@ Expo SDK 58 + `expo-router` + Tamagui v2 (`@pekulo/ui` native entrypoint) on Rea
 ## Prerequisites
 
 - Xcode + iOS Simulator (macOS) and CocoaPods (`pod`)
-- Bun (`bun@1.3.13`)
+- Bun (`bun@1.3.14`)
 - Optional for E2E smoke: Maestro CLI (`curl -Ls "https://get.maestro.mobile.dev" | bash`)
 
 ## Launch from Repo Root
@@ -36,6 +36,29 @@ bun --filter='@pekulo/mobile' run typecheck
 # Lint
 bun --filter='@pekulo/mobile' run lint
 
-# Maestro E2E smoke (requires booted iOS Simulator with Dev Build installed)
-maestro test .maestro/smoke.yaml
+# Web ↔ native text-style parity gate (story 10-5)
+cd apps/mobile && bunx jest __tests__/ds-token-parity.test.tsx
+```
+
+## E2E — Maestro on EAS Workflows (story 10-5)
+
+Flows live in `apps/mobile/.maestro/flows/`: `smoke`, `navigation`, `preview-guard`, and the generated `ds-gallery` (one iOS screenshot golden per `@pekulo/ui` component, rendered by the flag-gated route `app/ds/[case].tsx`). They run against the `e2e-test` profile: an iOS Simulator build in preview mode (no backend), DS gallery on.
+
+```bash
+# CI: runs automatically on PRs to main touching apps/mobile or packages/{ui,contracts,validators,types}
+# (apps/mobile/.eas/workflows/e2e-ios.yml — non-required check).
+
+# Run the E2E workflow manually
+cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios.yml
+
+# Regenerate the ds-gallery flow after adding/removing a parity case
+cd apps/mobile && UPDATE_DS_FLOW=1 bunx jest __tests__/maestro-ds-gallery-flow.test.ts
+
+# Refresh the iOS goldens after an INTENTIONAL visual change
+cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios-update-goldens.yml
+# then download the "Maestro Test Results" artifact from the run page and copy
+# its goldens/ios/*.png into apps/mobile/.maestro/goldens/ios/, review, commit.
+
+# Local run (Maestro CLI + a Release simulator build with EXPO_PUBLIC_DS_GALLERY=1)
+maestro test apps/mobile/.maestro
 ```
