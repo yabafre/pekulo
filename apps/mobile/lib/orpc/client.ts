@@ -24,11 +24,22 @@ export async function getAccessToken(): Promise<string | null> {
   return await activeTokenResolver();
 }
 
-export function getApiBaseUrl(env?: Record<string, string | undefined>): string {
+export function getApiBaseUrl(
+  env?: Record<string, string | undefined>,
+  isDev: boolean = __DEV__,
+): string {
   // Direct member read lets babel-preset-expo statically inline EXPO_PUBLIC_API_BASE_URL in native bundles.
   const raw = (env ? env.EXPO_PUBLIC_API_BASE_URL : process.env.EXPO_PUBLIC_API_BASE_URL)?.trim();
-  const base = raw && raw.length > 0 ? raw : DEFAULT_API_BASE_URL;
-  return base.replace(/\/+$/, "");
+  if (!raw) {
+    // The loopback default only makes sense against a local API in development;
+    // a release build would send the Bearer to the phone itself over cleartext.
+    if (isDev) return DEFAULT_API_BASE_URL;
+    throw new Error("EXPO_PUBLIC_API_BASE_URL is not set");
+  }
+  if (!isDev && !/^https:\/\//i.test(raw)) {
+    throw new Error("EXPO_PUBLIC_API_BASE_URL must be an https:// URL in release builds");
+  }
+  return raw.replace(/\/+$/, "");
 }
 
 export interface CreateMobileOrpcLinkOptions {

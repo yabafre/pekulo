@@ -11,6 +11,13 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { chunkedSecureStorage } from "./secure-storage";
 
+/**
+ * Explicit storage key so the purge below can address the persisted session
+ * without reaching into supabase-js internals. (The default key derives from
+ * the project URL; pinning it also survives a project-URL change.)
+ */
+export const AUTH_STORAGE_KEY = "pekulo-mobile-auth";
+
 const FALLBACK_SUPABASE_URL = "https://placeholder.supabase.co";
 const FALLBACK_SUPABASE_ANON_KEY = "placeholder-anon-key";
 
@@ -48,6 +55,7 @@ const initialConfig = getSupabaseConfig();
 export const supabase: SupabaseClient = createClient(initialConfig.url, initialConfig.anonKey, {
   auth: {
     storage: chunkedSecureStorage,
+    storageKey: AUTH_STORAGE_KEY,
     autoRefreshToken: initialConfig.configured,
     persistSession: true,
     detectSessionInUrl: false,
@@ -58,4 +66,14 @@ export async function getSupabaseAccessToken(): Promise<string | null> {
   const { data, error } = await supabase.auth.getSession();
   if (error || !data.session) return null;
   return data.session.access_token ?? null;
+}
+
+/**
+ * Remove the persisted session (manifest + every chunk) from secure storage.
+ * `supabase.auth.signOut()` skips its own local removal when the revoke call
+ * fails for a network reason, so sign-out always finishes with this.
+ */
+export async function purgeStoredSession(): Promise<void> {
+  await chunkedSecureStorage.removeItem(AUTH_STORAGE_KEY);
+  await chunkedSecureStorage.removeItem(`${AUTH_STORAGE_KEY}-code-verifier`);
 }

@@ -6,25 +6,45 @@
 // mode while still allowing explicit sign-in via `/login`.
 
 import type { Session } from "@supabase/supabase-js";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { AppState } from "react-native";
 
 import { tNow } from "../i18n";
 import { resetAccessTokenResolver, setAccessTokenResolver } from "../orpc/client";
-import { isSupabaseConfigured, supabase } from "../supabase/client";
+import { isUnauthorizedError } from "../orpc/errors";
+import {
+  getSupabaseAccessToken,
+  isSupabaseConfigured,
+  purgeStoredSession,
+  supabase,
+} from "../supabase/client";
+
+// The API answered 401 to a request that carried a token: the session is gone
+// server-side (revoked, expired beyond refresh). The mounted AuthProvider
+// registers the handler that ends the local session.
+let unauthorizedHandler: (() => void) | null = null;
+
+function notifyIfUnauthorized(error: unknown): void {
+  if (isUnauthorizedError(error)) unauthorizedHandler?.();
+}
 
 export function createMobileQueryClient(): QueryClient {
   // Infinite gcTime in Jest avoids TanStack Query's 5-minute GC setTimeout keeping Node open.
   const gcTime = process.env.NODE_ENV === "test" ? Infinity : 5 * 60_000;
   return new QueryClient({
+    queryCache: new QueryCache({ onError: notifyIfUnauthorized }),
+    mutationCache: new MutationCache({ onError: notifyIfUnauthorized }),
     defaultOptions: {
       queries: {
         retry: false,
@@ -77,13 +97,41 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
 
   const [session, setSession] = useState<Session | null>(initialSession);
   const [isLoading, setIsLoading] = useState<boolean>(configured && initialSession === null);
+  const sessionRef = useRef<Session | null>(initialSession);
 
-  useEffect(() => {
-    setAccessTokenResolver(async () => session?.access_token ?? null);
+  const applySession = useCallback((next: Session | null) => {
+    sessionRef.current = next;
+    setSession(next);
+  }, []);
+
+  // Read the token at request time. With Supabase configured, `getSession()`
+  // refreshes an expired access token, so a request after the app has been
+  // backgrounded never carries a stale JWT; the session ref covers injected
+  // sessions (tests, preview) where Supabase isn't configured. A layout effect
+  // runs before any child query effect fires its first request.
+  useLayoutEffect(() => {
+    setAccessTokenResolver(async () => {
+      if (configured) {
+        const fresh = await getSupabaseAccessToken();
+        if (fresh) return fresh;
+      }
+      return sessionRef.current?.access_token ?? null;
+    });
     return () => {
       resetAccessTokenResolver();
     };
-  }, [session]);
+  }, [configured]);
+
+  // React Native has no tab visibility: supabase-js only auto-refreshes while
+  // told the app is in the foreground.
+  useEffect(() => {
+    if (!configured) return;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void supabase.auth.startAutoRefresh();
+      else void supabase.auth.stopAutoRefresh();
+    });
+    return () => subscription.remove();
+  }, [configured]);
 
   useEffect(() => {
     if (!configured) {
@@ -98,7 +146,7 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
         .getSession()
         .then(({ data }) => {
           if (!active) return;
-          setSession(data.session ?? null);
+          applySession(data.session ?? null);
           setIsLoading(false);
         })
         .catch(() => {
@@ -109,8 +157,7 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
-      setAccessTokenResolver(async () => nextSession?.access_token ?? null);
-      setSession(nextSession);
+      applySession(nextSession);
       if (!nextSession) {
         queryClient.clear();
       }
@@ -120,7 +167,7 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [configured, initialSession, queryClient]);
+  }, [applySession, configured, initialSession, queryClient]);
 
   const signInWithPassword = useCallback(
     async (email: string, password: string): Promise<SignInResult> => {
@@ -152,33 +199,55 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
               : error.message,
         };
       }
-      // Update token resolver before invalidating queries so immediate refetches carry the new JWT.
-      setAccessTokenResolver(async () => data.session.access_token ?? null);
-      setSession(data.session);
+      // The ref feeds the token resolver, so set it before invalidating queries:
+      // immediate refetches must carry the new JWT.
+      applySession(data.session);
       await queryClient.invalidateQueries();
       return { ok: true };
     },
-    [queryClient],
+    [applySession, queryClient],
   );
 
   const signOut = useCallback(async (): Promise<void> => {
-    await supabase.auth.signOut().catch(() => {});
-    setAccessTokenResolver(async () => null);
-    setSession(null);
+    // supabase-js revokes the refresh token server-side, but when that call
+    // fails for a network reason it resolves with `{ error }` WITHOUT removing
+    // the stored session — so purge the manifest and every chunk ourselves.
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Offline or already revoked: the local purge below still ends the session.
+    }
+    await purgeStoredSession().catch(() => {});
+    applySession(null);
     queryClient.clear();
-  }, [queryClient]);
+  }, [applySession, queryClient]);
+
+  const isAuthenticated = Boolean(session?.access_token);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let ending = false;
+    unauthorizedHandler = () => {
+      if (ending) return;
+      ending = true;
+      void signOut();
+    };
+    return () => {
+      unauthorizedHandler = null;
+    };
+  }, [isAuthenticated, signOut]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
       userEmail: session?.user?.email ?? null,
-      isAuthenticated: Boolean(session?.access_token),
+      isAuthenticated,
       isLoading,
       requireAuth: enforceAuth,
       signInWithPassword,
       signOut,
     }),
-    [session, isLoading, enforceAuth, signInWithPassword, signOut],
+    [session, isAuthenticated, isLoading, enforceAuth, signInWithPassword, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

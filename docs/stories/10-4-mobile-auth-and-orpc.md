@@ -3400,6 +3400,67 @@ export default function ParametresScreen() {
 - `apps/mobile/__tests__/sheets-monthly-portfolio-realestate.test.tsx`
 - `apps/mobile/__tests__/settings-interactions.test.tsx`
 
+**Added after the first review pass (i18n foundation, search field, not-found route, review fixes):**
+
+- `apps/mobile/lib/i18n/index.tsx`
+- `apps/mobile/lib/i18n/types.ts`
+- `apps/mobile/lib/i18n/messages/index.ts`
+- `apps/mobile/lib/i18n/messages/common.ts`
+- `apps/mobile/lib/i18n/messages/auth.ts`
+- `apps/mobile/lib/i18n/messages/cap.ts`
+- `apps/mobile/lib/i18n/messages/transactions.ts`
+- `apps/mobile/lib/i18n/messages/monthly.ts`
+- `apps/mobile/lib/i18n/messages/portfolio.ts`
+- `apps/mobile/lib/i18n/messages/realestate.ts`
+- `apps/mobile/lib/i18n/messages/settings.ts`
+- `apps/mobile/components/search-field.tsx`
+- `apps/mobile/app/+not-found.tsx`
+- `apps/mobile/lib/orpc/errors.ts`
+- `apps/mobile/__tests__/i18n-cap.test.tsx`
+- `apps/mobile/__tests__/i18n-transactions-monthly.test.tsx`
+- `apps/mobile/__tests__/i18n-assets-settings.test.tsx`
+- `apps/mobile/__tests__/helpers/contract-fixtures.ts`
+- `apps/mobile/__tests__/contract-fixtures.test.ts`
+
+**Modified in the shared `@pekulo/ui` (optional `labels` / `typeLabel` / `closedLabel` props; the French defaults keep web output identical — 159 UI test files and the generated Tamagui CSS are unchanged):**
+
+- `packages/ui/src/components/PekuloAccountRow/PekuloAccountRow.tsx`
+- `packages/ui/src/components/PekuloHero/PekuloHero.tsx`
+- `packages/ui/src/components/PekuloHoldingRow/PekuloHoldingRow.tsx`
+- `packages/ui/src/components/PekuloMilestoneRow/PekuloMilestoneRow.native.tsx`
+- `packages/ui/src/components/PekuloMonthlyRow/PekuloMonthlyRow.native.tsx`
+- `packages/ui/src/components/PekuloPropertyCard/PekuloPropertyCard.tsx`
+- `packages/ui/src/components/PekuloSuggestionRow/PekuloSuggestionRow.native.tsx`
+- `packages/ui/src/components/PekuloTopTabToggle/PekuloTopTabToggle.tsx`
+
+**Modified by the review-fix pass (2026-11-22), on top of the entries above:**
+
+- `apps/mobile/lib/actions.ts`
+- `apps/mobile/lib/forms.ts`
+- `apps/mobile/lib/format.ts`
+- `apps/mobile/lib/auth/auth-context.tsx`
+- `apps/mobile/lib/orpc/client.ts`
+- `apps/mobile/lib/supabase/client.ts`
+- `apps/mobile/lib/supabase/secure-storage.ts`
+- `apps/mobile/lib/hooks/use-mobile-mutations.ts`
+- `apps/mobile/lib/hooks/use-mobile-queries.ts`
+- `apps/mobile/lib/i18n/messages/common.ts`
+- `apps/mobile/lib/i18n/messages/transactions.ts`
+- `apps/mobile/components/form/fields.tsx`
+- `apps/mobile/components/form/sheet.tsx`
+- `apps/mobile/app/(tabs)/transactions/index.tsx`
+- `apps/mobile/app/sheets/cloture.tsx`
+- `apps/mobile/app/sheets/milestone.tsx`
+- `apps/mobile/app/sheets/mortgage.tsx`
+- `apps/mobile/app/sheets/rental.tsx`
+- `apps/mobile/app/sheets/transaction.tsx`
+- `apps/mobile/app/sheets/valuations.tsx`
+- `apps/mobile/__tests__/auth-and-orpc.test.tsx`
+- `apps/mobile/__tests__/mutations.test.tsx`
+- `apps/mobile/__tests__/settings-interactions.test.tsx`
+- `apps/mobile/__tests__/sheets-monthly-portfolio-realestate.test.tsx`
+- `apps/mobile/__tests__/sheets-transactions-cap.test.tsx`
+
 ## Dev Agent Record
 
 - **Model:** Gemini 4 Neon (High)
@@ -3413,10 +3474,24 @@ export default function ParametresScreen() {
 - **Native iOS surfaces:** form sheets under `app/sheets/*` (`formSheet` with detents), native `Stack.Toolbar` header items (custom React views in `headerRight` stopped receiving touches on the iOS 26 navigation bar), `ActionSheetIOS` row menus, destructive `Alert` confirmations, `Alert.prompt` typed-email confirmation for account deletion, native compact `DateTimePicker`, native `Switch`.
 - **Parity choices mirrored from the web:** EUR-locked account currency (story 2-3 review HIGH #6), the monthly close window (last 5 days → 5 days after, UTC), the per-user milestone cap.
 - **Bug found by the tests:** edit sheets overwrote what the user had typed when cached data arrived late; prefill now stops once a field is edited.
-- **Verification:** `@pekulo/mobile` Jest 9 suites / 67 tests pass; `bun run typecheck` 10/10; mobile oxlint 0/0 (3 pre-existing warnings in `apps/web` only); `packages/ui` unchanged vs `main`. Simulator (iPhone 17 Pro, iOS 26, preview mode) walkthrough with AXe: tab toolbars, transaction sheet, row action sheets, month navigation, milestone delete → preview sign-in prompt, Cap add menu, milestone sheet, Mensuel close gating, holding rows, property action menu, Paramètres sections and native close.
+- **Verification:** `@pekulo/mobile` Jest 9 suites / 67 tests pass; `bun run typecheck` 10/10; mobile oxlint 0/0 (3 pre-existing warnings in `apps/web` only); `packages/ui` carries only the optional-`labels` changes listed in the File List (see the follow-up polish entry below). Simulator (iPhone 17 Pro, iOS 26, preview mode) walkthrough with AXe: tab toolbars, transaction sheet, row action sheets, month navigation, milestone delete → preview sign-in prompt, Cap add menu, milestone sheet, Mensuel close gating, holding rows, property action menu, Paramètres sections and native close.
 - **Not verified live:** no authenticated session was available on the Simulator, so mutations were exercised against mocked contracts (Jest) and against the preview guard (device), not against the real API.
 - **Follow-up polish (2026-11-22):** language preference now drives the UI — new typed `lib/i18n` (fr source + en, per-area dictionaries, provider fed by `settings.lang`, `tNow` for alerts/action sheets); shared `@pekulo/ui` rows gained optional `labels` props whose French defaults keep web output identical (159 ui test files unchanged); native tab bar back to Cap-first with titles and HIG-sized SF Symbols (location.north.line, arrow.left.arrow.right, calendar, chart.pie, house) plus VoiceOver labels; Transactions search moved into the scroll content (Stack.SearchBar mis-inset the content on focus on iOS 26) and shows results only while searching; status-bar scrim on headerless screens; Paramètres sheet full height; Supabase "Invalid login credentials" mapped to a localised message; validator messages fall back to a localised hint outside French. Mobile Jest 12 suites / 86 tests.
 - **Known:** `PekuloPropertyCard` (shared `@pekulo/ui`) still renders the English label "EQUITY"; root `format:check` flags only the untracked third-party `.claude/skills/{ui-taste,ios-design}` files.
+
+### Review fixes (2026-11-22, aped-review pass 1 → `[F]`)
+
+Three auditors (Spec, Code, Edge & hallucination) returned CHANGES_REQUESTED; every finding was verified against the code before being fixed.
+
+- **MAJOR — offline sign-out kept the session.** `supabase.auth.signOut()` resolves `{ error }` without removing the stored session when the revoke call fails for a network reason (verified in the installed `auth-js@2.104.1` `_signOut`), so the next cold start restored it. `signOut` now always ends with `purgeStoredSession()` (manifest + every chunk + code-verifier) behind an explicit `AUTH_STORAGE_KEY`. Existing devices are signed out once (the storage key changed from the URL-derived default).
+- **MAJOR — stale token, no 401 handling.** The resolver read a React-state snapshot. It now asks Supabase at request time (`getSession()` refreshes an expired JWT), falls back to a session ref for injected sessions, is registered in a layout effect so it precedes the first query effect, and `AppState` drives `startAutoRefresh` / `stopAutoRefresh`. `QueryCache` / `MutationCache` `onError` ends the session on `UNAUTHORIZED`; route gating then sends the user to `/login`.
+- **MAJOR — typed contract errors collapsed to one toast.** `handleMutationError` maps the contract codes (`ACCOUNT_PARTIALLY_ERASED`, `BANK_PROVIDER_UNAVAILABLE`, `MONTHLY_*`, `FORBIDDEN`, `RATE_LIMITED`, `*_NOT_FOUND`, `HOLDING_CLOSED`, `*_ALREADY_ATTACHED`, `ACCOUNT_REFERENCED_FK`) to localised copy. `useDeleteUserAccount` signs out on `ACCOUNT_PARTIALLY_ERASED` (data erased, identity left) instead of leaving the user on an empty account; the close sheet blocks an already signed-off month.
+- **MEDIUM — transactions silently cut at 100 rows.** The list follows `nextCursor` (200/page, 1 000-row safety cap with a visible note); the "à valider" count uses `totalCount`, and pending suggestions are scoped to the displayed month like the web.
+- **MEDIUM — validator messages.** `validateInput` picks copy from the issue kind (empty amount → "Saisissez un montant valide.", ranges, required) and keeps deliberate French schema copy ("Libellé requis"); developer-English messages are never shown.
+- **MEDIUM — mocks and test gaps.** All mutation mocks now come from `__tests__/helpers/contract-fixtures.ts`, validated against the REAL contract output schemas (`contract-fixtures.test.ts`; it caught wrong id prefixes while being written). New tests: wire-level Bearer + path for all 9 modules; sign-in/out through the chunked store (offline and throwing revoke); token refresh; `AppState`; 401 sign-out; chunk layout (UTF-8 bytes, kill-before-manifest, legacy layout); preview blocking for every mutation hook; partial-erasure; typed-error toasts; double tap; missing entity; edit account; update rental; signed-off close; pagination and truncation. Mutation-checked: removing the purge or the in-flight guard makes the matching test fail.
+- **LOW fixed:** non-atomic chunk write (new generation written first, manifest swap = commit, old generation deleted last) and chunking by characters (now UTF-8 bytes, code-point safe); loopback / cleartext API URL in release builds (now throws); dead unguarded `useConfirmMobileSuggestion` removed; double-tap guard moved to a ref; stale/deleted id sheets show a not-found state; UTC calendar days shown and re-saved correctly in any timezone (valuations, mortgage); `DateField` follows the app language; `-0 €` and `1 000 k€` formatting; Transactions and Mensuel now share the UTC "current month"; `parseAmountInput` accepts `1,234.50` / `1.234,50` / `+5` / `−5`; rate → ratio without float noise; `PreviewModeError` message localised; milestone cap check waits for loaded data.
+- **Not changed (finding disproved):** the property card's `repaidPct = netEquity / currentValuation` and the hidden empty mortgage block are the same derivation as `apps/web/.../property-card.tsx` (`hasMortgage` / `clamp01`), i.e. web parity, not a mobile defect. The contract exposes no mortgage payment or term on the derive list.
+- **Known:** `PekuloPropertyCard` (shared `@pekulo/ui`) still renders the English label "EQUITY" by default; the `.claude/skills/{ui-taste,ios-design}` files are untracked third-party content and are the only files `oxfmt --check` flags at the repo root.
 
 ### Scope override (2026-11-21)
 
@@ -3480,10 +3555,13 @@ Implemented chunked `expo-secure-store` session persistence, mobile Supabase Aut
 
 ### Test output
 
-- `bun run format:check` — exit 0
-- `bun run lint` — exit 0 (`0 warnings, 0 errors` in `@pekulo/mobile`)
+Captured 2026-11-22 after the review-fix pass:
+
+- `bunx oxfmt --check apps/mobile` — exit 0 (`All matched files use the correct format`); root `bun run format:check` flags only the 10 untracked third-party `.claude/skills/{ui-taste,ios-design}` files
+- `bunx oxlint` — `0 errors`, 3 warnings, all pre-existing in `apps/web` (`axe-routes.spec.ts`, `dashboard-edit-context.tsx`, `recent-activity-section.tsx`); `0 warnings` in `apps/mobile`
 - `bun run typecheck` — exit 0 (`10 successful, 10 total`)
-- `bun --filter='@pekulo/mobile' run test` — exit 0 (`Test Suites: 4 passed, 4 total`, `Tests: 20 passed, 20 total`)
+- `cd apps/mobile && bun run test` — exit 0 (`Test Suites: 13 passed, 13 total`, `Tests: 127 passed, 127 total`)
 - `bun --filter='@pekulo/ui' run test` — exit 0 (`Test Files: 159 passed (159)`, `Tests: 342 passed | 1 skipped (343)`)
 - `bun --filter='@pekulo/web' run test` — exit 0 (`Test Files: 125 passed (125)`, `Tests: 435 passed (435)`)
 - `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css` — exit 0 (zero diff)
+- Not run: the iOS Simulator walkthrough and any authenticated session against the real API (mutations remain verified against contract-faithful mocks and the preview guard).

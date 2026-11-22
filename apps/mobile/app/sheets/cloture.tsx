@@ -26,6 +26,8 @@ export default function ClotureSheet() {
   const { signOff } = useMonthlyMutations();
   const { run, error, setError, pending } = useMutationRunner({ dismiss: true });
   const current = data?.current;
+  // The sheet can be opened on a month that was signed off meanwhile.
+  const signedOff = Boolean(current?.signedOff);
 
   const [income, setIncome] = useState("");
   const [spending, setSpending] = useState("");
@@ -50,7 +52,7 @@ export default function ClotureSheet() {
   const open = current ? isWithinCloseWindow(current.year, current.monthNum, nowDate()) : false;
 
   function save() {
-    if (!current) return;
+    if (!current || signedOff) return;
     if (!open) {
       setError(
         t("monthly.sheet.windowError", {
@@ -82,8 +84,8 @@ export default function ClotureSheet() {
       }
       primaryLabel={t("monthly.sheet.primary")}
       onPrimary={current ? save : undefined}
-      primaryDisabled={pending || !open}
-      error={error}
+      primaryDisabled={pending || !open || signedOff}
+      error={error ?? (signedOff ? t("common.errors.monthlySignedOffMessage") : null)}
     >
       <FormSection
         footer={

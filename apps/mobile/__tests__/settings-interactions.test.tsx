@@ -11,6 +11,7 @@ import { AuthProvider, createMobileQueryClient } from "../lib/auth/auth-context"
 import { compassClient, llmClient, settingsClient } from "../lib/orpc/modules";
 import { supabase } from "../lib/supabase/client";
 
+import { deleteAccountResult } from "./helpers/contract-fixtures";
 const mockBack = jest.fn();
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
@@ -130,7 +131,10 @@ describe("AC-6 — Paramètres interactions", () => {
   });
 
   it("edits the compass objective and horizon", async () => {
-    (compassClient.updateCompass as jest.Mock).mockResolvedValue({});
+    (compassClient.updateCompass as jest.Mock).mockResolvedValue({
+      objectif: 900000,
+      horizonYears: 25,
+    });
     await renderLive(<CompassSheet />);
     await waitFor(() => expect(screen.getByDisplayValue("800000")).toBeTruthy());
     await fireEvent.changeText(screen.getByTestId("compass-objectif"), "900 000");
@@ -159,7 +163,7 @@ describe("AC-6 — Paramètres interactions", () => {
   });
 
   it("deletes the account after typing the account email, then signs out", async () => {
-    (settingsClient.deleteAccount as jest.Mock).mockResolvedValue({ ok: true });
+    (settingsClient.deleteAccount as jest.Mock).mockResolvedValue(deleteAccountResult());
     const signOutSpy = jest.spyOn(supabase.auth, "signOut").mockResolvedValue({ error: null });
     jest.spyOn(Alert, "prompt").mockImplementation((_title, _message, buttons) => {
       if (Array.isArray(buttons)) {

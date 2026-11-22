@@ -101,6 +101,8 @@ export default function TransactionsScreen() {
     incomeFormatted: "+3 200 €",
     spendingFormatted: "−2 150 €",
     pendingSuggestions: [],
+    pendingCount: 0,
+    listTruncated: false,
     recentTransactions: [],
     rows: [],
     accountOptions: [],
@@ -242,7 +244,7 @@ export default function TransactionsScreen() {
                     style={{ fontVariant: ["tabular-nums"] }}
                   >
                     {t("transactions.suggestions.toValidate", {
-                      count: viewData.pendingSuggestions.length,
+                      count: viewData.pendingCount,
                     })}
                   </Text>
                 }
@@ -336,6 +338,11 @@ export default function TransactionsScreen() {
                   onCta={() => router.push(`/sheets/transaction?month=${month}`)}
                 />
               )}
+              {viewData.listTruncated && !searching ? (
+                <Text color="$colorTertiary" fontSize="$xs" testID="tx-truncated-note">
+                  {t("transactions.list.truncatedNote")}
+                </Text>
+              ) : null}
             </Section>
           </View>
         )}

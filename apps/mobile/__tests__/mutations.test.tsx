@@ -1,11 +1,24 @@
 import { PekuloRootProvider } from "@pekulo/ui";
 import type { Session } from "@supabase/supabase-js";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { createTransactionInputSchema } from "@pekulo/validators";
+import { ORPCError } from "@orpc/client";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import { AuthProvider, createMobileQueryClient } from "../lib/auth/auth-context";
-import { isWithinCloseWindow, parseAmountInput, shiftMonthKey, toIsoDate } from "../lib/forms";
+import { contractErrorCopy, handleMutationError } from "../lib/actions";
+import {
+  currentMonthKey,
+  fromUtcDay,
+  isWithinCloseWindow,
+  parseAmountInput,
+  percentToRatio,
+  shiftMonthKey,
+  toIsoDate,
+  validateInput,
+} from "../lib/forms";
+import { formatCompactEur, formatEur } from "../lib/format";
 import {
   PreviewModeError,
   useAccountMutations,
@@ -37,6 +50,18 @@ import {
   useMobileValuations,
 } from "../lib/hooks/use-mobile-queries";
 import { supabase } from "../lib/supabase/client";
+import {
+  accountDto,
+  deleteAccountResult,
+  holdingDto,
+  lotDto,
+  milestoneDto,
+  monthlyRecordDto,
+  mortgageDto,
+  propertyDto,
+  rentalDto,
+  transactionDto,
+} from "./helpers/contract-fixtures";
 
 jest.mock("../lib/orpc/modules", () => {
   const actual = jest.requireActual("../lib/orpc/modules");
@@ -147,10 +172,10 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
 
   it("transactions: create, update, delete and category override, refreshing transactions, cap and monthly", async () => {
     const { Wrapper, invalidate } = wrapperFor(SESSION);
-    (transactionsClient.createTransaction as jest.Mock).mockResolvedValue({ id: TX });
-    (transactionsClient.updateTransaction as jest.Mock).mockResolvedValue({ id: TX });
+    (transactionsClient.createTransaction as jest.Mock).mockResolvedValue(transactionDto());
+    (transactionsClient.updateTransaction as jest.Mock).mockResolvedValue(transactionDto());
     (transactionsClient.deleteTransaction as jest.Mock).mockResolvedValue({ ok: true });
-    (transactionsClient.confirmCategorisation as jest.Mock).mockResolvedValue({ id: TX });
+    (transactionsClient.confirmCategorisation as jest.Mock).mockResolvedValue(transactionDto());
     const { result } = await renderHook(() => useTransactionMutations(), { wrapper: Wrapper });
 
     const input = {
@@ -203,8 +228,8 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
 
   it("milestones: add and delete", async () => {
     const { Wrapper, invalidate } = wrapperFor(SESSION);
-    (milestonesClient.add as jest.Mock).mockResolvedValue({ id: MST });
-    (milestonesClient.delete as jest.Mock).mockResolvedValue({ ok: true });
+    (milestonesClient.add as jest.Mock).mockResolvedValue(milestoneDto());
+    (milestonesClient.delete as jest.Mock).mockResolvedValue({ id: MST });
     const { result } = await renderHook(() => useMilestoneMutations(), { wrapper: Wrapper });
 
     await act(() =>
@@ -223,9 +248,10 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
 
   it("accounts: create, update, re-balance and delete", async () => {
     const { Wrapper, invalidate } = wrapperFor(SESSION);
-    for (const fn of ["create", "update", "recordBalanceChange", "delete"] as const) {
-      (accountsClient[fn] as jest.Mock).mockResolvedValue({ id: ACC });
+    for (const fn of ["create", "update", "recordBalanceChange"] as const) {
+      (accountsClient[fn] as jest.Mock).mockResolvedValue(accountDto());
     }
+    (accountsClient.delete as jest.Mock).mockResolvedValue({ ok: true });
     const { result } = await renderHook(() => useAccountMutations(), { wrapper: Wrapper });
 
     await act(() =>
@@ -266,8 +292,8 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
 
   it("holdings: create, record a lot and close", async () => {
     const { Wrapper, invalidate } = wrapperFor(SESSION);
-    (holdingsClient.create as jest.Mock).mockResolvedValue({ id: HLD });
-    (holdingsClient.recordLot as jest.Mock).mockResolvedValue({ id: "lot_1" });
+    (holdingsClient.create as jest.Mock).mockResolvedValue(holdingDto());
+    (holdingsClient.recordLot as jest.Mock).mockResolvedValue(lotDto());
     (holdingsClient.close as jest.Mock).mockResolvedValue({ ok: true });
     const { result } = await renderHook(() => useHoldingMutations(), { wrapper: Wrapper });
 
@@ -306,17 +332,16 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
 
   it("realestate: property, valuation, mortgage, rental and delete", async () => {
     const { Wrapper, invalidate } = wrapperFor(SESSION);
-    for (const fn of [
-      "createProperty",
-      "recordValuation",
-      "attachMortgage",
-      "updateMortgage",
-      "attachRental",
-      "updateRental",
-      "deleteProperty",
-    ] as const) {
-      (realestateClient[fn] as jest.Mock).mockResolvedValue({ id: RE });
+    for (const fn of ["createProperty", "recordValuation"] as const) {
+      (realestateClient[fn] as jest.Mock).mockResolvedValue(propertyDto());
     }
+    for (const fn of ["attachMortgage", "updateMortgage"] as const) {
+      (realestateClient[fn] as jest.Mock).mockResolvedValue(mortgageDto());
+    }
+    for (const fn of ["attachRental", "updateRental"] as const) {
+      (realestateClient[fn] as jest.Mock).mockResolvedValue(rentalDto());
+    }
+    (realestateClient.deleteProperty as jest.Mock).mockResolvedValue({ ok: true });
     const { result } = await renderHook(() => useRealEstateMutations(), { wrapper: Wrapper });
     const day = new Date("2026-11-20T00:00:00Z");
 
@@ -381,8 +406,10 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
 
   it("monthly: sign off and reopen", async () => {
     const { Wrapper, invalidate } = wrapperFor(SESSION);
-    (monthlyClient.signOffMonthly as jest.Mock).mockResolvedValue({});
-    (monthlyClient.reopenMonthly as jest.Mock).mockResolvedValue({});
+    (monthlyClient.signOffMonthly as jest.Mock).mockResolvedValue(monthlyRecordDto());
+    (monthlyClient.reopenMonthly as jest.Mock).mockResolvedValue(
+      monthlyRecordDto({ monthNum: 10, signedOffAt: null }),
+    );
     const { result } = await renderHook(() => useMonthlyMutations(), { wrapper: Wrapper });
 
     const signOff = {
@@ -403,10 +430,13 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
 
   it("compass, AI opt-in and account deletion (then local sign-out)", async () => {
     const { Wrapper } = wrapperFor(SESSION);
-    (compassClient.updateCompass as jest.Mock).mockResolvedValue({});
+    (compassClient.updateCompass as jest.Mock).mockResolvedValue({
+      objectif: 900000,
+      horizonYears: 25,
+    });
     (llmClient.getOptIn as jest.Mock).mockResolvedValue({ thirdParty: false });
     (llmClient.setOptIn as jest.Mock).mockResolvedValue({ thirdParty: true });
-    (settingsClient.deleteAccount as jest.Mock).mockResolvedValue({ ok: true });
+    (settingsClient.deleteAccount as jest.Mock).mockResolvedValue(deleteAccountResult());
     const signOutSpy = jest.spyOn(supabase.auth, "signOut").mockResolvedValue({ error: null });
 
     const compass = await renderHook(() => useCompassMutation(), { wrapper: Wrapper });
@@ -429,13 +459,113 @@ describe("AC-6 — mobile mutation hooks call the matching contract procedures",
     expect(signOutSpy).toHaveBeenCalled();
   });
 
-  it("preview mode: every mutation is blocked with PreviewModeError and no remote call", async () => {
+  it("preview mode: EVERY mutation hook is blocked with PreviewModeError and no remote call", async () => {
     const { Wrapper } = wrapperFor(null);
-    const { result } = await renderHook(() => useMilestoneMutations(), { wrapper: Wrapper });
+    const blocked: [string, () => Promise<unknown>][] = [];
+    const collect = (name: string, mutations: Record<string, unknown>) => {
+      for (const [key, mutation] of Object.entries(mutations)) {
+        const m = mutation as { mutateAsync?: (input: never) => Promise<unknown> };
+        if (m && typeof m.mutateAsync === "function") {
+          const call = m.mutateAsync;
+          blocked.push([`${name}.${key}`, () => call({} as never)]);
+        }
+      }
+    };
+
+    const tx = await renderHook(() => useTransactionMutations(), { wrapper: Wrapper });
+    const ms = await renderHook(() => useMilestoneMutations(), { wrapper: Wrapper });
+    const acc = await renderHook(() => useAccountMutations(), { wrapper: Wrapper });
+    const hld = await renderHook(() => useHoldingMutations(), { wrapper: Wrapper });
+    const re = await renderHook(() => useRealEstateMutations(), { wrapper: Wrapper });
+    const mon = await renderHook(() => useMonthlyMutations(), { wrapper: Wrapper });
+    const cmp = await renderHook(() => useCompassMutation(), { wrapper: Wrapper });
+    const del = await renderHook(() => useDeleteUserAccount(), { wrapper: Wrapper });
+    collect("transactions", tx.result.current);
+    collect("milestones", ms.result.current);
+    collect("accounts", acc.result.current);
+    collect("holdings", hld.result.current);
+    collect("realestate", re.result.current);
+    collect("monthly", mon.result.current);
+    blocked.push(["compass", () => cmp.result.current.mutateAsync({} as never)]);
+    blocked.push(["deleteAccount", () => del.result.current.mutateAsync({} as never)]);
+
+    expect(blocked.length).toBeGreaterThanOrEqual(24);
+    await Promise.all(
+      blocked.map(([, call]) => expect(call()).rejects.toBeInstanceOf(PreviewModeError)),
+    );
+
+    const optIn = await renderHook(() => useLlmOptIn(), { wrapper: Wrapper });
+    await expect(optIn.result.current.setThirdParty(true)).rejects.toBeInstanceOf(PreviewModeError);
+
+    for (const client of [
+      transactionsClient,
+      milestonesClient,
+      accountsClient,
+      holdingsClient,
+      realestateClient,
+      monthlyClient,
+      compassClient,
+      llmClient,
+      settingsClient,
+    ] as Record<string, unknown>[]) {
+      for (const fn of Object.values(client)) {
+        expect((fn as jest.Mock).mock.calls).toHaveLength(0);
+      }
+    }
+  });
+
+  it("account deletion: a plain failure keeps the session (nothing was erased)", async () => {
+    const { Wrapper } = wrapperFor(SESSION);
+    const signOutSpy = jest.spyOn(supabase.auth, "signOut").mockResolvedValue({ error: null });
+    (settingsClient.deleteAccount as jest.Mock).mockRejectedValue(
+      new ORPCError("BANK_PROVIDER_UNAVAILABLE", { status: 503 }),
+    );
+    const { result } = await renderHook(() => useDeleteUserAccount(), { wrapper: Wrapper });
+
     await expect(
-      result.current.add.mutateAsync({ targetCapital: 1000, targetYear: 2030 }),
-    ).rejects.toBeInstanceOf(PreviewModeError);
-    expect(milestonesClient.add).not.toHaveBeenCalled();
+      result.current.mutateAsync({ confirmationEmail: "alex@pekulo.app" }),
+    ).rejects.toMatchObject({ code: "BANK_PROVIDER_UNAVAILABLE" });
+    expect(signOutSpy).not.toHaveBeenCalled();
+  });
+
+  it("account deletion: ACCOUNT_PARTIALLY_ERASED ends the now-empty session and still reports the error", async () => {
+    const { Wrapper } = wrapperFor(SESSION);
+    const signOutSpy = jest.spyOn(supabase.auth, "signOut").mockResolvedValue({ error: null });
+    (settingsClient.deleteAccount as jest.Mock).mockRejectedValue(
+      new ORPCError("ACCOUNT_PARTIALLY_ERASED", { status: 500 }),
+    );
+    const { result } = await renderHook(() => useDeleteUserAccount(), { wrapper: Wrapper });
+
+    await expect(
+      result.current.mutateAsync({ confirmationEmail: "alex@pekulo.app" }),
+    ).rejects.toMatchObject({ code: "ACCOUNT_PARTIALLY_ERASED" });
+    expect(signOutSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AC-6 — typed contract failures surface localised, specific feedback", () => {
+  const handlers = () => ({ goToLogin: jest.fn(), toastDanger: jest.fn() });
+
+  it.each([
+    ["ACCOUNT_PARTIALLY_ERASED", "Suppression incomplète"],
+    ["BANK_PROVIDER_UNAVAILABLE", "Banque indisponible"],
+    ["MONTHLY_OUT_OF_WINDOW", "Clôture indisponible"],
+    ["MONTHLY_SIGNED_OFF", "Mois déjà clôturé"],
+    ["FORBIDDEN", "Action non autorisée"],
+    ["TRANSACTION_NOT_FOUND", "Élément introuvable"],
+    ["HOLDING_CLOSED", "Position clôturée"],
+  ])("%s → toast titled “%s”, never the generic save failure", (code, title) => {
+    const h = handlers();
+    expect(handleMutationError(new ORPCError(code), h)).toBeNull();
+    expect(h.toastDanger).toHaveBeenCalledWith(title, expect.any(String));
+  });
+
+  it("unknown failures keep the generic toast and unknown codes have no typed copy", () => {
+    const h = handlers();
+    handleMutationError(new Error("network"), h);
+    expect(h.toastDanger).toHaveBeenCalledWith("Enregistrement impossible", expect.any(String));
+    expect(contractErrorCopy(new ORPCError("SOMETHING_ELSE"))).toBeNull();
+    expect(contractErrorCopy(new Error("x"))).toBeNull();
   });
 });
 
@@ -446,6 +576,60 @@ describe("AC-6 — form helpers mirror web parsing and close-window rules", () =
     expect(parseAmountInput("-12,3")).toBe(-12.3);
     expect(Number.isNaN(parseAmountInput("abc"))).toBe(true);
     expect(Number.isNaN(parseAmountInput(""))).toBe(true);
+  });
+
+  it("parses English-style grouping, signs and trailing separators", () => {
+    expect(parseAmountInput("1,234.50")).toBe(1234.5);
+    expect(parseAmountInput("1.234,50")).toBe(1234.5);
+    expect(parseAmountInput("1,234,567.89")).toBe(1234567.89);
+    expect(parseAmountInput("5.")).toBe(5);
+    expect(parseAmountInput("+5")).toBe(5);
+    expect(parseAmountInput("−5,5")).toBe(-5.5);
+    expect(Object.is(parseAmountInput("-0"), 0)).toBe(true);
+    expect(Number.isNaN(parseAmountInput("1,2,3"))).toBe(true);
+  });
+
+  it("rounds percent → ratio without float noise", () => {
+    expect(percentToRatio(1.1)).toBe(0.011);
+    expect(percentToRatio(3.45)).toBe(0.0345);
+    expect(1.1 / 100).not.toBe(0.011);
+  });
+
+  it("keeps UTC calendar days stable in any timezone", () => {
+    const local = fromUtcDay(new Date("2020-03-01T00:00:00.000Z"));
+    expect([local.getFullYear(), local.getMonth(), local.getDate()]).toEqual([2020, 2, 1]);
+    expect(fromUtcDay("2020-03-01T00:00:00.000Z").getDate()).toBe(1);
+  });
+
+  it("uses the UTC month as 'current', like the server and the web", () => {
+    expect(currentMonthKey(new Date("2026-11-30T23:30:00.000Z"))).toBe("2026-11");
+    expect(currentMonthKey(new Date("2026-12-01T00:00:00.000Z"))).toBe("2026-12");
+  });
+
+  it("formats euros without '-0' and picks the compact unit from the rounded figure", () => {
+    expect(formatEur(-0.4)).toBe("0 €");
+    expect(formatCompactEur(-0.4)).toBe("0 €");
+    expect(formatCompactEur(999_999)).toMatch(/^1\s?M€$/);
+    expect(formatCompactEur(999_949)).toMatch(/^999,9\s?k€$/);
+    expect(formatCompactEur(800_000)).toMatch(/^800\s?k€$/);
+    expect(formatCompactEur(1_250_000)).toBe("1,3 M€");
+  });
+
+  it("localises validator failures by kind and keeps deliberate French copy", () => {
+    const create = (over: Record<string, unknown>) =>
+      validateInput(createTransactionInputSchema, {
+        accountId: ACC,
+        occurredOn: "2026-11-20",
+        label: "Courses",
+        amount: 10,
+        type: "outflow",
+        category: "courses",
+        isImprevu: false,
+        notes: null,
+        ...over,
+      });
+    expect(() => create({ amount: Number.NaN })).toThrow("Saisissez un montant valide.");
+    expect(() => create({ label: "" })).toThrow("Libellé requis");
   });
 
   it("formats local dates as ISO YYYY-MM-DD", () => {
@@ -491,8 +675,17 @@ describe("AC-6 — read hooks expose ids and raw values for edit sheets", () => 
       spendingEur: 900,
       netChangeEur: -900,
     });
-    (transactionsClient.listPendingSuggestions as jest.Mock).mockResolvedValue({ items: [] });
-    (transactionsClient.listTransactions as jest.Mock).mockResolvedValue({ items: [raw] });
+    (transactionsClient.listPendingSuggestions as jest.Mock).mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 10,
+    });
+    (transactionsClient.listTransactions as jest.Mock).mockResolvedValue({
+      items: [raw],
+      nextCursor: null,
+      totalCount: null,
+    });
     (accountsClient.list as jest.Mock).mockResolvedValue([{ id: ACC, label: "Courant" }]);
 
     const { result } = await renderHook(() => useMobileTransactionsData("2026-10"), {
@@ -508,6 +701,78 @@ describe("AC-6 — read hooks expose ids and raw values for edit sheets", () => 
       expect.objectContaining({ id: TX, raw: expect.objectContaining({ label: "Loyer" }) }),
     );
     expect(result.current.data?.accountOptions).toEqual([{ value: ACC, label: "Courant" }]);
+    expect(result.current.data?.listTruncated).toBe(false);
+  });
+
+  it("transactions: follows nextCursor up to 1 000 rows, then flags the month as truncated", async () => {
+    const { Wrapper } = wrapperFor(SESSION);
+    (transactionsClient.monthSummary as jest.Mock).mockResolvedValue({
+      month: "2026-10",
+      incomeEur: 0,
+      spendingEur: 0,
+      netChangeEur: 0,
+    });
+    (transactionsClient.listPendingSuggestions as jest.Mock).mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 10,
+    });
+    (accountsClient.list as jest.Mock).mockResolvedValue([{ id: ACC, label: "Courant" }]);
+    let counter = 0;
+    (transactionsClient.listTransactions as jest.Mock).mockImplementation(async () => ({
+      items: Array.from({ length: 200 }, () =>
+        transactionDto({ id: `tx_${String((counter += 1)).padStart(21, "C")}` }),
+      ),
+      nextCursor: "more",
+      totalCount: null,
+    }));
+
+    const { result } = await renderHook(() => useMobileTransactionsData("2026-10"), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => expect(result.current.data?.rows).toHaveLength(1000));
+
+    expect(transactionsClient.listTransactions).toHaveBeenCalledTimes(5);
+    expect(result.current.data?.listTruncated).toBe(true);
+    expect(transactionsClient.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ cursor: "more", limit: 200, month: "2026-10" }),
+    );
+  });
+
+  it("transactions: exposes the full pending count, not the size of the first page", async () => {
+    const { Wrapper } = wrapperFor(SESSION);
+    (transactionsClient.monthSummary as jest.Mock).mockResolvedValue({
+      month: "2026-10",
+      incomeEur: 0,
+      spendingEur: 0,
+      netChangeEur: 0,
+    });
+    (transactionsClient.listPendingSuggestions as jest.Mock).mockResolvedValue({
+      items: [transactionDto({ suggestedCategory: "courses", suggestedConfidence: 0.8 })],
+      totalCount: 23,
+      page: 1,
+      pageSize: 10,
+    });
+    (transactionsClient.listTransactions as jest.Mock).mockResolvedValue({
+      items: [],
+      nextCursor: null,
+      totalCount: null,
+    });
+    (accountsClient.list as jest.Mock).mockResolvedValue([{ id: ACC, label: "Courant" }]);
+
+    const { result } = await renderHook(() => useMobileTransactionsData("2026-10"), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+
+    expect(result.current.data?.pendingSuggestions).toHaveLength(1);
+    expect(result.current.data?.pendingCount).toBe(23);
+    expect(transactionsClient.listPendingSuggestions).toHaveBeenCalledWith({
+      page: 1,
+      pageSize: 10,
+      month: "2026-10",
+    });
   });
 
   it("property detail, valuation history and compass are fetched by id", async () => {

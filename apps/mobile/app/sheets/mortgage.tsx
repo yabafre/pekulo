@@ -9,9 +9,15 @@ import { useEffect, useState } from "react";
 
 import { AmountField, DateField, FormSection, NumberField } from "../../components/form/fields";
 import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
-import { ScreenLoadingSkeleton } from "../../components/screen-states";
+import { ScreenErrorState, ScreenLoadingSkeleton } from "../../components/screen-states";
 import { useAuth } from "../../lib/auth/auth-context";
-import { formatAmountInput, parseAmountInput, toUtcDay } from "../../lib/forms";
+import {
+  formatAmountInput,
+  fromUtcDay,
+  parseAmountInput,
+  percentToRatio,
+  toUtcDay,
+} from "../../lib/forms";
 import { useRealEstateMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobilePropertyDetail } from "../../lib/hooks/use-mobile-queries";
 import { useI18n } from "../../lib/i18n";
@@ -19,7 +25,7 @@ import { useI18n } from "../../lib/i18n";
 export default function MortgageSheet() {
   const { id = "" } = useLocalSearchParams<{ id?: string }>();
   const { isAuthenticated } = useAuth();
-  const { data: detail, isLoading } = useMobilePropertyDetail(id);
+  const { data: detail, isLoading, isError, refetch } = useMobilePropertyDetail(id);
   const { attachMortgage, updateMortgage } = useRealEstateMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
   const { t } = useI18n();
@@ -38,7 +44,7 @@ export default function MortgageSheet() {
     setRate(formatAmountInput(Math.round(existing.annualRate * 10000) / 100));
     setPayment(formatAmountInput(existing.monthlyPayment));
     setTerm(String(existing.termMonths));
-    setStartDate(new Date(existing.startDate));
+    setStartDate(fromUtcDay(existing.startDate));
     setHydrated(true);
   }, [existing, hydrated]);
 
@@ -46,7 +52,7 @@ export default function MortgageSheet() {
     const fields = {
       propertyId: id,
       outstandingPrincipal: parseAmountInput(principal),
-      annualRate: parseAmountInput(rate) / 100,
+      annualRate: percentToRatio(parseAmountInput(rate)),
       monthlyPayment: parseAmountInput(payment),
       termMonths: Number.parseInt(term, 10),
       startDate: toUtcDay(startDate),
@@ -68,7 +74,13 @@ export default function MortgageSheet() {
       primaryDisabled={pending}
       error={error}
     >
-      {!ready && isLoading ? (
+      {isError ? (
+        <ScreenErrorState
+          title={t("common.errors.notFoundTitle")}
+          message={t("common.errors.notFoundMessage")}
+          onRetry={() => void refetch()}
+        />
+      ) : !ready && isLoading ? (
         <ScreenLoadingSkeleton sections={1} />
       ) : (
         <>

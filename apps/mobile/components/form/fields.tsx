@@ -183,6 +183,7 @@ export function DateField({
   maximumDate?: Date;
   testID?: string;
 }) {
+  const { locale } = useI18n();
   return (
     <RowShell label={label}>
       <DateTimePicker
@@ -191,7 +192,7 @@ export function DateField({
         value={value}
         mode="date"
         display="compact"
-        locale="fr-FR"
+        locale={locale}
         maximumDate={maximumDate}
         onChange={(_event, next) => {
           if (next) onChange(next);

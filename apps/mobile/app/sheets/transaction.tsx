@@ -120,8 +120,8 @@ export default function TransactionSheet() {
       title={editId ? t("transactions.editTransaction") : t("transactions.newTransaction")}
       primaryLabel={editId ? t("common.actions.save") : t("common.actions.add")}
       onPrimary={save}
-      primaryDisabled={pending}
-      error={error}
+      primaryDisabled={pending || (Boolean(editId) && !existing)}
+      error={error ?? (editId && data && !existing ? t("common.errors.notFoundMessage") : null)}
     >
       <PekuloSegmentedControl<TransactionType>
         ariaLabel={t("transactions.form.typeAria")}

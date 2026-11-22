@@ -31,6 +31,7 @@ export const fr = {
   },
   list: {
     recentTitle: "Récentes",
+    truncatedNote: "Liste limitée aux 1 000 premières opérations du mois.",
     recentAria: "Transactions récentes",
     resultOne: "{count} résultat",
     resultOther: "{count} résultats",
@@ -94,6 +95,7 @@ export const en: Shape<typeof fr> = {
   },
   list: {
     recentTitle: "Recent",
+    truncatedNote: "List limited to the first 1,000 transactions of the month.",
     recentAria: "Recent transactions",
     resultOne: "{count} result",
     resultOther: "{count} results",

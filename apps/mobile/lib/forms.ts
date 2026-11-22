@@ -14,29 +14,74 @@ export class FormValidationError extends Error {
   }
 }
 
-/** Parse with a shared validator schema, surfacing the first human message. */
+/**
+ * Shared-schema messages that are developer English (`"targetCapital must be > 0"`,
+ * zod's `"Invalid input: expected number, received NaN"`) — never shown as-is.
+ */
+const ENGLISH_DEV_MESSAGE =
+  /\b(must|cannot|can't|should|expected|invalid|received|required|greater|at least|at most)\b/i;
+
+/**
+ * Parse with a shared validator schema, surfacing a localised message.
+ *
+ * Some shared messages are deliberate French copy (`"Libellé requis"`); in
+ * French those are kept. Developer-English messages and every message in
+ * another language fall back to a localised message chosen from the kind of
+ * issue (an empty amount field is `NaN` → "Saisissez un montant valide.").
+ */
 export function validateInput<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
   const result = schema.safeParse(input);
   if (!result.success) {
-    // Shared validator messages are French; other languages get a localised
-    // generic hint instead of a French sentence.
-    const message =
-      currentLang() === "fr"
-        ? (result.error.issues[0]?.message ?? tNow("common.errors.invalidInput"))
-        : tNow("common.errors.invalidInputHint");
-    throw new FormValidationError(message);
+    throw new FormValidationError(issueMessage(result.error.issues[0]));
   }
   return result.data;
 }
 
-/** `"1 234,50 €"` → `1234.5`; empty or non-numeric input → `NaN`. */
+function issueMessage(issue: z.ZodIssue | undefined): string {
+  if (!issue) return tNow("common.errors.invalidInput");
+  if (
+    currentLang() === "fr" &&
+    issue.code !== "invalid_type" &&
+    issue.message &&
+    !ENGLISH_DEV_MESSAGE.test(issue.message)
+  ) {
+    return issue.message;
+  }
+  switch (issue.code) {
+    case "invalid_type":
+      return "expected" in issue && issue.expected === "number"
+        ? tNow("common.errors.invalidNumber")
+        : tNow("common.errors.invalidInputHint");
+    case "too_small":
+      return issue.origin === "string"
+        ? tNow("common.errors.requiredField")
+        : tNow("common.errors.outOfRange");
+    case "too_big":
+      return tNow("common.errors.outOfRange");
+    default:
+      return tNow("common.errors.invalidInputHint");
+  }
+}
+
+/**
+ * `"1 234,50 €"` → `1234.5`; empty or non-numeric input → `NaN`.
+ * With both separators present the last one is the decimal mark and the other
+ * groups thousands, so `"1.234,50"` and `"1,234.50"` both read as `1234.5`.
+ */
 export function parseAmountInput(raw: string): number {
-  const cleaned = raw
-    .replace(/[\s  €]/g, "")
-    .replace(",", ".")
-    .trim();
-  if (cleaned === "" || !/^-?\d*\.?\d+$/.test(cleaned)) return Number.NaN;
-  return Number(cleaned);
+  let cleaned = raw.replace(/[\s\u00a0\u202f€]/g, "").replace(/\u2212/g, "-");
+  const lastComma = cleaned.lastIndexOf(",");
+  const lastDot = cleaned.lastIndexOf(".");
+  if (lastComma !== -1 && lastDot !== -1) {
+    const decimal = lastComma > lastDot ? "," : ".";
+    const group = decimal === "," ? "." : ",";
+    cleaned = cleaned.split(group).join("").replace(decimal, ".");
+  } else {
+    cleaned = cleaned.replace(",", ".");
+  }
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(cleaned)) return Number.NaN;
+  const value = Number(cleaned);
+  return Object.is(value, -0) ? 0 : value;
 }
 
 /** Display a number back in an editable French field (`1234.5` → `"1234,5"`). */
@@ -59,6 +104,20 @@ export function fromIsoDate(iso: string): Date {
   return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
 }
 
+/**
+ * UTC-midnight date from the API → local Date on the same calendar day, so the
+ * pickers show (and re-save) the day the server stored in any timezone.
+ */
+export function fromUtcDay(value: Date | string): Date {
+  const date = new Date(value);
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+/** Percent typed by the user → ratio, without float noise (`1.1` → `0.011`). */
+export function percentToRatio(percent: number): number {
+  return Math.round(percent * 1e4) / 1e6;
+}
+
 /** Calendar day as a UTC-midnight Date for `z.coerce.date()` contract fields. */
 export function toUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -75,8 +134,9 @@ export function currentUtcMonth(): { year: number; monthNum: number } {
   return { year: now.getUTCFullYear(), monthNum: now.getUTCMonth() + 1 };
 }
 
-export function currentMonthKey(now: Date = new Date()): string {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+/** `YYYY-MM` of the current UTC month — the month the server and the web call "current". */
+export function currentMonthKey(now: Date = nowDate()): string {
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 export function shiftMonthKey(key: string, delta: number): string {

@@ -8,7 +8,7 @@
 import { pekuloColors, useThemeSetting, useToast } from "@pekulo/ui";
 import { useRouter } from "expo-router";
 import Stack from "expo-router/stack";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { handleMutationError } from "../../lib/actions";
 import { useI18n } from "../../lib/i18n";
@@ -24,9 +24,13 @@ export function useMutationRunner({ dismiss = false }: { dismiss?: boolean } = {
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // `pending` state lags a render behind: two taps dispatched before the
+  // re-render would both pass it and post a duplicate. The ref closes that.
+  const inFlight = useRef(false);
 
   async function run(action: () => Promise<unknown>, successTitle?: string) {
-    if (pending) return false;
+    if (inFlight.current) return false;
+    inFlight.current = true;
     setError(null);
     setPending(true);
     try {
@@ -46,6 +50,7 @@ export function useMutationRunner({ dismiss = false }: { dismiss?: boolean } = {
       );
       return false;
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
   }

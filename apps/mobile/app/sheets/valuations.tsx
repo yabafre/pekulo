@@ -25,7 +25,13 @@ export default function ValuationsSheet() {
   const { data, isLoading } = useMobileValuations(id);
   const { t, locale } = useI18n();
   const day = useMemo(
-    () => new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }),
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
     [locale],
   );
   const rows = [...(data ?? [])].sort(

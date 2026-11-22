@@ -1,6 +1,7 @@
 import { PekuloRootProvider } from "@pekulo/ui";
 import type { Session } from "@supabase/supabase-js";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { ORPCError } from "@orpc/client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { ActionSheetIOS, Alert } from "react-native";
@@ -25,6 +26,14 @@ import {
   realestateClient,
 } from "../lib/orpc/modules";
 
+import {
+  holdingDto,
+  lotDto,
+  monthlyRecordDto,
+  mortgageDto,
+  propertyDto,
+  rentalDto,
+} from "./helpers/contract-fixtures";
 const mockBack = jest.fn();
 const mockPush = jest.fn();
 let mockParams: Record<string, string> = {};
@@ -219,7 +228,7 @@ describe("AC-6 — Mensuel interactions", () => {
   it("signs off the current month with the prefilled figures inside the close window", async () => {
     jest.spyOn(forms, "nowDate").mockReturnValue(new Date("2026-11-28T10:00:00Z"));
     jest.spyOn(forms, "currentUtcMonth").mockReturnValue({ year: 2026, monthNum: 11 });
-    (monthlyClient.signOffMonthly as jest.Mock).mockResolvedValue({});
+    (monthlyClient.signOffMonthly as jest.Mock).mockResolvedValue(monthlyRecordDto());
     await renderLive(<ClotureSheet />);
     await waitFor(() => expect(screen.getByDisplayValue("3400")).toBeTruthy());
     await fireEvent.press(screen.getByTestId("sheet-primary-btn"));
@@ -235,6 +244,22 @@ describe("AC-6 — Mensuel interactions", () => {
     );
   });
 
+  it("blocks signing off a month that is already signed off", async () => {
+    seedMonthly({ signedOff: true });
+    jest.spyOn(forms, "nowDate").mockReturnValue(new Date("2026-11-28T10:00:00Z"));
+    jest.spyOn(forms, "currentUtcMonth").mockReturnValue({ year: 2026, monthNum: 11 });
+    await renderLive(<ClotureSheet />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Ce mois est déjà validé. Rouvrez-le pour le modifier."),
+      ).toBeTruthy(),
+    );
+    expect(screen.getByTestId("sheet-primary-btn").props.accessibilityState?.disabled).toBe(true);
+    await fireEvent.press(screen.getByTestId("sheet-primary-btn"));
+    expect(monthlyClient.signOffMonthly).not.toHaveBeenCalled();
+  });
+
   it("refuses to sign off outside the close window", async () => {
     jest.spyOn(forms, "nowDate").mockReturnValue(new Date("2026-11-10T10:00:00Z"));
     jest.spyOn(forms, "currentUtcMonth").mockReturnValue({ year: 2026, monthNum: 11 });
@@ -245,7 +270,9 @@ describe("AC-6 — Mensuel interactions", () => {
   });
 
   it("reopens a signed-off month from its row action sheet", async () => {
-    (monthlyClient.reopenMonthly as jest.Mock).mockResolvedValue({});
+    (monthlyClient.reopenMonthly as jest.Mock).mockResolvedValue(
+      monthlyRecordDto({ monthNum: 10, signedOffAt: null }),
+    );
     pickActionSheet("Rouvrir le mois");
     acceptDestructive();
     await renderLive(<MensuelScreen />);
@@ -281,7 +308,7 @@ describe("AC-6 — Portefeuille interactions", () => {
   });
 
   it("adds a holding", async () => {
-    (holdingsClient.create as jest.Mock).mockResolvedValue({ id: HLD });
+    (holdingsClient.create as jest.Mock).mockResolvedValue(holdingDto());
     pickActionSheet("ETF");
     await renderLive(<HoldingSheet />);
     await waitFor(() => expect(screen.getByText("PEA")).toBeTruthy());
@@ -308,7 +335,7 @@ describe("AC-6 — Portefeuille interactions", () => {
 
   it("records a buy lot", async () => {
     mockParams = { id: HLD };
-    (holdingsClient.recordLot as jest.Mock).mockResolvedValue({ id: "lot_1" });
+    (holdingsClient.recordLot as jest.Mock).mockResolvedValue(lotDto());
     await renderLive(<LotSheet />);
     await fireEvent.changeText(screen.getByTestId("lot-quantity"), "2");
     await fireEvent.changeText(screen.getByTestId("lot-price"), "510");
@@ -363,7 +390,7 @@ describe("AC-6 — Immobilier interactions", () => {
   });
 
   it("creates a property", async () => {
-    (realestateClient.createProperty as jest.Mock).mockResolvedValue({ id: RES });
+    (realestateClient.createProperty as jest.Mock).mockResolvedValue(propertyDto());
     pickActionSheet("Locatif");
     await renderLive(<PropertySheet />);
     await fireEvent.changeText(screen.getByTestId("prop-label"), "Studio Lyon");
@@ -384,7 +411,7 @@ describe("AC-6 — Immobilier interactions", () => {
 
   it("records a valuation and lists the history", async () => {
     mockParams = { id: RES };
-    (realestateClient.recordValuation as jest.Mock).mockResolvedValue({});
+    (realestateClient.recordValuation as jest.Mock).mockResolvedValue(propertyDto());
     (realestateClient.listValuations as jest.Mock).mockResolvedValue([
       { id: "resv_1", amount: 150000, valuedOn: new Date("2026-01-01T00:00:00Z") },
     ]);
@@ -409,7 +436,7 @@ describe("AC-6 — Immobilier interactions", () => {
       mortgage: null,
       rental: null,
     });
-    (realestateClient.attachMortgage as jest.Mock).mockResolvedValue({});
+    (realestateClient.attachMortgage as jest.Mock).mockResolvedValue(mortgageDto());
     const attach = await renderLive(<MortgageSheet />);
     await waitFor(() => expect(screen.getByText("Ajouter")).toBeTruthy());
     await fireEvent.changeText(screen.getByTestId("mtg-principal"), "120 000");
@@ -429,6 +456,9 @@ describe("AC-6 — Immobilier interactions", () => {
         }),
       ),
     );
+    expect((realestateClient.attachMortgage as jest.Mock).mock.calls[0]?.[0].annualRate).toBe(
+      0.035,
+    );
     await attach.unmount();
 
     (realestateClient.getProperty as jest.Mock).mockResolvedValue({
@@ -442,7 +472,7 @@ describe("AC-6 — Immobilier interactions", () => {
       },
       rental: null,
     });
-    (realestateClient.updateMortgage as jest.Mock).mockResolvedValue({});
+    (realestateClient.updateMortgage as jest.Mock).mockResolvedValue(mortgageDto());
     await renderLive(<MortgageSheet />);
     await waitFor(() => expect(screen.getByDisplayValue("650")).toBeTruthy());
     await fireEvent.changeText(screen.getByTestId("mtg-payment"), "700");
@@ -454,6 +484,46 @@ describe("AC-6 — Immobilier interactions", () => {
     );
   });
 
+  it("updates an existing rental, keeping the untouched fields", async () => {
+    mockParams = { id: RES };
+    (realestateClient.getProperty as jest.Mock).mockResolvedValue({
+      property: { id: RES, label: "Studio Lyon" },
+      mortgage: null,
+      rental: { monthlyRent: 700, monthlyCharges: 80, furnished: true },
+    });
+    (realestateClient.updateRental as jest.Mock).mockResolvedValue(rentalDto());
+    await renderLive(<RentalSheet />);
+
+    await waitFor(() => expect(screen.getByDisplayValue("700")).toBeTruthy());
+    await fireEvent.changeText(screen.getByTestId("rent-amount"), "720");
+    await fireEvent.press(screen.getByTestId("sheet-primary-btn"));
+
+    await waitFor(() =>
+      expect(realestateClient.updateRental).toHaveBeenCalledWith({
+        propertyId: RES,
+        monthlyRent: 720,
+        monthlyCharges: 80,
+        furnished: true,
+      }),
+    );
+    expect(realestateClient.attachRental).not.toHaveBeenCalled();
+  });
+
+  it("shows a not-found state, not a blank form, when the property no longer exists", async () => {
+    mockParams = { id: RES };
+    (realestateClient.getProperty as jest.Mock).mockRejectedValue(
+      new ORPCError("REALESTATE_NOT_FOUND", { status: 404 }),
+    );
+    const mortgage = await renderLive(<MortgageSheet />);
+    await waitFor(() => expect(screen.getByText("Élément introuvable")).toBeTruthy());
+    expect(screen.queryByTestId("sheet-primary-btn")).toBeNull();
+    await mortgage.unmount();
+
+    await renderLive(<RentalSheet />);
+    await waitFor(() => expect(screen.getByText("Élément introuvable")).toBeTruthy());
+    expect(screen.queryByTestId("sheet-primary-btn")).toBeNull();
+  });
+
   it("attaches a rental", async () => {
     mockParams = { id: RES };
     (realestateClient.getProperty as jest.Mock).mockResolvedValue({
@@ -461,7 +531,7 @@ describe("AC-6 — Immobilier interactions", () => {
       mortgage: null,
       rental: null,
     });
-    (realestateClient.attachRental as jest.Mock).mockResolvedValue({});
+    (realestateClient.attachRental as jest.Mock).mockResolvedValue(rentalDto());
     await renderLive(<RentalSheet />);
     await waitFor(() => expect(screen.getByText("Ajouter")).toBeTruthy());
     await fireEvent.changeText(screen.getByTestId("rent-amount"), "700");

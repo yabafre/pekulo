@@ -1,11 +1,12 @@
 import { PekuloRootProvider } from "@pekulo/ui";
 import { Text } from "@pekulo/ui/client";
-import type { Session } from "@supabase/supabase-js";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { AuthRetryableFetchError, type Session } from "@supabase/supabase-js";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { ORPCError } from "@orpc/client";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
 import type { ReactNode } from "react";
-import { Alert, Pressable } from "react-native";
+import { Alert, AppState, Pressable } from "react-native";
 
 import appConfig from "../app.json";
 import CapScreen from "../app/(tabs)/(cap)/index";
@@ -22,7 +23,7 @@ import {
   useMobileCapData,
   useMobileSettingsData,
 } from "../lib/hooks/use-mobile-queries";
-import { createMobileOrpcLink, getApiBaseUrl } from "../lib/orpc/client";
+import { createMobileOrpcLink, getAccessToken, getApiBaseUrl } from "../lib/orpc/client";
 import {
   accountsClient,
   compassClient,
@@ -35,8 +36,18 @@ import {
   settingsClient,
   transactionsClient,
 } from "../lib/orpc/modules";
-import { getSupabaseConfig, isSupabaseConfigured, supabase } from "../lib/supabase/client";
-import { CHUNK_SIZE, createChunkedSecureStorage } from "../lib/supabase/secure-storage";
+import {
+  AUTH_STORAGE_KEY,
+  getSupabaseConfig,
+  isSupabaseConfigured,
+  supabase,
+} from "../lib/supabase/client";
+import {
+  CHUNK_SIZE,
+  chunkedSecureStorage,
+  createChunkedSecureStorage,
+  splitByUtf8Bytes,
+} from "../lib/supabase/secure-storage";
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -226,28 +237,102 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
     expect(largePayload.length).toBeGreaterThan(CHUNK_SIZE * 2);
 
     await storage.setItem("sb-session-large", largePayload);
-    const rawManifest = await SecureStore.getItemAsync("sb-session-large");
-    expect(rawManifest).toBe('{"__chunked":true,"count":3}');
-    expect(await SecureStore.getItemAsync("sb-session-large__chunk_0")).toHaveLength(CHUNK_SIZE);
+    const manifest = JSON.parse((await SecureStore.getItemAsync("sb-session-large")) ?? "null");
+    expect(manifest).toMatchObject({ __chunked: true, count: 3 });
+    expect(manifest.id).toMatch(/^[0-9a-z]{8}$/);
+    const chunkKeyOf = (m: { id: string }, i: number) => `sb-session-large__chunk_${m.id}_${i}`;
+    expect(await SecureStore.getItemAsync(chunkKeyOf(manifest, 0))).toHaveLength(CHUNK_SIZE);
 
     // Reassembles losslessly
     expect(await storage.getItem("sb-session-large")).toBe(largePayload);
 
     // Missing chunk returns null rather than partial corrupted session
-    await SecureStore.deleteItemAsync("sb-session-large__chunk_1");
+    await SecureStore.deleteItemAsync(chunkKeyOf(manifest, 1));
     expect(await storage.getItem("sb-session-large")).toBeNull();
 
     // Overwriting with a short value purges old chunks
     await storage.setItem("sb-session-large", largePayload);
+    const second = JSON.parse((await SecureStore.getItemAsync("sb-session-large")) ?? "null");
     await storage.setItem("sb-session-large", '{"token":"now-short"}');
-    expect(await SecureStore.getItemAsync("sb-session-large__chunk_0")).toBeNull();
+    expect(await SecureStore.getItemAsync(chunkKeyOf(second, 0))).toBeNull();
     expect(await storage.getItem("sb-session-large")).toBe('{"token":"now-short"}');
 
     // removeItem purges manifest and chunks
     await storage.setItem("sb-session-remove", largePayload);
+    const removed = JSON.parse((await SecureStore.getItemAsync("sb-session-remove")) ?? "null");
     await storage.removeItem("sb-session-remove");
     expect(await storage.getItem("sb-session-remove")).toBeNull();
-    expect(await SecureStore.getItemAsync("sb-session-remove__chunk_0")).toBeNull();
+    expect(await SecureStore.getItemAsync(`sb-session-remove__chunk_${removed.id}_0`)).toBeNull();
+  });
+
+  it("chunks by UTF-8 BYTES (the platform limit), never splitting a surrogate pair (AC-1)", async () => {
+    const storage = createChunkedSecureStorage();
+    const payloads = {
+      twoByte: "é".repeat(3000),
+      threeByte: "日".repeat(2000),
+      surrogates: `a${"😀".repeat(1500)}`,
+    };
+    await Promise.all(
+      Object.entries(payloads).map(async ([name, payload]) => {
+        const key = `sb-utf8-${name}`;
+        await storage.setItem(key, payload);
+        const manifest = JSON.parse((await SecureStore.getItemAsync(key)) ?? "null");
+        expect(manifest.count).toBeGreaterThan(1);
+        const chunks = await Promise.all(
+          Array.from(
+            { length: manifest.count },
+            async (_, i) =>
+              (await SecureStore.getItemAsync(`${key}__chunk_${manifest.id}_${i}`)) ?? "",
+          ),
+        );
+        for (const chunk of chunks) {
+          expect(new TextEncoder().encode(chunk).length).toBeLessThanOrEqual(CHUNK_SIZE);
+          // No lone surrogate: a chunk survives a UTF-8 round trip unchanged.
+          expect(new TextDecoder().decode(new TextEncoder().encode(chunk))).toBe(chunk);
+        }
+        expect(await storage.getItem(key)).toBe(payload);
+      }),
+    );
+    expect(splitByUtf8Bytes("")).toEqual([]);
+    expect(splitByUtf8Bytes("a".repeat(CHUNK_SIZE))).toHaveLength(1);
+    expect(splitByUtf8Bytes("a".repeat(CHUNK_SIZE + 1))).toHaveLength(2);
+  });
+
+  it("keeps the previous session readable when a write is killed before the manifest swap (AC-1)", async () => {
+    let failManifest = false;
+    const driver = {
+      getItemAsync: SecureStore.getItemAsync,
+      deleteItemAsync: SecureStore.deleteItemAsync,
+      setItemAsync: async (key: string, value: string) => {
+        if (failManifest && key === "sb-crash") throw new Error("process killed");
+        await SecureStore.setItemAsync(key, value);
+      },
+    };
+    const storage = createChunkedSecureStorage(driver);
+    const v1 = JSON.stringify({ token: "1".repeat(4000) });
+    const v2 = JSON.stringify({ token: "2".repeat(4000) });
+
+    await storage.setItem("sb-crash", v1);
+    failManifest = true;
+    await expect(storage.setItem("sb-crash", v2)).rejects.toThrow("process killed");
+    failManifest = false;
+
+    expect(await storage.getItem("sb-crash")).toBe(v1);
+    await storage.setItem("sb-crash", v2);
+    expect(await storage.getItem("sb-crash")).toBe(v2);
+  });
+
+  it("still reads and purges sessions stored by the first (id-less) chunk layout (AC-1)", async () => {
+    await SecureStore.setItemAsync("sb-legacy__chunk_0", "abc");
+    await SecureStore.setItemAsync("sb-legacy__chunk_1", "def");
+    await SecureStore.setItemAsync("sb-legacy", '{"__chunked":true,"count":2}');
+    const storage = createChunkedSecureStorage();
+
+    expect(await storage.getItem("sb-legacy")).toBe("abcdef");
+    await storage.removeItem("sb-legacy");
+    expect(await SecureStore.getItemAsync("sb-legacy")).toBeNull();
+    expect(await SecureStore.getItemAsync("sb-legacy__chunk_0")).toBeNull();
+    expect(await SecureStore.getItemAsync("sb-legacy__chunk_1")).toBeNull();
   });
 
   // AC-2 (verbatim from story 10-4-mobile-auth-and-orpc:17):
@@ -313,6 +398,63 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
     const anonClients = createMobileOrpcClients(anonLink);
     await anonClients.settingsClient.get();
     expect(capturedAuthHeader).toBeNull();
+  });
+
+  it("forwards the Bearer to /rpc/v1/<module>/<procedure> for EVERY domain module (AC-2)", async () => {
+    const seen: { url: string; auth: string | null }[] = [];
+    const fetchSpy = jest.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+      const headers = input instanceof Request ? input.headers : new Headers(init?.headers);
+      seen.push({
+        url:
+          typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url,
+        auth: headers.get("authorization"),
+      });
+      return new Response(JSON.stringify({ json: null }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as unknown as typeof globalThis.fetch;
+    const clients = createMobileOrpcClients(
+      createMobileOrpcLink({
+        baseUrl: () => "https://api.pekulo.app",
+        tokenResolver: async () => "jwt-every-module",
+        fetch: fetchSpy,
+      }),
+    );
+
+    const calls: [string, () => Promise<unknown>][] = [
+      ["dashboard/getOverview", () => clients.dashboardClient.getOverview()],
+      ["compass/getCompass", () => clients.compassClient.getCompass()],
+      ["milestones/list", () => clients.milestonesClient.list()],
+      ["accounts/list", () => clients.accountsClient.list()],
+      ["holdings/list", () => clients.holdingsClient.list({})],
+      ["realestate/getTotalEquity", () => clients.realestateClient.getTotalEquity()],
+      ["transactions/listTransactions", () => clients.transactionsClient.listTransactions({})],
+      ["monthly/listMonthly", () => clients.monthlyClient.listMonthly({})],
+      ["settings/get", () => clients.settingsClient.get()],
+    ];
+    // Fire every call, then match each request to its procedure by URL.
+    await Promise.all(calls.map(([, call]) => call().catch(() => undefined))); // stub body ≠ real output
+    expect(seen).toHaveLength(calls.length);
+    for (const [path] of calls) {
+      const request = seen.find((r) => r.url === `https://api.pekulo.app/rpc/v1/${path}`);
+      expect(request).toBeDefined();
+      expect(request?.auth).toBe("Bearer jwt-every-module");
+    }
+  });
+
+  it("refuses the loopback default and cleartext URLs outside development (AC-2)", () => {
+    expect(getApiBaseUrl({}, true)).toBe("http://127.0.0.1:3001");
+    expect(getApiBaseUrl({ EXPO_PUBLIC_API_BASE_URL: "http://192.168.1.5:3001" }, true)).toBe(
+      "http://192.168.1.5:3001",
+    );
+    expect(() => getApiBaseUrl({}, false)).toThrow("EXPO_PUBLIC_API_BASE_URL is not set");
+    expect(() =>
+      getApiBaseUrl({ EXPO_PUBLIC_API_BASE_URL: "http://api.pekulo.app" }, false),
+    ).toThrow("https://");
+    expect(getApiBaseUrl({ EXPO_PUBLIC_API_BASE_URL: "https://api.pekulo.app/" }, false)).toBe(
+      "https://api.pekulo.app",
+    );
   });
 
   // AC-3 (verbatim from story 10-4-mobile-auth-and-orpc:18):
@@ -877,3 +1019,141 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
 });
 
 export { renderWithLiveProviders };
+
+describe("10-4 session lifecycle — sign-out purge, token refresh, expired sessions", () => {
+  const internalStore = () =>
+    (SecureStore as unknown as { __store: Map<string, string> })["__store"] as Map<string, string>;
+  const storedAuthKeys = () =>
+    [...internalStore().keys()].filter((key) => key.startsWith(AUTH_STORAGE_KEY));
+
+  let auth!: ReturnType<typeof useAuth>;
+  function Capture() {
+    auth = useAuth();
+    return null;
+  }
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    internalStore().clear();
+  });
+
+  afterEach(() => {
+    delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+    delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    for (const qc of activeQueryClients.splice(0)) qc.clear();
+  });
+
+  function configureSupabase() {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+    jest
+      .spyOn(supabase.auth, "onAuthStateChange")
+      .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } } as never);
+  }
+
+  const bigSession = () =>
+    JSON.stringify({ access_token: "a".repeat(2200), refresh_token: "r".repeat(1800) });
+
+  it("sign-out purges the manifest and EVERY chunk when the revoke call fails offline (AC-1)", async () => {
+    await chunkedSecureStorage.setItem(AUTH_STORAGE_KEY, bigSession());
+    expect(storedAuthKeys().length).toBeGreaterThan(1);
+    // supabase-js RESOLVES with { error } (it does not reject) and keeps the stored session.
+    const signOutSpy = jest
+      .spyOn(supabase.auth, "signOut")
+      .mockResolvedValue({ error: new AuthRetryableFetchError("offline", 0) });
+
+    await renderWithLiveProviders(<Capture />);
+    expect(auth.isAuthenticated).toBe(true);
+    await act(async () => {
+      await auth.signOut();
+    });
+
+    expect(signOutSpy).toHaveBeenCalled();
+    expect(storedAuthKeys()).toEqual([]);
+    expect(auth.isAuthenticated).toBe(false);
+  });
+
+  it("sign-out purges the stored session when the revoke call throws, and clears the query cache (AC-1)", async () => {
+    await chunkedSecureStorage.setItem(AUTH_STORAGE_KEY, bigSession());
+    jest.spyOn(supabase.auth, "signOut").mockRejectedValue(new Error("boom"));
+
+    const { queryClient } = await renderWithLiveProviders(<Capture />);
+    queryClient.setQueryData(["cached"], { secret: true });
+    await act(async () => {
+      await auth.signOut();
+    });
+
+    expect(storedAuthKeys()).toEqual([]);
+    expect(queryClient.getQueryData(["cached"])).toBeUndefined();
+  });
+
+  it("reads the access token at request time through supabase (refreshing it), falling back to state (AC-2)", async () => {
+    configureSupabase();
+    const getSession = jest.spyOn(supabase.auth, "getSession").mockResolvedValue({
+      data: { session: { ...FAKE_SESSION, access_token: "refreshed-token" } },
+      error: null,
+    } as never);
+
+    await renderWithLiveProviders(<Capture />);
+    expect(await getAccessToken()).toBe("refreshed-token");
+    expect(getSession).toHaveBeenCalled();
+
+    getSession.mockResolvedValue({ data: { session: null }, error: null } as never);
+    expect(await getAccessToken()).toBe(FAKE_SESSION.access_token);
+  });
+
+  it("starts and stops supabase auto-refresh with the app state, and unsubscribes on unmount (AC-1)", async () => {
+    configureSupabase();
+    jest.spyOn(supabase.auth, "getSession").mockResolvedValue({
+      data: { session: FAKE_SESSION },
+      error: null,
+    } as never);
+    const start = jest.spyOn(supabase.auth, "startAutoRefresh").mockResolvedValue(undefined);
+    const stop = jest.spyOn(supabase.auth, "stopAutoRefresh").mockResolvedValue(undefined);
+    const remove = jest.fn();
+    let onChange: ((state: string) => void) | undefined;
+    jest.spyOn(AppState, "addEventListener").mockImplementation(((
+      _type: string,
+      handler: (state: string) => void,
+    ) => {
+      onChange = handler;
+      return { remove };
+    }) as never);
+
+    const view = await renderWithLiveProviders(<Capture />);
+    expect(onChange).toBeDefined();
+    onChange?.("background");
+    expect(stop).toHaveBeenCalledTimes(1);
+    onChange?.("active");
+    expect(start).toHaveBeenCalledTimes(1);
+
+    await view.unmount();
+    expect(remove).toHaveBeenCalled();
+  });
+
+  it("signs the user out when the API answers 401, but not for other failures (AC-1, AC-3)", async () => {
+    const signOutSpy = jest.spyOn(supabase.auth, "signOut").mockResolvedValue({ error: null });
+    function Probe({ status }: { status: number }) {
+      useQuery({
+        queryKey: ["probe", status],
+        queryFn: async () => {
+          throw status === 401
+            ? new ORPCError("UNAUTHORIZED", { status: 401 })
+            : new ORPCError("INTERNAL_SERVER_ERROR", { status });
+        },
+      });
+      const { isAuthenticated } = useAuth();
+      return <Text testID="probe-auth">{isAuthenticated ? "in" : "out"}</Text>;
+    }
+
+    const serverError = await renderWithLiveProviders(<Probe status={500} />);
+    await waitFor(() => expect(serverError.queryClient.isFetching()).toBe(0));
+    expect(screen.getByTestId("probe-auth").props.children).toBe("in");
+    expect(signOutSpy).not.toHaveBeenCalled();
+    await serverError.unmount();
+
+    await renderWithLiveProviders(<Probe status={401} />);
+    await waitFor(() => expect(screen.getByTestId("probe-auth").props.children).toBe("out"));
+    expect(signOutSpy).toHaveBeenCalledTimes(1);
+  });
+});

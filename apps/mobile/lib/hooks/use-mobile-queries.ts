@@ -344,6 +344,10 @@ export interface MobileTransactionsViewData {
   incomeFormatted: string;
   spendingFormatted: string;
   pendingSuggestions: MobilePendingSuggestionItem[];
+  /** Full pending count for the month (the list above is one page of it). */
+  pendingCount: number;
+  /** True when the month holds more rows than `MAX_MONTH_TRANSACTION_ROWS`. */
+  listTruncated: boolean;
   recentTransactions: Activity[];
   /** Same order as `recentTransactions`, with the raw row for edit sheets. */
   rows: MobileTransactionRow[];
@@ -381,6 +385,8 @@ const previewTransactionsData = (t: Translate): MobileTransactionsViewData => ({
   incomeFormatted: "+3 200 €",
   spendingFormatted: "−2 150 €",
   pendingSuggestions: [],
+  pendingCount: 0,
+  listTruncated: false,
   recentTransactions: previewTransactionActivities(t),
   rows: previewTransactionActivities(t).map((activity, index) => ({
     id: `tx_preview${index}`,
@@ -397,8 +403,36 @@ function mapLlmRouteToBadge(route: string | null | undefined): LlmRouteBadge {
 }
 
 function formatSignedEur(amount: number): string {
-  const sign = amount >= 0 ? "+" : "−";
-  return `${sign}${eur0.format(Math.abs(amount))}`;
+  // Decide the sign on the rounded figure: -0.4 € prints "+0 €", never "−0 €".
+  const rounded = Math.round(amount) || 0;
+  const sign = rounded >= 0 ? "+" : "−";
+  return `${sign}${eur0.format(Math.abs(rounded))}`;
+}
+
+/** Page size sent to `listTransactions` (the contract maximum). */
+const TRANSACTIONS_PAGE_LIMIT = 200;
+/** Safety cap on rows loaded for one month (5 cursor pages). */
+const MAX_MONTH_TRANSACTION_ROWS = 1_000;
+
+/**
+ * Every row of the month, following `nextCursor` — the month totals come from
+ * the server over the whole month, so a list cut at one page would not add up.
+ */
+async function listMonthTransactions(month: string | undefined) {
+  const items: Awaited<ReturnType<typeof transactionsClient.listTransactions>>["items"] = [];
+  let cursor: string | undefined;
+  while (items.length < MAX_MONTH_TRANSACTION_ROWS) {
+    // oxlint-disable-next-line no-await-in-loop -- serial by design: each page needs the previous page's cursor
+    const page = await transactionsClient.listTransactions({
+      limit: TRANSACTIONS_PAGE_LIMIT,
+      ...(month ? { month } : {}),
+      ...(cursor ? { cursor } : {}),
+    });
+    items.push(...page.items);
+    if (!page.nextCursor) return { items, truncated: false };
+    cursor = page.nextCursor;
+  }
+  return { items, truncated: true };
 }
 
 /** `month` is a `YYYY-MM` key; omitted means the server's current month. */
@@ -416,8 +450,12 @@ export function useMobileTransactionsData(month?: string) {
 
       const [summary, pending, list, accounts] = await Promise.all([
         transactionsClient.monthSummary(month ? { month } : {}),
-        transactionsClient.listPendingSuggestions({ page: 1, pageSize: 10 }),
-        transactionsClient.listTransactions(month ? { limit: 100, month } : { limit: 100 }),
+        transactionsClient.listPendingSuggestions({
+          page: 1,
+          pageSize: 10,
+          ...(month ? { month } : {}),
+        }),
+        listMonthTransactions(month),
         accountsClient.list(),
       ]);
 
@@ -461,29 +499,16 @@ export function useMobileTransactionsData(month?: string) {
       return {
         monthLabel: summary.month,
         netFormatted: formatSignedEur(summary.netChangeEur),
-        netTone: summary.netChangeEur >= 0 ? "gain" : "loss",
+        netTone: Math.round(summary.netChangeEur) >= 0 ? "gain" : "loss",
         incomeFormatted: `+${eur0.format(summary.incomeEur)}`,
         spendingFormatted: `−${eur0.format(summary.spendingEur)}`,
         pendingSuggestions,
+        pendingCount: pending.totalCount ?? pendingSuggestions.length,
+        listTruncated: list.truncated,
         recentTransactions,
         rows,
         accountOptions: accounts.map((a) => ({ value: a.id, label: a.label })),
       };
-    },
-  });
-}
-
-export function useConfirmMobileSuggestion() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: { id: string; category: SuggestableTransactionCategory }) => {
-      return await transactionsClient.confirmCategorisation(input);
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: mobileQueryKeys.transactions() }),
-        queryClient.invalidateQueries({ queryKey: mobileQueryKeys.cap() }),
-      ]);
     },
   });
 }
@@ -589,7 +614,7 @@ export function useMobileMonthlyData() {
 
       return {
         currentNetFormatted: formatSignedEur(netEur),
-        currentNetTone: netEur >= 0 ? "gain" : "loss",
+        currentNetTone: Math.round(netEur) >= 0 ? "gain" : "loss",
         currentIncomeFormatted: `+${eur0.format(current.incomeEur)}`,
         currentSpendingFormatted: `−${eur0.format(current.spendingEur)}`,
         months,

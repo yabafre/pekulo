@@ -49,11 +49,13 @@ import {
   settingsClient,
   transactionsClient,
 } from "../orpc/modules";
+import { tNow } from "../i18n";
+import { orpcErrorCode } from "../orpc/errors";
 import { mobileQueryKeys } from "./use-mobile-queries";
 
 export class PreviewModeError extends Error {
   constructor() {
-    super("Connectez-vous pour modifier vos données.");
+    super(tNow("common.errors.previewMessage"));
     this.name = "PreviewModeError";
   }
 }
@@ -243,9 +245,16 @@ export function useDeleteUserAccount() {
   return useMutation({
     mutationFn: async (input: { confirmationEmail: string }) => {
       if (!isAuthenticated) throw new PreviewModeError();
-      const result = await settingsClient.deleteAccount(
-        validateInput(deleteUserAccountInputSchema, input),
-      );
+      const payload = validateInput(deleteUserAccountInputSchema, input);
+      let result;
+      try {
+        result = await settingsClient.deleteAccount(payload);
+      } catch (error) {
+        // The data is erased but the auth identity survived: this session now
+        // points at an empty account, so end it instead of leaving the user in it.
+        if (orpcErrorCode(error) === "ACCOUNT_PARTIALLY_ERASED") await signOut();
+        throw error;
+      }
       await signOut();
       return result;
     },

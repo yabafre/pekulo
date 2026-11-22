@@ -1,7 +1,8 @@
 import { PekuloRootProvider } from "@pekulo/ui";
 import type { Session } from "@supabase/supabase-js";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { ORPCError } from "@orpc/client";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { ActionSheetIOS, Alert } from "react-native";
 
@@ -21,6 +22,7 @@ import {
   transactionsClient,
 } from "../lib/orpc/modules";
 
+import { accountDto, milestoneDto, transactionDto } from "./helpers/contract-fixtures";
 const mockBack = jest.fn();
 const mockPush = jest.fn();
 let mockParams: Record<string, string> = {};
@@ -200,8 +202,17 @@ function seedTransactions() {
       netChangeEur: -900,
     }),
   );
-  (transactionsClient.listPendingSuggestions as jest.Mock).mockResolvedValue({ items: [] });
-  (transactionsClient.listTransactions as jest.Mock).mockResolvedValue({ items: [RAW_TX] });
+  (transactionsClient.listPendingSuggestions as jest.Mock).mockResolvedValue({
+    items: [],
+    totalCount: 0,
+    page: 1,
+    pageSize: 10,
+  });
+  (transactionsClient.listTransactions as jest.Mock).mockResolvedValue({
+    items: [RAW_TX],
+    nextCursor: null,
+    totalCount: null,
+  });
   (accountsClient.list as jest.Mock).mockResolvedValue([
     {
       id: ACC,
@@ -230,7 +241,7 @@ describe("AC-6 — Transactions interactions", () => {
   });
 
   it("creates a transaction from the native sheet", async () => {
-    (transactionsClient.createTransaction as jest.Mock).mockResolvedValue({ id: TX });
+    (transactionsClient.createTransaction as jest.Mock).mockResolvedValue(transactionDto());
     pickActionSheet("Courses");
     await renderLive(<TransactionSheet />);
 
@@ -266,7 +277,7 @@ describe("AC-6 — Transactions interactions", () => {
 
   it("edits an existing transaction prefilled from the cache", async () => {
     mockParams = { id: TX };
-    (transactionsClient.updateTransaction as jest.Mock).mockResolvedValue({ id: TX });
+    (transactionsClient.updateTransaction as jest.Mock).mockResolvedValue(transactionDto());
     await renderLive(<TransactionSheet />);
 
     await waitFor(() => expect(screen.getByDisplayValue("Loyer")).toBeTruthy());
@@ -277,6 +288,108 @@ describe("AC-6 — Transactions interactions", () => {
       expect(transactionsClient.updateTransaction).toHaveBeenCalledWith(
         expect.objectContaining({ id: TX, label: "Loyer novembre", amount: 900 }),
       ),
+    );
+  });
+
+  it("creates exactly one transaction when the primary action is tapped twice in the same tick", async () => {
+    let resolveCreate: (value: unknown) => void = () => {};
+    (transactionsClient.createTransaction as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        }),
+    );
+    await renderLive(<TransactionSheet />);
+    await waitFor(() => expect(screen.getByText("Courant")).toBeTruthy());
+    await fireEvent.changeText(screen.getByTestId("tx-label"), "Marché");
+    await fireEvent.changeText(screen.getByTestId("tx-amount"), "12,50");
+
+    const primary = screen.getByTestId("sheet-primary-btn");
+    await act(async () => {
+      void fireEvent.press(primary);
+      void fireEvent.press(primary);
+    });
+
+    expect(transactionsClient.createTransaction).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveCreate(transactionDto());
+    });
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
+  });
+
+  it("explains a missing transaction instead of showing a blank edit form", async () => {
+    mockParams = { id: "tx_ZZZZZZZZZZZZZZZZZZZZZ" };
+    await renderLive(<TransactionSheet />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Cet élément n’existe plus. Actualisez puis réessayez."),
+      ).toBeTruthy(),
+    );
+    expect(screen.getByTestId("sheet-primary-btn").props.accessibilityState?.disabled).toBe(true);
+    expect(transactionsClient.updateTransaction).not.toHaveBeenCalled();
+  });
+
+  it("shows a typed contract failure as a specific toast, not the generic one", async () => {
+    (transactionsClient.createTransaction as jest.Mock).mockRejectedValue(
+      new ORPCError("ACCOUNT_NOT_FOUND", { status: 404 }),
+    );
+    await renderLive(<TransactionSheet />);
+    await waitFor(() => expect(screen.getByText("Courant")).toBeTruthy());
+    await fireEvent.changeText(screen.getByTestId("tx-label"), "Marché");
+    await fireEvent.changeText(screen.getByTestId("tx-amount"), "12,50");
+    await fireEvent.press(screen.getByTestId("sheet-primary-btn"));
+
+    await waitFor(() => expect(screen.getByText("Élément introuvable")).toBeTruthy());
+    expect(screen.queryByText("Enregistrement impossible")).toBeNull();
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("follows the cursor so the list adds up to the month totals, and flags a capped month", async () => {
+    const page = (start: number, nextCursor: string | null) => ({
+      items: Array.from({ length: 2 }, (_, i) => ({
+        ...RAW_TX,
+        id: `tx_${String(start + i).padStart(21, "B")}`,
+        label: `Ligne ${start + i}`,
+      })),
+      nextCursor,
+      totalCount: null,
+    });
+    (transactionsClient.listTransactions as jest.Mock)
+      .mockResolvedValueOnce(page(0, "c1"))
+      .mockResolvedValueOnce(page(2, null));
+    await renderLive(<TransactionsScreen />);
+
+    await waitFor(() => expect(screen.getByText("Ligne 3")).toBeTruthy());
+    expect(transactionsClient.listTransactions).toHaveBeenCalledTimes(2);
+    expect(transactionsClient.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ cursor: "c1", limit: 200 }),
+    );
+    expect(screen.queryByTestId("tx-truncated-note")).toBeNull();
+  });
+
+  it("shows the true pending count, scoped to the displayed month", async () => {
+    (transactionsClient.listPendingSuggestions as jest.Mock).mockResolvedValue({
+      items: [
+        transactionDto({
+          suggestedCategory: "courses",
+          suggestedConfidence: 0.9,
+          suggestedRoute: "ollama",
+        }),
+      ],
+      totalCount: 14,
+      page: 1,
+      pageSize: 10,
+    });
+    await renderLive(<TransactionsScreen />);
+
+    await waitFor(() => expect(screen.getByText(/14/)).toBeTruthy());
+    expect(transactionsClient.listPendingSuggestions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        page: 1,
+        pageSize: 10,
+        month: expect.stringMatching(/^\d{4}-\d{2}$/),
+      }),
     );
   });
 
@@ -352,7 +465,7 @@ describe("AC-6 — Cap & Patrimoine interactions", () => {
   });
 
   it("adds a milestone from the sheet", async () => {
-    (milestonesClient.add as jest.Mock).mockResolvedValue({ id: MST });
+    (milestonesClient.add as jest.Mock).mockResolvedValue(milestoneDto());
     await renderLive(<MilestoneSheet />);
     await fireEvent.changeText(screen.getByTestId("ms-capital"), "250 000");
     await fireEvent.changeText(screen.getByTestId("ms-year"), "2035");
@@ -368,7 +481,7 @@ describe("AC-6 — Cap & Patrimoine interactions", () => {
   });
 
   it("deletes a milestone after a destructive confirmation", async () => {
-    (milestonesClient.delete as jest.Mock).mockResolvedValue({ ok: true });
+    (milestonesClient.delete as jest.Mock).mockResolvedValue({ id: MST });
     acceptDestructive();
     await renderLive(<CapScreen />);
     await waitFor(() => expect(screen.getByText("Palier 250 k€")).toBeTruthy());
@@ -384,8 +497,8 @@ describe("AC-6 — Cap & Patrimoine interactions", () => {
   });
 
   it("creates an account and records a new balance", async () => {
-    (accountsClient.create as jest.Mock).mockResolvedValue({ id: ACC });
-    (accountsClient.recordBalanceChange as jest.Mock).mockResolvedValue({ id: ACC });
+    (accountsClient.create as jest.Mock).mockResolvedValue(accountDto());
+    (accountsClient.recordBalanceChange as jest.Mock).mockResolvedValue(accountDto());
     pickActionSheet("Livret");
     const created = await renderLive(<AccountSheet />);
     await fireEvent.changeText(screen.getByTestId("acc-label"), "Livret A");
@@ -412,6 +525,26 @@ describe("AC-6 — Cap & Patrimoine interactions", () => {
         expect.objectContaining({ id: ACC, cashBalance: 1250.5, valuedOn: expect.any(Date) }),
       ),
     );
+  });
+
+  it("edits an existing account (label, type, notes) prefilled from the cache", async () => {
+    mockParams = { id: ACC };
+    (accountsClient.update as jest.Mock).mockResolvedValue(accountDto({ label: "Compte joint" }));
+    await renderLive(<AccountSheet />);
+
+    await waitFor(() => expect(screen.getByDisplayValue("Courant")).toBeTruthy());
+    await fireEvent.changeText(screen.getByTestId("acc-label"), "Compte joint");
+    await fireEvent.press(screen.getByTestId("sheet-primary-btn"));
+
+    await waitFor(() =>
+      expect(accountsClient.update).toHaveBeenCalledWith({
+        id: ACC,
+        label: "Compte joint",
+        type: "banque",
+        notes: null,
+      }),
+    );
+    expect(accountsClient.create).not.toHaveBeenCalled();
   });
 
   it("deletes an account from the Patrimoine row action sheet", async () => {

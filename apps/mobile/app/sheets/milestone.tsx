@@ -11,10 +11,12 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput } from "../../lib/forms";
 import { useMilestoneMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileCapData } from "../../lib/hooks/use-mobile-queries";
+import { useAuth } from "../../lib/auth/auth-context";
 import { useI18n } from "../../lib/i18n";
 
 export default function MilestoneSheet() {
   const { t } = useI18n();
+  const { isAuthenticated } = useAuth();
   const { data } = useMobileCapData();
   const { add } = useMilestoneMutations();
   const { run, error, setError, pending } = useMutationRunner({ dismiss: true });
@@ -44,7 +46,8 @@ export default function MilestoneSheet() {
       title={t("cap.milestoneSheet.title")}
       primaryLabel={t("common.actions.add")}
       onPrimary={save}
-      primaryDisabled={pending}
+      // The 20-milestone cap is checked against loaded data: wait for it.
+      primaryDisabled={pending || (isAuthenticated && !data)}
       error={error}
     >
       <FormSection footer={t("cap.milestoneSheet.footer")}>
