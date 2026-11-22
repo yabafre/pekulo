@@ -24,6 +24,7 @@ import {
   normalizeNumber,
   type ParityBaseline,
   type ParityCase,
+  type ParityTheme,
   type TextStyleRecord,
 } from "@pekulo/ui/parity";
 import { render } from "@testing-library/react-native";
@@ -101,28 +102,37 @@ describe("@pekulo/ui web ↔ native text-style parity (story 10-5, AC-3)", () =>
     expect(PARITY_CASES.map((c) => c.id).filter((id) => !(id in baseline))).toEqual([]);
   });
 
+  async function checkCaseTheme(
+    parityCase: ParityCase,
+    theme: ParityTheme,
+    unexpected: string[],
+  ): Promise<void> {
+    const view = await render(
+      <PekuloRootProvider theme={theme}>{parityCase.render()}</PekuloRootProvider>,
+    );
+    const records: TextStyleRecord[] = [];
+    collectTextRecords(view.toJSON() as HostNode | HostNode[] | null, {}, records);
+    await view.unmount();
+    for (const diff of diffTextStyles(baseline[parityCase.id]?.[theme] ?? [], records)) {
+      const key = divergenceKey(parityCase.id, theme, diff);
+      if (key in PARITY_ALLOWED_DIVERGENCE) {
+        seenAllowedKeys.add(key);
+      } else {
+        unexpected.push(
+          `${key} — web=${JSON.stringify(diff.web)} native=${JSON.stringify(diff.native)}`,
+        );
+      }
+    }
+  }
+
   it.each(PARITY_CASES.map((c) => [c.id, c] as [string, ParityCase]))(
     "%s renders the web text styles natively in both themes",
     async (_id, parityCase) => {
       const unexpected: string[] = [];
-      for (const theme of PARITY_THEMES) {
-        const view = await render(
-          <PekuloRootProvider theme={theme}>{parityCase.render()}</PekuloRootProvider>,
-        );
-        const records: TextStyleRecord[] = [];
-        collectTextRecords(view.toJSON() as HostNode | HostNode[] | null, {}, records);
-        await view.unmount();
-        for (const diff of diffTextStyles(baseline[parityCase.id]?.[theme] ?? [], records)) {
-          const key = divergenceKey(parityCase.id, theme, diff);
-          if (key in PARITY_ALLOWED_DIVERGENCE) {
-            seenAllowedKeys.add(key);
-          } else {
-            unexpected.push(
-              `${key} — web=${JSON.stringify(diff.web)} native=${JSON.stringify(diff.native)}`,
-            );
-          }
-        }
-      }
+      await PARITY_THEMES.reduce(
+        (chain, theme) => chain.then(() => checkCaseTheme(parityCase, theme, unexpected)),
+        Promise.resolve(),
+      );
       expect(unexpected).toEqual([]);
     },
   );

@@ -7,7 +7,23 @@
 // `.native.tsx` sibling, never listed here. Stale entries fail the suite.
 import type { ParityTheme, TextStyleDiff } from "@pekulo/ui/parity";
 
-export const PARITY_ALLOWED_DIVERGENCE: Record<string, string> = {};
+const CATEGORY_PICKER_CLOSED_SHEET_REASON =
+  'Shared source (no CategoryPicker.native.tsx); PekuloSelect.native.tsx adapts via <TamaSelect.Adapt platform="touch"> and keeps the closed TamaSheet\'s option <Text> nodes mounted off-screen for Select.Value registration (no visual output while closed), whereas web unmounts the closed popover.';
+
+export const PARITY_ALLOWED_DIVERGENCE: Record<string, string> = {
+  "CategoryPicker.closed|pekulo-dark|Courses#1|extra-on-native":
+    CATEGORY_PICKER_CLOSED_SHEET_REASON,
+  "CategoryPicker.closed|pekulo-dark|Transport#0|extra-on-native":
+    CATEGORY_PICKER_CLOSED_SHEET_REASON,
+  "CategoryPicker.closed|pekulo-dark|Restauration#0|extra-on-native":
+    CATEGORY_PICKER_CLOSED_SHEET_REASON,
+  "CategoryPicker.closed|pekulo-light|Courses#1|extra-on-native":
+    CATEGORY_PICKER_CLOSED_SHEET_REASON,
+  "CategoryPicker.closed|pekulo-light|Transport#0|extra-on-native":
+    CATEGORY_PICKER_CLOSED_SHEET_REASON,
+  "CategoryPicker.closed|pekulo-light|Restauration#0|extra-on-native":
+    CATEGORY_PICKER_CLOSED_SHEET_REASON,
+};
 
 export function divergenceKey(
   caseId: string,
