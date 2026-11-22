@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun --bun next dev --port 3002",
-    "build": "bun --bun next build",
+    "build": "next build",
     "start": "next start -p 3002",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
