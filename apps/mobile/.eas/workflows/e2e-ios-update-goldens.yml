@@ -1,7 +1,8 @@
 # Story 10-5 AC-6 — regenerates the iOS DS goldens on the SAME simulator image
-# the e2e workflow asserts against. Manual only:
+# the e2e workflow asserts against. Runs on the Expo Free plan via a custom
+# `runs_on: macos-medium` job. Manual only:
 #   cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios-update-goldens.yml
-# Download the "Maestro Test Results" artifact and copy the PNGs into
+# Download the "ios-ds-goldens" artifact and copy the PNGs into
 # apps/mobile/.maestro/goldens/ios/ (see apps/mobile/README.md).
 name: e2e-ios-update-goldens
 
@@ -19,9 +20,51 @@ jobs:
   capture_goldens:
     name: Capture DS goldens (iOS)
     needs: [build_ios_simulator]
-    type: maestro
-    env:
-      MAESTRO_UPDATE_GOLDENS: "true"
-    params:
-      build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
-      flow_path: ".maestro/flows/ds-gallery.yaml"
+    runs_on: macos-medium
+    steps:
+      - uses: eas/checkout
+
+      - uses: eas/download_build
+        id: download_build
+        with:
+          build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
+          extensions: [app]
+
+      - name: Capture 42 iOS DS goldens
+        run: |
+          set -euo pipefail
+          export PATH="$PATH:$HOME/.maestro/bin"
+          export MAESTRO_CLI_NO_ANALYTICS=1
+
+          if [ -d "apps/mobile/.maestro" ]; then
+            MAESTRO_DIR="apps/mobile/.maestro"
+          else
+            MAESTRO_DIR=".maestro"
+          fi
+
+          DEVICE_UDID=$(xcrun simctl list devices available -j | node -e "
+            const devices = Object.values(JSON.parse(require('fs').readFileSync(0, 'utf8')).devices).flat()
+              .filter((d) => d.isAvailable && /iPhone/.test(d.name));
+            const pick = devices.find((d) => /iPhone \d+ Pro$/.test(d.name)) || devices[0];
+            if (!pick) process.exit(1);
+            console.log(pick.udid);
+          ")
+          xcrun simctl boot "$DEVICE_UDID" || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+          xcrun simctl install "$DEVICE_UDID" "${{ steps.download_build.outputs.artifact_path }}"
+
+          rm -rf /tmp/maestro-goldens maestro-goldens-ios
+          mkdir -p /tmp/maestro-goldens maestro-goldens-ios
+          maestro test --device "$DEVICE_UDID" \
+            -e MAESTRO_UPDATE_GOLDENS=true \
+            --test-output-dir /tmp/maestro-goldens \
+            "$MAESTRO_DIR/flows/ds-gallery.yaml"
+
+          find /tmp/maestro-goldens -name "*.png" -exec cp {} maestro-goldens-ios/ \;
+          ls -1 maestro-goldens-ios/*.png | wc -l
+
+      - uses: eas/upload_artifact
+        with:
+          type: other
+          name: ios-ds-goldens
+          path: maestro-goldens-ios/*.png

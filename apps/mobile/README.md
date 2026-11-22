@@ -54,12 +54,12 @@ cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios.yml
 # Regenerate the ds-gallery flow after adding/removing a parity case
 cd apps/mobile && UPDATE_DS_FLOW=1 bunx jest __tests__/maestro-ds-gallery-flow.test.ts
 
-# Refresh the iOS goldens after an INTENTIONAL visual change (EAS Workflows — requires paid Expo plan for `type: maestro`)
+# Refresh the iOS goldens after an INTENTIONAL visual change (EAS Workflows — custom macos-medium job, Free-plan compatible)
 cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios-update-goldens.yml
-# then download the "Maestro Test Results" artifact from the run page and copy
-# its goldens/ios/*.png into apps/mobile/.maestro/goldens/ios/, review, commit.
+# then download the "ios-ds-goldens" artifact from the run page and copy
+# its *.png files into apps/mobile/.maestro/goldens/ios/, review, commit.
 
-# Local Release Simulator build + Maestro run (works without a paid EAS plan)
+# Local Release Simulator build + Maestro run
 cd apps/mobile && EXPO_PUBLIC_DS_GALLERY=1 bunx expo run:ios --configuration Release --no-bundler
 maestro test apps/mobile/.maestro
 

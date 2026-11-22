@@ -1,5 +1,7 @@
 # Story 10-5 AC-6 — iOS Simulator build + Maestro E2E on EAS Workflows.
-# Non-required check: Expo labels the maestro job "alpha".
+# Uses a custom `runs_on: macos-medium` job instead of pre-packaged `type: maestro`
+# so it runs on the Expo Free plan (Maestro CLI and iOS Simulators are pre-installed).
+# Non-required check.
 name: e2e-ios
 
 on:
@@ -23,13 +25,54 @@ jobs:
   maestro_ios:
     name: Maestro E2E (iOS)
     needs: [build_ios_simulator]
-    type: maestro
-    params:
-      build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
-      flow_path:
-        - ".maestro/flows/smoke.yaml"
-        - ".maestro/flows/navigation.yaml"
-        - ".maestro/flows/preview-guard.yaml"
-        - ".maestro/flows/ds-gallery.yaml"
-      retries: 1
-      record_screen: true
+    runs_on: macos-medium
+    steps:
+      - uses: eas/checkout
+
+      - uses: eas/download_build
+        id: download_build
+        with:
+          build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
+          extensions: [app]
+
+      - name: Run Maestro E2E suite (with 1 retry per flow)
+        run: |
+          set -euo pipefail
+          export PATH="$PATH:$HOME/.maestro/bin"
+          export MAESTRO_CLI_NO_ANALYTICS=1
+
+          if [ -d "apps/mobile/.maestro" ]; then
+            MAESTRO_DIR="apps/mobile/.maestro"
+          else
+            MAESTRO_DIR=".maestro"
+          fi
+
+          DEVICE_UDID=$(xcrun simctl list devices available -j | node -e "
+            const devices = Object.values(JSON.parse(require('fs').readFileSync(0, 'utf8')).devices).flat()
+              .filter((d) => d.isAvailable && /iPhone/.test(d.name));
+            const pick = devices.find((d) => /iPhone \d+ Pro$/.test(d.name)) || devices[0];
+            if (!pick) process.exit(1);
+            console.log(pick.udid);
+          ")
+          xcrun simctl boot "$DEVICE_UDID" || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+          xcrun simctl install "$DEVICE_UDID" "${{ steps.download_build.outputs.artifact_path }}"
+
+          mkdir -p maestro-results
+          run_flow() {
+            local flow="$1"
+            maestro test --device "$DEVICE_UDID" --test-output-dir maestro-results "$flow" \
+              || maestro test --device "$DEVICE_UDID" --test-output-dir maestro-results "$flow"
+          }
+
+          run_flow "$MAESTRO_DIR/flows/smoke.yaml"
+          run_flow "$MAESTRO_DIR/flows/navigation.yaml"
+          run_flow "$MAESTRO_DIR/flows/preview-guard.yaml"
+          run_flow "$MAESTRO_DIR/flows/ds-gallery.yaml"
+
+      - uses: eas/upload_artifact
+        if: ${{ failure() }}
+        with:
+          type: other
+          name: maestro-failure-artifacts
+          path: maestro-results/**/*
