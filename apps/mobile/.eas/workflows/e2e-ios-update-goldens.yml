@@ -1,0 +1,27 @@
+# Story 10-5 AC-6 — regenerates the iOS DS goldens on the SAME simulator image
+# the e2e workflow asserts against. Manual only:
+#   cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios-update-goldens.yml
+# Download the "Maestro Test Results" artifact and copy the PNGs into
+# apps/mobile/.maestro/goldens/ios/ (see apps/mobile/README.md).
+name: e2e-ios-update-goldens
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_ios_simulator:
+    name: Build iOS Simulator (e2e-test)
+    type: build
+    params:
+      platform: ios
+      profile: e2e-test
+
+  capture_goldens:
+    name: Capture DS goldens (iOS)
+    needs: [build_ios_simulator]
+    type: maestro
+    env:
+      MAESTRO_UPDATE_GOLDENS: "true"
+    params:
+      build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
+      flow_path: ".maestro/flows/ds-gallery.yaml"

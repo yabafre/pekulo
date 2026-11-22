@@ -1,0 +1,35 @@
+# Story 10-5 AC-6 — iOS Simulator build + Maestro E2E on EAS Workflows.
+# Non-required check: Expo labels the maestro job "alpha".
+name: e2e-ios
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "apps/mobile/**"
+      - "packages/ui/**"
+      - "packages/contracts/**"
+      - "packages/validators/**"
+      - "packages/types/**"
+
+jobs:
+  build_ios_simulator:
+    name: Build iOS Simulator (e2e-test)
+    type: build
+    params:
+      platform: ios
+      profile: e2e-test
+
+  maestro_ios:
+    name: Maestro E2E (iOS)
+    needs: [build_ios_simulator]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
+      flow_path:
+        - ".maestro/flows/smoke.yaml"
+        - ".maestro/flows/navigation.yaml"
+        - ".maestro/flows/preview-guard.yaml"
+        - ".maestro/flows/ds-gallery.yaml"
+      retries: 1
+      record_screen: true
