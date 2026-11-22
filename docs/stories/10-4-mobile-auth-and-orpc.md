@@ -1,7 +1,7 @@
 # Story: 10-4-mobile-auth-and-orpc — Wire Supabase Auth (`expo-secure-store`) and `@pekulo/contracts` oRPC client in `apps/mobile`
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** done
 **Ticket:** #155
 **Branch:** feature/155-10-4-mobile-auth-and-orpc
 **Complexity:** L
