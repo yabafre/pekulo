@@ -146,7 +146,7 @@ jobs:
         run: |
           ANON_KEY="$(bun -e 'import { mintAnonJwt } from "./apps/web/e2e/e2e-env"; console.log(mintAnonJwt());')"
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" bun --filter=@pekulo/web run build:ci
+          NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" bun --filter=@pekulo/web run build
       - name: Boot @pekulo/api and @pekulo/web, then run axe-core suite
         run: |
           bun --filter=@pekulo/api run start &
