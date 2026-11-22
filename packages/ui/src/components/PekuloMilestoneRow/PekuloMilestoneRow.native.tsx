@@ -8,6 +8,10 @@ export interface PekuloMilestoneRowProps {
   milestone: MilestoneCardItem;
   onDelete?: (id: string) => void;
   isDeleting?: boolean;
+  /** Localised status labels (defaults are French). */
+  statusLabels?: Partial<Record<MilestoneStatus, string>>;
+  /** Localised accessible name for the delete button. */
+  deleteAriaLabel?: (label: string) => string;
 }
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -38,7 +42,13 @@ const DeletePill = styled(View, {
   } as const,
 });
 
-export function PekuloMilestoneRow({ milestone, onDelete, isDeleting }: PekuloMilestoneRowProps) {
+export function PekuloMilestoneRow({
+  milestone,
+  onDelete,
+  isDeleting,
+  statusLabels,
+  deleteAriaLabel,
+}: PekuloMilestoneRowProps) {
   const theme = useTheme();
   const { id, label, targetEur, targetYear, progressPct, deltaEur, status } = milestone;
   const tone =
@@ -63,14 +73,14 @@ export function PekuloMilestoneRow({ milestone, onDelete, isDeleting }: PekuloMi
           {eur0.format(Math.abs(deltaEur))}
         </Text>
         <Text color="$colorTertiary" fontSize="$xs">
-          {STATUS_LABEL[status]}
+          {statusLabels?.[status] ?? STATUS_LABEL[status]}
         </Text>
       </View>
       {canDelete && (
         <DeletePill
           disabled={isDeleting}
           aria-disabled={isDeleting}
-          aria-label={`Supprimer le palier ${label}`}
+          aria-label={deleteAriaLabel ? deleteAriaLabel(label) : `Supprimer le palier ${label}`}
           onPress={() => {
             if (!isDeleting) onDelete(id);
           }}

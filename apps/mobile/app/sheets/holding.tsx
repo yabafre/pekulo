@@ -1,0 +1,154 @@
+// apps/mobile/app/sheets/holding.tsx
+// Add a holding (native iOS form sheet), mirroring the web
+// `holding-create-form.tsx` fields and validating with
+// `createHoldingInputSchema` through `useHoldingMutations`.
+
+import type { HoldingKind } from "@pekulo/types";
+import type { HOLDING_CURRENCIES } from "@pekulo/validators";
+import { useEffect, useState } from "react";
+
+import {
+  AmountField,
+  FormSection,
+  NumberField,
+  SelectField,
+  TextField,
+} from "../../components/form/fields";
+import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
+import { parseAmountInput } from "../../lib/forms";
+import { useHoldingMutations } from "../../lib/hooks/use-mobile-mutations";
+import { useMobilePortfolioData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
+import { useOptions } from "../../lib/options";
+
+type HoldingCurrency = (typeof HOLDING_CURRENCIES)[number];
+
+export default function HoldingSheet() {
+  const options = useOptions();
+  const { t } = useI18n();
+  const { data } = useMobilePortfolioData();
+  const { create } = useHoldingMutations();
+  const { run, error, pending } = useMutationRunner({ dismiss: true });
+  const accountOptions = data?.accountOptions ?? [];
+
+  const [accountId, setAccountId] = useState("");
+  const [label, setLabel] = useState("");
+  const [ticker, setTicker] = useState("");
+  const [isin, setIsin] = useState("");
+  const [kind, setKind] = useState<HoldingKind>("etf");
+  const [currency, setCurrency] = useState<HoldingCurrency>("EUR");
+  const [quantity, setQuantity] = useState("");
+  const [avgCost, setAvgCost] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const firstAccountId = accountOptions[0]?.value;
+  useEffect(() => {
+    if (!accountId && firstAccountId) setAccountId(firstAccountId);
+  }, [accountId, firstAccountId]);
+
+  function save() {
+    void run(
+      () =>
+        create.mutateAsync({
+          accountId,
+          ticker: ticker.trim() === "" ? null : ticker.trim().toUpperCase(),
+          isin: isin.trim() === "" ? null : isin.trim().toUpperCase(),
+          kind,
+          currency,
+          label: label.trim(),
+          quantity: parseAmountInput(quantity),
+          avgCost: parseAmountInput(avgCost),
+          notes: notes.trim() === "" ? null : notes.trim(),
+        }),
+      t("portfolio.holding.added"),
+    );
+  }
+
+  return (
+    <SheetScaffold
+      title={t("portfolio.holding.title")}
+      primaryLabel={t("common.actions.add")}
+      onPrimary={save}
+      primaryDisabled={pending}
+      error={error}
+    >
+      <FormSection>
+        <TextField
+          label={t("portfolio.holding.name")}
+          value={label}
+          onChange={setLabel}
+          placeholder="Amundi MSCI World"
+          maxLength={120}
+          testID="hld-label"
+        />
+        <TextField
+          label={t("portfolio.holding.ticker")}
+          value={ticker}
+          onChange={setTicker}
+          placeholder="CW8"
+          autoCapitalize="characters"
+          maxLength={32}
+          testID="hld-ticker"
+        />
+        <TextField
+          label={t("portfolio.holding.isin")}
+          value={isin}
+          onChange={setIsin}
+          placeholder="LU1681043599"
+          autoCapitalize="characters"
+          maxLength={32}
+          testID="hld-isin"
+        />
+      </FormSection>
+      <FormSection>
+        <SelectField
+          label={t("common.fields.account")}
+          value={accountId}
+          options={accountOptions}
+          onChange={setAccountId}
+          placeholder={t("common.fields.noAccount")}
+          testID="hld-account"
+        />
+        <SelectField
+          label={t("common.fields.type")}
+          value={kind}
+          options={options.holdingKinds}
+          onChange={setKind}
+          testID="hld-kind"
+        />
+        <SelectField
+          label={t("portfolio.holding.currency")}
+          value={currency}
+          options={options.holdingCurrencies}
+          onChange={setCurrency}
+          testID="hld-currency"
+        />
+      </FormSection>
+      <FormSection footer={t("portfolio.holding.costFooter")}>
+        <NumberField
+          label={t("portfolio.holding.quantity")}
+          value={quantity}
+          onChange={setQuantity}
+          decimal
+          testID="hld-quantity"
+        />
+        <AmountField
+          label={t("portfolio.holding.avgCost")}
+          value={avgCost}
+          onChange={setAvgCost}
+          testID="hld-avgcost"
+        />
+      </FormSection>
+      <FormSection title={t("common.fields.notes")}>
+        <TextField
+          label={t("common.fields.notesOptional")}
+          value={notes}
+          onChange={setNotes}
+          multiline
+          maxLength={500}
+          testID="hld-notes"
+        />
+      </FormSection>
+    </SheetScaffold>
+  );
+}

@@ -42,6 +42,8 @@ export interface PekuloSuggestionRowProps {
   disabled?: boolean;
   categoryIcon?: ReactNode;
   logo?: ReactNode;
+  /** Localised labels (defaults are French). */
+  labels?: { confirm?: string; confirmAria?: string; editAria?: string };
 }
 
 export function PekuloSuggestionRow({
@@ -51,6 +53,7 @@ export function PekuloSuggestionRow({
   disabled,
   categoryIcon,
   logo,
+  labels,
 }: PekuloSuggestionRowProps) {
   const theme = useTheme();
   const Arrow = tx.direction === "in" ? ArrowDownRight : ArrowUpRight;
@@ -103,20 +106,20 @@ export function PekuloSuggestionRow({
         <ConfirmPill
           disabled={disabled}
           aria-disabled={disabled}
-          aria-label="Confirmer la catégorie"
+          aria-label={labels?.confirmAria ?? "Confirmer la catégorie"}
           opacity={disabled ? 0.5 : 1}
           onPress={() => {
             if (!disabled) onConfirm?.();
           }}
         >
           <Text color="$colorOnAccent" fontSize="$xs" fontWeight="600">
-            ✓ Confirmer
+            ✓ {labels?.confirm ?? "Confirmer"}
           </Text>
         </ConfirmPill>
         <EditPill
           disabled={disabled}
           aria-disabled={disabled}
-          aria-label="Modifier la catégorie"
+          aria-label={labels?.editAria ?? "Modifier la catégorie"}
           opacity={disabled ? 0.5 : 1}
           onPress={() => {
             if (!disabled) onEdit?.();

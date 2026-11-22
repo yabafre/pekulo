@@ -22,9 +22,11 @@ const KIND_LABEL: Record<HoldingKind, string> = {
 
 export interface PekuloHoldingRowProps {
   holding: HoldingCardItem;
+  /** Localised kind label (defaults to the French label). */
+  kindLabel?: string;
 }
 
-export function PekuloHoldingRow({ holding }: PekuloHoldingRowProps) {
+export function PekuloHoldingRow({ holding, kindLabel }: PekuloHoldingRowProps) {
   const sign = holding.pnlEur >= 0 ? "+" : "−";
   const tone = holding.pnlEur >= 0 ? "$success" : "$danger";
   const pctSign = holding.pnlPct >= 0 ? "+" : "−";
@@ -42,7 +44,7 @@ export function PekuloHoldingRow({ holding }: PekuloHoldingRowProps) {
             {holding.ticker}
           </Text>
           <Text color="$colorTertiary" fontSize="$11" fontWeight="500">
-            {KIND_LABEL[holding.kind].toUpperCase()}
+            {(kindLabel ?? KIND_LABEL[holding.kind]).toUpperCase()}
           </Text>
         </View>
         <Text color="$colorTertiary" fontSize="$xs">

@@ -1,11 +1,13 @@
 import { PekuloHero, PekuloRootProvider, PekuloStat, pekuloDark, pekuloLight } from "@pekulo/ui";
 import { Text } from "@pekulo/ui/client";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react-native";
 import { useState } from "react";
 import { useTheme } from "tamagui";
 
 import CapScreen from "../app/(tabs)/(cap)/index";
 import { ScreenShell } from "../components/screen-shell";
+import { createMobileQueryClient } from "../lib/auth/auth-context";
 
 function ThemeProbe() {
   const theme = useTheme();
@@ -38,15 +40,18 @@ describe("CapScreen with @pekulo/ui native", () => {
   });
 
   it("renders PekuloHero and PekuloStat inside PekuloRootProvider (dark)", async () => {
+    const queryClient = createMobileQueryClient();
     await render(
-      <PekuloRootProvider theme="pekulo-dark">
-        <CapScreen />
-      </PekuloRootProvider>,
+      <QueryClientProvider client={queryClient}>
+        <PekuloRootProvider theme="pekulo-dark">
+          <CapScreen />
+        </PekuloRootProvider>
+      </QueryClientProvider>,
     );
 
-    // Screen title + hero "Cap" label; settings avatar lives inline in the ScreenShell header row.
-    expect(screen.getAllByText("Cap")).toHaveLength(2);
-    expect(screen.getByText("Trajectoire vers votre objectif patrimonial")).toBeTruthy();
+    // Cap | Patrimoine toggle replaces duplicate title (ux-preview mobile parity).
+    expect(screen.getByText("Cap")).toBeTruthy();
+    expect(screen.getByText("Patrimoine")).toBeTruthy();
     expect(screen.getByTestId("open-settings-btn")).toBeTruthy();
     expect(screen.getByText("Patrimoine total")).toBeTruthy();
     expect(screen.getByText("Avancement")).toBeTruthy();
@@ -56,6 +61,7 @@ describe("CapScreen with @pekulo/ui native", () => {
   });
 
   it("supports switching explicitly and dynamically to pekulo-light theme without remounting children", async () => {
+    const queryClient = createMobileQueryClient();
     let mounts = 0;
     function MountCounter() {
       const [mounted] = useState(() => ++mounts);
@@ -63,22 +69,26 @@ describe("CapScreen with @pekulo/ui native", () => {
     }
 
     const view = await render(
-      <PekuloRootProvider theme="pekulo-dark">
-        <MountCounter />
-        <ThemeProbe />
-        <CapScreen />
-      </PekuloRootProvider>,
+      <QueryClientProvider client={queryClient}>
+        <PekuloRootProvider theme="pekulo-dark">
+          <MountCounter />
+          <ThemeProbe />
+          <CapScreen />
+        </PekuloRootProvider>
+      </QueryClientProvider>,
     );
 
     expect(screen.getByTestId("theme-bg").props.children).toBe("#000000");
     expect(screen.getByTestId("mount-count").props.children).toBe(1);
 
     await view.rerender(
-      <PekuloRootProvider theme="pekulo-light">
-        <MountCounter />
-        <ThemeProbe />
-        <CapScreen />
-      </PekuloRootProvider>,
+      <QueryClientProvider client={queryClient}>
+        <PekuloRootProvider theme="pekulo-light">
+          <MountCounter />
+          <ThemeProbe />
+          <CapScreen />
+        </PekuloRootProvider>
+      </QueryClientProvider>,
     );
 
     expect(screen.getByTestId("theme-bg").props.children).toBe("#ffffff");

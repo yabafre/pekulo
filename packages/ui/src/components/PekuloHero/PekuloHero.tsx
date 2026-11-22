@@ -17,6 +17,8 @@ export interface PekuloHeroProps {
   targetYear?: number;
   requiredYearlyEur?: number;
   label?: string;
+  /** Caption after the delta (default "vs plan · 12 mois"). */
+  deltaCaption?: string;
 }
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
@@ -39,6 +41,7 @@ export function PekuloHero({
   targetYear,
   requiredYearlyEur,
   label = "Patrimoine total",
+  deltaCaption = "vs plan · 12 mois",
 }: PekuloHeroProps) {
   const animated = useCountUp(totalEur, { durationMs: 900 });
   const aheadSign = aheadEur >= 0 ? "+" : "−";
@@ -58,7 +61,7 @@ export function PekuloHero({
           {aheadAbs}
         </Text>
         <Text color="$colorTertiary" fontSize="$bodySm">
-          vs plan · 12 mois
+          {deltaCaption}
         </Text>
       </View>
       {variant === "card" &&

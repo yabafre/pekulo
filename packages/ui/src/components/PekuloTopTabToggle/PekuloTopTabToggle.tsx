@@ -23,18 +23,25 @@ const TabButton = styled(View, {
 export interface PekuloTopTabToggleProps {
   topTab: PekuloTopTab;
   onChange: (t: PekuloTopTab) => void;
+  /** Localised labels (defaults are French). */
+  labels?: { cap?: string; patrimoine?: string; ariaLabel?: string };
 }
 
-export function PekuloTopTabToggle({ topTab, onChange }: PekuloTopTabToggleProps) {
+export function PekuloTopTabToggle({ topTab, onChange, labels }: PekuloTopTabToggleProps) {
   return (
-    <View flexDirection="row" gap="$4" role="tablist" aria-label="Vue cap ou patrimoine">
+    <View
+      flexDirection="row"
+      gap="$4"
+      role="tablist"
+      aria-label={labels?.ariaLabel ?? "Vue cap ou patrimoine"}
+    >
       <TabButton onPress={() => onChange("cap")} aria-selected={topTab === "cap"}>
         <Text
           color={(topTab === "cap" ? "$color" : "$colorTertiary") as never}
           fontSize="$h2"
           fontWeight="600"
         >
-          Cap
+          {labels?.cap ?? "Cap"}
         </Text>
       </TabButton>
       <TabButton onPress={() => onChange("patrimoine")} aria-selected={topTab === "patrimoine"}>
@@ -43,7 +50,7 @@ export function PekuloTopTabToggle({ topTab, onChange }: PekuloTopTabToggleProps
           fontSize="$h2"
           fontWeight="600"
         >
-          Patrimoine
+          {labels?.patrimoine ?? "Patrimoine"}
         </Text>
       </TabButton>
     </View>

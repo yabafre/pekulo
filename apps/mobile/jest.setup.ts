@@ -26,6 +26,21 @@ jest.mock("expo-splash-screen", () => ({
   hideAsync: jest.fn().mockResolvedValue(true),
 }));
 
+jest.mock("expo-secure-store", () => {
+  const store = new Map<string, string>();
+  return {
+    __esModule: true,
+    __store: store,
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    setItemAsync: jest.fn(async (key: string, value: string) => {
+      store.set(key, value);
+    }),
+    deleteItemAsync: jest.fn(async (key: string) => {
+      store.delete(key);
+    }),
+  };
+});
+
 jest.mock("@react-native-community/datetimepicker", () => {
   const React = require("react") as typeof import("react");
   const { View, Pressable, Text } = require("react-native") as typeof import("react-native");

@@ -132,6 +132,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('bun.lock') }}
       - name: Install Playwright Chromium
+        # Run from apps/web so `bunx` resolves the Playwright pinned in bun.lock. From the
+        # repo root it downloads the latest Playwright, whose Chromium revision (v1255) is not
+        # the one the tests launch (v1248) -> "browserType.launch: Executable doesn't exist".
+        working-directory: apps/web
         run: bunx playwright install --with-deps chromium
       - name: Start disposable Postgres + GoTrue stack
         run: |
@@ -142,7 +146,7 @@ jobs:
         run: |
           ANON_KEY="$(bun -e 'import { mintAnonJwt } from "./apps/web/e2e/e2e-env"; console.log(mintAnonJwt());')"
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" bun --filter=@pekulo/web run build
+          NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" bun --filter=@pekulo/web run build:ci
       - name: Boot @pekulo/api and @pekulo/web, then run axe-core suite
         run: |
           bun --filter=@pekulo/api run start &

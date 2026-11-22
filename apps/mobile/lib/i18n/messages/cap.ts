@@ -1,0 +1,176 @@
+// apps/mobile/lib/i18n/messages/cap.ts
+import type { Shape } from "../types";
+
+export const fr = {
+  topTabs: {
+    cap: "Cap",
+    patrimoine: "Patrimoine",
+    ariaLabel: "Vue cap ou patrimoine",
+  },
+  hero: {
+    label: "Patrimoine total",
+    deltaCaption: "vs plan · 12 mois",
+  },
+  createMenu: {
+    newTransaction: "Nouvelle transaction",
+    newMilestone: "Nouveau palier",
+    newAccount: "Nouveau compte",
+  },
+  loadError: "Impossible de charger votre cap",
+  kpi: {
+    progress: "Avancement",
+    target: "Objectif {amount} · {year}",
+    nextMilestone: "Prochain palier",
+    planPerYear: "Plan {amount} / an",
+  },
+  milestones: {
+    title: "Paliers",
+    ariaLabel: "Paliers du cap",
+    status: {
+      ahead: "en avance",
+      onTrack: "sur la trajectoire",
+      behind: "en retard",
+    },
+    deleteAria: "Supprimer le palier {label}",
+    deleteTitle: "Supprimer « {label} » ?",
+    deleteMessage: "Le palier sera retiré de votre trajectoire.",
+    deleted: "Palier supprimé",
+  },
+  composition: {
+    title: "Composition",
+    ariaLabel: "Composition du patrimoine",
+  },
+  activity: {
+    title: "Activité récente",
+    seeAll: "Voir tout",
+  },
+  patrimoine: {
+    total: "Total",
+  },
+  accounts: {
+    title: "Comptes",
+    ariaLabel: "Comptes bancaires et livrets",
+    rowHint: "Ouvre les actions du compte",
+    emptyTitle: "Aucun compte",
+    emptyMessage: "Ajoutez un livret, un PEA ou un compte courant pour suivre votre patrimoine.",
+    emptyCta: "Ajouter un compte",
+    updateBalance: "Mettre à jour le solde",
+    deleteTitle: "Supprimer « {label} » ?",
+    deleteMessage: "Le compte et son historique de solde seront supprimés.",
+    deleted: "Compte supprimé",
+  },
+  milestoneSheet: {
+    title: "Nouveau palier",
+    footer: "Un palier jalonne votre trajectoire vers le cap.",
+    capital: "Capital visé",
+    year: "Année",
+    name: "Nom (facultatif)",
+    namePlaceholder: "Palier 250 k€",
+    limitReached: "Vous avez atteint la limite de {max} paliers.",
+    added: "Palier ajouté",
+  },
+  accountSheet: {
+    createTitle: "Nouveau compte",
+    editTitle: "Modifier le compte",
+    name: "Nom du compte",
+    namePlaceholder: "Livret A, PEA…",
+    balance: "Solde actuel",
+    notesFooter: "Les comptes sont tenus en euros.",
+    added: "Compte ajouté",
+    updated: "Compte modifié",
+  },
+  balanceSheet: {
+    title: "Mettre à jour le solde",
+    titleWithAccount: "Solde · {label}",
+    footer: "Le nouveau solde est ajouté à l’historique du compte.",
+    newBalance: "Nouveau solde",
+    updated: "Solde mis à jour",
+  },
+} as const;
+
+export const en: Shape<typeof fr> = {
+  topTabs: {
+    cap: "Cap",
+    patrimoine: "Net worth",
+    ariaLabel: "Cap or net worth view",
+  },
+  hero: {
+    label: "Total wealth",
+    deltaCaption: "vs plan · 12 months",
+  },
+  createMenu: {
+    newTransaction: "New transaction",
+    newMilestone: "New milestone",
+    newAccount: "New account",
+  },
+  loadError: "Couldn’t load your cap",
+  kpi: {
+    progress: "Progress",
+    target: "Goal {amount} · {year}",
+    nextMilestone: "Next milestone",
+    planPerYear: "Plan {amount} / year",
+  },
+  milestones: {
+    title: "Milestones",
+    ariaLabel: "Cap milestones",
+    status: {
+      ahead: "ahead",
+      onTrack: "on track",
+      behind: "behind",
+    },
+    deleteAria: "Delete milestone {label}",
+    deleteTitle: "Delete “{label}”?",
+    deleteMessage: "The milestone will be removed from your trajectory.",
+    deleted: "Milestone deleted",
+  },
+  composition: {
+    title: "Composition",
+    ariaLabel: "Wealth composition",
+  },
+  activity: {
+    title: "Recent activity",
+    seeAll: "See all",
+  },
+  patrimoine: {
+    total: "Total",
+  },
+  accounts: {
+    title: "Accounts",
+    ariaLabel: "Bank and savings accounts",
+    rowHint: "Opens the account actions",
+    emptyTitle: "No accounts",
+    emptyMessage: "Add a savings account, a PEA or a checking account to track your net worth.",
+    emptyCta: "Add an account",
+    updateBalance: "Update balance",
+    deleteTitle: "Delete “{label}”?",
+    deleteMessage: "The account and its balance history will be deleted.",
+    deleted: "Account deleted",
+  },
+  milestoneSheet: {
+    title: "New milestone",
+    footer: "A milestone marks a step on your trajectory towards your cap.",
+    capital: "Target capital",
+    year: "Year",
+    name: "Name (optional)",
+    namePlaceholder: "Milestone 250 k€",
+    limitReached: "You’ve reached the limit of {max} milestones.",
+    added: "Milestone added",
+  },
+  accountSheet: {
+    createTitle: "New account",
+    editTitle: "Edit account",
+    name: "Account name",
+    namePlaceholder: "Savings, PEA…",
+    balance: "Current balance",
+    notesFooter: "Accounts are held in euros.",
+    added: "Account added",
+    updated: "Account updated",
+  },
+  balanceSheet: {
+    title: "Update balance",
+    titleWithAccount: "Balance · {label}",
+    footer: "The new balance is added to the account history.",
+    newBalance: "New balance",
+    updated: "Balance updated",
+  },
+};

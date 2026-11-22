@@ -7,7 +7,10 @@ import type { AccountCardItem, AccountType } from "@pekulo/types";
 // types live in @pekulo/types, not inlined per component). `Account` is the
 // canonical domain entity (z.infer); `AccountCardItem` is the legacy DS prop
 // shape used by V1 mockups before the live wiring lands.
-export type PekuloAccountRowProps = AccountCardItem;
+export type PekuloAccountRowProps = AccountCardItem & {
+  /** Localised account type label (defaults to the French label). */
+  typeLabel?: string;
+};
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -23,8 +26,15 @@ const TYPE_LABEL: Record<AccountType, string> = {
   banque: "Compte courant",
 };
 
-export function PekuloAccountRow({ label, type, institution, balanceEur }: PekuloAccountRowProps) {
-  const sub = institution ? `${TYPE_LABEL[type]} · ${institution}` : TYPE_LABEL[type];
+export function PekuloAccountRow({
+  label,
+  type,
+  institution,
+  balanceEur,
+  typeLabel,
+}: PekuloAccountRowProps) {
+  const typeText = typeLabel ?? TYPE_LABEL[type];
+  const sub = institution ? `${typeText} · ${institution}` : typeText;
   return (
     <View
       flexDirection="row"
