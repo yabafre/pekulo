@@ -5,6 +5,8 @@
 
 import type { z } from "@pekulo/zod";
 
+import { currentLang, tNow } from "./i18n";
+
 export class FormValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -16,7 +18,13 @@ export class FormValidationError extends Error {
 export function validateInput<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
   const result = schema.safeParse(input);
   if (!result.success) {
-    throw new FormValidationError(result.error.issues[0]?.message ?? "Saisie invalide");
+    // Shared validator messages are French; other languages get a localised
+    // generic hint instead of a French sentence.
+    const message =
+      currentLang() === "fr"
+        ? (result.error.issues[0]?.message ?? tNow("common.errors.invalidInput"))
+        : tNow("common.errors.invalidInputHint");
+    throw new FormValidationError(message);
   }
   return result.data;
 }

@@ -18,12 +18,14 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput } from "../../lib/forms";
 import { useHoldingMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobilePortfolioData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 import { useOptions } from "../../lib/options";
 
 type HoldingCurrency = (typeof HOLDING_CURRENCIES)[number];
 
 export default function HoldingSheet() {
   const options = useOptions();
+  const { t } = useI18n();
   const { data } = useMobilePortfolioData();
   const { create } = useHoldingMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
@@ -58,21 +60,21 @@ export default function HoldingSheet() {
           avgCost: parseAmountInput(avgCost),
           notes: notes.trim() === "" ? null : notes.trim(),
         }),
-      "Ligne ajoutée",
+      t("portfolio.holding.added"),
     );
   }
 
   return (
     <SheetScaffold
-      title="Nouvelle ligne"
-      primaryLabel="Ajouter"
+      title={t("portfolio.holding.title")}
+      primaryLabel={t("common.actions.add")}
       onPrimary={save}
       primaryDisabled={pending}
       error={error}
     >
       <FormSection>
         <TextField
-          label="Nom"
+          label={t("portfolio.holding.name")}
           value={label}
           onChange={setLabel}
           placeholder="Amundi MSCI World"
@@ -80,7 +82,7 @@ export default function HoldingSheet() {
           testID="hld-label"
         />
         <TextField
-          label="Ticker (facultatif)"
+          label={t("portfolio.holding.ticker")}
           value={ticker}
           onChange={setTicker}
           placeholder="CW8"
@@ -89,7 +91,7 @@ export default function HoldingSheet() {
           testID="hld-ticker"
         />
         <TextField
-          label="ISIN (facultatif)"
+          label={t("portfolio.holding.isin")}
           value={isin}
           onChange={setIsin}
           placeholder="LU1681043599"
@@ -100,41 +102,46 @@ export default function HoldingSheet() {
       </FormSection>
       <FormSection>
         <SelectField
-          label="Compte"
+          label={t("common.fields.account")}
           value={accountId}
           options={accountOptions}
           onChange={setAccountId}
-          placeholder="Aucun compte"
+          placeholder={t("common.fields.noAccount")}
           testID="hld-account"
         />
         <SelectField
-          label="Type"
+          label={t("common.fields.type")}
           value={kind}
           options={options.holdingKinds}
           onChange={setKind}
           testID="hld-kind"
         />
         <SelectField
-          label="Devise"
+          label={t("portfolio.holding.currency")}
           value={currency}
           options={options.holdingCurrencies}
           onChange={setCurrency}
           testID="hld-currency"
         />
       </FormSection>
-      <FormSection footer="Le prix de revient unitaire (PRU) sert au calcul de la plus-value.">
+      <FormSection footer={t("portfolio.holding.costFooter")}>
         <NumberField
-          label="Quantité"
+          label={t("portfolio.holding.quantity")}
           value={quantity}
           onChange={setQuantity}
           decimal
           testID="hld-quantity"
         />
-        <AmountField label="PRU" value={avgCost} onChange={setAvgCost} testID="hld-avgcost" />
+        <AmountField
+          label={t("portfolio.holding.avgCost")}
+          value={avgCost}
+          onChange={setAvgCost}
+          testID="hld-avgcost"
+        />
       </FormSection>
-      <FormSection title="Notes">
+      <FormSection title={t("common.fields.notes")}>
         <TextField
-          label="Notes (facultatif)"
+          label={t("common.fields.notesOptional")}
           value={notes}
           onChange={setNotes}
           multiline

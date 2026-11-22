@@ -11,11 +11,13 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { formatAmountInput, parseAmountInput } from "../../lib/forms";
 import { useCompassMutation } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileCompassData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 export default function CompassSheet() {
   const { data } = useMobileCompassData();
   const updateCompass = useCompassMutation();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
+  const { t } = useI18n();
   const [objectif, setObjectif] = useState("");
   const [horizon, setHorizon] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -29,7 +31,7 @@ export default function CompassSheet() {
 
   return (
     <SheetScaffold
-      title="Mon cap"
+      title={t("settings.compass.title")}
       onPrimary={() => {
         void run(
           () =>
@@ -37,26 +39,26 @@ export default function CompassSheet() {
               objectif: parseAmountInput(objectif),
               horizonYears: Number.parseInt(horizon, 10),
             }),
-          "Cap mis à jour",
+          t("settings.compass.saved"),
         );
       }}
       primaryDisabled={pending}
       error={error}
     >
       <FormSection
-        footer={`Votre cap est le patrimoine visé à l’horizon choisi (${MIN_HORIZON_YEARS} à ${MAX_HORIZON_YEARS} ans).`}
+        footer={t("settings.compass.footer", { min: MIN_HORIZON_YEARS, max: MAX_HORIZON_YEARS })}
       >
         <AmountField
-          label="Objectif"
+          label={t("settings.compass.objective")}
           value={objectif}
           onChange={setObjectif}
           testID="compass-objectif"
         />
         <NumberField
-          label="Horizon"
+          label={t("settings.compass.horizon")}
           value={horizon}
           onChange={setHorizon}
-          suffix="ans"
+          suffix={t("settings.compass.years")}
           maxLength={2}
           testID="compass-horizon"
         />

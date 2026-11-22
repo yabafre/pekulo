@@ -18,8 +18,10 @@ import {
 } from "../../lib/forms";
 import { useMonthlyMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileMonthlyData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 export default function ClotureSheet() {
+  const { t, lang, locale } = useI18n();
   const { data } = useMobileMonthlyData();
   const { signOff } = useMonthlyMutations();
   const { run, error, setError, pending } = useMutationRunner({ dismiss: true });
@@ -41,14 +43,20 @@ export default function ClotureSheet() {
   }, [current, hydrated]);
 
   const monthLabel = current
-    ? formatMonthKey(`${current.year}-${String(current.monthNum).padStart(2, "0")}`)
+    ? formatMonthKey(`${current.year}-${String(current.monthNum).padStart(2, "0")}`, locale)
     : "";
+  // Month names are lowercase mid-sentence in French, capitalised in English.
+  const monthLabelInline = lang === "fr" ? monthLabel.toLowerCase() : monthLabel;
   const open = current ? isWithinCloseWindow(current.year, current.monthNum, nowDate()) : false;
 
   function save() {
     if (!current) return;
     if (!open) {
-      setError(`Clôture possible du ${closeWindowLabel(current.year, current.monthNum)}.`);
+      setError(
+        t("monthly.sheet.windowError", {
+          range: closeWindowLabel(current.year, current.monthNum, locale),
+        }),
+      );
       return;
     }
     void run(
@@ -61,14 +69,18 @@ export default function ClotureSheet() {
           transfersEur: parseAmountInput(transfers),
           netChangeEur: parseAmountInput(netChange),
         }),
-      `${monthLabel} clôturé`,
+      t("monthly.sheet.done", { month: monthLabel }),
     );
   }
 
   return (
     <SheetScaffold
-      title={monthLabel ? `Clôturer ${monthLabel.toLowerCase()}` : "Clôturer le mois"}
-      primaryLabel="Clôturer"
+      title={
+        monthLabel
+          ? t("monthly.sheet.title", { month: monthLabelInline })
+          : t("monthly.sheet.titleFallback")
+      }
+      primaryLabel={t("monthly.sheet.primary")}
       onPrimary={current ? save : undefined}
       primaryDisabled={pending || !open}
       error={error}
@@ -76,25 +88,32 @@ export default function ClotureSheet() {
       <FormSection
         footer={
           current
-            ? `Vérifiez les montants avant de figer le mois. Fenêtre de clôture : ${closeWindowLabel(current.year, current.monthNum)}.`
+            ? t("monthly.sheet.footer", {
+                range: closeWindowLabel(current.year, current.monthNum, locale),
+              })
             : undefined
         }
       >
-        <AmountField label="Entrées" value={income} onChange={setIncome} testID="clo-income" />
         <AmountField
-          label="Sorties"
+          label={t("monthly.sheet.income")}
+          value={income}
+          onChange={setIncome}
+          testID="clo-income"
+        />
+        <AmountField
+          label={t("monthly.sheet.spending")}
           value={spending}
           onChange={setSpending}
           testID="clo-spending"
         />
         <AmountField
-          label="Virements"
+          label={t("monthly.sheet.transfers")}
           value={transfers}
           onChange={setTransfers}
           testID="clo-transfers"
         />
         <AmountField
-          label="Variation nette"
+          label={t("monthly.sheet.netChange")}
           value={netChange}
           onChange={setNetChange}
           testID="clo-net"

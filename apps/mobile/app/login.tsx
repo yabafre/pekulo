@@ -16,11 +16,13 @@ import { useTheme } from "tamagui";
 
 import { ScreenShell } from "../components/screen-shell";
 import { useAuth } from "../lib/auth/auth-context";
+import { useI18n } from "../lib/i18n";
 
 export default function LoginScreen() {
   const { signInWithPassword, requireAuth } = useAuth();
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useI18n();
   const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +36,7 @@ export default function LoginScreen() {
     try {
       const result = await signInWithPassword(email, password);
       if (!result.ok) {
-        setErrorMessage(result.errorMessage ?? "Impossible de se connecter.");
+        setErrorMessage(result.errorMessage ?? t("auth.errors.generic"));
         return;
       }
       router.replace("/");
@@ -59,10 +61,10 @@ export default function LoginScreen() {
         </View>
         <View gap="$1">
           <Text color="$color" fontSize="$h1" fontWeight="600">
-            Connexion
+            {t("auth.title")}
           </Text>
           <Text color="$colorSecondary" fontSize="$bodySm">
-            Synchronisez votre cap et vos comptes Pekulo
+            {t("auth.subtitle")}
           </Text>
         </View>
       </View>
@@ -75,11 +77,11 @@ export default function LoginScreen() {
         style={{ borderCurve: "continuous" }}
       >
         <View gap="$2">
-          <PekuloLabel htmlFor="login-email">Adresse e-mail</PekuloLabel>
+          <PekuloLabel htmlFor="login-email">{t("auth.email")}</PekuloLabel>
           <PekuloInput
             id="login-email"
             testID="login-email-input"
-            aria-label="Adresse e-mail"
+            aria-label={t("auth.email")}
             type="email"
             placeholder="alex@pekulo.app"
             autoComplete="email"
@@ -100,14 +102,14 @@ export default function LoginScreen() {
         </View>
 
         <View gap="$2">
-          <PekuloLabel htmlFor="login-password">Mot de passe</PekuloLabel>
+          <PekuloLabel htmlFor="login-password">{t("auth.password")}</PekuloLabel>
           <PekuloInput
             ref={passwordRef}
             id="login-password"
             testID="login-password-input"
-            aria-label="Mot de passe"
+            aria-label={t("auth.password")}
             type="password"
-            placeholder="12 caractères minimum"
+            placeholder={t("auth.passwordPlaceholder")}
             autoComplete="current-password"
             textContentType="password"
             returnKeyType="done"
@@ -139,13 +141,13 @@ export default function LoginScreen() {
         <PekuloSubmitButton
           testID="login-submit-btn"
           loading={isSubmitting}
-          loadingLabel="Connexion…"
+          loadingLabel={t("auth.submitting")}
           fullWidth
           onPress={() => {
             void handleSubmit();
           }}
         >
-          Se connecter
+          {t("common.actions.signIn")}
         </PekuloSubmitButton>
       </View>
 
@@ -159,7 +161,7 @@ export default function LoginScreen() {
             router.replace("/");
           }}
         >
-          Continuer en mode aperçu
+          {t("auth.continuePreview")}
         </PekuloButton>
       )}
     </ScreenShell>

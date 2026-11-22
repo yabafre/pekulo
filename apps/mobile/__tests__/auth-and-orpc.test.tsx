@@ -390,9 +390,7 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
     );
     await fireEvent.press(screen.getByTestId("login-submit-btn"));
     await waitFor(() => {
-      expect(screen.getByTestId("login-error-msg").props.children).toBe(
-        "Invalid login credentials",
-      );
+      expect(screen.getByTestId("login-error-msg").props.children).toBe("Identifiants invalides.");
     });
 
     // 2. Valid 12+ char password calls supabase.auth.signInWithPassword and redirects to "/"

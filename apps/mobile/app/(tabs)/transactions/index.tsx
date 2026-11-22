@@ -29,6 +29,7 @@ import { useAuth } from "../../../lib/auth/auth-context";
 import { currentMonthKey, formatMonthKey, shiftMonthKey } from "../../../lib/forms";
 import { useTransactionMutations } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobileTransactionsData } from "../../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../../lib/i18n";
 import { useOptions } from "../../../lib/options";
 
 function MonthStepButton({
@@ -41,10 +42,13 @@ function MonthStepButton({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={direction === "prev" ? "Mois précédent" : "Mois suivant"}
+      accessibilityLabel={
+        direction === "prev" ? t("transactions.prevMonth") : t("transactions.nextMonth")
+      }
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       testID={direction === "prev" ? "month-prev-btn" : "month-next-btn"}
@@ -75,6 +79,7 @@ function MonthStepButton({
 
 export default function TransactionsScreen() {
   const options = useOptions();
+  const { t, lang, locale } = useI18n();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const thisMonth = currentMonthKey();
@@ -115,22 +120,33 @@ export default function TransactionsScreen() {
     );
   }, [normalizedQuery, viewData.rows]);
 
+  // French keeps the singular for 0 and 1 ("0 résultat"); English only for 1.
+  const resultCount = filteredRows.length;
+  const resultSingular = lang === "fr" ? resultCount <= 1 : resultCount === 1;
+  const resultTitle = t(
+    resultSingular ? "transactions.list.resultOne" : "transactions.list.resultOther",
+    { count: resultCount },
+  );
+
   function openRowActions(id: string, label: string) {
     showActions(label, [
       {
-        label: "Modifier",
+        label: t("common.actions.edit"),
         onPress: () => router.push(`/sheets/transaction?id=${id}&month=${month}`),
       },
       {
-        label: "Supprimer",
+        label: t("common.actions.delete"),
         destructive: true,
         onPress: () =>
           confirmDestructive({
-            title: "Supprimer la transaction ?",
-            message: "Elle sera retirée de vos totaux. Cette action est définitive.",
-            confirmLabel: "Supprimer",
+            title: t("transactions.delete.title"),
+            message: t("transactions.delete.message"),
+            confirmLabel: t("common.actions.delete"),
             onConfirm: () => {
-              void run(() => mutations.remove.mutateAsync({ id }), "Transaction supprimée");
+              void run(
+                () => mutations.remove.mutateAsync({ id }),
+                t("transactions.toasts.deleted"),
+              );
             },
           }),
       },
@@ -140,14 +156,14 @@ export default function TransactionsScreen() {
   return (
     <>
       <TabToolbar
-        addLabel="Nouvelle transaction"
+        addLabel={t("transactions.newTransaction")}
         onAdd={() => router.push(`/sheets/transaction?month=${month}`)}
       />
       <ScreenShell refreshing={isRefetching} onRefresh={refetch}>
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Rechercher une transaction"
+          placeholder={t("transactions.search.placeholder")}
           testID="tx-search"
         />
         {searching ? null : (
@@ -163,7 +179,7 @@ export default function TransactionsScreen() {
               accessibilityRole="header"
               testID="month-label"
             >
-              {formatMonthKey(month)}
+              {formatMonthKey(month, locale)}
             </Text>
             <MonthStepButton
               direction="next"
@@ -176,7 +192,7 @@ export default function TransactionsScreen() {
           <ScreenLoadingSkeleton sections={2} />
         ) : showError ? (
           <ScreenErrorState
-            title="Impossible de charger vos transactions"
+            title={t("transactions.loadError")}
             onRetry={() => {
               void refetch();
             }}
@@ -192,16 +208,23 @@ export default function TransactionsScreen() {
                 style={{ borderCurve: "continuous" }}
               >
                 <PekuloStat
-                  label="Solde du mois"
+                  label={t("transactions.stats.monthBalance")}
                   value={viewData.netFormatted}
                   tone={viewData.netTone}
                 />
                 <View flexDirection="row" gap="$4">
                   <View flex={1}>
-                    <PekuloStat label="Entrées" value={viewData.incomeFormatted} tone="gain" />
+                    <PekuloStat
+                      label={t("transactions.stats.income")}
+                      value={viewData.incomeFormatted}
+                      tone="gain"
+                    />
                   </View>
                   <View flex={1}>
-                    <PekuloStat label="Sorties" value={viewData.spendingFormatted} />
+                    <PekuloStat
+                      label={t("transactions.stats.spending")}
+                      value={viewData.spendingFormatted}
+                    />
                   </View>
                 </View>
               </View>
@@ -210,15 +233,17 @@ export default function TransactionsScreen() {
             {!searching && viewData.pendingSuggestions.length > 0 && (
               <Section
                 flat
-                title="Suggestions IA"
-                ariaLabel="Suggestions IA à confirmer"
+                title={t("transactions.suggestions.title")}
+                ariaLabel={t("transactions.suggestions.aria")}
                 action={
                   <Text
                     color="$colorTertiary"
                     fontSize="$xs"
                     style={{ fontVariant: ["tabular-nums"] }}
                   >
-                    {viewData.pendingSuggestions.length} à valider
+                    {t("transactions.suggestions.toValidate", {
+                      count: viewData.pendingSuggestions.length,
+                    })}
                   </Text>
                 }
               >
@@ -227,9 +252,14 @@ export default function TransactionsScreen() {
                     key={item.id}
                     tx={item.suggestion}
                     disabled={confirmMutation.isPending}
+                    labels={{
+                      confirm: t("transactions.suggestions.confirm"),
+                      confirmAria: t("transactions.suggestions.confirmAria"),
+                      editAria: t("transactions.suggestions.editAria"),
+                    }}
                     onEdit={() =>
                       showActions(
-                        "Choisir la catégorie",
+                        t("transactions.suggestions.chooseCategory"),
                         options.suggestableCategories.map((option) => ({
                           label: option.label,
                           onPress: () => {
@@ -239,7 +269,7 @@ export default function TransactionsScreen() {
                                   id: item.id,
                                   category: option.value,
                                 }),
-                              "Catégorie mise à jour",
+                              t("transactions.suggestions.categoryUpdated"),
                             );
                           },
                         })),
@@ -254,10 +284,16 @@ export default function TransactionsScreen() {
                         },
                         {
                           onSuccess: () => {
-                            toast.success("Catégorie confirmée", item.suggestion.label);
+                            toast.success(
+                              t("transactions.suggestions.categoryConfirmed"),
+                              item.suggestion.label,
+                            );
                           },
                           onError: () => {
-                            toast.danger("Confirmation impossible", "Réessayez dans un instant.");
+                            toast.danger(
+                              t("transactions.suggestions.confirmFailedTitle"),
+                              t("transactions.suggestions.confirmFailedMessage"),
+                            );
                           },
                         },
                       );
@@ -269,12 +305,8 @@ export default function TransactionsScreen() {
 
             <Section
               flat
-              title={
-                searching
-                  ? `${filteredRows.length} résultat${filteredRows.length > 1 ? "s" : ""}`
-                  : "Récentes"
-              }
-              ariaLabel="Transactions récentes"
+              title={searching ? resultTitle : t("transactions.list.recentTitle")}
+              ariaLabel={t("transactions.list.recentAria")}
             >
               {filteredRows.length > 0 ? (
                 filteredRows.map(({ id, activity }) => (
@@ -282,7 +314,7 @@ export default function TransactionsScreen() {
                     key={id}
                     testID={`tx-row-${id}`}
                     accessibilityRole="button"
-                    accessibilityHint="Ouvre les actions de la transaction"
+                    accessibilityHint={t("transactions.list.rowHint")}
                     onPress={() => openRowActions(id, activity.label)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
                   >
@@ -292,15 +324,15 @@ export default function TransactionsScreen() {
               ) : normalizedQuery ? (
                 <PekuloEmptyState
                   icon={Search}
-                  title="Aucun résultat"
-                  message={`Aucune transaction ne correspond à « ${searchQuery.trim()} ».`}
+                  title={t("transactions.list.noResultsTitle")}
+                  message={t("transactions.list.noResultsMessage", { query: searchQuery.trim() })}
                 />
               ) : (
                 <PekuloEmptyState
                   icon={Receipt}
-                  title="Aucune transaction"
-                  message="Aucune transaction enregistrée sur la période."
-                  ctaLabel="Ajouter une transaction"
+                  title={t("transactions.list.emptyTitle")}
+                  message={t("transactions.list.emptyMessage")}
+                  ctaLabel={t("transactions.list.emptyCta")}
                   onCta={() => router.push(`/sheets/transaction?month=${month}`)}
                 />
               )}

@@ -28,6 +28,7 @@ import { useAuth } from "../lib/auth/auth-context";
 import { formatCompactEur } from "../lib/format";
 import { useDeleteUserAccount, useLlmOptIn } from "../lib/hooks/use-mobile-mutations";
 import { useMobileCompassData, useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
+import { useI18n } from "../lib/i18n";
 
 function toTamaguiThemeChoice(pref: ThemePref): "pekulo-dark" | "pekulo-light" | "system" {
   if (pref === "dark") return "pekulo-dark";
@@ -46,35 +47,42 @@ export default function ParametresScreen() {
   const llm = useLlmOptIn();
   const deleteAccount = useDeleteUserAccount();
   const { run } = useMutationRunner();
+  const { t } = useI18n();
 
   function handleThirdPartyChange(next: boolean) {
     void run(
       () => llm.setThirdParty(next),
-      next ? "Modèles IA tiers activés" : "Modèles IA tiers désactivés",
+      next ? t("settings.ai.enabled") : t("settings.ai.disabled"),
     );
   }
 
   function confirmAccountDeletion(typed: string | undefined) {
     const expected = (userEmail ?? "").trim().toLowerCase();
     if (!typed || typed.trim().toLowerCase() !== expected) {
-      Alert.alert("E-mail incorrect", "Saisissez exactement l’adresse e-mail de votre compte.");
+      Alert.alert(t("settings.deletion.wrongEmailTitle"), t("settings.deletion.wrongEmailMessage"));
       return;
     }
     void run(async () => {
       await deleteAccount.mutateAsync({ confirmationEmail: typed.trim() });
       router.replace("/login");
-    }, "Compte supprimé");
+    }, t("settings.deletion.done"));
   }
 
   function handleDeleteAccount() {
-    const message = `Toutes vos données seront définitivement effacées. Saisissez ${userEmail ?? "votre e-mail"} pour confirmer.`;
+    const message = t("settings.deletion.message", {
+      email: userEmail ?? t("settings.deletion.yourEmail"),
+    });
     if (Platform.OS === "ios") {
       Alert.prompt(
-        "Supprimer mon compte ?",
+        t("settings.deletion.title"),
         message,
         [
-          { text: "Annuler", style: "cancel" },
-          { text: "Supprimer", style: "destructive", onPress: confirmAccountDeletion },
+          { text: t("common.actions.cancel"), style: "cancel" },
+          {
+            text: t("common.actions.delete"),
+            style: "destructive",
+            onPress: confirmAccountDeletion,
+          },
         ],
         "plain-text",
         "",
@@ -82,7 +90,7 @@ export default function ParametresScreen() {
       );
       return;
     }
-    Alert.alert("Supprimer mon compte ?", "Supprimez votre compte depuis l’espace web Pekulo.");
+    Alert.alert(t("settings.deletion.title"), t("settings.deletion.webOnly"));
   }
 
   const initial = (userEmail?.trim().charAt(0) || "A").toUpperCase();
@@ -92,7 +100,7 @@ export default function ParametresScreen() {
     try {
       await updateTheme(nextTheme);
     } catch {
-      toast.danger("Préférence non enregistrée", "Vérifiez votre connexion puis réessayez.");
+      toast.danger(t("settings.appearance.themeSaveFailed"), t("common.errors.saveFailedMessage"));
     }
   }
 
@@ -100,7 +108,7 @@ export default function ParametresScreen() {
     try {
       await updateLang(nextLang);
     } catch {
-      toast.danger("Langue non enregistrée", "Vérifiez votre connexion puis réessayez.");
+      toast.danger(t("settings.appearance.langSaveFailed"), t("common.errors.saveFailedMessage"));
     }
   }
 
@@ -114,36 +122,32 @@ export default function ParametresScreen() {
       router.push("/login");
       return;
     }
-    Alert.alert(
-      "Se déconnecter ?",
-      "Votre session sera supprimée de cet appareil et le cache local sera effacé.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Se déconnecter",
-          style: "destructive",
-          onPress: () => {
-            void executeSignOut();
-          },
+    Alert.alert(t("settings.account.signOutTitle"), t("settings.account.signOutMessage"), [
+      { text: t("common.actions.cancel"), style: "cancel" },
+      {
+        text: t("settings.account.signOut"),
+        style: "destructive",
+        onPress: () => {
+          void executeSignOut();
         },
-      ],
-    );
+      },
+    ]);
   }
 
   return (
     <ScreenShell>
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
-          accessibilityLabel="Fermer les paramètres"
+          accessibilityLabel={t("common.actions.closeSettings")}
           onPress={() => {
             if (router.canGoBack()) router.back();
             else router.replace("/");
           }}
         >
-          Fermer
+          {t("common.actions.close")}
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
-      <Section title="Compte" ariaLabel="Compte utilisateur">
+      <Section title={t("settings.account.title")} ariaLabel={t("settings.account.aria")}>
         <View gap="$4">
           <View flexDirection="row" alignItems="center" gap="$3">
             <View
@@ -160,10 +164,10 @@ export default function ParametresScreen() {
             </View>
             <View flex={1} gap={2}>
               <Text color="$color" fontSize="$body" fontWeight="600" numberOfLines={1} selectable>
-                {userEmail ?? "Mode aperçu"}
+                {userEmail ?? t("settings.account.preview")}
               </Text>
               <Text color="$colorTertiary" fontSize="$xs">
-                {isAuthenticated ? "Synchronisé via Supabase" : "Session locale hors connexion"}
+                {isAuthenticated ? t("settings.account.synced") : t("settings.account.offline")}
               </Text>
             </View>
           </View>
@@ -175,55 +179,55 @@ export default function ParametresScreen() {
             testID="settings-auth-action-btn"
             onPress={handleAuthAction}
           >
-            {isAuthenticated ? "Se déconnecter" : "Se connecter"}
+            {isAuthenticated ? t("settings.account.signOut") : t("common.actions.signIn")}
           </PekuloButton>
         </View>
       </Section>
 
-      <Section title="Apparence" ariaLabel="Apparence et langue">
+      <Section title={t("settings.appearance.title")} ariaLabel={t("settings.appearance.aria")}>
         <View gap="$4">
           <View gap="$2">
             <Text color="$colorSecondary" fontSize="$xs" letterSpacing={0.5}>
-              THÈME
+              {t("settings.appearance.theme")}
             </Text>
             <PekuloSegmentedControl<ThemePref>
-              ariaLabel="Thème de l'application"
+              ariaLabel={t("settings.appearance.themeAria")}
               value={prefs.theme}
               onChange={(val) => {
                 void handleThemeChange(val);
               }}
               options={[
-                { value: "system", label: "Système", icon: Monitor },
-                { value: "dark", label: "Sombre", icon: Moon },
-                { value: "light", label: "Clair", icon: Sun },
+                { value: "system", label: t("settings.theme.system"), icon: Monitor },
+                { value: "dark", label: t("settings.theme.dark"), icon: Moon },
+                { value: "light", label: t("settings.theme.light"), icon: Sun },
               ]}
             />
           </View>
 
           <View gap="$2">
             <Text color="$colorSecondary" fontSize="$xs" letterSpacing={0.5}>
-              LANGUE
+              {t("settings.appearance.language")}
             </Text>
             <PekuloSegmentedControl<LangPref>
-              ariaLabel="Langue de l'application"
+              ariaLabel={t("settings.appearance.languageAria")}
               value={prefs.lang}
               onChange={(val) => {
                 void handleLangChange(val);
               }}
               options={[
-                { value: "fr", label: "Français", icon: Globe },
-                { value: "en", label: "English", icon: Globe },
+                { value: "fr", label: t("settings.lang.fr"), icon: Globe },
+                { value: "en", label: t("settings.lang.en"), icon: Globe },
               ]}
             />
           </View>
         </View>
       </Section>
 
-      <Section title="Cap" ariaLabel="Objectif et horizon du cap">
+      <Section title={t("settings.cap.title")} ariaLabel={t("settings.cap.aria")}>
         <Pressable
           testID="compass-row"
           accessibilityRole="button"
-          accessibilityLabel="Modifier mon cap"
+          accessibilityLabel={t("settings.cap.edit")}
           onPress={() => router.push("/sheets/compass")}
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
@@ -235,10 +239,14 @@ export default function ParametresScreen() {
           >
             <View gap={2}>
               <Text color="$color" fontSize="$body" fontWeight="500">
-                Objectif {compass ? formatCompactEur(compass.objectif) : "—"}
+                {t("settings.cap.objective", {
+                  value: compass ? formatCompactEur(compass.objectif) : "—",
+                })}
               </Text>
               <Text color="$colorTertiary" fontSize="$xs">
-                Horizon {compass ? `${compass.horizonYears} ans` : "—"}
+                {t("settings.cap.horizon", {
+                  value: compass ? t("settings.cap.years", { count: compass.horizonYears }) : "—",
+                })}
               </Text>
             </View>
             <SymbolView
@@ -252,25 +260,24 @@ export default function ParametresScreen() {
         </Pressable>
       </Section>
 
-      <Section title="Intelligence artificielle" ariaLabel="Préférences IA">
+      <Section title={t("settings.ai.title")} ariaLabel={t("settings.ai.aria")}>
         <View gap="$2">
           <SwitchField
-            label="Modèles IA tiers"
+            label={t("settings.ai.thirdParty")}
             value={llm.thirdParty}
             disabled={llm.isLoading || llm.isSaving}
             onChange={handleThirdPartyChange}
             testID="llm-optin-switch"
           />
           <Text color="$colorTertiary" fontSize="$xs">
-            Autorise l’envoi de libellés anonymisés à un fournisseur tiers pour suggérer les
-            catégories. Désactivé, seul le modèle local est utilisé.
+            {t("settings.ai.footer")}
           </Text>
         </View>
       </Section>
 
       {isAuthenticated ? (
         <DestructiveButton
-          label="Supprimer mon compte"
+          label={t("settings.deletion.button")}
           testID="delete-account-btn"
           onPress={handleDeleteAccount}
         />

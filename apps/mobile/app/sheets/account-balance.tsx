@@ -11,8 +11,10 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { formatAmountInput, parseAmountInput, toUtcDay } from "../../lib/forms";
 import { useAccountMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileCapData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 export default function AccountBalanceSheet() {
+  const { t } = useI18n();
   const { id = "" } = useLocalSearchParams<{ id?: string }>();
   const { data } = useMobileCapData();
   const { recordBalance } = useAccountMutations();
@@ -33,7 +35,11 @@ export default function AccountBalanceSheet() {
 
   return (
     <SheetScaffold
-      title={account ? `Solde · ${account.label}` : "Mettre à jour le solde"}
+      title={
+        account
+          ? t("cap.balanceSheet.titleWithAccount", { label: account.label })
+          : t("cap.balanceSheet.title")
+      }
       onPrimary={() => {
         void run(
           () =>
@@ -42,21 +48,21 @@ export default function AccountBalanceSheet() {
               valuedOn: toUtcDay(date),
               cashBalance: parseAmountInput(amount),
             }),
-          "Solde mis à jour",
+          t("cap.balanceSheet.updated"),
         );
       }}
       primaryDisabled={pending}
       error={error}
     >
-      <FormSection footer="Le nouveau solde est ajouté à l’historique du compte.">
+      <FormSection footer={t("cap.balanceSheet.footer")}>
         <AmountField
-          label="Nouveau solde"
+          label={t("cap.balanceSheet.newBalance")}
           value={amount}
           onChange={setAmount}
           testID="bal-amount"
         />
         <DateField
-          label="Date"
+          label={t("common.fields.date")}
           value={date}
           onChange={setDate}
           maximumDate={new Date()}

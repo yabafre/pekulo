@@ -11,18 +11,17 @@ import { SymbolView } from "expo-symbols";
 import { Pressable } from "react-native";
 import { useTheme } from "tamagui";
 
-import { useAuth } from "../lib/auth/auth-context";
 import { useI18n, type MessageKey } from "../lib/i18n";
 
 export function SettingsHeaderButton({ testID = "header-settings-btn" }: { testID?: string }) {
-  const { userEmail } = useAuth();
-  const initial = (userEmail?.trim().charAt(0) || "A").toUpperCase();
-
+  const theme = useTheme();
+  const { t } = useI18n();
+  // Same profile glyph as the native toolbar button on the other tabs.
   return (
     <Link href="/parametres" asChild>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Ouvrir les paramètres"
+        accessibilityLabel={t("common.actions.openSettings")}
         hitSlop={4}
         testID={testID}
         style={({ pressed }) => ({
@@ -30,21 +29,19 @@ export function SettingsHeaderButton({ testID = "header-settings-btn" }: { testI
           height: 44,
           alignItems: "center",
           justifyContent: "center",
-          opacity: pressed ? 0.7 : 1,
+          opacity: pressed ? 0.6 : 1,
         })}
       >
-        <View
-          width={36}
-          height={36}
-          borderRadius="$full"
-          backgroundColor="$backgroundMuted"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Text color="$color" fontSize="$bodySm" fontWeight="600">
-            {initial}
-          </Text>
-        </View>
+        <SymbolView
+          name="person.crop.circle"
+          size={24}
+          tintColor={theme.color.val}
+          fallback={
+            <Text color="$color" fontSize="$bodySm" fontWeight="600">
+              ⚙︎
+            </Text>
+          }
+        />
       </Pressable>
     </Link>
   );

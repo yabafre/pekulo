@@ -25,10 +25,12 @@ import { confirmDestructive } from "../../lib/actions";
 import { formatAmountInput, fromIsoDate, parseAmountInput, toIsoDate } from "../../lib/forms";
 import { useTransactionMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileTransactionsData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 import { useOptions } from "../../lib/options";
 
 export default function TransactionSheet() {
   const options = useOptions();
+  const { t } = useI18n();
   const params = useLocalSearchParams<{ id?: string; month?: string }>();
   const router = useRouter();
   const editId = params.id;
@@ -94,80 +96,93 @@ export default function TransactionSheet() {
         editId
           ? mutations.update.mutateAsync({ id: editId, ...fields })
           : mutations.create.mutateAsync(fields),
-      editId ? "Transaction modifiée" : "Transaction ajoutée",
+      editId ? t("transactions.toasts.updated") : t("transactions.toasts.added"),
     );
   }
 
   function remove() {
     if (!editId) return;
     confirmDestructive({
-      title: "Supprimer la transaction ?",
-      message: "Elle sera retirée de vos totaux. Cette action est définitive.",
-      confirmLabel: "Supprimer",
+      title: t("transactions.delete.title"),
+      message: t("transactions.delete.message"),
+      confirmLabel: t("common.actions.delete"),
       onConfirm: () => {
-        void run(() => mutations.remove.mutateAsync({ id: editId }), "Transaction supprimée");
+        void run(
+          () => mutations.remove.mutateAsync({ id: editId }),
+          t("transactions.toasts.deleted"),
+        );
       },
     });
   }
 
   return (
     <SheetScaffold
-      title={editId ? "Modifier la transaction" : "Nouvelle transaction"}
-      primaryLabel={editId ? "Enregistrer" : "Ajouter"}
+      title={editId ? t("transactions.editTransaction") : t("transactions.newTransaction")}
+      primaryLabel={editId ? t("common.actions.save") : t("common.actions.add")}
       onPrimary={save}
       primaryDisabled={pending}
       error={error}
     >
       <PekuloSegmentedControl<TransactionType>
-        ariaLabel="Type de transaction"
+        ariaLabel={t("transactions.form.typeAria")}
         value={type}
         onChange={edit(setType)}
         options={[
-          { value: "outflow", label: "Sortie", icon: ArrowUpRight },
-          { value: "inflow", label: "Entrée", icon: ArrowDownLeft },
+          { value: "outflow", label: t("transactions.form.outflow"), icon: ArrowUpRight },
+          { value: "inflow", label: t("transactions.form.inflow"), icon: ArrowDownLeft },
         ]}
       />
 
       <FormSection>
         <TextField
-          label="Libellé"
+          label={t("transactions.form.label")}
           value={label}
           onChange={edit(setLabel)}
-          placeholder="Courses, salaire…"
+          placeholder={t("transactions.form.labelPlaceholder")}
           maxLength={120}
           testID="tx-label"
         />
-        <AmountField label="Montant" value={amount} onChange={edit(setAmount)} testID="tx-amount" />
+        <AmountField
+          label={t("transactions.form.amount")}
+          value={amount}
+          onChange={edit(setAmount)}
+          testID="tx-amount"
+        />
       </FormSection>
 
       <FormSection>
-        <DateField label="Date" value={date} onChange={edit(setDate)} testID="tx-date" />
+        <DateField
+          label={t("common.fields.date")}
+          value={date}
+          onChange={edit(setDate)}
+          testID="tx-date"
+        />
         <SelectField
-          label="Compte"
+          label={t("common.fields.account")}
           value={accountId}
           options={accountOptions}
           onChange={edit(setAccountId)}
-          placeholder="Aucun compte"
+          placeholder={t("common.fields.noAccount")}
           testID="tx-account"
         />
         <SelectField
-          label="Catégorie"
+          label={t("transactions.form.category")}
           value={category}
           options={options.transactionCategories}
           onChange={edit(setCategory)}
           testID="tx-category"
         />
         <SwitchField
-          label="Imprévu"
+          label={t("transactions.form.imprevu")}
           value={isImprevu}
           onChange={edit(setIsImprevu)}
           testID="tx-imprevu"
         />
       </FormSection>
 
-      <FormSection title="Notes">
+      <FormSection title={t("common.fields.notes")}>
         <TextField
-          label="Notes (facultatif)"
+          label={t("common.fields.notesOptional")}
           value={notes}
           onChange={edit(setNotes)}
           multiline
@@ -178,7 +193,7 @@ export default function TransactionSheet() {
 
       {editId ? (
         <DestructiveButton
-          label="Supprimer la transaction"
+          label={t("transactions.delete.button")}
           testID="tx-delete-btn"
           onPress={remove}
         />
@@ -190,7 +205,7 @@ export default function TransactionSheet() {
           style={{ width: "100%", height: 44 }}
           onPress={() => router.push("/sheets/account")}
         >
-          Créer un compte d’abord
+          {t("transactions.form.createAccountFirst")}
         </PekuloButton>
       ) : null}
     </SheetScaffold>

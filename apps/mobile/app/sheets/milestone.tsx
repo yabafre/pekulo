@@ -11,8 +11,10 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput } from "../../lib/forms";
 import { useMilestoneMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileCapData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 export default function MilestoneSheet() {
+  const { t } = useI18n();
   const { data } = useMobileCapData();
   const { add } = useMilestoneMutations();
   const { run, error, setError, pending } = useMutationRunner({ dismiss: true });
@@ -22,7 +24,7 @@ export default function MilestoneSheet() {
 
   function save() {
     if ((data?.milestones.length ?? 0) >= MILESTONES_PER_USER_CAP) {
-      setError(`Vous avez atteint la limite de ${MILESTONES_PER_USER_CAP} paliers.`);
+      setError(t("cap.milestoneSheet.limitReached", { max: MILESTONES_PER_USER_CAP }));
       return;
     }
     const trimmed = label.trim();
@@ -33,31 +35,37 @@ export default function MilestoneSheet() {
           targetYear: Number.parseInt(year, 10),
           ...(trimmed ? { label: trimmed } : {}),
         }),
-      "Palier ajouté",
+      t("cap.milestoneSheet.added"),
     );
   }
 
   return (
     <SheetScaffold
-      title="Nouveau palier"
-      primaryLabel="Ajouter"
+      title={t("cap.milestoneSheet.title")}
+      primaryLabel={t("common.actions.add")}
       onPrimary={save}
       primaryDisabled={pending}
       error={error}
     >
-      <FormSection footer="Un palier jalonne votre trajectoire vers le cap.">
+      <FormSection footer={t("cap.milestoneSheet.footer")}>
         <AmountField
-          label="Capital visé"
+          label={t("cap.milestoneSheet.capital")}
           value={capital}
           onChange={setCapital}
           testID="ms-capital"
         />
-        <NumberField label="Année" value={year} onChange={setYear} maxLength={4} testID="ms-year" />
+        <NumberField
+          label={t("cap.milestoneSheet.year")}
+          value={year}
+          onChange={setYear}
+          maxLength={4}
+          testID="ms-year"
+        />
         <TextField
-          label="Nom (facultatif)"
+          label={t("cap.milestoneSheet.name")}
           value={label}
           onChange={setLabel}
-          placeholder="Palier 250 k€"
+          placeholder={t("cap.milestoneSheet.namePlaceholder")}
           maxLength={120}
           testID="ms-label"
         />

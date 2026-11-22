@@ -15,10 +15,12 @@ import {
 import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput, toUtcDay } from "../../lib/forms";
 import { useRealEstateMutations } from "../../lib/hooks/use-mobile-mutations";
+import { useI18n } from "../../lib/i18n";
 import { useOptions } from "../../lib/options";
 
 export default function PropertySheet() {
   const options = useOptions();
+  const { t } = useI18n();
   const { createProperty } = useRealEstateMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
   const [label, setLabel] = useState("");
@@ -28,8 +30,8 @@ export default function PropertySheet() {
 
   return (
     <SheetScaffold
-      title="Nouveau bien"
-      primaryLabel="Ajouter"
+      title={t("realestate.property.title")}
+      primaryLabel={t("common.actions.add")}
       onPrimary={() => {
         void run(
           () =>
@@ -39,7 +41,7 @@ export default function PropertySheet() {
               currentValuation: parseAmountInput(valuation),
               lastValuedOn: toUtcDay(valuedOn),
             }),
-          "Bien ajouté",
+          t("realestate.property.added"),
         );
       }}
       primaryDisabled={pending}
@@ -47,30 +49,30 @@ export default function PropertySheet() {
     >
       <FormSection>
         <TextField
-          label="Nom du bien"
+          label={t("realestate.property.name")}
           value={label}
           onChange={setLabel}
-          placeholder="Appartement Lyon 7e"
+          placeholder={t("realestate.property.namePlaceholder")}
           maxLength={120}
           testID="prop-label"
         />
         <SelectField
-          label="Type"
+          label={t("common.fields.type")}
           value={propertyType}
           options={options.propertyTypes}
           onChange={setPropertyType}
           testID="prop-type"
         />
       </FormSection>
-      <FormSection footer="Vous pourrez ajouter le crédit et le loyer ensuite.">
+      <FormSection footer={t("realestate.property.footer")}>
         <AmountField
-          label="Valeur estimée"
+          label={t("realestate.property.valuation")}
           value={valuation}
           onChange={setValuation}
           testID="prop-valuation"
         />
         <DateField
-          label="Estimée le"
+          label={t("realestate.property.valuedOn")}
           value={valuedOn}
           onChange={setValuedOn}
           maximumDate={new Date()}

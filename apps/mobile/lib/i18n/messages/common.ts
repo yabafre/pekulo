@@ -30,6 +30,7 @@ export const fr = {
     loadFailedTitle: "Chargement impossible",
     loadFailedMessage: "Vérifiez votre connexion et réessayez.",
     invalidInput: "Saisie invalide",
+    invalidInputHint: "Vérifiez les champs du formulaire.",
   },
   fields: {
     notes: "Notes",
@@ -120,6 +121,7 @@ export const en: Shape<typeof fr> = {
     loadFailedTitle: "Couldn’t load",
     loadFailedMessage: "Check your connection and try again.",
     invalidInput: "Invalid input",
+    invalidInputHint: "Please check the form fields.",
   },
   fields: {
     notes: "Notes",

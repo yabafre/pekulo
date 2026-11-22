@@ -37,6 +37,8 @@ import {
   useMilestoneMutations,
 } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobileCapData } from "../../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../../lib/i18n";
+import { accountTypeLabel } from "../../../lib/options";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
@@ -52,22 +54,29 @@ export default function CapScreen() {
   const milestoneMutations = useMilestoneMutations();
   const accountMutations = useAccountMutations();
   const { run } = useMutationRunner();
+  const { t } = useI18n();
 
   function openCreateMenu() {
-    showActions("Ajouter", [
-      { label: "Nouvelle transaction", onPress: () => router.push("/sheets/transaction") },
-      { label: "Nouveau palier", onPress: () => router.push("/sheets/milestone") },
-      { label: "Nouveau compte", onPress: () => router.push("/sheets/account") },
+    showActions(t("common.actions.add"), [
+      {
+        label: t("cap.createMenu.newTransaction"),
+        onPress: () => router.push("/sheets/transaction"),
+      },
+      {
+        label: t("cap.createMenu.newMilestone"),
+        onPress: () => router.push("/sheets/milestone"),
+      },
+      { label: t("cap.createMenu.newAccount"), onPress: () => router.push("/sheets/account") },
     ]);
   }
 
   function deleteMilestone(id: string, label: string) {
     confirmDestructive({
-      title: `Supprimer « ${label} » ?`,
-      message: "Le palier sera retiré de votre trajectoire.",
-      confirmLabel: "Supprimer",
+      title: t("cap.milestones.deleteTitle", { label }),
+      message: t("cap.milestones.deleteMessage"),
+      confirmLabel: t("common.actions.delete"),
       onConfirm: () => {
-        void run(() => milestoneMutations.remove.mutateAsync({ id }), "Palier supprimé");
+        void run(() => milestoneMutations.remove.mutateAsync({ id }), t("cap.milestones.deleted"));
       },
     });
   }
@@ -75,20 +84,23 @@ export default function CapScreen() {
   function openAccountActions(id: string, label: string) {
     showActions(label, [
       {
-        label: "Mettre à jour le solde",
+        label: t("cap.accounts.updateBalance"),
         onPress: () => router.push(`/sheets/account-balance?id=${id}`),
       },
-      { label: "Modifier", onPress: () => router.push(`/sheets/account?id=${id}`) },
+      { label: t("common.actions.edit"), onPress: () => router.push(`/sheets/account?id=${id}`) },
       {
-        label: "Supprimer",
+        label: t("common.actions.delete"),
         destructive: true,
         onPress: () =>
           confirmDestructive({
-            title: `Supprimer « ${label} » ?`,
-            message: "Le compte et son historique de solde seront supprimés.",
-            confirmLabel: "Supprimer",
+            title: t("cap.accounts.deleteTitle", { label }),
+            message: t("cap.accounts.deleteMessage"),
+            confirmLabel: t("common.actions.delete"),
             onConfirm: () => {
-              void run(() => accountMutations.remove.mutateAsync({ id }), "Compte supprimé");
+              void run(
+                () => accountMutations.remove.mutateAsync({ id }),
+                t("cap.accounts.deleted"),
+              );
             },
           }),
       },
@@ -117,10 +129,20 @@ export default function CapScreen() {
   return (
     <ScreenShell
       respectTopSafeArea
-      topBar={<PekuloTopTabToggle topTab={topTab} onChange={setTopTab} />}
+      topBar={
+        <PekuloTopTabToggle
+          topTab={topTab}
+          onChange={setTopTab}
+          labels={{
+            cap: t("cap.topTabs.cap"),
+            patrimoine: t("cap.topTabs.patrimoine"),
+            ariaLabel: t("cap.topTabs.ariaLabel"),
+          }}
+        />
+      }
       headerRight={
         <TabHeaderActions
-          addLabel="Ajouter"
+          addLabel={t("common.actions.add")}
           onAdd={openCreateMenu}
           settingsTestID="open-settings-btn"
         />
@@ -132,7 +154,7 @@ export default function CapScreen() {
         <ScreenLoadingSkeleton sections={3} />
       ) : showError ? (
         <ScreenErrorState
-          title="Impossible de charger votre cap"
+          title={t("cap.loadError")}
           onRetry={() => {
             void refetch();
           }}
@@ -141,7 +163,8 @@ export default function CapScreen() {
         <View gap="$8">
           <PekuloHero
             variant="mobile"
-            label="Patrimoine total"
+            label={t("cap.hero.label")}
+            deltaCaption={t("cap.hero.deltaCaption")}
             totalEur={viewData.totalEur}
             aheadEur={viewData.aheadEur}
           />
@@ -158,7 +181,7 @@ export default function CapScreen() {
               >
                 <View flexDirection="row" alignItems="center" justifyContent="space-between">
                   <Text color="$colorTertiary" fontSize="$xs" letterSpacing={0.5}>
-                    Avancement
+                    {t("cap.kpi.progress")}
                   </Text>
                   <PekuloDonut pct={viewData.progressRatio} size={28} stroke={3} />
                 </View>
@@ -177,7 +200,10 @@ export default function CapScreen() {
                   numberOfLines={1}
                   style={{ fontVariant: ["tabular-nums"] }}
                 >
-                  Objectif {formatCompactEur(viewData.targetCapital)} · {viewData.targetYear}
+                  {t("cap.kpi.target", {
+                    amount: formatCompactEur(viewData.targetCapital),
+                    year: viewData.targetYear,
+                  })}
                 </Text>
               </View>
 
@@ -190,34 +216,51 @@ export default function CapScreen() {
                 gap="$2"
                 style={{ borderCurve: "continuous" }}
               >
-                <PekuloStat label="Prochain palier" value={viewData.nextMilestoneLabel} />
+                <PekuloStat
+                  label={t("cap.kpi.nextMilestone")}
+                  value={viewData.nextMilestoneLabel}
+                />
                 <Text
                   color="$colorTertiary"
                   fontSize="$xs"
                   numberOfLines={1}
                   style={{ fontVariant: ["tabular-nums"] }}
                 >
-                  Plan {formatEur(viewData.requiredYearlyEur)} / an
+                  {t("cap.kpi.planPerYear", { amount: formatEur(viewData.requiredYearlyEur) })}
                 </Text>
               </View>
             </View>
           </View>
 
           {viewData.milestones.length > 0 && (
-            <Section flat title="Paliers" ariaLabel="Paliers du cap">
+            <Section
+              flat
+              title={t("cap.milestones.title")}
+              ariaLabel={t("cap.milestones.ariaLabel")}
+            >
               {viewData.milestones.map((milestone) => (
                 <PekuloMilestoneRow
                   key={milestone.id ?? `${milestone.label}-${milestone.targetYear}`}
                   milestone={milestone}
                   isDeleting={milestoneMutations.remove.isPending}
                   onDelete={(id) => deleteMilestone(id, milestone.label)}
+                  statusLabels={{
+                    ahead: t("cap.milestones.status.ahead"),
+                    "on-track": t("cap.milestones.status.onTrack"),
+                    behind: t("cap.milestones.status.behind"),
+                  }}
+                  deleteAriaLabel={(label) => t("cap.milestones.deleteAria", { label })}
                 />
               ))}
             </Section>
           )}
 
           {viewData.composition.length > 0 && (
-            <Section flat title="Composition" ariaLabel="Composition du patrimoine">
+            <Section
+              flat
+              title={t("cap.composition.title")}
+              ariaLabel={t("cap.composition.ariaLabel")}
+            >
               {viewData.composition.map((item) => (
                 <PekuloCompositionRow
                   key={item.label}
@@ -233,11 +276,11 @@ export default function CapScreen() {
           {viewData.recentActivity.length > 0 && (
             <Section
               flat
-              title="Activité récente"
-              ariaLabel="Activité récente"
+              title={t("cap.activity.title")}
+              ariaLabel={t("cap.activity.title")}
               action={
                 <HeaderAction
-                  label="Voir tout"
+                  label={t("cap.activity.seeAll")}
                   onPress={() => {
                     router.push("/transactions");
                   }}
@@ -257,7 +300,7 @@ export default function CapScreen() {
         <View gap="$8">
           <View gap="$1">
             <Text color="$colorTertiary" fontSize="$xs" letterSpacing={0.5}>
-              Total
+              {t("cap.patrimoine.total")}
             </Text>
             <Text
               color="$color"
@@ -284,12 +327,12 @@ export default function CapScreen() {
 
           <Section
             flat
-            title="Comptes"
-            ariaLabel="Comptes bancaires et livrets"
+            title={t("cap.accounts.title")}
+            ariaLabel={t("cap.accounts.ariaLabel")}
             action={
               <HeaderAction
                 icon={Plus}
-                label="Ajouter"
+                label={t("common.actions.add")}
                 onPress={() => router.push("/sheets/account")}
               />
             }
@@ -302,7 +345,7 @@ export default function CapScreen() {
                     key={entity?.id ?? `${acc.label}-${acc.type}`}
                     testID={entity ? `account-row-${entity.id}` : undefined}
                     accessibilityRole="button"
-                    accessibilityHint="Ouvre les actions du compte"
+                    accessibilityHint={t("cap.accounts.rowHint")}
                     disabled={!entity}
                     onPress={() => entity && openAccountActions(entity.id, entity.label)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
@@ -311,6 +354,7 @@ export default function CapScreen() {
                       label={acc.label}
                       type={acc.type}
                       balanceEur={acc.balanceEur}
+                      typeLabel={accountTypeLabel(t, acc.type)}
                     />
                   </Pressable>
                 );
@@ -318,16 +362,20 @@ export default function CapScreen() {
             ) : (
               <PekuloEmptyState
                 icon={Wallet}
-                title="Aucun compte"
-                message="Ajoutez un livret, un PEA ou un compte courant pour suivre votre patrimoine."
-                ctaLabel="Ajouter un compte"
+                title={t("cap.accounts.emptyTitle")}
+                message={t("cap.accounts.emptyMessage")}
+                ctaLabel={t("cap.accounts.emptyCta")}
                 onCta={() => router.push("/sheets/account")}
               />
             )}
           </Section>
 
           {viewData.composition.length > 0 && (
-            <Section flat title="Composition" ariaLabel="Composition du patrimoine">
+            <Section
+              flat
+              title={t("cap.composition.title")}
+              ariaLabel={t("cap.composition.ariaLabel")}
+            >
               {viewData.composition.map((item) => (
                 <PekuloCompositionRow
                   key={item.label}

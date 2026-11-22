@@ -18,8 +18,10 @@ import { useAuth } from "../../../lib/auth/auth-context";
 import { closeWindowLabel, formatMonthKey, isWithinCloseWindow, nowDate } from "../../../lib/forms";
 import { useMonthlyMutations } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobileMonthlyData } from "../../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../../lib/i18n";
 
 export default function MensuelScreen() {
+  const { t, lang, locale } = useI18n();
   const { isAuthenticated } = useAuth();
   const { data, isLoading, isError, isRefetching, refetch } = useMobileMonthlyData();
   const router = useRouter();
@@ -44,21 +46,26 @@ export default function MensuelScreen() {
     !current.signedOff &&
     isWithinCloseWindow(current.year, current.monthNum, nowDate());
   const currentLabel = current
-    ? formatMonthKey(`${current.year}-${String(current.monthNum).padStart(2, "0")}`)
+    ? formatMonthKey(`${current.year}-${String(current.monthNum).padStart(2, "0")}`, locale)
     : "";
+  // Month names are lowercase mid-sentence in French, capitalised in English.
+  const currentLabelInline = lang === "fr" ? currentLabel.toLowerCase() : currentLabel;
 
   function openMonthActions(year: number, monthNum: number, label: string) {
     showActions(label, [
       {
-        label: "Rouvrir le mois",
+        label: t("monthly.reopen.action"),
         destructive: true,
         onPress: () =>
           confirmDestructive({
-            title: `Rouvrir ${label} ?`,
-            message: "Le mois redevient modifiable et devra être clôturé à nouveau.",
-            confirmLabel: "Rouvrir",
+            title: t("monthly.reopen.title", { month: label }),
+            message: t("monthly.reopen.message"),
+            confirmLabel: t("monthly.reopen.confirm"),
             onConfirm: () => {
-              void run(() => reopen.mutateAsync({ year, monthNum }), `${label} rouvert`);
+              void run(
+                () => reopen.mutateAsync({ year, monthNum }),
+                t("monthly.reopen.done", { month: label }),
+              );
             },
           }),
       },
@@ -72,7 +79,7 @@ export default function MensuelScreen() {
         <ScreenLoadingSkeleton sections={1} />
       ) : showError ? (
         <ScreenErrorState
-          title="Impossible de charger le suivi mensuel"
+          title={t("monthly.loadError")}
           onRetry={() => {
             void refetch();
           }}
@@ -87,16 +94,23 @@ export default function MensuelScreen() {
             style={{ borderCurve: "continuous" }}
           >
             <PekuloStat
-              label="Épargne nette"
+              label={t("monthly.stats.netSavings")}
               value={viewData.currentNetFormatted}
               tone={viewData.currentNetTone}
             />
             <View flexDirection="row" gap="$4">
               <View flex={1}>
-                <PekuloStat label="Entrées" value={viewData.currentIncomeFormatted} tone="gain" />
+                <PekuloStat
+                  label={t("monthly.stats.income")}
+                  value={viewData.currentIncomeFormatted}
+                  tone="gain"
+                />
               </View>
               <View flex={1}>
-                <PekuloStat label="Sorties" value={viewData.currentSpendingFormatted} />
+                <PekuloStat
+                  label={t("monthly.stats.spending")}
+                  value={viewData.currentSpendingFormatted}
+                />
               </View>
             </View>
           </View>
@@ -106,7 +120,7 @@ export default function MensuelScreen() {
               <Pressable
                 testID="cloture-btn"
                 accessibilityRole="button"
-                accessibilityLabel={`Clôturer ${currentLabel}`}
+                accessibilityLabel={t("monthly.close.aria", { month: currentLabel })}
                 accessibilityState={{ disabled: !canClose }}
                 disabled={!canClose}
                 onPress={() => router.push("/sheets/cloture")}
@@ -126,20 +140,22 @@ export default function MensuelScreen() {
                     fontWeight="600"
                   >
                     {current.signedOff
-                      ? `${currentLabel} est clôturé`
-                      : `Clôturer ${currentLabel.toLowerCase()}`}
+                      ? t("monthly.close.done", { month: currentLabel })
+                      : t("monthly.close.cta", { month: currentLabelInline })}
                   </Text>
                 </View>
               </Pressable>
               {!current.signedOff && !canClose ? (
                 <Text color="$colorTertiary" fontSize="$xs" textAlign="center">
-                  Clôture possible du {closeWindowLabel(current.year, current.monthNum)}
+                  {t("monthly.close.windowHint", {
+                    range: closeWindowLabel(current.year, current.monthNum, locale),
+                  })}
                 </Text>
               ) : null}
             </View>
           ) : null}
 
-          <Section flat title="Historique" ariaLabel="Historique mensuel">
+          <Section flat title={t("monthly.history.title")} ariaLabel={t("monthly.history.aria")}>
             {viewData.months.length > 0 ? (
               viewData.months.map((month, index) => {
                 const key = viewData.monthKeys[index];
@@ -151,21 +167,28 @@ export default function MensuelScreen() {
                     key={rowId}
                     testID={`month-row-${rowId}`}
                     accessibilityRole="button"
-                    accessibilityHint="Ouvre les actions du mois"
+                    accessibilityHint={t("monthly.history.rowHint")}
                     onPress={() => openMonthActions(key.year, key.monthNum, month.monthLabel)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
                   >
-                    <PekuloMonthlyRow month={month} />
+                    <PekuloMonthlyRow
+                      month={month}
+                      closedLabel={t("monthly.history.closedLabel")}
+                    />
                   </Pressable>
                 ) : (
-                  <PekuloMonthlyRow key={rowId} month={month} />
+                  <PekuloMonthlyRow
+                    key={rowId}
+                    month={month}
+                    closedLabel={t("monthly.history.closedLabel")}
+                  />
                 );
               })
             ) : (
               <PekuloEmptyState
                 icon={Calendar}
-                title="Aucun bilan mensuel"
-                message="Vos bilans et clôtures mensuels apparaîtront ici dès que des transactions seront enregistrées."
+                title={t("monthly.history.emptyTitle")}
+                message={t("monthly.history.emptyMessage")}
               />
             )}
           </Section>

@@ -44,7 +44,7 @@ export function ScreenShell({
   const topInset = !isIOS && respectTopSafeArea ? (insets?.top ?? 0) : 0;
   const bottomInset = !isIOS ? (insets?.bottom ?? 0) : 0;
 
-  return (
+  const scroll = (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       automaticallyAdjustKeyboardInsets
@@ -96,5 +96,25 @@ export function ScreenShell({
       ) : null}
       {children}
     </ScrollView>
+  );
+
+  // Headerless screens (Cap, login): without a navigation bar the content would
+  // scroll under the clock and Dynamic Island. A scrim the height of the status
+  // bar keeps it legible. The ScrollView stays the first child
+  // so UIKit still finds it for the tab bar's minimize-on-scroll behaviour.
+  if (!(isIOS && respectTopSafeArea)) return scroll;
+  return (
+    <View flex={1} backgroundColor="$background">
+      {scroll}
+      <View
+        pointerEvents="none"
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        height={insets?.top ?? 0}
+        backgroundColor="$background"
+      />
+    </View>
   );
 }

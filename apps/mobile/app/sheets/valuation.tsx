@@ -10,12 +10,14 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { formatAmountInput, parseAmountInput, toUtcDay } from "../../lib/forms";
 import { useRealEstateMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileRealEstateData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 export default function ValuationSheet() {
   const { id = "" } = useLocalSearchParams<{ id?: string }>();
   const { data } = useMobileRealEstateData();
   const { recordValuation } = useRealEstateMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
+  const { t } = useI18n();
   const index = data?.propertyIds.indexOf(id) ?? -1;
   const property = index >= 0 ? data?.properties[index] : undefined;
 
@@ -32,7 +34,7 @@ export default function ValuationSheet() {
 
   return (
     <SheetScaffold
-      title={property ? property.label : "Valorisation"}
+      title={property ? property.label : t("realestate.valuation.title")}
       onPrimary={() => {
         void run(
           () =>
@@ -41,21 +43,21 @@ export default function ValuationSheet() {
               amount: parseAmountInput(amount),
               valuedOn: toUtcDay(valuedOn),
             }),
-          "Valorisation mise à jour",
+          t("realestate.valuation.saved"),
         );
       }}
       primaryDisabled={pending}
       error={error}
     >
-      <FormSection footer="La nouvelle valeur est ajoutée à l’historique du bien.">
+      <FormSection footer={t("realestate.valuation.footer")}>
         <AmountField
-          label="Nouvelle valeur"
+          label={t("realestate.valuation.amount")}
           value={amount}
           onChange={setAmount}
           testID="val-amount"
         />
         <DateField
-          label="Estimée le"
+          label={t("realestate.property.valuedOn")}
           value={valuedOn}
           onChange={setValuedOn}
           maximumDate={new Date()}

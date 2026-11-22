@@ -1,7 +1,10 @@
 import { Link } from "expo-router";
 import { Text, View } from "@pekulo/ui/client";
 
+import { useI18n } from "../lib/i18n";
+
 export default function NotFoundScreen() {
+  const { t } = useI18n();
   return (
     <View
       flex={1}
@@ -12,11 +15,11 @@ export default function NotFoundScreen() {
       gap="$4"
     >
       <Text color="$color" fontSize="$h2" fontWeight="600">
-        Page introuvable
+        {t("settings.notFound.title")}
       </Text>
       <Link href="/">
         <Text color="$colorSecondary" fontSize="$bodySm">
-          Retour au Cap
+          {t("settings.notFound.back")}
         </Text>
       </Link>
     </View>

@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { tNow } from "../i18n";
 import { resetAccessTokenResolver, setAccessTokenResolver } from "../orpc/client";
 import { isSupabaseConfigured, supabase } from "../supabase/client";
 
@@ -125,12 +126,12 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
     async (email: string, password: string): Promise<SignInResult> => {
       const trimmedEmail = email.trim();
       if (!trimmedEmail || !trimmedEmail.includes("@")) {
-        return { ok: false, errorMessage: "Veuillez saisir une adresse e-mail valide." };
+        return { ok: false, errorMessage: tNow("auth.errors.emailInvalid") };
       }
       if (password.length < 12) {
         return {
           ok: false,
-          errorMessage: "Le mot de passe doit contenir au moins 12 caractères.",
+          errorMessage: tNow("auth.errors.passwordTooShort"),
         };
       }
 
@@ -141,7 +142,14 @@ export function AuthProvider({ children, initialSession = null, requireAuth }: A
       if (error || !data.session) {
         return {
           ok: false,
-          errorMessage: error?.message ?? "Identifiants invalides.",
+          // Supabase returns English text ("Invalid login credentials"); show a
+          // localised message instead, keeping other server messages as-is.
+          errorMessage:
+            !error ||
+            error.code === "invalid_credentials" ||
+            /invalid login credentials/i.test(error.message)
+              ? tNow("auth.errors.invalidCredentials")
+              : error.message,
         };
       }
       // Update token resolver before invalidating queries so immediate refetches carry the new JWT.

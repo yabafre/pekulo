@@ -12,6 +12,7 @@ import { useAuth } from "../../lib/auth/auth-context";
 import { formatAmountInput, parseAmountInput } from "../../lib/forms";
 import { useRealEstateMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobilePropertyDetail } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 export default function RentalSheet() {
   const { id = "" } = useLocalSearchParams<{ id?: string }>();
@@ -19,6 +20,7 @@ export default function RentalSheet() {
   const { data: detail, isLoading } = useMobilePropertyDetail(id);
   const { attachRental, updateRental } = useRealEstateMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
+  const { t } = useI18n();
   const existing = detail?.rental ?? null;
 
   const [rent, setRent] = useState("");
@@ -43,7 +45,7 @@ export default function RentalSheet() {
     };
     void run(
       () => (existing ? updateRental.mutateAsync(fields) : attachRental.mutateAsync(fields)),
-      existing ? "Loyer modifié" : "Loyer ajouté",
+      existing ? t("realestate.rental.updated") : t("realestate.rental.added"),
     );
   }
 
@@ -52,8 +54,8 @@ export default function RentalSheet() {
 
   return (
     <SheetScaffold
-      title={existing ? "Modifier le loyer" : "Ajouter un loyer"}
-      primaryLabel={existing ? "Enregistrer" : "Ajouter"}
+      title={existing ? t("realestate.rental.titleEdit") : t("realestate.rental.titleAdd")}
+      primaryLabel={existing ? t("common.actions.save") : t("common.actions.add")}
       onPrimary={ready ? save : undefined}
       primaryDisabled={pending}
       error={error}
@@ -61,16 +63,21 @@ export default function RentalSheet() {
       {!ready && isLoading ? (
         <ScreenLoadingSkeleton sections={1} />
       ) : (
-        <FormSection footer="Utilisé pour calculer le cash-flow mensuel du bien.">
-          <AmountField label="Loyer mensuel" value={rent} onChange={setRent} testID="rent-amount" />
+        <FormSection footer={t("realestate.rental.footer")}>
           <AmountField
-            label="Charges mensuelles"
+            label={t("realestate.rental.rent")}
+            value={rent}
+            onChange={setRent}
+            testID="rent-amount"
+          />
+          <AmountField
+            label={t("realestate.rental.charges")}
             value={charges}
             onChange={setCharges}
             testID="rent-charges"
           />
           <SwitchField
-            label="Meublé"
+            label={t("realestate.rental.furnished")}
             value={furnished}
             onChange={setFurnished}
             testID="rent-furnished"

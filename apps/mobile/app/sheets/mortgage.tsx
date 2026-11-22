@@ -14,6 +14,7 @@ import { useAuth } from "../../lib/auth/auth-context";
 import { formatAmountInput, parseAmountInput, toUtcDay } from "../../lib/forms";
 import { useRealEstateMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobilePropertyDetail } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 export default function MortgageSheet() {
   const { id = "" } = useLocalSearchParams<{ id?: string }>();
@@ -21,6 +22,7 @@ export default function MortgageSheet() {
   const { data: detail, isLoading } = useMobilePropertyDetail(id);
   const { attachMortgage, updateMortgage } = useRealEstateMutations();
   const { run, error, pending } = useMutationRunner({ dismiss: true });
+  const { t } = useI18n();
   const existing = detail?.mortgage ?? null;
 
   const [principal, setPrincipal] = useState("");
@@ -51,7 +53,7 @@ export default function MortgageSheet() {
     };
     void run(
       () => (existing ? updateMortgage.mutateAsync(fields) : attachMortgage.mutateAsync(fields)),
-      existing ? "Crédit modifié" : "Crédit ajouté",
+      existing ? t("realestate.mortgage.updated") : t("realestate.mortgage.added"),
     );
   }
 
@@ -60,8 +62,8 @@ export default function MortgageSheet() {
 
   return (
     <SheetScaffold
-      title={existing ? "Modifier le crédit" : "Ajouter un crédit"}
-      primaryLabel={existing ? "Enregistrer" : "Ajouter"}
+      title={existing ? t("realestate.mortgage.titleEdit") : t("realestate.mortgage.titleAdd")}
+      primaryLabel={existing ? t("common.actions.save") : t("common.actions.add")}
       onPrimary={ready ? save : undefined}
       primaryDisabled={pending}
       error={error}
@@ -72,13 +74,13 @@ export default function MortgageSheet() {
         <>
           <FormSection>
             <AmountField
-              label="Capital restant dû"
+              label={t("realestate.mortgage.principal")}
               value={principal}
               onChange={setPrincipal}
               testID="mtg-principal"
             />
             <NumberField
-              label="Taux annuel"
+              label={t("realestate.mortgage.rate")}
               value={rate}
               onChange={setRate}
               decimal
@@ -86,7 +88,7 @@ export default function MortgageSheet() {
               testID="mtg-rate"
             />
             <AmountField
-              label="Mensualité"
+              label={t("realestate.mortgage.payment")}
               value={payment}
               onChange={setPayment}
               testID="mtg-payment"
@@ -94,15 +96,15 @@ export default function MortgageSheet() {
           </FormSection>
           <FormSection>
             <NumberField
-              label="Durée"
+              label={t("realestate.mortgage.term")}
               value={term}
               onChange={setTerm}
-              suffix="mois"
+              suffix={t("realestate.mortgage.months")}
               maxLength={3}
               testID="mtg-term"
             />
             <DateField
-              label="Début du prêt"
+              label={t("realestate.mortgage.start")}
               value={startDate}
               onChange={setStartDate}
               testID="mtg-start"

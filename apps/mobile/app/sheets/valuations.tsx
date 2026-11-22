@@ -6,35 +6,41 @@ import { PekuloEmptyState } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
 import { useLocalSearchParams } from "expo-router";
 import { History } from "lucide-react-native";
+import { useMemo } from "react";
 
 import { FormSection } from "../../components/form/fields";
 import { SheetScaffold } from "../../components/form/sheet";
 import { ScreenLoadingSkeleton } from "../../components/screen-states";
 import { useMobileValuations } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 
 const eur0 = new Intl.NumberFormat("fr-FR", {
   style: "currency",
   currency: "EUR",
   maximumFractionDigits: 0,
 });
-const day = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
 export default function ValuationsSheet() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { data, isLoading } = useMobileValuations(id);
+  const { t, locale } = useI18n();
+  const day = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }),
+    [locale],
+  );
   const rows = [...(data ?? [])].sort(
     (a, b) => new Date(b.valuedOn).getTime() - new Date(a.valuedOn).getTime(),
   );
 
   return (
-    <SheetScaffold title="Historique des valorisations">
+    <SheetScaffold title={t("realestate.valuations.title")}>
       {isLoading ? (
         <ScreenLoadingSkeleton sections={1} />
       ) : rows.length === 0 ? (
         <PekuloEmptyState
           icon={History}
-          title="Aucune valorisation"
-          message="Les valeurs enregistrées pour ce bien apparaîtront ici."
+          title={t("realestate.valuations.emptyTitle")}
+          message={t("realestate.valuations.emptyMessage")}
         />
       ) : (
         <FormSection>

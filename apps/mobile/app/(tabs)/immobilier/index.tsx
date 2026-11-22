@@ -17,6 +17,7 @@ import { confirmDestructive, showActions } from "../../../lib/actions";
 import { useAuth } from "../../../lib/auth/auth-context";
 import { useRealEstateMutations } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobileRealEstateData } from "../../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../../lib/i18n";
 
 export default function ImmobilierScreen() {
   const { isAuthenticated } = useAuth();
@@ -24,29 +25,43 @@ export default function ImmobilierScreen() {
   const router = useRouter();
   const { deleteProperty } = useRealEstateMutations();
   const { run } = useMutationRunner();
+  const { t } = useI18n();
+  const cardLabels = {
+    valuation: t("realestate.card.valuation"),
+    equity: t("realestate.card.equity"),
+    debt: t("realestate.card.debt"),
+    monthlyPayment: (years: number) => t("realestate.card.monthlyPayment", { years }),
+    repaid: (pct: number) => t("realestate.card.repaid", { pct }),
+  };
 
   function openPropertyActions(id: string, label: string) {
     showActions(label, [
       {
-        label: "Mettre à jour la valeur",
+        label: t("realestate.actions.updateValuation"),
         onPress: () => router.push(`/sheets/valuation?id=${id}`),
       },
       {
-        label: "Historique des valeurs",
+        label: t("realestate.actions.history"),
         onPress: () => router.push(`/sheets/valuations?id=${id}`),
       },
-      { label: "Crédit immobilier", onPress: () => router.push(`/sheets/mortgage?id=${id}`) },
-      { label: "Loyer", onPress: () => router.push(`/sheets/rental?id=${id}`) },
       {
-        label: "Supprimer le bien",
+        label: t("realestate.actions.mortgage"),
+        onPress: () => router.push(`/sheets/mortgage?id=${id}`),
+      },
+      {
+        label: t("realestate.actions.rental"),
+        onPress: () => router.push(`/sheets/rental?id=${id}`),
+      },
+      {
+        label: t("realestate.actions.delete"),
         destructive: true,
         onPress: () =>
           confirmDestructive({
-            title: `Supprimer « ${label} » ?`,
-            message: "Le bien, son crédit, son loyer et son historique seront supprimés.",
-            confirmLabel: "Supprimer",
+            title: t("realestate.actions.deleteTitle", { label }),
+            message: t("realestate.actions.deleteMessage"),
+            confirmLabel: t("common.actions.delete"),
             onConfirm: () => {
-              void run(() => deleteProperty.mutateAsync({ id }), "Bien supprimé");
+              void run(() => deleteProperty.mutateAsync({ id }), t("realestate.actions.deleted"));
             },
           }),
       },
@@ -66,12 +81,15 @@ export default function ImmobilierScreen() {
 
   return (
     <ScreenShell refreshing={isRefetching} onRefresh={refetch}>
-      <TabToolbar addLabel="Nouveau bien" onAdd={() => router.push("/sheets/property")} />
+      <TabToolbar
+        addLabel={t("realestate.screen.addProperty")}
+        onAdd={() => router.push("/sheets/property")}
+      />
       {showLoading ? (
         <ScreenLoadingSkeleton sections={1} />
       ) : showError ? (
         <ScreenErrorState
-          title="Impossible de charger vos biens"
+          title={t("realestate.screen.loadError")}
           onRetry={() => {
             void refetch();
           }}
@@ -85,13 +103,22 @@ export default function ImmobilierScreen() {
             gap="$4"
             style={{ borderCurve: "continuous" }}
           >
-            <PekuloStat label="Équité nette" value={viewData.totalEquityFormatted} />
+            <PekuloStat
+              label={t("realestate.screen.equity")}
+              value={viewData.totalEquityFormatted}
+            />
             <View flexDirection="row" gap="$4">
               <View flex={1}>
-                <PekuloStat label="Valorisation" value={viewData.totalValuationFormatted} />
+                <PekuloStat
+                  label={t("realestate.screen.valuation")}
+                  value={viewData.totalValuationFormatted}
+                />
               </View>
               <View flex={1}>
-                <PekuloStat label="Dette restante" value={viewData.totalDebtFormatted} />
+                <PekuloStat
+                  label={t("realestate.screen.debt")}
+                  value={viewData.totalDebtFormatted}
+                />
               </View>
             </View>
           </View>
@@ -105,12 +132,12 @@ export default function ImmobilierScreen() {
                     key={id ?? property.label}
                     testID={id ? `property-card-${id}` : undefined}
                     accessibilityRole="button"
-                    accessibilityHint="Ouvre les actions du bien"
+                    accessibilityHint={t("realestate.screen.propertyHint")}
                     disabled={!id}
                     onPress={() => id && openPropertyActions(id, property.label)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                   >
-                    <PekuloPropertyCard property={property} />
+                    <PekuloPropertyCard property={property} labels={cardLabels} hideEmptyMortgage />
                   </Pressable>
                 );
               })}
@@ -118,9 +145,9 @@ export default function ImmobilierScreen() {
           ) : (
             <PekuloEmptyState
               icon={Building2}
-              title="Aucun bien immobilier"
-              message="Renseignez vos biens et crédits immobiliers pour intégrer votre équité nette au cap."
-              ctaLabel="Ajouter un bien"
+              title={t("realestate.screen.emptyTitle")}
+              message={t("realestate.screen.emptyMessage")}
+              ctaLabel={t("realestate.screen.emptyCta")}
               onCta={() => router.push("/sheets/property")}
             />
           )}

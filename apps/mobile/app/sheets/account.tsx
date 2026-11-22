@@ -13,11 +13,13 @@ import { SheetScaffold, useMutationRunner } from "../../components/form/sheet";
 import { parseAmountInput } from "../../lib/forms";
 import { useAccountMutations } from "../../lib/hooks/use-mobile-mutations";
 import { useMobileCapData } from "../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../lib/i18n";
 import { useOptions } from "../../lib/options";
 
 const FORCED_CURRENCY = "EUR" as const;
 
 export default function AccountSheet() {
+  const { t } = useI18n();
   const options = useOptions();
   const { id: editId } = useLocalSearchParams<{ id?: string }>();
   const { data } = useMobileCapData();
@@ -62,29 +64,29 @@ export default function AccountSheet() {
               cashBalance: parseAmountInput(balance),
               notes: cleanNotes,
             }),
-      editId ? "Compte modifié" : "Compte ajouté",
+      editId ? t("cap.accountSheet.updated") : t("cap.accountSheet.added"),
     );
   }
 
   return (
     <SheetScaffold
-      title={editId ? "Modifier le compte" : "Nouveau compte"}
-      primaryLabel={editId ? "Enregistrer" : "Ajouter"}
+      title={editId ? t("cap.accountSheet.editTitle") : t("cap.accountSheet.createTitle")}
+      primaryLabel={editId ? t("common.actions.save") : t("common.actions.add")}
       onPrimary={save}
       primaryDisabled={pending}
       error={error}
     >
       <FormSection>
         <TextField
-          label="Nom du compte"
+          label={t("cap.accountSheet.name")}
           value={label}
           onChange={edit(setLabel)}
-          placeholder="Livret A, PEA…"
+          placeholder={t("cap.accountSheet.namePlaceholder")}
           maxLength={120}
           testID="acc-label"
         />
         <SelectField
-          label="Type"
+          label={t("common.fields.type")}
           value={type}
           options={options.accountTypes}
           onChange={edit(setType)}
@@ -92,16 +94,16 @@ export default function AccountSheet() {
         />
         {editId ? null : (
           <AmountField
-            label="Solde actuel"
+            label={t("cap.accountSheet.balance")}
             value={balance}
             onChange={setBalance}
             testID="acc-balance"
           />
         )}
       </FormSection>
-      <FormSection title="Notes" footer="Les comptes sont tenus en euros.">
+      <FormSection title={t("common.fields.notes")} footer={t("cap.accountSheet.notesFooter")}>
         <TextField
-          label="Notes (facultatif)"
+          label={t("common.fields.notesOptional")}
           value={notes}
           onChange={edit(setNotes)}
           multiline

@@ -2,13 +2,15 @@
 // iOS-style search field rendered in the scroll content (under the Large
 // Title). Replaces `Stack.SearchBar`, whose stacked placement mis-insets the
 // content and fades the title on iOS 26 when it gains focus. Native TextInput,
-// native clear button, and an "Annuler" action while editing.
+// native clear button, and a localized "Annuler" / "Cancel" action while editing.
 
 import { Text, View } from "@pekulo/ui/client";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { Pressable, TextInput } from "react-native";
 import { useTheme } from "tamagui";
+
+import { useI18n } from "../lib/i18n";
 
 export function SearchField({
   value,
@@ -22,6 +24,7 @@ export function SearchField({
   testID?: string;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
 
@@ -71,7 +74,7 @@ export function SearchField({
       {focused || value ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Annuler la recherche"
+          accessibilityLabel={t("transactions.search.cancelAria")}
           hitSlop={8}
           onPress={() => {
             onChange("");
@@ -84,7 +87,7 @@ export function SearchField({
           })}
         >
           <Text color="$color" fontSize="$body">
-            Annuler
+            {t("common.actions.cancel")}
           </Text>
         </Pressable>
       ) : null}

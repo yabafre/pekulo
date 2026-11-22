@@ -24,6 +24,8 @@ import { confirmDestructive, showActions } from "../../../lib/actions";
 import { useAuth } from "../../../lib/auth/auth-context";
 import { useHoldingMutations } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobilePortfolioData } from "../../../lib/hooks/use-mobile-queries";
+import { useI18n } from "../../../lib/i18n";
+import { holdingKindLabel } from "../../../lib/options";
 
 export default function PortefeuilleScreen() {
   const { isAuthenticated } = useAuth();
@@ -31,23 +33,24 @@ export default function PortefeuilleScreen() {
   const router = useRouter();
   const { close } = useHoldingMutations();
   const { run } = useMutationRunner();
+  const { t } = useI18n();
 
   function openHoldingActions(id: string, label: string) {
     showActions(label, [
       {
-        label: "Enregistrer un achat ou une vente",
+        label: t("portfolio.actions.recordLot"),
         onPress: () => router.push(`/sheets/lot?id=${id}`),
       },
       {
-        label: "Clôturer la ligne",
+        label: t("portfolio.actions.close"),
         destructive: true,
         onPress: () =>
           confirmDestructive({
-            title: `Clôturer « ${label} » ?`,
-            message: "La ligne sortira de votre portefeuille actif.",
-            confirmLabel: "Clôturer",
+            title: t("portfolio.actions.closeTitle", { label }),
+            message: t("portfolio.actions.closeMessage"),
+            confirmLabel: t("portfolio.actions.closeConfirm"),
             onConfirm: () => {
-              void run(() => close.mutateAsync({ id }), "Ligne clôturée");
+              void run(() => close.mutateAsync({ id }), t("portfolio.actions.closed"));
             },
           }),
       },
@@ -69,12 +72,15 @@ export default function PortefeuilleScreen() {
 
   return (
     <ScreenShell refreshing={isRefetching} onRefresh={refetch}>
-      <TabToolbar addLabel="Nouvelle ligne" onAdd={() => router.push("/sheets/holding")} />
+      <TabToolbar
+        addLabel={t("portfolio.screen.addHolding")}
+        onAdd={() => router.push("/sheets/holding")}
+      />
       {showLoading ? (
         <ScreenLoadingSkeleton sections={2} />
       ) : showError ? (
         <ScreenErrorState
-          title="Impossible de charger votre portefeuille"
+          title={t("portfolio.screen.loadError")}
           onRetry={() => {
             void refetch();
           }}
@@ -88,16 +94,20 @@ export default function PortefeuilleScreen() {
             gap="$4"
             style={{ borderCurve: "continuous" }}
           >
-            <PekuloStat label="Valeur portefeuille" value={viewData.totalValueFormatted} />
+            <PekuloStat label={t("portfolio.screen.value")} value={viewData.totalValueFormatted} />
             <PekuloStat
-              label="Plus-value latente"
+              label={t("portfolio.screen.pnl")}
               value={viewData.pnlFormatted}
               tone={viewData.pnlTone}
             />
           </View>
 
           {viewData.classes.length > 0 && (
-            <Section flat title="Répartition" ariaLabel="Répartition du portefeuille">
+            <Section
+              flat
+              title={t("portfolio.screen.allocation")}
+              ariaLabel={t("portfolio.screen.allocationAria")}
+            >
               {viewData.classes.map((cls) => (
                 <PekuloClassRow
                   key={cls.label}
@@ -109,7 +119,11 @@ export default function PortefeuilleScreen() {
             </Section>
           )}
 
-          <Section flat title="Lignes" ariaLabel="Lignes du portefeuille">
+          <Section
+            flat
+            title={t("portfolio.screen.holdings")}
+            ariaLabel={t("portfolio.screen.holdingsAria")}
+          >
             {viewData.holdings.length > 0 ? (
               viewData.holdings.map((holding, index) => {
                 const id = viewData.holdingIds[index];
@@ -118,21 +132,24 @@ export default function PortefeuilleScreen() {
                     key={id ?? `${holding.ticker}-${holding.account}`}
                     testID={id ? `holding-row-${id}` : undefined}
                     accessibilityRole="button"
-                    accessibilityHint="Ouvre les actions de la ligne"
+                    accessibilityHint={t("portfolio.screen.holdingHint")}
                     disabled={!id}
                     onPress={() => id && openHoldingActions(id, holding.label)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
                   >
-                    <PekuloHoldingRow holding={holding} />
+                    <PekuloHoldingRow
+                      holding={holding}
+                      kindLabel={holdingKindLabel(t, holding.kind)}
+                    />
                   </Pressable>
                 );
               })
             ) : (
               <PekuloEmptyState
                 icon={LineChart}
-                title="Aucune position ouverte"
-                message="Ajoutez vos ETF, actions ou crypto pour suivre vos plus-values."
-                ctaLabel="Ajouter une ligne"
+                title={t("portfolio.screen.emptyTitle")}
+                message={t("portfolio.screen.emptyMessage")}
+                ctaLabel={t("portfolio.screen.emptyCta")}
                 onCta={() => router.push("/sheets/holding")}
               />
             )}

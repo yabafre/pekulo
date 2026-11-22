@@ -553,7 +553,13 @@ export function useMobileMonthlyData() {
     queryKey: [...mobileQueryKeys.monthly(), isAuthenticated, lang],
     queryFn: async () => {
       if (!isAuthenticated) {
-        return PREVIEW_MONTHLY_DATA;
+        return {
+          ...PREVIEW_MONTHLY_DATA,
+          months: PREVIEW_MONTHLY_DATA.months.map((m, i) => {
+            const key = PREVIEW_MONTHLY_DATA.monthKeys[i];
+            return key ? { ...m, monthLabel: monthLabel(lang, key.year, key.monthNum) } : m;
+          }),
+        };
       }
 
       const { year, monthNum } = currentUtcMonth();
