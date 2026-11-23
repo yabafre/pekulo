@@ -1,0 +1,42 @@
+# EAS Build / EAS Workflows ignore rules (monorepo root)
+# Keeps local uploads small and avoids iCloud-evicted cold files under docs/ or caches.
+node_modules
+*.nosync
+.next
+.turbo
+.tamagui
+.vercel
+.yarn
+coverage
+dist
+out
+build
+.env*
+!.env.example
+*.log
+.DS_Store
+*.tsbuildinfo
+
+# Local mobile native outputs (EAS runs prebuild on macOS)
+apps/mobile/.expo
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/*.jks
+apps/mobile/*.p8
+apps/mobile/*.p12
+apps/mobile/*.key
+apps/mobile/*.mobileprovision
+apps/mobile/*.orig.*
+
+# Unneeded surfaces / agent metadata / docs (keep apps/api/prisma for bun postinstall)
+apps/prices
+apps/web/e2e
+apps/web/playwright-report
+apps/web/test-results
+docs
+.aped
+.agents
+.claude
+.codex
+.opencode
+.windsurf
