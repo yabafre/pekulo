@@ -28,4 +28,5 @@ tags:
 - extendedWaitUntil:
     notVisible: "Connectez-vous pour enregistrer des modifications sur votre compte."
     timeout: 10000
-- assertVisible: "Apparence"
+- assertVisible:
+    id: "llm-optin-switch"

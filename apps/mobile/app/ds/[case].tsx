@@ -4,18 +4,21 @@
 // Redirects to "/" when the gallery is disabled or the case id is unknown.
 // The `ds-case-<id>` container is the Maestro cropOn target, so the status
 // bar clock never enters a golden.
-import { View } from "@pekulo/ui/client";
-import { PARITY_CASES } from "@pekulo/ui/parity";
+import { Theme, View } from "@pekulo/ui/client";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { ScrollView } from "react-native";
-import { Theme } from "tamagui";
 
 import { isDsGalleryEnabled, resolveGalleryTheme } from "../../lib/ds-gallery";
 
 export default function DsGalleryCaseScreen() {
-  const params = useLocalSearchParams<{ case?: string; theme?: string }>();
+  const params = useLocalSearchParams<{
+    case?: string | string[];
+    theme?: string | string[];
+  }>();
   if (!isDsGalleryEnabled()) return <Redirect href="/" />;
-  const parityCase = PARITY_CASES.find((c) => c.id === params.case);
+  const caseId = typeof params.case === "string" ? params.case : undefined;
+  const { PARITY_CASES } = require("@pekulo/ui/parity") as typeof import("@pekulo/ui/parity");
+  const parityCase = caseId ? PARITY_CASES.find((c) => c.id === caseId) : undefined;
   if (!parityCase) return <Redirect href="/" />;
   const theme = resolveGalleryTheme(params.theme);
 

@@ -40,7 +40,15 @@ type HostNode = {
 };
 
 const baseline = baselineJson as ParityBaseline;
-const seenAllowedKeys = new Set<string>();
+const originalMatchMedia = (window as unknown as { matchMedia?: unknown }).matchMedia;
+
+function definedStyleProps(style: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(style)) {
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
 
 function collectTextRecords(
   node: HostNode | HostNode[] | string | null,
@@ -54,7 +62,9 @@ function collectTextRecords(
   }
   const isText = node.type === "Text";
   const own = isText
-    ? ((StyleSheet.flatten(node.props.style as never) ?? {}) as Record<string, unknown>)
+    ? definedStyleProps(
+        (StyleSheet.flatten(node.props.style as never) ?? {}) as Record<string, unknown>,
+      )
     : {};
   const merged = isText ? { ...inherited, ...own } : {};
   if (isText) {
@@ -94,6 +104,11 @@ beforeAll(() => {
 });
 
 afterAll(() => {
+  if (originalMatchMedia === undefined) {
+    delete (window as unknown as { matchMedia?: unknown }).matchMedia;
+  } else {
+    (window as unknown as { matchMedia?: unknown }).matchMedia = originalMatchMedia;
+  }
   jest.restoreAllMocks();
 });
 
@@ -106,6 +121,7 @@ describe("@pekulo/ui web ↔ native text-style parity (story 10-5, AC-3)", () =>
     parityCase: ParityCase,
     theme: ParityTheme,
     unexpected: string[],
+    seenForCase: Set<string>,
   ): Promise<void> {
     const view = await render(
       <PekuloRootProvider theme={theme}>{parityCase.render()}</PekuloRootProvider>,
@@ -116,7 +132,7 @@ describe("@pekulo/ui web ↔ native text-style parity (story 10-5, AC-3)", () =>
     for (const diff of diffTextStyles(baseline[parityCase.id]?.[theme] ?? [], records)) {
       const key = divergenceKey(parityCase.id, theme, diff);
       if (key in PARITY_ALLOWED_DIVERGENCE) {
-        seenAllowedKeys.add(key);
+        seenForCase.add(key);
       } else {
         unexpected.push(
           `${key} — web=${JSON.stringify(diff.web)} native=${JSON.stringify(diff.native)}`,
@@ -129,18 +145,29 @@ describe("@pekulo/ui web ↔ native text-style parity (story 10-5, AC-3)", () =>
     "%s renders the web text styles natively in both themes",
     async (_id, parityCase) => {
       const unexpected: string[] = [];
+      const seenForCase = new Set<string>();
       await PARITY_THEMES.reduce(
-        (chain, theme) => chain.then(() => checkCaseTheme(parityCase, theme, unexpected)),
+        (chain, theme) =>
+          chain.then(() => checkCaseTheme(parityCase, theme, unexpected, seenForCase)),
         Promise.resolve(),
       );
       expect(unexpected).toEqual([]);
+      // Per-case staleness check stays order-independent under `-t` and `--randomize`.
+      const expectedForCase = Object.keys(PARITY_ALLOWED_DIVERGENCE).filter((key) =>
+        key.startsWith(`${parityCase.id}|`),
+      );
+      expect(expectedForCase.filter((key) => !seenForCase.has(key))).toEqual([]);
     },
   );
 
-  // Runs after the it.each above (Jest runs a file's tests in order).
-  it("keeps no stale allow-list entries", () => {
-    expect(
-      Object.keys(PARITY_ALLOWED_DIVERGENCE).filter((key) => !seenAllowedKeys.has(key)),
-    ).toEqual([]);
+  it("validates every allow-list key and requires a written reason", () => {
+    const validCaseIds = new Set(PARITY_CASES.map((c) => c.id));
+    const validThemes = new Set<string>(PARITY_THEMES);
+    for (const [key, reason] of Object.entries(PARITY_ALLOWED_DIVERGENCE)) {
+      const [caseId, theme] = key.split("|");
+      expect(validCaseIds.has(caseId ?? "")).toBe(true);
+      expect(validThemes.has(theme ?? "")).toBe(true);
+      expect(`${key}: ${reason.trim()}`).not.toBe(`${key}: `);
+    }
   });
 });

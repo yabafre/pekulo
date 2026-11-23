@@ -8,13 +8,14 @@
 //   default), inside a container identified as `ds-case-<caseId>`; And when the
 //   flag is not `1` or the case id is unknown, the app returns to its home
 //   screen instead.
-import { PekuloRootProvider } from "@pekulo/ui";
+import { PekuloRootProvider, pekuloColors } from "@pekulo/ui";
 import { render, screen } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
 import DsGalleryCaseScreen from "../app/ds/[case]";
-import { isDsGalleryEnabled } from "../lib/ds-gallery";
+import { isDsGalleryEnabled, resolveGalleryTheme } from "../lib/ds-gallery";
 
-const mockParams: { case?: string; theme?: string } = {};
+const mockParams: { case?: string | string[]; theme?: string | string[] } = {};
 
 jest.mock("expo-router", () => {
   const { createElement } = require("react") as typeof import("react");
@@ -25,12 +26,7 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock("../lib/ds-gallery", () => ({
-  ...jest.requireActual("../lib/ds-gallery"),
-  isDsGalleryEnabled: jest.fn(() => true),
-}));
-
-const actualGallery = jest.requireActual<typeof import("../lib/ds-gallery")>("../lib/ds-gallery");
+const originalGalleryFlag = process.env.EXPO_PUBLIC_DS_GALLERY;
 
 async function renderScreen(): Promise<void> {
   await render(
@@ -43,27 +39,52 @@ async function renderScreen(): Promise<void> {
 beforeEach(() => {
   mockParams.case = undefined;
   mockParams.theme = undefined;
-  (isDsGalleryEnabled as jest.Mock).mockReturnValue(true);
+  process.env.EXPO_PUBLIC_DS_GALLERY = "1";
+});
+
+afterEach(() => {
+  if (originalGalleryFlag === undefined) {
+    delete process.env.EXPO_PUBLIC_DS_GALLERY;
+  } else {
+    process.env.EXPO_PUBLIC_DS_GALLERY = originalGalleryFlag;
+  }
 });
 
 describe("DS gallery route (story 10-5, AC-4)", () => {
-  it("renders the requested parity case inside its cropOn container", async () => {
+  it("renders the requested parity case in the requested light theme", async () => {
     mockParams.case = "PekuloStat.gain";
     mockParams.theme = "pekulo-light";
     await renderScreen();
-    expect(screen.getByTestId("ds-case-PekuloStat.gain")).toBeTruthy();
+    const container = screen.getByTestId("ds-case-PekuloStat.gain");
+    const containerStyle = StyleSheet.flatten(container.props.style);
+    const valueStyle = StyleSheet.flatten(screen.getByText("+1 050 €").props.style);
+    expect(containerStyle.backgroundColor).toBe(pekuloColors.light.surface.bg);
+    expect(valueStyle.color).toBe(pekuloColors.light.perf.gain);
     expect(screen.getByText("Net")).toBeTruthy();
-    expect(screen.getByText("+1 050 €")).toBeTruthy();
   });
 
-  it("redirects home for an unknown case id", async () => {
+  it("defaults to the dark theme when theme param is omitted", async () => {
+    mockParams.case = "PekuloStat.gain";
+    await renderScreen();
+    const container = screen.getByTestId("ds-case-PekuloStat.gain");
+    const containerStyle = StyleSheet.flatten(container.props.style);
+    const valueStyle = StyleSheet.flatten(screen.getByText("+1 050 €").props.style);
+    expect(containerStyle.backgroundColor).toBe(pekuloColors.dark.surface.bg);
+    expect(valueStyle.color).toBe(pekuloColors.dark.perf.gain);
+  });
+
+  it("redirects home for an unknown or non-string case id", async () => {
     mockParams.case = "PekuloStat.nope";
+    await renderScreen();
+    expect(screen.getByText("redirect:/")).toBeTruthy();
+
+    mockParams.case = ["PekuloStat.gain"];
     await renderScreen();
     expect(screen.getByText("redirect:/")).toBeTruthy();
   });
 
-  it("redirects home when the gallery is disabled", async () => {
-    (isDsGalleryEnabled as jest.Mock).mockReturnValue(false);
+  it("redirects home when EXPO_PUBLIC_DS_GALLERY is not 1", async () => {
+    delete process.env.EXPO_PUBLIC_DS_GALLERY;
     mockParams.case = "PekuloStat.gain";
     await renderScreen();
     expect(screen.getByText("redirect:/")).toBeTruthy();
@@ -71,13 +92,13 @@ describe("DS gallery route (story 10-5, AC-4)", () => {
   });
 
   it("enables the gallery only for EXPO_PUBLIC_DS_GALLERY=1 and defaults to the dark theme", () => {
-    expect(actualGallery.isDsGalleryEnabled({ EXPO_PUBLIC_DS_GALLERY: "1" })).toBe(true);
-    expect(actualGallery.isDsGalleryEnabled({ EXPO_PUBLIC_DS_GALLERY: " 1 " })).toBe(true);
-    expect(actualGallery.isDsGalleryEnabled({ EXPO_PUBLIC_DS_GALLERY: "true" })).toBe(false);
-    expect(actualGallery.isDsGalleryEnabled({})).toBe(false);
-    expect(actualGallery.resolveGalleryTheme("pekulo-light")).toBe("pekulo-light");
-    expect(actualGallery.resolveGalleryTheme("pekulo-dark")).toBe("pekulo-dark");
-    expect(actualGallery.resolveGalleryTheme(undefined)).toBe("pekulo-dark");
-    expect(actualGallery.resolveGalleryTheme(["pekulo-light"])).toBe("pekulo-dark");
+    expect(isDsGalleryEnabled({ EXPO_PUBLIC_DS_GALLERY: "1" })).toBe(true);
+    expect(isDsGalleryEnabled({ EXPO_PUBLIC_DS_GALLERY: " 1 " })).toBe(true);
+    expect(isDsGalleryEnabled({ EXPO_PUBLIC_DS_GALLERY: "true" })).toBe(false);
+    expect(isDsGalleryEnabled({})).toBe(false);
+    expect(resolveGalleryTheme("pekulo-light")).toBe("pekulo-light");
+    expect(resolveGalleryTheme("pekulo-dark")).toBe("pekulo-dark");
+    expect(resolveGalleryTheme(undefined)).toBe("pekulo-dark");
+    expect(resolveGalleryTheme(["pekulo-light"])).toBe("pekulo-dark");
   });
 });
