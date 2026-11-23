@@ -58,17 +58,30 @@ function declarations(rule: CSSStyleRule): Declarations {
     .filter(Boolean)
     .map((part) => {
       const colon = part.indexOf(":");
-      return [part.slice(0, colon).trim(), part.slice(colon + 1).trim()] as [string, string];
+      const value = part
+        .slice(colon + 1)
+        .replace(/\s*!important\s*$/i, "")
+        .trim();
+      return [part.slice(0, colon).trim(), value] as [string, string];
     });
 }
 
-/** `_col-success` → declarations of `:root ._col-success`. */
-function atomicRules(rules: CSSStyleRule[]): Map<string, Declarations> {
-  const map = new Map<string, Declarations>();
+type AtomicRuleEntry = { declarations: Declarations; specificity: number; order: number };
+
+/** `_col-success` → declarations of `(:root)+ ._col-success`, keeping rule specificity + order. */
+function atomicRules(rules: CSSStyleRule[]): Map<string, AtomicRuleEntry> {
+  const map = new Map<string, AtomicRuleEntry>();
+  let order = 0;
   for (const rule of rules) {
     for (const selector of rule.selectorText.split(",")) {
-      const match = /^(?::root )?\.([A-Za-z0-9_-]+)$/.exec(selector.trim());
-      if (match?.[1]) map.set(match[1], declarations(rule));
+      const match = /^((?::root)*)\s*\.([A-Za-z0-9_-]+)$/.exec(selector.trim());
+      if (!match?.[2]) continue;
+      const specificity = (match[1]?.match(/:root/g)?.length ?? 0) + 1;
+      const prev = map.get(match[2]);
+      if (!prev || specificity >= prev.specificity) {
+        map.set(match[2], { declarations: declarations(rule), specificity, order });
+      }
+      order += 1;
     }
   }
   return map;
@@ -99,11 +112,33 @@ function variablesFor(theme: string, fontName: string, rules: CSSStyleRule[]): M
   return vars;
 }
 
+function parseVarExpr(trimmed: string): { name: string; fallback?: string } | null {
+  if (!trimmed.startsWith("var(--") || !trimmed.endsWith(")")) return null;
+  let depth = 0;
+  let commaIdx = -1;
+  for (let i = 4; i < trimmed.length - 1; i += 1) {
+    const ch = trimmed[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") {
+      depth -= 1;
+      if (depth < 0) return null;
+    } else if (ch === "," && depth === 0 && commaIdx === -1) {
+      commaIdx = i;
+    }
+  }
+  if (depth !== 0) return null;
+  const namePart = (commaIdx === -1 ? trimmed.slice(6, -1) : trimmed.slice(6, commaIdx)).trim();
+  if (!namePart || /\s/.test(namePart)) return null;
+  const fallback = commaIdx === -1 ? undefined : trimmed.slice(commaIdx + 1, -1).trim();
+  return { name: namePart, fallback };
+}
+
 function resolveValue(raw: string, vars: Map<string, string>, depth = 0): string {
-  const match = /^var\(--([^),\s]+)\s*(?:,\s*([^)]*))?\)$/.exec(raw.trim());
-  if (!match?.[1] || depth > 5) return raw.trim();
-  const next = vars.get(match[1]) ?? match[2];
-  return next === undefined ? raw.trim() : resolveValue(next, vars, depth + 1);
+  const trimmed = raw.trim();
+  const parsed = parseVarExpr(trimmed);
+  if (!parsed || depth > 5) return trimmed;
+  const next = vars.get(parsed.name) ?? parsed.fallback;
+  return next === undefined ? trimmed : resolveValue(next, vars, depth + 1);
 }
 
 function classSuffix(
@@ -132,18 +167,22 @@ function ownText(el: Element): string {
 
 function ownDeclarations(
   el: Element,
-  atomic: Map<string, Declarations>,
+  atomic: Map<string, AtomicRuleEntry>,
 ): Partial<Record<CssProp, string>> {
   const out: Partial<Record<CssProp, string>> = {};
-  for (const cls of Array.from(el.classList)) {
-    for (const [prop, value] of atomic.get(cls) ?? []) {
+  const entries = Array.from(el.classList)
+    .map((cls) => atomic.get(cls))
+    .filter((entry): entry is AtomicRuleEntry => entry !== undefined)
+    .sort((a, b) => a.specificity - b.specificity || a.order - b.order);
+  for (const entry of entries) {
+    for (const [prop, value] of entry.declarations) {
       if ((CSS_PROPS as readonly string[]).includes(prop)) out[prop as CssProp] = value;
     }
   }
   const inline = (el as HTMLElement).style;
   for (const prop of CSS_PROPS) {
     const value = inline?.getPropertyValue(prop);
-    if (value) out[prop] = value.trim();
+    if (value) out[prop] = value.replace(/\s*!important\s*$/i, "").trim();
   }
   return out;
 }
@@ -151,13 +190,19 @@ function ownDeclarations(
 function extract(container: HTMLElement, fallbackTheme: ParityTheme): TextStyleRecord[] {
   const rules = styleRules();
   const atomic = atomicRules(rules);
+  const varsCache = new Map<string, Map<string, string>>();
   const records: TextStyleRecord[] = [];
   for (const el of Array.from(container.querySelectorAll(".is_Text"))) {
     const text = ownText(el);
     if (text === "") continue;
     const theme = classSuffix(el, "t_", (name) => name in tamaguiConfig.themes) ?? fallbackTheme;
     const fontName = classSuffix(el, "font_", () => true) ?? "body";
-    const vars = variablesFor(theme, fontName, rules);
+    const cacheKey = `${theme}|${fontName}`;
+    let vars = varsCache.get(cacheKey);
+    if (!vars) {
+      vars = variablesFor(theme, fontName, rules);
+      varsCache.set(cacheKey, vars);
+    }
     const chain: Element[] = [];
     let current: Element | null = el;
     while (current) {

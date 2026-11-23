@@ -12,5 +12,5 @@
 // barrel keeps tokens / themes / types RSC-safe; client-only code goes
 // through this sub-path.
 
-export { Text, View, styled } from "tamagui";
+export { Text, Theme, View, styled } from "tamagui";
 export type { TextProps, ViewProps } from "tamagui";

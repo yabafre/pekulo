@@ -35,7 +35,12 @@ describe("parity catalog coverage (story 10-5)", () => {
   });
 
   it("only references real component folders", () => {
-    const referenced = [...new Set(PARITY_CASES.map((c) => c.component))];
+    const referenced = [
+      ...new Set([
+        ...PARITY_CASES.map((c) => c.component),
+        ...Object.keys(PARITY_EXEMPT_COMPONENTS),
+      ]),
+    ];
     expect(referenced.filter((name) => !componentNames.includes(name))).toEqual([]);
   });
 

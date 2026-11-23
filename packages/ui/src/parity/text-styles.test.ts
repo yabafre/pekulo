@@ -29,7 +29,11 @@ describe("parity text-style normalisers (story 10-5)", () => {
     expect(normalizeColor("#FFF")).toBe("rgba(255,255,255,1)");
     expect(normalizeColor("#00000080")).toBe("rgba(0,0,0,0.502)");
     expect(normalizeColor("rgb(128, 128, 128)")).toBe("rgba(128,128,128,1)");
+    expect(normalizeColor("rgb(100%, 0%, 50% / 50%)")).toBe("rgba(255,0,128,0.5)");
     expect(normalizeColor("rgba(0,0,0,0.5)")).toBe("rgba(0,0,0,0.5)");
+    expect(normalizeColor("rgba(0,0,0,1.5)")).toBe("rgba(0,0,0,1)");
+    expect(normalizeColor("rgb(255, 0)")).toBe("rgb(255, 0)");
+    expect(normalizeColor("rgb(foo, bar, baz)")).toBe("rgb(foo, bar, baz)");
     expect(normalizeColor("transparent")).toBe("rgba(0,0,0,0)");
     expect(normalizeColor(null)).toBeNull();
     expect(normalizeColor("")).toBeNull();
@@ -37,11 +41,16 @@ describe("parity text-style normalisers (story 10-5)", () => {
 
   it("normalises px strings, numbers, and keyword font weights", () => {
     expect(normalizeNumber("12px")).toBe(12);
+    expect(normalizeNumber("-0px")).toBe(0);
+    expect(Object.is(normalizeNumber("-0px"), -0)).toBe(false);
+    expect(normalizeNumber("1.2em")).toBeNull();
     expect(normalizeNumber(0.5)).toBe(0.5);
     expect(normalizeNumber("")).toBeNull();
     expect(normalizeNumber(Number.NaN)).toBeNull();
     expect(normalizeFontWeight("bold")).toBe("700");
+    expect(normalizeFontWeight("Bold")).toBe("700");
     expect(normalizeFontWeight("normal")).toBe("400");
+    expect(normalizeFontWeight("   ")).toBeNull();
     expect(normalizeFontWeight(600)).toBe("600");
     expect(normalizeFontWeight(undefined)).toBeNull();
   });
