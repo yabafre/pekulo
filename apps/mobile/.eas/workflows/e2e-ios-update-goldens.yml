@@ -54,7 +54,10 @@ jobs:
             echo "Cannot find .maestro directory from $JOB_CWD" >&2
             exit 1
           fi
-          GOLDENS_DIR="$JOB_CWD/maestro-goldens-ios"
+          # eas/upload_artifact resolves `path` from EAS_BUILD_WORKINGDIR (repo root),
+          # whereas eas/checkout changes `run:` cwd to apps/mobile.
+          ARTIFACT_ROOT="${EAS_BUILD_WORKINGDIR:-$JOB_CWD}"
+          GOLDENS_DIR="$ARTIFACT_ROOT/maestro-goldens-ios"
 
           DEVICE_UDID=$(xcrun simctl list devices available -j | node -e "
             const parsed = JSON.parse(require('fs').readFileSync(0, 'utf8')).devices;
