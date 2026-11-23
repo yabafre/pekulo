@@ -1329,7 +1329,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-56 (parity verification & Maestro CI)
 **Complexity:** M
 
-> **Realized scope (2026-11-22, step-04, user-approved) — supersedes the title and summary above without deleting them.** The 10-1 web snapshots are DOM/atomic-class inline snapshots, not images, so "pixel-diff against the 10-1 snapshots" is implemented as a hybrid: (1) a deterministic web ↔ native **text-style token-parity gate** — `@pekulo/ui/parity` catalog covering all 42 components, web baseline `packages/ui/src/parity/__baseline__/web-text-styles.json` (vitest), native comparison `apps/mobile/__tests__/ds-token-parity.test.tsx` (Jest); (2) **iOS screenshot goldens** of every component from a flag-gated in-app DS gallery (`pekulo://ds/<case>`), asserted by Maestro. The Maestro suite (`smoke`, `navigation`, `preview-guard`, `ds-gallery`) runs on **EAS Workflows** against an iOS Simulator build in preview mode, on PRs to `main` touching mobile-relevant paths (non-required check; EAS's maestro job is alpha). **iOS only** — Android moves to `10-6`. Primitives parity is a follow-up.
+> **Realized scope (2026-11-22, step-04, user-approved) — supersedes the title and summary above without deleting them.** The 10-1 web snapshots are DOM/atomic-class inline snapshots, not images, so "pixel-diff against the 10-1 snapshots" is implemented as a hybrid: (1) a deterministic web ↔ native **text-style token-parity gate** — `@pekulo/ui/parity` catalog covering all 42 components, web baseline `packages/ui/src/parity/__baseline__/web-text-styles.json` (vitest), native comparison `apps/mobile/__tests__/ds-token-parity.test.tsx` (Jest); (2) **iOS screenshot goldens** of every component from a flag-gated in-app DS gallery (`pekulo://ds/<case>`), asserted by Maestro. The Maestro suite (`smoke`, `navigation`, `preview-guard`, `ds-gallery`) runs on **EAS Workflows** via a custom `runs_on: macos-medium` job (Free-plan compatible, non-required check) against an iOS Simulator build in preview mode, on PRs to `main` touching mobile-relevant paths. **iOS only** — Android moves to `10-6`. Primitives parity is a follow-up.
 
 **Complexity:** L (re-estimated from M)
 
@@ -1342,7 +1342,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **As a** Pekulo user on Android, **I want** the mobile app to build, behave, and pass the same Maestro suite on Android, **so that** the V1.5 app ships on both stores with the parity guarantees 10-5 established for iOS.
 
-**Summary:** Run the first `android/` prebuild, replace the iOS-only surfaces shipped in 10-4 (`ActionSheetIOS`, `Alert.prompt`, iOS `formSheet` detents, SF Symbols) with cross-platform equivalents, add an Android build + `type: maestro` job (Android emulator) to the EAS workflows, and capture Android goldens for the `ds-gallery` flow.
+**Summary:** Run the first `android/` prebuild, replace the iOS-only surfaces shipped in 10-4 (`ActionSheetIOS`, `Alert.prompt`, iOS `formSheet` detents, SF Symbols) with cross-platform equivalents, add an Android build + custom Android emulator Maestro job to the EAS workflows, and capture Android goldens for the `ds-gallery` flow.
 
 **Covered FRs:** FR-56 (Android parity)
 **Complexity:** M

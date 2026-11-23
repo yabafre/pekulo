@@ -63,6 +63,7 @@ cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios-update
 cd apps/mobile && EXPO_PUBLIC_DS_GALLERY=1 bunx expo run:ios --configuration Release --no-bundler
 maestro test apps/mobile/.maestro
 
-# Local golden regeneration (copies the 42 cropped PNGs into apps/mobile/.maestro/goldens/ios/)
+# Local golden regeneration (captures 42 cropped PNGs then copies them into apps/mobile/.maestro/goldens/ios/)
 maestro test -e MAESTRO_UPDATE_GOLDENS=true --test-output-dir /tmp/maestro-goldens apps/mobile/.maestro/flows/ds-gallery.yaml
+find /tmp/maestro-goldens -path '*/goldens/ios/*.png' -exec cp {} apps/mobile/.maestro/goldens/ios/ \;
 ```

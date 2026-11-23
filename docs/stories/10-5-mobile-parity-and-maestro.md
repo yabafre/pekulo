@@ -2244,7 +2244,7 @@ Write-time spike evidence (run on this branch, files removed after): web — `Pe
 T1–T15 implemented and verified across `@pekulo/ui`, `@pekulo/mobile`, `@pekulo/web`, Maestro E2E on iPhone 17 Pro Simulator (iOS 26.5), EAS project init, and docs.
 
 - **T6 triage tally:** **0** native component fixes required (58/59 parity tests passed on first run); **6** allow-list entries added in `apps/mobile/__tests__/helpers/parity-allowlist.ts` for `CategoryPicker.closed` (3 closed-sheet option `<Text>` nodes × 2 themes mounted off-screen by `PekuloSelect.native.tsx`'s `<TamaSelect.Adapt platform="touch">` for `Select.Value` registration, no visual output while closed; `CategoryPicker.tsx` has no `.native.tsx` sibling).
-- **T15 live execution (Option C, user-approved):** `eas login` + `eas init` linked `@skinx/pekulo` (`5ada2dbf-0974-4ba6-9807-fd632b3299ca`, commit `80cb4ce`). Running `e2e-ios-update-goldens.yml` on EAS surfaced that `type: maestro` requires a paid Expo plan (`Running maestro_test jobs requires a paid plan`). Per Alex's Option C decision, the EAS profile and `.eas/workflows/*.yml` stay ready in-repo while live capture and full verification ran locally on the booted iPhone 17 Pro Simulator (Release build with `EXPO_PUBLIC_DS_GALLERY=1`, Maestro CLI `2.12.1`): all 42 cropped iOS goldens captured, spot-checked visually (`PekuloStat.gain.png`, `PekuloDonut.centered.png`, `PekuloErrorBoundary.fallback.png`), committed (`f2bb8c5`), and all 4 Maestro flows (`smoke`, `navigation`, `preview-guard`, `ds-gallery` 42/42 `assertScreenshot` at 98%) passed `4/4` in `6m 58s`.
+- **T15 live execution:** `eas login` + `eas init` linked `@skinx/pekulo` (`5ada2dbf-0974-4ba6-9807-fd632b3299ca`, commit `80cb4ce`). Running pre-packaged `type: maestro` on EAS surfaced a paid-plan restriction (`Running maestro_test jobs requires a paid plan`); both `.eas/workflows/e2e-ios.yml` and `.eas/workflows/e2e-ios-update-goldens.yml` were rewritten to Free-plan-compatible custom `runs_on: macos-medium` jobs (`b16c4b9`, hardened at review). Initial 42 cropped iOS goldens and all 4 Maestro flows (`smoke`, `navigation`, `preview-guard`, `ds-gallery` 42/42 `assertScreenshot` at 98%) were verified locally on iPhone 17 Pro Simulator (`iOS 26.5`, Maestro CLI `2.12.1`, `4/4` in `6m 58s`); live EAS end-to-end verification follows in the review pass.
 
 ### Files changed
 
@@ -2262,6 +2262,7 @@ Created:
 - `apps/mobile/__tests__/helpers/parity-allowlist.ts`
 - `apps/mobile/__tests__/ds-token-parity.test.tsx`
 - `apps/mobile/lib/ds-gallery.ts`
+- `apps/mobile/lib/ds-gallery-empty-parity.ts`
 - `apps/mobile/app/ds/[case].tsx`
 - `apps/mobile/__tests__/ds-gallery-screen.test.tsx`
 - `apps/mobile/.maestro/config.yaml`
@@ -2271,18 +2272,23 @@ Created:
 - `apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts`
 - `apps/mobile/.maestro/flows/ds-gallery.yaml`
 - `apps/mobile/.maestro/goldens/ios/.gitkeep`
-- `apps/mobile/.maestro/goldens/ios/*.png` (42 iOS DS goldens captured on iPhone 17 Pro Simulator)
+- `apps/mobile/.maestro/goldens/ios/*.png` (42 iOS DS goldens)
 - `apps/mobile/.eas/workflows/e2e-ios.yml`
 - `apps/mobile/.eas/workflows/e2e-ios-update-goldens.yml`
 
 Modified:
 - `packages/ui/package.json`
+- `packages/ui/src/client.ts`
 - `apps/mobile/jest.config.js`
+- `apps/mobile/metro.config.js`
+- `apps/mobile/app/_layout.tsx`
+- `apps/mobile/__tests__/auth-and-orpc.test.tsx`
 - `apps/mobile/eas.json`
 - `apps/mobile/app.json`
 - `apps/mobile/README.md`
 - `.oxfmtrc.json`
 - `docs/epics.md`
+- `docs/epics-context/epic-10-context.md`
 - `docs/state.yaml`
 - `docs/architecture.md`
 

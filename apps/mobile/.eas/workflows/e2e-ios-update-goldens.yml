@@ -35,33 +35,65 @@ jobs:
           set -euo pipefail
           export PATH="$PATH:$HOME/.maestro/bin"
           export MAESTRO_CLI_NO_ANALYTICS=1
+          command -v maestro >/dev/null || { echo "maestro CLI not found in PATH" >&2; exit 1; }
+          maestro --version
 
-          if [ -d "apps/mobile/.maestro" ]; then
-            MAESTRO_DIR="apps/mobile/.maestro"
-          else
-            MAESTRO_DIR=".maestro"
+          # EAS Workflows interpolates steps.*.outputs inside `run:`, not step-level `env:`.
+          ARTIFACT_PATH="${{ steps.download_build.outputs.artifact_path }}"
+          if [ ! -e "$ARTIFACT_PATH" ]; then
+            echo "Downloaded app artifact not found at: $ARTIFACT_PATH" >&2
+            exit 1
           fi
 
+          JOB_CWD="$(pwd)"
+          if [ -d "$JOB_CWD/apps/mobile/.maestro" ]; then
+            MAESTRO_DIR="$JOB_CWD/apps/mobile/.maestro"
+          elif [ -d "$JOB_CWD/.maestro" ]; then
+            MAESTRO_DIR="$JOB_CWD/.maestro"
+          else
+            echo "Cannot find .maestro directory from $JOB_CWD" >&2
+            exit 1
+          fi
+          GOLDENS_DIR="$JOB_CWD/maestro-goldens-ios"
+
           DEVICE_UDID=$(xcrun simctl list devices available -j | node -e "
-            const devices = Object.values(JSON.parse(require('fs').readFileSync(0, 'utf8')).devices).flat()
+            const parsed = JSON.parse(require('fs').readFileSync(0, 'utf8')).devices;
+            const versionOf = (runtime) => {
+              const m = /iOS-(\d+)-(\d+)/.exec(runtime);
+              return m ? Number(m[1]) * 100 + Number(m[2]) : -1;
+            };
+            const devices = Object.entries(parsed)
+              .filter(([runtime]) => runtime.includes('iOS'))
+              .sort(([a], [b]) => versionOf(b) - versionOf(a))
+              .flatMap(([runtime, list]) => list.map((d) => ({ ...d, runtime })))
               .filter((d) => d.isAvailable && /iPhone/.test(d.name));
             const pick = devices.find((d) => /iPhone \d+ Pro$/.test(d.name)) || devices[0];
             if (!pick) process.exit(1);
+            console.error('Picked simulator:', pick.name, pick.runtime, pick.udid);
             console.log(pick.udid);
           ")
           xcrun simctl boot "$DEVICE_UDID" || true
           xcrun simctl bootstatus "$DEVICE_UDID" -b
-          xcrun simctl install "$DEVICE_UDID" "${{ steps.download_build.outputs.artifact_path }}"
+          xcrun simctl install "$DEVICE_UDID" "$ARTIFACT_PATH"
 
-          rm -rf /tmp/maestro-goldens maestro-goldens-ios
-          mkdir -p /tmp/maestro-goldens maestro-goldens-ios
+          rm -rf /tmp/maestro-goldens "$GOLDENS_DIR"
+          mkdir -p /tmp/maestro-goldens "$GOLDENS_DIR"
           maestro test --device "$DEVICE_UDID" \
             -e MAESTRO_UPDATE_GOLDENS=true \
             --test-output-dir /tmp/maestro-goldens \
             "$MAESTRO_DIR/flows/ds-gallery.yaml"
 
-          find /tmp/maestro-goldens -name "*.png" -exec cp {} maestro-goldens-ios/ \;
-          ls -1 maestro-goldens-ios/*.png | wc -l
+          find /tmp/maestro-goldens -path '*/goldens/ios/*.png' -exec cp {} "$GOLDENS_DIR/" \;
+          if [ "$(find "$GOLDENS_DIR" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 0 ] && [ -d "$JOB_CWD/goldens/ios" ]; then
+            find "$JOB_CWD/goldens/ios" -maxdepth 1 -name '*.png' -exec cp {} "$GOLDENS_DIR/" \;
+          fi
+          EXPECTED_COUNT="$(grep -c -- '- takeScreenshot:' "$MAESTRO_DIR/flows/ds-gallery.yaml")"
+          ACTUAL_COUNT="$(find "$GOLDENS_DIR" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')"
+          echo "Captured $ACTUAL_COUNT / $EXPECTED_COUNT iOS DS goldens"
+          if [ "$ACTUAL_COUNT" -ne "$EXPECTED_COUNT" ]; then
+            echo "Golden count mismatch: expected $EXPECTED_COUNT, got $ACTUAL_COUNT" >&2
+            exit 1
+          fi
 
       - uses: eas/upload_artifact
         with:
