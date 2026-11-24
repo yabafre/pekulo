@@ -1,7 +1,7 @@
 # Story: 10-5-mobile-parity-and-maestro — Web ↔ native token-parity gate, iOS DS goldens, and Maestro E2E suite on EAS Workflows (iOS)
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** done
 **Ticket:** #156
 **Branch:** feature/156-10-5-mobile-parity-and-maestro
 **Complexity:** L (re-estimated from M at step-04 — three subsystems: token-parity gate, DS gallery + goldens, EAS CI; kept as one story because the goldens and the gate share the AC-1 catalog)
@@ -2244,11 +2244,12 @@ Write-time spike evidence (run on this branch, files removed after): web — `Pe
 T1–T15 implemented and verified across `@pekulo/ui`, `@pekulo/mobile`, `@pekulo/web`, Maestro E2E on iPhone 17 Pro Simulator (iOS 26.5), EAS project init, and docs.
 
 - **T6 triage tally:** **0** native component fixes required (58/59 parity tests passed on first run); **6** allow-list entries added in `apps/mobile/__tests__/helpers/parity-allowlist.ts` for `CategoryPicker.closed` (3 closed-sheet option `<Text>` nodes × 2 themes mounted off-screen by `PekuloSelect.native.tsx`'s `<TamaSelect.Adapt platform="touch">` for `Select.Value` registration, no visual output while closed; `CategoryPicker.tsx` has no `.native.tsx` sibling).
-- **T15 live execution:** `eas login` + `eas init` linked `@skinx/pekulo` (`5ada2dbf-0974-4ba6-9807-fd632b3299ca`, commit `80cb4ce`). Running pre-packaged `type: maestro` on EAS surfaced a paid-plan restriction (`Running maestro_test jobs requires a paid plan`); both `.eas/workflows/e2e-ios.yml` and `.eas/workflows/e2e-ios-update-goldens.yml` were rewritten to Free-plan-compatible custom `runs_on: macos-medium` jobs (`b16c4b9`, hardened at review). Initial 42 cropped iOS goldens and all 4 Maestro flows (`smoke`, `navigation`, `preview-guard`, `ds-gallery` 42/42 `assertScreenshot` at 98%) were verified locally on iPhone 17 Pro Simulator (`iOS 26.5`, Maestro CLI `2.12.1`, `4/4` in `6m 58s`); live EAS end-to-end verification follows in the review pass.
+- **T15 live execution:** `eas login` + `eas init` linked `@skinx/pekulo` (`5ada2dbf-0974-4ba6-9807-fd632b3299ca`, commit `80cb4ce`). Running pre-packaged `type: maestro` on EAS surfaced a paid-plan restriction (`Running maestro_test jobs requires a paid plan`); both `.eas/workflows/e2e-ios.yml` and `.eas/workflows/e2e-ios-update-goldens.yml` were rewritten to Free-plan-compatible custom `runs_on: macos-medium` jobs (`b16c4b9`, hardened in `98998bb` + `f2858a5`). Both workflows ran end-to-end to `SUCCESS` on EAS at `f2858a5`: `e2e-ios-update-goldens.yml` (`01a20ad3-6b83-7fba-9b10-3d76f2825a0f`, captured 42/42 iOS DS goldens + uploaded `ios-ds-goldens` `550,679` B) and `e2e-ios.yml` (`01a20ad3-6181-7b09-ab63-17984e03d433`, triggered by GitHub PR #161, 4/4 flows including 42/42 `assertScreenshot` at 98% on EAS iPhone 18 Pro `iOS 27.0`).
 
 ### Files changed
 
 Created:
+- `.easignore`
 - `packages/ui/src/parity/types.ts`
 - `packages/ui/src/parity/text-styles.ts`
 - `packages/ui/src/parity/text-styles.test.ts`
@@ -2277,6 +2278,7 @@ Created:
 - `apps/mobile/.eas/workflows/e2e-ios-update-goldens.yml`
 
 Modified:
+- `README.md`
 - `packages/ui/package.json`
 - `packages/ui/src/client.ts`
 - `apps/mobile/jest.config.js`
@@ -2318,3 +2320,50 @@ Captured 2026-11-22 (T14 sweep + T15 live Maestro):
 - `git diff main --stat -- packages/ui/src/components packages/ui/src/primitives | grep -v '\.native\.tsx'` + `*.snapshot.test.tsx` — empty (zero web component or 10-1 snapshot changes)
 - `maestro test --device BCED57F1-C32B-4828-9513-7382DFE0D5FB -e MAESTRO_UPDATE_GOLDENS=true ... ds-gallery.yaml` — exit 0, 42/42 iOS PNG goldens captured
 - `maestro test --device BCED57F1-C32B-4828-9513-7382DFE0D5FB apps/mobile/.maestro` — exit 0 (`4/4 Flows Passed in 6m 58s`: `Navigation` 11s, `DS gallery — iOS goldens` 6m 20s, `Preview guard` 12s, `Smoke` 15s)
+
+## Review Record
+
+**Date:** 2026-11-24
+**Auditors:** Spec, Code, Edge & Hallucination (re-verified at `f2858a5`: all 3 APPROVED)
+**Verdict:** done
+- **Override:** AC gap accepted for in-review remediation — reason: "User requested fixing all Spec, Code, and Edge findings directly in the review pass (`Fix tout`); AC-6 and AC-7 gaps fully closed and verified live before `done`."
+
+### Findings
+
+#### Resolved
+- [CRITICAL] AC-6 / T15 — EAS `macos-medium` workflows unexecuted live, monorepo artifact path mismatch, overwritten `--test-output-dir`, unpinned simulator selection, missing `ignore_error: true`, unscoped golden copy without count check [`apps/mobile/.eas/workflows/e2e-ios.yml`, `apps/mobile/.eas/workflows/e2e-ios-update-goldens.yml`]
+  - Source: Spec, Code, Edge
+  - Resolution: `98998bb`, `b8ee3d6`, `f2858a5` — interpolated `steps.download_build.outputs.artifact_path` in `run:` (EAS ignores step-level `env:` interpolation), wrote artifacts under `EAS_BUILD_WORKINGDIR`, sorted iOS runtimes descending, isolated per-flow/attempt `--test-output-dir`, added `ignore_error: true`, enforced exact 42-golden count check, added `.easignore`; verified live on EAS (`01a20ad3-6b83-7fba-9b10-3d76f2825a0f` + `01a20ad3-6181-7b09-ab63-17984e03d433`, both `SUCCESS`).
+- [MAJOR] Production mobile builds bundled `@pekulo/ui/parity` and 26 otherwise-unused DS components [`apps/mobile/app/ds/[case].tsx`, `apps/mobile/metro.config.js`]
+  - Source: Code
+  - Resolution: `3566431` — lazy `require("@pekulo/ui/parity")` behind `isDsGalleryEnabled()` and Metro resolver stub (`apps/mobile/lib/ds-gallery-empty-parity.ts`) when `EXPO_PUBLIC_DS_GALLERY !== "1"`.
+- [MAJOR] `RootNavigator` auth gate redirected `/ds/[case]` deep links to `/login` when `requireAuth` was active [`apps/mobile/app/_layout.tsx:71-74`]
+  - Source: Edge
+  - Resolution: `3566431` — allowed `/ds/*` routes when `isDsGalleryEnabled()` is true and added unit coverage in `apps/mobile/__tests__/auth-and-orpc.test.tsx`.
+- [MAJOR] Order-dependent `seenAllowedKeys` broke `-t` / `--randomize` Jest runs, `collectTextRecords` spread `undefined` style keys, `window.matchMedia` not restored, no non-empty allow-list reason check [`apps/mobile/__tests__/ds-token-parity.test.tsx`]
+  - Source: Spec, Code, Edge
+  - Resolution: `3566431` — per-case `seenForCase` staleness check, order-independent key + non-empty reason validation, `definedStyleProps` filter, and `window.matchMedia` save/restore.
+- [MAJOR] `docs/epics.md` and story Dev Agent Record drifted from the Free-plan `runs_on: macos-medium` workflow change [`docs/epics.md:1332-1345`, `docs/stories/10-5-mobile-parity-and-maestro.md`]
+  - Source: Spec
+  - Resolution: `98998bb` + finalization commit — aligned `docs/epics.md` (10-5 & 10-6) and Dev Agent Record (`### Summary` + `### Files changed`).
+- [MINOR] `ds-gallery-screen.test.tsx` lacked real theme color assertions and real env-flag gating; `app/ds/[case].tsx` imported `Theme` directly from `"tamagui"` and narrowed `params.case` [`packages/ui/src/client.ts`, `apps/mobile/app/ds/[case].tsx`, `apps/mobile/__tests__/ds-gallery-screen.test.tsx`]
+  - Source: Code, Edge
+  - Resolution: `3d4e6bd`, `3566431` — re-exported `Theme` from `@pekulo/ui/client`, widened param types, asserted `pekuloColors.{light,dark}` tokens and real `process.env.EXPO_PUBLIC_DS_GALLERY` toggling.
+- [MINOR] Normaliser edge cases (`rgb()` malformed/percent/alpha, `-0`, non-px units, whitespace fontWeight) and R8 unused exports (`PARITY_PROPS`, `ParityProp`, `buildDsGalleryFlow`) [`packages/ui/src/parity/text-styles.ts`, `apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts`]
+  - Source: Code, Edge
+  - Resolution: `3d4e6bd`, `3566431` — hardened normalisers + added boundary tests and unexported file-local symbols.
+- [MINOR] CSS extractor (`!important`, nested `var()`, `:root` specificity, `variablesFor` memoisation) and stale exemption folder check [`packages/ui/src/parity/web-text-styles.test.tsx`, `packages/ui/src/parity/parity-coverage.meta.test.ts`]
+  - Source: Spec, Code, Edge
+  - Resolution: `3d4e6bd` — stripped `!important`, added balanced-paren `parseVarExpr`, tracked `:root` specificity/order, memoised `variablesFor`, and validated `PARITY_EXEMPT_COMPONENTS` against `src/components/`.
+- [MINOR] `preview-guard.yaml` asserted `"Apparence"` after scrolling down; `apps/mobile/README.md` omitted golden copy step; leftover untracked `packages/ui/src/__spike__/` broke local typecheck [`apps/mobile/.maestro/flows/preview-guard.yaml`, `apps/mobile/README.md`]
+  - Source: Spec, Code, Edge
+  - Resolution: `3566431`, `98998bb`, workspace cleanup — asserted `id: "llm-optin-switch"`, added `find ... cp` command to `apps/mobile/README.md`, refreshed root `README.md` (`1858745`), removed `packages/ui/src/__spike__/`.
+
+### Verification
+- Test commands: `bun run typecheck`, `bun run lint`, `bun --filter='@pekulo/ui' run test`, `bun --filter='@pekulo/mobile' run test` (+ `--randomize` & `-t`), `bun --filter='@pekulo/web' run test`, `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css`, `gh pr checks 161`, live EAS `e2e-ios` & `e2e-ios-update-goldens`.
+- Test output (final pass at `f2858a5`): `typecheck` 10/10; `lint` 0 errors; `@pekulo/ui` 162/162 files (parity 3/3, 10/10); `@pekulo/mobile` 16/16 suites / 194/194 tests; `@pekulo/web` 125/125 files / 435/435 tests; `tamagui.generated.css` 0 diff; PR #161 16/16 checks `SUCCESS` (EAS `01a20ad3-6b83-7fba-9b10-3d76f2825a0f` + `01a20ad3-6181-7b09-ab63-17984e03d433`).
+- Visual verification: Visual Review: deferred — React Grab MCP unavailable on React Native at 2026-11-24T02:00:00Z (static spot-check on `PekuloStat.gain.png`, `CategoryPicker.closed.png`, `PekuloDonut.centered.png` + 42/42 Maestro `assertScreenshot` at 98% passed on EAS iPhone 18 Pro `iOS 27.0`).
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/156#issuecomment-7119651014
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/161
