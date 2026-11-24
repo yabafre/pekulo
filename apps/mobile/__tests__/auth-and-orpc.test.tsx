@@ -1016,6 +1016,49 @@ describe("10-4 mobile Supabase Auth (expo-secure-store) and @pekulo/contracts oR
       onAuthSpy.mockRestore();
     }
   });
+
+  it("allows unauthenticated /ds/* routes only when EXPO_PUBLIC_DS_GALLERY=1 (10-5 AC-4)", async () => {
+    const prevUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const prevKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    const prevGallery = process.env.EXPO_PUBLIC_DS_GALLERY;
+    process.env.EXPO_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+
+    const getSessionSpy = jest.spyOn(supabase.auth, "getSession").mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+    const onAuthSpy = jest.spyOn(supabase.auth, "onAuthStateChange").mockReturnValue({
+      data: { subscription: { id: "sub-ds", callback: jest.fn(), unsubscribe: jest.fn() } },
+    });
+
+    try {
+      process.env.EXPO_PUBLIC_DS_GALLERY = "1";
+      mockPathname = "/ds/PekuloStat.gain";
+      const allowedView = await render(<RootLayout />);
+      await waitFor(() => {
+        expect(getSessionSpy).toHaveBeenCalled();
+      });
+      expect(mockReplace).not.toHaveBeenCalled();
+      await allowedView.unmount();
+
+      delete process.env.EXPO_PUBLIC_DS_GALLERY;
+      const blockedView = await render(<RootLayout />);
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith("/login");
+      });
+      await blockedView.unmount();
+    } finally {
+      if (prevUrl === undefined) delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+      else process.env.EXPO_PUBLIC_SUPABASE_URL = prevUrl;
+      if (prevKey === undefined) delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      else process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = prevKey;
+      if (prevGallery === undefined) delete process.env.EXPO_PUBLIC_DS_GALLERY;
+      else process.env.EXPO_PUBLIC_DS_GALLERY = prevGallery;
+      getSessionSpy.mockRestore();
+      onAuthSpy.mockRestore();
+    }
+  });
 });
 
 export { renderWithLiveProviders };

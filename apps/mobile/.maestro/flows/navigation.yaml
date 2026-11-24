@@ -1,0 +1,28 @@
+# Story 10-5 AC-5 — Paramètres opens from the Cap header and closes.
+# Targets the in-content settings button by testID (never a top-right
+# coordinate tap: the Expo dev-tools button sits there in Dev Client builds).
+appId: app.pekulo.mobile
+name: Navigation — Paramètres sheet opens from Cap and closes
+tags:
+  - navigation
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- extendedWaitUntil:
+    visible: "Patrimoine total"
+    timeout: 30000
+- tapOn:
+    id: "open-settings-btn"
+- extendedWaitUntil:
+    visible: "Apparence"
+    timeout: 10000
+- assertVisible: "Compte"
+- assertVisible: "Mode aperçu"
+- swipe:
+    start: "50%, 12%"
+    end: "50%, 92%"
+- extendedWaitUntil:
+    notVisible: "Apparence"
+    timeout: 10000
+- assertVisible: "Patrimoine total"

@@ -41,6 +41,7 @@ module.exports = {
     "^expo-secure-store$": secureStoreEntry,
     "^@pekulo/ui$": "<rootDir>/../../packages/ui/src/index.native.ts",
     "^@pekulo/ui/client$": "<rootDir>/../../packages/ui/src/client.ts",
+    "^@pekulo/ui/parity$": "<rootDir>/../../packages/ui/src/parity/index.ts",
     "^@pekulo/ui/tamagui-config$": "<rootDir>/../../packages/ui/src/config/tamagui.ts",
     "^@pekulo/contracts$": "<rootDir>/../../packages/contracts/src/index.ts",
     "^@pekulo/validators$": "<rootDir>/../../packages/validators/src/index.ts",

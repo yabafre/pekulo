@@ -28,6 +28,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
+import { isDsGalleryEnabled } from "../lib/ds-gallery";
 import { useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
 import { I18nProvider, useI18n } from "../lib/i18n";
 
@@ -68,7 +69,8 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
 
   useEffect(() => {
     if (isLoading) return;
-    if (requireAuth && !isAuthenticated && pathname !== "/login") {
+    const isDsGalleryRoute = isDsGalleryEnabled() && pathname.startsWith("/ds/");
+    if (requireAuth && !isAuthenticated && pathname !== "/login" && !isDsGalleryRoute) {
       router.replace("/login");
     } else if (isAuthenticated && pathname === "/login") {
       router.replace("/");

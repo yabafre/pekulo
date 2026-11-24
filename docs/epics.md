@@ -1329,6 +1329,24 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-56 (parity verification & Maestro CI)
 **Complexity:** M
 
+> **Realized scope (2026-11-22, step-04, user-approved) — supersedes the title and summary above without deleting them.** The 10-1 web snapshots are DOM/atomic-class inline snapshots, not images, so "pixel-diff against the 10-1 snapshots" is implemented as a hybrid: (1) a deterministic web ↔ native **text-style token-parity gate** — `@pekulo/ui/parity` catalog covering all 42 components, web baseline `packages/ui/src/parity/__baseline__/web-text-styles.json` (vitest), native comparison `apps/mobile/__tests__/ds-token-parity.test.tsx` (Jest); (2) **iOS screenshot goldens** of every component from a flag-gated in-app DS gallery (`pekulo://ds/<case>`), asserted by Maestro. The Maestro suite (`smoke`, `navigation`, `preview-guard`, `ds-gallery`) runs on **EAS Workflows** via a custom `runs_on: macos-medium` job (Free-plan compatible, non-required check) against an iOS Simulator build in preview mode, on PRs to `main` touching mobile-relevant paths. **iOS only** — Android moves to `10-6`. Primitives parity is a follow-up.
+
+**Complexity:** L (re-estimated from M)
+
+#### Story 10-6-android-parity-and-maestro
+
+**Ticket:** none yet (create when the story is picked up)
+**Title:** Android build, native-surface adaptation, and Maestro E2E on an Android emulator
+
+**Depends on:** 10-5-mobile-parity-and-maestro
+
+**As a** Pekulo user on Android, **I want** the mobile app to build, behave, and pass the same Maestro suite on Android, **so that** the V1.5 app ships on both stores with the parity guarantees 10-5 established for iOS.
+
+**Summary:** Run the first `android/` prebuild, replace the iOS-only surfaces shipped in 10-4 (`ActionSheetIOS`, `Alert.prompt`, iOS `formSheet` detents, SF Symbols) with cross-platform equivalents, add an Android build + custom Android emulator Maestro job to the EAS workflows, and capture Android goldens for the `ds-gallery` flow.
+
+**Covered FRs:** FR-56 (Android parity)
+**Complexity:** M
+
 ## Epic 11: Public-ramp readiness
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.
