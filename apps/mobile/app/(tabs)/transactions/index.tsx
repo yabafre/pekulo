@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { Pressable } from "react-native";
 import { useTheme } from "tamagui";
 
+import { AiTransparencyNotice } from "../../../components/ai-transparency-notice";
 import { useMutationRunner } from "../../../components/form/sheet";
 import { ScreenShell } from "../../../components/screen-shell";
 import { SearchField } from "../../../components/search-field";
@@ -27,6 +28,7 @@ import { TabToolbar } from "../../../components/tab-stack-layout";
 import { confirmDestructive, showActions } from "../../../lib/actions";
 import { useAuth } from "../../../lib/auth/auth-context";
 import { currentMonthKey, formatMonthKey, shiftMonthKey } from "../../../lib/forms";
+import { hapticError, hapticSuccess } from "../../../lib/haptics";
 import { useTransactionMutations } from "../../../lib/hooks/use-mobile-mutations";
 import { useMobileTransactionsData } from "../../../lib/hooks/use-mobile-queries";
 import { useI18n } from "../../../lib/i18n";
@@ -249,6 +251,7 @@ export default function TransactionsScreen() {
                   </Text>
                 }
               >
+                <AiTransparencyNotice />
                 {viewData.pendingSuggestions.map((item) => (
                   <PekuloSuggestionRow
                     key={item.id}
@@ -286,12 +289,14 @@ export default function TransactionsScreen() {
                         },
                         {
                           onSuccess: () => {
+                            hapticSuccess();
                             toast.success(
                               t("transactions.suggestions.categoryConfirmed"),
                               item.suggestion.label,
                             );
                           },
                           onError: () => {
+                            hapticError();
                             toast.danger(
                               t("transactions.suggestions.confirmFailedTitle"),
                               t("transactions.suggestions.confirmFailedMessage"),

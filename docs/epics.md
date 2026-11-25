@@ -1347,6 +1347,20 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-56 (Android parity)
 **Complexity:** M
 
+#### Story 10-7-store-compliance-and-agent-testers
+
+**Ticket:** [#163](https://github.com/yabafre/pekulo/issues/163)
+**Title:** App Store / Google Play pre-submission compliance hardening & Mobile Agent Testers kit
+
+**Depends on:** 10-5-mobile-parity-and-maestro
+
+**As a** Pekulo user and app publisher, **I want** public web legal and account-deletion pages, an accurate iOS Privacy Manifest, export compliance, RGB no-alpha app icons, Keychain backup exclusion, a release fail-fast guard, Apple 5.1.2(i) AI consent and EU AI Act Art. 50 notice on mobile, tactile haptics, and a Mobile Agent Testers kit, **so that** Pekulo V1.5 passes Apple App Store and Google Play pre-submission audits cleanly.
+
+**Summary:** Adds public HTTP 200 `/privacy`, `/terms` (including EAA Annex V), `/support`, and `/account-deletion` routes in `apps/web`, wires in-app legal links, canonical RGB no-alpha icons, `usesNonExemptEncryption: false`, complete `privacyManifests`, Keychain `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`, release Supabase fail-fast guard, Apple 5.1.2(i) provider-naming AI consent modal, mobile `AiTransparencyNotice` (story 11-5 parity), `expo-haptics`, `.app-review-readiness.json`, `REVIEW-NOTES.md`, English `apps/mobile/.agent-testers/` kit for the public Bun/Expo monorepo, vendored skills, and a class-killer `store-compliance.test.ts` meta-test. Runs in parallel with `10-6-android-parity-and-maestro`.
+
+**Covered FRs:** FR-34, FR-50, FR-55, FR-56 (store compliance & AI testing readiness)
+**Complexity:** L
+
 ## Epic 11: Public-ramp readiness
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.

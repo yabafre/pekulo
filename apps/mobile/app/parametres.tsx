@@ -17,7 +17,8 @@ import type { LangPref, ThemePref } from "@pekulo/validators";
 import { useRouter } from "expo-router";
 import Stack from "expo-router/stack";
 import { SymbolView } from "expo-symbols";
-import { Globe, Monitor, Moon, Sun } from "lucide-react-native";
+import { ChevronRight, Globe, Monitor, Moon, Sun } from "lucide-react-native";
+import { useState } from "react";
 import { Alert, Platform, Pressable } from "react-native";
 import { useTheme } from "tamagui";
 
@@ -26,9 +27,11 @@ import { useMutationRunner } from "../components/form/sheet";
 import { ScreenShell } from "../components/screen-shell";
 import { useAuth } from "../lib/auth/auth-context";
 import { formatCompactEur } from "../lib/format";
+import { hapticWarning } from "../lib/haptics";
 import { useDeleteUserAccount, useLlmOptIn } from "../lib/hooks/use-mobile-mutations";
 import { useMobileCompassData, useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
 import { useI18n } from "../lib/i18n";
+import { openLegalUrl } from "../lib/legal";
 
 function toTamaguiThemeChoice(pref: ThemePref): "pekulo-dark" | "pekulo-light" | "system" {
   if (pref === "dark") return "pekulo-dark";
@@ -48,11 +51,38 @@ export default function ParametresScreen() {
   const deleteAccount = useDeleteUserAccount();
   const { run } = useMutationRunner();
   const { t } = useI18n();
+  // Forces native Switch visual reconciliation if the user cancels the
+  // third-party AI consent dialog without changing persisted `llm.thirdParty`.
+  const [switchSyncTick, setSwitchSyncTick] = useState(0);
 
+  // Story 10-7 (AC-5 / Apple 5.1.2(i)): require explicit consent naming the
+  // configured third-party AI provider and data fields before enabling. In
+  // unauthenticated preview mode, defer straight to the preview sign-in guard.
   function handleThirdPartyChange(next: boolean) {
-    void run(
-      () => llm.setThirdParty(next),
-      next ? t("settings.ai.enabled") : t("settings.ai.disabled"),
+    if (!next || !isAuthenticated) {
+      void run(
+        () => llm.setThirdParty(next),
+        next ? t("settings.ai.enabled") : t("settings.ai.disabled"),
+      );
+      return;
+    }
+    const provider =
+      process.env.EXPO_PUBLIC_LLM_THIRD_PARTY_PROVIDER_NAME?.trim() ||
+      t("settings.ai.defaultProvider");
+    const syncSwitchOff = () => setSwitchSyncTick((tick) => tick + 1);
+    Alert.alert(
+      t("settings.ai.consentTitle"),
+      t("settings.ai.consentMessage", { provider }),
+      [
+        { text: t("common.actions.cancel"), style: "cancel", onPress: syncSwitchOff },
+        {
+          text: t("settings.ai.consentConfirm"),
+          onPress: () => {
+            void run(() => llm.setThirdParty(true), t("settings.ai.enabled"));
+          },
+        },
+      ],
+      { cancelable: true, onDismiss: syncSwitchOff },
     );
   }
 
@@ -69,6 +99,7 @@ export default function ParametresScreen() {
   }
 
   function handleDeleteAccount() {
+    hapticWarning();
     const message = t("settings.deletion.message", {
       email: userEmail ?? t("settings.deletion.yourEmail"),
     });
@@ -122,6 +153,7 @@ export default function ParametresScreen() {
       router.push("/login");
       return;
     }
+    hapticWarning();
     Alert.alert(t("settings.account.signOutTitle"), t("settings.account.signOutMessage"), [
       { text: t("common.actions.cancel"), style: "cancel" },
       {
@@ -262,7 +294,11 @@ export default function ParametresScreen() {
 
       <Section title={t("settings.ai.title")} ariaLabel={t("settings.ai.aria")}>
         <View gap="$2">
+          <Text color="$colorSecondary" fontSize="$xs">
+            {t("settings.ai.intro")}
+          </Text>
           <SwitchField
+            key={switchSyncTick}
             label={t("settings.ai.thirdParty")}
             value={llm.thirdParty}
             disabled={llm.isLoading || llm.isSaving}
@@ -272,6 +308,61 @@ export default function ParametresScreen() {
           <Text color="$colorTertiary" fontSize="$xs">
             {t("settings.ai.footer")}
           </Text>
+        </View>
+      </Section>
+
+      <Section title={t("settings.legal.title")} ariaLabel={t("settings.legal.aria")}>
+        <View>
+          {(
+            [
+              {
+                testID: "settings-privacy-link",
+                label: t("settings.legal.privacy"),
+                path: "/privacy" as const,
+              },
+              {
+                testID: "settings-terms-link",
+                label: t("settings.legal.terms"),
+                path: "/terms" as const,
+              },
+              {
+                testID: "settings-support-link",
+                label: t("settings.legal.support"),
+                path: "/support" as const,
+              },
+            ] as const
+          ).map((item) => (
+            <Pressable
+              key={item.testID}
+              testID={item.testID}
+              accessibilityRole="link"
+              accessibilityLabel={item.label}
+              onPress={() => {
+                void openLegalUrl(item.path);
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <View
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="space-between"
+                gap="$3"
+                paddingVertical="$2"
+                minHeight={44}
+              >
+                <Text flex={1} color="$color" fontSize="$body" fontWeight="500">
+                  {item.label}
+                </Text>
+                <SymbolView
+                  name="chevron.right"
+                  size={14}
+                  weight="semibold"
+                  tintColor={theme.colorTertiary.val}
+                  fallback={<ChevronRight size={16} color={theme.colorTertiary.val} />}
+                />
+              </View>
+            </Pressable>
+          ))}
         </View>
       </Section>
 
