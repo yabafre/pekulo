@@ -3,7 +3,7 @@ storyKey: 10-7-store-compliance-and-agent-testers
 epic: 10
 ticket: "#163"
 branch: feature/163-10-7-store-compliance-and-agent-testers
-status: review
+status: done
 complexity: L
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 ---
@@ -11,7 +11,7 @@ stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 # Story: 10-7-store-compliance-and-agent-testers — App Store / Google Play pre-submission compliance hardening & Mobile Agent Testers kit
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** done
 **Ticket:** [#163](https://github.com/yabafre/pekulo/issues/163)
 **Branch:** `feature/163-10-7-store-compliance-and-agent-testers`
 **Depends on:** 10-5-mobile-parity-and-maestro (done; runs in parallel with 10-6-android-parity-and-maestro)
@@ -1556,3 +1556,68 @@ Implemented story `10-7-store-compliance-and-agent-testers` (`#163`) end-to-end 
 - `bun --filter='@pekulo/web' run test` → `Test Files 127 passed (127)` / `Tests 444 passed (444)` (exit 0)
 - `bun --filter='@pekulo/mobile' run test` → `Test Suites: 20 passed, 20 total` / `Tests: 209 passed, 209 total` (exit 0)
 - `bash .agents/skills/app-store-compliance/hooks/app-store-compliance-guard.sh apps/mobile` → `Summary. critical=0 high=0 medium=0`; `Manual checks for this project. 2 of 7 attested for 0.1.0 (1), checked 2026-11-25.`
+
+## Review Record
+
+**Date:** 2026-11-25
+**Auditors:** Spec, Code, Edge & Hallucination, Aria (re-verified at `eb1d0c0`: 4/4 APPROVED)
+**Verdict:** done
+- **Override:** AC gap accepted for in-review remediation — reason: "User requested fixing all Spec, Code, Edge, and Aria findings directly in the review pass ('Fix tout'); all 8 ACs implemented and 15/15 findings resolved and re-verified before `done`."
+
+### Findings
+
+#### Resolved
+- [CRITICAL] Android `adaptive-icon.png` and `splash-icon.png` rendered opaque `#FAFAFA` squares over `#000000` backgrounds [`apps/mobile/assets/adaptive-icon.png`, `apps/mobile/assets/splash-icon.png`, `apps/mobile/assets/splash-icon-dark.png`, `apps/mobile/app.json:57-77`]
+  - Source: Aria
+  - Resolution: `bc6f694` — generated transparent-background RGBA `P` glyphs (`#0C0C0C` on `#FAFAFA` for adaptive/light splash and `#EDEDED` on `#000000` in `splash-icon-dark.png`), visually and pixel-alpha verified.
+- [MAJOR] Unexported `EXPO_PUBLIC_ALLOW_PREVIEW=1` in Mobile Agent Testers build commands dropped the flag before `xcodebuild` / `gradlew assembleRelease` [`apps/mobile/.agent-testers/README.md:46,62`]
+  - Source: Code, Edge
+  - Resolution: `eb1d0c0` — switched both build commands to `export EXPO_PUBLIC_ALLOW_PREVIEW=1 && bunx expo prebuild ...`.
+- [MAJOR] Incomplete URL validation in `getLegalUrl()` and unhandled promise rejections in `openLegalUrl()` [`apps/mobile/lib/legal.ts:9-41`, `apps/mobile/__tests__/legal-and-security.test.ts`]
+  - Source: Code, Edge
+  - Resolution: `eb1d0c0` — strict `new URL()` validation (`https:`, non-empty hostname, no credentials/query/hash) and `try/catch` returning `boolean` in `openLegalUrl()`, with malformed/rejection unit tests.
+- [MAJOR] Apple 5.1.2(i) AI consent modal fell back to generic `"the configured AI provider"` and native `<Switch>` could stick visually ON on Cancel [`apps/mobile/app/parametres.tsx:56-86`, `apps/mobile/lib/i18n/messages/settings.ts:48,127`, `.env.example:228-234`]
+  - Source: Code, Edge
+  - Resolution: `eb1d0c0` — defaulted provider fallback to `"Mistral AI"`, documented `EXPO_PUBLIC_LLM_THIRD_PARTY_PROVIDER_NAME` in `.env.example` and `REVIEW-NOTES.md`, and added `switchSyncTick` reconciliation on Cancel/`onDismiss`.
+- [MAJOR] Public `(legal)` web pages lacked semantic landmarks/headings, painted invisible `#000000` dark-mode link underlines, lacked `:focus-visible` rings, had `< 24px` nav links, duplicate `Pekulo` `<title>` suffixes, `100vh`, and plain-text emails/URLs [`apps/web/src/app/(legal)/{layout,privacy/page,terms/page,support/page,account-deletion/page}.tsx`, `apps/web/src/app/(legal)/legal.module.css`, `apps/web/src/app/(legal)/legal-pages.test.tsx`]
+  - Source: Aria, Code, Edge
+  - Resolution: `e84f9bf` — added `render="header|nav|main|section|h1|h2|p"`, `legal.module.css` (`var(--colorSecondary)`/`var(--color)`, `:focus-visible`, `min-height: 28px`), `100dvh`, clickable `mailto:`/GitHub links, cleaned titles, and `vitest-axe` zero-violation checks on all 4 pages.
+- [MAJOR] Mobile `AiTransparencyNotice` dismiss button was 28pt (`< 44pt`), lacked descriptive `accessibilityLabel`, left `<Sparkles>` accessible, did not reset `visible` on logout, and drifted visually from web [`apps/mobile/components/ai-transparency-notice.tsx`, `apps/mobile/lib/i18n/messages/transactions.ts:34,103`]
+  - Source: Aria, Edge
+  - Resolution: `eb1d0c0` — raised dismiss button to `minHeight: 44` + `hitSlop={8}` + localized `accessibilityLabel`, hid `<Sparkles>` from screen readers, reset state on `!isAuthenticated`, and aligned `marginBottom="$2"`, `borderRadius="$md"`, `borderCurve: "continuous"`.
+- [MAJOR] Incomplete `llmClient` mocks in existing mobile screen tests triggered live HTTP calls from `<AiTransparencyNotice />` [`apps/mobile/__tests__/sheets-transactions-cap.test.tsx:132-137`, `apps/mobile/__tests__/auth-and-orpc.test.tsx:148-153`]
+  - Source: Code
+  - Resolution: `eb1d0c0` — added `llmClient` mock procedures to both test suites.
+- [MAJOR] Missing AC-1 / AC-2 / AC-5 / AC-6 integration tests and `LoginScreen` Support link [`apps/mobile/app/login.tsx:206-223`, `apps/mobile/__tests__/ai-consent-and-notice.test.tsx`, `apps/mobile/__tests__/haptics.test.tsx`, `apps/web/src/proxy.legal.test.ts`]
+  - Source: Spec, Code
+  - Resolution: `e84f9bf`, `eb1d0c0` — added localized `login-support-link`, FR+EN legal link tests, full consent/invalidation/`TransactionsScreen` notice tests, `useMutationRunner` haptics tests, and CSP + `X-Frame-Options` proxy tests.
+- [MAJOR] `store-compliance.test.ts` omitted key AC-3 / AC-6 / AC-7 invariants [`apps/mobile/__tests__/store-compliance.test.ts`]
+  - Source: Spec, Code
+  - Resolution: `eb1d0c0` — added assertions for `supportsTablet`, `CA92.1`/`C617.1`/`35F9.1`, `Linked`/`Tracking`/`Purposes`, RGBA adaptive/splash assets, `.app-review-readiness.json` schema, and 8 unique valid personas.
+- [MAJOR] Stale `"all 21 database tables"` count & Android deletion claim on `/account-deletion` plus minor tap-path drift in `REVIEW-NOTES.md` / `AGENT_BRIEF.md` [`apps/web/src/app/(legal)/account-deletion/page.tsx`, `apps/mobile/docs/REVIEW-NOTES.md`, `apps/mobile/.agent-testers/AGENT_BRIEF.md`]
+  - Source: Edge
+  - Resolution: `e84f9bf`, `eb1d0c0` — updated erasure copy to 23 tables (including advisory records), aligned Android deletion notes to `parametres.tsx`/10-6, and matched Cap/Portefeuille/Immobilier tap paths to actual screens.
+- [MINOR] Per-request `PUBLIC_LEGAL_PATHS` allocation and trailing-slash `/privacy/` redirecting to `/login` [`apps/web/src/proxy.ts:12,69-79`]
+  - Source: Code, Edge
+  - Resolution: `e84f9bf` — hoisted `PUBLIC_LEGAL_PATHS` to module scope and added canonical `308` redirect (with CSP, preserving query string, zero Supabase call) for exact trailing-slash legal paths.
+- [MINOR] `lib/haptics.ts` lacked synchronous-throw guard; Settings destructive prompts and Transactions 1-tap confirm omitted haptics [`apps/mobile/lib/haptics.ts`, `apps/mobile/app/parametres.tsx:102,156`, `apps/mobile/app/(tabs)/transactions/index.tsx:292,299`]
+  - Source: Code, Edge
+  - Resolution: `eb1d0c0` — added `runSafeHaptic` `try/catch` wrapper and wired warning/success/error haptics on Settings and Transactions.
+- [MINOR] `ParametresScreen` Legal rows risked Dynamic Type chevron push-off and rendered no Android chevron [`apps/mobile/app/parametres.tsx:345-363`]
+  - Source: Aria
+  - Resolution: `eb1d0c0` — added `flex={1}`, `gap="$3"`, `paddingVertical="$2"`, and `<ChevronRight>` fallback.
+- [MINOR] `jest.setup.ts` mocked `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` as `6` instead of `1` [`apps/mobile/jest.setup.ts:42`]
+  - Source: Code, Edge
+  - Resolution: `eb1d0c0` — updated constant to `1` matching `expo-secure-store` Swift enum.
+- [MINOR] `skills-lock.json` `computedHash` for vendored skills hashed `SKILL.md` only [`skills-lock.json:8,80`]
+  - Source: Spec
+  - Resolution: `eb1d0c0` — aligned both entries to directory-tree SHA-256 hashes.
+
+### Verification
+- Test commands: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun --filter='@pekulo/web' run test`, `bun --filter='@pekulo/mobile' run test`, `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css`, `bash .agents/skills/app-store-compliance/hooks/app-store-compliance-guard.sh apps/mobile`.
+- Test output (final pass at `eb1d0c0`): `typecheck` 10/10; `lint` 0 errors (3 pre-existing warnings outside story); `format:check` 1442/1442 files; `@pekulo/web` 127/127 files · 449/449 tests (incl. `vitest-axe` 4/4 on `(legal)` pages); `@pekulo/mobile` 20/20 suites · 212/212 tests; `tamagui.generated.css` 0 diff; `app-store-compliance-guard.sh` `critical=0 high=0 medium=0`.
+- Visual verification: Visual Review: deferred — React Grab MCP unavailable at 2026-11-25T20:28:00Z (waived by user; Aria completed static CSS/token/`vitest-axe` audit on all 4 `(legal)` web pages + visual and pixel-alpha verification on `icon.png`, `adaptive-icon.png`, `splash-icon.png`, and `splash-icon-dark.png`).
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/163#issuecomment-7173728346
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/164
