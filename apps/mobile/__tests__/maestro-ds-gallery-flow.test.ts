@@ -1,8 +1,10 @@
 // apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts
-// Story 10-5 AC-5 — apps/mobile/.maestro/flows/ds-gallery.yaml is GENERATED
-// from PARITY_CASES (one step block per golden case). This test fails when
-// the committed flow drifts from the catalog. Regenerate with:
-//   cd apps/mobile && UPDATE_DS_FLOW=1 bunx jest __tests__/maestro-ds-gallery-flow.test.ts
+// Story 10-5 AC-5 / story 10-6 AC-7 — the DS gallery Maestro flows are
+// GENERATED from PARITY_CASES (one step block per golden case):
+//   - apps/mobile/.maestro/flows/ds-gallery.yaml          (iOS, byte-identical to 10-5)
+//   - apps/mobile/.maestro/flows/ds-gallery-android.yaml  (Android, tag `android-only`)
+// This test fails when a committed flow drifts from the catalog. Regenerate both with:
+//   cd apps/mobile && UPDATE_DS_FLOW=1 bunx jest --selectProjects ios __tests__/maestro-ds-gallery-flow.test.ts
 //
 // AC-5 (verbatim from story 10-5-mobile-parity-and-maestro:20):
 //   Given the iOS Simulator end-to-end build running in preview mode with no
@@ -15,8 +17,18 @@
 //   fails when the committed screenshot flow no longer matches the golden cases
 //   of the catalog.
 //
+// AC-7 (verbatim from story 10-6-android-parity-and-maestro):
+//   Given the Android end-to-end APK on an emulator in preview mode with no
+//   backend, When the Maestro suite runs, Then the smoke, navigation (Paramètres
+//   dismissed by back on Android, by swipe on iOS), preview-guard, and Android DS
+//   gallery flows pass, every component's golden case matching its committed
+//   Android screenshot at a 98 % similarity threshold — or being captured fresh
+//   when golden regeneration is requested; And the mobile test suite fails when
+//   either committed gallery flow (iOS, unchanged from 10-5, or Android) drifts
+//   from the parity catalog.
+//
 // Golden mode: MAESTRO_UPDATE_GOLDENS=true → takeScreenshot (artifacts),
-// otherwise assertScreenshot against apps/mobile/.maestro/goldens/ios/.
+// otherwise assertScreenshot against apps/mobile/.maestro/goldens/<platform>/.
 import { PARITY_CASES } from "@pekulo/ui/parity";
 
 const { readFileSync, writeFileSync } = require("node:fs") as {
@@ -30,24 +42,60 @@ const path = require("node:path") as {
 
 const resolveModule = (require as unknown as { resolve: (id: string) => string }).resolve;
 const MOBILE_ROOT = path.dirname(resolveModule("../package.json"));
-const FLOW_PATH = path.resolve(MOBILE_ROOT, ".maestro/flows/ds-gallery.yaml");
-// takeScreenshot `path` is relative to Maestro's artifact output; assertScreenshot
-// `path` is resolved from the flow file. Both prefixes are verified in T15.
-const GOLDEN_CAPTURE_PREFIX = "goldens/ios/";
-const GOLDEN_ASSERT_PREFIX = "../goldens/ios/";
 const UPDATE_GOLDENS =
   "${typeof MAESTRO_UPDATE_GOLDENS !== 'undefined' && MAESTRO_UPDATE_GOLDENS === 'true'}";
 const ASSERT_GOLDENS =
   "${typeof MAESTRO_UPDATE_GOLDENS === 'undefined' || MAESTRO_UPDATE_GOLDENS !== 'true'}";
 
-function caseSteps(id: string): string[] {
+type GalleryPlatform = "ios" | "android";
+
+interface GalleryFlowSpec {
+  /** Flow file, relative to apps/mobile. */
+  file: string;
+  headerComment: string;
+  name: string;
+  tags: string[];
+  /** takeScreenshot `path` is relative to Maestro's artifact output. */
+  capturePrefix: string;
+  /** assertScreenshot `path` is resolved from the flow file. */
+  assertPrefix: string;
+  /** iOS asks "Open in Pekulo?" for a custom-scheme openLink; Android does not. */
+  dismissOpenPrompt: boolean;
+}
+
+const FLOWS: Record<GalleryPlatform, GalleryFlowSpec> = {
+  ios: {
+    file: ".maestro/flows/ds-gallery.yaml",
+    headerComment: "# Story 10-5 AC-5 — one iOS screenshot golden per @pekulo/ui component.",
+    name: "DS gallery — iOS goldens",
+    tags: ["ds-gallery"],
+    capturePrefix: "goldens/ios/",
+    assertPrefix: "../goldens/ios/",
+    dismissOpenPrompt: true,
+  },
+  android: {
+    file: ".maestro/flows/ds-gallery-android.yaml",
+    headerComment: "# Story 10-6 AC-7 — one Android screenshot golden per @pekulo/ui component.",
+    name: "DS gallery — Android goldens",
+    tags: ["ds-gallery-android", "android-only"],
+    capturePrefix: "goldens/android/",
+    assertPrefix: "../goldens/android/",
+    dismissOpenPrompt: false,
+  },
+};
+
+function caseSteps(id: string, spec: GalleryFlowSpec): string[] {
   return [
     `- openLink: "pekulo://ds/${id}?theme=pekulo-dark"`,
-    "- runFlow:",
-    "    when:",
-    '      visible: "Open"',
-    "    commands:",
-    '      - tapOn: "Open"',
+    ...(spec.dismissOpenPrompt
+      ? [
+          "- runFlow:",
+          "    when:",
+          '      visible: "Open"',
+          "    commands:",
+          '      - tapOn: "Open"',
+        ]
+      : []),
     "- extendedWaitUntil:",
     "    visible:",
     `      id: "ds-case-${id}"`,
@@ -59,7 +107,7 @@ function caseSteps(id: string): string[] {
     `      true: ${UPDATE_GOLDENS}`,
     "    commands:",
     "      - takeScreenshot:",
-    `          path: "${GOLDEN_CAPTURE_PREFIX}${id}"`,
+    `          path: "${spec.capturePrefix}${id}"`,
     "          cropOn:",
     `            id: "ds-case-${id}"`,
     "- runFlow:",
@@ -67,41 +115,47 @@ function caseSteps(id: string): string[] {
     `      true: ${ASSERT_GOLDENS}`,
     "    commands:",
     "      - assertScreenshot:",
-    `          path: "${GOLDEN_ASSERT_PREFIX}${id}.png"`,
+    `          path: "${spec.assertPrefix}${id}.png"`,
     "          cropOn:",
     `            id: "ds-case-${id}"`,
     "          thresholdPercentage: 98",
   ];
 }
 
-function buildDsGalleryFlow(): string {
+function buildDsGalleryFlow(spec: GalleryFlowSpec): string {
   const goldenIds = PARITY_CASES.filter((c) => c.golden).map((c) => c.id);
   const lines = [
     "# GENERATED by apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts — do not edit.",
-    "# Story 10-5 AC-5 — one iOS screenshot golden per @pekulo/ui component.",
+    spec.headerComment,
     "appId: app.pekulo.mobile",
-    "name: DS gallery — iOS goldens",
+    `name: ${spec.name}`,
     "tags:",
-    "  - ds-gallery",
+    ...spec.tags.map((tag) => `  - ${tag}`),
     "---",
     "- launchApp:",
     "    clearState: true",
-    ...goldenIds.flatMap(caseSteps),
+    ...goldenIds.flatMap((id) => caseSteps(id, spec)),
   ];
   return `${lines.join("\n")}\n`;
 }
 
-describe("Maestro ds-gallery flow (story 10-5, AC-5)", () => {
-  it("is generated from PARITY_CASES and committed up to date", () => {
-    const expected = buildDsGalleryFlow();
-    if (process.env.UPDATE_DS_FLOW === "1") writeFileSync(FLOW_PATH, expected);
-    expect(readFileSync(FLOW_PATH, "utf8")).toBe(expected);
-  });
+describe.each(["ios", "android"] as const)(
+  "Maestro ds-gallery flow — %s (stories 10-5 AC-5, 10-6 AC-7)",
+  (platform) => {
+    const spec = FLOWS[platform];
+    const flowPath = path.resolve(MOBILE_ROOT, spec.file);
 
-  it("captures exactly one golden per component", () => {
-    const goldenCount = PARITY_CASES.filter((c) => c.golden).length;
-    const components = new Set(PARITY_CASES.map((c) => c.component)).size;
-    expect(goldenCount).toBe(components);
-    expect(buildDsGalleryFlow().match(/- assertScreenshot:/g)?.length).toBe(goldenCount);
-  });
-});
+    it("is generated from PARITY_CASES and committed up to date", () => {
+      const expected = buildDsGalleryFlow(spec);
+      if (process.env.UPDATE_DS_FLOW === "1") writeFileSync(flowPath, expected);
+      expect(readFileSync(flowPath, "utf8")).toBe(expected);
+    });
+
+    it("captures exactly one golden per component", () => {
+      const goldenCount = PARITY_CASES.filter((c) => c.golden).length;
+      const components = new Set(PARITY_CASES.map((c) => c.component)).size;
+      expect(goldenCount).toBe(components);
+      expect(buildDsGalleryFlow(spec).match(/- assertScreenshot:/g)?.length).toBe(goldenCount);
+    });
+  },
+);
