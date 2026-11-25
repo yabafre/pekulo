@@ -1347,6 +1347,10 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-56 (Android parity)
 **Complexity:** M
 
+> **Realized scope (2026-11-24, step-04, user-approved) — supersedes the summary above without deleting it.** The Android audit found `Stack.Toolbar` throws on Android without `@expo/ui` (tabs, Paramètres, all form sheets), `Alert.alert` caps menus at 3 buttons, and `Alert.prompt` is iOS-only. Delivered: platform-split headers (`headerRight` tabs, in-content sheet header, headerless sheets with `sheetElevation: 0`), a DS `ActionSheetHost` (`PekuloDrawer`) for Android menus, an Android-only `sheets/delete-account` typed-email sheet sharing `isDeletionEmailConfirmed` with iOS, Material Symbol names for every `SymbolView` (meta-test), labelled grayscale Android tab bar, a Jest `android` project (`jest-expo/android`), the `e2e-test` APK, generated `ds-gallery-android` flow + 42 Android goldens, and EAS `e2e-android{,-update-goldens}.yml` custom jobs on `linux-medium-nested-virtualization`. iOS behaviour unchanged.
+
+**Complexity:** L (re-estimated from M)
+
 ## Epic 11: Public-ramp readiness
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.
