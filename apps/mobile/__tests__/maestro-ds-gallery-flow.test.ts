@@ -61,6 +61,8 @@ interface GalleryFlowSpec {
   assertPrefix: string;
   /** iOS asks "Open in Pekulo?" for a custom-scheme openLink; Android does not. */
   dismissOpenPrompt: boolean;
+  /** testID to wait for after the cold launch, before the first openLink. */
+  readyId?: string;
 }
 
 const FLOWS: Record<GalleryPlatform, GalleryFlowSpec> = {
@@ -81,6 +83,7 @@ const FLOWS: Record<GalleryPlatform, GalleryFlowSpec> = {
     capturePrefix: "goldens/android/",
     assertPrefix: "../goldens/android/",
     dismissOpenPrompt: false,
+    readyId: "tab-cap",
   },
 };
 
@@ -134,6 +137,14 @@ function buildDsGalleryFlow(spec: GalleryFlowSpec): string {
     "---",
     "- launchApp:",
     "    clearState: true",
+    ...(spec.readyId
+      ? [
+          "- extendedWaitUntil:",
+          "    visible:",
+          `      id: "${spec.readyId}"`,
+          "    timeout: 30000",
+        ]
+      : []),
     ...goldenIds.flatMap((id) => caseSteps(id, spec)),
   ];
   return `${lines.join("\n")}\n`;
@@ -159,3 +170,14 @@ describe.each(["ios", "android"] as const)(
     });
   },
 );
+
+// Story 10-6 AC-7 — on Android an `openLink` fired right after a cold
+// `launchApp` reaches the activity before React Native registers its Linking
+// listener and is dropped (EAS run 2026-11-25: the emulator stayed on the tabs).
+// The Android flow must wait for the app shell before the first deep link.
+it("Android gallery flow waits for the tab bar before the first deep link", () => {
+  const flow = readFileSync(path.resolve(MOBILE_ROOT, FLOWS.android.file), "utf8");
+  const ready = flow.indexOf('id: "tab-cap"');
+  expect(ready).toBeGreaterThan(-1);
+  expect(ready).toBeLessThan(flow.indexOf("- openLink:"));
+});

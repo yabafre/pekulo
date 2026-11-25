@@ -8,6 +8,10 @@ tags:
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-cap"
+    timeout: 30000
 - openLink: "pekulo://ds/CategoryIcon.known?theme=pekulo-dark"
 - extendedWaitUntil:
     visible:
