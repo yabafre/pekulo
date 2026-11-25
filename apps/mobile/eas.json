@@ -22,6 +22,9 @@
       "ios": {
         "simulator": true
       },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_DS_GALLERY": "1",
         "DATABASE_URL": "postgresql://stub:stub@localhost:5432/stub"
