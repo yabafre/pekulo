@@ -17,7 +17,7 @@ import { proxy } from "./proxy";
 //   to `/login` (while non-exact sibling paths remain protected)
 describe("proxy public legal routes (story 10-7, AC-1)", () => {
   it.each(["/privacy", "/terms", "/support", "/account-deletion"])(
-    "allows anonymous GET %s with security headers and zero Supabase round-trip",
+    "allows anonymous GET %s with full security/CSP headers and zero Supabase round-trip",
     async (pathname) => {
       createServerClientMock.mockClear();
       const request = new NextRequest(`https://pekulo.app${pathname}`);
@@ -26,20 +26,39 @@ describe("proxy public legal routes (story 10-7, AC-1)", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("location")).toBeNull();
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(response.headers.get("x-frame-options")).toBe("DENY");
+      expect(response.headers.get("content-security-policy")).toContain("default-src");
       expect(createServerClientMock).not.toHaveBeenCalled();
     },
   );
 
-  it("does not widen the bypass to sibling prefixes such as /privacy-internal", async () => {
-    createServerClientMock.mockReset();
-    createServerClientMock.mockReturnValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
-    });
-    const request = new NextRequest("https://pekulo.app/privacy-internal");
-    const response = await proxy(request);
+  it.each(["/privacy/", "/terms/", "/support/", "/account-deletion/"])(
+    "canonically redirects trailing-slash %s with 308 and CSP headers without calling Supabase",
+    async (pathname) => {
+      createServerClientMock.mockClear();
+      const request = new NextRequest(`https://pekulo.app${pathname}`);
+      const response = await proxy(request);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("https://pekulo.app/login");
-    expect(createServerClientMock).toHaveBeenCalledTimes(1);
-  });
+      expect(response.status).toBe(308);
+      expect(response.headers.get("location")).toBe(`https://pekulo.app${pathname.slice(0, -1)}`);
+      expect(response.headers.get("content-security-policy")).toContain("default-src");
+      expect(createServerClientMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["/privacy-internal", "/privacy/extra"])(
+    "does not widen the bypass to non-exact sibling path %s",
+    async (pathname) => {
+      createServerClientMock.mockReset();
+      createServerClientMock.mockReturnValue({
+        auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+      });
+      const request = new NextRequest(`https://pekulo.app${pathname}`);
+      const response = await proxy(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe("https://pekulo.app/login");
+      expect(createServerClientMock).toHaveBeenCalledTimes(1);
+    },
+  );
 });
