@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { Pressable } from "react-native";
 import { useTheme } from "tamagui";
 
+import { AiTransparencyNotice } from "../../../components/ai-transparency-notice";
 import { useMutationRunner } from "../../../components/form/sheet";
 import { ScreenShell } from "../../../components/screen-shell";
 import { SearchField } from "../../../components/search-field";
@@ -249,6 +250,7 @@ export default function TransactionsScreen() {
                   </Text>
                 }
               >
+                <AiTransparencyNotice />
                 {viewData.pendingSuggestions.map((item) => (
                   <PekuloSuggestionRow
                     key={item.id}

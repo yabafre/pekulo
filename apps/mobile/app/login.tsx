@@ -11,12 +11,13 @@ import { Text, View } from "@pekulo/ui/client";
 import { useRouter } from "expo-router";
 import { Compass } from "lucide-react-native";
 import { useRef, useState } from "react";
-import type { TextInput } from "react-native";
+import { Pressable, type TextInput } from "react-native";
 import { useTheme } from "tamagui";
 
 import { ScreenShell } from "../components/screen-shell";
 import { useAuth } from "../lib/auth/auth-context";
 import { useI18n } from "../lib/i18n";
+import { openLegalUrl } from "../lib/legal";
 
 export default function LoginScreen() {
   const { signInWithPassword, requireAuth } = useAuth();
@@ -164,6 +165,45 @@ export default function LoginScreen() {
           {t("auth.continuePreview")}
         </PekuloButton>
       )}
+
+      <View flexDirection="row" flexWrap="wrap" justifyContent="center" gap="$4" paddingTop="$2">
+        <Pressable
+          testID="login-privacy-link"
+          accessibilityRole="link"
+          accessibilityLabel={t("auth.privacyPolicy")}
+          hitSlop={8}
+          onPress={() => {
+            void openLegalUrl("/privacy");
+          }}
+          style={({ pressed }) => ({
+            minHeight: 44,
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text color="$colorTertiary" fontSize="$xs" textDecorationLine="underline">
+            {t("auth.privacyPolicy")}
+          </Text>
+        </Pressable>
+        <Pressable
+          testID="login-terms-link"
+          accessibilityRole="link"
+          accessibilityLabel={t("auth.terms")}
+          hitSlop={8}
+          onPress={() => {
+            void openLegalUrl("/terms");
+          }}
+          style={({ pressed }) => ({
+            minHeight: 44,
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text color="$colorTertiary" fontSize="$xs" textDecorationLine="underline">
+            {t("auth.terms")}
+          </Text>
+        </Pressable>
+      </View>
     </ScreenShell>
   );
 }
