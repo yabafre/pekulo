@@ -1,0 +1,99 @@
+# Story 10-6 AC-8 — regenerates the Android DS goldens on the SAME emulator image
+# the e2e-android workflow asserts against. Manual only:
+#   cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-android-update-goldens.yml
+# Download the "android-ds-goldens" artifact and copy the PNGs into
+# apps/mobile/.maestro/goldens/android/ (see apps/mobile/README.md).
+name: e2e-android-update-goldens
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_android_apk:
+    name: Build Android APK (e2e-test)
+    type: build
+    params:
+      platform: android
+      profile: e2e-test
+
+  capture_goldens:
+    name: Capture DS goldens (Android)
+    needs: [build_android_apk]
+    runs_on: linux-medium-nested-virtualization
+    steps:
+      - uses: eas/checkout
+
+      - uses: eas/download_build
+        id: download_build
+        with:
+          build_id: ${{ needs.build_android_apk.outputs.build_id }}
+          extensions: [apk]
+
+      - uses: eas/start_android_emulator
+        with:
+          device_name: pekulo-e2e
+          system_image_package: system-images;android-35;default;x86_64
+
+      - name: Capture 42 Android DS goldens
+        run: |
+          set -euo pipefail
+          export PATH="$PATH:$HOME/.maestro/bin:${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools"
+          export MAESTRO_CLI_NO_ANALYTICS=1
+          command -v maestro >/dev/null || { echo "maestro CLI not found in PATH" >&2; exit 1; }
+          command -v adb >/dev/null || { echo "adb not found in PATH" >&2; exit 1; }
+          maestro --version
+
+          # EAS Workflows interpolates steps.*.outputs inside `run:`, not step-level `env:`.
+          ARTIFACT_PATH="${{ steps.download_build.outputs.artifact_path }}"
+          if [ ! -e "$ARTIFACT_PATH" ]; then
+            echo "Downloaded APK not found at: $ARTIFACT_PATH" >&2
+            exit 1
+          fi
+
+          JOB_CWD="$(pwd)"
+          if [ -d "$JOB_CWD/apps/mobile/.maestro" ]; then
+            MAESTRO_DIR="$JOB_CWD/apps/mobile/.maestro"
+          elif [ -d "$JOB_CWD/.maestro" ]; then
+            MAESTRO_DIR="$JOB_CWD/.maestro"
+          else
+            echo "Cannot find .maestro directory from $JOB_CWD" >&2
+            exit 1
+          fi
+          # eas/upload_artifact resolves `path` from EAS_BUILD_WORKINGDIR (repo root),
+          # whereas eas/checkout changes `run:` cwd to apps/mobile.
+          ARTIFACT_ROOT="${EAS_BUILD_WORKINGDIR:-$JOB_CWD}"
+          GOLDENS_DIR="$ARTIFACT_ROOT/maestro-goldens-android"
+
+          DEVICE_ID="$(adb devices | awk 'NR > 1 && $2 == "device" { print $1; exit }')"
+          if [ -z "$DEVICE_ID" ]; then
+            echo "No booted Android emulator found" >&2
+            adb devices >&2
+            exit 1
+          fi
+          echo "Using Android emulator: $DEVICE_ID"
+          adb -s "$DEVICE_ID" install -r "$ARTIFACT_PATH"
+
+          rm -rf /tmp/maestro-goldens "$GOLDENS_DIR"
+          mkdir -p /tmp/maestro-goldens "$GOLDENS_DIR"
+          maestro test --device "$DEVICE_ID" \
+            -e MAESTRO_UPDATE_GOLDENS=true \
+            --test-output-dir /tmp/maestro-goldens \
+            "$MAESTRO_DIR/flows/ds-gallery-android.yaml"
+
+          find /tmp/maestro-goldens -path '*/goldens/android/*.png' -exec cp {} "$GOLDENS_DIR/" \;
+          if [ "$(find "$GOLDENS_DIR" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 0 ] && [ -d "$JOB_CWD/goldens/android" ]; then
+            find "$JOB_CWD/goldens/android" -maxdepth 1 -name '*.png' -exec cp {} "$GOLDENS_DIR/" \;
+          fi
+          EXPECTED_COUNT="$(grep -c -- '- takeScreenshot:' "$MAESTRO_DIR/flows/ds-gallery-android.yaml")"
+          ACTUAL_COUNT="$(find "$GOLDENS_DIR" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')"
+          echo "Captured $ACTUAL_COUNT / $EXPECTED_COUNT Android DS goldens"
+          if [ "$ACTUAL_COUNT" -ne "$EXPECTED_COUNT" ]; then
+            echo "Golden count mismatch: expected $EXPECTED_COUNT, got $ACTUAL_COUNT" >&2
+            exit 1
+          fi
+
+      - uses: eas/upload_artifact
+        with:
+          type: other
+          name: android-ds-goldens
+          path: maestro-goldens-android/*.png
