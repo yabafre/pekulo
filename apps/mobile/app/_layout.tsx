@@ -3,7 +3,11 @@
 // QueryClientProvider, PekuloRootProvider (@pekulo/ui), and AuthProvider,
 // holds splash screen until fonts AND auth session state resolve (zero login
 // flash), syncs React Navigation ThemeProvider with active Pekulo theme, and
-// presents Paramètres as a native iOS form sheet.
+// presents Paramètres + the edit/create flows as native form sheets:
+//   - iOS: native transparent header carrying `Stack.Toolbar` items;
+//   - Android (story 10-6 AC-2/AC-6): headerless (the scaffold renders its own
+//     header row), `sheetElevation: 0` (design-spec: no drop shadows), plus the
+//     DS `ActionSheetHost` for row action menus (AC-3).
 
 import {
   Geist_400Regular,
@@ -26,7 +30,9 @@ import Stack from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState, type ReactNode } from "react";
+import { Platform } from "react-native";
 
+import { ActionSheetHost } from "../lib/action-sheet-host";
 import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth-context";
 import { isDsGalleryEnabled } from "../lib/ds-gallery";
 import { useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
@@ -34,8 +40,11 @@ import { I18nProvider, useI18n } from "../lib/i18n";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// Edit/create flows presented as native iOS form sheets. Short forms open at a
+const IS_ANDROID = Platform.OS === "android";
+
+// Edit/create flows presented as native form sheets. Short forms open at a
 // medium detent and can be dragged to full height; long forms open full height.
+// Android honours at most three detents — every entry stays ≤ 2.
 const SHEET_ROUTES: { name: string; detents: number[] }[] = [
   { name: "sheets/transaction", detents: [1.0] },
   { name: "sheets/milestone", detents: [0.6, 1.0] },
@@ -50,7 +59,33 @@ const SHEET_ROUTES: { name: string; detents: number[] }[] = [
   { name: "sheets/rental", detents: [0.6, 1.0] },
   { name: "sheets/cloture", detents: [1.0] },
   { name: "sheets/compass", detents: [0.6, 1.0] },
+  { name: "sheets/delete-account", detents: [0.6, 1.0] },
 ];
+
+/** Form-sheet presentation shared by Paramètres and every `sheets/*` route. */
+function sheetOptions(detents: number[], chrome: { background: string; ink: string }) {
+  if (IS_ANDROID) {
+    return {
+      headerShown: false,
+      presentation: "formSheet" as const,
+      sheetGrabberVisible: true,
+      sheetAllowedDetents: detents,
+      sheetElevation: 0,
+      contentStyle: { backgroundColor: chrome.background },
+    };
+  }
+  return {
+    headerShown: true,
+    presentation: "formSheet" as const,
+    sheetGrabberVisible: true,
+    sheetAllowedDetents: detents,
+    headerTransparent: true,
+    headerShadowVisible: false,
+    headerTitleStyle: { color: chrome.ink },
+    headerTintColor: chrome.ink,
+    contentStyle: { backgroundColor: chrome.background },
+  };
+}
 
 function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { resolvedTheme } = useThemeSetting();
@@ -60,6 +95,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { t } = useI18n();
   const isLight = resolvedTheme === "pekulo-light";
   const palette = isLight ? pekuloColors.light : pekuloColors.dark;
+  const chrome = { background: palette.surface.bg, ink: palette.text.primary };
 
   useEffect(() => {
     if (fontsReady && !isLoading) {
@@ -98,34 +134,13 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="parametres"
-          options={{
-            headerShown: true,
-            title: t("settings.title"),
-            presentation: "formSheet",
-            sheetGrabberVisible: true,
-            sheetAllowedDetents: [1.0],
-            headerTransparent: true,
-            headerShadowVisible: false,
-            headerTitleStyle: { color: palette.text.primary },
-            headerTintColor: palette.text.primary,
-            contentStyle: { backgroundColor: palette.surface.bg },
-          }}
+          options={{ ...sheetOptions([1.0], chrome), title: t("settings.title") }}
         />
         {SHEET_ROUTES.map((sheet) => (
           <Stack.Screen
             key={sheet.name}
             name={sheet.name}
-            options={{
-              headerShown: true,
-              presentation: "formSheet",
-              sheetGrabberVisible: true,
-              sheetAllowedDetents: sheet.detents,
-              headerTransparent: true,
-              headerShadowVisible: false,
-              headerTitleStyle: { color: palette.text.primary },
-              headerTintColor: palette.text.primary,
-              contentStyle: { backgroundColor: palette.surface.bg },
-            }}
+            options={sheetOptions(sheet.detents, chrome)}
           />
         ))}
         <Stack.Screen
@@ -138,6 +153,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
           }}
         />
       </Stack>
+      {IS_ANDROID ? <ActionSheetHost /> : null}
     </ThemeProvider>
   );
 }
