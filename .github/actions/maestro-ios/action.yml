@@ -1,0 +1,42 @@
+name: maestro-ios
+description: >-
+  Stories 10-5 / 10-6 — downloads the pekulo-ios-app artifact, installs the pinned
+  Maestro CLI, boots the pinned simulator ($IOS_SIMULATOR on $IOS_RUNTIME), installs
+  the app and exports SIMULATOR_UDID. Expects DEVELOPER_DIR, MAESTRO_VERSION,
+  IOS_SIMULATOR and IOS_RUNTIME in the job environment.
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: pekulo-ios-app
+    - name: Unpack the app
+      shell: bash
+      run: tar -xzf pekulo-ios.tgz
+    - name: Restore Maestro CLI
+      uses: actions/cache@v4
+      with:
+        path: ~/.maestro
+        key: maestro-${{ runner.os }}-${{ runner.arch }}-${{ env.MAESTRO_VERSION }}
+    - name: Install Maestro CLI
+      shell: bash
+      run: |
+        [ -x "$HOME/.maestro/bin/maestro" ] || curl -fsSL "https://get.maestro.mobile.dev" | bash
+        echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+    - name: Boot simulator and install the app
+      shell: bash
+      run: |
+        set -euo pipefail
+        runtime="com.apple.CoreSimulator.SimRuntime.$(echo "$IOS_RUNTIME" | tr ' .' '--')"
+        udid="$(xcrun simctl list devices available -j \
+          | jq -r --arg rt "$runtime" --arg name "$IOS_SIMULATOR" \
+            '.devices[$rt][]? | select(.name == $name) | .udid' | head -1)"
+        if [ -z "$udid" ]; then
+          echo "::error::No '$IOS_SIMULATOR' simulator for '$IOS_RUNTIME' on this image" >&2
+          xcrun simctl list runtimes >&2
+          exit 1
+        fi
+        xcrun simctl boot "$udid" || true
+        xcrun simctl bootstatus "$udid" -b
+        xcrun simctl install "$udid" Pekulo.app
+        echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"

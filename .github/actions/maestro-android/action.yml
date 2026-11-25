@@ -1,0 +1,70 @@
+name: maestro-android
+description: >-
+  Stories 10-6 — downloads the pekulo-android-apk artifact, boots the pinned
+  Android emulator (API $ANDROID_API, x86_64, Pixel 7 profile: 1080x2400 @ 420)
+  from a cached AVD snapshot, installs the APK and runs the given Maestro flows
+  through .github/scripts/maestro-run.sh. Expects MAESTRO_VERSION and ANDROID_API
+  in the job environment (UPDATE_GOLDENS optional).
+inputs:
+  flows:
+    description: Space-separated Maestro flow files, relative to the repository root.
+    required: true
+  flow-retry:
+    description: '"1" retries a failing flow once; "0" relies on per-case retries.'
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: pekulo-android-apk
+    - name: Enable KVM
+      shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+          | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Restore Maestro CLI
+      uses: actions/cache@v4
+      with:
+        path: ~/.maestro
+        key: maestro-${{ runner.os }}-${{ runner.arch }}-${{ env.MAESTRO_VERSION }}
+    - name: Install Maestro CLI
+      shell: bash
+      run: |
+        [ -x "$HOME/.maestro/bin/maestro" ] || curl -fsSL "https://get.maestro.mobile.dev" | bash
+        echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+    - name: Restore AVD snapshot
+      id: avd-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: avd-${{ env.ANDROID_API }}-x86_64-pixel_7-v1
+    - name: Create AVD snapshot
+      if: steps.avd-cache.outputs.cache-hit != 'true'
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ env.ANDROID_API }}
+        arch: x86_64
+        target: default
+        profile: pixel_7
+        force-avd-creation: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: echo "Generated AVD snapshot for caching."
+    - name: Run Maestro flows
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ env.ANDROID_API }}
+        arch: x86_64
+        target: default
+        profile: pixel_7
+        force-avd-creation: false
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: true
+        script: |
+          adb install -r app-release.apk
+          bash .github/scripts/maestro-run.sh android emulator-5554 ${{ inputs.flow-retry }} ${{ inputs.flows }}
