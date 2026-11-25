@@ -63,7 +63,11 @@ function MonthStepButton({
       })}
     >
       <SymbolView
-        name={direction === "prev" ? "chevron.left" : "chevron.right"}
+        name={
+          direction === "prev"
+            ? { ios: "chevron.left", android: "chevron_left" }
+            : { ios: "chevron.right", android: "chevron_right" }
+        }
         size={17}
         weight="semibold"
         tintColor={theme.color.val}

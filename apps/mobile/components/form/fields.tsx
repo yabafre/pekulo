@@ -263,7 +263,7 @@ export function SelectField<T extends string>({
           {selected?.label ?? emptyLabel}
         </Text>
         <SymbolView
-          name="chevron.up.chevron.down"
+          name={{ ios: "chevron.up.chevron.down", android: "unfold_more" }}
           size={13}
           tintColor={theme.colorTertiary.val}
           fallback={null}

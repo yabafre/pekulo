@@ -33,7 +33,7 @@ export function SettingsHeaderButton({ testID = "header-settings-btn" }: { testI
         })}
       >
         <SymbolView
-          name="person.crop.circle"
+          name={{ ios: "person.crop.circle", android: "account_circle" }}
           size={24}
           tintColor={theme.color.val}
           fallback={
@@ -74,7 +74,7 @@ export function HeaderAddButton({
       })}
     >
       <SymbolView
-        name="plus"
+        name={{ ios: "plus", android: "add" }}
         size={20}
         weight="semibold"
         tintColor={theme.color.val}

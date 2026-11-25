@@ -250,7 +250,7 @@ export default function ParametresScreen() {
               </Text>
             </View>
             <SymbolView
-              name="chevron.right"
+              name={{ ios: "chevron.right", android: "chevron_right" }}
               size={14}
               weight="semibold"
               tintColor={theme.colorTertiary.val}
