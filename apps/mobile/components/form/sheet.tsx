@@ -11,6 +11,7 @@ import Stack from "expo-router/stack";
 import { useRef, useState, type ReactNode } from "react";
 
 import { handleMutationError } from "../../lib/actions";
+import { hapticError, hapticSuccess } from "../../lib/haptics";
 import { useI18n } from "../../lib/i18n";
 import { ScreenShell } from "../screen-shell";
 import { FormError } from "./fields";
@@ -35,10 +36,12 @@ export function useMutationRunner({ dismiss = false }: { dismiss?: boolean } = {
     setPending(true);
     try {
       await action();
+      hapticSuccess();
       if (successTitle) toast.success(successTitle);
       if (dismiss && router.canGoBack()) router.back();
       return true;
     } catch (caught) {
+      hapticError();
       setError(
         handleMutationError(caught, {
           goToLogin: () => {

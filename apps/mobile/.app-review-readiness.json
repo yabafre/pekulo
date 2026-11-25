@@ -1,0 +1,24 @@
+{
+  "build": "0.1.0 (1)",
+  "checked_on": "2026-11-25",
+  "enforce": false,
+  "checks": {
+    "demo_account": "todo",
+    "live_backend": "todo",
+    "review_notes": "pass",
+    "screenshots_match_build": "todo",
+    "account_deletion_device_test": "todo",
+    "privacy_labels_match_runtime": "todo",
+    "iap_reachable_by_reviewer": "n/a"
+  },
+  "notes": {
+    "demo_account": "Provision a dedicated non-2FA reviewer account on production Supabase with pre-populated net worth, accounts, transactions, holdings, and real estate; inject credentials into App Store Connect / Play Console and apps/mobile/docs/REVIEW-NOTES.md before submission.",
+    "live_backend": "Deploy production apps/api and apps/web (including public /privacy, /terms, /support, /account-deletion at https://pekulo.app) and verify EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, and EXPO_PUBLIC_API_BASE_URL in EAS production secrets before release build.",
+    "review_notes": "Drafted in apps/mobile/docs/REVIEW-NOTES.md; fill demo credentials and physical-device screen recording URL before submitting.",
+    "screenshots_match_build": "Capture release-build screenshots for iPhone 6.9\", iPad 13\" (supportsTablet: true), and Android phone/tablet.",
+    "account_deletion_device_test": "Verify end-to-end in-app deletion on a physical iOS device and physical Android device (Android confirmation flow lands in story 10-6) and confirm web fallback at https://pekulo.app/account-deletion.",
+    "privacy_labels_match_runtime": "Reconcile App Store Connect privacy nutrition labels and Google Play Data Safety form against app.json privacyManifests (Email Address + Other Financial Info, Linked, App Functionality only, no tracking) before submission.",
+    "iap_reachable_by_reviewer": "Pekulo V1.5 is completely free with zero in-app purchases, subscriptions, or external checkout flows.",
+    "deferred_store_prerequisites": "Track before public release: (1) Universal Links (associatedDomains + /.well-known/apple-app-site-association) deferred until Apple Team ID and production domain are assigned; (2) Apple Developer & Google Play Organization accounts (D-U-N-S verification); (3) EU Digital Services Act (DSA) trader status declaration (Google Play hard deadline 2027-02-01)."
+  }
+}

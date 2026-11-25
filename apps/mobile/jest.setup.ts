@@ -26,6 +26,14 @@ jest.mock("expo-splash-screen", () => ({
   hideAsync: jest.fn().mockResolvedValue(true),
 }));
 
+jest.mock("expo-haptics", () => ({
+  NotificationFeedbackType: { Success: "success", Warning: "warning", Error: "error" },
+  ImpactFeedbackStyle: { Light: "light", Medium: "medium", Heavy: "heavy" },
+  notificationAsync: jest.fn().mockResolvedValue(undefined),
+  impactAsync: jest.fn().mockResolvedValue(undefined),
+  selectionAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock("expo-secure-store", () => {
   const store = new Map<string, string>();
   return {
