@@ -28,6 +28,7 @@ import { useAuth } from "../lib/auth/auth-context";
 import { formatCompactEur } from "../lib/format";
 import { useDeleteUserAccount, useLlmOptIn } from "../lib/hooks/use-mobile-mutations";
 import { useMobileCompassData, useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
+import { isDeletionEmailConfirmed } from "../lib/account-deletion";
 import { useI18n } from "../lib/i18n";
 
 function toTamaguiThemeChoice(pref: ThemePref): "pekulo-dark" | "pekulo-light" | "system" {
@@ -57,13 +58,13 @@ export default function ParametresScreen() {
   }
 
   function confirmAccountDeletion(typed: string | undefined) {
-    const expected = (userEmail ?? "").trim().toLowerCase();
-    if (!typed || typed.trim().toLowerCase() !== expected) {
+    if (!isDeletionEmailConfirmed(typed, userEmail)) {
       Alert.alert(t("settings.deletion.wrongEmailTitle"), t("settings.deletion.wrongEmailMessage"));
       return;
     }
+    const confirmationEmail = (typed ?? "").trim();
     void run(async () => {
-      await deleteAccount.mutateAsync({ confirmationEmail: typed.trim() });
+      await deleteAccount.mutateAsync({ confirmationEmail });
       router.replace("/login");
     }, t("settings.deletion.done"));
   }
