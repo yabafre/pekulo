@@ -73,12 +73,24 @@ jobs:
           echo "Using Android emulator: $DEVICE_ID"
           adb -s "$DEVICE_ID" install -r "$ARTIFACT_PATH"
 
+          # On failure, print what the emulator shows and the JS/native errors
+          # straight into the step log (the screenshot artifacts lack both).
+          dump_diagnostics() {
+            echo "==== uiautomator hierarchy ====" >&2
+            adb -s "$DEVICE_ID" shell uiautomator dump /sdcard/pekulo-ui.xml >/dev/null 2>&1 \
+              && adb -s "$DEVICE_ID" shell cat /sdcard/pekulo-ui.xml | tr '>' '\n' | grep -oE '(text|resource-id)="[^"]+"' | head -80 >&2 || true
+            echo "==== logcat (errors) ====" >&2
+            adb -s "$DEVICE_ID" logcat -d -v brief '*:S' ReactNativeJS:V AndroidRuntime:E ReactNative:E Expo:E \
+              | tail -150 >&2 || true
+          }
+
           rm -rf /tmp/maestro-goldens "$GOLDENS_DIR"
           mkdir -p /tmp/maestro-goldens "$GOLDENS_DIR"
           maestro test --device "$DEVICE_ID" \
             -e MAESTRO_UPDATE_GOLDENS=true \
             --test-output-dir /tmp/maestro-goldens \
-            "$MAESTRO_DIR/flows/ds-gallery-android.yaml"
+            "$MAESTRO_DIR/flows/ds-gallery-android.yaml" \
+            || { dump_diagnostics; exit 1; }
 
           find /tmp/maestro-goldens -path '*/goldens/android/*.png' -exec cp {} "$GOLDENS_DIR/" \;
           if [ "$(find "$GOLDENS_DIR" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" -eq 0 ] && [ -d "$JOB_CWD/goldens/android" ]; then

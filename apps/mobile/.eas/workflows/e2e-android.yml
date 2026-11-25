@@ -80,6 +80,17 @@ jobs:
           echo "Using Android emulator: $DEVICE_ID"
           adb -s "$DEVICE_ID" install -r "$ARTIFACT_PATH"
 
+          # On failure, print what the emulator shows and the JS/native errors
+          # straight into the step log (the screenshot artifacts lack both).
+          dump_diagnostics() {
+            echo "==== uiautomator hierarchy ====" >&2
+            adb -s "$DEVICE_ID" shell uiautomator dump /sdcard/pekulo-ui.xml >/dev/null 2>&1 \
+              && adb -s "$DEVICE_ID" shell cat /sdcard/pekulo-ui.xml | tr '>' '\n' | grep -oE '(text|resource-id)="[^"]+"' | head -80 >&2 || true
+            echo "==== logcat (errors) ====" >&2
+            adb -s "$DEVICE_ID" logcat -d -v brief '*:S' ReactNativeJS:V AndroidRuntime:E ReactNative:E Expo:E \
+              | tail -150 >&2 || true
+          }
+
           rm -rf "$RESULTS_DIR"
           mkdir -p "$RESULTS_DIR"
           run_flow() {
@@ -87,7 +98,8 @@ jobs:
             local flow_name
             flow_name="$(basename "$flow" .yaml)"
             maestro test --device "$DEVICE_ID" --test-output-dir "$RESULTS_DIR/$flow_name/attempt-1" "$flow" \
-              || maestro test --device "$DEVICE_ID" --test-output-dir "$RESULTS_DIR/$flow_name/attempt-2" "$flow"
+              || maestro test --device "$DEVICE_ID" --test-output-dir "$RESULTS_DIR/$flow_name/attempt-2" "$flow" \
+              || { dump_diagnostics; return 1; }
           }
 
           run_flow "$MAESTRO_DIR/flows/smoke.yaml"
