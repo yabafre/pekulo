@@ -9,6 +9,7 @@ import { ActionSheetIOS, Alert, Platform } from "react-native";
 
 import { openActionSheet } from "./action-sheet-host";
 import { FormValidationError } from "./forms";
+import { hapticWarning } from "./haptics";
 import { tNow, type MessageKey } from "./i18n";
 import { PreviewModeError } from "./hooks/use-mobile-mutations";
 import { orpcErrorCode } from "./orpc/errors";
@@ -52,6 +53,7 @@ export function confirmDestructive({
   confirmLabel: string;
   onConfirm: () => void;
 }) {
+  hapticWarning();
   Alert.alert(title, message, [
     { text: tNow("common.actions.cancel"), style: "cancel" },
     { text: confirmLabel, style: "destructive", onPress: onConfirm },

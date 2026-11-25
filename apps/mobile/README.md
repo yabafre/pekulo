@@ -86,3 +86,19 @@ maestro test --exclude-tags ds-gallery apps/mobile/.maestro            # Android
 ```
 
 Android-specific surfaces (all covered by the `android` Jest project, `__tests__/android/`): tab header buttons through `headerRight` (`Stack.Toolbar` needs `@expo/ui` on Android), headerless form sheets with an in-content header row, row action menus in the DS `ActionSheetHost`, and account deletion in `sheets/delete-account` (no `Alert.prompt` on Android).
+
+## Pre-Submission Compliance & Mobile Agent Testers (story 10-7)
+
+- **Store compliance guard:** runs static App Store & Google Play checks against `apps/mobile` (`app.json` export compliance, `privacyManifests`, canonical 1024×1024 RGB no-alpha `assets/icon.png`, Keychain backup exclusion, `expo-haptics`, and `.app-review-readiness.json`).
+
+  ```bash
+  # Automated Jest compliance meta-test
+  cd apps/mobile && bunx jest __tests__/store-compliance.test.ts
+
+  # Static pre-submission compliance guard
+  bash .agents/skills/app-store-compliance/hooks/app-store-compliance-guard.sh apps/mobile
+  ```
+
+- **Manual release-readiness kit:** update `apps/mobile/.app-review-readiness.json` and fill demo credentials + device recording URL in `apps/mobile/docs/REVIEW-NOTES.md` before submitting to App Store Connect or Google Play Console.
+- **Public legal & deletion URLs (served by `apps/web`):** `/privacy`, `/terms` (including EAA Annex V accessibility notice), `/support`, and `/account-deletion` (canonical base `https://pekulo.app`, overridable via `EXPO_PUBLIC_WEB_BASE_URL`).
+- **Mobile Agent Testers kit (`apps/mobile/.agent-testers/`):** ships 8 FR/EN personas (`personas.json`: 4 iOS + 4 Android), a Pekulo-tailored mission brief (`AGENT_BRIEF.md`), and Bun 1.3.14 monorepo GitHub Actions setup instructions (`README.md`). Run `./setup.sh` and `bash scripts/collect.sh <run-id>` exclusively in your local terminal.

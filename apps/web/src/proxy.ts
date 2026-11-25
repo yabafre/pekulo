@@ -6,6 +6,11 @@ import {
   CSP_ENFORCED_HEADER,
 } from "@/lib/security/headers";
 
+// Story 10-7 (AC-1) — public legal and account-deletion pages required by
+// Apple App Store 5.1.1 / Google Play Data Safety / EAA Annex V. Exact path
+// match only so sibling prefixes stay auth-protected.
+const PUBLIC_LEGAL_PATHS = new Set(["/privacy", "/terms", "/support", "/account-deletion"]);
+
 export async function proxy(request: NextRequest) {
   // One nonce per request. Next extracts it from the CSP header on the REQUEST
   // during SSR and auto-applies it to its framework/bundled scripts, so the
@@ -57,8 +62,20 @@ export async function proxy(request: NextRequest) {
   // both slow and pointless (the ref is an opaque cache index, not user data).
   // EXACT path match (not startsWith) so the bypass can never widen to a future
   // `/v1/logos*` sibling route (aped-review 6-10).
-  if (request.nextUrl.pathname === "/v1/logos") {
+  // Story 10-7 (AC-1) — public legal and account-deletion pages required by
+  // Apple App Store 5.1.1 / Google Play Data Safety / EAA Annex V. Exact path
+  // match only (plus canonical 308 for a single trailing slash) so sibling
+  // prefixes such as `/privacy-internal` or `/privacy/extra` stay protected.
+  const requestPathname = request.nextUrl.pathname;
+  if (requestPathname === "/v1/logos" || PUBLIC_LEGAL_PATHS.has(requestPathname)) {
     return withSecurity(response);
+  }
+  if (requestPathname.length > 1 && requestPathname.endsWith("/")) {
+    const withoutTrailingSlash = requestPathname.slice(0, -1);
+    if (PUBLIC_LEGAL_PATHS.has(withoutTrailingSlash)) {
+      const canonicalUrl = new URL(`${withoutTrailingSlash}${request.nextUrl.search}`, request.url);
+      return withSecurity(NextResponse.redirect(canonicalUrl, 308));
+    }
   }
 
   const supabase = createServerClient(

@@ -28,6 +28,11 @@ export const fr = {
     categoryConfirmed: "Catégorie confirmée",
     confirmFailedTitle: "Confirmation impossible",
     confirmFailedMessage: "Réessayez dans un instant.",
+    aiNoticeBody:
+      "Pekulo utilise une IA pour suggérer les catégories de vos transactions. Vous pouvez modifier n’importe quelle catégorie à tout moment.",
+    aiNoticeDismiss: "Compris",
+    aiNoticeDismissAria: "Fermer la notice de transparence IA",
+    aiNoticeAria: "Notice de transparence IA",
   },
   list: {
     recentTitle: "Récentes",
@@ -92,6 +97,11 @@ export const en: Shape<typeof fr> = {
     categoryConfirmed: "Category confirmed",
     confirmFailedTitle: "Couldn’t confirm",
     confirmFailedMessage: "Try again in a moment.",
+    aiNoticeBody:
+      "Pekulo uses AI to suggest transaction categories. You can review and change any category at any time.",
+    aiNoticeDismiss: "Got it",
+    aiNoticeDismissAria: "Dismiss AI transparency notice",
+    aiNoticeAria: "AI transparency notice",
   },
   list: {
     recentTitle: "Recent",

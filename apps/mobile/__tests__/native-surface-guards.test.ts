@@ -12,6 +12,9 @@
 //   Then it shows a Material Symbol, never a blank or text fallback; And the
 //   mobile test suite fails when a new symbol icon has no Android name; And the
 //   Android tab bar shows all five labels on a grayscale Pekulo bar.
+// Module scope: other script-style suites (store-compliance) declare the same globals.
+export {};
+
 const fs = require("node:fs") as {
   readdirSync: (dir: string) => string[];
   readFileSync: (filePath: string, encoding: "utf8") => string;

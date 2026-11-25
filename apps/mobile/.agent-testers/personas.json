@@ -1,0 +1,118 @@
+[
+  {
+    "id": "clara",
+    "platform": "ios",
+    "profile": "Product designer, 34, Paris, meticulous about visual polish, contrast, and typography on compact screens.",
+    "goal": "Browse all 5 Pekulo tabs in French light mode on a small iPhone, open a transaction sheet and Settings, and check alignment, truncation, and legal links.",
+    "locale": "fr-FR",
+    "geo": [48.8566, 2.3522],
+    "device": {
+      "simulator": "iPhone SE (3rd generation)",
+      "ios": 18,
+      "text_size": "large",
+      "theme": "light"
+    }
+  },
+  {
+    "id": "sven_fr",
+    "platform": "ios",
+    "profile": "Retired engineer, 76, Lyon, relies on the largest iOS Accessibility Dynamic Type size in dark mode.",
+    "goal": "Check Cap net worth, Transactions, and Settings on a small iPhone at maximum accessibility text size; confirm every button, toggle, and legal link stays readable and reachable.",
+    "locale": "fr-FR",
+    "geo": [45.764, 4.8357],
+    "device": {
+      "simulator": "iPhone SE (3rd generation)",
+      "ios": 18,
+      "text_size": "accessibility-extra-extra-extra-large",
+      "theme": "dark"
+    }
+  },
+  {
+    "id": "jonas_ipad",
+    "platform": "ios",
+    "profile": "Software architect, 45, London, manages investments on an iPad with large accessibility text.",
+    "goal": "Explore Cap, Portefeuille, Immobilier, and form sheets on iPad in English dark mode; verify there is no broken stretching, clipped chart, or unreachable toolbar button.",
+    "locale": "en-GB",
+    "geo": [51.5072, -0.1276],
+    "device": {
+      "simulator": "iPad Pro 13-inch (M4)",
+      "ios": 18,
+      "text_size": "accessibility-extra-large",
+      "theme": "dark"
+    }
+  },
+  {
+    "id": "noah_pro",
+    "platform": "ios",
+    "profile": "Sales director, 41, New York, fast tapper on a big iPhone with extra-large standard text.",
+    "goal": "Switch theme and language in Settings, inspect the third-party AI consent disclosure, search Transactions, and test Mensuel sign-off flow in English light mode.",
+    "locale": "en-US",
+    "geo": [40.7128, -74.006],
+    "device": {
+      "simulator": "iPhone 16 Pro Max",
+      "ios": 18,
+      "text_size": "extra-extra-extra-large",
+      "theme": "light"
+    }
+  },
+  {
+    "id": "anna_fr",
+    "platform": "android",
+    "profile": "Retired teacher, 68, Bordeaux, prefers French, large text, and clear non-jargon labels on a small Android phone.",
+    "goal": "Explore all 5 tabs in French light mode, open Settings to check theme/language controls, legal links, and verify navigation icons and labels render cleanly on Android.",
+    "locale": "fr-FR",
+    "geo": [44.8378, -0.5792],
+    "device": {
+      "name": "Small phone, Android 11",
+      "profile": "Nexus 5",
+      "android_api": 30,
+      "font_scale": 1.3,
+      "theme": "light"
+    }
+  },
+  {
+    "id": "grace_a11y",
+    "platform": "android",
+    "profile": "Retired nurse, 74, Chicago, low vision, uses Android's maximum 200% font scale.",
+    "goal": "Read every tab (Cap, Transactions, Mensuel, Portefeuille, Immobilier) and Settings at 200% font scale without text overlap, clipped controls, or missing accessibility names.",
+    "locale": "en-US",
+    "geo": [41.8781, -87.6298],
+    "device": {
+      "name": "Pixel 7, Android 14, 200% font",
+      "profile": "pixel_7",
+      "android_api": 34,
+      "font_scale": 2.0,
+      "theme": "light"
+    }
+  },
+  {
+    "id": "malik_dark",
+    "platform": "android",
+    "profile": "Graduate student, 23, Paris, dark mode everywhere, taps fast and tries edge inputs.",
+    "goal": "Navigate rapidly across all 5 tabs, open create/edit form sheets, trigger preview-mode guards or validation errors, and check dark-mode contrast and Material Symbols on Android.",
+    "locale": "fr-FR",
+    "geo": [48.8566, 2.3522],
+    "device": {
+      "name": "Pixel 7, Android 14",
+      "profile": "pixel_7",
+      "android_api": 34,
+      "font_scale": 1.0,
+      "theme": "dark"
+    }
+  },
+  {
+    "id": "lucia_tab",
+    "platform": "android",
+    "profile": "Teacher, 47, Dublin, uses an Android tablet in English light mode.",
+    "goal": "Inspect Cap, Portefeuille, Immobilier, and Settings on a tablet viewport; evaluate spacing, readability, keyboard insets on form sheets, and legal/support links.",
+    "locale": "en-IE",
+    "geo": [53.3498, -6.2603],
+    "device": {
+      "name": "Pixel Tablet, Android 14",
+      "profile": "pixel_tablet",
+      "android_api": 34,
+      "font_scale": 1.0,
+      "theme": "light"
+    }
+  }
+]

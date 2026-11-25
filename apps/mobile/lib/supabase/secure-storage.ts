@@ -17,9 +17,18 @@ import * as SecureStore from "expo-secure-store";
 /** Max UTF-8 bytes per stored entry (the platform limit is 2048). */
 export const CHUNK_SIZE = 1800;
 
+// Story 10-7 (AC-4) — exclude Keychain auth tokens from iCloud backups.
+export const SECURE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+};
+
 export interface SecureStoreDriver {
   getItemAsync: (key: string) => Promise<string | null>;
-  setItemAsync: (key: string, value: string) => Promise<void>;
+  setItemAsync: (
+    key: string,
+    value: string,
+    options?: SecureStore.SecureStoreOptions,
+  ) => Promise<void>;
   deleteItemAsync: (key: string) => Promise<void>;
 }
 
@@ -127,17 +136,19 @@ export function createChunkedSecureStorage(driver: SecureStoreDriver = SecureSto
       const chunks = splitByUtf8Bytes(value);
 
       if (chunks.length <= 1) {
-        await driver.setItemAsync(key, value);
+        await driver.setItemAsync(key, value, SECURE_STORE_OPTIONS);
         await deleteChunks(key, previous);
         return;
       }
 
       const id = newGenerationId();
       await Promise.all(
-        chunks.map((chunk, idx) => driver.setItemAsync(chunkKey(key, idx, id), chunk)),
+        chunks.map((chunk, idx) =>
+          driver.setItemAsync(chunkKey(key, idx, id), chunk, SECURE_STORE_OPTIONS),
+        ),
       );
       const manifest: ChunkManifest = { __chunked: true, count: chunks.length, id };
-      await driver.setItemAsync(key, JSON.stringify(manifest));
+      await driver.setItemAsync(key, JSON.stringify(manifest), SECURE_STORE_OPTIONS);
       await deleteChunks(key, previous);
     },
 

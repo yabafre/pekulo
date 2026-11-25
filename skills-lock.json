@@ -5,7 +5,7 @@
       "source": "mjmirza/app-store-compliance",
       "sourceType": "github",
       "skillPath": "agent-os/skill/SKILL.md",
-      "computedHash": "3a1a2e0202ef3bfaa8457594229bfc7be346b2e994b760a400aeedb5559dd0f3"
+      "computedHash": "e3538abda08485e25b849231a0f6185b58326045c883f64a26be4f7fc27dcaff"
     },
     "building-native-ui": {
       "source": "expo/skills",
@@ -24,6 +24,12 @@
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-ui-swift-ui/SKILL.md",
       "computedHash": "d178eb6baed32742638889e9a2962d0e6c66ec0bf688afbfb6bd63005e65a371"
+    },
+    "Expo UI SwiftUI": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-ui-swift-ui/SKILL.md",
+      "computedHash": "409d466e43888f62987ceaf5c8be34aa76a49328528ebe290bab866f6d07e958"
     },
     "expo-api-routes": {
       "source": "expo/skills",
@@ -85,6 +91,12 @@
       "sourceType": "github",
       "skillPath": "skills/mobile-agent-testers/SKILL.md",
       "computedHash": "f38caa324aac67b3d1c6a043050c9e52de82c951d076ffac1c03fca61c9b243a"
+    },
+    "mobile-agent-testers": {
+      "source": "pierridotite/mobile-agent-testers",
+      "sourceType": "github",
+      "skillPath": "skills/mobile-agent-testers/SKILL.md",
+      "computedHash": "6aae81959f8603175bb71f05676619679d9b6f113729d0f0fee7f02cfab757c2"
     },
     "monorepo-tamagui": {
       "source": "mindrally/skills",
