@@ -129,6 +129,12 @@ jest.mock("../lib/orpc/modules", () => {
       updateTransaction: jest.fn(),
       deleteTransaction: jest.fn(),
     },
+    llmClient: {
+      getOptIn: jest.fn().mockResolvedValue({ thirdParty: false }),
+      setOptIn: jest.fn().mockResolvedValue({ thirdParty: false }),
+      getAiNotice: jest.fn().mockResolvedValue({ seen: true }),
+      markAiNotice: jest.fn().mockResolvedValue({ seen: true }),
+    },
   };
 });
 

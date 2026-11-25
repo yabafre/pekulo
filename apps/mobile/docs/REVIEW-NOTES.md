@@ -19,12 +19,12 @@ Value it provides: Pekulo is a personal-finance tracker and goal planner that ag
 3. ACCESS INSTRUCTIONS AND TEST CREDENTIALS
 Steps to reach the core features:
 1. Launch Pekulo and sign in on the Login screen using the test account credentials below.
-2. Cap tab (default): view total net worth, Cap progress donut, milestones, and cash accounts. Tap the profile/settings button to open Settings; tap "+" to add a milestone or account.
+2. Cap tab (default): view total net worth, Cap progress donut, and milestones; switch the top toggle to "Patrimoine" to inspect cash accounts. Tap the profile/settings button to open Settings; tap "+" to add a milestone or account.
 3. Transactions tab: browse monthly income/spending totals, review pending AI category suggestions (including the one-time AI transparency notice), search transactions, or tap "+" to record a transaction.
 4. Mensuel tab: review monthly aggregates and sign-off status.
-5. Portefeuille tab: inspect holdings and unrealized P&L; tap "+" to add a holding or lot.
-6. Immobilier tab: inspect properties, mortgages, rental cash flow, and net equity; tap "+" to record a property or valuation.
-7. Settings (top button on Cap): switch theme (System/Dark/Light) and language (FR/EN), edit the Cap objective, review third-party AI opt-in (off by default — toggling on displays an explicit consent dialog naming the configured provider and transmitted fields), open Privacy Policy / Terms & Accessibility / Support links, sign out, or permanently delete the account (Settings → Delete my account → type account email to confirm).
+5. Portefeuille tab: inspect holdings and unrealized P&L; tap "+" to add a holding, or tap a holding row to record a buy/sell lot.
+6. Immobilier tab: inspect properties, mortgages, rental cash flow, and net equity; tap "+" to add a property, or tap a property card to update its valuation.
+7. Settings (top button on Cap): switch theme (System/Dark/Light) and language (FR/EN), edit the Cap objective, review third-party AI opt-in (off by default — toggling on displays an explicit consent dialog naming the configured provider, defaulting to Mistral AI or `EXPO_PUBLIC_LLM_THIRD_PARTY_PROVIDER_NAME`, and transmitted fields), open Privacy Policy / Terms & Accessibility / Support links, sign out, or permanently delete the account (iOS: Settings → Delete my account → type account email to confirm; Android: Settings guides to the web deletion flow until story 10-6 native confirmation ships).
 
 Test account username: <demo_reviewer_email@pekulo.app>
 Test account password: <demo_reviewer_password_min_12_chars>

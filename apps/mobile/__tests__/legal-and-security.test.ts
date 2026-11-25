@@ -16,20 +16,37 @@ import { createChunkedSecureStorage, SECURE_STORE_OPTIONS } from "../lib/supabas
 //   explicit configuration error rather than silently entering preview mode,
 //   while end-to-end test preview builds continue to opt in explicitly.
 describe("legal links & mobile security hardening (story 10-7, AC-2, AC-4)", () => {
-  it("resolves legal URLs against EXPO_PUBLIC_WEB_BASE_URL with https://pekulo.app default", () => {
+  it("resolves legal URLs against valid HTTPS EXPO_PUBLIC_WEB_BASE_URL and rejects malformed inputs", () => {
     expect(getLegalUrl("/privacy", {})).toBe("https://pekulo.app/privacy");
     expect(getLegalUrl("/terms", { EXPO_PUBLIC_WEB_BASE_URL: "https://staging.pekulo.app/" })).toBe(
       "https://staging.pekulo.app/terms",
     );
-    expect(getLegalUrl("/support", { EXPO_PUBLIC_WEB_BASE_URL: "http://insecure.example" })).toBe(
-      "https://pekulo.app/support",
-    );
+    expect(
+      getLegalUrl("/support", { EXPO_PUBLIC_WEB_BASE_URL: "https://staging.pekulo.app/app/" }),
+    ).toBe("https://staging.pekulo.app/app/support");
+
+    for (const invalid of [
+      "http://insecure.example",
+      "https://",
+      "https:///",
+      "https://pekulo.app?foo=1",
+      "https://pekulo.app#frag",
+      "https://user:pass@evil.example",
+      "javascript:alert(1)",
+    ]) {
+      expect(getLegalUrl("/privacy", { EXPO_PUBLIC_WEB_BASE_URL: invalid })).toBe(
+        "https://pekulo.app/privacy",
+      );
+    }
   });
 
-  it("opens legal URLs via Linking.openURL", async () => {
-    const openSpy = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
-    await openLegalUrl("/privacy");
+  it("opens legal URLs via Linking.openURL and returns false without throwing on OS rejection", async () => {
+    const openSpy = jest.spyOn(Linking, "openURL").mockResolvedValueOnce(true);
+    expect(await openLegalUrl("/privacy")).toBe(true);
     expect(openSpy).toHaveBeenCalledWith("https://pekulo.app/privacy");
+
+    openSpy.mockRejectedValueOnce(new Error("no browser handler"));
+    expect(await openLegalUrl("/support")).toBe(false);
     openSpy.mockRestore();
   });
 

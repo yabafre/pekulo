@@ -43,7 +43,7 @@ gh workflow run agent-testers.yml \
   -f app_id=app.pekulo.mobile \
   -f ios_personas=clara,sven_fr,jonas_ipad,noah_pro \
   -f android_personas=none \
-  -f ios_build='curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && export PATH="$HOME/.bun/bin:$PATH" && DATABASE_URL="postgresql://stub:stub@localhost:5432/stub" bun install --frozen-lockfile && cd apps/mobile && EXPO_PUBLIC_ALLOW_PREVIEW=1 bunx expo prebuild --platform ios --non-interactive && xcodebuild -workspace ios/Pekulo.xcworkspace -scheme Pekulo -configuration Release -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO' \
+  -f ios_build='curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && export PATH="$HOME/.bun/bin:$PATH" && DATABASE_URL="postgresql://stub:stub@localhost:5432/stub" bun install --frozen-lockfile && cd apps/mobile && export EXPO_PUBLIC_ALLOW_PREVIEW=1 && bunx expo prebuild --platform ios --non-interactive && xcodebuild -workspace ios/Pekulo.xcworkspace -scheme Pekulo -configuration Release -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO' \
   -f ios_app_path='apps/mobile/ios/build/Build/Products/Release-iphonesimulator/Pekulo.app'
 ```
 
@@ -59,7 +59,7 @@ gh workflow run agent-testers.yml \
   -f app_id=app.pekulo.mobile \
   -f ios_personas=none \
   -f android_personas=anna_fr,grace_a11y,malik_dark,lucia_tab \
-  -f android_build='curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && export PATH="$HOME/.bun/bin:$PATH" && DATABASE_URL="postgresql://stub:stub@localhost:5432/stub" bun install --frozen-lockfile && cd apps/mobile && EXPO_PUBLIC_ALLOW_PREVIEW=1 bunx expo prebuild --platform android --non-interactive && cd android && ./gradlew assembleRelease' \
+  -f android_build='curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && export PATH="$HOME/.bun/bin:$PATH" && DATABASE_URL="postgresql://stub:stub@localhost:5432/stub" bun install --frozen-lockfile && cd apps/mobile && export EXPO_PUBLIC_ALLOW_PREVIEW=1 && bunx expo prebuild --platform android --non-interactive && cd android && ./gradlew assembleRelease' \
   -f apk_path='apps/mobile/android/app/build/outputs/apk/release/app-release.apk'
 ```
 

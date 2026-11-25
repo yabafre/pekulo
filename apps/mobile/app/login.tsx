@@ -203,6 +203,24 @@ export default function LoginScreen() {
             {t("auth.terms")}
           </Text>
         </Pressable>
+        <Pressable
+          testID="login-support-link"
+          accessibilityRole="link"
+          accessibilityLabel={t("auth.support")}
+          hitSlop={8}
+          onPress={() => {
+            void openLegalUrl("/support");
+          }}
+          style={({ pressed }) => ({
+            minHeight: 44,
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text color="$colorTertiary" fontSize="$xs" textDecorationLine="underline">
+            {t("auth.support")}
+          </Text>
+        </Pressable>
       </View>
     </ScreenShell>
   );

@@ -1,20 +1,29 @@
 // apps/mobile/lib/haptics.ts
 // Best-effort tactile feedback helpers (Apple HIG Accessibility). Never throws
-// on simulators, web, or devices without a haptic engine.
+// synchronously or asynchronously on simulators, web, or devices without a
+// haptic engine.
 import * as Haptics from "expo-haptics";
 
+function runSafeHaptic(trigger: () => Promise<void> | void): void {
+  try {
+    void Promise.resolve(trigger()).catch(() => {});
+  } catch {
+    // Non-throwing contract: ignore missing/unsupported haptic engines.
+  }
+}
+
 export function hapticSuccess(): void {
-  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  runSafeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
 }
 
 export function hapticError(): void {
-  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+  runSafeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));
 }
 
 export function hapticWarning(): void {
-  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+  runSafeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
 }
 
 export function hapticSelection(): void {
-  void Haptics.selectionAsync().catch(() => {});
+  runSafeHaptic(() => Haptics.selectionAsync());
 }

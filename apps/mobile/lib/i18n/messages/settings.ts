@@ -45,7 +45,7 @@ export const fr = {
     consentMessage:
       "Vos libellés de transaction, montants, devises et dates (sans identifiant personnel ni numéro de compte) seront envoyés à {provider} pour suggérer des catégories.",
     consentConfirm: "Autoriser",
-    defaultProvider: "le fournisseur IA configuré",
+    defaultProvider: "Mistral AI",
     enabled: "Modèles IA tiers activés",
     disabled: "Modèles IA tiers désactivés",
   },
@@ -124,7 +124,7 @@ export const en: Shape<typeof fr> = {
     consentMessage:
       "Transaction labels, amounts, currencies, and dates (zero personal identifiers or account numbers) will be sent to {provider} to suggest categories.",
     consentConfirm: "Allow",
-    defaultProvider: "the configured AI provider",
+    defaultProvider: "Mistral AI",
     enabled: "Third-party AI models enabled",
     disabled: "Third-party AI models disabled",
   },

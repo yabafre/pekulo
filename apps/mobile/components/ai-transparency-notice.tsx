@@ -24,6 +24,12 @@ export function AiTransparencyNotice() {
   const unseen = isAuthenticated && !isLoading && seen === false;
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setVisible(false);
+      suppressedRef.current = false;
+      markedRef.current = false;
+      return;
+    }
     if (!unseen) {
       if (seen === true) suppressedRef.current = false;
       markedRef.current = false;
@@ -36,7 +42,7 @@ export function AiTransparencyNotice() {
         markSeen();
       }
     }
-  }, [unseen, seen, visible, isMarking, markSeen]);
+  }, [isAuthenticated, unseen, seen, visible, isMarking, markSeen]);
 
   if (!visible) return null;
 
@@ -45,12 +51,20 @@ export function AiTransparencyNotice() {
       testID="ai-transparency-notice"
       accessibilityLabel={t("transactions.suggestions.aiNoticeAria")}
       backgroundColor="$backgroundMuted"
-      borderRadius="$lg"
+      borderRadius="$md"
+      marginBottom="$2"
       padding="$3"
       gap="$3"
+      style={{ borderCurve: "continuous" }}
     >
       <View flexDirection="row" alignItems="flex-start" gap="$2">
-        <Sparkles size={16} color={theme.colorSecondary.val} />
+        <Sparkles
+          size={14}
+          color={theme.colorSecondary.val}
+          style={{ marginTop: 2 }}
+          accessible={false}
+          importantForAccessibility="no"
+        />
         <Text color="$colorSecondary" fontSize="$xs" flex={1}>
           {t("transactions.suggestions.aiNoticeBody")}
         </Text>
@@ -59,6 +73,9 @@ export function AiTransparencyNotice() {
         <PekuloButton
           variant="ghost"
           size="sm"
+          style={{ minHeight: 44 }}
+          hitSlop={8}
+          accessibilityLabel={t("transactions.suggestions.aiNoticeDismissAria")}
           testID="ai-transparency-notice-dismiss"
           onPress={() => {
             setVisible(false);

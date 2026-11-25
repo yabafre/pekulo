@@ -31,11 +31,11 @@ iOS:
 ## What to Check in Pekulo
 
 1. **All 5 primary tabs:**
-   - **Cap** — net worth hero, Cap progress donut, milestones, accounts list, top Settings button, `+` action.
+   - **Cap** — net worth hero, Cap progress donut, milestones, top `Cap` / `Patrimoine` toggle (cash accounts live under `Patrimoine`), top Settings button, `+` action.
    - **Transactions** — search field, month stepper (`<` / `>`), monthly summary card, pending AI suggestions (and AI transparency notice when authenticated & unseen), recent transactions list, `+` transaction sheet.
    - **Mensuel** — monthly aggregates, net savings, sign-off state.
-   - **Portefeuille** — holdings list, unrealized P&L, `+` holding/lot sheet.
-   - **Immobilier** — properties list, net equity, mortgage/rental info, `+` property/valuation sheet.
+   - **Portefeuille** — holdings list, unrealized P&L, `+` holding sheet (tapping a holding opens actions to record a lot).
+   - **Immobilier** — properties list, net equity, mortgage/rental info, `+` property sheet (tapping a property opens actions to update valuation or manage mortgage/rental).
 2. **Form sheets & validation:**
    - Open at least one form sheet (`+` on Cap, Transactions, Portefeuille, or Immobilier) and test empty/invalid input, keyboard visibility (no button hidden behind keyboard), and Cancel/Close dismissal.
 3. **Settings (`Paramètres` / `Settings`):**

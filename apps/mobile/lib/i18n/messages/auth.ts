@@ -11,6 +11,7 @@ export const fr = {
   continuePreview: "Continuer en mode aperçu",
   privacyPolicy: "Politique de confidentialité",
   terms: "Conditions d’utilisation",
+  support: "Assistance",
   errors: {
     generic: "Impossible de se connecter.",
     emailInvalid: "Veuillez saisir une adresse e-mail valide.",
@@ -29,6 +30,7 @@ export const en: Shape<typeof fr> = {
   continuePreview: "Continue in preview mode",
   privacyPolicy: "Privacy Policy",
   terms: "Terms of Service",
+  support: "Support",
   errors: {
     generic: "Sign-in failed. Please try again.",
     emailInvalid: "Please enter a valid email address.",
