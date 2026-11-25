@@ -1335,7 +1335,7 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 #### Story 10-6-android-parity-and-maestro
 
-**Ticket:** none yet (create when the story is picked up)
+**Ticket:** [#162](https://github.com/yabafre/pekulo/issues/162)
 **Title:** Android build, native-surface adaptation, and Maestro E2E on an Android emulator
 
 **Depends on:** 10-5-mobile-parity-and-maestro
