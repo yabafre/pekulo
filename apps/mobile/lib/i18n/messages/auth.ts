@@ -9,6 +9,8 @@ export const fr = {
   passwordPlaceholder: "12 caractères minimum",
   submitting: "Connexion…",
   continuePreview: "Continuer en mode aperçu",
+  privacyPolicy: "Politique de confidentialité",
+  terms: "Conditions d’utilisation",
   errors: {
     generic: "Impossible de se connecter.",
     emailInvalid: "Veuillez saisir une adresse e-mail valide.",
@@ -25,6 +27,8 @@ export const en: Shape<typeof fr> = {
   passwordPlaceholder: "At least 12 characters",
   submitting: "Signing in…",
   continuePreview: "Continue in preview mode",
+  privacyPolicy: "Privacy Policy",
+  terms: "Terms of Service",
   errors: {
     generic: "Sign-in failed. Please try again.",
     emailInvalid: "Please enter a valid email address.",
