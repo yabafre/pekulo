@@ -40,6 +40,12 @@ jobs:
         with:
           device_name: pekulo-e2e
           system_image_package: system-images;android-35;default;x86_64
+          # Pixel 7-class screen (~411dp wide). The default AVD renders ~320dp
+          # at 1x, which truncates bottom-nav labels and yields unreadable goldens.
+          # Goldens are only valid for this exact image + screen.
+          lcd_width: 1080
+          lcd_height: 2400
+          lcd_density: 420
 
       - name: Run Maestro E2E suite (with 1 retry per flow)
         run: |

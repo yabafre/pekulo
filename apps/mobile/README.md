@@ -70,7 +70,7 @@ find /tmp/maestro-goldens -path '*/goldens/ios/*.png' -exec cp {} apps/mobile/.m
 
 ### Android (story 10-6)
 
-`e2e-android.yml` builds the `e2e-test` profile as an **APK** and runs `smoke`, `navigation`, `preview-guard` and the generated `ds-gallery-android` flow on an Android emulator (`linux-medium-nested-virtualization` worker, `eas/start_android_emulator`, `system-images;android-35;default;x86_64`). Android goldens live in `apps/mobile/.maestro/goldens/android/` and are only valid for that emulator image.
+`e2e-android.yml` builds the `e2e-test` profile as an **APK** and runs `smoke`, `navigation`, `preview-guard` and the generated `ds-gallery-android` flow on an Android emulator (`linux-medium-nested-virtualization` worker, `eas/start_android_emulator`, `system-images;android-35;default;x86_64`, 1080×2400 @ 420 ppi). Android goldens live in `apps/mobile/.maestro/goldens/android/` and are only valid for that emulator image and screen.
 
 ```bash
 # Run the Android E2E workflow manually
