@@ -65,14 +65,25 @@ export const GEIST_FACES = new Set([
   "GeistMono_700Bold",
 ]);
 
+// Icon glyphs, not text: on Android, expo-symbols' SymbolView (SearchField's
+// magnifier) renders a Material Symbols glyph as a <Text>.
+const ICON_FONT_PREFIXES = ["MaterialSymbols"];
+
+function isIconGlyph(fontFamily: unknown): boolean {
+  return (
+    typeof fontFamily === "string" &&
+    ICON_FONT_PREFIXES.some((prefix) => fontFamily.startsWith(prefix))
+  );
+}
+
 function collect(node: HostNode | HostNode[] | string | null, out: NativeFontRecord[]): void {
   if (node === null || typeof node === "string") return;
   if (Array.isArray(node)) {
     for (const child of node) collect(child, out);
     return;
   }
-  if (node.type === "Text" || node.type === "TextInput") {
-    const style = (StyleSheet.flatten(node.props.style as never) ?? {}) as Record<string, unknown>;
+  const style = (StyleSheet.flatten(node.props.style as never) ?? {}) as Record<string, unknown>;
+  if ((node.type === "Text" || node.type === "TextInput") && !isIconGlyph(style.fontFamily)) {
     out.push({
       type: node.type,
       testID: node.props.testID as string | undefined,
