@@ -22,6 +22,9 @@
       "ios": {
         "simulator": true
       },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_ALLOW_PREVIEW": "1",
         "EXPO_PUBLIC_DS_GALLERY": "1",

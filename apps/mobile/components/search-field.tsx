@@ -42,7 +42,7 @@ export function SearchField({
         style={{ borderCurve: "continuous" }}
       >
         <SymbolView
-          name="magnifyingglass"
+          name={{ ios: "magnifyingglass", android: "search" }}
           size={16}
           weight="medium"
           tintColor={theme.colorTertiary.val}

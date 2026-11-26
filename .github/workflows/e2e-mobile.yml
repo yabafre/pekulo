@@ -1,0 +1,335 @@
+# .github/workflows/e2e-mobile.yml — stories 10-5 (iOS) / 10-6 (Android), AC-8.
+# Maestro E2E for apps/mobile on GitHub-hosted runners (free: public repo).
+#   - one Release build per platform (iOS Simulator .app / x86_64 APK) handed to
+#     the test jobs as artifacts. iOS keys the native .app on the Expo native
+#     fingerprint: when native inputs did not change it only re-bundles the JS
+#     into the cached app; Android uses the Gradle cache;
+#   - core flows (smoke / navigation / preview-guard, + action-sheet-android on
+#     Android) on every mobile PR;
+#   - the 42-golden DS gallery only when the DS, the gallery route or the goldens
+#     change, split into 4 shards per platform (one job each, one retry per case).
+# Golden capture: add the `maestro:update-goldens` label to the PR and push (or
+# run it manually after merge); download the `goldens-*` artifacts into
+# apps/mobile/.maestro/goldens/<platform>/. Goldens are only valid for the pinned
+# runner image, Xcode, simulator and emulator below. Non-required check.
+name: e2e-mobile
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/ui/**"
+      - "packages/contracts/**"
+      - "packages/validators/**"
+      - "packages/types/**"
+      - "packages/zod/**"
+      - "bun.lock"
+      - ".github/workflows/e2e-mobile.yml"
+      - ".github/scripts/maestro-run.sh"
+      - ".github/actions/maestro-android/**"
+      - ".github/actions/maestro-ios/**"
+      - ".github/actions/setup-bun/**"
+  # Post-merge runs keep the native caches warm for the next PRs (core flows only).
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/ui/**"
+      - "packages/contracts/**"
+      - "packages/validators/**"
+      - "packages/types/**"
+      - "packages/zod/**"
+      - "bun.lock"
+      - ".github/workflows/e2e-mobile.yml"
+      - ".github/scripts/maestro-run.sh"
+      - ".github/actions/maestro-android/**"
+      - ".github/actions/maestro-ios/**"
+      - ".github/actions/setup-bun/**"
+  workflow_dispatch:
+    inputs:
+      update_goldens:
+        description: "Capture the DS goldens instead of asserting them"
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-mobile-${{ github.ref }}
+  # Only superseded PR pushes are cancelled: main runs warm the native caches
+  # and a dispatch may be capturing goldens.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  # Same stubs as pr.yml (Prisma postinstall) + the e2e-test build flags.
+  DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"
+  EXPO_PUBLIC_ALLOW_PREVIEW: "1"
+  EXPO_PUBLIC_DS_GALLERY: "1"
+  EXPO_NO_TELEMETRY: "1"
+  MAESTRO_VERSION: "2.12.1"
+  # The XCTest driver needs ~1.5–2 min on a freshly booted CI simulator; the
+  # default startup timeout tripped on the first run (IOSDriverTimeoutException).
+  MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
+  # Pinned so the goldens stay valid — bump together with a golden recapture.
+  XCODE_APP: /Applications/Xcode_26.6.app
+  IOS_SIMULATOR: "iPhone 17 Pro"
+  IOS_RUNTIME: "iOS 26.5"
+  ANDROID_API: "35"
+
+jobs:
+  changes:
+    name: Detect gallery changes
+    runs-on: ubuntu-24.04
+    outputs:
+      gallery: ${{ steps.mode.outputs.gallery }}
+      update_goldens: ${{ steps.mode.outputs.update_goldens }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            gallery:
+              - "packages/ui/**"
+              - "apps/mobile/app/ds/**"
+              - "apps/mobile/lib/ds-gallery*.ts"
+              - "apps/mobile/.maestro/goldens/**"
+              - "apps/mobile/.maestro/gallery/**"
+              - "apps/mobile/app/_layout.tsx"
+              - "bun.lock"
+              - ".github/workflows/e2e-mobile.yml"
+              - ".github/scripts/maestro-run.sh"
+              - ".github/actions/maestro-android/**"
+              - ".github/actions/maestro-ios/**"
+      - id: mode
+        env:
+          FILTER_GALLERY: ${{ steps.filter.outputs.gallery }}
+          DISPATCH_UPDATE: ${{ inputs.update_goldens }}
+          LABEL_UPDATE: ${{ contains(github.event.pull_request.labels.*.name, 'maestro:update-goldens') }}
+        run: |
+          update=false
+          if [ "$DISPATCH_UPDATE" = "true" ] || [ "$LABEL_UPDATE" = "true" ]; then update=true; fi
+          gallery=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$FILTER_GALLERY" = "true" ] || [ "$update" = "true" ]; then gallery=true; fi
+          echo "gallery=$gallery" >> "$GITHUB_OUTPUT"
+          echo "update_goldens=$update" >> "$GITHUB_OUTPUT"
+          echo "gallery=$gallery update_goldens=$update"
+
+  build-ios:
+    name: Build iOS Simulator app
+    needs: changes
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-bun
+      - name: Native fingerprint
+        id: fingerprint
+        working-directory: apps/mobile
+        run: |
+          hash="$(node -e "
+            const fp = require(require.resolve('@expo/fingerprint', { paths: [require.resolve('expo/package.json')] }));
+            fp.createFingerprintAsync('.', { platforms: ['ios'] }).then((f) => console.log(f.hash));
+          ")"
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          echo "iOS native fingerprint: $hash"
+      - name: Restore the native app
+        id: native
+        uses: actions/cache@v4
+        with:
+          path: native-ios
+          key: ios-native-xcode26.6-${{ steps.fingerprint.outputs.hash }}
+      - name: Generate the iOS project
+        if: steps.native.outputs.cache-hit != 'true'
+        working-directory: apps/mobile
+        run: bunx expo prebuild --platform ios --no-install
+      - name: Restore CocoaPods
+        if: steps.native.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/mobile/ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: pods-xcode26.6-${{ hashFiles('bun.lock', 'apps/mobile/app.json') }}
+      - name: pod install
+        if: steps.native.outputs.cache-hit != 'true'
+        working-directory: apps/mobile/ios
+        run: pod install
+      - name: xcodebuild (Release, simulator)
+        if: steps.native.outputs.cache-hit != 'true'
+        working-directory: apps/mobile/ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace Pekulo.xcworkspace \
+            -scheme Pekulo \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO \
+            build | xcbeautify --quieter
+          mkdir -p ../../../native-ios
+          cp -R build/Build/Products/Release-iphonesimulator/Pekulo.app ../../../native-ios/
+      - name: Re-bundle the JS into the cached app
+        if: steps.native.outputs.cache-hit == 'true'
+        working-directory: apps/mobile
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/native-ios/Pekulo.app"
+          entry="$(node -e "require('expo/scripts/resolveAppEntry')" "$PWD" ios absolute | tail -n 1)"
+          # Plain JS (Hermes runs it as is): same rendering, no bytecode-version coupling.
+          bunx expo export:embed --platform ios --dev false --reset-cache \
+            --entry-file "$entry" \
+            --bundle-output "$app/main.jsbundle" \
+            --assets-dest "$app"
+      - name: Package the app
+        run: tar -czf pekulo-ios.tgz -C native-ios Pekulo.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pekulo-ios-app
+          path: pekulo-ios.tgz
+          retention-days: 3
+
+  build-android:
+    name: Build Android APK
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-bun
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
+      - name: Generate the Android project
+        working-directory: apps/mobile
+        run: bunx expo prebuild --platform android --no-install
+      - name: assembleRelease (x86_64 only)
+        working-directory: apps/mobile/android
+        run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=x86_64 --build-cache
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pekulo-android-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 3
+
+  ios-core:
+    name: iOS — smoke / navigation / preview-guard
+    needs: build-ios
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/maestro-ios
+      - name: Run core flows (one retry of the batch)
+        run: |
+          bash .github/scripts/maestro-run.sh ios "$SIMULATOR_UDID" 1 \
+            apps/mobile/.maestro/flows/smoke.yaml \
+            apps/mobile/.maestro/flows/navigation.yaml \
+            apps/mobile/.maestro/flows/preview-guard.yaml
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-ios-core
+          path: maestro-results
+          if-no-files-found: ignore
+
+  ios-gallery:
+    name: iOS — DS gallery shard ${{ matrix.shard }}
+    needs: [changes, build-ios]
+    if: needs.changes.outputs.gallery == 'true'
+    runs-on: macos-26
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      UPDATE_GOLDENS: ${{ needs.changes.outputs.update_goldens }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/maestro-ios
+      # Per-case `retry` covers screenshot flakes; the shard-level retry covers the
+      # XCTest driver dying on these slow simulators ("Timed out while evaluating
+      # UI query" on the status bar), which aborts the whole maestro run.
+      - name: Run gallery shard (one retry per golden case, one per driver crash)
+        run: |
+          bash .github/scripts/maestro-run.sh ios "$SIMULATOR_UDID" 1 \
+            "apps/mobile/.maestro/gallery/ios/shard-${{ matrix.shard }}.yaml"
+      - uses: actions/upload-artifact@v4
+        if: env.UPDATE_GOLDENS == 'true'
+        with:
+          name: goldens-ios-shard-${{ matrix.shard }}
+          path: maestro-goldens/*.png
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-ios-gallery-${{ matrix.shard }}
+          path: maestro-results
+          if-no-files-found: ignore
+
+  android-core:
+    name: Android — smoke / navigation / preview-guard / action sheet
+    needs: build-android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/maestro-android
+        with:
+          flow-retry: "1"
+          flows: >-
+            apps/mobile/.maestro/flows/smoke.yaml
+            apps/mobile/.maestro/flows/navigation.yaml
+            apps/mobile/.maestro/flows/preview-guard.yaml
+            apps/mobile/.maestro/flows/action-sheet-android.yaml
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-android-core
+          path: maestro-results
+          if-no-files-found: ignore
+
+  android-gallery:
+    name: Android — DS gallery shard ${{ matrix.shard }}
+    needs: [changes, build-android]
+    if: needs.changes.outputs.gallery == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      UPDATE_GOLDENS: ${{ needs.changes.outputs.update_goldens }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/maestro-android
+        with:
+          flow-retry: "0"
+          flows: apps/mobile/.maestro/gallery/android/shard-${{ matrix.shard }}.yaml
+      - uses: actions/upload-artifact@v4
+        if: env.UPDATE_GOLDENS == 'true'
+        with:
+          name: goldens-android-shard-${{ matrix.shard }}
+          path: maestro-goldens/*.png
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-android-gallery-${{ matrix.shard }}
+          path: maestro-results
+          if-no-files-found: ignore

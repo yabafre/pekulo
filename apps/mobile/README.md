@@ -40,33 +40,33 @@ bun --filter='@pekulo/mobile' run lint
 cd apps/mobile && bunx jest __tests__/ds-token-parity.test.tsx
 ```
 
-## E2E — Maestro on EAS Workflows (story 10-5)
+## E2E — Maestro on GitHub Actions (stories 10-5 iOS, 10-6 Android)
 
-Flows live in `apps/mobile/.maestro/flows/`: `smoke`, `navigation`, `preview-guard`, and the generated `ds-gallery` (one iOS screenshot golden per `@pekulo/ui` component, rendered by the flag-gated route `app/ds/[case].tsx`). They run against the `e2e-test` profile: an iOS Simulator build in preview mode (no backend), DS gallery on.
+`.github/workflows/e2e-mobile.yml` runs on PRs to `main` touching `apps/mobile`, `packages/{ui,contracts,validators,types,zod}` or `bun.lock`, or the workflow and its `.github/{actions,scripts}` (non-required check; a newer push cancels a superseded PR run, never a `main` run):
+
+- **Builds once per platform** — iOS Simulator `.app` (`macos-26`, Xcode 26.6, Release, arm64) cached under the Expo native fingerprint (`@expo/fingerprint`): when native inputs are unchanged the job only re-bundles the JS (`expo export:embed`) into the cached app; otherwise prebuild + CocoaPods (cached) + `xcodebuild`. Android builds an x86_64 release APK (`ubuntu-24.04`, Gradle cache). Both run in preview mode with the DS gallery on (`EXPO_PUBLIC_DS_GALLERY=1`, `EXPO_PUBLIC_ALLOW_PREVIEW=1`). Pushes to `main` run the core flows too, which keeps those caches warm for the next PRs.
+- **Core flows on every mobile PR** — `.maestro/flows/{smoke,navigation,preview-guard}.yaml` on an iPhone 17 Pro (iOS 26.5) simulator and an API 35 Pixel 7 emulator (1080×2400 @ 420, cached AVD snapshot), plus `action-sheet-android.yaml` on Android (the DS action sheet above a form sheet: 17-option scroll, hardware back, pick), one retry per flow. `maestro-run.sh` fails fast when the installed Maestro CLI is not `MAESTRO_VERSION`.
+- **DS gallery only when it can change** — the 42 screenshot goldens run when the PR touches `packages/ui/**`, `apps/mobile/app/ds/**`, `apps/mobile/lib/ds-gallery*.ts`, `apps/mobile/.maestro/{gallery,goldens}/**`, `apps/mobile/app/_layout.tsx`, `bun.lock` or the E2E workflow, its Maestro actions and script. They are split into 4 shards per platform (`.maestro/gallery/<platform>/shard-<n>.yaml`, one job each) and every golden case retries itself once (Maestro `retry`), so one flake costs one case, not the whole gallery (an iOS shard is rerun once only if the Maestro XCTest driver itself crashes). A shard opens a single deep link, then steps through its cases with the in-app `ds-next` button of `app/ds/[case].tsx` (each iOS `simctl openurl` raises an "Open in Pekulo?" prompt and is slow).
+
+Goldens (`.maestro/goldens/{ios,android}/`) are only valid for the pinned runner image, Xcode, simulator and emulator in the workflow — bump those together with a recapture.
 
 ```bash
-# CI: runs automatically on PRs to main touching apps/mobile or packages/{ui,contracts,validators,types}
-# (apps/mobile/.eas/workflows/e2e-ios.yml — non-required check).
+# Regenerate the gallery shards after adding/removing a parity case
+cd apps/mobile && UPDATE_DS_FLOW=1 bunx jest --selectProjects ios __tests__/maestro-ds-gallery-flow.test.ts
 
-# Run the E2E workflow manually
-cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios.yml
+# Recapture goldens after an INTENTIONAL visual change: add the `maestro:update-goldens`
+# label to the PR and push (or, once merged, run the workflow manually with update_goldens),
+# then download the goldens-<platform>-shard-* artifacts into .maestro/goldens/<platform>/.
+gh run download <run-id> --pattern 'goldens-ios-shard-*' --dir /tmp/goldens-ios
+gh run download <run-id> --pattern 'goldens-android-shard-*' --dir /tmp/goldens-android
 
-# Regenerate the ds-gallery flow after adding/removing a parity case
-cd apps/mobile && UPDATE_DS_FLOW=1 bunx jest __tests__/maestro-ds-gallery-flow.test.ts
-
-# Refresh the iOS goldens after an INTENTIONAL visual change (EAS Workflows — custom macos-medium job, Free-plan compatible)
-cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-ios-update-goldens.yml
-# then download the "ios-ds-goldens" artifact from the run page and copy
-# its *.png files into apps/mobile/.maestro/goldens/ios/, review, commit.
-
-# Local Release Simulator build + Maestro run
+# Local runs (core flows only: the gallery lives outside .maestro/flows)
 cd apps/mobile && EXPO_PUBLIC_DS_GALLERY=1 bunx expo run:ios --configuration Release --no-bundler
 maestro test apps/mobile/.maestro
-
-# Local golden regeneration (captures 42 cropped PNGs then copies them into apps/mobile/.maestro/goldens/ios/)
-maestro test -e MAESTRO_UPDATE_GOLDENS=true --test-output-dir /tmp/maestro-goldens apps/mobile/.maestro/flows/ds-gallery.yaml
-find /tmp/maestro-goldens -path '*/goldens/ios/*.png' -exec cp {} apps/mobile/.maestro/goldens/ios/ \;
+maestro test apps/mobile/.maestro/gallery/ios/shard-1.yaml   # one gallery shard
 ```
+
+Android-specific surfaces (all covered by the `android` Jest project, `__tests__/android/`): tab header buttons through `headerRight` (`Stack.Toolbar` needs `@expo/ui` on Android), headerless form sheets with an in-content header row, row action menus in the DS `ActionSheetHost`, and account deletion in `sheets/delete-account` (no `Alert.prompt` on Android).
 
 ## Pre-Submission Compliance & Mobile Agent Testers (story 10-7)
 

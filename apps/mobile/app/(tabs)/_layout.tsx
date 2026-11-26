@@ -7,6 +7,7 @@
 //   Cap header.
 import { pekuloColors, useThemeSetting } from "@pekulo/ui";
 import { NativeTabs } from "expo-router/native-tabs";
+import { Platform } from "react-native";
 
 import { useI18n } from "../../lib/i18n";
 
@@ -16,6 +17,19 @@ export default function TabsLayout() {
   const { resolvedTheme } = useThemeSetting();
   const { t } = useI18n();
   const palette = resolvedTheme === "pekulo-light" ? pekuloColors.light : pekuloColors.dark;
+  // Story 10-6 AC-5 — Material bottom navigation hides unselected labels past
+  // three items by default ("auto"); keep all five visible like iOS (and so
+  // Maestro can tap them by text). `backgroundColor` also applies on iOS, where
+  // it would kill the Liquid Glass bar — so these props are Android-only.
+  const androidChrome =
+    Platform.OS === "android"
+      ? {
+          labelVisibilityMode: "labeled" as const,
+          backgroundColor: palette.surface.bg,
+          indicatorColor: palette.surface.muted,
+          rippleColor: palette.surface.muted,
+        }
+      : {};
 
   return (
     <NativeTabs
@@ -23,6 +37,7 @@ export default function TabsLayout() {
       tintColor={palette.text.primary}
       iconColor={palette.text.secondary}
       labelStyle={{ color: palette.text.secondary }}
+      {...androidChrome}
     >
       {/* Icon + title, as Apple's HIG recommends for tab bars; SF Symbols are
           sized by UIKit to the HIG glyph targets. Outline at rest, filled

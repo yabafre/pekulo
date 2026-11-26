@@ -1329,13 +1329,13 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-56 (parity verification & Maestro CI)
 **Complexity:** M
 
-> **Realized scope (2026-11-22, step-04, user-approved) — supersedes the title and summary above without deleting them.** The 10-1 web snapshots are DOM/atomic-class inline snapshots, not images, so "pixel-diff against the 10-1 snapshots" is implemented as a hybrid: (1) a deterministic web ↔ native **text-style token-parity gate** — `@pekulo/ui/parity` catalog covering all 42 components, web baseline `packages/ui/src/parity/__baseline__/web-text-styles.json` (vitest), native comparison `apps/mobile/__tests__/ds-token-parity.test.tsx` (Jest); (2) **iOS screenshot goldens** of every component from a flag-gated in-app DS gallery (`pekulo://ds/<case>`), asserted by Maestro. The Maestro suite (`smoke`, `navigation`, `preview-guard`, `ds-gallery`) runs on **EAS Workflows** via a custom `runs_on: macos-medium` job (Free-plan compatible, non-required check) against an iOS Simulator build in preview mode, on PRs to `main` touching mobile-relevant paths. **iOS only** — Android moves to `10-6`. Primitives parity is a follow-up.
+> **Realized scope (2026-11-22, step-04, user-approved) — supersedes the title and summary above without deleting them.** The 10-1 web snapshots are DOM/atomic-class inline snapshots, not images, so "pixel-diff against the 10-1 snapshots" is implemented as a hybrid: (1) a deterministic web ↔ native **text-style token-parity gate** — `@pekulo/ui/parity` catalog covering all 42 components, web baseline `packages/ui/src/parity/__baseline__/web-text-styles.json` (vitest), native comparison `apps/mobile/__tests__/ds-token-parity.test.tsx` (Jest); (2) **iOS screenshot goldens** of every component from a flag-gated in-app DS gallery (`pekulo://ds/<case>`), asserted by Maestro. The Maestro suite (`smoke`, `navigation`, `preview-guard`, `ds-gallery`) runs on **EAS Workflows** via a custom `runs_on: macos-medium` job (Free-plan compatible, non-required check) against an iOS Simulator build in preview mode, on PRs to `main` touching mobile-relevant paths. **iOS only** — Android moves to `10-6`. Primitives parity is a follow-up. _(Superseded by 10-6, 2026-11-26: the EAS iOS workflows were replaced by `.github/workflows/e2e-mobile.yml` on GitHub Actions and the single `ds-gallery.yaml` by generated per-platform shards — see the 10-6 realized scope below.)_
 
 **Complexity:** L (re-estimated from M)
 
 #### Story 10-6-android-parity-and-maestro
 
-**Ticket:** none yet (create when the story is picked up)
+**Ticket:** [#162](https://github.com/yabafre/pekulo/issues/162)
 **Title:** Android build, native-surface adaptation, and Maestro E2E on an Android emulator
 
 **Depends on:** 10-5-mobile-parity-and-maestro
@@ -1346,6 +1346,10 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 
 **Covered FRs:** FR-56 (Android parity)
 **Complexity:** M
+
+> **Realized scope (2026-11-24, step-04, user-approved) — supersedes the summary above without deleting it.** The Android audit found `Stack.Toolbar` throws on Android without `@expo/ui` (tabs, Paramètres, all form sheets), `Alert.alert` caps menus at 3 buttons, and `Alert.prompt` is iOS-only. Delivered: platform-split headers (`headerRight` tabs, in-content sheet header, headerless sheets with `sheetElevation: 0`), a DS `ActionSheetHost` (`PekuloDrawer`) for Android menus, an Android-only `sheets/delete-account` typed-email sheet sharing `isDeletionEmailConfirmed` with iOS, Material Symbol names for every `SymbolView` (meta-test), labelled grayscale Android tab bar, a Jest `android` project (`jest-expo/android`), the `e2e-test` APK and 42 Android goldens. Mid-story (user request, 2026-11-26) the Maestro E2E moved from EAS Workflows to GitHub Actions (`.github/workflows/e2e-mobile.yml`: iOS on `macos-26`, Android on `ubuntu-24.04`, iOS native build cached under `@expo/fingerprint`, DS gallery gated on DS/gallery/golden paths and split into 4 shards per platform with a per-case Maestro `retry`). iOS app behaviour unchanged.
+
+**Complexity:** L (re-estimated from M)
 
 #### Story 10-7-store-compliance-and-agent-testers
 

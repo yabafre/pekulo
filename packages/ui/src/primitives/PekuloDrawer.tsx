@@ -151,6 +151,17 @@ function Footer(props: ComponentProps<"div">) {
   return <div data-slot="drawer-footer" className="pekulo-drawer-footer" {...props} />;
 }
 
+/** Scrollable body for long content (native counterpart: `Sheet.ScrollView`). */
+function ScrollView({ style, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="drawer-scroll"
+      style={{ overflowY: "auto", minHeight: 0, flex: "1 1 auto", ...style }}
+      {...props}
+    />
+  );
+}
+
 function Title(props: ComponentProps<typeof VaulDrawer.Title>) {
   return <VaulDrawer.Title data-slot="drawer-title" className="pekulo-drawer-title" {...props} />;
 }
@@ -173,6 +184,7 @@ export const PekuloDrawer = Object.assign(Root, {
   Content,
   Header,
   Footer,
+  ScrollView,
   Title,
   Description,
 });

@@ -61,9 +61,11 @@ export const fr = {
     title: "Supprimer mon compte ?",
     message: "Toutes vos données seront définitivement effacées. Saisissez {email} pour confirmer.",
     yourEmail: "votre e-mail",
-    webOnly: "Supprimez votre compte depuis l’espace web Pekulo.",
+    emailLabel: "E-mail du compte",
     wrongEmailTitle: "E-mail incorrect",
     wrongEmailMessage: "Saisissez exactement l’adresse e-mail de votre compte.",
+    emailUnavailable:
+      "L’adresse e-mail de votre compte est introuvable. Reconnectez-vous puis réessayez.",
     done: "Compte supprimé",
   },
   compass: {
@@ -140,9 +142,10 @@ export const en: Shape<typeof fr> = {
     title: "Delete my account?",
     message: "All of your data will be permanently erased. Type {email} to confirm.",
     yourEmail: "your email",
-    webOnly: "Delete your account from the Pekulo web app.",
+    emailLabel: "Account email",
     wrongEmailTitle: "Incorrect email",
     wrongEmailMessage: "Type your account’s email address exactly.",
+    emailUnavailable: "Your account’s email address is unavailable. Sign in again, then retry.",
     done: "Account deleted",
   },
   compass: {

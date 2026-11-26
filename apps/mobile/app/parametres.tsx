@@ -1,9 +1,11 @@
 // apps/mobile/app/parametres.tsx
-// Mobile Paramètres native iOS form sheet: omits duplicate inline header title
-// (owned by native Stack formSheet header), gives account identity + auth CTA
-// spacious vertical layout for 375pt iPhones, prompts a native iOS destructive
-// confirmation alert before sign-out, and syncs theme & language with
-// `useThemeSetting()` and `settingsClient`.
+// Mobile Paramètres form sheet: on iOS the native Stack formSheet header owns
+// the title and the Fermer toolbar item; on Android (story 10-6 AC-2) the sheet
+// is headerless, so the title renders in-content and the system back action
+// closes it. Gives account identity + auth CTA spacious vertical layout,
+// prompts a destructive confirmation before sign-out, routes account deletion
+// to `Alert.prompt` (iOS) or the `sheets/delete-account` sheet (Android,
+// AC-4), and syncs theme & language with `useThemeSetting()` and `settingsClient`.
 
 import {
   PekuloButton,
@@ -30,6 +32,7 @@ import { formatCompactEur } from "../lib/format";
 import { hapticWarning } from "../lib/haptics";
 import { useDeleteUserAccount, useLlmOptIn } from "../lib/hooks/use-mobile-mutations";
 import { useMobileCompassData, useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
+import { isDeletionEmailConfirmed } from "../lib/account-deletion";
 import { useI18n } from "../lib/i18n";
 import { openLegalUrl } from "../lib/legal";
 
@@ -87,41 +90,42 @@ export default function ParametresScreen() {
   }
 
   function confirmAccountDeletion(typed: string | undefined) {
-    const expected = (userEmail ?? "").trim().toLowerCase();
-    if (!typed || typed.trim().toLowerCase() !== expected) {
+    if (!isDeletionEmailConfirmed(typed, userEmail)) {
       Alert.alert(t("settings.deletion.wrongEmailTitle"), t("settings.deletion.wrongEmailMessage"));
       return;
     }
+    const confirmationEmail = (typed ?? "").trim();
     void run(async () => {
-      await deleteAccount.mutateAsync({ confirmationEmail: typed.trim() });
+      await deleteAccount.mutateAsync({ confirmationEmail });
       router.replace("/login");
     }, t("settings.deletion.done"));
   }
 
   function handleDeleteAccount() {
     hapticWarning();
+    if (Platform.OS !== "ios") {
+      // `Alert.prompt` is iOS-only: Android types the email in a sheet (AC-4).
+      router.push("/sheets/delete-account");
+      return;
+    }
     const message = t("settings.deletion.message", {
       email: userEmail ?? t("settings.deletion.yourEmail"),
     });
-    if (Platform.OS === "ios") {
-      Alert.prompt(
-        t("settings.deletion.title"),
-        message,
-        [
-          { text: t("common.actions.cancel"), style: "cancel" },
-          {
-            text: t("common.actions.delete"),
-            style: "destructive",
-            onPress: confirmAccountDeletion,
-          },
-        ],
-        "plain-text",
-        "",
-        "email-address",
-      );
-      return;
-    }
-    Alert.alert(t("settings.deletion.title"), t("settings.deletion.webOnly"));
+    Alert.prompt(
+      t("settings.deletion.title"),
+      message,
+      [
+        { text: t("common.actions.cancel"), style: "cancel" },
+        {
+          text: t("common.actions.delete"),
+          style: "destructive",
+          onPress: confirmAccountDeletion,
+        },
+      ],
+      "plain-text",
+      "",
+      "email-address",
+    );
   }
 
   const initial = (userEmail?.trim().charAt(0) || "A").toUpperCase();
@@ -166,19 +170,23 @@ export default function ParametresScreen() {
     ]);
   }
 
+  const isAndroid = Platform.OS === "android";
+
   return (
-    <ScreenShell>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button
-          accessibilityLabel={t("common.actions.closeSettings")}
-          onPress={() => {
-            if (router.canGoBack()) router.back();
-            else router.replace("/");
-          }}
-        >
-          {t("common.actions.close")}
-        </Stack.Toolbar.Button>
-      </Stack.Toolbar>
+    <ScreenShell title={isAndroid ? t("settings.title") : undefined}>
+      {isAndroid ? null : (
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            accessibilityLabel={t("common.actions.closeSettings")}
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace("/");
+            }}
+          >
+            {t("common.actions.close")}
+          </Stack.Toolbar.Button>
+        </Stack.Toolbar>
+      )}
       <Section title={t("settings.account.title")} ariaLabel={t("settings.account.aria")}>
         <View gap="$4">
           <View flexDirection="row" alignItems="center" gap="$3">
@@ -282,7 +290,7 @@ export default function ParametresScreen() {
               </Text>
             </View>
             <SymbolView
-              name="chevron.right"
+              name={{ ios: "chevron.right", android: "chevron_right" }}
               size={14}
               weight="semibold"
               tintColor={theme.colorTertiary.val}
@@ -354,7 +362,7 @@ export default function ParametresScreen() {
                   {item.label}
                 </Text>
                 <SymbolView
-                  name="chevron.right"
+                  name={{ ios: "chevron.right", android: "chevron_right" }}
                   size={14}
                   weight="semibold"
                   tintColor={theme.colorTertiary.val}

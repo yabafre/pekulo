@@ -9,19 +9,22 @@
 //   flag is not `1` or the case id is unknown, the app returns to its home
 //   screen instead.
 import { PekuloRootProvider, pekuloColors } from "@pekulo/ui";
-import { render, screen } from "@testing-library/react-native";
+import { PARITY_CASES } from "@pekulo/ui/parity";
+import { fireEvent, render, screen, within } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 
 import DsGalleryCaseScreen from "../app/ds/[case]";
 import { isDsGalleryEnabled, resolveGalleryTheme } from "../lib/ds-gallery";
 
 const mockParams: { case?: string | string[]; theme?: string | string[] } = {};
+const mockSetParams = jest.fn();
 
 jest.mock("expo-router", () => {
   const { createElement } = require("react") as typeof import("react");
   const { Text } = require("react-native") as typeof import("react-native");
   return {
     useLocalSearchParams: () => mockParams,
+    useRouter: () => ({ setParams: mockSetParams }),
     Redirect: ({ href }: { href: string }) => createElement(Text, null, `redirect:${href}`),
   };
 });
@@ -37,6 +40,7 @@ async function renderScreen(): Promise<void> {
 }
 
 beforeEach(() => {
+  mockSetParams.mockClear();
   mockParams.case = undefined;
   mockParams.theme = undefined;
   process.env.EXPO_PUBLIC_DS_GALLERY = "1";
@@ -100,5 +104,30 @@ describe("DS gallery route (story 10-5, AC-4)", () => {
     expect(resolveGalleryTheme("pekulo-dark")).toBe("pekulo-dark");
     expect(resolveGalleryTheme(undefined)).toBe("pekulo-dark");
     expect(resolveGalleryTheme(["pekulo-light"])).toBe("pekulo-dark");
+  });
+});
+
+// Story 10-6 AC-7/AC-8 — the gallery shards step through their golden cases in
+// the app (one deep link per shard): every iOS `simctl openurl` raises the
+// "Open in Pekulo?" prompt and timed out on GitHub's macos-26 runners.
+describe("DS gallery in-app stepping (story 10-6)", () => {
+  const goldenIds = PARITY_CASES.filter((c) => c.golden).map((c) => c.id);
+
+  it("advances to the next golden case in place, outside the captured container", async () => {
+    mockParams.case = goldenIds[0];
+    await renderScreen();
+    const container = screen.getByTestId(`ds-case-${goldenIds[0]}`);
+    expect(within(container).queryByTestId("ds-next")).toBeNull();
+    // Inside the scroll content, right under the case: a footer pinned to the
+    // screen bottom sat under the Android taskbar, where Maestro cannot see it.
+    expect(within(screen.getByTestId("ds-scroll")).getByTestId("ds-next")).toBeTruthy();
+    await fireEvent.press(screen.getByTestId("ds-next"));
+    expect(mockSetParams).toHaveBeenCalledWith({ case: goldenIds[1] });
+  });
+
+  it("has no next step on the last golden case", async () => {
+    mockParams.case = goldenIds[goldenIds.length - 1];
+    await renderScreen();
+    expect(screen.queryByTestId("ds-next")).toBeNull();
   });
 });

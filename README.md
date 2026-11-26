@@ -11,7 +11,7 @@ Goal-based personal finance application — compass & milestones, accounts, mult
 - **Monorepo** — Bun (`bun@1.3.14`) + Turborepo, 4 apps and 8 `@pekulo/*` packages
 - **Web (`apps/web`)** — Next.js 16 (App Router, Turbopack) + React 19 + `@pekulo/ui` (Tamagui Core v2) + TanStack Form + React Query via ZapAction + encrypted IndexedDB offline PWA cache
 - **Domain API (`apps/api`)** — Bun + ElysiaJS + contract-first oRPC (`/rpc/v1/*`) + Prisma 7 (`prismaSchemaFolder`, prefixed IDs) + OpenTelemetry + GlitchTip
-- **Mobile (`apps/mobile`)** — Expo SDK 58 + `expo-router` + `@pekulo/ui` native surface + Supabase Auth (`expo-secure-store`) + `@pekulo/contracts` oRPC + Maestro E2E on EAS Workflows
+- **Mobile (`apps/mobile`)** — Expo SDK 58 + `expo-router` + `@pekulo/ui` native surface + Supabase Auth (`expo-secure-store`) + `@pekulo/contracts` oRPC + Maestro E2E on GitHub Actions
 - **Data & Auth** — Supabase (Postgres + Auth + RLS on every table, defense-in-depth `userId` lint guard)
 - **Prices (`apps/prices`)** — 4-tier fallback chain: `apps/prices` (FastAPI + `yfinance` + `curl_cffi`) → `yahoo-finance2` → Boursorama → Twelve Data (60 s cache), plus ECB FX via `frankfurter.app`
 - **AI categorisation** — hybrid routing (Apple FoundationModels / self-hosted Ollama / opt-in EU third-party LLM) with append-only audit log (`llm_call_log`)
@@ -24,7 +24,7 @@ Goal-based personal finance application — compass & milestones, accounts, mult
 ├── apps/
 │   ├── web/                 # Next.js 16 PWA — dashboard, auth, offline cache (Vercel)
 │   ├── api/                 # Bun + ElysiaJS + oRPC + Prisma 7 domain API (Dokploy)
-│   ├── mobile/              # Expo SDK 58 iOS app + Maestro E2E + EAS Workflows
+│   ├── mobile/              # Expo SDK 58 iOS/Android app + Maestro E2E
 │   └── prices/              # FastAPI + yfinance — real-time quote sidecar (Dokploy)
 ├── packages/
 │   ├── ui/                  # @pekulo/ui — Tamagui v2 Design System (web + native + parity gate)
@@ -75,7 +75,7 @@ bun run dev:mobile       # Metro bundler for Dev Client
 bun run dev:prices       # FastAPI quote sidecar on :8000
 ```
 
-See [apps/mobile/README.md](apps/mobile/README.md) for mobile development, the web ↔ native token-parity gate, and Maestro / EAS Workflows commands.
+See [apps/mobile/README.md](apps/mobile/README.md) for mobile development, the web ↔ native token-parity gate, and Maestro E2E (GitHub Actions) commands.
 
 ### Python prices service (optional, local)
 
@@ -156,7 +156,7 @@ fetchPriceQuote({ ticker, currency, kind })
 
 - **`apps/web`** — Vercel (Next.js App Router, auto-deploy from `main`).
 - **`apps/api` + `apps/prices` + Ollama** — Dokploy VPS behind Caddy reverse proxy (`prisma migrate deploy` on deploy).
-- **`apps/mobile`** — EAS Build & EAS Workflows (`apps/mobile/eas.json`, `apps/mobile/.eas/workflows/`).
+- **`apps/mobile`** — EAS Build (`apps/mobile/eas.json`); Maestro E2E on GitHub Actions (`.github/workflows/e2e-mobile.yml`).
 
 ## License
 

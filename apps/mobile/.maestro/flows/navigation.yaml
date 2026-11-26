@@ -1,6 +1,7 @@
-# Story 10-5 AC-5 — Paramètres opens from the Cap header and closes.
+# Story 10-5 AC-5 / story 10-6 AC-7 — Paramètres opens from the Cap header and closes.
 # Targets the in-content settings button by testID (never a top-right
 # coordinate tap: the Expo dev-tools button sits there in Dev Client builds).
+# iOS dismisses the form sheet by swiping it down; Android uses the system back.
 appId: app.pekulo.mobile
 name: Navigation — Paramètres sheet opens from Cap and closes
 tags:
@@ -19,9 +20,18 @@ tags:
     timeout: 10000
 - assertVisible: "Compte"
 - assertVisible: "Mode aperçu"
-- swipe:
-    start: "50%, 12%"
-    end: "50%, 92%"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          start: "50%, 12%"
+          end: "50%, 92%"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
 - extendedWaitUntil:
     notVisible: "Apparence"
     timeout: 10000
