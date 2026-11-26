@@ -1,7 +1,9 @@
 # .github/workflows/e2e-mobile.yml — stories 10-5 (iOS) / 10-6 (Android), AC-8.
 # Maestro E2E for apps/mobile on GitHub-hosted runners (free: public repo).
-#   - one Release build per platform (iOS Simulator .app / x86_64 APK), cached
-#     with ccache (iOS) and Gradle (Android), handed to the test jobs as artifacts;
+#   - one Release build per platform (iOS Simulator .app / x86_64 APK) handed to
+#     the test jobs as artifacts. iOS keys the native .app on the Expo native
+#     fingerprint: when native inputs did not change it only re-bundles the JS
+#     into the cached app; Android uses the Gradle cache;
 #   - core flows (smoke / navigation / preview-guard) on every mobile PR;
 #   - the 42-golden DS gallery only when the DS, the gallery route or the goldens
 #     change, split into 4 shards per platform (one job each, one retry per case).
@@ -13,6 +15,19 @@ name: e2e-mobile
 
 on:
   pull_request:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/ui/**"
+      - "packages/contracts/**"
+      - "packages/validators/**"
+      - "packages/types/**"
+      - "packages/zod/**"
+      - "bun.lock"
+      - ".github/workflows/e2e-mobile.yml"
+      - ".github/scripts/maestro-run.sh"
+  # Post-merge runs keep the native caches warm for the next PRs (core flows only).
+  push:
     branches: [main]
     paths:
       - "apps/mobile/**"
@@ -97,30 +112,31 @@ jobs:
     timeout-minutes: 45
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-      USE_CCACHE: "1"
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_MAXSIZE: 2G
-      CCACHE_SLOPPINESS: clang_index_store,file_stat_matches,include_file_ctime,include_file_mtime,ivfsoverlay,pch_defines,modules,system_headers,time_macros
-      CCACHE_FILECLONE: "true"
-      CCACHE_DEPEND: "true"
-      CCACHE_INODECACHE: "true"
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-bun
-      - name: Install ccache
-        run: command -v ccache >/dev/null || brew install ccache
-      - name: Restore ccache
+      - name: Native fingerprint
+        id: fingerprint
+        working-directory: apps/mobile
+        run: |
+          hash="$(node -e "
+            const fp = require(require.resolve('@expo/fingerprint', { paths: [require.resolve('expo/package.json')] }));
+            fp.createFingerprintAsync('.', { platforms: ['ios'] }).then((f) => console.log(f.hash));
+          ")"
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          echo "iOS native fingerprint: $hash"
+      - name: Restore the native app
+        id: native
         uses: actions/cache@v4
         with:
-          path: .ccache
-          key: ccache-ios-xcode26.6-${{ hashFiles('bun.lock') }}-${{ github.sha }}
-          restore-keys: |
-            ccache-ios-xcode26.6-${{ hashFiles('bun.lock') }}-
-            ccache-ios-xcode26.6-
+          path: native-ios
+          key: ios-native-xcode26.6-${{ steps.fingerprint.outputs.hash }}
       - name: Generate the iOS project
+        if: steps.native.outputs.cache-hit != 'true'
         working-directory: apps/mobile
         run: bunx expo prebuild --platform ios --no-install
       - name: Restore CocoaPods
+        if: steps.native.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -128,13 +144,14 @@ jobs:
             ~/Library/Caches/CocoaPods
           key: pods-xcode26.6-${{ hashFiles('bun.lock', 'apps/mobile/app.json') }}
       - name: pod install
+        if: steps.native.outputs.cache-hit != 'true'
         working-directory: apps/mobile/ios
         run: pod install
       - name: xcodebuild (Release, simulator)
+        if: steps.native.outputs.cache-hit != 'true'
         working-directory: apps/mobile/ios
         run: |
           set -o pipefail
-          ccache --zero-stats
           xcodebuild \
             -workspace Pekulo.xcworkspace \
             -scheme Pekulo \
@@ -145,9 +162,22 @@ jobs:
             ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO \
             build | xcbeautify --quieter
-          ccache --show-stats
+          mkdir -p ../../../native-ios
+          cp -R build/Build/Products/Release-iphonesimulator/Pekulo.app ../../../native-ios/
+      - name: Re-bundle the JS into the cached app
+        if: steps.native.outputs.cache-hit == 'true'
+        working-directory: apps/mobile
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/native-ios/Pekulo.app"
+          entry="$(node -e "require('expo/scripts/resolveAppEntry')" "$PWD" ios absolute | tail -n 1)"
+          # Plain JS (Hermes runs it as is): same rendering, no bytecode-version coupling.
+          bunx expo export:embed --platform ios --dev false --reset-cache \
+            --entry-file "$entry" \
+            --bundle-output "$app/main.jsbundle" \
+            --assets-dest "$app"
       - name: Package the app
-        run: tar -czf pekulo-ios.tgz -C apps/mobile/ios/build/Build/Products/Release-iphonesimulator Pekulo.app
+        run: tar -czf pekulo-ios.tgz -C native-ios Pekulo.app
       - uses: actions/upload-artifact@v4
         with:
           name: pekulo-ios-app
