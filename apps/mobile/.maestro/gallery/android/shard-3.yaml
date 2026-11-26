@@ -16,7 +16,12 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloMilestonesCard.two?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloMilestonesCard.two"
+          commands:
+            - openLink: "pekulo://ds/PekuloMilestonesCard.two?theme=pekulo-dark"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloMilestonesCard.two"
@@ -43,7 +48,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloMobileBottomNav.cap?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloMobileBottomNav.cap"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloMobileBottomNav.cap"
@@ -70,7 +81,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloMonthlyRow.openPositive?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloMonthlyRow.openPositive"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloMonthlyRow.openPositive"
@@ -97,7 +114,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloNavRail.cap?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloNavRail.cap"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloNavRail.cap"
@@ -124,7 +147,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloPagination.mid?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloPagination.mid"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloPagination.mid"
@@ -151,7 +180,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloProjectionChart.default?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloProjectionChart.default"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloProjectionChart.default"
@@ -178,7 +213,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloPropertyCard.default?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloPropertyCard.default"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloPropertyCard.default"
@@ -205,7 +246,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloRecentActivityCard.two?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloRecentActivityCard.two"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloRecentActivityCard.two"
@@ -232,7 +279,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloSegmentedControl.theme?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloSegmentedControl.theme"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloSegmentedControl.theme"
@@ -259,7 +312,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloSettingRow.default?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloSettingRow.default"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloSettingRow.default"

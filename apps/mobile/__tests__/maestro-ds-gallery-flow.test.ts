@@ -118,18 +118,36 @@ function shardIds(shard: number): string[] {
   return GOLDEN_IDS.slice(start, start + size);
 }
 
-function caseSteps(id: string, spec: GalleryFlowSpec): string[] {
+/** Reach case `id`: the shard's first case by deep link, the others via `ds-next`. */
+function navigateSteps(id: string, spec: GalleryFlowSpec, first: boolean): string[] {
+  const navigation = first
+    ? [
+        `- openLink: "pekulo://ds/${id}?theme=pekulo-dark"`,
+        ...(spec.dismissOpenPrompt
+          ? [
+              "- runFlow:",
+              "    when:",
+              '      visible: "Open"',
+              "    commands:",
+              '      - tapOn: "Open"',
+            ]
+          : []),
+      ]
+    : ["- tapOn:", '    id: "ds-next"'];
+  // Only when the target is not already on screen: a retry never advances twice.
+  return [
+    "- runFlow:",
+    "    when:",
+    "      notVisible:",
+    `        id: "ds-case-${id}"`,
+    "    commands:",
+    ...navigation.map((line) => `      ${line}`),
+  ];
+}
+
+function caseSteps(id: string, spec: GalleryFlowSpec, first: boolean): string[] {
   const commands = [
-    `- openLink: "pekulo://ds/${id}?theme=pekulo-dark"`,
-    ...(spec.dismissOpenPrompt
-      ? [
-          "- runFlow:",
-          "    when:",
-          '      visible: "Open"',
-          "    commands:",
-          '      - tapOn: "Open"',
-        ]
-      : []),
+    ...navigateSteps(id, spec, first),
     "- extendedWaitUntil:",
     "    visible:",
     `      id: "ds-case-${id}"`,
@@ -183,7 +201,7 @@ function buildShardFlow(spec: GalleryFlowSpec, shard: number): string {
           "    timeout: 30000",
         ]
       : []),
-    ...shardIds(shard).flatMap((id) => caseSteps(id, spec)),
+    ...shardIds(shard).flatMap((id, index) => caseSteps(id, spec, index === 0)),
   ];
   return `${lines.join("\n")}\n`;
 }
@@ -222,6 +240,21 @@ describe.each(["ios", "android"] as const)(
     });
   },
 );
+
+// Story 10-6 AC-8 — one deep link per shard, then in-app `ds-next` steps; each
+// navigation runs only when its target case is not on screen, so a per-case
+// retry never advances twice.
+it("opens one deep link per shard and steps idempotently through the rest", () => {
+  for (const platform of ["ios", "android"] as const) {
+    for (const shard of SHARDS) {
+      const flow = buildShardFlow(FLOWS[platform], shard);
+      const ids = shardIds(shard);
+      expect(flow.match(/- openLink:/g)?.length).toBe(1);
+      expect(flow.match(/tapOn:\n\s+id: "ds-next"/g)?.length).toBe(ids.length - 1);
+      expect(flow.match(/when:\n\s+notVisible:/g)?.length).toBe(ids.length);
+    }
+  }
+});
 
 // Story 10-6 AC-7 — every Android shard waits for the app shell before its
 // first deep link (cold-start Linking race).

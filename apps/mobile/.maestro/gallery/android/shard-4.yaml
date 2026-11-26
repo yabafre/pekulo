@@ -16,7 +16,12 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloSkeleton.lines?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloSkeleton.lines"
+          commands:
+            - openLink: "pekulo://ds/PekuloSkeleton.lines?theme=pekulo-dark"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloSkeleton.lines"
@@ -43,7 +48,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloStaggerList.three?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloStaggerList.three"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloStaggerList.three"
@@ -70,7 +81,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloStat.gain?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloStat.gain"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloStat.gain"
@@ -97,7 +114,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloSuggestionRow.pending?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloSuggestionRow.pending"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloSuggestionRow.pending"
@@ -124,7 +147,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloToggleRow.unchecked?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloToggleRow.unchecked"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloToggleRow.unchecked"
@@ -151,7 +180,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloTopTabToggle.cap?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloTopTabToggle.cap"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloTopTabToggle.cap"
@@ -178,7 +213,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloTrajectoryCard.default?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloTrajectoryCard.default"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloTrajectoryCard.default"
@@ -205,7 +246,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloTrajectoryChart.default?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloTrajectoryChart.default"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloTrajectoryChart.default"
@@ -232,7 +279,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloUserDot.initial?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-PekuloUserDot.initial"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloUserDot.initial"
@@ -259,7 +312,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/TransactionLogo.categoryFallback?theme=pekulo-dark"
+      - runFlow:
+          when:
+            notVisible:
+              id: "ds-case-TransactionLogo.categoryFallback"
+          commands:
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-TransactionLogo.categoryFallback"

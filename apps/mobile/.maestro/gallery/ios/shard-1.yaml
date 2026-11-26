@@ -12,12 +12,17 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/CategoryIcon.known?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-CategoryIcon.known"
           commands:
-            - tapOn: "Open"
+            - openLink: "pekulo://ds/CategoryIcon.known?theme=pekulo-dark"
+            - runFlow:
+                when:
+                  visible: "Open"
+                commands:
+                  - tapOn: "Open"
       - extendedWaitUntil:
           visible:
             id: "ds-case-CategoryIcon.known"
@@ -44,12 +49,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/CategoryPicker.closed?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-CategoryPicker.closed"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-CategoryPicker.closed"
@@ -76,12 +82,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloAccountRow.default?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloAccountRow.default"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloAccountRow.default"
@@ -108,12 +115,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloAccountsSection.three?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloAccountsSection.three"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloAccountsSection.three"
@@ -140,12 +148,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloActivityRow.inflow?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloActivityRow.inflow"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloActivityRow.inflow"
@@ -172,12 +181,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloClassRow.default?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloClassRow.default"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloClassRow.default"
@@ -204,12 +214,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloCompositionCard.three?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloCompositionCard.three"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloCompositionCard.three"
@@ -236,12 +247,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloCompositionRow.withSub?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloCompositionRow.withSub"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloCompositionRow.withSub"
@@ -268,12 +280,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloContextualAddButton.default?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloContextualAddButton.default"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloContextualAddButton.default"
@@ -300,12 +313,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloCountUpEUR.integer?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloCountUpEUR.integer"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloCountUpEUR.integer"
@@ -332,12 +346,13 @@ tags:
 - retry:
     maxRetries: 1
     commands:
-      - openLink: "pekulo://ds/PekuloCountUpPct.default?theme=pekulo-dark"
       - runFlow:
           when:
-            visible: "Open"
+            notVisible:
+              id: "ds-case-PekuloCountUpPct.default"
           commands:
-            - tapOn: "Open"
+            - tapOn:
+                id: "ds-next"
       - extendedWaitUntil:
           visible:
             id: "ds-case-PekuloCountUpPct.default"
