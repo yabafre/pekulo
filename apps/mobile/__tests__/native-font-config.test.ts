@@ -8,11 +8,19 @@
 //   both, And the suite fails if the build-time style compiler stops using the
 //   native font configuration or if the build-time and runtime configurations
 //   ever disagree on fonts or text defaults.
+//
+// Review fix: the build-time side is loaded the way the compiler loads it
+// (helpers/load-compiler-config.cjs, child Node process, no `.native.ts`
+// resolution), not through Jest's resolver — under Jest, `./fonts` already
+// resolves to `fonts.native`, so an in-process comparison passed by
+// construction. Witnessed RED by pointing apps/mobile/tamagui.config.ts back at
+// `@pekulo/ui/tamagui-config`: the compiler side then reports the web stack
+// `Geist, ui-sans-serif, …` and an empty defaultProps.
 // Module scope: other script-style suites declare the same globals.
 export {};
 
-const { readFileSync } = require("node:fs") as {
-  readFileSync: (filePath: string, encoding: "utf8") => string;
+const { execFileSync } = require("node:child_process") as {
+  execFileSync: (file: string, args: string[], options: { encoding: "utf8" }) => string;
 };
 const { dirname, join } = require("node:path") as {
   dirname: (filePath: string) => string;
@@ -21,33 +29,49 @@ const { dirname, join } = require("node:path") as {
 
 const resolveModule = (require as unknown as { resolve: (id: string) => string }).resolve;
 const MOBILE_ROOT = dirname(resolveModule("../package.json"));
-const UI_CONFIG = join(MOBILE_ROOT, "../../packages/ui/src/config");
+
+type LoadedConfig = {
+  fontsParsed: Record<string, { family: unknown }>;
+  defaultProps: Record<string, Record<string, unknown>>;
+};
+
+function familyOf(fonts: LoadedConfig["fontsParsed"], key: string): unknown {
+  const family = fonts[key]?.family as { val?: unknown } | string | undefined;
+  return typeof family === "object" && family !== null ? family.val : family;
+}
 
 describe("Tamagui native compiler config (story 10-8)", () => {
-  it("apps/mobile/tamagui.config.ts re-exports the native compiler config", () => {
-    const source = readFileSync(join(MOBILE_ROOT, "tamagui.config.ts"), "utf8");
-    expect(source).toMatch(
-      /export \{ config as default \} from "@pekulo\/ui\/tamagui-compiler-config";/,
-    );
+  let compiler: LoadedConfig;
+  let runtime: LoadedConfig;
+
+  beforeAll(() => {
+    compiler = JSON.parse(
+      execFileSync(
+        "node",
+        [join(MOBILE_ROOT, "__tests__/helpers/load-compiler-config.cjs"), MOBILE_ROOT],
+        { encoding: "utf8" },
+      ),
+    ) as LoadedConfig;
+    jest.isolateModules(() => {
+      const config = require("@pekulo/ui/tamagui-config").config;
+      runtime = JSON.parse(
+        JSON.stringify({ fontsParsed: config.fontsParsed, defaultProps: config.defaultProps }),
+      ) as LoadedConfig;
+    });
+  }, 60000);
+
+  it("the compiler (plain Node require) loads the native Geist faces", () => {
+    expect(familyOf(compiler.fontsParsed, "$body")).toBe("Geist_400Regular");
+    expect(familyOf(compiler.fontsParsed, "$heading")).toBe("Geist_600SemiBold");
+    expect(familyOf(compiler.fontsParsed, "$mono")).toBe("GeistMono_400Regular");
   });
 
-  it("the compiler config imports the native fonts explicitly", () => {
-    const source = readFileSync(join(UI_CONFIG, "tamagui.compiler.native.ts"), "utf8");
-    expect(source).toMatch(/from "\.\/fonts\.native";/);
+  it("the compiler carries the native Text font default", () => {
+    expect(compiler.defaultProps.Text).toEqual({ fontFamily: "$body" });
   });
 
   it("compiler and runtime configs agree on fonts and the Text default", () => {
-    jest.isolateModules(() => {
-      const runtime = require("@pekulo/ui/tamagui-config").config;
-      const runtimeFonts = JSON.stringify(runtime.fontsParsed);
-      const runtimeDefaults = JSON.stringify(runtime.defaultProps);
-      const compiler = require("@pekulo/ui/tamagui-compiler-config").config;
-      expect(JSON.stringify(compiler.fontsParsed)).toBe(runtimeFonts);
-      expect(JSON.stringify(compiler.defaultProps)).toBe(runtimeDefaults);
-      expect(compiler.defaultProps.Text).toEqual({ fontFamily: "$body" });
-      expect(compiler.fontsParsed.$body.family.val ?? compiler.fontsParsed.$body.family).toBe(
-        "Geist_400Regular",
-      );
-    });
+    expect(compiler.fontsParsed).toEqual(runtime.fontsParsed);
+    expect(compiler.defaultProps).toEqual(runtime.defaultProps);
   });
 });
