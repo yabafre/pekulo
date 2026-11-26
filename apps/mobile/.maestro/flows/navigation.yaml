@@ -10,9 +10,7 @@ tags:
 - launchApp:
     clearState: true
     clearKeychain: true
-- extendedWaitUntil:
-    visible: "Patrimoine total"
-    timeout: 30000
+- runFlow: ../subflows/wait-for-cap.yaml
 - tapOn:
     id: "open-settings-btn"
 - extendedWaitUntil:

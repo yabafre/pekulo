@@ -8,16 +8,17 @@ tags:
 - launchApp:
     clearState: true
     clearKeychain: true
-- extendedWaitUntil:
-    visible: "Patrimoine total"
-    timeout: 30000
+- runFlow: ../subflows/wait-for-cap.yaml
 - tapOn:
     id: "open-settings-btn"
+# centerElement (story 10-9): stopping as soon as the toggle is on screen left
+# it under the system navigation bar, which then received the tap.
 - scrollUntilVisible:
     element:
       id: "llm-optin-switch"
     direction: DOWN
     timeout: 10000
+    centerElement: true
 - tapOn:
     id: "llm-optin-switch"
 - extendedWaitUntil:

@@ -2,8 +2,9 @@ name: maestro-android
 description: >-
   Stories 10-6 — downloads the pekulo-android-apk artifact, boots the pinned
   Android emulator (API $ANDROID_API, x86_64, Pixel 7 profile: 1080x2400 @ 420)
-  from a cached AVD snapshot, installs the APK and runs the given Maestro flows
-  through .github/scripts/maestro-run.sh. Expects MAESTRO_VERSION and ANDROID_API
+  from a cached AVD snapshot (saved as soon as it is created, story 10-9),
+  waits for the emulator to settle, installs the APK and runs the given Maestro
+  flows through .github/scripts/maestro-run.sh. Expects MAESTRO_VERSION and ANDROID_API
   in the job environment (UPDATE_GOLDENS optional).
 inputs:
   flows:
@@ -35,14 +36,20 @@ runs:
       run: |
         [ -x "$HOME/.maestro/bin/maestro" ] || curl -fsSL "https://get.maestro.mobile.dev" | bash
         echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+    # Restore and save are split (story 10-9): the post-job save of
+    # actions/cache only runs when the whole job succeeds, so a failing flow
+    # left main without a snapshot and every run cold-booted a fresh AVD.
     - name: Restore AVD snapshot
       id: avd-cache
-      uses: actions/cache@v4
+      uses: actions/cache/restore@v4
       with:
         path: |
           ~/.android/avd/*
           ~/.android/adb*
-        key: avd-${{ env.ANDROID_API }}-x86_64-pixel_7-v1
+        key: avd-${{ env.ANDROID_API }}-x86_64-pixel_7-v2
+    # The snapshot is taken once the launcher is idle: snapshotting a few
+    # seconds after boot_completed froze a busy launcher that later raised a
+    # system ANR dialog over the app.
     - name: Create AVD snapshot
       if: steps.avd-cache.outputs.cache-hit != 'true'
       uses: reactivecircus/android-emulator-runner@v2
@@ -54,7 +61,15 @@ runs:
         force-avd-creation: false
         emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         disable-animations: false
-        script: echo "Generated AVD snapshot for caching."
+        script: bash .github/scripts/android-settle.sh emulator-5554
+    - name: Save AVD snapshot
+      if: steps.avd-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: ${{ steps.avd-cache.outputs.cache-primary-key }}
     - name: Run Maestro flows
       uses: reactivecircus/android-emulator-runner@v2
       with:
@@ -66,5 +81,6 @@ runs:
         emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         disable-animations: true
         script: |
+          bash .github/scripts/android-settle.sh emulator-5554
           adb install -r app-release.apk
           bash .github/scripts/maestro-run.sh android emulator-5554 ${{ inputs.flow-retry }} ${{ inputs.flows }}
