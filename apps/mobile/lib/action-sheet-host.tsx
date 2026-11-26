@@ -15,7 +15,7 @@
 
 import { PekuloDrawer } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { BackHandler, Pressable } from "react-native";
 
 import { tNow } from "./i18n";
@@ -102,10 +102,11 @@ function ActionRow({
 export function ActionSheetHost() {
   const request = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const open = request !== null;
-  // Keep the last request on screen while the sheet slides down.
-  const lastRequest = useRef<ActionSheetRequest | null>(null);
-  if (request) lastRequest.current = request;
-  const shown = request ?? lastRequest.current;
+  // Keep the last request on screen while the sheet slides down (state, not a
+  // ref: refs must not be touched during render — React Compiler rule).
+  const [lastRequest, setLastRequest] = useState(request);
+  if (request && request !== lastRequest) setLastRequest(request);
+  const shown = request ?? lastRequest;
 
   useEffect(() => {
     if (!open) return;

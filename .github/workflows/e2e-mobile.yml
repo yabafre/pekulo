@@ -4,7 +4,8 @@
 #     the test jobs as artifacts. iOS keys the native .app on the Expo native
 #     fingerprint: when native inputs did not change it only re-bundles the JS
 #     into the cached app; Android uses the Gradle cache;
-#   - core flows (smoke / navigation / preview-guard) on every mobile PR;
+#   - core flows (smoke / navigation / preview-guard, + action-sheet-android on
+#     Android) on every mobile PR;
 #   - the 42-golden DS gallery only when the DS, the gallery route or the goldens
 #     change, split into 4 shards per platform (one job each, one retry per case).
 # Golden capture: add the `maestro:update-goldens` label to the PR and push (or
