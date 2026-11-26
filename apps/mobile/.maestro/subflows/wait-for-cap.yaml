@@ -1,0 +1,21 @@
+# apps/mobile/.maestro/subflows/wait-for-cap.yaml — story 10-9.
+# First check of every core flow: the Cap screen is up. On a freshly booted
+# Android emulator the launcher can raise a system ANR dialog ("Quickstep
+# isn't responding") over the app, and Maestro then only sees that window.
+# Answer it with "Wait" and look again. On iOS the dialog never exists, so
+# this is the plain wait for "Patrimoine total".
+appId: app.pekulo.mobile
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - runFlow:
+          when:
+            visible:
+              id: "android:id/aerr_wait"
+          commands:
+            - tapOn:
+                id: "android:id/aerr_wait"
+      - extendedWaitUntil:
+          visible: "Patrimoine total"
+          timeout: 20000
