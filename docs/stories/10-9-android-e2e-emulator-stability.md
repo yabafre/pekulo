@@ -3,7 +3,7 @@ storyKey: 10-9-android-e2e-emulator-stability
 epic: 10
 ticket: "#168"
 branch: feature/168-10-9-android-e2e-emulator-stability
-status: in-progress
+status: review
 complexity: S
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 ---
@@ -11,7 +11,7 @@ stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 # Story: 10-9-android-e2e-emulator-stability — Make the Android core Maestro job green on main and PRs
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** in-progress
+**Status:** review
 **Ticket:** [#168](https://github.com/yabafre/pekulo/issues/168)
 **Branch:** `feature/168-10-9-android-e2e-emulator-stability`
 **Depends on:** 10-6-android-parity-and-maestro (done)
@@ -37,7 +37,7 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
 
 **T1 — Drift guard first (RED)** [AC: AC-5]
 
-- [ ] **T1.1 — Create `apps/mobile/__tests__/maestro-core-flows.test.ts`** [AC: AC-5]
+- [x] **T1.1 — Create `apps/mobile/__tests__/maestro-core-flows.test.ts`** [AC: AC-5]
   Create the file with exactly this content:
   ```ts
   // apps/mobile/__tests__/maestro-core-flows.test.ts
@@ -116,7 +116,7 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
 
 **T2 — Emulator settle script** [AC: AC-2]
 
-- [ ] **T2.1 — Create `.github/scripts/android-settle.sh`** [AC: AC-2]
+- [x] **T2.1 — Create `.github/scripts/android-settle.sh`** [AC: AC-2]
   Create the file with exactly this content, then `chmod +x .github/scripts/android-settle.sh`:
   ```bash
   #!/usr/bin/env bash
@@ -186,7 +186,7 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
 
 **T3 — Cache the AVD before the flows run** [AC: AC-1, AC-2]
 
-- [ ] **T3.1 — Replace the AVD cache and run steps of `.github/actions/maestro-android/action.yml`** [AC: AC-1, AC-2]
+- [x] **T3.1 — Replace the AVD cache and run steps of `.github/actions/maestro-android/action.yml`** [AC: AC-1, AC-2]
   In `.github/actions/maestro-android/action.yml`, replace everything from `    - name: Restore AVD snapshot` to the end of the file with exactly:
   ```yaml
       # Restore and save are split (story 10-9): the post-job save of
@@ -245,7 +245,7 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
 
 **T4 — Shared Cap-wait subflow** [AC: AC-3]
 
-- [ ] **T4.1 — Create `apps/mobile/.maestro/subflows/wait-for-cap.yaml`** [AC: AC-3]
+- [x] **T4.1 — Create `apps/mobile/.maestro/subflows/wait-for-cap.yaml`** [AC: AC-3]
   Create the file with exactly this content (it lives outside `flows/`, so `apps/mobile/.maestro/config.yaml`, which runs `flows/*`, never runs it on its own):
   ```yaml
   # apps/mobile/.maestro/subflows/wait-for-cap.yaml — story 10-9.
@@ -276,7 +276,7 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
 
 **T5 — Core flows use the subflow; preview-guard centres its toggle** [AC: AC-3, AC-4]
 
-- [ ] **T5.1 — `apps/mobile/.maestro/flows/smoke.yaml`, `navigation.yaml`, `preview-guard.yaml`** [AC: AC-3]
+- [x] **T5.1 — `apps/mobile/.maestro/flows/smoke.yaml`, `navigation.yaml`, `preview-guard.yaml`** [AC: AC-3]
   In each of these three files, replace the first Cap wait (right after `launchApp`):
   ```yaml
   - extendedWaitUntil:
@@ -288,7 +288,7 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
   - runFlow: ../subflows/wait-for-cap.yaml
   ```
   Leave every later `"Patrimoine total"` check (smoke's return to Cap, navigation's final `assertVisible`) unchanged.
-- [ ] **T5.2 — `apps/mobile/.maestro/flows/action-sheet-android.yaml`** [AC: AC-3]
+- [x] **T5.2 — `apps/mobile/.maestro/flows/action-sheet-android.yaml`** [AC: AC-3]
   Inside the `runFlow` → `commands:` list, replace:
   ```yaml
         - extendedWaitUntil:
@@ -299,7 +299,7 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
   ```yaml
         - runFlow: ../subflows/wait-for-cap.yaml
   ```
-- [ ] **T5.3 — `apps/mobile/.maestro/flows/preview-guard.yaml` centring** [AC: AC-4]
+- [x] **T5.3 — `apps/mobile/.maestro/flows/preview-guard.yaml` centring** [AC: AC-4]
   Replace:
   ```yaml
   - scrollUntilVisible:
@@ -325,10 +325,10 @@ Run every command from the worktree root unless it starts with `cd`. Never use `
 
 **T6 — Quality gates and CI proof** [AC: AC-5, AC-6]
 
-- [ ] **T6.1 — Typecheck and the full mobile suite**
+- [x] **T6.1 — Typecheck and the full mobile suite**
   Run: `bun --filter='@pekulo/mobile' run typecheck && bun --filter='@pekulo/mobile' run test`
   Expected: typecheck exit 0; Jest `Test Suites: … passed`, `Tests: … passed`, no failures, exit 0.
-- [ ] **T6.2 — Push, open the PR, prove it on CI** [AC: AC-6]
+- [x] **T6.2 — Push, open the PR, prove it on CI** [AC: AC-6]
   Run: `git push -u origin feature/168-10-9-android-e2e-emulator-stability`, then `gh pr create --base main` (title `ci(#168): 10-9 — Android core Maestro job green again`, body closing #168 and stating the root cause).
   Expected: in e2e-mobile, "Android — smoke / navigation / preview-guard / action sheet" succeeds; the log shows `android-settle: launcher idle` in both emulator steps. Then re-run that job: its log shows `Cache restored from key: avd-35-x86_64-pixel_7-v2` and it succeeds again. If it fails, download `maestro-android-core` (ask the user first) and read the screenshots before changing anything.
 
@@ -437,3 +437,37 @@ The last green run (45763088790, PR #165, same tree as 1dbabd1) restored a snaps
 - `apps/mobile/.maestro/flows/action-sheet-android.yaml` (modify)
 - `apps/mobile/__tests__/maestro-core-flows.test.ts` (create)
 - `docs/stories/10-9-android-e2e-emulator-stability.md`, `docs/state.yaml`, `docs/epics.md` (docs)
+
+## Dev Agent Record
+
+### Summary
+
+The Android core Maestro job is green again. The AVD snapshot is now saved as soon as it is created, the emulator settles (launcher idle, system ANR dialog answered with "Wait") before the snapshot and before the APK install, the core flows wait for Cap through an ANR-tolerant subflow, and preview-guard centres its toggle. Root causes: a post-job cache save that never ran because the job failed (cold AVD on every run, snapshot taken while the launcher was busy, then a "Quickstep isn't responding" dialog over the app), plus the preview-guard tap landing on the system navigation bar.
+
+### Files changed
+
+- .github/actions/maestro-android/action.yml
+- .github/scripts/android-settle.sh
+- apps/mobile/.maestro/flows/action-sheet-android.yaml
+- apps/mobile/.maestro/flows/navigation.yaml
+- apps/mobile/.maestro/flows/preview-guard.yaml
+- apps/mobile/.maestro/flows/smoke.yaml
+- apps/mobile/.maestro/subflows/wait-for-cap.yaml
+- apps/mobile/__tests__/maestro-core-flows.test.ts
+- docs/epics.md
+- docs/state.yaml
+- docs/stories/10-9-android-e2e-emulator-stability.md
+
+### Deviations
+
+- The drift-guard test carries the verbatim AC quotes required by the TDD cycle (not in the story's code block).
+- On the cold-cache run an Android gallery shard won the `avd-35-x86_64-pixel_7-v2` save race; the core job logged "Unable to reserve cache" as a warning, as the Dev Notes anticipated.
+- `android-settle.sh` was exercised locally against a stub `adb` (ANR focus, then launcher focus): it tapped the centre of `aerr_wait` (540, 1353) and exited after 3 launcher polls.
+
+### Test output
+
+- `cd apps/mobile && bunx jest --selectProjects ios __tests__/maestro-core-flows.test.ts` — RED first (7 failed: subflow reference missing, ENOENT on the subflow, no `centerElement`, no `actions/cache/restore@v4`), then GREEN.
+- `bun --filter='@pekulo/mobile' run typecheck` — exit 0.
+- `bun --filter='@pekulo/mobile' run test` — `Test Suites: 32 passed, 32 total`, `Tests: 260 passed, 260 total`.
+- CI, PR #169, e2e-mobile run 45811714076 (cold cache): `Cache not found for input keys: avd-35-x86_64-pixel_7-v2`, `android-settle: launcher idle for 3 polls (11s)`, all 4 core flows `[Passed]` on the first attempt; every iOS and Android job green.
+- CI re-run of the Android core job (139941576503): `Cache restored from key: avd-35-x86_64-pixel_7-v2`, `Successfully loaded snapshot 'default_boot'`, all 4 core flows `[Passed]`, success.
