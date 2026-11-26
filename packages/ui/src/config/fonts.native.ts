@@ -12,11 +12,16 @@ function computeNativeLineHeights(ratio: number): Record<keyof typeof pekuloFont
   ) as Record<keyof typeof pekuloFontSizes, number>;
 }
 
+// Story 10-8 review — the keyword weights `normal` / `bold` alias 400 / 700:
+// Tamagui only deletes `fontWeight` when it finds a face for it, so an unmapped
+// weight would leave a custom family + weight pair (Android → Roboto).
 const geistFace = {
   400: { normal: "Geist_400Regular" },
   500: { normal: "Geist_500Medium" },
   600: { normal: "Geist_600SemiBold" },
   700: { normal: "Geist_700Bold" },
+  normal: { normal: "Geist_400Regular" },
+  bold: { normal: "Geist_700Bold" },
 };
 
 const geistMonoFace = {
@@ -24,6 +29,8 @@ const geistMonoFace = {
   500: { normal: "GeistMono_500Medium" },
   600: { normal: "GeistMono_600SemiBold" },
   700: { normal: "GeistMono_700Bold" },
+  normal: { normal: "GeistMono_400Regular" },
+  bold: { normal: "GeistMono_700Bold" },
 };
 
 export function createPekuloFonts() {
@@ -69,13 +76,3 @@ export const pekuloFontDefaultProps: Record<string, Record<string, unknown>> | u
 
 /** Story 10-8 — base face for raw React Native TextInput surfaces. */
 export const PEKULO_NATIVE_BODY_FACE = geistFace[400].normal;
-
-/**
- * Story 10-8 AC-5 — face name → CSS weight, so parity checks can read the
- * weight Tamagui folded into the face name after stripping `fontWeight`.
- */
-export const PEKULO_NATIVE_FACE_WEIGHT: Readonly<Record<string, string>> = Object.fromEntries(
-  [geistFace, geistMonoFace].flatMap((faces) =>
-    Object.entries(faces).map(([weight, face]) => [face.normal, weight]),
-  ),
-);

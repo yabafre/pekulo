@@ -5,6 +5,9 @@
 //   - PekuloHero (compiler-flattened path — only meaningful with a cold
 //     transform cache: run with `--no-cache`),
 //   - PekuloBreadcrumbLink (named styled(Text), bypasses defaultProps.Text),
+//   - PekuloPagination (named styled(Text) with a dynamic `active` weight
+//     variant — the ternary path the compiler flattens WITHOUT a face swap;
+//     story 10-8 review finding),
 //   - PekuloInput / PekuloTextarea / SearchField (raw RN TextInput).
 //
 // AC-1 (verbatim from story 10-8-native-geist-font:27):
@@ -31,6 +34,7 @@ import {
   PekuloBreadcrumbLink,
   PekuloHero,
   PekuloInput,
+  PekuloPagination,
   PekuloRootProvider,
   PekuloTextarea,
 } from "@pekulo/ui";
@@ -114,11 +118,27 @@ export async function renderNativeFontCases(): Promise<NativeFontRecord[]> {
       <Text testID="t-heading" fontFamily="$heading">
         heading
       </Text>
+      <Text testID="t-normal" fontWeight="normal">
+        wnormal
+      </Text>
+      <Text testID="t-bold" fontWeight="bold">
+        wbold
+      </Text>
+      <Text testID="t-mono" fontFamily="$mono">
+        mono
+      </Text>
+      <Text testID="t-mono-500" fontFamily="$mono" fontWeight="500">
+        mono500
+      </Text>
+      <Text testID="t-mono-600" fontFamily="$mono" fontWeight="600">
+        mono600
+      </Text>
       <Text testID="t-mono-700" fontFamily="$mono" fontWeight="700">
         mono700
       </Text>
       <PekuloHero totalEur={152340} aheadEur={4200} />
       <PekuloBreadcrumbLink testID="t-crumb">crumb</PekuloBreadcrumbLink>
+      <PekuloPagination page={2} pageCount={3} onPageChange={() => {}} />
       <PekuloInput testID="t-input" placeholder="input" />
       <PekuloTextarea testID="t-textarea" placeholder="textarea" />
       <SearchField testID="t-search" value="" onChange={() => {}} placeholder="search" />
@@ -136,7 +156,12 @@ export const EXPECTED_FACE_BY_TEST_ID: Record<string, string> = {
   "t-500": "Geist_500Medium",
   "t-600": "Geist_600SemiBold",
   "t-700": "Geist_700Bold",
+  "t-normal": "Geist_400Regular",
+  "t-bold": "Geist_700Bold",
   "t-heading": "Geist_600SemiBold",
+  "t-mono": "GeistMono_400Regular",
+  "t-mono-500": "GeistMono_500Medium",
+  "t-mono-600": "GeistMono_600SemiBold",
   "t-mono-700": "GeistMono_700Bold",
   "t-crumb": "Geist_400Regular",
   "t-input": "Geist_400Regular",
@@ -156,6 +181,15 @@ export function describeNativeFonts(platformLabel: string): void {
       const record = records.find((r) => r.testID === testID);
       expect(record).toBeDefined();
       expect(record?.fontFamily).toBe(face);
+    });
+
+    it("PekuloPagination folds the page weight into the face (active page semibold)", () => {
+      const pages = records.filter((r) => /^[1-3]$/.test(r.text));
+      expect(pages.map((r) => [r.text, r.fontFamily])).toEqual([
+        ["1", "Geist_400Regular"],
+        ["2", "Geist_600SemiBold"],
+        ["3", "Geist_400Regular"],
+      ]);
     });
 
     it("never pairs a custom Geist face with a fontWeight (Android fallback trap)", () => {

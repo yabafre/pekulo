@@ -31,7 +31,7 @@ import { render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 
 import baselineJson from "../../../packages/ui/src/parity/__baseline__/web-text-styles.json";
-import { PEKULO_NATIVE_FACE_WEIGHT } from "../../../packages/ui/src/config/fonts.native";
+import { createPekuloFonts } from "../../../packages/ui/src/config/fonts.native";
 import { PARITY_ALLOWED_DIVERGENCE, divergenceKey } from "./helpers/parity-allowlist";
 
 type HostNode = {
@@ -59,11 +59,20 @@ function definedStyleProps(style: Record<string, unknown>): Record<string, unkno
 //   compares native text styles to the frozen web baseline, Then it reads the
 //   native weight from the Geist face name when the explicit weight was folded
 //   into the face, so every case passes with no new allow-list entry.
+// Face name → numeric CSS weight, read from the native font config itself (the
+// same `face` maps Tamagui swaps from), so it cannot drift from production.
+// Keyword aliases (`normal` / `bold`) are skipped: the web baseline is numeric.
+const NATIVE_FACE_WEIGHT: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.values(createPekuloFonts()).flatMap((font) =>
+    Object.entries((font as { face?: Record<string, { normal?: string }> }).face ?? {})
+      .filter(([weight, face]) => /^\d+$/.test(weight) && face.normal?.startsWith("Geist"))
+      .map(([weight, face]) => [face.normal as string, weight]),
+  ),
+);
+
 function nativeFontWeight(merged: Record<string, unknown>): unknown {
   if (merged.fontWeight !== undefined) return merged.fontWeight;
-  return typeof merged.fontFamily === "string"
-    ? PEKULO_NATIVE_FACE_WEIGHT[merged.fontFamily]
-    : undefined;
+  return typeof merged.fontFamily === "string" ? NATIVE_FACE_WEIGHT[merged.fontFamily] : undefined;
 }
 
 function collectTextRecords(
