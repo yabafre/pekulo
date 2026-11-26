@@ -37,55 +37,9 @@ import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth
 import { isDsGalleryEnabled } from "../lib/ds-gallery";
 import { useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
 import { I18nProvider, useI18n } from "../lib/i18n";
+import { SHEET_ROUTES, sheetOptions } from "../lib/sheet-presentation";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
-
-const IS_ANDROID = Platform.OS === "android";
-
-// Edit/create flows presented as native form sheets. Short forms open at a
-// medium detent and can be dragged to full height; long forms open full height.
-// Android honours at most three detents — every entry stays ≤ 2.
-const SHEET_ROUTES: { name: string; detents: number[] }[] = [
-  { name: "sheets/transaction", detents: [1.0] },
-  { name: "sheets/milestone", detents: [0.6, 1.0] },
-  { name: "sheets/account", detents: [1.0] },
-  { name: "sheets/account-balance", detents: [0.5, 1.0] },
-  { name: "sheets/holding", detents: [1.0] },
-  { name: "sheets/lot", detents: [1.0] },
-  { name: "sheets/property", detents: [0.75, 1.0] },
-  { name: "sheets/valuation", detents: [0.5, 1.0] },
-  { name: "sheets/valuations", detents: [0.6, 1.0] },
-  { name: "sheets/mortgage", detents: [1.0] },
-  { name: "sheets/rental", detents: [0.6, 1.0] },
-  { name: "sheets/cloture", detents: [1.0] },
-  { name: "sheets/compass", detents: [0.6, 1.0] },
-  { name: "sheets/delete-account", detents: [0.6, 1.0] },
-];
-
-/** Form-sheet presentation shared by Paramètres and every `sheets/*` route. */
-function sheetOptions(detents: number[], chrome: { background: string; ink: string }) {
-  if (IS_ANDROID) {
-    return {
-      headerShown: false,
-      presentation: "formSheet" as const,
-      sheetGrabberVisible: true,
-      sheetAllowedDetents: detents,
-      sheetElevation: 0,
-      contentStyle: { backgroundColor: chrome.background },
-    };
-  }
-  return {
-    headerShown: true,
-    presentation: "formSheet" as const,
-    sheetGrabberVisible: true,
-    sheetAllowedDetents: detents,
-    headerTransparent: true,
-    headerShadowVisible: false,
-    headerTitleStyle: { color: chrome.ink },
-    headerTintColor: chrome.ink,
-    contentStyle: { backgroundColor: chrome.background },
-  };
-}
 
 function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { resolvedTheme } = useThemeSetting();
@@ -153,7 +107,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
           }}
         />
       </Stack>
-      {IS_ANDROID ? <ActionSheetHost /> : null}
+      {Platform.OS === "android" ? <ActionSheetHost /> : null}
     </ThemeProvider>
   );
 }
