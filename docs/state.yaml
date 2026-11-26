@@ -261,7 +261,7 @@ sprint:
     10-3-ui-native-parity: {status: done, depends_on: [10-2-mobile-app-bootstrap], ticket: "#154", worktree: null, started_at: "2026-11-16T18:08:30Z", completed_at: "2026-11-16T17:37:31Z", reviewed_at: "2026-11-19T00:55:00Z"}
     10-4-mobile-auth-and-orpc: {status: done, depends_on: [10-2-mobile-app-bootstrap, 10-3-ui-native-parity], ticket: "#155", completed_at: "2026-11-22T17:32:00Z"}
     10-5-mobile-parity-and-maestro: {status: done, depends_on: [10-3-ui-native-parity, 10-4-mobile-auth-and-orpc], ticket: "#156", worktree: null, started_at: "2026-11-22T19:27:00Z", completed_at: "2026-11-22T21:25:00Z", reviewed_at: "2026-11-24T02:00:00Z"}
-    10-6-android-parity-and-maestro: {status: ready-for-dev, depends_on: [10-5-mobile-parity-and-maestro], ticket: "#162", worktree: null}
+    10-6-android-parity-and-maestro: {status: review, depends_on: [10-5-mobile-parity-and-maestro], ticket: "#162", worktree: null, started_at: "2026-11-25T20:30:00Z", completed_at: "2026-11-26T04:30:00Z"}
     10-7-store-compliance-and-agent-testers: {status: done, depends_on: [10-5-mobile-parity-and-maestro], ticket: "#163", worktree: null, started_at: "2026-11-25T17:46:00Z", completed_at: "2026-11-25T18:38:00Z", reviewed_at: "2026-11-25T20:28:00Z"}
     # Epic 11 — Public-ramp readiness (backlog; 11-3 priorité)
     11-1-data-export: {status: done, depends_on: [8-1-supabase-auth-flows, 0-10-pekulo-ui-migration], ticket: "#48", completed_at: "2026-08-29T19:03:48Z"}

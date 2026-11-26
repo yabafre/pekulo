@@ -3,7 +3,7 @@ storyKey: 10-6-android-parity-and-maestro
 epic: 10
 ticket: "#162"
 branch: feature/162-10-6-android-parity-and-maestro
-status: ready-for-dev
+status: review
 complexity: L
 stepsCompleted: [1, 2, 3, 4, 5]
 ---
@@ -11,7 +11,7 @@ stepsCompleted: [1, 2, 3, 4, 5]
 # Story: 10-6-android-parity-and-maestro — Android-safe native surfaces, Android APK, and Maestro E2E on an Android emulator (EAS Workflows)
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#162](https://github.com/yabafre/pekulo/issues/162)
 **Branch:** `feature/162-10-6-android-parity-and-maestro`
 **Depends on:** 10-5-mobile-parity-and-maestro (done, PR #161)
@@ -48,7 +48,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T2 — Jest `android` project** [AC: AC-9]
 
-- [ ] **T2.1 (RED) — Add `apps/mobile/__tests__/android/platform.test.ts`** [AC: AC-9]
+- [x] **T2.1 (RED) — Add `apps/mobile/__tests__/android/platform.test.ts`** [AC: AC-9]
   Create the file:
   ```ts
   // apps/mobile/__tests__/android/platform.test.ts
@@ -73,7 +73,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   Run: `cd apps/mobile && bunx jest __tests__/android/platform.test.ts`
   Expected (RED): `Expected: "android"` / `Received: "ios"`, `Tests: 1 failed`.
 
-- [ ] **T2.2 (GREEN) — Split `apps/mobile/jest.config.js` into `ios` + `android` projects** [AC: AC-9]
+- [x] **T2.2 (GREEN) — Split `apps/mobile/jest.config.js` into `ios` + `android` projects** [AC: AC-9]
   Replace the whole file with:
   ```js
   // apps/mobile/jest.config.js
@@ -168,7 +168,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T3 — Native-surface guard meta-test** [AC: AC-2, AC-5]
 
-- [ ] **T3.1 (RED) — Add `apps/mobile/__tests__/native-surface-guards.test.ts`** [AC: AC-2, AC-5]
+- [x] **T3.1 (RED) — Add `apps/mobile/__tests__/native-surface-guards.test.ts`** [AC: AC-2, AC-5]
   Create the file:
   ```ts
   // apps/mobile/__tests__/native-surface-guards.test.ts
@@ -252,7 +252,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T4 — Android Material Symbol names** [AC: AC-5]
 
-- [ ] **T4.1 (GREEN) — Give the six `SymbolView`s an Android name** [AC: AC-5]
+- [x] **T4.1 (GREEN) — Give the six `SymbolView`s an Android name** [AC: AC-5]
   Apply exactly these replacements (each `old` block occurs once in its file):
 
   `apps/mobile/app/parametres.tsx` — replace
@@ -320,7 +320,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   Expected: exit 0 (no `TS2322` on `name`).
   Commit: `git add apps/mobile/__tests__/native-surface-guards.test.ts apps/mobile/app/parametres.tsx "apps/mobile/app/(tabs)/transactions/index.tsx" apps/mobile/components/form/fields.tsx apps/mobile/components/search-field.tsx apps/mobile/components/tab-stack-layout.tsx && git commit -m "feat(#162): Android Material Symbol names for every SymbolView"`
 
-- [ ] **T4.2 — Android tab bar: all labels, grayscale chrome** [AC: AC-5]
+- [x] **T4.2 — Android tab bar: all labels, grayscale chrome** [AC: AC-5]
   In `apps/mobile/app/(tabs)/_layout.tsx` replace
   ```tsx
   import { pekuloColors, useThemeSetting } from "@pekulo/ui";
@@ -376,7 +376,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T5 — Shared typed-email check** [AC: AC-4]
 
-- [ ] **T5.1 (RED) — Add `apps/mobile/__tests__/account-deletion.test.ts`** [AC: AC-4]
+- [x] **T5.1 (RED) — Add `apps/mobile/__tests__/account-deletion.test.ts`** [AC: AC-4]
   ```ts
   // apps/mobile/__tests__/account-deletion.test.ts
   // Story 10-6 AC-4 — the typed-email confirmation shared by the iOS
@@ -407,7 +407,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   Run: `cd apps/mobile && bunx jest --selectProjects ios __tests__/account-deletion.test.ts`
   Expected (RED): `Cannot find module '../lib/account-deletion'`, `Test Suites: 1 failed`.
 
-- [ ] **T5.2 (GREEN) — Create `apps/mobile/lib/account-deletion.ts`** [AC: AC-4]
+- [x] **T5.2 (GREEN) — Create `apps/mobile/lib/account-deletion.ts`** [AC: AC-4]
   ```ts
   // apps/mobile/lib/account-deletion.ts
   // Story 10-6 AC-4 — typed-email confirmation shared by the iOS `Alert.prompt`
@@ -467,7 +467,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T6 — Android row action sheet** [AC: AC-3]
 
-- [ ] **T6.1 (RED) — Add `apps/mobile/__tests__/android/action-sheet.test.tsx`** [AC: AC-3]
+- [x] **T6.1 (RED) — Add `apps/mobile/__tests__/android/action-sheet.test.tsx`** [AC: AC-3]
   ```tsx
   // apps/mobile/__tests__/android/action-sheet.test.tsx
   // Story 10-6 AC-3 — on Android, `showActions` must list EVERY action plus
@@ -544,7 +544,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   Run: `cd apps/mobile && bunx jest --selectProjects android __tests__/android/action-sheet.test.tsx`
   Expected (RED): `Cannot find module '../../lib/action-sheet-host'`, `Test Suites: 1 failed`.
 
-- [ ] **T6.2 (GREEN) — Create `apps/mobile/lib/action-sheet-host.tsx`** [AC: AC-3]
+- [x] **T6.2 (GREEN) — Create `apps/mobile/lib/action-sheet-host.tsx`** [AC: AC-3]
   ```tsx
   // apps/mobile/lib/action-sheet-host.tsx
   // Story 10-6 AC-3 — Android row action menus. `Alert.alert` renders at most
@@ -794,7 +794,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T7 — Android tab headers** [AC: AC-2]
 
-- [ ] **T7.1 (RED) — Add the Android `Stack` stand-in + `apps/mobile/__tests__/android/headers.test.tsx`** [AC: AC-2]
+- [x] **T7.1 (RED) — Add the Android `Stack` stand-in + `apps/mobile/__tests__/android/headers.test.tsx`** [AC: AC-2]
   Create `apps/mobile/__tests__/android/helpers/android-stack-mock.ts` (not matched by `testMatch`, which only takes `*.test.*`):
   ```ts
   // apps/mobile/__tests__/android/helpers/android-stack-mock.ts
@@ -946,7 +946,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   Run: `cd apps/mobile && bunx jest --selectProjects android __tests__/android/headers.test.tsx`
   Expected (RED): every test fails with `Stack.Toolbar on Android requires '@expo/ui'`, `Tests: 5 failed, 5 total`.
 
-- [ ] **T7.2 (GREEN) — Replace `apps/mobile/components/tab-stack-layout.tsx`** [AC: AC-2]
+- [x] **T7.2 (GREEN) — Replace `apps/mobile/components/tab-stack-layout.tsx`** [AC: AC-2]
   Replace the whole file with:
   ```tsx
   // apps/mobile/components/tab-stack-layout.tsx
@@ -1148,7 +1148,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T8 — Android form-sheet header** [AC: AC-2]
 
-- [ ] **T8.1 (GREEN) — Replace `apps/mobile/components/form/sheet.tsx`** [AC: AC-2]
+- [x] **T8.1 (GREEN) — Replace `apps/mobile/components/form/sheet.tsx`** [AC: AC-2]
   Replace the whole file with:
   ```tsx
   // apps/mobile/components/form/sheet.tsx
@@ -1354,7 +1354,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T9 — Root layout, Paramètres, and the Android deletion sheet** [AC: AC-2, AC-3, AC-4, AC-6]
 
-- [ ] **T9.1 (RED) — Add `apps/mobile/__tests__/android/account-deletion.test.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
+- [x] **T9.1 (RED) — Add `apps/mobile/__tests__/android/account-deletion.test.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
   ```tsx
   // apps/mobile/__tests__/android/account-deletion.test.tsx
   // Story 10-6 AC-2 / AC-4 — Paramètres and account deletion on Android.
@@ -1505,7 +1505,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   Run: `cd apps/mobile && bunx jest --selectProjects android __tests__/android/account-deletion.test.tsx`
   Expected (RED): `Cannot find module '../../app/sheets/delete-account'`, `Test Suites: 1 failed`.
 
-- [ ] **T9.2 (GREEN) — i18n: add `settings.deletion.emailLabel`, drop `settings.deletion.webOnly`** [AC: AC-2, AC-3, AC-4, AC-6]
+- [x] **T9.2 (GREEN) — i18n: add `settings.deletion.emailLabel`, drop `settings.deletion.webOnly`** [AC: AC-2, AC-3, AC-4, AC-6]
   In `apps/mobile/lib/i18n/messages/settings.ts`, French block — replace
   ```ts
       yourEmail: "votre e-mail",
@@ -1528,7 +1528,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   ```
   (`Shape<typeof fr>` forces both blocks to change together; `webOnly`'s only consumer is the Android branch of `handleDeleteAccount`, replaced in T9.4.)
 
-- [ ] **T9.3 (GREEN) — Create `apps/mobile/app/sheets/delete-account.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
+- [x] **T9.3 (GREEN) — Create `apps/mobile/app/sheets/delete-account.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
   ```tsx
   // apps/mobile/app/sheets/delete-account.tsx
   // Story 10-6 AC-4 — Android account deletion with typed-email confirmation.
@@ -1597,7 +1597,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   }
   ```
 
-- [ ] **T9.4 (GREEN) — Android branch of `apps/mobile/app/parametres.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
+- [x] **T9.4 (GREEN) — Android branch of `apps/mobile/app/parametres.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
   Replace the header comment
   ```tsx
   // apps/mobile/app/parametres.tsx
@@ -1710,7 +1710,7 @@ Run every command from the repository root unless the command starts with `cd`. 
         )}
   ```
 
-- [ ] **T9.5 (GREEN) — Replace `apps/mobile/app/_layout.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
+- [x] **T9.5 (GREEN) — Replace `apps/mobile/app/_layout.tsx`** [AC: AC-2, AC-3, AC-4, AC-6]
   Replace the whole file with:
   ```tsx
   // apps/mobile/app/_layout.tsx
@@ -1924,7 +1924,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T10 — Android APK profile + local prebuild check** [AC: AC-1]
 
-- [ ] **T10.1 — `apps/mobile/eas.json`: build an APK for `e2e-test`** [AC: AC-1]
+- [x] **T10.1 — `apps/mobile/eas.json`: build an APK for `e2e-test`** [AC: AC-1]
   Replace
   ```json
       "e2e-test": {
@@ -1956,7 +1956,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T11 — Maestro flows for Android** [AC: AC-7]
 
-- [ ] **T11.1 — `apps/mobile/.maestro/flows/navigation.yaml`: platform-specific dismissal** [AC: AC-7]
+- [x] **T11.1 — `apps/mobile/.maestro/flows/navigation.yaml`: platform-specific dismissal** [AC: AC-7]
   Replace the whole file with:
   ```yaml
   # Story 10-5 AC-5 / story 10-6 AC-7 — Paramètres opens from the Cap header and closes.
@@ -2000,7 +2000,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   ```
   (`smoke.yaml` and `preview-guard.yaml` are unchanged: they tap tab labels by text — visible on Android since T4.2 — and the « Plus tard » / « Se connecter » `Alert` buttons by text.)
 
-- [ ] **T11.2 — Generate both DS gallery flows from one test** [AC: AC-7]
+- [x] **T11.2 — Generate both DS gallery flows from one test** [AC: AC-7]
   Replace the whole `apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts` with:
   ```ts
   // apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts
@@ -2168,7 +2168,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T12 — EAS Workflows for Android** [AC: AC-8]
 
-- [ ] **T12.1 — Create `apps/mobile/.eas/workflows/e2e-android.yml`** [AC: AC-8]
+- [x] **T12.1 — Create `apps/mobile/.eas/workflows/e2e-android.yml`** [AC: AC-8]
   ```yaml
   # Story 10-6 AC-8 — Android APK build + Maestro E2E on an Android emulator (EAS Workflows).
   # Custom job on a `linux-medium-nested-virtualization` worker (Android emulators
@@ -2276,7 +2276,7 @@ Run every command from the repository root unless the command starts with `cd`. 
             ignore_error: true
   ```
 
-- [ ] **T12.2 — Create `apps/mobile/.eas/workflows/e2e-android-update-goldens.yml`** [AC: AC-8]
+- [x] **T12.2 — Create `apps/mobile/.eas/workflows/e2e-android-update-goldens.yml`** [AC: AC-8]
   ```yaml
   # Story 10-6 AC-8 — regenerates the Android DS goldens on the SAME emulator image
   # the e2e-android workflow asserts against. Manual only:
@@ -2384,13 +2384,13 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T13 — Capture and commit the Android goldens** [AC: AC-7, AC-8]
 
-- [ ] **T13.1 — Run the golden-capture workflow** [AC: AC-7, AC-8]
+- [x] **T13.1 — Run the golden-capture workflow** [AC: AC-7, AC-8]
   Run: `cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-android-update-goldens.yml --wait`
   Expected: the run ends `SUCCESS`; job log line `Captured 42 / 42 Android DS goldens`.
   **If the run fails because the `linux-medium-nested-virtualization` worker is not available on the account's plan** (or the job never starts with a plan/permission error): ⏸ **HALT** — record the exact error text in the Dev Agent Record § Deviations, tell the user, and switch to Dev Notes § Fallback F1 only after their go (it needs an `EXPO_TOKEN` repository secret they must create).
   **If the run fails for any other reason** (emulator boot, APK install, a flow step): download the run logs with `bunx eas-cli@latest workflow:logs <run-id>`, fix the cause, re-run. Do not lower the 98 % threshold.
 
-- [ ] **T13.2 — ⏸ Download the artifact (user-assisted) and review the goldens** [AC: AC-7, AC-8]
+- [x] **T13.2 — ⏸ Download the artifact (user-assisted) and review the goldens** [AC: AC-7, AC-8]
   Ask the user to download the `android-ds-goldens` artifact from the run page (expo.dev → project → Workflows → the run → Artifacts) and unzip it into `apps/mobile/.maestro/goldens/android/`. Then show the user five representative PNGs for a visual check against the iOS goldens (`PekuloHero.mobile`, `PekuloDonutCard.default`, `PekuloAccountsSection.three`, `PekuloSegmentedControl.theme`, `PekuloMobileBottomNav.cap`): same layout and grayscale chrome, Geist font, no clipped glyphs. Visual differences inherent to the platform (font rasterisation) are expected; layout breaks are bugs to fix in `@pekulo/ui` native sources before committing.
   Run: `ls apps/mobile/.maestro/goldens/android/*.png | wc -l`
   Expected: `42`.
@@ -2398,7 +2398,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T14 — Prove the Android E2E workflow** [AC: AC-7, AC-8]
 
-- [ ] **T14.1 — Run `e2e-android.yml` end to end** [AC: AC-7, AC-8]
+- [x] **T14.1 — Run `e2e-android.yml` end to end** [AC: AC-7, AC-8]
   Run: `cd apps/mobile && bunx eas-cli@latest workflow:run .eas/workflows/e2e-android.yml --wait`
   Expected: run `SUCCESS`; the `Maestro E2E (Android)` job passes `smoke`, `navigation`, `preview-guard`, `ds-gallery-android` (each on attempt 1 or 2).
   On failure: `bunx eas-cli@latest workflow:logs <run-id>`; the `maestro-android-failure-artifacts` artifact holds screenshots + hierarchy per attempt. Known Android-specific risks to check first (Dev Notes § Risks): Material `AlertDialog` button casing in `preview-guard`, `clearKeychain` on Android, sheet top inset at the 1.0 detent.
@@ -2407,7 +2407,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T15 — Docs sync** [AC: AC-10]
 
-- [ ] **T15.1 — `apps/mobile/README.md`** [AC: AC-10]
+- [x] **T15.1 — `apps/mobile/README.md`** [AC: AC-10]
   Replace the line
   ```md
   ## E2E — Maestro on EAS Workflows (story 10-5)
@@ -2438,7 +2438,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   Android-specific surfaces (all covered by the `android` Jest project, `__tests__/android/`): tab header buttons through `headerRight` (`Stack.Toolbar` needs `@expo/ui` on Android), headerless form sheets with an in-content header row, row action menus in the DS `ActionSheetHost`, and account deletion in `sheets/delete-account` (no `Alert.prompt` on Android).
   ````
 
-- [ ] **T15.2 — `docs/architecture.md`** [AC: AC-10]
+- [x] **T15.2 — `docs/architecture.md`** [AC: AC-10]
   In the **Test pyramid (D6)** bullet replace
   ```md
   **Maestro on EAS Workflows** (iOS Simulator, preview mode: smoke / navigation / preview-guard / DS-gallery screenshot goldens — story 10-5; Android in 10-6)
@@ -2457,7 +2457,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   ```
   (Keep the table column alignment: run `bun run format` after the edit — oxfmt realigns the table.)
 
-- [ ] **T15.3 — `docs/epics.md`: realized scope for 10-6** [AC: AC-10]
+- [x] **T15.3 — `docs/epics.md`: realized scope for 10-6** [AC: AC-10]
   Directly under the line `**Complexity:** M` that closes `#### Story 10-6-android-parity-and-maestro` (the `**Ticket:**` line already reads `[#162](https://github.com/yabafre/pekulo/issues/162)` since aped-story), add:
   ```md
 
@@ -2466,7 +2466,7 @@ Run every command from the repository root unless the command starts with `cd`. 
   **Complexity:** L (re-estimated from M)
   ```
 
-- [ ] **T15.4 — `docs/state.yaml`** [AC: AC-10]
+- [x] **T15.4 — `docs/state.yaml`** [AC: AC-10]
   Leave `10-6-android-parity-and-maestro` as `status: ready-for-dev` / `ticket: "#162"` (set by aped-story); `aped-dev` flips it to `in-progress` / `review` per its own workflow — do not hand-edit beyond that.
   Run: `bun run format:check`
   Expected: exit 0 (run `bun run format` first if the architecture table needs realignment, then re-check).
@@ -2474,7 +2474,7 @@ Run every command from the repository root unless the command starts with `cd`. 
 
 **T16 — Quality gates** [AC: AC-10]
 
-- [ ] **T16.1 — Full gate run** [AC: AC-10]
+- [x] **T16.1 — Full gate run** [AC: AC-10]
   Run: `bun run typecheck`
   Expected: exit 0, every workspace `tsc --noEmit` clean.
   Run: `bun run lint`
@@ -2901,14 +2901,53 @@ Validate with `bunx --bun @action-validator/cli .github/workflows/e2e-android.ym
 
 ## Dev Agent Record
 
-- **Model:**
-- **Started:**
-- **Completed:**
+- **Model:** Claude Opus 5.5 (`claude-opus-5-5`)
+- **Started:** 2026-11-25T20:30:00Z
+- **Completed:** 2026-11-26T04:30:00Z
 
 ### Summary
 
+Android parity shipped as planned for the app surfaces (T2–T11): platform-split headers, the DS `ActionSheetHost`, the Android typed-email deletion sheet, Material Symbols, the labelled tab bar and an `android` Jest project. The E2E half was reworked after the user's mid-story request: Maestro now runs on GitHub Actions (`.github/workflows/e2e-mobile.yml`, iOS on `macos-26` + Android on `ubuntu-24.04`) instead of EAS Workflows, the DS gallery only runs on DS / gallery / golden changes and is split into 4 shards per platform with one Maestro `retry` per case. Final assertion run green on both platforms; 83 of 84 goldens recaptured on the GitHub runners were byte-identical to the committed ones.
+
 ### Files changed
+
+- `.github/actions/maestro-android/action.yml`, `.github/actions/maestro-ios/action.yml`, `.github/scripts/maestro-run.sh`, `.github/workflows/e2e-mobile.yml` (new)
+- `apps/mobile/.eas/workflows/e2e-ios.yml`, `apps/mobile/.eas/workflows/e2e-ios-update-goldens.yml` (deleted — replaced by `e2e-mobile.yml`)
+- `apps/mobile/.maestro/flows/ds-gallery.yaml` (deleted — replaced by `apps/mobile/.maestro/gallery/{ios,android}/shard-{1..4}.yaml`)
+- `apps/mobile/.maestro/flows/navigation.yaml`
+- `apps/mobile/.maestro/goldens/android/*.png` (42, new), `apps/mobile/.maestro/goldens/ios/PekuloSkeleton.lines.png` (recaptured)
+- `apps/mobile/__tests__/account-deletion.test.ts`, `apps/mobile/__tests__/native-surface-guards.test.ts`, `apps/mobile/__tests__/sheet-presentation.test.ts` (new)
+- `apps/mobile/__tests__/android/{platform.test.ts,action-sheet.test.tsx,headers.test.tsx,account-deletion.test.tsx,sheet-presentation.test.ts,helpers/android-stack-mock.ts}` (new)
+- `apps/mobile/__tests__/ds-gallery-screen.test.tsx`, `apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts`
+- `apps/mobile/app/(tabs)/_layout.tsx`, `apps/mobile/app/(tabs)/transactions/index.tsx`, `apps/mobile/app/_layout.tsx`, `apps/mobile/app/ds/[case].tsx`, `apps/mobile/app/parametres.tsx`, `apps/mobile/app/sheets/delete-account.tsx` (new)
+- `apps/mobile/components/form/fields.tsx`, `apps/mobile/components/form/sheet.tsx`, `apps/mobile/components/search-field.tsx`, `apps/mobile/components/tab-stack-layout.tsx`
+- `apps/mobile/lib/account-deletion.ts`, `apps/mobile/lib/action-sheet-host.tsx`, `apps/mobile/lib/sheet-presentation.ts` (new), `apps/mobile/lib/actions.ts`, `apps/mobile/lib/i18n/messages/settings.ts`
+- `apps/mobile/eas.json`, `apps/mobile/jest.config.js`, `apps/mobile/README.md`
+- `README.md`, `docs/architecture.md`, `docs/epics.md`, `docs/state.yaml`, `docs/stories/10-6-android-parity-and-maestro.md`
+- `skills-lock.json`, `.claude/skills/{ios-design,ui-taste}/**`, `.agents/skills/{app-store-compliance,mobile-agent-testers}/**` (T1, vendored)
 
 ### Deviations
 
+- **E2E moved from EAS Workflows to GitHub Actions (user request, 2026-11-26).** T12's `e2e-android{,-update-goldens}.yml` were built, run, then deleted together with the 10-5 `e2e-ios{,-update-goldens}.yml`; AC-8 is met by `.github/workflows/e2e-mobile.yml` (`concurrency.cancel-in-progress`, pinned `macos-26` / Xcode 26.6 / iPhone 17 Pro iOS 26.5 and `ubuntu-24.04` / API 35 Pixel 7, gallery gated by `dorny/paths-filter`, 4 shards per platform). Golden capture is a PR label (`maestro:update-goldens`) or `workflow_dispatch` after merge. `apps/mobile/eas.json`'s `e2e-test` profile stays but CI no longer uses it.
+- **Gallery flows generated as shards** (`.maestro/gallery/<platform>/shard-<n>.yaml`) instead of one file per platform; each case is wrapped in a Maestro `retry`, and a shard opens a single deep link then steps with an in-app `ds-next` button on `app/ds/[case].tsx` (every iOS `simctl openurl` raised an "Open in Pekulo?" prompt and timed out on `macos-26`). `ds-next` sits in the scroll content — pinned to the bottom it was hidden under the Android taskbar. The 10-5 claim "iOS flow byte-identical" no longer holds by design.
+- **CI fixes found by the runs:** Android deep links fired right after a cold `launchApp` were dropped (wait for `tab-cap` first); the default emulator rendered ~320 dp at 1x (pinned 1080×2400 @ 420); each `maestro test` call re-installed the iOS XCTest driver (one invocation per job + `MAESTRO_DRIVER_STARTUP_TIMEOUT=300000`); the XCTest driver can still die on the 3-vCPU macOS runners, so an iOS gallery shard reruns once on a crash; ccache never cached anything (Expo native code is Swift) — the iOS `.app` is now cached under `@expo/fingerprint` and only the JS is re-bundled.
+- **Test-harness fixes to the story's code:** `action-sheet.test.tsx` `afterEach` awaits `act` (RNTL 14 `act` is async; the un-awaited one swallowed the next test's render); `SheetHeaderButton` also passes `disabled` to `Pressable` (the disabled-primary test failed without it); typed `onPress` pairing and label-based keys for TS `noUncheckedIndexedAccess` / `no-array-index-key`.
+- **AC-6 test added at step 07** (`lib/sheet-presentation.ts` extracted from `app/_layout.tsx`): the story planned no test for AC-6.
+- **Merged `origin/main` (10-7) mid-story** (`759ab8c`): resolved `parametres.tsx` (haptics + Android deletion), docs and `skills-lock.json`; gave 10-7's new Paramètres chevron an Android Material Symbol (caught by `native-surface-guards`) and made that suite a module so it no longer collides with `store-compliance.test.ts`.
+- **Native text renders in the system font** (SF Pro on iOS, Roboto on Android): DS `Text` emits no `fontFamily` on native. Pre-existing since 10-3/10-5, affects both platforms — goldens committed as is, fix split to a follow-up story (user decision 2026-11-26).
+- **Durations:** the 5–7 min target holds for Android-only paths but not iOS: final run 16 min 32 (iOS build 2 min 08 on fingerprint hit; each iOS test job 10–14 min, mostly simulator boot + Maestro driver start on 3-vCPU runners; Android build ~6 min, tests ~2 min 20).
+- **Visual verification:** React Grab is unavailable on React Native; done through the 42 Android goldens (reviewed with the user) and Maestro failure artifacts.
+
 ### Test output
+
+```
+$ bun --filter='@pekulo/mobile' run test
+@pekulo/mobile test: Test Suites: 28 passed, 28 total
+@pekulo/mobile test: Tests:       241 passed, 241 total
+$ bun run typecheck   → exit 0
+$ bun run lint        → exit 0 (@pekulo/mobile: Found 0 warnings and 0 errors; 3 pre-existing apps/web warnings)
+$ bun run format:check → exit 0
+$ actionlint .github/workflows/e2e-mobile.yml → exit 0 ; shellcheck .github/scripts/maestro-run.sh → exit 0
+```
+
+CI (`e2e-mobile`, PR #165): capture run https://github.com/yabafre/pekulo/actions/runs/45748592378 (14/14 green, label `maestro:update-goldens`); assertion run https://github.com/yabafre/pekulo/actions/runs/45750772910 (14/14 green, all 42 goldens per platform at ≥ 98 %).
