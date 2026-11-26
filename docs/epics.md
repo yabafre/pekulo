@@ -1379,6 +1379,20 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-56 (native typography parity)
 **Complexity:** M
 
+#### Story 10-9-android-e2e-emulator-stability
+
+**Ticket:** [#168](https://github.com/yabafre/pekulo/issues/168)
+**Title:** Make the Android core Maestro job green on main and PRs
+
+**Depends on:** 10-6-android-parity-and-maestro
+
+**As a** Pekulo maintainer, **I want** the e2e-mobile Android core job to pass on `main` and on every mobile PR, **so that** Android end-to-end results are a signal again.
+
+**Summary:** The post-job `actions/cache` save never ran because the job failed, so every run cold-booted a fresh AVD snapshotted 3 s after boot; the launcher then raised a system ANR dialog ("Quickstep isn't responding") over the app and every core flow failed on its first Cap check. Split AVD cache restore/save (key v2), settle the emulator (launcher idle, ANR answered with Wait) before snapshot and tests, shared Maestro Cap-wait subflow that answers the dialog, `centerElement` on the preview-guard toggle (it sat under the navigation bar with taller text), Jest drift guard, green CI proof.
+
+**Covered FRs:** FR-56 (Android E2E signal)
+**Complexity:** S
+
 ## Epic 11: Public-ramp readiness
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.
