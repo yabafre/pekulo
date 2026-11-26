@@ -5,7 +5,7 @@ ticket: "#166"
 branch: feature/166-10-8-native-geist-font
 status: ready-for-dev
 complexity: M
-stepsCompleted: [1, 2, 3, 4, 5, 6, 7]
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 ---
 
 # Story: 10-8-native-geist-font — Render every @pekulo/ui text in Geist on iOS and Android
@@ -261,7 +261,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   ```
 
 - [ ] **T2.2 — Replace the body of `packages/ui/src/config/tamagui.ts`** [AC: AC-1, AC-4]
-  Keep the existing header comment block (lines 1–24, from `// packages/ui/src/config/tamagui.ts` through the `scripts/fix-tamagui-css.mjs ... full rationale.` line) verbatim, then replace everything from `import { defaultConfig } from "@tamagui/config/v5";` to the end of the file with:
+  Keep the existing header comment block verbatim — every comment line from `// packages/ui/src/config/tamagui.ts` down to and including the line ending `See that script's header for the full rationale.`, then replace everything from `import { defaultConfig } from "@tamagui/config/v5";` to the end of the file with:
   ```ts
   //
   // Story 10-8: the createTamagui() body lives in ./create-config.ts so the
