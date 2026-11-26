@@ -11,6 +11,7 @@
 const mockBack = jest.fn();
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockDismissAll = jest.fn();
 
 jest.mock("expo-router", () => {
   const actual = jest.requireActual("expo-router");
@@ -21,6 +22,8 @@ jest.mock("expo-router", () => {
       back: mockBack,
       push: mockPush,
       replace: mockReplace,
+      dismissAll: mockDismissAll,
+      canDismiss: () => true,
       canGoBack: () => true,
     }),
   };
@@ -76,12 +79,12 @@ const SESSION: Session = {
   },
 };
 
-async function renderLive(ui: ReactNode) {
+async function renderLive(ui: ReactNode, session: Session = SESSION) {
   const queryClient = createMobileQueryClient();
   return await render(
     <QueryClientProvider client={queryClient}>
       <PekuloRootProvider theme="pekulo-light">
-        <AuthProvider initialSession={SESSION} requireAuth={false}>
+        <AuthProvider initialSession={session} requireAuth={false}>
           {ui}
         </AuthProvider>
       </PekuloRootProvider>
@@ -140,5 +143,25 @@ describe("Paramètres and account deletion on Android (story 10-6, AC-2/AC-4)", 
     );
     await waitFor(() => expect(signOutSpy).toHaveBeenCalled());
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/login"));
+    // Paramètres sits under this sheet: dismiss the whole sheet stack first.
+    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(mockDismissAll.mock.invocationCallOrder[0]).toBeLessThan(
+      mockReplace.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it("explains that the account email is unavailable instead of « E-mail incorrect »", async () => {
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    await renderLive(<DeleteAccountSheet />, {
+      ...SESSION,
+      user: { ...SESSION.user, email: undefined },
+    });
+    await fireEvent.changeText(screen.getByTestId("delete-account-email"), "alex@pekulo.app");
+    await fireEvent.press(screen.getByTestId("delete-account-confirm-btn"));
+    expect(alertSpy).toHaveBeenCalledWith(
+      "Supprimer mon compte ?",
+      "L’adresse e-mail de votre compte est introuvable. Reconnectez-vous puis réessayez.",
+    );
+    expect(settingsClient.deleteAccount).not.toHaveBeenCalled();
   });
 });

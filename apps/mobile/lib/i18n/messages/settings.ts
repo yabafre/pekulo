@@ -64,6 +64,8 @@ export const fr = {
     emailLabel: "E-mail du compte",
     wrongEmailTitle: "E-mail incorrect",
     wrongEmailMessage: "Saisissez exactement l’adresse e-mail de votre compte.",
+    emailUnavailable:
+      "L’adresse e-mail de votre compte est introuvable. Reconnectez-vous puis réessayez.",
     done: "Compte supprimé",
   },
   compass: {
@@ -143,6 +145,7 @@ export const en: Shape<typeof fr> = {
     emailLabel: "Account email",
     wrongEmailTitle: "Incorrect email",
     wrongEmailMessage: "Type your account’s email address exactly.",
+    emailUnavailable: "Your account’s email address is unavailable. Sign in again, then retry.",
     done: "Account deleted",
   },
   compass: {

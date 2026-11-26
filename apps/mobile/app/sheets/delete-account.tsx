@@ -2,7 +2,8 @@
 // Story 10-6 AC-4 — Android account deletion with typed-email confirmation.
 // `Alert.prompt` (the iOS path in app/parametres.tsx) does not exist on Android;
 // this sheet runs the same `isDeletionEmailConfirmed` check and the same
-// `useDeleteUserAccount` mutation (which signs out), then replaces to /login.
+// `useDeleteUserAccount` mutation (which signs out), then dismisses the whole
+// sheet stack (this sheet AND Paramètres under it) before replacing to /login.
 // Presented only from the Android branch of Paramètres.
 
 import { Text } from "@pekulo/ui/client";
@@ -27,6 +28,11 @@ export default function DeleteAccountSheet() {
 
   function handleConfirm() {
     if (pending) return;
+    if (!userEmail?.trim()) {
+      // No account email to compare against: the server would refuse too.
+      Alert.alert(t("settings.deletion.title"), t("settings.deletion.emailUnavailable"));
+      return;
+    }
     if (!isDeletionEmailConfirmed(typed, userEmail)) {
       Alert.alert(t("settings.deletion.wrongEmailTitle"), t("settings.deletion.wrongEmailMessage"));
       return;
@@ -34,6 +40,7 @@ export default function DeleteAccountSheet() {
     const confirmationEmail = typed.trim();
     void run(async () => {
       await deleteAccount.mutateAsync({ confirmationEmail });
+      if (router.canDismiss()) router.dismissAll();
       router.replace("/login");
     }, t("settings.deletion.done"));
   }
