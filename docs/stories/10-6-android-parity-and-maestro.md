@@ -2894,6 +2894,7 @@ _Refreshed at review (2026-11-26) to match the branch. The original plan listed 
 - `apps/mobile/__tests__/android/account-deletion.test.tsx`
 - `apps/mobile/__tests__/android/sheet-presentation.test.ts`
 - `apps/mobile/__tests__/android/tabs-layout.test.tsx` (review)
+- `apps/mobile/__tests__/android/date-field.test.tsx` (review)
 - `apps/mobile/__tests__/android/helpers/android-stack-mock.ts`
 - `.claude/skills/ios-design/**`, `.claude/skills/ui-taste/**`, `.agents/skills/{app-store-compliance,mobile-agent-testers}/**` (vendored, T1)
 

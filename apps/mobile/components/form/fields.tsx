@@ -6,10 +6,10 @@
 
 import { PekuloInput } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
-import { Pressable, Switch, type KeyboardTypeOptions } from "react-native";
+import { Platform, Pressable, Switch, type KeyboardTypeOptions } from "react-native";
 import { useTheme } from "tamagui";
 
 import { showActions } from "../../lib/actions";
@@ -170,6 +170,14 @@ function RowShell({
   );
 }
 
+function formatFieldDate(value: Date, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(value);
+}
+
 export function DateField({
   label,
   value,
@@ -184,6 +192,40 @@ export function DateField({
   testID?: string;
 }) {
   const { locale } = useI18n();
+  if (Platform.OS === "android") {
+    // Story 10-6 review: a mounted <DateTimePicker> IS the dialog on Android
+    // (`display="compact"` is iOS-only), so it popped open over every sheet with
+    // a date. Android shows the date and opens the Material dialog on demand.
+    return (
+      <RowShell label={label}>
+        <Pressable
+          testID={testID}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} : ${formatFieldDate(value, locale)}`}
+          hitSlop={8}
+          onPress={() =>
+            DateTimePickerAndroid.open({
+              value,
+              mode: "date",
+              maximumDate,
+              onChange: (event, next) => {
+                if (event.type === "set" && next) onChange(next);
+              },
+            })
+          }
+          style={({ pressed }) => ({
+            minHeight: 44,
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text color="$color" fontSize="$body">
+            {formatFieldDate(value, locale)}
+          </Text>
+        </Pressable>
+      </RowShell>
+    );
+  }
   return (
     <RowShell label={label}>
       <DateTimePicker
