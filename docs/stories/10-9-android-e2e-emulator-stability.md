@@ -3,7 +3,7 @@ storyKey: 10-9-android-e2e-emulator-stability
 epic: 10
 ticket: "#168"
 branch: feature/168-10-9-android-e2e-emulator-stability
-status: review
+status: done
 complexity: S
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 ---
@@ -11,7 +11,7 @@ stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 # Story: 10-9-android-e2e-emulator-stability — Make the Android core Maestro job green on main and PRs
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** done
 **Ticket:** [#168](https://github.com/yabafre/pekulo/issues/168)
 **Branch:** `feature/168-10-9-android-e2e-emulator-stability`
 **Depends on:** 10-6-android-parity-and-maestro (done)
