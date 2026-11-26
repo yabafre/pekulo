@@ -37,7 +37,7 @@ import { AuthProvider, createMobileQueryClient, useAuth } from "../lib/auth/auth
 import { isDsGalleryEnabled } from "../lib/ds-gallery";
 import { useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
 import { I18nProvider, useI18n } from "../lib/i18n";
-import { SHEET_ROUTES, sheetOptions } from "../lib/sheet-presentation";
+import { PARAMETRES_DETENTS, SHEET_ROUTES, sheetOptions } from "../lib/sheet-presentation";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -88,7 +88,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="parametres"
-          options={{ ...sheetOptions([1.0], chrome), title: t("settings.title") }}
+          options={{ ...sheetOptions(PARAMETRES_DETENTS, chrome), title: t("settings.title") }}
         />
         {SHEET_ROUTES.map((sheet) => (
           <Stack.Screen

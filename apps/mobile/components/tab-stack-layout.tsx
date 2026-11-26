@@ -13,6 +13,7 @@ import { Text, View } from "@pekulo/ui/client";
 import { useRouter } from "expo-router";
 import Stack from "expo-router/stack";
 import { SymbolView } from "expo-symbols";
+import { useMemo } from "react";
 import { Platform, Pressable } from "react-native";
 import { useTheme } from "tamagui";
 
@@ -124,15 +125,17 @@ export function TabToolbar({ onAdd, addLabel }: { onAdd?: () => void; addLabel?:
   const router = useRouter();
   const { t } = useI18n();
   const resolvedAddLabel = addLabel ?? t("common.actions.add");
+  // Stable options: tab screens re-render on every query update, and a fresh
+  // `headerRight` closure would re-set the native header options each time.
+  const androidOptions = useMemo(
+    () => ({
+      headerRight: () => <TabHeaderActions onAdd={onAdd} addLabel={resolvedAddLabel} />,
+    }),
+    [onAdd, resolvedAddLabel],
+  );
 
   if (Platform.OS === "android") {
-    return (
-      <Stack.Screen
-        options={{
-          headerRight: () => <TabHeaderActions onAdd={onAdd} addLabel={resolvedAddLabel} />,
-        }}
-      />
-    );
+    return <Stack.Screen options={androidOptions} />;
   }
 
   return (

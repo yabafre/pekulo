@@ -8,6 +8,9 @@ import { Platform } from "react-native";
 
 const IS_ANDROID = Platform.OS === "android";
 
+/** Paramètres opens full height on both platforms. */
+export const PARAMETRES_DETENTS = [1.0];
+
 // Edit/create flows presented as native form sheets. Short forms open at a
 // medium detent and can be dragged to full height; long forms open full height.
 // Android honours at most three detents — every entry stays ≤ 2.

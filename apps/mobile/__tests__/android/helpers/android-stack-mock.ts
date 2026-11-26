@@ -4,7 +4,8 @@
 // raises on Android without `@expo/ui`
 // (build/layouts/stack-utils/toolbar/processHeaderItemsForPlatform.android.js),
 // so any Android render path that still reaches them fails the test.
-// `Stack.Screen` renders `options.headerRight()` so header actions can be pressed.
+// `Stack.Screen` renders `options.headerRight()` so header actions can be pressed,
+// and `Stack` records its `screenOptions` so header chrome can be asserted.
 import { Fragment, createElement, type ReactNode } from "react";
 import { View } from "react-native";
 
@@ -16,8 +17,18 @@ interface MockScreenOptions {
   headerRight?: () => ReactNode;
 }
 
+/** `screenOptions` passed to the last rendered `<Stack>`. */
+export const recordedStack: { screenOptions?: Record<string, unknown> } = {};
+
 export function createAndroidStackMock() {
-  function MockStack({ children }: { children?: ReactNode }) {
+  function MockStack({
+    children,
+    screenOptions,
+  }: {
+    children?: ReactNode;
+    screenOptions?: Record<string, unknown>;
+  }) {
+    recordedStack.screenOptions = screenOptions;
     return createElement(Fragment, null, children);
   }
   MockStack.Screen = function MockStackScreen({ options }: { options?: MockScreenOptions }) {

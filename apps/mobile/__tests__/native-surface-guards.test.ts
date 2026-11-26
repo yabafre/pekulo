@@ -69,6 +69,33 @@ describe("native surface guards (story 10-6)", () => {
     expect(missing).toEqual([]);
   });
 
+  it("gives every tab icon an Android Material icon (AC-5)", () => {
+    const icons = SOURCES.flatMap(({ file, text }) =>
+      (text.match(/<NativeTabs\.Trigger\.Icon\b[\s\S]*?\/>/g) ?? []).map((element) => ({
+        file,
+        element,
+      })),
+    );
+    expect(icons).toHaveLength(5);
+    expect(icons.filter(({ element }) => !/\bmd="[a-z_]+"/.test(element))).toEqual([]);
+  });
+
+  it("puts the create/profile header actions on the four tabs through TabToolbar (AC-2)", () => {
+    // TabToolbar carries the Android `headerRight` branch tested in
+    // __tests__/android/headers.test.tsx; Cap keeps its in-content settings button.
+    const users = SOURCES.filter(
+      ({ file, text }) => file.startsWith("app/") && text.includes("<TabToolbar"),
+    )
+      .map(({ file }) => file)
+      .sort();
+    expect(users).toEqual([
+      "app/(tabs)/immobilier/index.tsx",
+      "app/(tabs)/mensuel/index.tsx",
+      "app/(tabs)/portefeuille/index.tsx",
+      "app/(tabs)/transactions/index.tsx",
+    ]);
+  });
+
   it("keeps <Stack.Toolbar> inside the Android-tested files only (AC-2)", () => {
     // JSX usage only — comments that merely mention Stack.Toolbar are fine.
     const users = SOURCES.filter(({ text }) => text.includes("<Stack.Toolbar"))

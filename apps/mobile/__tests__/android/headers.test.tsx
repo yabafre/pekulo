@@ -33,13 +33,14 @@ jest.mock("expo-router/stack", () =>
   require("./helpers/android-stack-mock").createAndroidStackMock(),
 );
 
-import { PekuloRootProvider } from "@pekulo/ui";
+import { PekuloRootProvider, pekuloColors } from "@pekulo/ui";
 import { Text } from "@pekulo/ui/client";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import { SheetScaffold } from "../../components/form/sheet";
-import { TabToolbar } from "../../components/tab-stack-layout";
+import { TabStackLayout, TabToolbar } from "../../components/tab-stack-layout";
+import { recordedStack } from "./helpers/android-stack-mock";
 
 async function renderThemed(ui: ReactNode) {
   return await render(<PekuloRootProvider theme="pekulo-light">{ui}</PekuloRootProvider>);
@@ -59,6 +60,22 @@ describe("Android headers (story 10-6, AC-2)", () => {
     expect(onAdd).toHaveBeenCalledTimes(1);
     await fireEvent.press(screen.getByTestId("header-settings-btn"));
     expect(mockPush).toHaveBeenCalledWith("/parametres");
+  });
+
+  it("tab headers are opaque and Pekulo-coloured so they never overlap the content", async () => {
+    await renderThemed(<TabStackLayout titleKey="common.tabs.transactions" />);
+    const palette = pekuloColors.light;
+    const options = recordedStack.screenOptions ?? {};
+    // A transparent header overlaps the content on Android (no automatic insets).
+    expect(options.headerTransparent).toBeUndefined();
+    expect(options.headerLargeTitle).toBeUndefined();
+    expect(options).toMatchObject({
+      headerShadowVisible: false,
+      headerStyle: { backgroundColor: palette.surface.bg },
+      headerTitleStyle: { color: palette.text.primary },
+      headerTintColor: palette.text.primary,
+      contentStyle: { backgroundColor: palette.surface.bg },
+    });
   });
 
   it("TabToolbar without onAdd renders only the profile button", async () => {
