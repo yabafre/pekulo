@@ -51,13 +51,21 @@ const TRANSFORM_IGNORE_PATTERNS = [
 
 // jest-expo's default transform only matches `\.[jt]sx?$`, skipping `.mjs` ESM
 // entrypoints shipped by `@orpc/*` and `zod` v4 under Jest CommonJS mode.
+// Story 10-8 review: the babel transform is wrapped so its cache key also
+// hashes the Tamagui compiler config (see jest/tamagui-babel-transformer.js).
 function projectBase(preset) {
-  const { "\\.[jt]sx?$": babelTransform, ...assetTransforms } = preset.transform;
+  const {
+    "\\.[jt]sx?$": [babelJestPath, babelOptions],
+    ...assetTransforms
+  } = preset.transform;
   return {
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     transform: {
       ...assetTransforms,
-      "\\.m?[jt]sx?$": babelTransform,
+      "\\.m?[jt]sx?$": [
+        "<rootDir>/jest/tamagui-babel-transformer.js",
+        { babelJestPath, babelOptions },
+      ],
     },
     moduleNameMapper: MODULE_NAME_MAPPER,
     transformIgnorePatterns: TRANSFORM_IGNORE_PATTERNS,

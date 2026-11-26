@@ -2,8 +2,9 @@
 // Story 10-8 AC-1/AC-2/AC-3 — one assertion set shared by the `ios` and
 // `android` Jest projects. Renders DS text through every resolution path:
 //   - bare Tamagui Text (runtime defaultProps path),
-//   - PekuloHero (compiler-flattened path — only meaningful with a cold
-//     transform cache: run with `--no-cache`),
+//   - PekuloHero (compiler-flattened path; jest/tamagui-babel-transformer.js
+//     keys the transform cache on the compiler config, so a warm cache is
+//     invalidated by any config edit — no `--no-cache` needed),
 //   - PekuloBreadcrumbLink (named styled(Text), bypasses defaultProps.Text),
 //   - PekuloPagination (named styled(Text) with a dynamic `active` weight
 //     variant — the ternary path the compiler flattens WITHOUT a face swap;
