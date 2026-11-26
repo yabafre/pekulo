@@ -35,6 +35,9 @@ stepsCompleted: [1, 2, 3, 4, 5]
 - **AC-9 (Android test project)** — **Given** the mobile test suite, **When** it runs, **Then** the existing suites run under the iOS platform and a second, Android-platform project runs the Android surface tests, proving AC-2..AC-4 on Android against a toolbar stand-in that throws like the real one; **And** the 16 pre-existing suites (194 tests) stay green.
 - **AC-10 (docs + quality gates)** — **Given** the finished change, **When** typecheck, lint, format check, and the mobile tests run, **Then** all pass; **And** the epic plan, sprint state, architecture test pyramid / FR-56 traceability, and mobile README are synced in this change; **And** the vendored mobile design skills are committed on this branch.
 
+
+> **Realized AC-7 / AC-8 (2026-11-26, user decision — recorded at review).** AC-8's EAS-refusal branch was never exercised: EAS Workflows accepted the Android emulator worker, and the user then moved all mobile E2E (iOS and Android) to GitHub Actions for speed and control. AC-8 is met by `.github/workflows/e2e-mobile.yml`: a non-required check on PRs to `main` touching the mobile app or the shared packages; Android APK built on `ubuntu-24.04`; flows on a pinned API 35 Pixel 7 emulator; failure artifacts uploaded; goldens recaptured on the same image through the `maestro:update-goldens` PR label or `workflow_dispatch`. "One retry per flow" holds for the core flows (`flow-retry: 1`). The gallery instead retries **each golden case** once (Maestro `retry`), which gives finer-grained retries than one retry per flow. AC-7's gallery "flow" ships as 4 generated shards per platform (`.maestro/gallery/<platform>/shard-<n>.yaml`). The iOS shards are regenerated, so they are no longer byte-identical to 10-5's `ds-gallery.yaml`. The drift guard covers both platforms (`__tests__/maestro-ds-gallery-flow.test.ts`). Review added `action-sheet-android.yaml`, which checks AC-3 on the emulator.
+
 ## Tasks
 
 Run every command from the repository root unless the command starts with `cd`. Never use `bun --cwd` (lesson 2026-05-05) and always filter by package name, `bun --filter='@pekulo/mobile'` (lesson 2026-05-19). `bun --filter='@pekulo/mobile' test` runs Bun's own runner — always use `run test` or `bunx jest` inside `apps/mobile`.
@@ -2860,22 +2863,39 @@ Validate with `bunx --bun @action-validator/cli .github/workflows/e2e-android.ym
 
 ## File List
 
+_Refreshed at review (2026-11-26) to match the branch. The original plan listed `.eas/workflows/e2e-android*.yml` and `.maestro/flows/ds-gallery-android.yaml`; both were superseded (see Dev Agent Record § Deviations)._
+
 **Created**
+- `.github/workflows/e2e-mobile.yml`
+- `.github/actions/maestro-android/action.yml`
+- `.github/actions/maestro-ios/action.yml`
+- `.github/scripts/maestro-run.sh`
 - `apps/mobile/lib/action-sheet-host.tsx`
 - `apps/mobile/lib/account-deletion.ts`
+- `apps/mobile/lib/sheet-presentation.ts`
 - `apps/mobile/app/sheets/delete-account.tsx`
-- `apps/mobile/.maestro/flows/ds-gallery-android.yaml` (generated)
-- `apps/mobile/.maestro/goldens/android/*.png` (42, captured on CI)
-- `apps/mobile/.eas/workflows/e2e-android.yml`
-- `apps/mobile/.eas/workflows/e2e-android-update-goldens.yml`
+- `apps/mobile/.maestro/gallery/ios/shard-1.yaml` (generated)
+- `apps/mobile/.maestro/gallery/ios/shard-2.yaml` (generated)
+- `apps/mobile/.maestro/gallery/ios/shard-3.yaml` (generated)
+- `apps/mobile/.maestro/gallery/ios/shard-4.yaml` (generated)
+- `apps/mobile/.maestro/gallery/android/shard-1.yaml` (generated)
+- `apps/mobile/.maestro/gallery/android/shard-2.yaml` (generated)
+- `apps/mobile/.maestro/gallery/android/shard-3.yaml` (generated)
+- `apps/mobile/.maestro/gallery/android/shard-4.yaml` (generated)
+- `apps/mobile/.maestro/flows/action-sheet-android.yaml` (review)
+- `apps/mobile/.maestro/goldens/android/` — 42 PNGs, captured on CI
 - `apps/mobile/__tests__/native-surface-guards.test.ts`
 - `apps/mobile/__tests__/account-deletion.test.ts`
+- `apps/mobile/__tests__/sheet-presentation.test.ts`
+- `apps/mobile/__tests__/e2e-build-env.test.ts` (review)
 - `apps/mobile/__tests__/android/platform.test.ts`
 - `apps/mobile/__tests__/android/action-sheet.test.tsx`
 - `apps/mobile/__tests__/android/headers.test.tsx`
 - `apps/mobile/__tests__/android/account-deletion.test.tsx`
+- `apps/mobile/__tests__/android/sheet-presentation.test.ts`
+- `apps/mobile/__tests__/android/tabs-layout.test.tsx` (review)
 - `apps/mobile/__tests__/android/helpers/android-stack-mock.ts`
-- `.claude/skills/ios-design/**`, `.claude/skills/ui-taste/**` (vendored)
+- `.claude/skills/ios-design/**`, `.claude/skills/ui-taste/**`, `.agents/skills/{app-store-compliance,mobile-agent-testers}/**` (vendored, T1)
 
 **Modified**
 - `apps/mobile/jest.config.js`
@@ -2885,19 +2905,29 @@ Validate with `bunx --bun @action-validator/cli .github/workflows/e2e-android.ym
 - `apps/mobile/app/parametres.tsx`
 - `apps/mobile/app/(tabs)/_layout.tsx`
 - `apps/mobile/app/(tabs)/transactions/index.tsx`
+- `apps/mobile/app/ds/[case].tsx`
 - `apps/mobile/components/tab-stack-layout.tsx`
 - `apps/mobile/components/form/sheet.tsx`
 - `apps/mobile/components/form/fields.tsx`
 - `apps/mobile/components/search-field.tsx`
 - `apps/mobile/eas.json`
 - `apps/mobile/.maestro/flows/navigation.yaml`
+- `apps/mobile/.maestro/goldens/ios/PekuloSkeleton.lines.png` (recaptured)
 - `apps/mobile/__tests__/maestro-ds-gallery-flow.test.ts`
+- `apps/mobile/__tests__/ds-gallery-screen.test.tsx`
 - `apps/mobile/README.md`
+- `packages/ui/src/primitives/PekuloDrawer.native.tsx` (review: `PekuloDrawer.ScrollView`)
+- `packages/ui/src/primitives/PekuloDrawer.tsx` (review: `PekuloDrawer.ScrollView`)
+- `README.md`
 - `docs/architecture.md`
 - `docs/epics.md`
+- `docs/state.yaml`
 - `skills-lock.json`
 
-**Not modified (verified)**: `.gitignore` / `.easignore` (already ignore `apps/mobile/android`), `apps/mobile/app.json`, `apps/mobile/.maestro/flows/{smoke,preview-guard,ds-gallery}.yaml`, `apps/mobile/.eas/workflows/e2e-ios{,-update-goldens}.yml`, `packages/ui/**`, `apps/web/**`.
+**Deleted**
+- `apps/mobile/.eas/workflows/e2e-ios.yml`
+- `apps/mobile/.eas/workflows/e2e-ios-update-goldens.yml`
+- `apps/mobile/.maestro/flows/ds-gallery.yaml`
 
 ## Dev Agent Record
 
