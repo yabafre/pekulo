@@ -26,7 +26,14 @@ UPDATE_GOLDENS="${UPDATE_GOLDENS:-false}"
 export MAESTRO_CLI_NO_ANALYTICS=1
 export PATH="$PATH:$HOME/.maestro/bin"
 
-maestro --version
+# The installer is fetched from get.maestro.mobile.dev and pinned through
+# MAESTRO_VERSION; fail fast if it (or a stale cache) installed something else.
+installed="$(maestro --version | tail -n 1 | tr -d '[:space:]')"
+echo "Maestro $installed"
+if [ -n "${MAESTRO_VERSION:-}" ] && [ "$installed" != "$MAESTRO_VERSION" ]; then
+  echo "::error title=Maestro version::expected $MAESTRO_VERSION, got $installed" >&2
+  exit 1
+fi
 mkdir -p "$RESULTS_DIR"
 
 args=(--device "$DEVICE")

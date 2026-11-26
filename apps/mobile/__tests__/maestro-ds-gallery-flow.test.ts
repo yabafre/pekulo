@@ -6,7 +6,7 @@
 // Each golden case is wrapped in a Maestro `retry` so a flake re-runs that case
 // only, and each shard runs in its own CI job (.github/workflows/e2e-mobile.yml),
 // so a failing shard is retried alone. The gallery lives outside `flows/`, so
-// `maestro test apps/mobile/.maestro` runs only smoke / navigation / preview-guard.
+// `maestro test apps/mobile/.maestro` runs only the core flows (smoke / navigation / preview-guard / action-sheet-android).
 // This test fails when a committed shard drifts from the catalog. Regenerate with:
 //   cd apps/mobile && UPDATE_DS_FLOW=1 bunx jest --selectProjects ios __tests__/maestro-ds-gallery-flow.test.ts
 //

@@ -26,6 +26,9 @@ on:
       - "bun.lock"
       - ".github/workflows/e2e-mobile.yml"
       - ".github/scripts/maestro-run.sh"
+      - ".github/actions/maestro-android/**"
+      - ".github/actions/maestro-ios/**"
+      - ".github/actions/setup-bun/**"
   # Post-merge runs keep the native caches warm for the next PRs (core flows only).
   push:
     branches: [main]
@@ -39,6 +42,9 @@ on:
       - "bun.lock"
       - ".github/workflows/e2e-mobile.yml"
       - ".github/scripts/maestro-run.sh"
+      - ".github/actions/maestro-android/**"
+      - ".github/actions/maestro-ios/**"
+      - ".github/actions/setup-bun/**"
   workflow_dispatch:
     inputs:
       update_goldens:
@@ -48,7 +54,9 @@ on:
 
 concurrency:
   group: e2e-mobile-${{ github.ref }}
-  cancel-in-progress: true
+  # Only superseded PR pushes are cancelled: main runs warm the native caches
+  # and a dispatch may be capturing goldens.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -89,8 +97,12 @@ jobs:
               - "apps/mobile/lib/ds-gallery*.ts"
               - "apps/mobile/.maestro/goldens/**"
               - "apps/mobile/.maestro/gallery/**"
+              - "apps/mobile/app/_layout.tsx"
+              - "bun.lock"
               - ".github/workflows/e2e-mobile.yml"
               - ".github/scripts/maestro-run.sh"
+              - ".github/actions/maestro-android/**"
+              - ".github/actions/maestro-ios/**"
       - id: mode
         env:
           FILTER_GALLERY: ${{ steps.filter.outputs.gallery }}
@@ -270,7 +282,7 @@ jobs:
           if-no-files-found: ignore
 
   android-core:
-    name: Android — smoke / navigation / preview-guard
+    name: Android — smoke / navigation / preview-guard / action sheet
     needs: build-android
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -283,6 +295,7 @@ jobs:
             apps/mobile/.maestro/flows/smoke.yaml
             apps/mobile/.maestro/flows/navigation.yaml
             apps/mobile/.maestro/flows/preview-guard.yaml
+            apps/mobile/.maestro/flows/action-sheet-android.yaml
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
