@@ -5,11 +5,18 @@
 // <ActionSheetHost /> (mounted once, Android only, in app/_layout.tsx) renders
 // it as a Pekulo DS bottom sheet (`PekuloDrawer` native → @tamagui/sheet)
 // listing every action + « Annuler ». iOS keeps `ActionSheetIOS`.
+//
+// Review fixes (story 10-6 review):
+//   - the hardware back button closes the menu (the Tamagui sheet does not
+//     listen to it, so back used to pop the screen underneath);
+//   - the action list scrolls inside `PekuloDrawer.ScrollView` (a plain RN
+//     ScrollView loses its drags to the sheet's pan responder);
+//   - the last request stays rendered while the sheet animates closed.
 
 import { PekuloDrawer } from "@pekulo/ui";
 import { Text, View } from "@pekulo/ui/client";
-import { useSyncExternalStore } from "react";
-import { Pressable, ScrollView } from "react-native";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { BackHandler, Pressable } from "react-native";
 
 import { tNow } from "./i18n";
 
@@ -81,6 +88,7 @@ function ActionRow({
       })}
     >
       <Text
+        testID={`${testID}-label`}
         color={destructive ? "$danger" : "$color"}
         fontSize="$body"
         fontWeight={destructive ? "500" : "400"}
@@ -93,40 +101,58 @@ function ActionRow({
 
 export function ActionSheetHost() {
   const request = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const open = request !== null;
+  // Keep the last request on screen while the sheet slides down.
+  const lastRequest = useRef<ActionSheetRequest | null>(null);
+  if (request) lastRequest.current = request;
+  const shown = request ?? lastRequest.current;
+
+  useEffect(() => {
+    if (!open) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      closeActionSheet();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [open]);
 
   return (
     <PekuloDrawer
-      open={request !== null}
+      open={open}
       onOpenChange={(next) => {
         if (!next) closeActionSheet();
       }}
     >
       <PekuloDrawer.Portal>
         <PekuloDrawer.Content testID="action-sheet">
-          {request ? (
+          {shown ? (
             <>
               <PekuloDrawer.Header>
-                <PekuloDrawer.Title>{request.title}</PekuloDrawer.Title>
-                {request.message ? (
-                  <PekuloDrawer.Description>{request.message}</PekuloDrawer.Description>
+                <PekuloDrawer.Title>{shown.title}</PekuloDrawer.Title>
+                {shown.message ? (
+                  <PekuloDrawer.Description>{shown.message}</PekuloDrawer.Description>
                 ) : null}
               </PekuloDrawer.Header>
-              <ScrollView keyboardShouldPersistTaps="handled">
+              <PekuloDrawer.ScrollView keyboardShouldPersistTaps="handled">
                 <View gap="$1">
-                  {request.actions.map((action, index) => (
+                  {shown.actions.map((action, index) => (
                     <ActionRow
-                      key={action.label}
+                      // Labels can repeat (two accounts with the same name) and a
+                      // request's list is never reordered: position is the identity.
+                      // oxlint-disable-next-line react/no-array-index-key
+                      key={`${index}:${action.label}`}
                       label={action.label}
                       destructive={action.destructive}
                       testID={`action-sheet-item-${index}`}
                       onPress={() => {
+                        if (!open) return;
                         closeActionSheet();
                         action.onPress();
                       }}
                     />
                   ))}
                 </View>
-              </ScrollView>
+              </PekuloDrawer.ScrollView>
               <ActionRow
                 label={tNow("common.actions.cancel")}
                 testID="action-sheet-cancel"
