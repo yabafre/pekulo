@@ -3,7 +3,7 @@ storyKey: 10-6-android-parity-and-maestro
 epic: 10
 ticket: "#162"
 branch: feature/162-10-6-android-parity-and-maestro
-status: review
+status: done
 complexity: L
 stepsCompleted: [1, 2, 3, 4, 5]
 ---
@@ -11,7 +11,7 @@ stepsCompleted: [1, 2, 3, 4, 5]
 # Story: 10-6-android-parity-and-maestro — Android-safe native surfaces, Android APK, and Maestro E2E on an Android emulator (EAS Workflows)
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** done
 **Ticket:** [#162](https://github.com/yabafre/pekulo/issues/162)
 **Branch:** `feature/162-10-6-android-parity-and-maestro`
 **Depends on:** 10-5-mobile-parity-and-maestro (done, PR #161)
@@ -2982,3 +2982,67 @@ $ actionlint .github/workflows/e2e-mobile.yml → exit 0 ; shellcheck .github/sc
 ```
 
 CI (`e2e-mobile`, PR #165): capture run https://github.com/yabafre/pekulo/actions/runs/45748592378 (14/14 green, label `maestro:update-goldens`); assertion run https://github.com/yabafre/pekulo/actions/runs/45750772910 (14/14 green, all 42 goldens per platform at ≥ 98 %).
+
+## Review Record
+
+**Date:** 2026-11-26
+**Auditors:** Spec, Code, Edge & Hallucination. Aria was not dispatched: React Grab is unavailable on React Native.
+**Verdict:** done
+- **Override:** AC gap accepted. Reason: "User chose to fix every finding during review instead of returning the story to dev." The spec gaps were missing assertions and stale docs, not missing behaviour, and all of them are now fixed.
+
+### Findings
+
+#### Resolved
+- [MAJOR] Hardware back did not close the Android action sheet. It popped the screen underneath and left the menu bound to an unmounted form. [apps/mobile/lib/action-sheet-host.tsx]
+  - Source: Edge
+  - Resolution: `33921dc`. A `BackHandler` is registered only while the sheet is open and consumes the back press. The test proves there is no listener while closed. On device, `action-sheet-android.yaml` presses back and the form stays open.
+- [MAJOR] Long menus (17 categories) scrolled in a plain RN `ScrollView`, whose drags `@tamagui/sheet`'s pan responder takes over. There was also no device proof that the root-mounted menu renders above a native form sheet. [apps/mobile/lib/action-sheet-host.tsx, packages/ui/src/primitives/PekuloDrawer{,.native}.tsx]
+  - Source: Code + Edge
+  - Resolution: `33921dc` adds `PekuloDrawer.ScrollView` (native: `Sheet.ScrollView`; web: a scrollable div) and uses it in the host. `07a6139` adds `.maestro/flows/action-sheet-android.yaml` (transaction sheet → category menu → scroll to the 17th option → back → pick), which is green on the CI emulator (run 45761261872).
+- [MAJOR] New, found by that flow on the emulator: a mounted `<DateTimePicker>` is the Material dialog itself on Android, so every sheet with a date (transaction, valuation, mortgage, property, lot) opened a calendar over the form. [apps/mobile/components/form/fields.tsx]
+  - Source: Lead (CI run 45759209429, Maestro screenshot)
+  - Resolution: `8a729b9`. Android shows the date and opens `DateTimePickerAndroid` on tap. `__tests__/android/date-field.test.tsx` was confirmed RED on the old code. iOS is unchanged.
+- [MINOR] Action rows were keyed by label, so duplicate account names collided. [apps/mobile/lib/action-sheet-host.tsx]
+  - Source: Code + Edge + Spec
+  - Resolution: `33921dc`. Keys are now positional with a label suffix. The test asserts no duplicate-key warning and is confirmed RED on label keys.
+- [MINOR] The Android deletion sheet left Paramètres in the stack under `/login`. [apps/mobile/app/sheets/delete-account.tsx]
+  - Source: Edge
+  - Resolution: `8269d88`. `dismissAll()` runs before `replace("/login")`, and the test checks the call order.
+- [MINOR] The CI path filters missed `.github/actions/maestro-*`, `app/_layout.tsx` and `bun.lock`. `cancel-in-progress` also cancelled `main` cache-warming runs. [.github/workflows/e2e-mobile.yml]
+  - Source: Edge + Code
+  - Resolution: `07a6139`.
+- [MINOR] AC-2, AC-3 and AC-5 assertions were missing: opaque Android header, danger colour, close-then-run order, five tab labels on a grayscale bar, and the `md=` tab-icon guard. [apps/mobile/__tests__/android/*, __tests__/native-surface-guards.test.ts]
+  - Source: Spec + Code
+  - Resolution: `33921dc`, `7fe3008`. The iOS half of AC-3 was already covered by `__tests__/form-kit.test.tsx` (`ActionSheetIOS`).
+- [MINOR] AC-7/AC-8 wording still described EAS, the File List was stale, and `epics.md` / `architecture.md` still referred to the EAS workflows. [docs/*]
+  - Source: Spec + git-audit
+  - Resolution: `adc2624`. The realized AC-7/AC-8 note is above Tasks, and the File List was rebuilt from the branch diff.
+- [MINOR] The Android sheet-presentation test hardcoded Paramètres' detents and used a partial match. [apps/mobile/__tests__/android/sheet-presentation.test.ts]
+  - Source: Code
+  - Resolution: `7fe3008`. `PARAMETRES_DETENTS` is shared with `app/_layout.tsx`, and the test uses exact `toEqual`.
+- [LOW] Introduced by the fix: writing a ref during render made React Compiler skip `ActionSheetHost`. [apps/mobile/lib/action-sheet-host.tsx]
+  - Source: verification auditor
+  - Resolution: `81a2aeb` switches to the previous-value state pattern. `babel-plugin-react-compiler` went from `CompileError` to `CompileSuccess`.
+- [NIT] `TabToolbar` rebuilt `headerRight` on every render; the closing sheet went blank; a null account email showed « E-mail incorrect »; the Maestro CLI version was not asserted; the `e2e-test` env was duplicated in the workflow.
+  - Source: Code + Edge
+  - Resolution:
+    - `7fe3008`: `useMemo` for `headerRight`.
+    - `33921dc`, `81a2aeb`: the last request stays rendered while the sheet closes.
+    - `8269d88`: `settings.deletion.emailUnavailable` for a null account email.
+    - `07a6139`: `maestro-run.sh` fails fast on a version mismatch, and `__tests__/e2e-build-env.test.ts` catches env drift (confirmed RED).
+
+#### Dismissed
+- none
+
+#### Unresolved (story stays in `review`)
+- none
+
+### Verification
+- Test command: `bun --filter='@pekulo/mobile' run test` → `Test Suites: 31 passed, 31 total` / `Tests: 253 passed, 253 total` (ios + android projects). `bun --filter='@pekulo/ui' run test` → 162 files, 352 passed, 1 skipped.
+- `bun run typecheck` exit 0 · `bun run lint` 0 errors (3 pre-existing `apps/web` warnings) · `bun run format:check` exit 0 · `actionlint` / `shellcheck` / `maestro check-syntax` OK.
+- CI `e2e-mobile` run 45761261872: 13/13 jobs green. The Android core job passed `action-sheet-android` on its first attempt. PR #165: 25/25 checks pass.
+- Visual verification: deferred. React Grab MCP is unavailable on React Native (2026-11-26T06:30:00Z). Android behaviour is checked through the Maestro emulator flows and failure screenshots, plus the 42 Android goldens.
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/162#issuecomment-7183693036
+- PR opened/updated: https://github.com/yabafre/pekulo/pull/165
