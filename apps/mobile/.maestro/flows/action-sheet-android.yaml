@@ -15,9 +15,7 @@ tags:
     commands:
       - launchApp:
           clearState: true
-      - extendedWaitUntil:
-          visible: "Patrimoine total"
-          timeout: 30000
+      - runFlow: ../subflows/wait-for-cap.yaml
       - tapOn:
           id: "tab-transactions"
       - tapOn:
