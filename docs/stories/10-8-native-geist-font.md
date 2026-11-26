@@ -3,7 +3,7 @@ storyKey: 10-8-native-geist-font
 epic: 10
 ticket: "#166"
 branch: feature/166-10-8-native-geist-font
-status: ready-for-dev
+status: review
 complexity: M
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 ---
@@ -11,7 +11,7 @@ stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 # Story: 10-8-native-geist-font — Render every @pekulo/ui text in Geist on iOS and Android
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** ready-for-dev
+**Status:** review
 **Ticket:** [#166](https://github.com/yabafre/pekulo/issues/166)
 **Branch:** `feature/166-10-8-native-geist-font`
 **Depends on:** 10-6-android-parity-and-maestro (done — PR #165; its review outcome records "native DS text still renders in the system font" as a pre-existing gap split to this story)
@@ -38,7 +38,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
 
 **T1 — RED: shared native-font assertions in both Jest projects** [AC: AC-1, AC-2, AC-3]
 
-- [ ] **T1.1 — Create `apps/mobile/__tests__/helpers/native-fonts.tsx`** [AC: AC-1, AC-2, AC-3]
+- [x] **T1.1 — Create `apps/mobile/__tests__/helpers/native-fonts.tsx`** [AC: AC-1, AC-2, AC-3]
   ```tsx
   // apps/mobile/__tests__/helpers/native-fonts.tsx
   // Story 10-8 AC-1/AC-2/AC-3 — one assertion set shared by the `ios` and
@@ -177,7 +177,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   `SearchField` (`apps/mobile/components/search-field.tsx`) takes `{ value: string; onChange: (value: string) => void; placeholder: string; testID?: string }` and calls `useTheme()` (satisfied by `PekuloRootProvider`) and `useI18n()` (its context defaults to `"fr"`, no provider needed) — measured at write time.
   No run yet (helper only).
 
-- [ ] **T1.2 — Create `apps/mobile/__tests__/native-fonts.test.tsx` (ios project)** [AC: AC-3]
+- [x] **T1.2 — Create `apps/mobile/__tests__/native-fonts.test.tsx` (ios project)** [AC: AC-3]
   ```tsx
   // apps/mobile/__tests__/native-fonts.test.tsx
   // Story 10-8 AC-3 — iOS Jest project (jest-expo). Run with --no-cache: the
@@ -187,7 +187,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   describeNativeFonts("iOS");
   ```
 
-- [ ] **T1.3 — Create `apps/mobile/__tests__/android/native-fonts.test.tsx` (android project)** [AC: AC-3]
+- [x] **T1.3 — Create `apps/mobile/__tests__/android/native-fonts.test.tsx` (android project)** [AC: AC-3]
   ```tsx
   // apps/mobile/__tests__/android/native-fonts.test.tsx
   // Story 10-8 AC-3 — Android Jest project (jest-expo/android). Same assertions
@@ -197,14 +197,14 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   describeNativeFonts("Android");
   ```
 
-- [ ] **T1.4 — Witness RED** [AC: AC-3]
+- [x] **T1.4 — Witness RED** [AC: AC-3]
   Run: `cd apps/mobile && bunx jest --no-cache --selectProjects ios android --testPathPatterns native-fonts`
   Expected (RED): both suites FAIL — e.g. `t-default resolves to Geist_400Regular` receives `undefined`, `t-crumb` receives `undefined`, `t-input`/`t-textarea` receive `undefined`, and the "every text node" test lists PekuloHero records with `fontFamily: "Geist, ui-sans-serif, …"`. `t-search` already passes (SearchField sets the face today). Paste the failing summary under `Dev Agent Record › Test output`.
   Commit: `git add apps/mobile/__tests__/helpers/native-fonts.tsx apps/mobile/__tests__/native-fonts.test.tsx apps/mobile/__tests__/android/native-fonts.test.tsx && git commit -m "test(#166): RED native Geist face assertions on iOS and Android"`
 
 **T2 — Shared config factory + native-only Text default** [AC: AC-1, AC-4]
 
-- [ ] **T2.1 — Create `packages/ui/src/config/create-config.ts`** [AC: AC-1, AC-4]
+- [x] **T2.1 — Create `packages/ui/src/config/create-config.ts`** [AC: AC-1, AC-4]
   ```ts
   // packages/ui/src/config/create-config.ts
   // Story 10-8 — the single createTamagui() body shared by the runtime config
@@ -260,7 +260,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   }
   ```
 
-- [ ] **T2.2 — Replace the body of `packages/ui/src/config/tamagui.ts`** [AC: AC-1, AC-4]
+- [x] **T2.2 — Replace the body of `packages/ui/src/config/tamagui.ts`** [AC: AC-1, AC-4]
   Keep the existing header comment block verbatim — every comment line from `// packages/ui/src/config/tamagui.ts` down to and including the line ending `See that script's header for the full rationale.`, then replace everything from `import { defaultConfig } from "@tamagui/config/v5";` to the end of the file with:
   ```ts
   //
@@ -288,7 +288,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   }
   ```
 
-- [ ] **T2.3 — Add the web no-op export to `packages/ui/src/config/fonts.ts`** [AC: AC-4]
+- [x] **T2.3 — Add the web no-op export to `packages/ui/src/config/fonts.ts`** [AC: AC-4]
   Append at the end of the file:
   ```ts
 
@@ -301,7 +301,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
     undefined;
   ```
 
-- [ ] **T2.4 — Add the native Text default, base face and face→weight map to `packages/ui/src/config/fonts.native.ts`** [AC: AC-1, AC-2, AC-5]
+- [x] **T2.4 — Add the native Text default, base face and face→weight map to `packages/ui/src/config/fonts.native.ts`** [AC: AC-1, AC-2, AC-5]
   Append at the end of the file:
   ```ts
 
@@ -330,7 +330,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   );
   ```
 
-- [ ] **T2.5 — Verify the web config is untouched** [AC: AC-4]
+- [x] **T2.5 — Verify the web config is untouched** [AC: AC-4]
   Run: `bun run typecheck`
   Expected: exit 0.
   Run: `bun --filter='@pekulo/ui' run test`
@@ -341,7 +341,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
 
 **T3 — Native compiler config** [AC: AC-1, AC-3]
 
-- [ ] **T3.1 — Create `packages/ui/src/config/tamagui.compiler.native.ts`** [AC: AC-1]
+- [x] **T3.1 — Create `packages/ui/src/config/tamagui.compiler.native.ts`** [AC: AC-1]
   ```ts
   // packages/ui/src/config/tamagui.compiler.native.ts
   // Story 10-8 — config entry for @tamagui/babel-plugin / @tamagui/metro-plugin
@@ -368,7 +368,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   });
   ```
 
-- [ ] **T3.2 — Export it from `packages/ui/package.json`** [AC: AC-1]
+- [x] **T3.2 — Export it from `packages/ui/package.json`** [AC: AC-1]
   In `"exports"`, replace:
   ```json
       "./tamagui-config": "./src/config/tamagui.ts",
@@ -379,7 +379,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
       "./tamagui-compiler-config": "./src/config/tamagui.compiler.native.ts",
   ```
 
-- [ ] **T3.3 — Point the mobile compiler at it: replace `apps/mobile/tamagui.config.ts`** [AC: AC-1]
+- [x] **T3.3 — Point the mobile compiler at it: replace `apps/mobile/tamagui.config.ts`** [AC: AC-1]
   ```ts
   // apps/mobile/tamagui.config.ts
   // Local root entrypoint for @tamagui/babel-plugin and @tamagui/metro-plugin.
@@ -389,7 +389,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   export { config as default } from "@pekulo/ui/tamagui-compiler-config";
   ```
 
-- [ ] **T3.4 — Map it for Jest in `apps/mobile/jest.config.js`** [AC: AC-3]
+- [x] **T3.4 — Map it for Jest in `apps/mobile/jest.config.js`** [AC: AC-3]
   In `MODULE_NAME_MAPPER`, after the line
   ```js
     "^@pekulo/ui/tamagui-config$": "<rootDir>/../../packages/ui/src/config/tamagui.ts",
@@ -400,7 +400,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
       "<rootDir>/../../packages/ui/src/config/tamagui.compiler.native.ts",
   ```
 
-- [ ] **T3.5 — Create the guard `apps/mobile/__tests__/native-font-config.test.ts`** [AC: AC-3]
+- [x] **T3.5 — Create the guard `apps/mobile/__tests__/native-font-config.test.ts`** [AC: AC-3]
   ```ts
   // apps/mobile/__tests__/native-font-config.test.ts
   // Story 10-8 AC-3 — the Tamagui compiler must load the native-font config,
@@ -451,7 +451,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
 
 **T4 — Surfaces outside the Text default** [AC: AC-2]
 
-- [ ] **T4.1 — `packages/ui/src/primitives/PekuloBreadcrumb.native.tsx`** [AC: AC-2]
+- [x] **T4.1 — `packages/ui/src/primitives/PekuloBreadcrumb.native.tsx`** [AC: AC-2]
   Replace:
   ```tsx
   const BreadcrumbLinkText = styled(Text, {
@@ -474,7 +474,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   });
   ```
 
-- [ ] **T4.2 — `packages/ui/src/primitives/PekuloInput.native.tsx`** [AC: AC-2]
+- [x] **T4.2 — `packages/ui/src/primitives/PekuloInput.native.tsx`** [AC: AC-2]
   Replace:
   ```tsx
   import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
@@ -496,7 +496,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
               borderWidth: invalid ? 1 : 0,
   ```
 
-- [ ] **T4.3 — `packages/ui/src/primitives/PekuloTextarea.native.tsx`** [AC: AC-2]
+- [x] **T4.3 — `packages/ui/src/primitives/PekuloTextarea.native.tsx`** [AC: AC-2]
   Add `import { PEKULO_NATIVE_BODY_FACE } from "../config/fonts.native";` directly above its existing `../tokens` import, and in the `TextInput` style object replace:
   ```tsx
             fontSize: pekuloFontSizes.bodySm,
@@ -510,7 +510,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   ```
   `apps/mobile/components/search-field.tsx` already sets `fontFamily: "Geist_400Regular"` on its `TextInput` — no change; `t-search` keeps it pinned.
 
-- [ ] **T4.4 — GREEN** [AC: AC-1, AC-2, AC-3]
+- [x] **T4.4 — GREEN** [AC: AC-1, AC-2, AC-3]
   Run: `cd apps/mobile && bunx jest --no-cache --selectProjects ios android --testPathPatterns "native-fonts|native-font-config"`
   Expected: every test passes in both projects (`Tests: … passed`, 0 failed), exit 0.
   Run: `bun run typecheck`
@@ -519,11 +519,11 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
 
 **T5 — Parity gate reads the weight from the face** [AC: AC-5]
 
-- [ ] **T5.1 — Witness the parity RED** [AC: AC-5]
+- [x] **T5.1 — Witness the parity RED** [AC: AC-5]
   Run: `cd apps/mobile && bunx jest --no-cache --selectProjects ios --testPathPatterns ds-token-parity`
   Expected (RED): failures of the form `PekuloAccountRow.default|pekulo-dark|PEA Bourso#0|fontWeight — web="500" native=null` (measured at write time).
 
-- [ ] **T5.2 — Update `apps/mobile/__tests__/ds-token-parity.test.tsx`** [AC: AC-5]
+- [x] **T5.2 — Update `apps/mobile/__tests__/ds-token-parity.test.tsx`** [AC: AC-5]
   Add after the existing `import baselineJson ...` line:
   ```tsx
   import { PEKULO_NATIVE_FACE_WEIGHT } from "../../../packages/ui/src/config/fonts.native";
@@ -554,7 +554,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
 
 **T6 — Full gates** [AC: AC-4, AC-7]
 
-- [ ] **T6.1 — Run every gate** [AC: AC-4, AC-7]
+- [x] **T6.1 — Run every gate** [AC: AC-4, AC-7]
   Run, in order:
   ```bash
   bun run typecheck
@@ -569,7 +569,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
 
 **T7 — Doc sync** [AC: AC-7]
 
-- [ ] **T7.1 — `docs/epics.md`, `docs/state.yaml`, `docs/epics-context/epic-10-context.md`** [AC: AC-7]
+- [x] **T7.1 — `docs/epics.md`, `docs/state.yaml`, `docs/epics-context/epic-10-context.md`** [AC: AC-7]
   In `docs/epics.md`, insert directly after the Story 10-7 block (before `## Epic 11: Public-ramp readiness`):
   ```markdown
   #### Story 10-8-native-geist-font
@@ -588,7 +588,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   ```
   `docs/state.yaml` already has the row below (written by aped-story); aped-dev only updates its `status` and timestamps as it progresses — verify it is present:
   ```yaml
-      10-8-native-geist-font: {status: ready-for-dev, depends_on: [10-6-android-parity-and-maestro], ticket: "#166", worktree: null}
+      10-8-native-geist-font: {status: review, depends_on: [10-6-android-parity-and-maestro], ticket: "#166", worktree: null}
   ```
   In `docs/epics-context/epic-10-context.md`, under `## Architecture references` → `Patterns to respect`, add the bullet:
   ```markdown
@@ -600,14 +600,14 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
 
 **T8 — PR + golden recapture on both platforms** [AC: AC-6]
 
-- [ ] **T8.1 — Push and open the PR against `main`**
+- [x] **T8.1 — Push and open the PR against `main`**
   ```bash
   git push -u origin feature/166-10-8-native-geist-font
   gh pr create --base main --title "feat(#166): 10-8 render @pekulo/ui text in Geist on iOS and Android" --body "Closes #166"
   ```
   Expected: PR URL printed. The `e2e-mobile` workflow starts (paths include `packages/ui/**`); its DS gallery shards FAIL against the old system-font goldens — that failure is expected and is the visual proof the text changed.
 
-- [ ] **T8.2 — Recapture**
+- [x] **T8.2 — Recapture**
   ```bash
   gh pr edit --add-label "maestro:update-goldens"
   git commit --allow-empty -m "chore(#166): recapture Maestro goldens" && git push
@@ -627,7 +627,7 @@ Run every command from the worktree root unless it starts with `cd`. Never `bun 
   ```
   Expected: 42 modified PNGs per platform (no added/deleted names — a new or missing name means a gallery case drifted; STOP and report).
 
-- [ ] **T8.3 — Review with the user, commit, remove the label**
+- [x] **T8.3 — Review with the user, commit, remove the label**
   ⏸ Show the user several before/after pairs per platform (e.g. `git show HEAD:apps/mobile/.maestro/goldens/android/<case>.png` vs the new file) and get explicit confirmation the text is Geist on both platforms.
   ```bash
   git add apps/mobile/.maestro/goldens/ios apps/mobile/.maestro/goldens/android
@@ -788,22 +788,51 @@ const BreadcrumbLinkText = styled(Text, {
 
 ## Dev Agent Record
 
-- **Model:**
-- **Started:**
-- **Completed:**
+- **Model:** Claude Opus 5.5 (claude-opus-5-5)
+- **Started:** 2026-11-26T09:30:00Z
+- **Completed:** 2026-11-26T10:45:00Z
 
 ### Summary
 
-_(filled by aped-dev)_
+Every `@pekulo/ui` text now resolves to a weight-matched Geist face on iOS and Android, in both the runtime path and the compiler-flattened path. A shared `createPekuloConfig()` feeds both the runtime config and a native compiler config that imports `fonts.native` explicitly. Native `Text` defaults to `$body`, and the inputs and the breadcrumb link set the face directly. Web output is byte-identical. All 42 golden cases were recaptured on each platform, and the user reviewed and approved them.
 
 ### Files changed
 
-_(filled by aped-dev)_
+- `packages/ui/src/config/create-config.ts` (new)
+- `packages/ui/src/config/tamagui.compiler.native.ts` (new)
+- `packages/ui/src/config/tamagui.ts`
+- `packages/ui/src/config/fonts.ts`
+- `packages/ui/src/config/fonts.native.ts`
+- `packages/ui/package.json`
+- `packages/ui/src/primitives/PekuloBreadcrumb.native.tsx`
+- `packages/ui/src/primitives/PekuloInput.native.tsx`
+- `packages/ui/src/primitives/PekuloTextarea.native.tsx`
+- `apps/mobile/tamagui.config.ts`
+- `apps/mobile/jest.config.js`
+- `apps/mobile/__tests__/helpers/native-fonts.tsx` (new)
+- `apps/mobile/__tests__/native-fonts.test.tsx` (new)
+- `apps/mobile/__tests__/android/native-fonts.test.tsx` (new)
+- `apps/mobile/__tests__/native-font-config.test.ts` (new)
+- `apps/mobile/__tests__/ds-token-parity.test.tsx`
+- `apps/mobile/.maestro/goldens/ios/*.png` (36 changed; 6 byte-identical: no text in them)
+- `apps/mobile/.maestro/goldens/android/*.png` (36 changed; 6 byte-identical: no text in them)
+- `docs/epics.md`, `docs/state.yaml`, `docs/epics-context/epic-10-context.md`, `docs/stories/10-8-native-geist-font.md`
 
 ### Deviations
 
-_(filled by aped-dev)_
+- `native-fonts` helper: on Android, `expo-symbols` renders `SearchField`'s magnifier as a `<Text>` in the `MaterialSymbols_400Regular` icon font. The helper excludes icon-font glyphs (an explicit `ICON_FONT_PREFIXES` list) from the "every text node is Geist" assertion, because they are icons, not text.
+- `native-font-config.test.ts` uses the typed `require("node:fs")` pattern of the other script suites (`native-surface-guards.test.ts`), because `apps/mobile` has no `@types/node`. Commit `e8090c7` went in with a failing typecheck: the commands had been chained with `;`, so the commit ran anyway. The fix-up commit `8a776ce` corrects it.
+- The guard test was written after the T3 code. Its RED was witnessed by temporarily restoring the old `apps/mobile/tamagui.config.ts`, which failed at `native-font-config.test.ts:20`.
+- The first cold-cache full mobile run timed out in 3 unrelated suites (`navigation-tabs`, `sheets-transactions-cap`, `sheets-monthly-portfolio-realestate`). Re-run warm, all 34 suites pass.
+- The e2e-mobile job "Android — smoke / navigation / preview-guard / action sheet" fails on this PR. It also fails on `main` (post-merge run 45786645967 at `1dbabd1`, before this story): all 4 flows fail with `"Patrimoine total" is visible`. This failure predates the story and is out of scope. The Android and iOS gallery shards and the iOS core flows pass.
+- React Grab is unavailable on React Native, so the visual verification was the user's review of before/after golden sheets on both platforms.
 
 ### Test output
 
-_(filled by aped-dev)_
+- `cd apps/mobile && bunx jest --no-cache --selectProjects ios android --testPathPatterns "native-fonts|native-font-config"`: `Test Suites: 3 passed, 3 total` / `Tests: 29 passed, 29 total`.
+- `cd apps/mobile && bunx jest --no-cache --selectProjects ios --testPathPatterns ds-token-parity`: `Tests: 59 passed, 59 total`, with no allow-list change.
+- `cd apps/mobile && bunx jest` (full, warm): `Test Suites: 34 passed, 34 total` / `Tests: 282 passed, 282 total`, exit 0.
+- `bun --filter='@pekulo/ui' run test`: `Test Files 162 passed (162)` / `Tests 352 passed | 1 skipped (353)`.
+- `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css`: exit 0.
+- `bun run typecheck`: `Tasks: 10 successful, 10 total`. `bun run lint`: 0 errors (3 warnings, all in unrelated web files that predate the story). `bun run format:check`: all files formatted.
+- e2e-mobile run 45794481785 (`maestro:update-goldens`): all 8 gallery shards succeeded and the 72 changed goldens were recaptured.
