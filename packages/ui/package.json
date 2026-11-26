@@ -24,6 +24,7 @@
     "./client": "./src/client.ts",
     "./parity": "./src/parity/index.ts",
     "./tamagui-config": "./src/config/tamagui.ts",
+    "./tamagui-compiler-config": "./src/config/tamagui.compiler.native.ts",
     "./reset.css": "./public/reset.css",
     "./generated.css": "./public/tamagui.generated.css"
   },
