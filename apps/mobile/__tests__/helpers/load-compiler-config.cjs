@@ -9,6 +9,8 @@
 // Usage: node load-compiler-config.cjs <apps/mobile root>
 const path = require("node:path");
 
+const MARKER = "__PEKULO_TAMAGUI_COMPILER_CONFIG__";
+
 const mobileRoot = process.argv[2];
 const babelPlugin = require.resolve("@tamagui/babel-plugin", { paths: [mobileRoot] });
 const staticDir = path.dirname(
@@ -24,11 +26,12 @@ try {
   unregister();
 }
 const config = exported.default || exported.config || exported;
+// Marker-prefixed: registerRequire's unregister() may log to stdout first.
 process.stdout.write(
-  JSON.stringify({
+  `\n${MARKER}${JSON.stringify({
     fontsParsed: config.fontsParsed,
     defaultProps: config.defaultProps ?? {},
     tokensParsed: config.tokensParsed,
     themes: config.themes,
-  }),
+  })}\n`,
 );

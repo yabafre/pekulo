@@ -29,6 +29,7 @@ const { dirname, join } = require("node:path") as {
 
 const resolveModule = (require as unknown as { resolve: (id: string) => string }).resolve;
 const MOBILE_ROOT = dirname(resolveModule("../package.json"));
+const COMPILER_CONFIG_MARKER = "__PEKULO_TAMAGUI_COMPILER_CONFIG__";
 
 type LoadedConfig = {
   fontsParsed: Record<string, { family: unknown }>;
@@ -47,13 +48,14 @@ describe("Tamagui native compiler config (story 10-8)", () => {
   let runtime: LoadedConfig;
 
   beforeAll(() => {
-    compiler = JSON.parse(
-      execFileSync(
-        "node",
-        [join(MOBILE_ROOT, "__tests__/helpers/load-compiler-config.cjs"), MOBILE_ROOT],
-        { encoding: "utf8" },
-      ),
-    ) as LoadedConfig;
+    const stdout = execFileSync(
+      "node",
+      [join(MOBILE_ROOT, "__tests__/helpers/load-compiler-config.cjs"), MOBILE_ROOT],
+      { encoding: "utf8" },
+    );
+    const line = stdout.split("\n").find((l) => l.startsWith(COMPILER_CONFIG_MARKER));
+    if (line === undefined) throw new Error(`No compiler config in helper output:\n${stdout}`);
+    compiler = JSON.parse(line.slice(COMPILER_CONFIG_MARKER.length)) as LoadedConfig;
     jest.isolateModules(() => {
       const config = require("@pekulo/ui/tamagui-config").config;
       runtime = JSON.parse(

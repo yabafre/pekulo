@@ -59,15 +59,22 @@ function definedStyleProps(style: Record<string, unknown>): Record<string, unkno
 //   compares native text styles to the frozen web baseline, Then it reads the
 //   native weight from the Geist face name when the explicit weight was folded
 //   into the face, so every case passes with no new allow-list entry.
-// Face name → numeric CSS weight, read from the native font config itself (the
-// same `face` maps Tamagui swaps from), so it cannot drift from production.
-// Keyword aliases (`normal` / `bold`) are skipped: the web baseline is numeric.
+// Face name → numeric CSS weight, for the Geist faces the native font config
+// actually registers (the same `face` maps Tamagui swaps from). The weight is
+// read from the face name (`Geist_600SemiBold` → "600"), NOT from the face-map
+// key: createFont() back-fills 800/900 with the 700 face, so keying by the map
+// would report `Geist_700Bold` as "900" (story 10-8 review re-verification).
 const NATIVE_FACE_WEIGHT: Readonly<Record<string, string>> = Object.fromEntries(
-  Object.values(createPekuloFonts()).flatMap((font) =>
-    Object.entries((font as { face?: Record<string, { normal?: string }> }).face ?? {})
-      .filter(([weight, face]) => /^\d+$/.test(weight) && face.normal?.startsWith("Geist"))
-      .map(([weight, face]) => [face.normal as string, weight]),
-  ),
+  Object.values(createPekuloFonts())
+    .flatMap((font) =>
+      Object.values((font as { face?: Record<string, { normal?: string }> }).face ?? {}),
+    )
+    .map((face) => face.normal)
+    .filter((name): name is string => typeof name === "string" && name.startsWith("Geist"))
+    .flatMap((name) => {
+      const weight = /_(\d{3})[A-Za-z]/.exec(name)?.[1];
+      return weight === undefined ? [] : [[name, weight] as const];
+    }),
 );
 
 function nativeFontWeight(merged: Record<string, unknown>): unknown {
@@ -194,5 +201,20 @@ describe("@pekulo/ui web ↔ native text-style parity (story 10-5, AC-3)", () =>
       expect(validThemes.has(theme ?? "")).toBe(true);
       expect(`${key}: ${reason.trim()}`).not.toBe(`${key}: `);
     }
+  });
+});
+
+describe("native face → weight map (story 10-8 review)", () => {
+  it("reads every Geist face's own weight, never a back-filled 800/900 key", () => {
+    expect(NATIVE_FACE_WEIGHT).toEqual({
+      Geist_400Regular: "400",
+      Geist_500Medium: "500",
+      Geist_600SemiBold: "600",
+      Geist_700Bold: "700",
+      GeistMono_400Regular: "400",
+      GeistMono_500Medium: "500",
+      GeistMono_600SemiBold: "600",
+      GeistMono_700Bold: "700",
+    });
   });
 });
