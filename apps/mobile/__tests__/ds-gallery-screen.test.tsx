@@ -118,6 +118,9 @@ describe("DS gallery in-app stepping (story 10-6)", () => {
     await renderScreen();
     const container = screen.getByTestId(`ds-case-${goldenIds[0]}`);
     expect(within(container).queryByTestId("ds-next")).toBeNull();
+    // Inside the scroll content, right under the case: a footer pinned to the
+    // screen bottom sat under the Android taskbar, where Maestro cannot see it.
+    expect(within(screen.getByTestId("ds-scroll")).getByTestId("ds-next")).toBeTruthy();
     await fireEvent.press(screen.getByTestId("ds-next"));
     expect(mockSetParams).toHaveBeenCalledWith({ case: goldenIds[1] });
   });

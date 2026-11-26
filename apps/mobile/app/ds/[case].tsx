@@ -32,6 +32,7 @@ export default function DsGalleryCaseScreen() {
     <Theme name={theme}>
       <View flex={1} backgroundColor="$background">
         <ScrollView
+          testID="ds-scroll"
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ padding: 16 }}
         >
@@ -43,20 +44,22 @@ export default function DsGalleryCaseScreen() {
           >
             {parityCase.render()}
           </View>
+          {/* Right under the case, in the scroll content: a footer pinned to the
+              screen bottom sat under the Android taskbar, invisible to Maestro. */}
+          {nextId ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Cas suivant : ${nextId}`}
+              testID="ds-next"
+              onPress={() => router.setParams({ case: nextId })}
+              style={{ minHeight: 48, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text color="$colorTertiary" fontSize="$xs">
+                {nextId}
+              </Text>
+            </Pressable>
+          ) : null}
         </ScrollView>
-        {nextId ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Cas suivant : ${nextId}`}
-            testID="ds-next"
-            onPress={() => router.setParams({ case: nextId })}
-            style={{ minHeight: 48, alignItems: "center", justifyContent: "center" }}
-          >
-            <Text color="$colorTertiary" fontSize="$xs">
-              {nextId}
-            </Text>
-          </Pressable>
-        ) : null}
       </View>
     </Theme>
   );
