@@ -31,6 +31,7 @@ import { render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 
 import baselineJson from "../../../packages/ui/src/parity/__baseline__/web-text-styles.json";
+import { PEKULO_NATIVE_FACE_WEIGHT } from "../../../packages/ui/src/config/fonts.native";
 import { PARITY_ALLOWED_DIVERGENCE, divergenceKey } from "./helpers/parity-allowlist";
 
 type HostNode = {
@@ -48,6 +49,21 @@ function definedStyleProps(style: Record<string, unknown>): Record<string, unkno
     if (value !== undefined) out[key] = value;
   }
   return out;
+}
+
+// Story 10-8 AC-5 — on native, Tamagui folds the weight into the Geist face
+// name and deletes fontWeight (Android fallback trap), so read it back.
+//
+// AC-5 (verbatim from story 10-8-native-geist-font:31):
+//   Given the web ↔ native text-style parity gate from story 10-5, When it
+//   compares native text styles to the frozen web baseline, Then it reads the
+//   native weight from the Geist face name when the explicit weight was folded
+//   into the face, so every case passes with no new allow-list entry.
+function nativeFontWeight(merged: Record<string, unknown>): unknown {
+  if (merged.fontWeight !== undefined) return merged.fontWeight;
+  return typeof merged.fontFamily === "string"
+    ? PEKULO_NATIVE_FACE_WEIGHT[merged.fontFamily]
+    : undefined;
 }
 
 function collectTextRecords(
@@ -78,7 +94,7 @@ function collectTextRecords(
         text,
         color: normalizeColor(typeof merged.color === "string" ? merged.color : null),
         fontSize: normalizeNumber(merged.fontSize),
-        fontWeight: normalizeFontWeight(merged.fontWeight),
+        fontWeight: normalizeFontWeight(nativeFontWeight(merged)),
         letterSpacing: normalizeNumber(merged.letterSpacing),
       });
     }
