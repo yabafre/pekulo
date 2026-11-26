@@ -46,6 +46,9 @@ env:
   EXPO_PUBLIC_DS_GALLERY: "1"
   EXPO_NO_TELEMETRY: "1"
   MAESTRO_VERSION: "2.12.1"
+  # The XCTest driver needs ~1.5–2 min on a freshly booted CI simulator; the
+  # default startup timeout tripped on the first run (IOSDriverTimeoutException).
+  MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
   # Pinned so the goldens stay valid — bump together with a golden recapture.
   XCODE_APP: /Applications/Xcode_26.6.app
   IOS_SIMULATOR: "iPhone 17 Pro"
@@ -188,7 +191,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/maestro-ios
-      - name: Run core flows (one retry per flow)
+      - name: Run core flows (one retry of the batch)
         run: |
           bash .github/scripts/maestro-run.sh ios "$SIMULATOR_UDID" 1 \
             apps/mobile/.maestro/flows/smoke.yaml \

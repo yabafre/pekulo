@@ -9,9 +9,9 @@
 #   UPDATE_GOLDENS   "true" → capture screenshots instead of asserting them
 #   GOLDENS_OUT      where captured goldens are collected (default: maestro-goldens)
 #
-# The core flows get one flow-level retry (cheap); gallery shards pass 0 because
-# every golden case already retries itself (Maestro `retry`), so a flake never
-# replays the whole shard.
+# The core flows get one retry of the batch (cheap); gallery shards pass 0
+# because every golden case already retries itself (Maestro `retry`), so a
+# flake never replays the whole shard.
 set -euo pipefail
 
 PLATFORM="$1"
@@ -44,20 +44,20 @@ dump_android_diagnostics() {
     | tail -150 >&2 || true
 }
 
+# One `maestro test` for all flows: each invocation (re)installs and boots the
+# XCTest driver on iOS (~1.5–2 min on a fresh simulator), so per-flow calls
+# multiplied that cost. A retry reuses the already-running driver.
 status=0
-for flow in "$@"; do
-  name="$(basename "$(dirname "$flow")")-$(basename "$flow" .yaml)"
-  if maestro test "${args[@]}" --test-output-dir "$RESULTS_DIR/$name/attempt-1" "$flow"; then
-    continue
-  fi
+if ! maestro test "${args[@]}" --test-output-dir "$RESULTS_DIR/attempt-1" "$@"; then
   if [ "$FLOW_RETRY" = "1" ] \
-    && maestro test "${args[@]}" --test-output-dir "$RESULTS_DIR/$name/attempt-2" "$flow"; then
-    continue
+    && maestro test "${args[@]}" --no-reinstall-driver --test-output-dir "$RESULTS_DIR/attempt-2" "$@"; then
+    :
+  else
+    echo "::error title=Maestro ${PLATFORM}::$* failed" >&2
+    dump_android_diagnostics
+    status=1
   fi
-  echo "::error title=Maestro ${PLATFORM}::${flow} failed" >&2
-  dump_android_diagnostics
-  status=1
-done
+fi
 
 if [ "$UPDATE_GOLDENS" = "true" ]; then
   mkdir -p "$GOLDENS_OUT"
