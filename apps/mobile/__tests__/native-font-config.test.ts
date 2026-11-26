@@ -33,6 +33,8 @@ const MOBILE_ROOT = dirname(resolveModule("../package.json"));
 type LoadedConfig = {
   fontsParsed: Record<string, { family: unknown }>;
   defaultProps: Record<string, Record<string, unknown>>;
+  tokensParsed: unknown;
+  themes: unknown;
 };
 
 function familyOf(fonts: LoadedConfig["fontsParsed"], key: string): unknown {
@@ -55,7 +57,12 @@ describe("Tamagui native compiler config (story 10-8)", () => {
     jest.isolateModules(() => {
       const config = require("@pekulo/ui/tamagui-config").config;
       runtime = JSON.parse(
-        JSON.stringify({ fontsParsed: config.fontsParsed, defaultProps: config.defaultProps }),
+        JSON.stringify({
+          fontsParsed: config.fontsParsed,
+          defaultProps: config.defaultProps,
+          tokensParsed: config.tokensParsed,
+          themes: config.themes,
+        }),
       ) as LoadedConfig;
     });
   }, 60000);
@@ -73,5 +80,13 @@ describe("Tamagui native compiler config (story 10-8)", () => {
   it("compiler and runtime configs agree on fonts and the Text default", () => {
     expect(compiler.fontsParsed).toEqual(runtime.fontsParsed);
     expect(compiler.defaultProps).toEqual(runtime.defaultProps);
+  });
+
+  // The compiler also bakes tokens and theme values into flattened styles.
+  // Animations are deliberately excluded: tamagui.compiler.native.ts keeps the
+  // CSS driver (the driver plays no part in flattening — see its header).
+  it("compiler and runtime configs agree on tokens and themes", () => {
+    expect(compiler.tokensParsed).toEqual(runtime.tokensParsed);
+    expect(compiler.themes).toEqual(runtime.themes);
   });
 });

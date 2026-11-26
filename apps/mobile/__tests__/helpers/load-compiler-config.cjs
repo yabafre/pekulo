@@ -25,5 +25,10 @@ try {
 }
 const config = exported.default || exported.config || exported;
 process.stdout.write(
-  JSON.stringify({ fontsParsed: config.fontsParsed, defaultProps: config.defaultProps ?? {} }),
+  JSON.stringify({
+    fontsParsed: config.fontsParsed,
+    defaultProps: config.defaultProps ?? {},
+    tokensParsed: config.tokensParsed,
+    themes: config.themes,
+  }),
 );
