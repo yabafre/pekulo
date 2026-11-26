@@ -23,38 +23,21 @@
 // `[data-theme="pekulo-dark"]` / `[data-theme="pekulo-light"]` by
 // scripts/fix-tamagui-css.mjs — the attribute NextThemeProvider + the layout
 // anti-FOUC script both write. See that script's header for the full rationale.
-import { defaultConfig } from "@tamagui/config/v5";
-import { createTamagui } from "@tamagui/core";
-
-import { pekuloDark } from "../themes/pekulo-dark";
-import { pekuloLight } from "../themes/pekulo-light";
-import { pekuloRadius, pekuloSpacing } from "../tokens";
+//
+// Story 10-8: the createTamagui() body lives in ./create-config.ts so the
+// native compiler config (./tamagui.compiler.native.ts) builds the exact same
+// config with the native fonts. `pekuloFontDefaultProps` is `undefined` on
+// web (fonts.ts) and `{ Text: { fontFamily: "$body" } }` on native
+// (fonts.native.ts) — Tamagui only swaps in the weight-matched Geist face
+// when a Text carries a fontFamily.
 import { animations } from "./animations";
-import { createPekuloFonts } from "./fonts";
+import { createPekuloConfig } from "./create-config";
+import { createPekuloFonts, pekuloFontDefaultProps } from "./fonts";
 
-export const config = createTamagui({
-  ...defaultConfig,
+export const config = createPekuloConfig({
   animations,
-  settings: {
-    ...defaultConfig.settings,
-    // Allow longhand style props (`backgroundColor`, `borderRadius`, ...)
-    // alongside Tamagui's shorthands (`bg`, `rounded`, ...). UX preview source
-    // uses longhands ; reviewers read longhands more fluently.
-    onlyAllowShorthands: false,
-  },
-  themes: {
-    "pekulo-dark": pekuloDark,
-    "pekulo-light": pekuloLight,
-  },
-  defaultTheme: "pekulo-dark",
-  // Token overrides — Pekulo spacing/radius/font scales replace defaultConfig's.
-  tokens: {
-    ...defaultConfig.tokens,
-    space: pekuloSpacing as never,
-    size: pekuloSpacing as never,
-    radius: pekuloRadius as never,
-  },
-  fonts: createPekuloFonts() as never,
+  fonts: createPekuloFonts(),
+  defaultProps: pekuloFontDefaultProps,
 });
 
 export type AppConfig = typeof config;

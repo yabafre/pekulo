@@ -55,3 +55,27 @@ export function createPekuloFonts() {
     }),
   };
 }
+
+/**
+ * Story 10-8 — every native Tamagui Text gets `fontFamily: "$body"`, so
+ * Tamagui's native face swap (getSplitStyles) resolves `Geist_<weight>` and
+ * deletes `fontWeight` (a custom family + weight makes Android fall back to
+ * Roboto). Named styled(Text) components are keyed by their own name and must
+ * set `fontFamily: "$body"` themselves (see PekuloBreadcrumb.native.tsx).
+ */
+export const pekuloFontDefaultProps: Record<string, Record<string, unknown>> | undefined = {
+  Text: { fontFamily: "$body" },
+};
+
+/** Story 10-8 — base face for raw React Native TextInput surfaces. */
+export const PEKULO_NATIVE_BODY_FACE = geistFace[400].normal;
+
+/**
+ * Story 10-8 AC-5 — face name → CSS weight, so parity checks can read the
+ * weight Tamagui folded into the face name after stripping `fontWeight`.
+ */
+export const PEKULO_NATIVE_FACE_WEIGHT: Readonly<Record<string, string>> = Object.fromEntries(
+  [geistFace, geistMonoFace].flatMap((faces) =>
+    Object.entries(faces).map(([weight, face]) => [face.normal, weight]),
+  ),
+);
