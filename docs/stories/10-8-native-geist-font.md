@@ -3,7 +3,7 @@ storyKey: 10-8-native-geist-font
 epic: 10
 ticket: "#166"
 branch: feature/166-10-8-native-geist-font
-status: review
+status: done
 complexity: M
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 ---
@@ -11,7 +11,7 @@ stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 # Story: 10-8-native-geist-font — Render every @pekulo/ui text in Geist on iOS and Android
 
 **Epic:** Epic 10 — Design system parity (V1.5)
-**Status:** review
+**Status:** done
 **Ticket:** [#166](https://github.com/yabafre/pekulo/issues/166)
 **Branch:** `feature/166-10-8-native-geist-font`
 **Depends on:** 10-6-android-parity-and-maestro (done — PR #165; its review outcome records "native DS text still renders in the system font" as a pre-existing gap split to this story)
@@ -836,3 +836,62 @@ Every `@pekulo/ui` text now resolves to a weight-matched Geist face on iOS and A
 - `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css`: exit 0.
 - `bun run typecheck`: `Tasks: 10 successful, 10 total`. `bun run lint`: 0 errors (3 warnings, all in unrelated web files that predate the story). `bun run format:check`: all files formatted.
 - e2e-mobile run 45794481785 (`maestro:update-goldens`): all 8 gallery shards succeeded and the 72 changed goldens were recaptured.
+
+## Review Record
+
+**Date:** 2026-11-26
+**Auditors:** Spec, Code, Edge & Hallucination (Aria not dispatched: React Grab is unavailable on React Native; visual verification = user review of recaptured goldens)
+**Verdict:** done
+
+- **Override:** AC gap accepted — reason: "User chose to fix every finding inside the review instead of returning the story to dev (`fix tout ici`)." All Spec findings were then fixed and re-verified, so no AC gap remains.
+
+### Findings
+
+#### Resolved
+- [MAJOR] `PekuloPagination.native.tsx` passed a ternary `fontWeight` to Tamagui `Text`. The compiler emits it as a separate style entry WITHOUT the native face swap, so page numbers carried `Geist_400Regular` + `fontWeight` (active page never semibold; Android trap). [packages/ui/src/components/PekuloPagination/PekuloPagination.native.tsx]
+  - Source: Edge & Hallucination (confirmed by Lead probe on the android Jest project)
+  - Resolution: `e7adbfb` — named `styled(Text)` `PageNumberText` with an `active` variant; case added to `renderNativeFontCases()`. Goldens recaptured in `be74f66` (only `PekuloPagination.mid` changed, both platforms; user-approved).
+- [MAJOR] AC-3 guard did not exercise the compiler path: two source-regex tests, and an in-process comparison that Jest's `.native` resolver made equal by construction. [apps/mobile/__tests__/native-font-config.test.ts]
+  - Source: Spec, Code
+  - Resolution: `70000f0` — `__tests__/helpers/load-compiler-config.cjs` loads `tamagui.config.ts` in a child Node process through `@tamagui/static`'s `registerRequire` (as `loadTamaguiSync` does). RED witnessed by pointing the config back at `@pekulo/ui/tamagui-config` (web stack + empty defaultProps, 3 failures). `a20009d` extends the agreement check to tokens and themes; `248a9ad` marker-prefixes the helper output.
+- [MINOR] Jest transform cache key ignored the compiler config, so a warm cache stayed green after a config regression. [apps/mobile/jest.config.js]
+  - Source: Code
+  - Resolution: `3486653` — `apps/mobile/jest/tamagui-babel-transformer.js` wraps babel-jest and appends a hash of `tamagui.config.ts` + `packages/ui/src/{config,tokens,themes}`. Witnessed: warm cache + broken compiler config → 2 failures; restore → green. `--no-cache` no longer required.
+- [MINOR] AC-1 `$mono` proven at 700 only. [apps/mobile/__tests__/helpers/native-fonts.tsx]
+  - Source: Spec
+  - Resolution: `e7adbfb` — `t-mono`, `t-mono-500`, `t-mono-600` added.
+- [NIT] `PEKULO_NATIVE_FACE_WEIGHT` exported from production only for the parity test. [packages/ui/src/config/fonts.native.ts]
+  - Source: Code
+  - Resolution: `e7adbfb` removes the export; the parity test derives `NATIVE_FACE_WEIGHT` from `createPekuloFonts()`. Re-verification found the derivation reported `Geist_700Bold` as `"900"` (createFont back-fills 800/900); fixed in `248a9ad` (weight read from the face name) with a pinning assertion. The task text above (T2.4/T5.2) still describes the original export — superseded by this record.
+- [NIT] Keyword weights `normal` / `bold` had no face, so they kept the family + weight pair. [packages/ui/src/config/fonts.native.ts]
+  - Source: Edge & Hallucination
+  - Resolution: `e7adbfb` — `normal`/`bold` aliases added to `geistFace` and `geistMonoFace`; `t-normal`/`t-bold` cases added.
+- [NIT] Compiler config keeps the CSS animation driver, unguarded. [packages/ui/src/config/tamagui.compiler.native.ts]
+  - Source: Code
+  - Resolution: driver kept (it plays no part in flattening; switching it would touch every release bundle). `a20009d` guards what flattening does read — fonts, defaultProps, tokens, themes.
+
+#### Dismissed
+- [NIT] Golden asymmetry: `CategoryPicker.closed` changed on Android only, `PekuloSkeleton.lines` on iOS only.
+  - Source: Lead
+  - Rationale: measured as capture noise, not typography — Android: 57 px, max delta 11, 2-px band at (122,42); iOS: max delta 4 (shimmer phase).
+- [NIT] RED summary of T1.4/T5.1 not pasted in the Dev Agent Record.
+  - Source: Spec
+  - Rationale: the RED commit `8bfc2d1` is in history; review fixes witnessed their own REDs (above).
+- [LOW] git-audit "files listed but not changed" / "changed but not listed".
+  - Source: git-audit.sh
+  - Rationale: false positive — the File List uses `goldens/{ios,android}/*.png` globs the script does not expand.
+- [LOW] `ICON_FONT_PREFIXES` exclusion could hide real text.
+  - Source: Spec
+  - Rationale: Edge auditor verified the `MaterialSymbols` prefix is tight; no text uses that family.
+
+### Verification
+- Test command: `cd apps/mobile && bunx jest` (full) → `Test Suites: 34 passed, 34 total` / `Tests: 295 passed, 295 total`; targeted `--testPathPatterns "native-fonts|native-font-config|ds-token-parity"` (ios + android) after the last fix → `Tests: 102 passed, 102 total`.
+- `bun --filter='@pekulo/ui' run test` → `Test Files 162 passed (162)` / `Tests 352 passed | 1 skipped (353)`.
+- `bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css` → exit 0.
+- `bun run typecheck` → `Tasks: 10 successful`; `bun run lint` → 0 errors; `bun run format:check` → all formatted.
+- CI on `be74f66`: PR workflow green (`test-unit`, `typecheck`, `lint`, `tamagui-css-fresh`, …); e2e-mobile run 45819850439 green on all 8 DS gallery shards and iOS core flows. "Android — smoke / navigation / preview-guard / action sheet" fails as on `main` before this story (fixed separately in PR #169).
+- Visual verification: React Grab unavailable on React Native; user reviewed and approved the before/after `PekuloPagination.mid` goldens (iOS + Android) on 2026-11-26.
+
+### Ticket sync
+- Ticket comment posted: https://github.com/yabafre/pekulo/issues/166#issuecomment-7192503305
+- PR updated: https://github.com/yabafre/pekulo/pull/167
