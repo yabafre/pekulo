@@ -8,10 +8,19 @@
 //   both, And the suite fails if the build-time style compiler stops using the
 //   native font configuration or if the build-time and runtime configurations
 //   ever disagree on fonts or text defaults.
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+// Module scope: other script-style suites declare the same globals.
+export {};
 
-const MOBILE_ROOT = join(__dirname, "..");
+const { readFileSync } = require("node:fs") as {
+  readFileSync: (filePath: string, encoding: "utf8") => string;
+};
+const { dirname, join } = require("node:path") as {
+  dirname: (filePath: string) => string;
+  join: (...segments: string[]) => string;
+};
+
+const resolveModule = (require as unknown as { resolve: (id: string) => string }).resolve;
+const MOBILE_ROOT = dirname(resolveModule("../package.json"));
 const UI_CONFIG = join(MOBILE_ROOT, "../../packages/ui/src/config");
 
 describe("Tamagui native compiler config (story 10-8)", () => {
