@@ -9,9 +9,10 @@
 #   UPDATE_GOLDENS   "true" → capture screenshots instead of asserting them
 #   GOLDENS_OUT      where captured goldens are collected (default: maestro-goldens)
 #
-# The core flows get one retry of the batch (cheap); gallery shards pass 0
-# because every golden case already retries itself (Maestro `retry`), so a
-# flake never replays the whole shard.
+# Every golden case retries itself (Maestro `retry`), so a screenshot flake never
+# replays a shard. <flow-retry> 1 reruns the batch once more: the core flows
+# (cheap) and the iOS gallery shards, whose XCTest driver can die on slow CI
+# simulators and abort the whole run (no per-case retry can catch that).
 set -euo pipefail
 
 PLATFORM="$1"

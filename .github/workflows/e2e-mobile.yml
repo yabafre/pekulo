@@ -250,9 +250,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/maestro-ios
-      - name: Run gallery shard (one retry per golden case)
+      # Per-case `retry` covers screenshot flakes; the shard-level retry covers the
+      # XCTest driver dying on these slow simulators ("Timed out while evaluating
+      # UI query" on the status bar), which aborts the whole maestro run.
+      - name: Run gallery shard (one retry per golden case, one per driver crash)
         run: |
-          bash .github/scripts/maestro-run.sh ios "$SIMULATOR_UDID" 0 \
+          bash .github/scripts/maestro-run.sh ios "$SIMULATOR_UDID" 1 \
             "apps/mobile/.maestro/gallery/ios/shard-${{ matrix.shard }}.yaml"
       - uses: actions/upload-artifact@v4
         if: env.UPDATE_GOLDENS == 'true'
