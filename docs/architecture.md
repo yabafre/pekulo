@@ -2,8 +2,24 @@
 artefact: architecture
 project: Pekulo
 created: 2026-05-03T00:00:00Z
-last_updated: 2026-05-03T06:00:00Z
+last_updated: 2026-11-27T00:00:00Z
 current_subphase: done
+amendments:
+  - id: A-2026-11-27
+    subject: Data protection & runtime language (ADR-0019, ADR-0020)
+    status: done
+    current_subphase: done
+    completed_subphases:
+      - context-analysis
+      - technology-decisions
+      - council-dispatches
+      - implementation-patterns
+      - structure-mapping
+      - validation
+    adrs: [ADR-0019, ADR-0020]
+    watch_items: 3
+    residual_gaps: 5
+    epic_zero_stories: 3
 completed_subphases:
   - context-analysis
   - technology-decisions
@@ -1097,6 +1113,7 @@ pekulo/
 | FR-61 | Cron-refresh bank transactions (dedup on provider + tx_id)        | `bank-aggregator.service.ts#refreshAll` (Bun scheduled task) + `transactions.service.ts#importFromProvider`                                                                | n/a (background)                                                                                           |
 | FR-62 | View, rename, revoke bank connections                             | `bank-aggregator.service.ts#{listConnections,rename,revoke}` + Bridge token revoke API                                                                                     | `bank-connection-row.tsx` + `bank-connection-rename-form.tsx` + `bank-connection-revoke-confirm.tsx`       |
 | FR-63 | Surface SCA-required + reconnect CTA (90-day refresh)             | `bank-aggregator.service.ts#getConnectionState` + Bridge webhook handler on `ITEM_SCA_REQUIRED` (`/internal/bridge/webhook`)                                               | `bank-connection-row.tsx` SCA badge + `bank-reconnect-button.tsx`                                          |
+| FR-64 | Navigate transactions + monthly stat cards by calendar month      | existing transactions + monthly list routes, filtered by month (story 6-9)                                                                                                 | `transactions/_components/month-navigator.tsx` (defaults to the latest month with activity)                |
 
 #### Group F — Monthly tracking (brownfield)
 
@@ -1317,3 +1334,180 @@ pekulo/
 - **E0.12 — Custom oxlint rules in `@pekulo/oxlint-config`** — implement and ship `no-server-action-in-component`, `no-cross-feature-action-import`, `no-prisma-query-without-user-id`, `no-tailwind-outside-ui` ; rule fixtures + tests ; CI gate.
 
 After E0.\* ships, `aped-epics` may schedule the V1 feature epics: `compass-and-milestones`, `real-estate`, `llm-categorisation`, `crypto-holdings`, `pwa-offline`, `gdpr-flows` (and the brownfield reaffirmations: `accounts`, `holdings-extended`, `transactions-extended`, `monthly-tracking-extended`, `hypothesis-extended`).
+
+## Amendment 2026-11-27 — Data protection & runtime language
+
+> Targeted `aped-arch` re-run (architecture stays `done`). Input: `docs/spikes/2026-11-26-securite-chiffrement-rust.md`. Outputs: ADR-0019 (per-user envelope encryption + crypto-shredding), ADR-0020 (Rust adoption rule). Sections fill as each amendment gate is validated.
+
+### A1 — Context Analysis
+
+> Validated 2026-11-27.
+
+**Code facts that correct the spike**
+
+- There is **no IBAN / account-number column** in the Prisma schema. The sensitive data is free text: `transactions.label` (counterparty names), `notes` on transactions / accounts / holdings, `real_estate.label` (may carry an address), `bank_connections.display_name`, `milestones.label`.
+- Application-level encryption already exists in `apps/api/src/modules/advisory/advisory-encryption.ts` (AES-256-GCM, story 12-3), but its key is `sha256(SUPABASE_SERVICE_ROLE_KEY)` — one secret, two purposes. Rotating the service-role key silently makes advisory payloads unreadable.
+
+**Functional drivers**
+
+- **FR-50 / NFR-7** — cascade deletion ≤ 60 s with a fixed fail-closed order (Bridge → Postgres → Auth, `docs/security.md`). Backups are not covered today; crypto-shredding closes that gap.
+- **FR-49 / NFR-6 / NFR-30** — the export must decrypt everything within 60 s.
+- **FR-60 → FR-63 (Bridge sync), FR-31 → FR-34 (LLM categorisation), monthly digest (story 13-7)** — the server writes and computes while the user is offline, so the server must hold the keys. Full E2EE is excluded.
+- **NFR-12** — labels are decrypted server-side immediately before prompt building; the no-identifier rule is unchanged.
+
+**Non-functional drivers**
+
+- **DR-11 / NFR-14** — at-rest encryption via the Supabase tier is already satisfied; the amendment adds an application layer on top.
+- **NFR-1 / NFR-15 / NFR-16 / M1** — 300 ms p95 dashboard, 500 ms at 100 concurrent users, 800 ms at 50 000 transactions per user.
+
+**Scale and measurements (Bun 1.3.13, dev machine, 2026-11-26/27)**
+
+| Measurement                                        | Result                                              |
+| -------------------------------------------------- | --------------------------------------------------- |
+| AES-256-GCM over 50 000 labels                     | encrypt 53–60 ms · decrypt 35 ms · 0.7 µs per field |
+| Wrapping / unwrapping a 32-byte DEK                | 0.8 µs                                              |
+| Monte Carlo worst case (10 000 paths × 480 months) | 70–95 ms                                            |
+
+**Integration points** — Supabase Postgres (Vault keeps keys in the same database and pgsodium is pending deprecation: neither is used); Dokploy environment (KEK v1), later an EU-hosted KMS; a Prisma 7 client extension (precedent: `prefixed-ids`); `node:crypto` in Bun; `settings.export.ts` and `settings.deletion.ts`; the PWA offline cache (ADR-0003 / ADR-0018) receives decrypted DTOs and stays locally encrypted; mobile is unchanged (oRPC).
+
+**Compliance** — GDPR art. 32 (encryption is a named security measure); art. 17 (erasure reaches backups); art. 34(3)(a) (data rendered unintelligible by encryption lifts the obligation to notify each data subject of a breach); honest marketing claims (no "end-to-end").
+
+**Tensions**
+
+| #   | Tension                                                                                       | Direction                                                                                                                                                                                                               |
+| --- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | KEK loss vs restore drill (NFR-21): losing the KEK loses all encrypted data                   | KEK escrowed outside the database (offline), versioned; the restore drill includes the KEK                                                                                                                              |
+| T2  | NFR-31 prescribes `pgcrypto` for Bridge tokens; the columns are vestigial NULL since ADR-0015 | Supersede in ADR-0019; propose the NFR-31 amendment via `aped-course`                                                                                                                                                   |
+| T3  | Advisory key derived from the service-role key                                                | Migrate advisory onto the per-user DEK                                                                                                                                                                                  |
+| T4  | Encrypted fields vs server features (categorisation, logo matching, CSV de-duplication)       | Decrypt in the service layer; HMAC blind index for equality. No `contains` search exists today                                                                                                                          |
+| T5  | DEK destruction inside the fixed deletion order                                               | Inside the Postgres transaction; failure aborts like today                                                                                                                                                              |
+| T6  | Rust vs latency budgets                                                                       | Measurements show CPU is not the bottleneck; the verdict is already computed once server-side for web, PWA and mobile, so cross-surface consistency is already guaranteed. Rust is justified only for on-device compute |
+| T7  | E2EE wish vs server-side sync, LLM and digest                                                 | Full E2EE out of scope; an optional client-side "private vault" stays a V2 residual gap                                                                                                                                 |
+
+### A2 — Technology Decisions
+
+> Validated 2026-11-27.
+
+**Authentication & Security — application-level data protection.** Per-user envelope encryption, KEK in the Dokploy environment behind a `KeyProvider` interface (option B1), AES-256-GCM via `node:crypto` in a Prisma client extension on an explicit free-text field list, crypto-shredding on deletion, nine mandatory controls. Satisfies DR-11 / NFR-14 (strengthened), FR-50 / NFR-7 (erasure reaching backups), FR-49 / NFR-6 (export decrypts within budget), NFR-12 (labels decrypted server-side only for prompt building), NFR-1 / NFR-15 / NFR-16 (0.7 µs per field). Supersedes the `pgcrypto` wording of NFR-31. → **ADR-0019** (Council C3).
+
+**Infrastructure — runtime language.** TypeScript-only; Rust only on a measured CPU trigger (NFR-1 / NFR-15 / NFR-16 / M1 breached and CPU-bound) or an on-device compute requirement; shape fixed to uniffi native module + wasm-bindgen, no WebAssembly inside React Native, no custom cryptography. Decided without Council (reversible policy). → **ADR-0020**.
+
+Data Layer, API Design and Frontend: unchanged by this amendment.
+
+### A2b — Council C3: application-level data protection model
+
+**Framing.** A — disk encryption only; B — per-user envelope encryption (B1 KEK in Dokploy env, B2 EU KMS from day one); C — single global application key; D — client-side E2EE. Context: FR-50 / NFR-7, FR-49 / NFR-6, NFR-21, NFR-12, NFR-31, GDPR art. 17 / 32 / 34; measured 0.7 µs per field.
+
+| Specialist        | Pick                   | Key argument                                                                                                                                                                                                                                   |
+| ----------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Winston — Systems | B1                     | Encrypting now is cheaper than re-encrypting after launch; a KMS on the hot path is an outage mode for no gain at this scale                                                                                                                   |
+| Raj — Security    | B1 → B2 at public ramp | Only B makes dumps and backups unreadable; five disqualifying conditions (AAD, per-user blind-index key, KEK never in Postgres, advisory migration, DEK destroyed inside the deletion transaction)                                             |
+| Nina — Cost & Ops | B1                     | Zero run cost; B1 → B2 is a re-wrap of one 32-byte DEK per user; freeze by 2026-12-21, defer past 2027-01-08 if it slips beyond 2026-12-28                                                                                                     |
+| Maya — Edge cases | B with conditions      | Five concrete break points: `distinct` on ciphertext, extension cannot resolve the user on `where: { id }` updates or the cross-user cron, unkeyed `label_hash`, global `merchant_key` cache derived from labels, wrapped DEK restored by PITR |
+
+**Consensus.** B over A, C and D. "Deleted even in our backups" is false without an erasure ledger outside Postgres replayed after each restore. The art. 34(3)(a) exemption cannot be claimed (amounts and dates stay in clear next to emails). Derived plaintext copies of labels must be closed.
+
+**Disagreement.** When to move the KEK to a KMS: Raj at the public ramp; Winston and Nina only on a concrete trigger.
+
+**Final pick.** B1 with the nine controls of ADR-0019; KMS trigger = second person with infrastructure access, 1 000 users, or first security incident. Fallback C (dedicated versioned global key) if B1 threatens the 2027-01-31 launch goal.
+
+**Minority view (future-pivot signal).** Raj: move to B2 at the public ramp, because the KEK sitting next to `DATABASE_URL` in the Dokploy env does not stop a leaked-environment attacker.
+
+### A3 — Implementation Patterns
+
+> Validated 2026-11-27.
+
+**Naming**
+
+- Table `user_keys`, model `UserKey`; primary key `user_id` (no prefixed id, same opt-out as `BridgeUser`).
+- Blind-index column: `<field>_bidx` (e.g. `label_bidx`).
+- Environment: `PEKULO_KEK_V1`, `PEKULO_KEK_V2`, … (32 bytes, base64) and `PEKULO_KEK_ACTIVE_VERSION`.
+- Ciphertext format: `pk1.<iv>.<tag>.<ct>` (base64url). The `pk1.` prefix is the format version; a value without prefix is legacy plaintext during the backfill.
+
+**Code structure**
+
+- All cryptography lives in `apps/api/src/platform/crypto/`. Repositories and services never call it; the Prisma extension encrypts and decrypts registered fields.
+- Field registry: `encrypted-fields.config.ts` (same pattern as `id-prefixes.config.ts`).
+- The cross-user Bridge cron runs each user inside `withUserCryptoContext(userId, …)`. A write whose user cannot be resolved fails closed (`USER_CONTEXT_MISSING`), never in clear.
+
+**Communication**
+
+- `CryptoError extends PekuloError` with codes `KEK_MISSING`, `DEK_UNAVAILABLE`, `DECRYPT_FAILED`, `USER_CONTEXT_MISSING`; surfaced to clients as a generic 500.
+- Log events: `crypto.boot_canary.ok|failed`, `crypto.dek.created`, `crypto.dek.shredded`, with `hashUserId`. Never plaintext or key material in logs, traces or GlitchTip.
+
+**Process rules**
+
+- Every new free-text column is classified in the registry (encrypted, or clear with a justification). A CI test diffs Prisma `String` fields against the registry, like `db:rls-migration-audit`.
+- A PR touching `platform/crypto` passes the ADR-0019 nine-control checklist.
+- The NFR-21 restore drill uses the escrowed KEK and replays the erasure ledger.
+- Performance work starts with a profile (ADR-0020).
+- **Erasure order:** the deletion request is appended to the erasure ledger as step 0, before the Bridge revoke. If the deletion later fails and is never retried, a restore still shreds the DEK — consistent with the user's request. The ledger is an append-only JSONL file on a Dokploy persistent volume, backed up separately from Supabase backups.
+
+### A4 — Structure & Mapping
+
+> Validated 2026-11-27.
+
+**New files**
+
+```
+apps/api/src/platform/crypto/
+  key-provider.ts · env-key-provider.ts      # KeyProvider interface; Dokploy env implementation (KMS later)
+  envelope.ts · blind-index.ts               # AES-256-GCM with AAD; per-user HMAC index
+  crypto-context.ts                          # AsyncLocalStorage user context
+  field-encryption.extension.ts              # Prisma client extension
+  encrypted-fields.config.ts                 # field registry
+  user-key.repository.ts · boot-canary.ts · erasure-ledger.ts
+apps/api/prisma/schema/crypto.prisma         # UserKey (+ migration: RLS quartet, cascade to auth.users)
+apps/api/scripts/
+  crypto-backfill.ts · crypto-rewrap-kek.ts · crypto-replay-erasure-ledger.ts
+```
+
+**FR → file mapping**
+
+| Requirement                    | Surface                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------- |
+| FR-49 (export)                 | `settings.export.ts` reads through the extension                                    |
+| FR-50 / NFR-7 (deletion)       | `settings.deletion.ts`, `erasure-ledger.ts`, `user-key.repository.ts`               |
+| FR-31 → FR-34 (categorisation) | `llm-prompt-builder.ts`: label decrypted; `hashLabel` → keyed HMAC                  |
+| FR-60 → FR-63 (Bridge sync)    | `bank-aggregator.module.ts` with per-user crypto context                            |
+| FR-29 (CSV import)             | extension + `label_bidx` for de-duplication                                         |
+| FR-65 (logos)                  | `distinct` on `label_bidx` in `transactions.repository.ts`; guard on `merchant_key` |
+| NFR-21 (restore drill)         | `docs/security.md` + ledger replay script                                           |
+
+Advisory drops `advisory-encryption.ts` for `envelope.ts`.
+
+**Integration boundaries** — `KeyProvider` (env now, EU KMS later); the erasure ledger on a Dokploy volume; Supabase backups (retention to be confirmed).
+
+**Shared code** — stays in `apps/api`; `hashUserId` reused; the web `cache-crypto.ts` stays separate (different purpose).
+
+### A5 — Validation
+
+> Validated 2026-11-27 (final gate `[C]`).
+
+- [x] Decisions fit together: encryption rides the existing Prisma layer (ADR-0012 / ADR-0013); ADR-0020 leaves the stack unchanged.
+- [x] Every requirement in scope has a surface: FR-29, FR-31 → FR-34, FR-49, FR-50, FR-60 → FR-63, FR-65, NFR-21.
+- [x] Security: the nine ADR-0019 controls are the review checklist.
+- [x] Scale: 0.7 µs per field fits NFR-1, NFR-15, NFR-16.
+- [x] No orphan decision.
+- Oracle: `OK arch oracle: 65 FRs referenced` — after mapping FR-64 (story 6-9), a pre-existing E010 gap on the committed version.
+- Structure validator (warn-only): heading drift predates the amendment, except the deliberate `Amendment 2026-11-27` heading.
+
+### A6 — Watch Items
+
+- **W-A1 — KEK custody.** The KEK is one Dokploy env var next to `DATABASE_URL` until the KMS trigger (ADR-0019 control 9). Re-assess at each new infrastructure access.
+- **W-A2 — Launch schedule.** Encryption frozen by 2026-12-21; if it slips past 2026-12-28, defer to after 2027-01-08; fallback C if it threatens the 2027-01-31 goal.
+- **W-A3 — Derived plaintext copies.** `merchant_logo_cache.merchant_key`, logs, OTel traces, GlitchTip events and export files must never carry decrypted labels.
+
+### A7 — Residual Gaps
+
+- **G-A1 — Supabase plan and backup retention unknown.** Blocks the "deleted even in our backups" claim until confirmed.
+- **G-A2 — PRD amendment.** Rewrite NFR-31 (Bridge tokens are not stored) and add an NFR-34 for per-user field encryption + crypto-shredding, via `aped-course`.
+- **G-A3 — Erasure ledger location.** Dokploy persistent volume assumed; confirm volume backup and retention.
+- **G-A4 — Client-side private vault (E2EE).** Optional V2 premium feature; would trigger ADR-0020 rule 2.
+- **G-A5 — `merchant_key` and person-to-person labels.** Decide in the implementing story how transfer labels between individuals are kept out of the shared cache.
+
+### A8 — Foundation stories (Epic 13)
+
+- **E13.A1 — Crypto foundation.** `platform/crypto` (KeyProvider, envelope with AAD, blind index, crypto context, Prisma extension, field registry), `user_keys` migration with RLS + cascade, boot canary, registry CI test. (ADR-0019 controls 1–6)
+- **E13.A2 — Backfill and advisory migration.** Versioned backfill of existing rows, `label_bidx` + `distinct` switch, keyed HMAC for `llm_call_log.label_hash`, advisory moved to the per-user DEK. (controls 4, 5, 8)
+- **E13.A3 — Crypto-shredding and erasure ledger.** Ledger as deletion step 0, DEK destroyed inside the deletion transaction, replay script, NFR-21 drill updated with the escrowed KEK, `docs/security.md` field list. (control 7)

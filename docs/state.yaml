@@ -34,7 +34,7 @@ pipeline:
       output: "docs/architecture.md"
       started_at: "2026-05-03T00:00:00Z"
       completed_at: "2026-05-03T06:00:00Z"
-      last_updated: "2026-05-03T06:00:00Z"
+      last_updated: "2026-11-27T00:00:00Z"
       mode: "interactive"
       councils_dispatched:
         - id: "C1"
@@ -45,6 +45,10 @@ pipeline:
           subject: "LLM routing topology (FoundationModels / Ollama / 3rd-party)"
           specialists: ["winston", "raj", "nina", "maya"]
           verdict: "A* (server-side audit authority + async client attest) — synthesises Raj/Nina (audit integrity) with Winston/Maya (on-device latency); preserves NFR-5 budget while keeping single audit ingestion (NFR-26)."
+        - id: "C3"
+          subject: "Application-level data protection model (amendment A-2026-11-27)"
+          specialists: ["winston", "raj", "nina", "maya"]
+          verdict: "B1 (per-user envelope encryption, KEK in Dokploy env behind KeyProvider, crypto-shredding + erasure ledger) — unanimous on B; minority (Raj): move KEK to EU KMS at public ramp."
       adrs:
         - id: "ADR-0001"
           subject: "Audit history via sister tables, not JSONB columns"
@@ -105,6 +109,14 @@ pipeline:
         - id: "ADR-0017"
           subject: "Configurable dashboard widgets — drag-reorder + show/hide with server-side layout (story 7-2 scope expansion)"
           path: "docs/adr/0017-configurable-dashboard-widgets.md"
+          author: "alex"
+        - id: "ADR-0019"
+          subject: "Per-user envelope encryption of free-text fields, with crypto-shredding"
+          path: "docs/adr/0019-per-user-envelope-encryption-and-crypto-shredding.md"
+          author: "alex"
+        - id: "ADR-0020"
+          subject: "Runtime language — TypeScript only; Rust adoption gated by a measured trigger"
+          path: "docs/adr/0020-runtime-language-rust-adoption-rule.md"
           author: "alex"
       watch_items: []
       residual_gaps: []
