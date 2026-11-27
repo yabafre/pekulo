@@ -2,8 +2,24 @@
 artefact: architecture
 project: Pekulo
 created: 2026-05-03T00:00:00Z
-last_updated: 2026-05-03T06:00:00Z
+last_updated: 2026-11-27T18:00:00Z
 current_subphase: done
+amendments:
+  - id: A-2026-11-27
+    subject: Data protection, runtime language, Stripe/IAP billing, webhook inbox & API perimeter, real-euros projection (ADR-0019..ADR-0023)
+    status: done
+    current_subphase: done
+    completed_subphases:
+      - context-analysis
+      - technology-decisions
+      - council-dispatches
+      - implementation-patterns
+      - structure-mapping
+      - validation
+    adrs: [ADR-0019, ADR-0020, ADR-0021, ADR-0022, ADR-0023]
+    watch_items: 3
+    residual_gaps: 5
+    epic_zero_stories: 3
 completed_subphases:
   - context-analysis
   - technology-decisions
@@ -160,12 +176,17 @@ phases_planned:
   - Pre-(b): **Vercel project secrets** for `apps/web` + **Dokploy environment** for `apps/api`, `apps/prices` and Ollama. Rotate `PRICES_SERVICE_TOKEN` at the (b) flip.
   - **`SUPABASE_SERVICE_ROLE_KEY`** lives only in Dokploy env ; never in `apps/web` env. **`SUPABASE_JWT_SECRET`** in Dokploy env (used by `apps/api` to verify forwarded JWTs).
   - Pre-commit `gitleaks` hook fails on accidental secret commits. No secret in git, ever.
-- **CORS / rate-limiting:**
+- **CORS / rate-limiting / JWT revocation (amended 2026-11-27 — see ADR-0022):**
   - `apps/web` API routes: same-origin only (Next 16 default).
-  - `apps/api` (Dokploy): CORS allowlist via Elysia `cors` plugin restricted to the `apps/web` Vercel origin + localhost dev ; Bearer token verified per request via Elysia `bearer` plugin.
+  - `apps/api` (Dokploy): `@elysiajs/cors` allowlist restricted to `apps/web` Vercel + localhost dev (`credentials: false`), allowing missing `Origin` (SSR Server Actions, native mobile `fetch`, webhooks) and preserving raw-body `onParse` capture.
   - `apps/prices` (Dokploy): Bearer token `Authorization: Bearer $PRICES_SERVICE_TOKEN`, reject within 100 ms (existing). Satisfies NFR-29.
   - Failed login rate-limit: Supabase-native, 10/IP/hour (NFR-11).
-  - oRPC routes: per-user rate-limit on `apps/api` (Elysia `rate-limit` plugin keyed by `userId` from JWT) — defaults conservative at V1 ; tuned at (b) ramp.
+  - Authenticated API routes (`orpc-mount`, `settings.export-routes`, `llm.attest-router`): bounded-LRU in-memory per-`userId` rate-limiter enforced inside `requireUserContext` (avoids Vercel shared-NAT IP false positives; tightest caps on `/v1/export`, `refreshConnection`, `advisory.*`). Public routes (`/v1/logos`) carry a bounded-LRU Caddy-pinned client-IP limit. Structured logs hash `userId` via `hashUserId` (NFR-25).
+  - Session revocation (FR-47): extract `iat` in `jwt-verifier.ts`, lower Supabase JWT TTL to 10–15 min **after** shipping mobile proactive refresh + 1 silent 401 retry (`apps/mobile/lib/auth/auth-context.tsx`), and enforce `tokens_revoked_before` (`iat < revoked_before_sec`, write-through 15–30 s memory cache, direct-DB bypass on `/v1/export`, `deleteAccount`, `bankAggregator.*`, `advisory.*`).
+- **Field-level encryption & crypto-shredding (added 2026-11-27 — see ADR-0019, ADR-0020):**
+  - Two-step per-user envelope encryption: Step 1 (Epic 13 `13-1`/`13-2`) replaces plaintext IBANs in `accounts.provider_account_key` with user-scoped HMAC-SHA-256 blind indexes (`HMAC(IBAN_HMAC_KEY, "${userId}:${normalizedIban}")`), introduces fail-closed `ADVISORY_ENCRYPTION_KEY` (removing fallback literal and `SUPABASE_SERVICE_ROLE_KEY` reuse), and decrypts `advisory_sessions` in GDPR export; Step 2 (Epic 14 `14-16`) adds `user_keys` (RLS enabled, 0 policies, delete-only), offline erasure ledger, boot canary, and explicit repository-boundary `UserCryptoService` (AES-256-GCM + HKDF-SHA-256 + AAD `table|column|rowId|userId|formatVersion` — **never** a blanket Prisma `$extends`). Full E2EE rejected for core; compute stays 100 % TypeScript (Rust adoption rule in ADR-0020).
+- **Billing & monetization entitlements (added 2026-11-27 — see ADR-0021):**
+  - Web-first Stripe Checkout + Billing Portal + dedicated ≤ 3-click Settings cancellation (Epic 14) writing into a server-authoritative multi-grant `subscription_grants` table (`(provider, external_subscription_id)`), followed by mobile-only RevenueCat IAP in Epic 15 (Web Stripe bypasses RevenueCat MTR meter). Private advisory (ADR-0016) strictly excluded from paid tiers.
 - **Transport: TLS 1.2+ via Vercel + Caddy auto-TLS on Dokploy.** HSTS preload enabled at the (b) flip. Satisfies NFR-10.
 
 ### API Design
@@ -266,13 +287,13 @@ phases_planned:
     - Metrics → Prometheus scrape on `apps/api` + `apps/prices` ; Vercel native metrics on `apps/web`. Aggregated dashboards optional at (b), required at (c).
   - **LLM call audit log (NFR-26)** is a separate domain table `llm_call_log` (route*requested, route_actual, latency_ms, outcome — \_no prompt content*), retention ≤ 90 days, surfaced via Settings → IA → Journal d'activité (FR-36). Single ingestion writer = `apps/api/src/modules/llm/llm.service.ts#recordLlmCall(intent | outcome)`.
   - **See ADR-0005.**
-- **Background schedulers (Bun `setInterval`, started in `app.ts`, stopped in `lifecycle.ts`):** (1) **bank-refresh** — `refresh-scheduler.ts`, cadence `BRIDGE_REFRESH_CRON_HOURS` (default 6 h), calls `bankAggregator.refreshAll()`. (2) **suggestion-backfill** (added 2026-05-31, story 6-4 Extension) — `suggestion-backfill-scheduler.ts`, cadence `SUGGESTION_BACKFILL_CRON_HOURS` (default 1 h), calls `transactions.service.backfillAllUsers()` to LLM-categorise still-`autre`, never-attempted rows that bulk import (transfer-rules only) left uncategorised. Idempotent via the `transactions.suggested_attempted_at` column: a suggestion or clean abstention stamps it (never re-swept); a transport failure leaves it NULL and stops the batch (LLM down → retried next tick). On-demand trigger: `apps/api/scripts/run-suggestion-backfill.ts`. Both schedulers are best-effort (warn-on-tick-failure), single-process (no distributed lock at V1).
+- **Background schedulers (Bun `setInterval`, started in `app.ts`, stopped in `lifecycle.ts`):** (1) **bank-refresh** — `refresh-scheduler.ts`, cadence `BRIDGE_REFRESH_CRON_HOURS` (default 6 h), calls `bankAggregator.refreshAll()`. (2) **suggestion-backfill** (added 2026-05-31, story 6-4 Extension) — `suggestion-backfill-scheduler.ts`, cadence `SUGGESTION_BACKFILL_CRON_HOURS` (default 1 h), calls `transactions.service.backfillAllUsers()` to LLM-categorise still-`autre`, never-attempted rows that bulk import (transfer-rules only) left uncategorised. Idempotent via the `transactions.suggested_attempted_at` column: a suggestion or clean abstention stamps it (never re-swept); a transport failure leaves it NULL and stops the batch (LLM down → retried next tick). On-demand trigger: `apps/api/scripts/run-suggestion-backfill.ts`. (3) **webhook-inbox-drainer** (added 2026-11-27, **ADR-0022**) — drains `webhook_inbox` (Bridge + Stripe webhooks persisted after HMAC verification, before returning `204`) via `FOR UPDATE SKIP LOCKED` with crash-recovery `locked_until` leases, per-`providerItemId` serialization preserving `1010/sca_required`, exponential backoff, and GlitchTip dead-lettering. All schedulers are single-process (no distributed lock at single-container V1; see ADR-0022 pivot conditions for ≥ 2 replicas).
 - **Environments:** `dev` (local) + `prod` (Vercel + Dokploy). **No staging at V1 (a)** (single user). Staging branch + preview deploys promoted at (b).
 - **Restore drill (NFR-21):** scheduled before (b) flip — Supabase snapshot → fresh staging project → `bun --filter=@pekulo/api db:restore-drill-check` (migration parity + RLS coverage + zero NULL `user_id` + non-empty `auth.users` + Auth password round-trip + oRPC `settings.get` 200). The procedure and the dated result live in `docs/security.md` § Restore-from-snapshot drill.
 
 ## Phase 2b — Council Dispatches
 
-> Two high-stakes decisions arbitrated by 4 specialists each, dispatched in parallel for convergence-resistance.
+> High-stakes decisions arbitrated by 4 specialists each, dispatched in parallel for convergence-resistance (C1–C2 on 2026-05-03; C3 in § A2b below and C4–C6 on 2026-11-27).
 
 ### C1 — Design system strategy (Tailwind v4 ↔ Tamagui Core)
 
@@ -340,6 +361,79 @@ phases_planned:
 - C (server-arbitrated cloud + client-decided on-device) — equivalent in substance to A* ; if architectural diagrams later need a clearer "where does the routing decision live?" answer, label this design as C-with-async-attest. Functional behaviour is identical to A*.
 
 **See ADR-0008.**
+
+### C3 — Application-level data protection model (2026-11-27)
+
+See **§ Amendment 2026-11-27 → A2b — Council C3** below (**ADR-0019**, amended with Step 1 Lot A IBAN blind index / `ADVISORY_ENCRYPTION_KEY` / decrypted advisory export and explicit repository-boundary `UserCryptoService` instead of blanket Prisma `$extends`, paired with **ADR-0020** for the TypeScript-only runtime rule).
+
+### C4 — Web billing (Stripe) & mobile store IAP strategy (2026-11-27)
+
+**Framing.** Epic 14 targets 50 paying web clients (€49/yr Founder 100 spots guaranteed while active; €69/yr or €7.99/mo Plus) with French 3-click cancellation and 14-day withdrawal law, while mobile stores are frozen until Epic 15. Three options weighed: (A) Web Stripe Checkout/Portal + unified entitlement table in `apps/api`, then RevenueCat IAP in Epic 15 ; (B) Web Stripe + permanent Reader/Companion mobile app with no IAP ; (C) Web Stripe + Apple/Google EEA DMA external purchase links.
+
+**Specialist verdicts:**
+
+| Specialist        | Pick | One-line rationale                                                                                                |
+| ----------------- | ---- | ----------------------------------------------------------------------------------------------------------------- |
+| Winston (Systems) | A    | €0 fixed Stripe in E14, provider-agnostic entitlement table, compliant RevenueCat path in E15                     |
+| Raj (Security)    | A    | Zero PCI scope via Stripe SAQ A, clean French 3-click cancel, avoids Apple 3.1.1 rejection and DMA reporting trap |
+| Nina (Cost & Ops) | A\*  | Captures 98 % web margin; keeping Web Stripe off RevenueCat MTR preserves €0 tier up to ~435 mobile subs          |
+| Maya (Edge cases) | A\*  | Multi-grant `subscription_grants` table prevents cross-provider clobbering, 100-spot races, and 3DS downgrades    |
+
+**Areas of consensus.** Unanimous 4–0 on Option A\*; unanimous rejection of B (Apple 3.1.3(a) Reader does not cover finance SaaS utilities) and C (12–15 % combined EEA fees + reporting APIs + EU OSS VAT + conversion drop).
+
+**Areas of genuine disagreement.** None on core choice; refinements merged into A\* (multi-grant table, dedicated ≤ 3-click cancel flow, pause-not-revoke Bridge on downgrade, Step 1 Stripe cancel inside FR-50's 60 s budget, Epic 12 advisory permanently excluded from paid tiers).
+
+**Final pick: A\* — Web-first Stripe Checkout/Portal over multi-grant `subscription_grants` (Epic 14), then mobile-only RevenueCat IAP bypassing web MTR (Epic 15).**
+
+**Minority view kept as future-pivot signal.** None (4–0 unanimous). Pivot triggers: if Bridge unit cost > €2.50/user/mo erodes IAP margin, uplift mobile pricing or adopt un-paywalled companion posture; if RevenueCat pricing/privacy drifts, swap directly to StoreKit 2 + Play Developer API webhooks feeding the same `subscription_grants` table.
+
+**See ADR-0021.**
+
+### C5 — Bridge webhook durability & API security perimeter (2026-11-27)
+
+**Framing.** `apps/api` currently ACKs Bridge webhooks `204` before DB write (dropping events on crash/deploy, with unsigned `t=` replay and dropped `1010/sca_required` coalescing), lacks CORS and global rate limiting in `app.ts`, logs raw `userId` (NFR-25), and runs stateless 1h JWTs (while mobile signs out immediately on any 401). Three options weighed: (A) Postgres `webhook_inbox` + Elysia CORS/rate-limit + short-TTL JWT & `tokens_revoked_before` cache ; (B) Redis/BullMQ + Caddy perimeter + per-request Supabase `getUser()` ; (C) synchronous webhook processing + Caddy CORS + stateless 5-min JWT.
+
+**Specialist verdicts:**
+
+| Specialist        | Pick | One-line rationale                                                                                                    |
+| ----------------- | ---- | --------------------------------------------------------------------------------------------------------------------- |
+| Winston (Systems) | A    | Reuses Postgres + Bun scheduler at €0 infra, avoiding Redis ops and Bridge's proven timeout failure mode              |
+| Raj (Security)    | A\*  | Inbox dedup closes unsigned `t=` replay; direct-DB revocation bypass protects `/v1/export` and `deleteAccount`        |
+| Nina (Cost & Ops) | A    | €0 infra; avoids guaranteed Supabase GoTrue 429 global outage from per-request `getUser()` over one Dokploy egress IP |
+| Maya (Edge cases) | A\*  | Fixes dropped `1010/sca_required`, Vercel NAT IP collisions, `iat` clock skew, and mobile's instant-signout-on-401    |
+
+**Areas of consensus.** Unanimous 4–0 on Option A\*; unanimous rejection of B (Redis VPS bloat + GoTrue 429/latency SPOF) and C (re-introduces Bridge timeout storms and leaves 5-min revocation exposure).
+
+**Areas of genuine disagreement.** None on core choice; Raj and Maya contributed binding A\* invariants (payload-identity dedup, `FOR UPDATE SKIP LOCKED` + per-item serialization, `requireUserContext` per-`userId` rate-limit across all 3 auth entry points, strict `<` whole-second `iat`, and mandatory mobile 401 refresh-retry shipped **before** lowering JWT TTL).
+
+**Final pick: A\* — Reusable Postgres `webhook_inbox` (Bridge + Stripe) + Elysia perimeter (`@elysiajs/cors`, `requireUserContext` per-`userId` rate-limit, hashed logs) + short-TTL JWT & write-through `tokens_revoked_before` after mobile 401 fix.**
+
+**Minority view kept as future-pivot signal.** None (4–0 unanimous). Pivot triggers: horizontal scaling to ≥ 2 `apps/api` replicas or > 50 webhooks/sec forces moving rate-limiting, revocation cache, and queue workers to shared Redis/Valkey (still never per-request `getUser()`); NTP clock skew > 3 s forces `session_id` denylisting.
+
+**See ADR-0022.**
+
+### C6 — Real-euros projection engine & shared `@pekulo/finance` package (2026-11-27)
+
+**Framing.** `projection-curve.ts` computes single-rate nominal compounding rejecting negative rates, overstating 20–30y purchasing power by 45–100 % for French FIRE users. Three options weighed: (A) exact Fisher real-rate deflation + net-of-fees + 3 deterministic scenarios (`r_net ± spread`) defaulting to `'real'` ; (B) 10,000-path server-side Monte Carlo in Bun ; (C) nominal-only math with static inflation footnote.
+
+**Specialist verdicts:**
+
+| Specialist        | Pick | One-line rationale                                                                                               |
+| ----------------- | ---- | ---------------------------------------------------------------------------------------------------------------- |
+| Winston (Systems) | A\*  | < 0.05 ms deterministic math extracted into `@pekulo/finance` keeps API/calculator/mobile in lock-step           |
+| Raj (Security)    | A    | Transparent user-editable assumptions stay inside AMF safe harbor and eliminate public-calculator event-loop DoS |
+| Nina (Cost & Ops) | A\*  | Client-side public calculator (`14-7`) runs at €0 API compute; reserves Monte Carlo as future Pro upsell         |
+| Maya (Edge cases) | A\*  | Effective monthly compounding, `expm1`/`log1p`, negative-rate support, `P < 0` band guard, real-basis gap parity |
+
+**Areas of consensus.** Unanimous 4–0 on Option A\*; unanimous rejection of B (70–95 ms Bun event-loop blocking = trivial CPU DoS on unauthenticated calculator `14-7` + AMF volatility modeling exposure) and C (destroys FIRE ICP credibility).
+
+**Areas of genuine disagreement.** None on core choice; Winston, Nina, and Maya converged on extracting a zero-dep `@pekulo/finance` package and locking effective monthly compounding `(1 + r)^(1/12) - 1`, exact `FV_real === FV_nom / (1 + inf)^k` parity, real-basis `objectif`/`gapEurPerMonth` comparison, and `P < 0` band-inversion protection.
+
+**Final pick: A\* — Exact Fisher real-rate + net-of-fees + 3 deterministic scenarios in zero-dep `@pekulo/finance` package, defaulting to `'real'` euros with AMF non-advice disclaimers.**
+
+**Minority view kept as future-pivot signal.** None (4–0 unanimous). Pivot trigger: validated post-50-client demand for retirement drawdown / sequence-of-returns probabilities adds Monte Carlo strictly as an opt-in **client-side Web Worker** (never on `apps/api`'s event loop).
+
+**See ADR-0023.**
 
 ## Phase 3 — Implementation Patterns
 
@@ -1102,6 +1196,7 @@ pekulo/
 | FR-61 | Cron-refresh bank transactions (dedup on provider + tx_id)        | `bank-aggregator.service.ts#refreshAll` (Bun scheduled task) + `transactions.service.ts#importFromProvider`                                                                | n/a (background)                                                                                           |
 | FR-62 | View, rename, revoke bank connections                             | `bank-aggregator.service.ts#{listConnections,rename,revoke}` + Bridge token revoke API                                                                                     | `bank-connection-row.tsx` + `bank-connection-rename-form.tsx` + `bank-connection-revoke-confirm.tsx`       |
 | FR-63 | Surface SCA-required + reconnect CTA (90-day refresh)             | `bank-aggregator.service.ts#getConnectionState` + Bridge webhook handler on `ITEM_SCA_REQUIRED` (`/internal/bridge/webhook`)                                               | `bank-connection-row.tsx` SCA badge + `bank-reconnect-button.tsx`                                          |
+| FR-64 | Navigate transactions + monthly stat cards by calendar month      | existing transactions + monthly list routes, filtered by month (story 6-9)                                                                                                 | `transactions/_components/month-navigator.tsx` (defaults to the latest month with activity)                |
 
 #### Group F — Monthly tracking (brownfield)
 
@@ -1155,23 +1250,25 @@ pekulo/
 
 > Every external system has exactly one owning surface ; secrets and rate limits are bound to that owner.
 
-| External system                                           | Owner                                                                                                               | Boundary file(s)                                                                      | Auth mechanism                                                                                    | Failure mode                                                                                       |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Supabase Auth**                                         | `apps/web` (direct)                                                                                                 | `apps/web/src/lib/supabase/{server,client}.ts`                                        | anon key in `NEXT_PUBLIC_*` ; SSR cookie session                                                  | redirect to `/login` via `proxy.ts` middleware                                                     |
-| **Supabase Postgres**                                     | `apps/api` (sole consumer)                                                                                          | `apps/api/src/database/prisma.service.ts` (PrismaPg adapter, port 5432, service-role) | `DATABASE_URL` in Dokploy env                                                                     | `prisma-error-mapper.ts` → typed errors ; data readers fallback to safe defaults                   |
-| **Apple FoundationModels**                                | `apps/mobile` (V1.5, client-side)                                                                                   | `apps/mobile/src/llm/foundation-models-client.ts`                                     | iOS framework, no key                                                                             | fall back to oRPC `/llm/categorise` (server route Ollama)                                          |
-| **Ollama**                                                | `apps/api/src/modules/llm/providers/ollama-client.ts`                                                               | localhost-bound on Dokploy ; not exposed publicly                                     | none (internal)                                                                                   | timeout → fall back to 3rd-party (only if opt-in true) ; else surface `LlmRoutingError`            |
+| External system                                           | Owner                                                                                                               | Boundary file(s)                                                                      | Auth mechanism                                                                                    | Failure mode                                                                                             |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Supabase Auth**                                         | `apps/web` (direct)                                                                                                 | `apps/web/src/lib/supabase/{server,client}.ts`                                        | anon key in `NEXT_PUBLIC_*` ; SSR cookie session                                                  | redirect to `/login` via `proxy.ts` middleware                                                           |
+| **Supabase Postgres**                                     | `apps/api` (sole consumer)                                                                                          | `apps/api/src/database/prisma.service.ts` (PrismaPg adapter, port 5432, service-role) | `DATABASE_URL` in Dokploy env                                                                     | `prisma-error-mapper.ts` → typed errors ; data readers fallback to safe defaults                         |
+| **Apple FoundationModels**                                | `apps/mobile` (V1.5, client-side)                                                                                   | `apps/mobile/src/llm/foundation-models-client.ts`                                     | iOS framework, no key                                                                             | fall back to oRPC `/llm/categorise` (server route Ollama)                                                |
+| **Ollama**                                                | `apps/api/src/modules/llm/providers/ollama-client.ts`                                                               | localhost-bound on Dokploy ; not exposed publicly                                     | none (internal)                                                                                   | timeout → fall back to 3rd-party (only if opt-in true) ; else surface `LlmRoutingError`                  |
 | **3rd-party LLM API** (Claude Haiku 4.5 or Mistral Small) | `apps/api/src/modules/llm/providers/third-party-client.ts`                                                          | `THIRD_PARTY_LLM_API_KEY` in Dokploy env ; opt-in gated server-side                   | rate-limit → mark request as failed in `llm_call_log` ; UI surfaces "categorisation indisponible" |
 | **`apps/prices`** (FastAPI)                               | `apps/api/src/modules/holdings/services/prices-client.ts`                                                           | internal Docker network ; Bearer `PRICES_SERVICE_TOKEN`                               | Tier-1 fallback chain to `yahoo-finance2`                                                         |
 | **Yahoo Finance** (`yahoo-finance2`)                      | `apps/api/src/modules/holdings/services/yahoo-client.ts`                                                            | npm SDK, no key                                                                       | Tier-2 fallback to Boursorama                                                                     |
 | **Boursorama** (HTML scraping)                            | `apps/api/src/modules/holdings/services/boursorama-scraper.ts`                                                      | none                                                                                  | Tier-3 fallback to Twelve Data                                                                    |
 | **Twelve Data**                                           | `apps/api/src/modules/holdings/services/twelve-data-client.ts`                                                      | `TWELVE_DATA_API_KEY` in Dokploy env (free tier 800 req/day)                          | Tier-4 ; on full-chain failure throws `PriceProviderError.attempts`                               |
 | **frankfurter.app** (FX)                                  | `apps/api/src/modules/holdings/services/frankfurter-client.ts`                                                      | none                                                                                  | fallback to 1:1 in `derive/portfolio-fx.ts` ; recorded in snapshot via `fxSource`                 |
-| **Vercel**                                                | `apps/web` deploy target                                                                                            | `vercel.json` + Vercel project secrets                                                | n/a                                                                                               | Vercel auto-rollback on failed deploy                                                              |
-| **Dokploy VPS**                                           | `apps/api` + `apps/prices` + Ollama deploy target                                                                   | `apps/api/Dockerfile` + `apps/prices/Dockerfile` + Caddy config                       | Dokploy webhook                                                                                   | Dokploy auto-restart on container crash ; Caddy 502 → `apps/web` retry queue                       |
-| **GlitchTip** ((b)+)                                      | `apps/api/src/platform/observability/sentry.ts` + `apps/web/src/lib/observability/sentry.ts` (Sentry SDK, not OTLP) | self-hosted on Dokploy                                                                | `GLITCHTIP_DSN` (server) + `NEXT_PUBLIC_GLITCHTIP_DSN` (browser) in Dokploy env                   | capture is fail-open: an unreachable GlitchTip never fails a request; traces remain on OTel/SigNoz |
-| **GitHub Actions**                                        | CI/CD owner                                                                                                         | `.github/workflows/pr.yml`                                                            | `GITHUB_TOKEN` (auto) ; secrets via repo settings                                                 | failed check blocks merge                                                                          |
-| **Supabase backups**                                      | Operational owner                                                                                                   | external Supabase dashboard                                                           | dashboard credentials                                                                             | NFR-21 restore drill before (b) flip                                                               |
+| **Vercel**                                                | `apps/web` deploy target                                                                                            | `vercel.json` + Vercel project secrets                                                | n/a                                                                                               | Vercel auto-rollback on failed deploy                                                                    |
+| **Dokploy VPS**                                           | `apps/api` + `apps/prices` + Ollama deploy target                                                                   | `apps/api/Dockerfile` + `apps/prices/Dockerfile` + Caddy config                       | Dokploy webhook                                                                                   | Dokploy auto-restart on container crash ; Caddy 502 → `apps/web` retry queue                             |
+| **GlitchTip** ((b)+)                                      | `apps/api/src/platform/observability/sentry.ts` + `apps/web/src/lib/observability/sentry.ts` (Sentry SDK, not OTLP) | self-hosted on Dokploy                                                                | `GLITCHTIP_DSN` (server) + `NEXT_PUBLIC_GLITCHTIP_DSN` (browser) in Dokploy env                   | capture is fail-open: an unreachable GlitchTip never fails a request; traces remain on OTel/SigNoz       |
+| **GitHub Actions**                                        | CI/CD owner                                                                                                         | `.github/workflows/pr.yml`                                                            | `GITHUB_TOKEN` (auto) ; secrets via repo settings                                                 | failed check blocks merge                                                                                |
+| **Supabase backups**                                      | Operational owner                                                                                                   | external Supabase dashboard                                                           | dashboard credentials                                                                             | NFR-21 restore drill before (b) flip                                                                     |
+| **Stripe** (Epic 14 — web billing)                        | `apps/api/src/modules/billing/`                                                                                     | `stripe-client.ts`, `stripe-webhook-router.ts` → `webhook_inbox`                      | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` in Dokploy env                                       | HMAC verified first; persisted to `webhook_inbox` before 204; 7–14 d 3DS grace (ADR-0021, ADR-0022)      |
+| **RevenueCat** (Epic 15 — mobile IAP only)                | `apps/mobile` SDK + `apps/api/src/modules/billing/`                                                                 | `revenuecat-webhook-router.ts` → `webhook_inbox` → `subscription_grants`              | `REVENUECAT_WEBHOOK_SECRET` in Dokploy env ; public SDK key in EAS                                | Bearer webhook auth (Web Stripe bypasses RevenueCat MTR); `subscription_grants` authoritative (ADR-0021) |
 
 ### Shared Code Inventory
 
@@ -1206,6 +1303,11 @@ pekulo/
 
 - All Pekulo\* components listed in Directory Tree above ; consumed by `apps/web` and `apps/mobile` (V1.5)
 - Tokens, themes, primitives ported from `docs/ux-preview/`
+
+#### `@pekulo/finance` — pure financial projection engine (added 2026-11-27, ADR-0023)
+
+- Zero-dependency pure TypeScript workspace package consumed by `apps/api`, `apps/web` (including 100 % client-side public calculator `14-7`), and `apps/mobile`
+- Exports `projection-curve.ts` (exact Fisher real-rate deflation, net-of-fees, effective monthly compounding `(1 + r)^(1/12) - 1`, `expm1`/`log1p`, 3 deterministic scenarios, `P < 0` band-inversion guard), `hypothesis-gap.ts`, and `compass-curve.ts`
 
 #### `apps/api/src/common/` — pure helpers (no I/O)
 
@@ -1279,9 +1381,9 @@ pekulo/
 
 ### Final stats
 
-- **Technology decisions**: 50+ across Phase 2 (11 brownfield reaffirmations + 10 Pile B mid-stakes + 3 user additions oxfmt / oxlint / OTel + 2 Council picks).
-- **Council dispatches**: 2 (C1 DS strategy, C2 LLM routing) ; 4 specialists each, all in parallel.
-- **ADRs**: 14 written (13 active + ADR-0006 superseded by ADR-0014).
+- **Technology decisions**: 54+ across Phase 2 (11 brownfield reaffirmations + 10 Pile B mid-stakes + 3 user additions oxfmt / oxlint / OTel + 6 Council picks).
+- **Council dispatches**: 6 (C1 DS strategy, C2 LLM routing, C3 data protection / envelope encryption, C4 web Stripe + mobile IAP, C5 webhook inbox + API perimeter, C6 real-euros projection `@pekulo/finance`) ; 4 specialists each, all in parallel.
+- **ADRs**: 23 written (`ADR-0001`..`ADR-0023`; `ADR-0006` superseded by `ADR-0014`, `ADR-0003` superseded by `ADR-0018`).
 - **Validation gaps**: 0.
 
 ## Watch Items
@@ -1322,3 +1424,179 @@ pekulo/
 - **E0.12 — Custom oxlint rules in `@pekulo/oxlint-config`** — implement and ship `no-server-action-in-component`, `no-cross-feature-action-import`, `no-prisma-query-without-user-id`, `no-tailwind-outside-ui` ; rule fixtures + tests ; CI gate.
 
 After E0.\* ships, `aped-epics` may schedule the V1 feature epics: `compass-and-milestones`, `real-estate`, `llm-categorisation`, `crypto-holdings`, `pwa-offline`, `gdpr-flows` (and the brownfield reaffirmations: `accounts`, `holdings-extended`, `transactions-extended`, `monthly-tracking-extended`, `hypothesis-extended`).
+
+## Amendment 2026-11-27 — Data protection & runtime language
+
+> Targeted `aped-arch` re-run (architecture stays `done`). Input: `docs/spikes/2026-11-26-securite-chiffrement-rust.md`. Outputs: ADR-0019 (per-user envelope encryption + crypto-shredding), ADR-0020 (Rust adoption rule). Sections fill as each amendment gate is validated.
+
+### A1 — Context Analysis
+
+> Validated 2026-11-27.
+
+**Code facts that correct the spike**
+
+- While there is no dedicated `iban` column, **`accounts.provider_account_key` persists raw IBANs** (`bridge-client.ts:148` writes `iban:${iban}`), so Step 1 (`13-2`) replaces `iban:*` with a user-scoped HMAC-SHA-256 blind index (`HMAC(IBAN_HMAC_KEY, "${userId}:${normalizedIban}")`) after backfilling `accounts.providerId`. The other sensitive data is free text: `transactions.label` (counterparty names), `notes` on transactions / accounts / holdings, `real_estate.label` (may carry an address), `bank_connections.display_name`, `milestones.label` (`accounts.label` stays unencrypted for CSV `findAccountIdByLabelForUser`).
+- Application-level encryption already exists in `apps/api/src/modules/advisory/advisory-encryption.ts` (AES-256-GCM, story 12-3), but `advisory.module.ts:51` carries a hardcoded fallback literal, `runtime-dependencies.ts:318` derives its key from `SUPABASE_SERVICE_ROLE_KEY`, and `settings.export.ts:179-182` exports raw `advisory_sessions.encrypted_payload` ciphertext instead of decrypted JSON. Step 1 (`13-1`) fixes all three immediately via a dedicated fail-closed `ADVISORY_ENCRYPTION_KEY`, before Step 2 (`14-16`) migrates advisory onto the per-user DEK.
+
+**Functional drivers**
+
+- **FR-50 / NFR-7** — cascade deletion ≤ 60 s with a fixed fail-closed order (Bridge → Postgres → Auth, `docs/security.md`). Backups are not covered today; crypto-shredding closes that gap.
+- **FR-49 / NFR-6 / NFR-30** — the export must decrypt everything within 60 s.
+- **FR-60 → FR-63 (Bridge sync), FR-31 → FR-34 (LLM categorisation), monthly digest (story 13-7)** — the server writes and computes while the user is offline, so the server must hold the keys. Full E2EE is excluded.
+- **NFR-12** — labels are decrypted server-side immediately before prompt building; the no-identifier rule is unchanged.
+
+**Non-functional drivers**
+
+- **DR-11 / NFR-14** — at-rest encryption via the Supabase tier is already satisfied; the amendment adds an application layer on top.
+- **NFR-1 / NFR-15 / NFR-16 / M1** — 300 ms p95 dashboard, 500 ms at 100 concurrent users, 800 ms at 50 000 transactions per user.
+
+**Scale and measurements (Bun 1.3.13, dev machine, 2026-11-26/27)**
+
+| Measurement                                        | Result                                              |
+| -------------------------------------------------- | --------------------------------------------------- |
+| AES-256-GCM over 50 000 labels                     | encrypt 53–60 ms · decrypt 35 ms · 0.7 µs per field |
+| Wrapping / unwrapping a 32-byte DEK                | 0.8 µs                                              |
+| Monte Carlo worst case (10 000 paths × 480 months) | 70–95 ms                                            |
+
+**Integration points** — Supabase Postgres (Vault keeps keys in the same database and pgsodium is pending deprecation: neither is used); Dokploy environment (KEK v1), later an EU-hosted KMS; a Prisma 7 client extension (precedent: `prefixed-ids`); `node:crypto` in Bun; `settings.export.ts` and `settings.deletion.ts`; the PWA offline cache (ADR-0003 / ADR-0018) receives decrypted DTOs and stays locally encrypted; mobile is unchanged (oRPC).
+
+**Compliance** — GDPR art. 32 (encryption is a named security measure); art. 17 (erasure reaches backups); art. 34(3)(a) (data rendered unintelligible by encryption lifts the obligation to notify each data subject of a breach); honest marketing claims (no "end-to-end").
+
+**Tensions**
+
+| #   | Tension                                                                                       | Direction                                                                                                                                                                                                               |
+| --- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | KEK loss vs restore drill (NFR-21): losing the KEK loses all encrypted data                   | KEK escrowed outside the database (offline), versioned; the restore drill includes the KEK                                                                                                                              |
+| T2  | NFR-31 prescribes `pgcrypto` for Bridge tokens; the columns are vestigial NULL since ADR-0015 | Supersede in ADR-0019; propose the NFR-31 amendment via `aped-course`                                                                                                                                                   |
+| T3  | Advisory key derived from the service-role key                                                | Migrate advisory onto the per-user DEK                                                                                                                                                                                  |
+| T4  | Encrypted fields vs server features (categorisation, logo matching, CSV de-duplication)       | Decrypt in the service layer; HMAC blind index for equality. No `contains` search exists today                                                                                                                          |
+| T5  | DEK destruction inside the fixed deletion order                                               | Inside the Postgres transaction; failure aborts like today                                                                                                                                                              |
+| T6  | Rust vs latency budgets                                                                       | Measurements show CPU is not the bottleneck; the verdict is already computed once server-side for web, PWA and mobile, so cross-surface consistency is already guaranteed. Rust is justified only for on-device compute |
+| T7  | E2EE wish vs server-side sync, LLM and digest                                                 | Full E2EE out of scope; an optional client-side "private vault" stays a V2 residual gap                                                                                                                                 |
+
+### A2 — Technology Decisions
+
+> Validated 2026-11-27.
+
+**Authentication & Security — application-level data protection.** Per-user envelope encryption, KEK in the Dokploy environment behind a `KeyProvider` interface (option B1), AES-256-GCM via `node:crypto` in a Prisma client extension on an explicit free-text field list, crypto-shredding on deletion, nine mandatory controls. Satisfies DR-11 / NFR-14 (strengthened), FR-50 / NFR-7 (erasure reaching backups), FR-49 / NFR-6 (export decrypts within budget), NFR-12 (labels decrypted server-side only for prompt building), NFR-1 / NFR-15 / NFR-16 (0.7 µs per field). Supersedes the `pgcrypto` wording of NFR-31. → **ADR-0019** (Council C3).
+
+**Infrastructure — runtime language.** TypeScript-only; Rust only on a measured CPU trigger (NFR-1 / NFR-15 / NFR-16 / M1 breached and CPU-bound) or an on-device compute requirement; shape fixed to uniffi native module + wasm-bindgen, no WebAssembly inside React Native, no custom cryptography. Decided without Council (reversible policy). → **ADR-0020**.
+
+Data Layer, API Design and Frontend: unchanged by this amendment.
+
+### A2b — Council C3: application-level data protection model
+
+**Framing.** A — disk encryption only; B — per-user envelope encryption (B1 KEK in Dokploy env, B2 EU KMS from day one); C — single global application key; D — client-side E2EE. Context: FR-50 / NFR-7, FR-49 / NFR-6, NFR-21, NFR-12, NFR-31, GDPR art. 17 / 32 / 34; measured 0.7 µs per field.
+
+| Specialist        | Pick                   | Key argument                                                                                                                                                                                                                                   |
+| ----------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Winston — Systems | B1                     | Encrypting now is cheaper than re-encrypting after launch; a KMS on the hot path is an outage mode for no gain at this scale                                                                                                                   |
+| Raj — Security    | B1 → B2 at public ramp | Only B makes dumps and backups unreadable; five disqualifying conditions (AAD, per-user blind-index key, KEK never in Postgres, advisory migration, DEK destroyed inside the deletion transaction)                                             |
+| Nina — Cost & Ops | B1                     | Zero run cost; B1 → B2 is a re-wrap of one 32-byte DEK per user; freeze by 2026-12-21, defer past 2027-01-08 if it slips beyond 2026-12-28                                                                                                     |
+| Maya — Edge cases | B with conditions      | Five concrete break points: `distinct` on ciphertext, extension cannot resolve the user on `where: { id }` updates or the cross-user cron, unkeyed `label_hash`, global `merchant_key` cache derived from labels, wrapped DEK restored by PITR |
+
+**Consensus.** B over A, C and D. "Deleted even in our backups" is false without an erasure ledger outside Postgres replayed after each restore. The art. 34(3)(a) exemption cannot be claimed (amounts and dates stay in clear next to emails). Derived plaintext copies of labels must be closed.
+
+**Disagreement.** When to move the KEK to a KMS: Raj at the public ramp; Winston and Nina only on a concrete trigger.
+
+**Final pick.** B1 with the nine controls of ADR-0019; KMS trigger = second person with infrastructure access, 1 000 users, or first security incident. Fallback C (dedicated versioned global key) if B1 threatens the 2027-01-31 launch goal.
+
+**Minority view (future-pivot signal).** Raj: move to B2 at the public ramp, because the KEK sitting next to `DATABASE_URL` in the Dokploy env does not stop a leaked-environment attacker.
+
+### A3 — Implementation Patterns
+
+> Validated 2026-11-27.
+
+**Naming**
+
+- Table `user_keys`, model `UserKey`; primary key `user_id` (no prefixed id, same opt-out as `BridgeUser`).
+- Blind-index column: `<field>_bidx` (e.g. `label_bidx`).
+- Environment: `PEKULO_KEK_V1`, `PEKULO_KEK_V2`, … (32 bytes, base64) and `PEKULO_KEK_ACTIVE_VERSION`.
+- Ciphertext format: `pk1.<iv>.<tag>.<ct>` (base64url). The `pk1.` prefix is the format version; a value without prefix is legacy plaintext during the backfill.
+
+**Code structure**
+
+- All cryptography lives in `apps/api/src/platform/crypto/` behind an explicit repository-boundary **`UserCryptoService`** (bounded LRU DEK cache evicted on `deleteAccount`, DEK provisioned outside interactive `$transaction` blocks). **Blanket Prisma `$extends` `$allModels` interception is prohibited** because live queries rely on SQL `distinct: ["label"]` without `userId` (`transactions.repository.ts:721-730`), nested `account` selects (`transactions.repository.ts:706`), and 5 s interactive bulk transactions (`transactions.repository.ts:424-443`).
+- Field registry: `encrypted-fields.config.ts` (same pattern as `id-prefixes.config.ts`).
+- Repositories, `streamUserDataExport` (validating the DEK before emitting HTTP 200 chunk 1), and the cross-user Bridge cron pass `userId` explicitly to `UserCryptoService`. A write whose user cannot be resolved fails closed (`USER_CONTEXT_MISSING`), never in clear.
+
+**Communication**
+
+- `CryptoError extends PekuloError` with codes `KEK_MISSING`, `DEK_UNAVAILABLE`, `DECRYPT_FAILED`, `USER_CONTEXT_MISSING`; surfaced to clients as a generic 500.
+- Log events: `crypto.boot_canary.ok|failed`, `crypto.dek.created`, `crypto.dek.shredded`, with `hashUserId`. Never plaintext or key material in logs, traces or GlitchTip.
+
+**Process rules**
+
+- Every new free-text column is classified in the registry (encrypted, or clear with a justification). A CI test diffs Prisma `String` fields against the registry, like `db:rls-migration-audit`.
+- A PR touching `platform/crypto` passes the ADR-0019 nine-control checklist.
+- The NFR-21 restore drill uses the escrowed KEK and replays the erasure ledger.
+- Performance work starts with a profile (ADR-0020).
+- **Erasure order:** the deletion request is appended to the erasure ledger as step 0, before the Bridge revoke. If the deletion later fails and is never retried, a restore still shreds the DEK — consistent with the user's request. The ledger is an append-only JSONL file on a Dokploy persistent volume, backed up separately from Supabase backups.
+
+### A4 — Structure & Mapping
+
+> Validated 2026-11-27.
+
+**New files**
+
+```
+apps/api/src/platform/crypto/
+  key-provider.ts · env-key-provider.ts      # KeyProvider interface; Dokploy env implementation (KMS later)
+  envelope.ts · blind-index.ts               # AES-256-GCM with AAD; HKDF per-user HMAC blind index
+  user-crypto.service.ts                     # Explicit repository-boundary service + bounded LRU DEK cache (no Prisma $extends)
+  encrypted-fields.config.ts                 # field registry
+  user-key.repository.ts · boot-canary.ts · erasure-ledger.ts
+apps/api/prisma/schema/crypto.prisma         # UserKey (+ migration: RLS enabled 0 policies, cascade to auth.users)
+apps/api/scripts/
+  crypto-backfill.ts · crypto-rewrap-kek.ts · crypto-replay-erasure-ledger.ts
+```
+
+**FR → file mapping**
+
+| Requirement                    | Surface                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| FR-49 (export)                 | `settings.export.ts` validates DEK before streaming and decrypts via `UserCryptoService`                             |
+| FR-50 / NFR-7 (deletion)       | `settings.deletion.ts`, `erasure-ledger.ts`, `user-key.repository.ts`                                                |
+| FR-31 → FR-34 (categorisation) | `llm-prompt-builder.ts`: label decrypted; `hashLabel` → keyed HMAC                                                   |
+| FR-60 → FR-63 (Bridge sync)    | `bank-aggregator.module.ts` passing explicit `userId` to `UserCryptoService`                                         |
+| FR-29 (CSV import)             | `UserCryptoService` + `label_bidx` for de-duplication (`accounts.label` kept clear)                                  |
+| FR-65 (logos)                  | `distinct` on `label_bidx` / bounded-window in-memory dedup in `transactions.repository.ts`; guard on `merchant_key` |
+| NFR-21 (restore drill)         | `docs/security.md` + ledger replay script                                                                            |
+
+Advisory drops `advisory-encryption.ts` for `envelope.ts`.
+
+**Integration boundaries** — `KeyProvider` (env now, EU KMS later); the erasure ledger on a Dokploy volume; Supabase backups (retention to be confirmed).
+
+**Shared code** — stays in `apps/api`; `hashUserId` reused; the web `cache-crypto.ts` stays separate (different purpose).
+
+### A5 — Validation
+
+> Validated 2026-11-27 (final gate `[C]`).
+
+- [x] Decisions fit together: encryption rides the existing Prisma layer (ADR-0012 / ADR-0013); ADR-0020 leaves the stack unchanged.
+- [x] Every requirement in scope has a surface: FR-29, FR-31 → FR-34, FR-49, FR-50, FR-60 → FR-63, FR-65, NFR-21.
+- [x] Security: the nine ADR-0019 controls are the review checklist.
+- [x] Scale: 0.7 µs per field fits NFR-1, NFR-15, NFR-16.
+- [x] No orphan decision.
+- Oracle: `OK arch oracle: 65 FRs referenced` — after mapping FR-64 (story 6-9), a pre-existing E010 gap on the committed version.
+- Structure validator (warn-only): heading drift predates the amendment, except the deliberate `Amendment 2026-11-27` heading.
+
+### A6 — Watch Items
+
+- **W-A1 — KEK custody.** The KEK is one Dokploy env var next to `DATABASE_URL` until the KMS trigger (ADR-0019 control 9). Re-assess at each new infrastructure access.
+- **W-A2 — Launch schedule.** Encryption frozen by 2026-12-21; if it slips past 2026-12-28, defer to after 2027-01-08; fallback C if it threatens the 2027-01-31 goal.
+- **W-A3 — Derived plaintext copies.** `merchant_logo_cache.merchant_key`, logs, OTel traces, GlitchTip events and export files must never carry decrypted labels.
+
+### A7 — Residual Gaps
+
+- **G-A1 — Supabase plan and backup retention unknown.** Blocks the "deleted even in our backups" claim until confirmed.
+- **G-A2 — PRD amendment.** Rewrite NFR-31 (Bridge tokens are not stored) and add an NFR-34 for per-user field encryption + crypto-shredding, via `aped-course`.
+- **G-A3 — Erasure ledger location.** Dokploy persistent volume assumed; confirm volume backup and retention.
+- **G-A4 — Client-side private vault (E2EE).** Optional V2 premium feature; would trigger ADR-0020 rule 2.
+- **G-A5 — `merchant_key` and person-to-person labels.** Decide in the implementing story how transfer labels between individuals are kept out of the shared cache.
+
+### A8 — Foundation stories (Epic 13)
+
+- **E13.A1 — Crypto foundation.** `platform/crypto` (KeyProvider, envelope with AAD, blind index, crypto context, Prisma extension, field registry), `user_keys` migration with RLS + cascade, boot canary, registry CI test. (ADR-0019 controls 1–6)
+- **E13.A2 — Backfill and advisory migration.** Versioned backfill of existing rows, `label_bidx` + `distinct` switch, keyed HMAC for `llm_call_log.label_hash`, advisory moved to the per-user DEK. (controls 4, 5, 8)
+- **E13.A3 — Crypto-shredding and erasure ledger.** Ledger as deletion step 0, DEK destroyed inside the deletion transaction, replay script, NFR-21 drill updated with the escrowed KEK, `docs/security.md` field list. (control 7)

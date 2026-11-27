@@ -34,7 +34,7 @@ pipeline:
       output: "docs/architecture.md"
       started_at: "2026-05-03T00:00:00Z"
       completed_at: "2026-05-03T06:00:00Z"
-      last_updated: "2026-05-03T06:00:00Z"
+      last_updated: "2026-11-27T18:00:00Z"
       mode: "interactive"
       councils_dispatched:
         - id: "C1"
@@ -45,6 +45,22 @@ pipeline:
           subject: "LLM routing topology (FoundationModels / Ollama / 3rd-party)"
           specialists: ["winston", "raj", "nina", "maya"]
           verdict: "A* (server-side audit authority + async client attest) — synthesises Raj/Nina (audit integrity) with Winston/Maya (on-device latency); preserves NFR-5 budget while keeping single audit ingestion (NFR-26)."
+        - id: "C3"
+          subject: "Application-level data protection model (amendment A-2026-11-27)"
+          specialists: ["winston", "raj", "nina", "maya"]
+          verdict: "B1 amended (two-step per-user envelope encryption via explicit UserCryptoService — never Prisma $extends — + Step 1 user-scoped IBAN HMAC & ADVISORY_ENCRYPTION_KEY + KEK in Dokploy env behind KeyProvider, crypto-shredding + erasure ledger); minority (Raj): move KEK to EU KMS at public ramp."
+        - id: "C4"
+          subject: "Web billing (Stripe) & mobile store IAP strategy"
+          specialists: ["winston", "raj", "nina", "maya"]
+          verdict: "A* (4-0 unanimous — Web Stripe Checkout/Portal over multi-grant subscription_grants in Epic 14, then mobile-only RevenueCat IAP bypassing web MTR in Epic 15)."
+        - id: "C5"
+          subject: "Bridge webhook durability & API security perimeter (CORS, rate-limit, JWT revocation)"
+          specialists: ["winston", "raj", "nina", "maya"]
+          verdict: "A* (4-0 unanimous — reusable Postgres webhook_inbox after HMAC, Elysia CORS + requireUserContext per-userId rate-limit + hashed logs, short-TTL JWT + tokens_revoked_before after mobile 401 refresh-retry fix)."
+        - id: "C6"
+          subject: "Real-euros projection engine (inflation, fee drag & scenario range)"
+          specialists: ["winston", "raj", "nina", "maya"]
+          verdict: "A* (4-0 unanimous — exact Fisher real-rate + net-of-fees + effective monthly compounding + 3 deterministic scenarios + P<0 guard in zero-dep @pekulo/finance package)."
       adrs:
         - id: "ADR-0001"
           subject: "Audit history via sister tables, not JSONB columns"
@@ -106,19 +122,39 @@ pipeline:
           subject: "Configurable dashboard widgets — drag-reorder + show/hide with server-side layout (story 7-2 scope expansion)"
           path: "docs/adr/0017-configurable-dashboard-widgets.md"
           author: "alex"
+        - id: "ADR-0019"
+          subject: "Per-user envelope encryption of free-text fields, with crypto-shredding"
+          path: "docs/adr/0019-per-user-envelope-encryption-and-crypto-shredding.md"
+          author: "alex (Council C3)"
+        - id: "ADR-0020"
+          subject: "Runtime language — TypeScript only; Rust adoption gated by a measured trigger"
+          path: "docs/adr/0020-runtime-language-rust-adoption-rule.md"
+          author: "alex"
+        - id: "ADR-0021"
+          subject: "Web-first Stripe billing & Epic 15 mobile RevenueCat IAP over multi-grant subscription_grants"
+          path: "docs/adr/0021-web-stripe-billing-and-mobile-iap-strategy.md"
+          author: "alex (Council C4)"
+        - id: "ADR-0022"
+          subject: "Postgres webhook_inbox durability & single-container API security perimeter"
+          path: "docs/adr/0022-webhook-inbox-durability-and-api-security-perimeter.md"
+          author: "alex (Council C5)"
+        - id: "ADR-0023"
+          subject: "Real-euros Fisher projection engine with 3 deterministic scenarios in @pekulo/finance"
+          path: "docs/adr/0023-real-euros-projection-engine-and-shared-finance-package.md"
+          author: "alex (Council C6)"
       watch_items: []
       residual_gaps: []
       epic_zero_stories: []
     epics:
       status: "done"
       output: "docs/epics.md"
-      completed_at: "2026-05-03"
-      epic_count: 13
-      story_count: 62
+      completed_at: "2026-11-27"
+      epic_count: 16
+      story_count: 99
       fr_coverage:
-        ratio: "63/63"
+        ratio: "65/65"
       ticket_sync: "synced"
-      synced_at: "2026-06-02T12:38:14Z"
+      synced_at: "2026-11-27T05:51:55Z"
     # Renamed dev -> sprint at aped-review 2026-08-25. `current_phase` was
     # "dev", which is not in the schema enum and would have blocked
     # aped-sprint, which requires current_phase: "sprint". This block is the
@@ -129,9 +165,9 @@ pipeline:
 # GitHub Issues sync (top-level, written by aped-epics step 8.7)
 ticket_sync:
   provider: "github"
-  sync_id: "github-issues-sync-2026-06-02T12-38-14Z"
-  synced_at: "2026-06-02T12:38:14Z"
-  sync_log: "docs/sync-logs/github-issues-sync-2026-06-02T12-38-14Z.json"
+  sync_id: "github-issues-sync-2026-11-27T05-50-51Z"
+  synced_at: "2026-11-27T05:51:55Z"
+  sync_log: "docs/sync-logs/github-issues-sync-2026-11-27T05-50-51Z.json"
   projects:
     pekulo:
       repo: "yabafre/pekulo"
@@ -150,12 +186,15 @@ ticket_sync:
     "epic-10": 11 # Epic 10: Design system parity (V1.5)
     "epic-11": 12 # Epic 11: Public-ramp readiness
     "epic-12": 13 # Epic 12: Private internal AI advisory tool (append 2026-06-02)
+    "epic-13": 14 # Epic 13: Pre-sale security, GDPR & financial accuracy hardening (append 2026-11-27)
+    "epic-14": 15 # Epic 14: Web pre-sale, Stripe billing, real-euros projection & launch security (append 2026-11-27)
+    "epic-15": 16 # Epic 15: Mobile store launch & native IAP readiness (append 2026-11-27)
   modified_tickets: []
   totals:
-    api_calls_total: 95 # 1 auth + 1 projects + 22 labels + 12 milestones + 53 issues (+ epic-12 append 2026-06-02: 1 milestone + 1 label + 4 issues)
-    labels_created: 22
-    milestones_created: 12
-    issues_created: 53
+    api_calls_total: 130 # prior 95 + 35 (2026-11-27 Epics 13-15 append: 1 auth + 1 repo + 3 labels + 3 milestones + 27 issues)
+    labels_created: 25
+    milestones_created: 15
+    issues_created: 80
 # Corrections tracking
 corrections_pointer: docs/state-corrections.yaml
 corrections_count: 5
@@ -190,7 +229,8 @@ sprint:
   # at "10" this would send aped-dev / aped-review to epic-10-context.md while
   # working 11-1.
   # Realigned 2026-11-16 by aped-dev: starting V1.5 story 10-2-mobile-app-bootstrap on epic 10.
-  active_epic: 10
+  # Realigned 2026-11-27 by aped-epics: Epics 0-12 (72 stories) are all done; appended Epics 13-15 (27 stories), starting sprint on epic 13 (pre-sale hardening).
+  active_epic: 13
   umbrella_branch: "main"
   stories:
     # Epic 0 — Foundations (V1 prerequisite)
@@ -279,5 +319,35 @@ sprint:
     12-2-advisory-analysis-engine: {status: done, depends_on: [12-1-advisory-access-gate, 1-1-compass-domain, 3-1-holdings-orpc-port, 4-1-realestate-domain, 5-1-transactions-record], ticket: "#115", worktree: null, started_at: "2026-10-27T14:54:00Z", completed_at: "2026-10-27T15:00:00Z", reviewed_at: "2026-10-27T15:27:00Z"}
     12-3-advisory-llm-surface: {status: done, depends_on: [12-2-advisory-analysis-engine, 6-1-llm-routing-and-providers], ticket: "#116", worktree: null, started_at: "2026-10-27T17:07:00Z", completed_at: "2026-10-27T17:28:00Z", reviewed_at: "2026-10-27T18:06:00Z"}
     12-4-advisory-private-page: {status: done, depends_on: [12-1-advisory-access-gate, 12-3-advisory-llm-surface, 0-10-pekulo-ui-migration], ticket: "#117", worktree: null, started_at: "2026-10-27T19:06:00Z", completed_at: "2026-10-27T19:48:00Z", reviewed_at: "2026-11-04T02:21:00Z"}
+    # Epic 13 — Pre-sale security, GDPR & financial accuracy hardening (Lot A; appended 2026-11-27 via aped-epics)
+    13-1-advisory-crypto-and-consent: {status: pending, depends_on: [], ticket: "#171", worktree: null}
+    13-2-iban-blind-index-and-logs: {status: pending, depends_on: [], ticket: "#172", worktree: null}
+    13-3-api-cors-and-rate-limiting: {status: pending, depends_on: [], ticket: "#173", worktree: null}
+    13-4-durable-webhook-inbox: {status: pending, depends_on: [], ticket: "#174", worktree: null}
+    13-5-fx-accuracy-and-ui-badges: {status: pending, depends_on: [], ticket: "#175", worktree: null}
+    # Epic 14 — Web pre-sale, Stripe billing, real-euros projection & launch security (Lot B; appended 2026-11-27 via aped-epics)
+    14-1-shared-finance-real-projection: {status: pending, depends_on: [], ticket: "#176", worktree: null}
+    14-2-landing-pricing-and-waitlist: {status: pending, depends_on: [13-3-api-cors-and-rate-limiting], ticket: "#177", worktree: null}
+    14-3-legal-cgv-and-funnel-analytics: {status: pending, depends_on: [14-2-landing-pricing-and-waitlist], ticket: "#178", worktree: null}
+    14-4-stripe-billing-entitlements: {status: pending, depends_on: [13-4-durable-webhook-inbox], ticket: "#179", worktree: null}
+    14-5-paywall-and-downgrade-safety: {status: pending, depends_on: [14-4-stripe-billing-entitlements], ticket: "#180", worktree: null}
+    14-6-onboarding-and-demo-mode: {status: pending, depends_on: [14-1-shared-finance-real-projection, 14-2-landing-pricing-and-waitlist], ticket: "#181", worktree: null}
+    14-7-public-cap-calculator: {status: pending, depends_on: [14-1-shared-finance-real-projection, 14-2-landing-pricing-and-waitlist, 14-6-onboarding-and-demo-mode], ticket: "#182", worktree: null}
+    14-8-monthly-cap-digest-email: {status: pending, depends_on: [14-1-shared-finance-real-projection, 14-5-paywall-and-downgrade-safety], ticket: "#183", worktree: null}
+    14-9-discreet-mode-and-share-card: {status: pending, depends_on: [], ticket: "#184", worktree: null}
+    14-10-referral-reward-loop: {status: pending, depends_on: [14-4-stripe-billing-entitlements], ticket: "#185", worktree: null}
+    14-11-idor-isolation-test-suite: {status: pending, depends_on: [], ticket: "#186", worktree: null}
+    14-12-ci-security-pipeline: {status: pending, depends_on: [], ticket: "#187", worktree: null}
+    14-13-totp-mfa-enrollment: {status: pending, depends_on: [], ticket: "#188", worktree: null}
+    14-14-jwt-revocation-and-401-fix: {status: pending, depends_on: [13-3-api-cors-and-rate-limiting], ticket: "#189", worktree: null}
+    14-15-security-events-audit-log: {status: pending, depends_on: [14-13-totp-mfa-enrollment, 14-14-jwt-revocation-and-401-fix], ticket: "#190", worktree: null}
+    14-16-per-user-envelope-crypto: {status: pending, depends_on: [13-1-advisory-crypto-and-consent, 13-2-iban-blind-index-and-logs], ticket: "#191", worktree: null}
+    # Epic 15 — Mobile store launch & native IAP readiness (Lot C; frozen until after 50 paying web clients; appended 2026-11-27 via aped-epics)
+    15-1-mobile-signup-and-demo: {status: pending, depends_on: [], ticket: "#192", worktree: null}
+    15-2-mobile-transactions-list-perf: {status: pending, depends_on: [], ticket: "#193", worktree: null}
+    15-3-mobile-sentry-glitchtip: {status: pending, depends_on: [], ticket: "#194", worktree: null}
+    15-4-mobile-revenuecat-iap: {status: pending, depends_on: [14-4-stripe-billing-entitlements, 14-5-paywall-and-downgrade-safety, 15-1-mobile-signup-and-demo], ticket: "#195", worktree: null}
+    15-5-eas-release-and-ota-pipeline: {status: pending, depends_on: [15-3-mobile-sentry-glitchtip], ticket: "#196", worktree: null}
+    15-6-aso-listing-and-brand-icon: {status: pending, depends_on: [15-1-mobile-signup-and-demo, 15-4-mobile-revenuecat-iap], ticket: "#197", worktree: null}
   mode: parallel
   stack_order: []

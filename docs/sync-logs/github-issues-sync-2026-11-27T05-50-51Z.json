@@ -1,0 +1,162 @@
+{
+  "sync_id": "github-issues-sync-2026-11-27T05-50-51Z",
+  "started_at": "2026-11-27T05:50:51Z",
+  "provider": "github-issues",
+  "operator": "yabafre",
+  "directive_version": null,
+  "phases": {
+    "auth_check": {
+      "status": "complete"
+    },
+    "projects": {
+      "status": "complete",
+      "calls": 1,
+      "repo": "yabafre/pekulo"
+    },
+    "labels": {
+      "status": "complete",
+      "calls": 3,
+      "created": {
+        "epic/13": true,
+        "epic/14": true,
+        "epic/15": true
+      }
+    },
+    "milestones": {
+      "status": "complete",
+      "calls": 3,
+      "created": {
+        "epic-13": {
+          "number": 14,
+          "title": "Epic 13: Pre-sale security, GDPR & financial accuracy hardening"
+        },
+        "epic-14": {
+          "number": 15,
+          "title": "Epic 14: Web pre-sale, Stripe billing, real-euros projection & launch security"
+        },
+        "epic-15": {
+          "number": 16,
+          "title": "Epic 15: Mobile store launch & native IAP readiness"
+        }
+      }
+    },
+    "issues_created": {
+      "status": "complete",
+      "calls": 27,
+      "issues": [
+        {
+          "story": "13-1-advisory-crypto-and-consent",
+          "id": "#171"
+        },
+        {
+          "story": "13-2-iban-blind-index-and-logs",
+          "id": "#172"
+        },
+        {
+          "story": "13-3-api-cors-and-rate-limiting",
+          "id": "#173"
+        },
+        {
+          "story": "13-4-durable-webhook-inbox",
+          "id": "#174"
+        },
+        {
+          "story": "13-5-fx-accuracy-and-ui-badges",
+          "id": "#175"
+        },
+        {
+          "story": "14-1-shared-finance-real-projection",
+          "id": "#176"
+        },
+        {
+          "story": "14-2-landing-pricing-and-waitlist",
+          "id": "#177"
+        },
+        {
+          "story": "14-3-legal-cgv-and-funnel-analytics",
+          "id": "#178"
+        },
+        {
+          "story": "14-4-stripe-billing-entitlements",
+          "id": "#179"
+        },
+        {
+          "story": "14-5-paywall-and-downgrade-safety",
+          "id": "#180"
+        },
+        {
+          "story": "14-6-onboarding-and-demo-mode",
+          "id": "#181"
+        },
+        {
+          "story": "14-7-public-cap-calculator",
+          "id": "#182"
+        },
+        {
+          "story": "14-8-monthly-cap-digest-email",
+          "id": "#183"
+        },
+        {
+          "story": "14-9-discreet-mode-and-share-card",
+          "id": "#184"
+        },
+        {
+          "story": "14-10-referral-reward-loop",
+          "id": "#185"
+        },
+        {
+          "story": "14-11-idor-isolation-test-suite",
+          "id": "#186"
+        },
+        {
+          "story": "14-12-ci-security-pipeline",
+          "id": "#187"
+        },
+        {
+          "story": "14-13-totp-mfa-enrollment",
+          "id": "#188"
+        },
+        {
+          "story": "14-14-jwt-revocation-and-401-fix",
+          "id": "#189"
+        },
+        {
+          "story": "14-15-security-events-audit-log",
+          "id": "#190"
+        },
+        {
+          "story": "14-16-per-user-envelope-crypto",
+          "id": "#191"
+        },
+        {
+          "story": "15-1-mobile-signup-and-demo",
+          "id": "#192"
+        },
+        {
+          "story": "15-2-mobile-transactions-list-perf",
+          "id": "#193"
+        },
+        {
+          "story": "15-3-mobile-sentry-glitchtip",
+          "id": "#194"
+        },
+        {
+          "story": "15-4-mobile-revenuecat-iap",
+          "id": "#195"
+        },
+        {
+          "story": "15-5-eas-release-and-ota-pipeline",
+          "id": "#196"
+        },
+        {
+          "story": "15-6-aso-listing-and-brand-icon",
+          "id": "#197"
+        }
+      ]
+    }
+  },
+  "totals": {
+    "api_calls_total": 51
+  },
+  "ended_at": "2026-11-27T05:51:56Z"
+}
