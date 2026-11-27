@@ -27,3 +27,11 @@ export function createPekuloFonts() {
     },
   };
 }
+
+/**
+ * Story 10-8 — web needs no Text default: global CSS + the `font_*` classes
+ * already give every Tamagui text Geist. Must stay `undefined` so the web
+ * Tamagui config (and public/tamagui.generated.css) stays byte-identical.
+ */
+export const pekuloFontDefaultProps: Record<string, Record<string, unknown>> | undefined =
+  undefined;

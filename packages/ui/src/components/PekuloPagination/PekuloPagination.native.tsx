@@ -25,6 +25,24 @@ const PaginationLink = styled(View, {
   } as const,
 });
 
+// Story 10-8 review — the page number is a named styled(Text) with an `active`
+// variant, never a ternary `fontWeight` prop: the Tamagui compiler emits a
+// ternary weight as its own style entry WITHOUT the native face swap, so the
+// flattened Text carried `fontFamily: Geist_400Regular` + `fontWeight` side by
+// side — the pair Android renders in Roboto. Named, so it sets `$body` itself
+// (config.defaultProps.Text does not reach named components).
+const PageNumberText = styled(Text, {
+  name: "PekuloPaginationPageNumber",
+  fontFamily: "$body",
+  fontSize: "$xs",
+  color: "$color",
+  variants: {
+    active: {
+      true: { color: "$colorOnAccent", fontWeight: "600" },
+    },
+  } as const,
+});
+
 export interface PekuloPaginationProps {
   page: number;
   pageCount: number;
@@ -109,13 +127,7 @@ export function PekuloPagination({
             aria-selected={entry.page === safePage}
             onPress={() => onPageChange(entry.page)}
           >
-            <Text
-              color={entry.page === safePage ? "$colorOnAccent" : "$color"}
-              fontSize="$xs"
-              fontWeight={entry.page === safePage ? "600" : "400"}
-            >
-              {entry.page}
-            </Text>
+            <PageNumberText active={entry.page === safePage}>{entry.page}</PageNumberText>
           </PaginationLink>
         ),
       )}

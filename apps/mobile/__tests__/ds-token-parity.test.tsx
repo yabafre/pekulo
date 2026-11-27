@@ -31,6 +31,7 @@ import { render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 
 import baselineJson from "../../../packages/ui/src/parity/__baseline__/web-text-styles.json";
+import { createPekuloFonts } from "../../../packages/ui/src/config/fonts.native";
 import { PARITY_ALLOWED_DIVERGENCE, divergenceKey } from "./helpers/parity-allowlist";
 
 type HostNode = {
@@ -48,6 +49,37 @@ function definedStyleProps(style: Record<string, unknown>): Record<string, unkno
     if (value !== undefined) out[key] = value;
   }
   return out;
+}
+
+// Story 10-8 AC-5 — on native, Tamagui folds the weight into the Geist face
+// name and deletes fontWeight (Android fallback trap), so read it back.
+//
+// AC-5 (verbatim from story 10-8-native-geist-font:31):
+//   Given the web ↔ native text-style parity gate from story 10-5, When it
+//   compares native text styles to the frozen web baseline, Then it reads the
+//   native weight from the Geist face name when the explicit weight was folded
+//   into the face, so every case passes with no new allow-list entry.
+// Face name → numeric CSS weight, for the Geist faces the native font config
+// actually registers (the same `face` maps Tamagui swaps from). The weight is
+// read from the face name (`Geist_600SemiBold` → "600"), NOT from the face-map
+// key: createFont() back-fills 800/900 with the 700 face, so keying by the map
+// would report `Geist_700Bold` as "900" (story 10-8 review re-verification).
+const NATIVE_FACE_WEIGHT: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.values(createPekuloFonts())
+    .flatMap((font) =>
+      Object.values((font as { face?: Record<string, { normal?: string }> }).face ?? {}),
+    )
+    .map((face) => face.normal)
+    .filter((name): name is string => typeof name === "string" && name.startsWith("Geist"))
+    .flatMap((name) => {
+      const weight = /_(\d{3})[A-Za-z]/.exec(name)?.[1];
+      return weight === undefined ? [] : [[name, weight] as const];
+    }),
+);
+
+function nativeFontWeight(merged: Record<string, unknown>): unknown {
+  if (merged.fontWeight !== undefined) return merged.fontWeight;
+  return typeof merged.fontFamily === "string" ? NATIVE_FACE_WEIGHT[merged.fontFamily] : undefined;
 }
 
 function collectTextRecords(
@@ -78,7 +110,7 @@ function collectTextRecords(
         text,
         color: normalizeColor(typeof merged.color === "string" ? merged.color : null),
         fontSize: normalizeNumber(merged.fontSize),
-        fontWeight: normalizeFontWeight(merged.fontWeight),
+        fontWeight: normalizeFontWeight(nativeFontWeight(merged)),
         letterSpacing: normalizeNumber(merged.letterSpacing),
       });
     }
@@ -169,5 +201,20 @@ describe("@pekulo/ui web ↔ native text-style parity (story 10-5, AC-3)", () =>
       expect(validThemes.has(theme ?? "")).toBe(true);
       expect(`${key}: ${reason.trim()}`).not.toBe(`${key}: `);
     }
+  });
+});
+
+describe("native face → weight map (story 10-8 review)", () => {
+  it("reads every Geist face's own weight, never a back-filled 800/900 key", () => {
+    expect(NATIVE_FACE_WEIGHT).toEqual({
+      Geist_400Regular: "400",
+      Geist_500Medium: "500",
+      Geist_600SemiBold: "600",
+      Geist_700Bold: "700",
+      GeistMono_400Regular: "400",
+      GeistMono_500Medium: "500",
+      GeistMono_600SemiBold: "600",
+      GeistMono_700Bold: "700",
+    });
   });
 });

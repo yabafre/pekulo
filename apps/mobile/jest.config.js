@@ -36,6 +36,8 @@ const MODULE_NAME_MAPPER = {
   "^@pekulo/ui/client$": "<rootDir>/../../packages/ui/src/client.ts",
   "^@pekulo/ui/parity$": "<rootDir>/../../packages/ui/src/parity/index.ts",
   "^@pekulo/ui/tamagui-config$": "<rootDir>/../../packages/ui/src/config/tamagui.ts",
+  "^@pekulo/ui/tamagui-compiler-config$":
+    "<rootDir>/../../packages/ui/src/config/tamagui.compiler.native.ts",
   "^@pekulo/contracts$": "<rootDir>/../../packages/contracts/src/index.ts",
   "^@pekulo/validators$": "<rootDir>/../../packages/validators/src/index.ts",
   "^@pekulo/types$": "<rootDir>/../../packages/types/src/index.ts",
@@ -49,13 +51,21 @@ const TRANSFORM_IGNORE_PATTERNS = [
 
 // jest-expo's default transform only matches `\.[jt]sx?$`, skipping `.mjs` ESM
 // entrypoints shipped by `@orpc/*` and `zod` v4 under Jest CommonJS mode.
+// Story 10-8 review: the babel transform is wrapped so its cache key also
+// hashes the Tamagui compiler config (see jest/tamagui-babel-transformer.js).
 function projectBase(preset) {
-  const { "\\.[jt]sx?$": babelTransform, ...assetTransforms } = preset.transform;
+  const {
+    "\\.[jt]sx?$": [babelJestPath, babelOptions],
+    ...assetTransforms
+  } = preset.transform;
   return {
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     transform: {
       ...assetTransforms,
-      "\\.m?[jt]sx?$": babelTransform,
+      "\\.m?[jt]sx?$": [
+        "<rootDir>/jest/tamagui-babel-transformer.js",
+        { babelJestPath, babelOptions },
+      ],
     },
     moduleNameMapper: MODULE_NAME_MAPPER,
     transformIgnorePatterns: TRANSFORM_IGNORE_PATTERNS,

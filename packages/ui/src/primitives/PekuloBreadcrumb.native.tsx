@@ -12,6 +12,9 @@ const BreadcrumbNav = styled(View, {
 const BreadcrumbLinkText = styled(Text, {
   name: "PekuloBreadcrumbLinkText",
   role: "link",
+  // Story 10-8: config.defaultProps is keyed by componentName, so this named
+  // Text never receives the global `Text` font default — set it here.
+  fontFamily: "$body",
   color: "$colorTertiary",
   fontSize: pekuloFontSizes.bodySm,
 });

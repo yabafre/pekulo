@@ -1365,6 +1365,20 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-34, FR-50, FR-55, FR-56 (store compliance & AI testing readiness)
 **Complexity:** L
 
+#### Story 10-8-native-geist-font
+
+**Ticket:** [#166](https://github.com/yabafre/pekulo/issues/166)
+**Title:** Render every `@pekulo/ui` text in Geist on iOS and Android
+
+**Depends on:** 10-6-android-parity-and-maestro
+
+**As a** Pekulo mobile user, **I want** every `@pekulo/ui` text on iOS and Android to render in Geist like the web PWA, **so that** the native app matches the design system instead of falling back to SF Pro / Roboto.
+
+**Summary:** Two defects kept native DS text in the system font: no native `Text` default `fontFamily` (Tamagui only swaps in the weight-matched face when a family is set), and `@tamagui/static` loading the compiler config with a Node `require()` that resolves the web `fonts.ts`. Shared `createPekuloConfig()` factory, a native compiler config importing `fonts.native` explicitly, a native-only `defaultProps.Text.fontFamily = "$body"`, Geist on native inputs and the breadcrumb link, parity gate reading weight from the face, Jest proof on iOS + Android, web output byte-identical, goldens recaptured on both platforms.
+
+**Covered FRs:** FR-56 (native typography parity)
+**Complexity:** M
+
 #### Story 10-9-android-e2e-emulator-stability
 
 **Ticket:** [#168](https://github.com/yabafre/pekulo/issues/168)
