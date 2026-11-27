@@ -3,6 +3,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { forwardRef, useState } from "react";
 import { Pressable, TextInput, type TextInputProps } from "react-native";
 import { View, useTheme } from "tamagui";
+import { PEKULO_NATIVE_BODY_FACE } from "../config/fonts.native";
 import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
 
 type AllowedInputType =
@@ -109,6 +110,7 @@ export const PekuloInput = forwardRef<TextInput, PekuloInputProps>(function Peku
             paddingLeft: SIZE_PADDING_X[controlSize],
             paddingRight,
             fontSize: pekuloFontSizes.bodySm,
+            fontFamily: PEKULO_NATIVE_BODY_FACE,
             borderWidth: invalid ? 1 : 0,
             borderColor: invalid ? theme.danger.val : "transparent",
             opacity: disabled ? 0.5 : 1,

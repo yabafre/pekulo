@@ -36,20 +36,36 @@ export const fr = {
   ai: {
     title: "Intelligence artificielle",
     aria: "Préférences IA",
+    intro:
+      "Pekulo catégorise vos transactions automatiquement sur votre appareil ou notre serveur privé. Aucune donnée ne quitte ce périmètre sans votre accord explicite.",
     thirdParty: "Modèles IA tiers",
     footer:
       "Autorise l’envoi de libellés anonymisés à un fournisseur tiers pour suggérer les catégories. Désactivé, seul le modèle local est utilisé.",
+    consentTitle: "Activer les modèles IA tiers ?",
+    consentMessage:
+      "Vos libellés de transaction, montants, devises et dates (sans identifiant personnel ni numéro de compte) seront envoyés à {provider} pour suggérer des catégories.",
+    consentConfirm: "Autoriser",
+    defaultProvider: "Mistral AI",
     enabled: "Modèles IA tiers activés",
     disabled: "Modèles IA tiers désactivés",
+  },
+  legal: {
+    title: "Mentions légales",
+    aria: "Mentions légales et support",
+    privacy: "Politique de confidentialité",
+    terms: "Conditions d’utilisation & accessibilité",
+    support: "Assistance",
   },
   deletion: {
     button: "Supprimer mon compte",
     title: "Supprimer mon compte ?",
     message: "Toutes vos données seront définitivement effacées. Saisissez {email} pour confirmer.",
     yourEmail: "votre e-mail",
-    webOnly: "Supprimez votre compte depuis l’espace web Pekulo.",
+    emailLabel: "E-mail du compte",
     wrongEmailTitle: "E-mail incorrect",
     wrongEmailMessage: "Saisissez exactement l’adresse e-mail de votre compte.",
+    emailUnavailable:
+      "L’adresse e-mail de votre compte est introuvable. Reconnectez-vous puis réessayez.",
     done: "Compte supprimé",
   },
   compass: {
@@ -101,20 +117,35 @@ export const en: Shape<typeof fr> = {
   ai: {
     title: "Artificial intelligence",
     aria: "AI preferences",
+    intro:
+      "Pekulo categorises your transactions automatically on your device or private server. No data leaves this perimeter without your explicit consent.",
     thirdParty: "Third-party AI models",
     footer:
       "Allows sending anonymised labels to a third-party provider to suggest categories. When off, only the local model is used.",
+    consentTitle: "Enable third-party AI models?",
+    consentMessage:
+      "Transaction labels, amounts, currencies, and dates (zero personal identifiers or account numbers) will be sent to {provider} to suggest categories.",
+    consentConfirm: "Allow",
+    defaultProvider: "Mistral AI",
     enabled: "Third-party AI models enabled",
     disabled: "Third-party AI models disabled",
+  },
+  legal: {
+    title: "Legal",
+    aria: "Legal and support links",
+    privacy: "Privacy Policy",
+    terms: "Terms of Service & Accessibility",
+    support: "Support",
   },
   deletion: {
     button: "Delete my account",
     title: "Delete my account?",
     message: "All of your data will be permanently erased. Type {email} to confirm.",
     yourEmail: "your email",
-    webOnly: "Delete your account from the Pekulo web app.",
+    emailLabel: "Account email",
     wrongEmailTitle: "Incorrect email",
     wrongEmailMessage: "Type your account’s email address exactly.",
+    emailUnavailable: "Your account’s email address is unavailable. Sign in again, then retry.",
     done: "Account deleted",
   },
   compass: {

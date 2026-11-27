@@ -19,6 +19,8 @@
     "apps/mobile/ios/",
     "apps/mobile/android/",
     "apps/mobile/expo-env.d.ts",
+    "apps/mobile/.maestro/",
+    "packages/ui/src/parity/__baseline__/",
     "docs/ux-preview/dist/",
     "bun.lock",
     "*.lock",

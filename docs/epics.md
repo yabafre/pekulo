@@ -1329,6 +1329,70 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 **Covered FRs:** FR-56 (parity verification & Maestro CI)
 **Complexity:** M
 
+> **Realized scope (2026-11-22, step-04, user-approved) — supersedes the title and summary above without deleting them.** The 10-1 web snapshots are DOM/atomic-class inline snapshots, not images, so "pixel-diff against the 10-1 snapshots" is implemented as a hybrid: (1) a deterministic web ↔ native **text-style token-parity gate** — `@pekulo/ui/parity` catalog covering all 42 components, web baseline `packages/ui/src/parity/__baseline__/web-text-styles.json` (vitest), native comparison `apps/mobile/__tests__/ds-token-parity.test.tsx` (Jest); (2) **iOS screenshot goldens** of every component from a flag-gated in-app DS gallery (`pekulo://ds/<case>`), asserted by Maestro. The Maestro suite (`smoke`, `navigation`, `preview-guard`, `ds-gallery`) runs on **EAS Workflows** via a custom `runs_on: macos-medium` job (Free-plan compatible, non-required check) against an iOS Simulator build in preview mode, on PRs to `main` touching mobile-relevant paths. **iOS only** — Android moves to `10-6`. Primitives parity is a follow-up. _(Superseded by 10-6, 2026-11-26: the EAS iOS workflows were replaced by `.github/workflows/e2e-mobile.yml` on GitHub Actions and the single `ds-gallery.yaml` by generated per-platform shards — see the 10-6 realized scope below.)_
+
+**Complexity:** L (re-estimated from M)
+
+#### Story 10-6-android-parity-and-maestro
+
+**Ticket:** [#162](https://github.com/yabafre/pekulo/issues/162)
+**Title:** Android build, native-surface adaptation, and Maestro E2E on an Android emulator
+
+**Depends on:** 10-5-mobile-parity-and-maestro
+
+**As a** Pekulo user on Android, **I want** the mobile app to build, behave, and pass the same Maestro suite on Android, **so that** the V1.5 app ships on both stores with the parity guarantees 10-5 established for iOS.
+
+**Summary:** Run the first `android/` prebuild, replace the iOS-only surfaces shipped in 10-4 (`ActionSheetIOS`, `Alert.prompt`, iOS `formSheet` detents, SF Symbols) with cross-platform equivalents, add an Android build + custom Android emulator Maestro job to the EAS workflows, and capture Android goldens for the `ds-gallery` flow.
+
+**Covered FRs:** FR-56 (Android parity)
+**Complexity:** M
+
+> **Realized scope (2026-11-24, step-04, user-approved) — supersedes the summary above without deleting it.** The Android audit found `Stack.Toolbar` throws on Android without `@expo/ui` (tabs, Paramètres, all form sheets), `Alert.alert` caps menus at 3 buttons, and `Alert.prompt` is iOS-only. Delivered: platform-split headers (`headerRight` tabs, in-content sheet header, headerless sheets with `sheetElevation: 0`), a DS `ActionSheetHost` (`PekuloDrawer`) for Android menus, an Android-only `sheets/delete-account` typed-email sheet sharing `isDeletionEmailConfirmed` with iOS, Material Symbol names for every `SymbolView` (meta-test), labelled grayscale Android tab bar, a Jest `android` project (`jest-expo/android`), the `e2e-test` APK and 42 Android goldens. Mid-story (user request, 2026-11-26) the Maestro E2E moved from EAS Workflows to GitHub Actions (`.github/workflows/e2e-mobile.yml`: iOS on `macos-26`, Android on `ubuntu-24.04`, iOS native build cached under `@expo/fingerprint`, DS gallery gated on DS/gallery/golden paths and split into 4 shards per platform with a per-case Maestro `retry`). iOS app behaviour unchanged.
+
+**Complexity:** L (re-estimated from M)
+
+#### Story 10-7-store-compliance-and-agent-testers
+
+**Ticket:** [#163](https://github.com/yabafre/pekulo/issues/163)
+**Title:** App Store / Google Play pre-submission compliance hardening & Mobile Agent Testers kit
+
+**Depends on:** 10-5-mobile-parity-and-maestro
+
+**As a** Pekulo user and app publisher, **I want** public web legal and account-deletion pages, an accurate iOS Privacy Manifest, export compliance, RGB no-alpha app icons, Keychain backup exclusion, a release fail-fast guard, Apple 5.1.2(i) AI consent and EU AI Act Art. 50 notice on mobile, tactile haptics, and a Mobile Agent Testers kit, **so that** Pekulo V1.5 passes Apple App Store and Google Play pre-submission audits cleanly.
+
+**Summary:** Adds public HTTP 200 `/privacy`, `/terms` (including EAA Annex V), `/support`, and `/account-deletion` routes in `apps/web`, wires in-app legal links, canonical RGB no-alpha icons, `usesNonExemptEncryption: false`, complete `privacyManifests`, Keychain `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`, release Supabase fail-fast guard, Apple 5.1.2(i) provider-naming AI consent modal, mobile `AiTransparencyNotice` (story 11-5 parity), `expo-haptics`, `.app-review-readiness.json`, `REVIEW-NOTES.md`, English `apps/mobile/.agent-testers/` kit for the public Bun/Expo monorepo, vendored skills, and a class-killer `store-compliance.test.ts` meta-test. Runs in parallel with `10-6-android-parity-and-maestro`.
+
+**Covered FRs:** FR-34, FR-50, FR-55, FR-56 (store compliance & AI testing readiness)
+**Complexity:** L
+
+#### Story 10-8-native-geist-font
+
+**Ticket:** [#166](https://github.com/yabafre/pekulo/issues/166)
+**Title:** Render every `@pekulo/ui` text in Geist on iOS and Android
+
+**Depends on:** 10-6-android-parity-and-maestro
+
+**As a** Pekulo mobile user, **I want** every `@pekulo/ui` text on iOS and Android to render in Geist like the web PWA, **so that** the native app matches the design system instead of falling back to SF Pro / Roboto.
+
+**Summary:** Two defects kept native DS text in the system font: no native `Text` default `fontFamily` (Tamagui only swaps in the weight-matched face when a family is set), and `@tamagui/static` loading the compiler config with a Node `require()` that resolves the web `fonts.ts`. Shared `createPekuloConfig()` factory, a native compiler config importing `fonts.native` explicitly, a native-only `defaultProps.Text.fontFamily = "$body"`, Geist on native inputs and the breadcrumb link, parity gate reading weight from the face, Jest proof on iOS + Android, web output byte-identical, goldens recaptured on both platforms.
+
+**Covered FRs:** FR-56 (native typography parity)
+**Complexity:** M
+
+#### Story 10-9-android-e2e-emulator-stability
+
+**Ticket:** [#168](https://github.com/yabafre/pekulo/issues/168)
+**Title:** Make the Android core Maestro job green on main and PRs
+
+**Depends on:** 10-6-android-parity-and-maestro
+
+**As a** Pekulo maintainer, **I want** the e2e-mobile Android core job to pass on `main` and on every mobile PR, **so that** Android end-to-end results are a signal again.
+
+**Summary:** The post-job `actions/cache` save never ran because the job failed, so every run cold-booted a fresh AVD snapshotted 3 s after boot; the launcher then raised a system ANR dialog ("Quickstep isn't responding") over the app and every core flow failed on its first Cap check. Split AVD cache restore/save (key v2), settle the emulator (launcher idle, ANR answered with Wait) before snapshot and tests, shared Maestro Cap-wait subflow that answers the dialog, `centerElement` on the preview-guard toggle (it sat under the navigation bar with taller text), Jest drift guard, green CI proof.
+
+**Covered FRs:** FR-56 (Android E2E signal)
+**Complexity:** S
+
 ## Epic 11: Public-ramp readiness
 
 **Goal:** Land every gate that must be green before the (a)→(b) public ramp triggers — GDPR data export + account deletion, RLS audit + at-rest encryption documentation, axe + WCAG gates, AI transparency notice, restore-from-snapshot drill, and GlitchTip wiring.

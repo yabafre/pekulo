@@ -1,0 +1,33 @@
+# Story 10-5 AC-5 — in preview mode a mutation is blocked with the sign-in
+# prompt (10-4 AC-6), and dismissing it leaves the user on Paramètres.
+appId: app.pekulo.mobile
+name: Preview guard — mutation shows the sign-in prompt
+tags:
+  - preview-guard
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../subflows/wait-for-cap.yaml
+- tapOn:
+    id: "open-settings-btn"
+# centerElement (story 10-9): stopping as soon as the toggle is on screen left
+# it under the system navigation bar, which then received the tap.
+- scrollUntilVisible:
+    element:
+      id: "llm-optin-switch"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+- tapOn:
+    id: "llm-optin-switch"
+- extendedWaitUntil:
+    visible: "Connectez-vous pour enregistrer des modifications sur votre compte."
+    timeout: 10000
+- assertVisible: "Se connecter"
+- tapOn: "Plus tard"
+- extendedWaitUntil:
+    notVisible: "Connectez-vous pour enregistrer des modifications sur votre compte."
+    timeout: 10000
+- assertVisible:
+    id: "llm-optin-switch"

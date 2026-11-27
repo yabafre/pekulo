@@ -1,0 +1,33 @@
+.brandLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  color: var(--color);
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 0;
+  color: var(--colorSecondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  border-radius: 4px;
+}
+
+.inlineLink {
+  color: var(--color);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  border-radius: 4px;
+}
+
+.brandLink:focus-visible,
+.navLink:focus-visible,
+.inlineLink:focus-visible {
+  outline: 2px solid var(--borderFocus);
+  outline-offset: 2px;
+}

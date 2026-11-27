@@ -1,131 +1,169 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
+    "app-store-compliance": {
+      "source": "mjmirza/app-store-compliance",
+      "sourceType": "github",
+      "skillPath": "agent-os/skill/SKILL.md",
+      "computedHash": "e3538abda08485e25b849231a0f6185b58326045c883f64a26be4f7fc27dcaff"
+    },
+    "building-native-ui": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/building-native-ui/SKILL.md",
+      "computedHash": "ac35d41df7e7f36e022e75432375333c2f7515599f087933eaac0886cb54fcfa"
+    },
+    "eas-update-insights": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/eas-update-insights/SKILL.md",
+      "computedHash": "feaf891e824315cf8074e46be5cb2ad48e0b908308d1a2256261330f5901aec7"
+    },
+    "Expo UI SwiftUI": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-ui-swift-ui/SKILL.md",
+      "computedHash": "d178eb6baed32742638889e9a2962d0e6c66ec0bf688afbfb6bd63005e65a371"
+    },
     "Expo UI SwiftUI": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-ui-swift-ui/SKILL.md",
       "computedHash": "409d466e43888f62987ceaf5c8be34aa76a49328528ebe290bab866f6d07e958"
     },
-    "building-native-ui": {
-      "source": "expo/skills",
-      "sourceType": "github",
-      "skillPath": "plugins/expo/skills/building-native-ui/SKILL.md",
-      "computedHash": "342df93f481a0dba919f372d6c7b40d2b4bf5b51dd24363aea2e5d0bae27a6fa"
-    },
-    "eas-update-insights": {
-      "source": "expo/skills",
-      "sourceType": "github",
-      "skillPath": "plugins/expo/skills/eas-update-insights/SKILL.md",
-      "computedHash": "1e75ed22734fb37993f0ae0c57eceeaf37661ab452d7c7f55c740b1e41c2a0c1"
-    },
     "expo-api-routes": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-api-routes/SKILL.md",
-      "computedHash": "015c6b849507fda73fcc32d2448f033aaaaa21f5229085342b8421727a90cafb"
+      "computedHash": "cb76c0c98ecef060a1b6f1efcb670f2e7d279b2885cd8e270375fd72a6054ec2"
     },
     "expo-deployment": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-deployment/SKILL.md",
-      "computedHash": "9ea9f16374765c1b16764a51bd43a64098921b33f48e94d9c5c1cce24b335c10"
+      "computedHash": "aa387d02416c2195c1e47c7a3ab975b2cca2d94615186a38500a2bb2001b4966"
     },
     "expo-dev-client": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-dev-client/SKILL.md",
-      "computedHash": "234e2633b7fbcef2d479f8fe8ab20d53d08ed3e4beec7c965da4aff5b43affe7"
+      "computedHash": "74adc37af0c1d04c71dec5690d9e3bf495203fb66f68fc11cc35d46f729952ef"
     },
     "expo-module": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-module/SKILL.md",
-      "computedHash": "c1e47893d207b68c9a2a5b0de3f97042f82a65c0b3c3a33a7114029211b8e89b"
+      "computedHash": "340bdd83a95d64550740d0fea42ddc894de0bcf279422d9517e4b93ab885a0bb"
     },
     "expo-tailwind-setup": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-tailwind-setup/SKILL.md",
-      "computedHash": "d39e806942fe880347f161056729b588a3cb0f1796270eebf52633fe11cfdce1"
+      "computedHash": "562b80515e214ab1b888524165d8a055f30c533fa6e4049e43088c249da53710"
     },
     "extract-design-system": {
       "source": "arvindrk/extract-design-system",
       "sourceType": "github",
       "skillPath": "skills/extract-design-system/SKILL.md",
-      "computedHash": "5f231fda377e304b202848f09ecc0fd42839355e76f60e06c3ceb7a643c15500"
+      "computedHash": "fcc959a17cec8bd719b97bad240a6a5eaf8660700d4876a4392e4199497d3012"
     },
     "finance-expert": {
       "source": "personamanagmentlayer/pcl",
       "sourceType": "github",
       "skillPath": "stdlib/domains/finance-expert/SKILL.md",
-      "computedHash": "0e3c08e5876eda04e95680d0634d84dba469bac9675bef85cfaff65b262d8d83"
+      "computedHash": "8869da0d1cc407757d0eb899250dd9b0f0215b2e42282191aa120a7679d6576b"
     },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/frontend-design/SKILL.md",
-      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+      "computedHash": "a7c81a25c7ea1972f7049cd0282545c72ae92237c1b45ba7b1370fab498f5f9b"
+    },
+    "ios-design": {
+      "source": "uizze.sh",
+      "sourceUrl": "https://uizze.sh",
+      "sourceType": "well-known",
+      "computedHash": "bf6f8ac938352d92b8a1150f069c7c0a8ae4d9e18feccacc81862e2e7c72ebdb",
+      "wellKnownDigest": "sha256:ae3d720aa60c1655c3dae48bc07c448527e367ab24ed829020ba0a5f6268b691"
+    },
+    "mobile-agent-testers": {
+      "source": "pierridotite/mobile-agent-testers",
+      "sourceType": "github",
+      "skillPath": "skills/mobile-agent-testers/SKILL.md",
+      "computedHash": "f38caa324aac67b3d1c6a043050c9e52de82c951d076ffac1c03fca61c9b243a"
+    },
+    "mobile-agent-testers": {
+      "source": "pierridotite/mobile-agent-testers",
+      "sourceType": "github",
+      "skillPath": "skills/mobile-agent-testers/SKILL.md",
+      "computedHash": "6aae81959f8603175bb71f05676619679d9b6f113729d0f0fee7f02cfab757c2"
     },
     "monorepo-tamagui": {
       "source": "mindrally/skills",
       "sourceType": "github",
       "skillPath": "monorepo-tamagui/SKILL.md",
-      "computedHash": "e5e8afc72e6868187c205f0a4c169f9652f3c858a7809cecb25fe4b7073d72bf"
+      "computedHash": ""
     },
     "native-data-fetching": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/native-data-fetching/SKILL.md",
-      "computedHash": "3cd0ba91f359f9f84cd40f36f356287994a0e952520fac6e03ef7952d0397879"
+      "computedHash": "0a35cfd1fa6af4301c50c34502378ae39cca64a59cd46a8812ab96c0228a2767"
     },
     "next-browser": {
       "source": "vercel-labs/next-browser",
       "sourceType": "github",
       "skillPath": "skills/next-browser/SKILL.md",
-      "computedHash": "d8e316eaad3004a1de8f6f4e1b1f774a180a65f22bc821ec07eb492a3f2689ae"
+      "computedHash": ""
     },
     "tamagui": {
       "source": "tamagui/tamagui",
       "sourceType": "github",
       "skillPath": "plans/tamagui-skill/skills/tamagui/SKILL.md",
-      "computedHash": "c16ef17b45cf188289a72600898110f6245c295c41cf5493b8ead3fd45027544"
+      "computedHash": "ed810ab29e0a00266e269841d7e989ff0dd499fce98668a285c8b25c7c298d49"
     },
     "tamagui-best-practices": {
       "source": "0xbigboss/claude-code",
       "sourceType": "github",
       "skillPath": ".claude/skills/tamagui-best-practices/SKILL.md",
-      "computedHash": "b2f815652ca756166a6d9d8d8d324e756f8bd1e8cd32f92955872ad781ef9c92"
+      "computedHash": ""
     },
     "tamagui-v2": {
       "source": "ramarivera/tamagui-skills",
       "sourceType": "github",
       "skillPath": "skills/tamagui-v2/SKILL.md",
-      "computedHash": "ba7274d65b299059bbf2a6f706b69a10e7624aff5fe4dfb4301d55be41c5a1e0"
+      "computedHash": ""
+    },
+    "ui-taste": {
+      "source": "uizze.sh",
+      "sourceUrl": "https://uizze.sh",
+      "sourceType": "well-known",
+      "computedHash": "85da37a788dc4b5b63411e5681403d930b1077604a20497739fa05c8d21f01fc",
+      "wellKnownDigest": "sha256:f26d607ceb3f3a6fa8c98f8dbcb2b1aeb0392de1953e826bb8893d9e49983bf9"
     },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
-      "computedHash": "0a413bf988d06481f69bb81df2070741c3ba12dd9f1be2706d57f259c905992d"
+      "computedHash": ""
     },
     "upgrading-expo": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/upgrading-expo/SKILL.md",
-      "computedHash": "939a6820e0d6ead943bb4ad93cec647815e73fbc04043401773b2138e9e13b69"
+      "computedHash": "8fdbc8bfc7eefb66eb2b7d2d9f06c2cb7da340ad0d6dd93c932f071748426b9f"
     },
     "use-dom": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/use-dom/SKILL.md",
-      "computedHash": "8eca0e229f16e3499e5dbf791a79f5a5cba1e98b4af88ca495c903930d7f1ba0"
+      "computedHash": "7ff47e51eaacf00d592865f4fa196487dd5120483ef97b8ab2647d1968aa132d"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/web-design-guidelines/SKILL.md",
-      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+      "computedHash": ""
     }
   }
 }

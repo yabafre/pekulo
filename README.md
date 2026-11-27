@@ -1,43 +1,54 @@
-# pekulo
+# Pekulo
 
-Personal finance dashboard — capital tracking, multi-currency portfolio, holdings history.
+Goal-based personal finance application — compass & milestones, accounts, multi-currency portfolio with lot-based cost basis, real-estate equity, transactions with hybrid AI auto-categorisation, and monthly sign-off across Web (PWA) and Mobile (iOS).
 
 > _Pekulo_ — from Latin _peculium_, the personal stash one sets aside.
-
-Month-by-month tracking of savings, expenses, transactions, and a portfolio (Livret A, PEA, CTO, AV) with ETFs and individual stocks. Prices are auto-refreshed, currencies normalized to EUR, and a buy/sell history feeds a weighted-average cost basis on each holding.
 
 ---
 
 ## Stack
 
-- **Monorepo** — Bun + Turborepo, two apps (`apps/web`, `apps/prices`)
-- **Web** — Next.js 16 (Turbopack) + React 19 + Tailwind 4 + shadcn × base-ui
-- **Data** — Supabase (Postgres + Auth + RLS on every table)
-- **Forms / mutations** — TanStack Form + zod + ZapAction (`defineAction` with tags + revalidate)
-- **Charts** — Recharts via shadcn `ChartContainer` (allocation donut, capital, scenarios, annual)
-- **Prices** — 4-tier fallback chain: `apps/prices` (Python yfinance on a VPS) → `yahoo-finance2` (npm) → Boursorama scraping → Twelve Data
-- **FX** — frankfurter.app (ECB rates, free, EUR base)
-- **Prices service** — FastAPI + yfinance + curl_cffi, deployable via Dokploy/Docker
+- **Monorepo** — Bun (`bun@1.3.14`) + Turborepo, 4 apps and 8 `@pekulo/*` packages
+- **Web (`apps/web`)** — Next.js 16 (App Router, Turbopack) + React 19 + `@pekulo/ui` (Tamagui Core v2) + TanStack Form + React Query via ZapAction + encrypted IndexedDB offline PWA cache
+- **Domain API (`apps/api`)** — Bun + ElysiaJS + contract-first oRPC (`/rpc/v1/*`) + Prisma 7 (`prismaSchemaFolder`, prefixed IDs) + OpenTelemetry + GlitchTip
+- **Mobile (`apps/mobile`)** — Expo SDK 58 + `expo-router` + `@pekulo/ui` native surface + Supabase Auth (`expo-secure-store`) + `@pekulo/contracts` oRPC + Maestro E2E on GitHub Actions
+- **Data & Auth** — Supabase (Postgres + Auth + RLS on every table, defense-in-depth `userId` lint guard)
+- **Prices (`apps/prices`)** — 4-tier fallback chain: `apps/prices` (FastAPI + `yfinance` + `curl_cffi`) → `yahoo-finance2` → Boursorama → Twelve Data (60 s cache), plus ECB FX via `frankfurter.app`
+- **AI categorisation** — hybrid routing (Apple FoundationModels / self-hosted Ollama / opt-in EU third-party LLM) with append-only audit log (`llm_call_log`)
+- **Tooling** — `oxlint` (with custom `@pekulo/oxlint-config` rules), `oxfmt`, `lefthook` (`gitleaks`, lint, format, Prisma format, Tamagui CSS freshness)
 
-## Layout
+## Monorepo layout
 
-```
+```text
 .
 ├── apps/
-│   ├── web/                 # Next.js 16 — dashboard + auth + tables
-│   └── prices/              # FastAPI + yfinance — real-time price service
+│   ├── web/                 # Next.js 16 PWA — dashboard, auth, offline cache (Vercel)
+│   ├── api/                 # Bun + ElysiaJS + oRPC + Prisma 7 domain API (Dokploy)
+│   ├── mobile/              # Expo SDK 58 iOS/Android app + Maestro E2E
+│   └── prices/              # FastAPI + yfinance — real-time quote sidecar (Dokploy)
+├── packages/
+│   ├── ui/                  # @pekulo/ui — Tamagui v2 Design System (web + native + parity gate)
+│   ├── contracts/           # @pekulo/contracts — oRPC v1 contracts
+│   ├── validators/          # @pekulo/validators — Zod v4 schemas
+│   ├── types/               # @pekulo/types — shared domain & UI types
+│   ├── zod/                 # @pekulo/zod — single Zod entrypoint
+│   ├── observability/       # @pekulo/observability — OTel + GlitchTip PII scrubbing
+│   ├── oxlint-config/       # @pekulo/oxlint-config — custom architecture lint rules
+│   └── tsconfig/            # @pekulo/tsconfig — shared TypeScript 6 presets
 ├── docs/
-│   ├── quick-specs/         # 10 APED specs that produced the current version
-│   └── state.yaml
-├── package.json             # workspaces ["apps/web"], dotenv-prefixed scripts
-├── turbo.json               # dev / build / lint / check-types pipelines
-├── .env.example             # all vars (Supabase, prices service, Twelve Data)
+│   ├── architecture.md      # Architecture, ADRs, conventions (R1–R11)
+│   ├── adr/                 # Architecture Decision Records
+│   ├── epics.md             # Epics & stories backlog
+│   └── state.yaml           # APED pipeline & sprint state
+├── .env.example             # Root environment template (loaded via dotenv-cli)
+├── package.json             # Root scripts & workspaces
+├── turbo.json               # Turborepo task graph
 └── bun.lock
 ```
 
 ## Quick start (local)
 
-Requirements: Bun ≥ 1.3, Python ≥ 3.10 (optional, for the prices service), a Supabase project.
+Requirements: **Bun `1.3.14`**, Docker (optional, for local Supabase Postgres), Python ≥ 3.10 (optional, for `apps/prices`), Xcode + iOS Simulator + Maestro CLI (optional, for `apps/mobile`).
 
 ```bash
 # 1. Clone + install
@@ -45,21 +56,26 @@ git clone git@github.com:yabafre/pekulo.git
 cd pekulo
 bun install
 
-# 2. Configure env (copy then fill)
+# 2. Configure root env (copy then fill)
 cp .env.example .env.local
-# Required at minimum:
-#   NEXT_PUBLIC_SUPABASE_URL
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Required at minimum for local web + api:
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   SUPABASE_URL, SUPABASE_JWT_SECRET, SUPABASE_SERVICE_ROLE_KEY
+#   DATABASE_URL, API_BASE_URL
 
-# 3. Provision the database
-# Open Supabase Studio → SQL Editor → run apps/web/supabase-schema.sql
+# 3. Apply Prisma migrations
+bun run prisma:migrate:dev
 
-# 4. Start the dev server (from the repo root)
+# 4. Start dev servers (from the repo root)
 bun run dev
-# → Next.js on http://localhost:3000
+# Or target a single surface:
+bun run dev:web          # Next.js web app
+bun run mobile:ios       # Expo Dev Client on iOS Simulator
+bun run dev:mobile       # Metro bundler for Dev Client
+bun run dev:prices       # FastAPI quote sidecar on :8000
 ```
 
-First sign-in: log into Supabase, then visit `/dashboard/parametres` to enter your assumptions (salary, expenses, ETF perf), then `/dashboard/portefeuille` to add accounts and holdings.
+See [apps/mobile/README.md](apps/mobile/README.md) for mobile development, the web ↔ native token-parity gate, and Maestro E2E (GitHub Actions) commands.
 
 ### Python prices service (optional, local)
 
@@ -74,77 +90,73 @@ curl http://localhost:8000/health
 curl "http://localhost:8000/quote?symbol=PE500.PA"
 ```
 
-If your home IP is rate-limited by Yahoo (frequent in EU), the Next.js app falls back to Boursorama automatically. Once deployed on a VPS via Dokploy, the different egress IP avoids the rate limit.
+## Quality gates & tests
 
-## Pages
+Run from the repository root:
 
-| Route                         | Purpose                                                 |
-| ----------------------------- | ------------------------------------------------------- |
-| `/dashboard`                  | KPI strip + charts + actual vs projected capital        |
-| `/dashboard/parametres`       | Editable assumptions (salary, expenses, ETF perf, etc.) |
-| `/dashboard/mensuel`          | 60 projected/actual months with cumulative deviation    |
-| `/dashboard/transactions`     | Inflows/outflows + one-off events, filterable           |
-| `/dashboard/portefeuille`     | Accounts + holdings + AllocationChart + price refresh   |
-| Each holding's history button | Buy/sell lots with a derived weighted-average cost      |
+```bash
+# Static checks
+bun run typecheck
+bun run lint
+bun run format:check
+bun run prisma:check
+bun run db:rls-audit
+bun run generate:tamagui-css && git diff --exit-code packages/ui/public/tamagui.generated.css
+
+# Test suites
+bun run test:ui                      # @pekulo/ui (Vitest: snapshots, vitest-axe, parity baseline)
+bun run test:mobile                  # @pekulo/mobile (Jest: auth/oRPC, screens, native token parity)
+bun --filter='@pekulo/web' run test  # @pekulo/web (Vitest)
+bun --filter='@pekulo/api' run test  # @pekulo/api (bun test)
+```
+
+## Main routes
+
+| Route (web)               | Mobile tab / surface | Purpose                                                                 |
+| ------------------------- | -------------------- | ----------------------------------------------------------------------- |
+| `/dashboard`              | `Cap`                | Configurable net-worth overview, compass progress, milestones, activity |
+| `/dashboard/transactions` | `Transactions`       | Inflows/outflows, CSV/Bridge import, AI category suggestions            |
+| `/dashboard/mensuel`      | `Mensuel`            | Monthly actuals, cumulative deviation, close-window sign-off            |
+| `/dashboard/portefeuille` | `Portefeuille`       | Accounts, holdings, buy/sell lots, FX & live quotes                     |
+| `/dashboard/immobilier`   | `Immobilier`         | Properties, valuation history, mortgages, rental cashflow               |
+| `/dashboard/parametres`   | `Paramètres` (sheet) | Theme, language, compass & hypotheses, AI opt-in & log, GDPR export     |
 
 ## Environment variables
 
-| Variable                        | Required | Description                                                                     |
-| ------------------------------- | -------- | ------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Supabase project URL                                                            |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Supabase anon key                                                               |
-| `PRICES_SERVICE_URL`            | optional | URL of the Python service (otherwise falls back to yahoo-finance2 + Boursorama) |
-| `PRICES_SERVICE_TOKEN`          | optional | Bearer token, if the service is protected                                       |
-| `TWELVE_DATA_API_KEY`           | optional | Free tier 800 req/day, US-only fallback                                         |
+Root `.env` / `.env.local` (gitignored) is loaded across workspaces via `dotenv-cli`. Main groups:
 
-See `.env.example` for the full list with comments.
+| Group         | Key variables                                                                                      | Consumer               |
+| ------------- | -------------------------------------------------------------------------------------------------- | ---------------------- |
+| Supabase      | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET` | `apps/web`, `api`      |
+| Database      | `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_SERVICE_ROLE_KEY`                                          | `apps/api` (Dokploy)   |
+| Internal API  | `API_BASE_URL`, `HOST`, `PORT`                                                                     | `apps/web`, `api`      |
+| Mobile (Expo) | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_BASE_URL`            | `apps/mobile`          |
+| Prices & FX   | `PRICES_SERVICE_URL`, `PRICES_SERVICE_TOKEN`, `TWELVE_DATA_API_KEY`, `FRANKFURTER_BASE_URL`        | `apps/api`, `prices`   |
+| AI & Logos    | `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `THIRD_PARTY_LLM_API_KEY`, `BRANDFETCH_API_KEY`                 | `apps/api`             |
+| Bank sync     | `BRIDGE_CLIENT_ID`, `BRIDGE_CLIENT_SECRET`, `BRIDGE_WEBHOOK_SIGNING_SECRET`                        | `apps/api`             |
+| Observability | `OTEL_EXPORTER_OTLP_ENDPOINT`, `GLITCHTIP_DSN`, `NEXT_PUBLIC_GLITCHTIP_DSN`                        | `web`, `api`, `prices` |
+
+See `.env.example` for the complete documented list.
 
 ## Price fallback architecture
 
-```
+```text
 fetchPriceQuote({ ticker, currency, kind })
        │
-       ├─① Python service (apps/prices, deployed on VPS via Dokploy)
-       │     PRICES_SERVICE_URL → yfinance + curl_cffi
-       │
-       ├─② yahoo-finance2 (npm) — handles EU consent + crumb automatically
-       │
-       ├─③ Boursorama scraping — covers Euronext FR (PE500, CW8, etc.)
-       │     /recherche/?query=<TICKER> → redirects to canonical quote page
-       │
-       └─④ Twelve Data — US-only fallback (free tier doesn't cover EU)
+       ├─① Python service (apps/prices, Dokploy VPS) — yfinance + curl_cffi
+       ├─② yahoo-finance2 (npm) — EU consent + crumb handling
+       ├─③ Boursorama scraping — Euronext FR coverage
+       └─④ Twelve Data — US-only fallback (free tier)
 
-→ First provider that responds wins. 60s cache per symbol.
-→ If all fail: composite PriceError with the per-provider reason.
+→ First provider that responds wins (60 s in-memory cache per ticker|kind|currency).
+→ If all fail: composite PriceProviderError with per-provider attempts.
 ```
-
-## Holdings & lots
-
-- `accounts` — Livret A, PEA, CTO, AV — currency + cash balance
-- `holdings` — ETFs/stocks attached to an account — qty + avg_cost + last_price
-- `holding_lots` — buy/sell history — qty / price / fees / date
-
-When a holding has lots, `qty` and `avg_cost` become **derived** (weighted average) on every mutation. A holding without lots stays in manual entry mode for back-compat.
-
-## Specs
-
-The project was built through 10 APED quick-specs, all in `docs/quick-specs/`. Read them in order to follow the evolution:
-
-1. `hypotheses-editor` — editable settings, foundation
-2. `monthly-actuals` — month-by-month entry
-3. `transactions-imprevus` — transactions CRUD
-4. `placements-foundation` — accounts + holdings (qs-04a)
-5. `placements-yahoo` — auto price refresh v1 (qs-04b)
-6. `placements-yahoo-fallbacks` — Yahoo crumb + Twelve Data (qs-04b-bis)
-7. `placements-prices-rewrite` — yahoo-finance2 + Python sidecar (qs-04b-final)
-8. `placements-fx` — multi-currency via frankfurter (qs-04c)
-9. `placements-lots` — buy/sell history + derivation (qs-04d)
-10. `monorepo-migration` — Bun + Turborepo + root .env
 
 ## Deployment
 
-- **`apps/web`** → Vercel recommended (native Next.js). Push from `main`. Configure Supabase env vars + (optional) `PRICES_SERVICE_URL` + `TWELVE_DATA_API_KEY`.
-- **`apps/prices`** → Dokploy or any Docker runtime. Build context: `apps/prices/`. See `apps/prices/README.md` for details.
+- **`apps/web`** — Vercel (Next.js App Router, auto-deploy from `main`).
+- **`apps/api` + `apps/prices` + Ollama** — Dokploy VPS behind Caddy reverse proxy (`prisma migrate deploy` on deploy).
+- **`apps/mobile`** — EAS Build (`apps/mobile/eas.json`); Maestro E2E on GitHub Actions (`.github/workflows/e2e-mobile.yml`).
 
 ## License
 

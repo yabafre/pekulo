@@ -1,0 +1,30 @@
+# Story 10-5 AC-5 — the five tabs render their preview figures (no backend).
+appId: app.pekulo.mobile
+name: Smoke — five tabs render preview data
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../subflows/wait-for-cap.yaml
+- tapOn: "Transactions"
+- extendedWaitUntil:
+    visible: "Solde du mois"
+    timeout: 10000
+- tapOn: "Mensuel"
+- extendedWaitUntil:
+    visible: "Épargne nette"
+    timeout: 10000
+- tapOn: "Portefeuille"
+- extendedWaitUntil:
+    visible: "Plus-value latente"
+    timeout: 10000
+- tapOn: "Immobilier"
+- extendedWaitUntil:
+    visible: "Équité nette"
+    timeout: 10000
+- tapOn: "Cap"
+- extendedWaitUntil:
+    visible: "Patrimoine total"
+    timeout: 10000

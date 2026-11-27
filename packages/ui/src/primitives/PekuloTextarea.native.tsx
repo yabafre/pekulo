@@ -2,6 +2,7 @@
 import { forwardRef } from "react";
 import { TextInput, type TextInputProps } from "react-native";
 import { useTheme } from "tamagui";
+import { PEKULO_NATIVE_BODY_FACE } from "../config/fonts.native";
 import { pekuloFontSizes, pekuloRadius, pekuloSpacing } from "../tokens";
 
 export interface PekuloTextareaProps extends Omit<TextInputProps, "editable" | "onChange"> {
@@ -51,6 +52,7 @@ export const PekuloTextarea = forwardRef<TextInput, PekuloTextareaProps>(functio
           paddingVertical: pekuloSpacing[2],
           paddingHorizontal: pekuloSpacing[3],
           fontSize: pekuloFontSizes.bodySm,
+          fontFamily: PEKULO_NATIVE_BODY_FACE,
           borderWidth: invalid ? 1 : 0,
           borderColor: invalid ? theme.danger.val : "transparent",
           opacity: disabled ? 0.5 : 1,

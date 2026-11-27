@@ -1,12 +1,15 @@
 // apps/mobile/lib/actions.ts
-// Native iOS interaction helpers: row action sheets (`ActionSheetIOS`, with an
-// `Alert` fallback on Android), destructive confirmations, and the single place
-// that turns a mutation error into the right feedback — sign-in prompt in
-// preview mode, inline message for validation, toast for anything else.
+// Native interaction helpers: row action sheets (`ActionSheetIOS` on iOS, the
+// Pekulo DS `ActionSheetHost` on Android — story 10-6 AC-3, because Android
+// `Alert` dialogs cap at three buttons), destructive confirmations, and the
+// single place that turns a mutation error into the right feedback — sign-in
+// prompt in preview mode, inline message for validation, toast for anything else.
 
 import { ActionSheetIOS, Alert, Platform } from "react-native";
 
+import { openActionSheet } from "./action-sheet-host";
 import { FormValidationError } from "./forms";
+import { hapticWarning } from "./haptics";
 import { tNow, type MessageKey } from "./i18n";
 import { PreviewModeError } from "./hooks/use-mobile-mutations";
 import { orpcErrorCode } from "./orpc/errors";
@@ -18,10 +21,9 @@ export interface RowAction {
 }
 
 export function showActions(title: string, actions: RowAction[], message?: string) {
-  const labels = [...actions.map((a) => a.label), tNow("common.actions.cancel")];
-  const destructive = actions.flatMap((a, i) => (a.destructive ? [i] : []));
-
   if (Platform.OS === "ios") {
+    const labels = [...actions.map((a) => a.label), tNow("common.actions.cancel")];
+    const destructive = actions.flatMap((a, i) => (a.destructive ? [i] : []));
     ActionSheetIOS.showActionSheetWithOptions(
       {
         title,
@@ -37,14 +39,7 @@ export function showActions(title: string, actions: RowAction[], message?: strin
     return;
   }
 
-  Alert.alert(title, message, [
-    ...actions.map((a) => ({
-      text: a.label,
-      style: a.destructive ? ("destructive" as const) : ("default" as const),
-      onPress: a.onPress,
-    })),
-    { text: tNow("common.actions.cancel"), style: "cancel" as const },
-  ]);
+  openActionSheet({ title, message, actions });
 }
 
 export function confirmDestructive({
@@ -58,6 +53,7 @@ export function confirmDestructive({
   confirmLabel: string;
   onConfirm: () => void;
 }) {
+  hapticWarning();
   Alert.alert(title, message, [
     { text: tNow("common.actions.cancel"), style: "cancel" },
     { text: confirmLabel, style: "destructive", onPress: onConfirm },

@@ -12,11 +12,16 @@ function computeNativeLineHeights(ratio: number): Record<keyof typeof pekuloFont
   ) as Record<keyof typeof pekuloFontSizes, number>;
 }
 
+// Story 10-8 review — the keyword weights `normal` / `bold` alias 400 / 700:
+// Tamagui only deletes `fontWeight` when it finds a face for it, so an unmapped
+// weight would leave a custom family + weight pair (Android → Roboto).
 const geistFace = {
   400: { normal: "Geist_400Regular" },
   500: { normal: "Geist_500Medium" },
   600: { normal: "Geist_600SemiBold" },
   700: { normal: "Geist_700Bold" },
+  normal: { normal: "Geist_400Regular" },
+  bold: { normal: "Geist_700Bold" },
 };
 
 const geistMonoFace = {
@@ -24,6 +29,8 @@ const geistMonoFace = {
   500: { normal: "GeistMono_500Medium" },
   600: { normal: "GeistMono_600SemiBold" },
   700: { normal: "GeistMono_700Bold" },
+  normal: { normal: "GeistMono_400Regular" },
+  bold: { normal: "GeistMono_700Bold" },
 };
 
 export function createPekuloFonts() {
@@ -55,3 +62,17 @@ export function createPekuloFonts() {
     }),
   };
 }
+
+/**
+ * Story 10-8 — every native Tamagui Text gets `fontFamily: "$body"`, so
+ * Tamagui's native face swap (getSplitStyles) resolves `Geist_<weight>` and
+ * deletes `fontWeight` (a custom family + weight makes Android fall back to
+ * Roboto). Named styled(Text) components are keyed by their own name and must
+ * set `fontFamily: "$body"` themselves (see PekuloBreadcrumb.native.tsx).
+ */
+export const pekuloFontDefaultProps: Record<string, Record<string, unknown>> | undefined = {
+  Text: { fontFamily: "$body" },
+};
+
+/** Story 10-8 — base face for raw React Native TextInput surfaces. */
+export const PEKULO_NATIVE_BODY_FACE = geistFace[400].normal;

@@ -1,0 +1,61 @@
+# Story 10-6 AC-3 (review fix) — Android row action menu opened from a form sheet.
+# Proves on the emulator what Jest cannot: the DS action sheet (root-mounted,
+# Tamagui portal) renders ABOVE the native formSheet, its 17-option list scrolls
+# inside the sheet, the hardware back closes the menu only, and a tapped option
+# reaches the form. Android only (iOS keeps ActionSheetIOS): a no-op on iOS, so
+# `maestro test apps/mobile/.maestro` stays green on a simulator.
+appId: app.pekulo.mobile
+name: Android action sheet — category picker inside the transaction sheet
+tags:
+  - android
+---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../subflows/wait-for-cap.yaml
+      - tapOn:
+          id: "tab-transactions"
+      - tapOn:
+          id: "header-add-btn"
+      - extendedWaitUntil:
+          visible:
+            id: "tx-category"
+          timeout: 10000
+      # Open the 17-category menu and scroll to its last option.
+      - tapOn:
+          id: "tx-category"
+      - extendedWaitUntil:
+          visible:
+            id: "action-sheet-item-0"
+          timeout: 10000
+      - scrollUntilVisible:
+          element:
+            id: "action-sheet-item-16"
+          direction: DOWN
+          timeout: 15000
+      # Hardware back closes the menu and leaves the form sheet open.
+      - back
+      - extendedWaitUntil:
+          notVisible:
+            id: "action-sheet-item-0"
+          timeout: 10000
+      - assertVisible:
+          id: "tx-category"
+      # Pick the last option: the tap must land on the menu, not on the sheet under it.
+      - tapOn:
+          id: "tx-category"
+      - scrollUntilVisible:
+          element:
+            id: "action-sheet-item-16"
+          direction: DOWN
+          timeout: 15000
+      - tapOn:
+          id: "action-sheet-item-16"
+      - extendedWaitUntil:
+          notVisible:
+            id: "action-sheet-item-0"
+          timeout: 10000
+      - assertVisible: "Catégorie : Transfert"

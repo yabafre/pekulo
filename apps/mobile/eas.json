@@ -15,6 +15,21 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "e2e-test": {
+      "withoutCredentials": true,
+      "bun": "1.3.14",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_ALLOW_PREVIEW": "1",
+        "EXPO_PUBLIC_DS_GALLERY": "1",
+        "DATABASE_URL": "postgresql://stub:stub@localhost:5432/stub"
+      }
     }
   },
   "submit": {

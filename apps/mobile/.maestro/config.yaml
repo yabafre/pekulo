@@ -1,0 +1,4 @@
+# apps/mobile/.maestro/config.yaml — story 10-5
+# Workspace config: `maestro test apps/mobile/.maestro` runs every flow below.
+flows:
+  - "flows/*"

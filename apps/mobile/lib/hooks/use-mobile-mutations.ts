@@ -228,8 +228,11 @@ export function useLlmOptIn() {
       if (!isAuthenticated) throw new PreviewModeError();
       return await llmClient.setOptIn(validateInput(updateLlmOptInSchema, { thirdParty }));
     },
-    onSuccess: (updated) => {
+    onSuccess: async (updated) => {
       queryClient.setQueryData(queryKey, updated);
+      await queryClient.invalidateQueries({
+        queryKey: [...mobileQueryKeys.llm(), "ai-notice"],
+      });
     },
   });
   return {
@@ -237,6 +240,29 @@ export function useLlmOptIn() {
     isLoading: query.isLoading,
     isSaving: mutation.isPending,
     setThirdParty: mutation.mutateAsync,
+  };
+}
+
+export function useAiNotice() {
+  const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+  const queryKey = [...mobileQueryKeys.llm(), "ai-notice", isAuthenticated];
+  const query = useQuery({
+    queryKey,
+    enabled: isAuthenticated,
+    queryFn: async () => await llmClient.getAiNotice(),
+  });
+  const mark = useMutation({
+    mutationFn: async () => await llmClient.markAiNotice(),
+    onSuccess: () => {
+      queryClient.setQueryData(queryKey, { seen: true });
+    },
+  });
+  return {
+    seen: query.data?.seen ?? true,
+    isLoading: query.isLoading,
+    markSeen: mark.mutate,
+    isMarking: mark.isPending,
   };
 }
 

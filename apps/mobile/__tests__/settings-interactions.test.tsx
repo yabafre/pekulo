@@ -150,6 +150,10 @@ describe("AC-6 — Paramètres interactions", () => {
 
   it("toggles the third-party AI opt-in from Paramètres", async () => {
     (llmClient.setOptIn as jest.Mock).mockResolvedValue({ thirdParty: true });
+    jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
+      const confirm = buttons?.find((b) => b.style !== "cancel");
+      confirm?.onPress?.();
+    });
     await renderLive(<ParametresScreen />);
     await waitFor(() => expect(llmClient.getOptIn).toHaveBeenCalled());
     await fireEvent(screen.getByTestId("llm-optin-switch"), "valueChange", true);

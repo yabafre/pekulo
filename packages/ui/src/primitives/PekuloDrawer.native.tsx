@@ -8,6 +8,7 @@ import {
   useContext,
   useMemo,
   useState,
+  type ComponentProps,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -171,6 +172,15 @@ function Footer({ children, ...props }: Omit<ViewProps, "children"> & { children
   );
 }
 
+/**
+ * Scrollable body for long content. A plain React Native `ScrollView` loses
+ * its vertical drags to the sheet's pan responder (it only yields to the
+ * sheet's own scroll bridge), so long lists inside the drawer must use this.
+ */
+function ScrollView(props: ComponentProps<typeof TamaSheet.ScrollView>) {
+  return <TamaSheet.ScrollView {...props} />;
+}
+
 function Title(props: TextProps) {
   return <Text fontSize="$body" fontWeight="500" color="$color" {...props} />;
 }
@@ -187,6 +197,7 @@ export const PekuloDrawer = Object.assign(Root, {
   Content,
   Header,
   Footer,
+  ScrollView,
   Title,
   Description,
 });

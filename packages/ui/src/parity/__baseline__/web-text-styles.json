@@ -1,0 +1,3116 @@
+{
+  "CategoryIcon.known": {
+    "pekulo-dark": [],
+    "pekulo-light": []
+  },
+  "CategoryPicker.closed": {
+    "pekulo-dark": [
+      {
+        "text": "Courses",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Courses",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloAccountRow.default": {
+    "pekulo-dark": [
+      {
+        "text": "PEA Bourso",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "PEA · Boursorama",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "45 200 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "PEA Bourso",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "PEA · Boursorama",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "45 200 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloAccountsSection.three": {
+    "pekulo-dark": [
+      {
+        "text": "Comptes",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Livret A",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Livret · Bourso",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "15 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "PEA Bourso",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "PEA · Boursorama",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "45 200 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CTO",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CTO",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "12 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Total liquide",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "72 200 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Comptes",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Livret A",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Livret · Bourso",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "15 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "PEA Bourso",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "PEA · Boursorama",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "45 200 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CTO",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CTO",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "12 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Total liquide",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "72 200 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloActivityRow.inflow": {
+    "pekulo-dark": [
+      {
+        "text": "Salaire",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Compte courant ·",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Revenus",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+3 200 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Salaire",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Compte courant ·",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Revenus",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+3 200 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloActivityRow.outflow": {
+    "pekulo-dark": [
+      {
+        "text": "Carrefour",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB ·",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Courses",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−87 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Carrefour",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB ·",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Courses",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−87 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloClassRow.default": {
+    "pekulo-dark": [
+      {
+        "text": "ETF",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "62 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "55%",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "ETF",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "62 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "55%",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloCompositionCard.three": {
+    "pekulo-dark": [
+      {
+        "text": "Composition",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "ETF",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Marchés mondiaux",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "92 400 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "51%",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Crypto",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "12 800 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "7%",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Cash",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "41 200 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "23%",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Composition",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "ETF",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Marchés mondiaux",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "92 400 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "51%",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Crypto",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "12 800 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "7%",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Cash",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "41 200 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "23%",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloCompositionRow.withSub": {
+    "pekulo-dark": [
+      {
+        "text": "Placements",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "ETF + Actions + Crypto",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "89 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "49%",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Placements",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "ETF + Actions + Crypto",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "89 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "49%",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloContextualAddButton.default": {
+    "pekulo-dark": [],
+    "pekulo-light": []
+  },
+  "PekuloCountUpEUR.integer": {
+    "pekulo-dark": [
+      {
+        "text": "180 400 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "180 400 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloCountUpEUR.precise": {
+    "pekulo-dark": [
+      {
+        "text": "87,42 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "87,42 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloCountUpPct.default": {
+    "pekulo-dark": [
+      {
+        "text": "42 %",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "42 %",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloCountUpPct.precise": {
+    "pekulo-dark": [
+      {
+        "text": "72.8 %",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "72.8 %",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloDonut.plain": {
+    "pekulo-dark": [],
+    "pekulo-light": []
+  },
+  "PekuloDonut.centered": {
+    "pekulo-dark": [
+      {
+        "text": "72%",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 32.64,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "72%",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 32.64,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloDonutCard.default": {
+    "pekulo-dark": [
+      {
+        "text": "Compass",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "42%",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 32.64,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Compass",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "42%",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 32.64,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloEmptyState.withCta": {
+    "pekulo-dark": [
+      {
+        "text": "Pas de cap",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Définis un cap pour commencer.",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Définir un cap",
+        "color": "rgba(0,0,0,1)",
+        "fontSize": 13,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Pas de cap",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Définis un cap pour commencer.",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Définir un cap",
+        "color": "rgba(255,255,255,1)",
+        "fontSize": 13,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloEmptyState.noCta": {
+    "pekulo-dark": [
+      {
+        "text": "Tout est catégorisé",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Aucune transaction en attente.",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Tout est catégorisé",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Aucune transaction en attente.",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloErrorBoundary.fallback": {
+    "pekulo-dark": [
+      {
+        "text": "Une erreur s'est produite.",
+        "color": "rgba(255,92,92,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "kaboom",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Une erreur s'est produite.",
+        "color": "rgba(220,38,38,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "kaboom",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHero.mobile": {
+    "pekulo-dark": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 400 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "+21 383 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 400 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "+21 383 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHero.card": {
+    "pekulo-dark": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 400 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "+21 383 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Cap",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "800 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "en 2055",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Plan / an",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "21,4 k €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "linéaire",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 400 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "+21 383 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Cap",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "800 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "en 2055",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Plan / an",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "21,4 k €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "linéaire",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHero.negative": {
+    "pekulo-dark": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "140 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "−5 000 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "140 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "−5 000 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHeroCard.default": {
+    "pekulo-dark": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 400 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "+2 400 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Cap",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "500 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "en 2055",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Plan / an",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "21,4 k €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "linéaire",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Patrimoine total",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 400 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 42,
+        "fontWeight": "600",
+        "letterSpacing": -0.5
+      },
+      {
+        "text": "+2 400 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "vs plan · 12 mois",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Cap",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "500 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "en 2055",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Plan / an",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "21,4 k €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "linéaire",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHoldingRow.gain": {
+    "pekulo-dark": [
+      {
+        "text": "CW8.PA",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "ETF",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 11,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "MSCI World · PEA",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "142 × 532,50 €",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "75 615 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+8 420 € (+12.5%)",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "CW8.PA",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "ETF",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 11,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "MSCI World · PEA",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "142 × 532,50 €",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "75 615 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+8 420 € (+12.5%)",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHoldingRow.loss": {
+    "pekulo-dark": [
+      {
+        "text": "BTC",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "CRYPTO",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 11,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Bitcoin · Crypto.com",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "0.45 × 56 000,00 €",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "25 200 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "−3 800 € (−13.1%)",
+        "color": "rgba(255,92,92,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "BTC",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "CRYPTO",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 11,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Bitcoin · Crypto.com",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "0.45 × 56 000,00 €",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "25 200 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "−3 800 € (−13.1%)",
+        "color": "rgba(220,38,38,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHypothesisCard.reaches": {
+    "pekulo-dark": [
+      {
+        "text": "Hypothèse",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Tu atteins ton cap en 2055.",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+20 000 € vs cap requis",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Hypothèse",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Tu atteins ton cap en 2055.",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+20 000 € vs cap requis",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHypothesisVerdict.reaches": {
+    "pekulo-dark": [
+      {
+        "text": "Tu atteins ton cap en 2055.",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+20 000 € vs cap requis",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Tu atteins ton cap en 2055.",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+20 000 € vs cap requis",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloHypothesisVerdict.gap": {
+    "pekulo-dark": [
+      {
+        "text": "Tu n'atteins pas ton cap en 2055.",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "−150 000 € vs cap requis",
+        "color": "rgba(255,92,92,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Il manque 120 € / mois pour atteindre le cap.",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Tu n'atteins pas ton cap en 2055.",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "−150 000 € vs cap requis",
+        "color": "rgba(220,38,38,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Il manque 120 € / mois pour atteindre le cap.",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloKpiTile.text": {
+    "pekulo-dark": [
+      {
+        "text": "Cap",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "22%",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "objectif 2055",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Cap",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "22%",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "objectif 2055",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloKpiTile.donut": {
+    "pekulo-dark": [
+      {
+        "text": "Cap",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "22%",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Cap",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "22%",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloMilestoneRow.ahead": {
+    "pekulo-dark": [
+      {
+        "text": "1er palier",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "50 000 € · 2030",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+1 500 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en avance",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "1er palier",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "50 000 € · 2030",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+1 500 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en avance",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloMilestoneRow.behind": {
+    "pekulo-dark": [
+      {
+        "text": "2e palier",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "100 000 € · 2035",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−2 300 €",
+        "color": "rgba(255,92,92,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en retard",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "2e palier",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "100 000 € · 2035",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−2 300 €",
+        "color": "rgba(220,38,38,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en retard",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloMilestonesCard.two": {
+    "pekulo-dark": [
+      {
+        "text": "Paliers",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Apport résidence principale",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "60 000 € · 2030",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+1 200 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en avance",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Liberté financière",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "500 000 € · 2055",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−3 400 €",
+        "color": "rgba(255,92,92,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en retard",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Paliers",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Apport résidence principale",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "60 000 € · 2030",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+1 200 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en avance",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Liberté financière",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "500 000 € · 2055",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−3 400 €",
+        "color": "rgba(220,38,38,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "en retard",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloMobileBottomNav.cap": {
+    "pekulo-dark": [
+      {
+        "text": "Cap",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Transactions",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Portefeuille",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Immobilier",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Cap",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Transactions",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Portefeuille",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      },
+      {
+        "text": "Immobilier",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 10,
+        "fontWeight": "500",
+        "letterSpacing": -0.1
+      }
+    ]
+  },
+  "PekuloMonthlyRow.openPositive": {
+    "pekulo-dark": [
+      {
+        "text": "mai 2026",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+3 200 € · −2 150 €",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+1 050 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "mai 2026",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "+3 200 € · −2 150 €",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+1 050 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloNavRail.cap": {
+    "pekulo-dark": [],
+    "pekulo-light": []
+  },
+  "PekuloPagination.mid": {
+    "pekulo-dark": [
+      {
+        "text": "1",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "2",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "3",
+        "color": "rgba(0,0,0,1)",
+        "fontSize": 12,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "4",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "5",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "6",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "7",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "1",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "2",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "3",
+        "color": "rgba(255,255,255,1)",
+        "fontSize": 12,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "4",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "5",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "6",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      },
+      {
+        "text": "7",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 12,
+        "fontWeight": "400",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloProjectionChart.default": {
+    "pekulo-dark": [
+      {
+        "text": "2026",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "2055",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "2026",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "2055",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 11,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloPropertyCard.default": {
+    "pekulo-dark": [
+      {
+        "text": "Appartement Lyon",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "VALORISATION",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "320 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "EQUITY",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "140 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "DETTE RESTANTE",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 000 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "MENSUALITÉ · 18 ans restants",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "1 240 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "31% remboursé",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Appartement Lyon",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "VALORISATION",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "320 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "EQUITY",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "140 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "DETTE RESTANTE",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "180 000 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "MENSUALITÉ · 18 ans restants",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "1 240 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "31% remboursé",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 13,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloRecentActivityCard.two": {
+    "pekulo-dark": [
+      {
+        "text": "Activité récente",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Salaire",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB Bourso ·",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Revenus",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+3 200 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Carrefour",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB Bourso ·",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Courses",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−87 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Activité récente",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Salaire",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB Bourso ·",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Revenus",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "+3 200 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Carrefour",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB Bourso ·",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Courses",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−87 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloSegmentedControl.theme": {
+    "pekulo-dark": [
+      {
+        "text": "Système",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Sombre",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Clair",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Système",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Sombre",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Clair",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 13,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloSettingRow.default": {
+    "pekulo-dark": [
+      {
+        "text": "Email",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "alex@example.fr",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Email",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "alex@example.fr",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 14,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloSettingRow.destructive": {
+    "pekulo-dark": [
+      {
+        "text": "Supprimer le compte",
+        "color": "rgba(255,92,92,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Action irréversible",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Supprimer le compte",
+        "color": "rgba(220,38,38,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Action irréversible",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloSkeleton.lines": {
+    "pekulo-dark": [],
+    "pekulo-light": []
+  },
+  "PekuloStaggerList.three": {
+    "pekulo-dark": [
+      {
+        "text": "Apport",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Indep",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Liberté",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Apport",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Indep",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "Liberté",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloStat.neutral": {
+    "pekulo-dark": [
+      {
+        "text": "Net",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "+1 050 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Net",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "+1 050 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloStat.gain": {
+    "pekulo-dark": [
+      {
+        "text": "Net",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "+1 050 €",
+        "color": "rgba(0,210,106,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Net",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": 0.5
+      },
+      {
+        "text": "+1 050 €",
+        "color": "rgba(0,122,61,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloSuggestionRow.pending": {
+    "pekulo-dark": [
+      {
+        "text": "Carrefour",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB Bourso · 12 mai",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−87 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Courses",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "91%",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "· iOS",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "✓ Confirmer",
+        "color": "rgba(0,0,0,1)",
+        "fontSize": 12,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Modifier",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Carrefour",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB Bourso · 12 mai",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−87 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Courses",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "91%",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "· iOS",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "✓ Confirmer",
+        "color": "rgba(255,255,255,1)",
+        "fontSize": 12,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Modifier",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloSuggestionRow.lowConfidence": {
+    "pekulo-dark": [
+      {
+        "text": "AMZN MKTPL",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB · 10 mai",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−42 €",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Maison",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "62%",
+        "color": "rgba(251,191,36,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "· Ollama",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "✓ Confirmer",
+        "color": "rgba(0,0,0,1)",
+        "fontSize": 12,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Modifier",
+        "color": "rgba(161,161,161,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "AMZN MKTPL",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "CB · 10 mai",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "−42 €",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Maison",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "62%",
+        "color": "rgba(171,79,8,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "· Ollama",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      },
+      {
+        "text": "✓ Confirmer",
+        "color": "rgba(255,255,255,1)",
+        "fontSize": 12,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Modifier",
+        "color": "rgba(64,64,64,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloToggleRow.unchecked": {
+    "pekulo-dark": [
+      {
+        "text": "LLM tiers",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Activer le routage cloud",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "LLM tiers",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      },
+      {
+        "text": "Activer le routage cloud",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 12,
+        "fontWeight": null,
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloToggleRow.checked": {
+    "pekulo-dark": [
+      {
+        "text": "LLM tiers",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "LLM tiers",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 14,
+        "fontWeight": "500",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloTopTabToggle.cap": {
+    "pekulo-dark": [
+      {
+        "text": "Cap",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Patrimoine",
+        "color": "rgba(128,128,128,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Cap",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      },
+      {
+        "text": "Patrimoine",
+        "color": "rgba(107,107,107,1)",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloTrajectoryCard.default": {
+    "pekulo-dark": [
+      {
+        "text": "Trajectoire",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "Trajectoire",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "PekuloTrajectoryChart.default": {
+    "pekulo-dark": [],
+    "pekulo-light": []
+  },
+  "PekuloUserDot.initial": {
+    "pekulo-dark": [
+      {
+        "text": "A",
+        "color": "rgba(237,237,237,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ],
+    "pekulo-light": [
+      {
+        "text": "A",
+        "color": "rgba(10,10,10,1)",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "letterSpacing": null
+      }
+    ]
+  },
+  "TransactionLogo.categoryFallback": {
+    "pekulo-dark": [],
+    "pekulo-light": []
+  }
+}

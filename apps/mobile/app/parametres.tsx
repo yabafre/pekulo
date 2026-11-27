@@ -1,9 +1,11 @@
 // apps/mobile/app/parametres.tsx
-// Mobile Paramètres native iOS form sheet: omits duplicate inline header title
-// (owned by native Stack formSheet header), gives account identity + auth CTA
-// spacious vertical layout for 375pt iPhones, prompts a native iOS destructive
-// confirmation alert before sign-out, and syncs theme & language with
-// `useThemeSetting()` and `settingsClient`.
+// Mobile Paramètres form sheet: on iOS the native Stack formSheet header owns
+// the title and the Fermer toolbar item; on Android (story 10-6 AC-2) the sheet
+// is headerless, so the title renders in-content and the system back action
+// closes it. Gives account identity + auth CTA spacious vertical layout,
+// prompts a destructive confirmation before sign-out, routes account deletion
+// to `Alert.prompt` (iOS) or the `sheets/delete-account` sheet (Android,
+// AC-4), and syncs theme & language with `useThemeSetting()` and `settingsClient`.
 
 import {
   PekuloButton,
@@ -17,7 +19,8 @@ import type { LangPref, ThemePref } from "@pekulo/validators";
 import { useRouter } from "expo-router";
 import Stack from "expo-router/stack";
 import { SymbolView } from "expo-symbols";
-import { Globe, Monitor, Moon, Sun } from "lucide-react-native";
+import { ChevronRight, Globe, Monitor, Moon, Sun } from "lucide-react-native";
+import { useState } from "react";
 import { Alert, Platform, Pressable } from "react-native";
 import { useTheme } from "tamagui";
 
@@ -26,9 +29,12 @@ import { useMutationRunner } from "../components/form/sheet";
 import { ScreenShell } from "../components/screen-shell";
 import { useAuth } from "../lib/auth/auth-context";
 import { formatCompactEur } from "../lib/format";
+import { hapticWarning } from "../lib/haptics";
 import { useDeleteUserAccount, useLlmOptIn } from "../lib/hooks/use-mobile-mutations";
 import { useMobileCompassData, useMobileSettingsData } from "../lib/hooks/use-mobile-queries";
+import { isDeletionEmailConfirmed } from "../lib/account-deletion";
 import { useI18n } from "../lib/i18n";
+import { openLegalUrl } from "../lib/legal";
 
 function toTamaguiThemeChoice(pref: ThemePref): "pekulo-dark" | "pekulo-light" | "system" {
   if (pref === "dark") return "pekulo-dark";
@@ -48,49 +54,78 @@ export default function ParametresScreen() {
   const deleteAccount = useDeleteUserAccount();
   const { run } = useMutationRunner();
   const { t } = useI18n();
+  // Forces native Switch visual reconciliation if the user cancels the
+  // third-party AI consent dialog without changing persisted `llm.thirdParty`.
+  const [switchSyncTick, setSwitchSyncTick] = useState(0);
 
+  // Story 10-7 (AC-5 / Apple 5.1.2(i)): require explicit consent naming the
+  // configured third-party AI provider and data fields before enabling. In
+  // unauthenticated preview mode, defer straight to the preview sign-in guard.
   function handleThirdPartyChange(next: boolean) {
-    void run(
-      () => llm.setThirdParty(next),
-      next ? t("settings.ai.enabled") : t("settings.ai.disabled"),
+    if (!next || !isAuthenticated) {
+      void run(
+        () => llm.setThirdParty(next),
+        next ? t("settings.ai.enabled") : t("settings.ai.disabled"),
+      );
+      return;
+    }
+    const provider =
+      process.env.EXPO_PUBLIC_LLM_THIRD_PARTY_PROVIDER_NAME?.trim() ||
+      t("settings.ai.defaultProvider");
+    const syncSwitchOff = () => setSwitchSyncTick((tick) => tick + 1);
+    Alert.alert(
+      t("settings.ai.consentTitle"),
+      t("settings.ai.consentMessage", { provider }),
+      [
+        { text: t("common.actions.cancel"), style: "cancel", onPress: syncSwitchOff },
+        {
+          text: t("settings.ai.consentConfirm"),
+          onPress: () => {
+            void run(() => llm.setThirdParty(true), t("settings.ai.enabled"));
+          },
+        },
+      ],
+      { cancelable: true, onDismiss: syncSwitchOff },
     );
   }
 
   function confirmAccountDeletion(typed: string | undefined) {
-    const expected = (userEmail ?? "").trim().toLowerCase();
-    if (!typed || typed.trim().toLowerCase() !== expected) {
+    if (!isDeletionEmailConfirmed(typed, userEmail)) {
       Alert.alert(t("settings.deletion.wrongEmailTitle"), t("settings.deletion.wrongEmailMessage"));
       return;
     }
+    const confirmationEmail = (typed ?? "").trim();
     void run(async () => {
-      await deleteAccount.mutateAsync({ confirmationEmail: typed.trim() });
+      await deleteAccount.mutateAsync({ confirmationEmail });
       router.replace("/login");
     }, t("settings.deletion.done"));
   }
 
   function handleDeleteAccount() {
+    hapticWarning();
+    if (Platform.OS !== "ios") {
+      // `Alert.prompt` is iOS-only: Android types the email in a sheet (AC-4).
+      router.push("/sheets/delete-account");
+      return;
+    }
     const message = t("settings.deletion.message", {
       email: userEmail ?? t("settings.deletion.yourEmail"),
     });
-    if (Platform.OS === "ios") {
-      Alert.prompt(
-        t("settings.deletion.title"),
-        message,
-        [
-          { text: t("common.actions.cancel"), style: "cancel" },
-          {
-            text: t("common.actions.delete"),
-            style: "destructive",
-            onPress: confirmAccountDeletion,
-          },
-        ],
-        "plain-text",
-        "",
-        "email-address",
-      );
-      return;
-    }
-    Alert.alert(t("settings.deletion.title"), t("settings.deletion.webOnly"));
+    Alert.prompt(
+      t("settings.deletion.title"),
+      message,
+      [
+        { text: t("common.actions.cancel"), style: "cancel" },
+        {
+          text: t("common.actions.delete"),
+          style: "destructive",
+          onPress: confirmAccountDeletion,
+        },
+      ],
+      "plain-text",
+      "",
+      "email-address",
+    );
   }
 
   const initial = (userEmail?.trim().charAt(0) || "A").toUpperCase();
@@ -122,6 +157,7 @@ export default function ParametresScreen() {
       router.push("/login");
       return;
     }
+    hapticWarning();
     Alert.alert(t("settings.account.signOutTitle"), t("settings.account.signOutMessage"), [
       { text: t("common.actions.cancel"), style: "cancel" },
       {
@@ -134,19 +170,23 @@ export default function ParametresScreen() {
     ]);
   }
 
+  const isAndroid = Platform.OS === "android";
+
   return (
-    <ScreenShell>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button
-          accessibilityLabel={t("common.actions.closeSettings")}
-          onPress={() => {
-            if (router.canGoBack()) router.back();
-            else router.replace("/");
-          }}
-        >
-          {t("common.actions.close")}
-        </Stack.Toolbar.Button>
-      </Stack.Toolbar>
+    <ScreenShell title={isAndroid ? t("settings.title") : undefined}>
+      {isAndroid ? null : (
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            accessibilityLabel={t("common.actions.closeSettings")}
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace("/");
+            }}
+          >
+            {t("common.actions.close")}
+          </Stack.Toolbar.Button>
+        </Stack.Toolbar>
+      )}
       <Section title={t("settings.account.title")} ariaLabel={t("settings.account.aria")}>
         <View gap="$4">
           <View flexDirection="row" alignItems="center" gap="$3">
@@ -250,7 +290,7 @@ export default function ParametresScreen() {
               </Text>
             </View>
             <SymbolView
-              name="chevron.right"
+              name={{ ios: "chevron.right", android: "chevron_right" }}
               size={14}
               weight="semibold"
               tintColor={theme.colorTertiary.val}
@@ -262,7 +302,11 @@ export default function ParametresScreen() {
 
       <Section title={t("settings.ai.title")} ariaLabel={t("settings.ai.aria")}>
         <View gap="$2">
+          <Text color="$colorSecondary" fontSize="$xs">
+            {t("settings.ai.intro")}
+          </Text>
           <SwitchField
+            key={switchSyncTick}
             label={t("settings.ai.thirdParty")}
             value={llm.thirdParty}
             disabled={llm.isLoading || llm.isSaving}
@@ -272,6 +316,61 @@ export default function ParametresScreen() {
           <Text color="$colorTertiary" fontSize="$xs">
             {t("settings.ai.footer")}
           </Text>
+        </View>
+      </Section>
+
+      <Section title={t("settings.legal.title")} ariaLabel={t("settings.legal.aria")}>
+        <View>
+          {(
+            [
+              {
+                testID: "settings-privacy-link",
+                label: t("settings.legal.privacy"),
+                path: "/privacy" as const,
+              },
+              {
+                testID: "settings-terms-link",
+                label: t("settings.legal.terms"),
+                path: "/terms" as const,
+              },
+              {
+                testID: "settings-support-link",
+                label: t("settings.legal.support"),
+                path: "/support" as const,
+              },
+            ] as const
+          ).map((item) => (
+            <Pressable
+              key={item.testID}
+              testID={item.testID}
+              accessibilityRole="link"
+              accessibilityLabel={item.label}
+              onPress={() => {
+                void openLegalUrl(item.path);
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <View
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="space-between"
+                gap="$3"
+                paddingVertical="$2"
+                minHeight={44}
+              >
+                <Text flex={1} color="$color" fontSize="$body" fontWeight="500">
+                  {item.label}
+                </Text>
+                <SymbolView
+                  name={{ ios: "chevron.right", android: "chevron_right" }}
+                  size={14}
+                  weight="semibold"
+                  tintColor={theme.colorTertiary.val}
+                  fallback={<ChevronRight size={16} color={theme.colorTertiary.val} />}
+                />
+              </View>
+            </Pressable>
+          ))}
         </View>
       </Section>
 

@@ -90,9 +90,29 @@ export interface AuthProviderProps {
   requireAuth?: boolean;
 }
 
+// Story 10-7 (AC-4) — fail fast in release builds if Supabase env vars are missing
+// unless preview mode is explicitly opted in (e.g. EAS `e2e-test` profile).
+export function assertReleaseSupabaseConfigured(
+  configured: boolean,
+  env?: Record<string, string | undefined>,
+  isDev: boolean = __DEV__,
+): void {
+  if (isDev || configured) return;
+  const allowPreview = (
+    env ? env.EXPO_PUBLIC_ALLOW_PREVIEW : process.env.EXPO_PUBLIC_ALLOW_PREVIEW
+  )?.trim();
+  if (allowPreview === "1") return;
+  throw new Error(
+    "EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY must be set in release builds",
+  );
+}
+
 export function AuthProvider({ children, initialSession = null, requireAuth }: AuthProviderProps) {
   const queryClient = useQueryClient();
   const configured = isSupabaseConfigured();
+  if (requireAuth === undefined && initialSession === null) {
+    assertReleaseSupabaseConfigured(configured);
+  }
   const enforceAuth = requireAuth ?? configured;
 
   const [session, setSession] = useState<Session | null>(initialSession);
