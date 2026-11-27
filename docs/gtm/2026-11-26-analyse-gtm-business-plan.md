@@ -126,11 +126,11 @@ CGP indépendants et coachs en finances perso : une boussole partagée avec leur
 
 ### 5.2 Proposition [H]
 
-| Palier                                         | Prix                       | Contenu                                                                                                                          |
-| ---------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Gratuit**                                    | 0 €                        | 1 boussole, 2 jalons, saisie manuelle + import CSV, projection simple                                                            |
-| **Plus** _(recommandé)_                        | **7,99 €/mois ou 69 €/an** | Synchro bancaire Bridge, jalons illimités, immobilier + crédit, crypto, catégorisation auto, clôture mensuelle, alertes de jalon |
-| **Membre fondateur** _(pré-vente, 200 places)_ | **49 €/an à vie**          | Tout Plus — sert de **test « carte bancaire »** avant l'ouverture publique                                                       |
+| Palier                                                                                                                                        | Prix                                                                                                                       | Contenu                                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Gratuit**                                                                                                                                   | 0 €                                                                                                                        | 1 boussole, 2 jalons, saisie manuelle + import CSV, projection simple                                                            |
+| **Plus** _(recommandé)_                                                                                                                       | **7,99 €/mois ou 69 €/an**                                                                                                 | Synchro bancaire Bridge, jalons illimités, immobilier + crédit, crypto, catégorisation auto, clôture mensuelle, alertes de jalon |
+| **Membre fondateur** _(pré-vente, **100 places** — aligné 2026-11-27 sur `plan-50-clients-janvier-2027.md`, remplace « 200 places / à vie »)_ | **49 €/an** _(tarif garanti tant que l'abonnement reste actif — pas d'offre « à vie » en raison du coût récurrent Bridge)_ | Tout Plus — sert de **test « carte bancaire »** avant l'ouverture publique                                                       |
 
 Plus tard : scénarios (optimiste/réaliste/pessimiste, Phase 3 du PRD) comme palier « Pro » ~12,99 €/mois ou en upsell.
 

@@ -84,7 +84,7 @@ Status: V1 (a) personal-use. Items marked **(b)** are load-bearing before the pu
 
 ## Web perimeter
 
-See the `fix/security-perimeter-hardening` work (open-redirect guard, security headers + CSP Report-Only, `/openapi` dev-gate). CSP enforce flip is a tracked follow-up.
+See the `fix/security-perimeter-hardening` work (open-redirect guard, security headers, `/openapi` dev-gate) and story 11-7 (`apps/web/src/lib/security/headers.ts`: nonce-based `Content-Security-Policy` is **enforced**, not Report-Only). HSTS preload and `/.well-known/security.txt` remain tracked for the (b) ramp (Epic 13).
 
 ## Auth flows (story 8-1, FR-45/46/47/48 · NFR-11)
 

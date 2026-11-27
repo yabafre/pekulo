@@ -27,7 +27,7 @@
 - Isolation des données : règle de lint `no-prisma-query-without-user-id` + `where: { userId }` obligatoire ; RLS active sur 100 % des tables, mais **contournée par le rôle service de l'API** (ADR-0013).
 - Contrôles CI : audit RLS des migrations, chemin de suppression en cascade, scan des secrets au pre-commit.
 - Nettoyage des données personnelles dans les remontées d'erreurs (GlitchTip) ; test de restauration des sauvegardes.
-- Webhook Bridge signé (HMAC) ; limites de débit par utilisateur sur l'API, et sur la connexion.
+- Webhook Bridge signé (HMAC) ; limite de débit sur la connexion (Supabase) et locale sur `bankAggregator.refreshConnection` _(corrigé 2026-11-27 : le rate-limit global par utilisateur et le CORS sur `apps/api` ne sont pas encore montés dans `app.ts` — suivis en Lot A, `docs/triage-decision.md`)_.
 
 **La faiblesse réelle :** une personne qui obtient un dump de la base, une sauvegarde ou l'URL `DATABASE_URL` lit tout en clair (IBAN, libellés de transactions avec des noms de personnes, adresses des biens). Le chiffrement disque ne protège que contre le vol physique du disque.
 
@@ -102,7 +102,7 @@ Story M à L (3–4 jours) : table `user_keys`, extension Prisma, migration des 
 | **Tests automatisés d'isolation entre utilisateurs** : pour chaque route oRPC, l'utilisateur B tente d'accéder aux identifiants de A → doit échouer      | Fuite d'un client vers un autre (IDOR), le risque n°1 avec une seule barrière côté API | S–M               |
 | **Chaîne de sécurité CI** : scan des dépendances (osv-scanner), analyse statique (Semgrep ou CodeQL), mises à jour automatiques (Renovate ou Dependabot) | Faille connue dans une dépendance                                                      | S                 |
 | **Webhook Stripe signé** et rejoué de façon idempotente                                                                                                  | Faux paiements, double activation                                                      | inclus dans 13-2  |
-| **CSP appliquée** (aujourd'hui Report-Only), HSTS preload, `security.txt`                                                                                | XSS, détournement                                                                      | inclus dans 13-12 |
+| **HSTS preload, `security.txt`** _(corrigé 2026-11-27 : CSP déjà appliquée en mode enforced dans `apps/web/src/lib/security/headers.ts`, story 11-7)_    | XSS, détournement                                                                      | inclus dans 13-12 |
 | **Revue de sécurité outillée** avant l'ouverture : scan Claude Security (`/claude-security`) + checklist OWASP                                           | Failles non vues                                                                       | S                 |
 | Vérifier le **niveau de sauvegarde Supabase** (PITR, rétention) et la région d'hébergement                                                               | Perte de données, conformité                                                           | XS                |
 

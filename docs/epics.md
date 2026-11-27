@@ -20,7 +20,7 @@
 - Group I — PWA, mobile, design system: FR-53, FR-54, FR-55, FR-56
 - Group J — Hypotheses & projections: FR-57, FR-58, FR-59
 
-**Total:** 63 FRs (59 original + 4 added 2026-05-25 per ADR-0015).
+**Total:** 65 FRs (59 original + 4 added 2026-05-25 per ADR-0015 + FR-64/FR-65 added 2026-06-01 via aped-course).
 
 ### Non-Functional Requirements
 
@@ -110,34 +110,42 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 | FR-64 | 6-9-month-navigator           | 6    |
 | FR-65 | 6-10-merchant-logos           | 6    |
 
-**Coverage:** 63/63 FRs owned by exactly one story. No orphans, no multi-cover. (FR-60/61 owned by 5-6-bridge-connector ; FR-62/63 owned by 5-7-bridge-ui ; both added 2026-05-25 per ADR-0015.)
+**Coverage:** 65/65 FRs owned by exactly one story. No orphans, no multi-cover. (FR-60/61 owned by 5-6-bridge-connector ; FR-62/63 owned by 5-7-bridge-ui ; FR-64 owned by 6-9-month-navigator ; FR-65 owned by 6-10-merchant-logos.)
 
 ## File Structure Design (epic-level)
 
-| Epic | Path prefix(es)                                                                                                                                                                                                                                                                                                                                                                                                       | Single responsibility                                                                                          | Inputs → Outputs                                                                                                                                                                      |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | `packages/{zod,types,validators,contracts,tsconfig,oxlint-config,ui}/`, `apps/api/src/{bootstrap,platform,database,common}/`, `.github/workflows/`, lefthook                                                                                                                                                                                                                                                          | Workspace primitives + Elysia runtime + Prisma layer + CI/CD + DS migration                                    | brownfield types/schemas → importable `@pekulo/*` + HTTP server + PR check matrix                                                                                                     |
-| 1    | `apps/api/src/modules/{compass,milestones}/`, `apps/web/src/app/(cap)/{dashboard,parametres}/_components/compass-*`, `apps/api/src/common/derive/compass-progress.ts`                                                                                                                                                                                                                                                 | Target-capital + horizon + intermediate steps + status compute                                                 | Prisma `Hypothesis` + `CompassHistory` + `Milestone` → oRPC `/compass`, `/milestones` + Cap view fragments                                                                            |
-| 2    | `apps/api/src/modules/accounts/`, `apps/web/src/app/(cap)/parametres/_components/accounts-*`                                                                                                                                                                                                                                                                                                                          | Account CRUD + balance log + Patrimoine tab                                                                    | Prisma `Account`, `AccountBalanceLog` → oRPC `/accounts/*` + settings/dashboard?tab=patrimoine fragments                                                                              |
-| 3    | `apps/api/src/modules/holdings/` (+ `services/{prices,yahoo,boursorama,twelve-data,frankfurter}-client.ts` + `holdings.cache.ts`), `apps/api/src/common/derive/{portfolio-fx,holding-quantity,holding-pnl}.ts`, `apps/web/src/app/(cap)/portefeuille/_components/`                                                                                                                                                    | Holdings + lots + 4-tier price chain + FX + crypto enum                                                        | Prisma `Holding`, `HoldingLot` + external providers → oRPC `/holdings/*` + portefeuille screen                                                                                        |
-| 4    | `apps/api/src/modules/realestate/`, `apps/api/src/common/derive/{rental-cashflow,property-equity}.ts`, `apps/web/src/app/(cap)/immobilier/_components/`                                                                                                                                                                                                                                                               | Properties + mortgage + rental + valuation history                                                             | Prisma `RealEstate`, `RealEstateMortgage`, `RealEstateRental`, `RealEstateValuation` → oRPC `/realestate/*` + immobilier screen                                                       |
-| 5    | `apps/api/src/modules/{transactions,monthly,bank-aggregator}/` (bank-aggregator/ added 2026-05-25), `apps/api/src/modules/bank-aggregator/services/bridge-client.ts` (BankProvider impl per ADR-0015), `apps/api/src/common/derive/{transfer-rule,monthly-aggregates}.ts`, `apps/web/src/app/(cap)/{transactions,mensuel}/_components/`, `apps/web/src/app/(cap)/parametres/_components/bank-connections-section.tsx` | Transaction CRUD + CSV import + transfer detection + monthly aggregates + sign-off + bank connections (Bridge) | Prisma `Transaction`, `MonthlyRecord`, `BankConnection` → oRPC `/transactions/*`, `/monthly/*`, `/bankaggregator/*` + transactions + mensuel screens + parametres connections section |
-| 6    | `apps/api/src/modules/llm/` (+ `providers/{ollama,third-party,foundation-models}-client.ts` + `llm-prompt-builder.ts`), `apps/web/src/lib/llm/attest-queue.ts`, `apps/web/src/app/(cap)/{parametres,transactions}/_components/{llm,suggestion}-*`                                                                                                                                                                     | LLM routing + categorisation + per-call audit + opt-in guard + AI transparency                                 | Prisma `LlmCallLog`, `LlmOptIn` + provider endpoints → oRPC `/llm/*` + suggestion UI + activity log + opt-in toggle                                                                   |
-| 7    | `apps/api/src/modules/{dashboard,hypothesis}/` (+ `derive/projection-curve.ts`), `apps/web/src/app/(cap)/dashboard/_components/`                                                                                                                                                                                                                                                                                      | Cross-domain aggregator + total wealth + projection comparison                                                 | compass + accounts + holdings + realestate + hypothesis → oRPC `/dashboard/*`, `/hypothesis/*` + Cap layout + Hypothèse card                                                          |
-| 8    | `apps/web/src/app/(auth)/{login,signup,recover}/`, `apps/api/src/modules/{auth,settings}/`, `apps/web/src/lib/stores/{theme,lang}-store.ts`, `apps/web/src/app/(cap)/parametres/_components/{theme,lang}-*`                                                                                                                                                                                                           | Auth flows + theme/lang preferences                                                                            | Supabase Auth + Prisma `UserPref` → session + persisted preferences                                                                                                                   |
-| 9    | `apps/web/src/app/manifest.ts`, `apps/web/src/sw.ts`, `apps/web/public/icons/`, `apps/web/src/components/install-prompt.tsx`                                                                                                                                                                                                                                                                                          | PWA install affordance + offline read-only cache                                                               | app metadata + last-snapshot per route → install prompt + Lighthouse PWA ≥90 + offline fallback                                                                                       |
-| 10   | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx`, `apps/mobile/`, `.maestro/`                                                                                                                                                                                                                                                                                                                              | Visual parity web ↔ mobile (V1.5)                                                                              | `@pekulo/ui` components + oRPC client → snapshot artefacts + V1.5 mobile build                                                                                                        |
-| 11   | `apps/api/src/modules/settings/{exportData,deleteAccount}.ts`, `docs/exports/schema-v1.json`, `docs/security.md`, axe + RLS-audit gates in `.github/workflows/pr.yml`, GlitchTip OTLP                                                                                                                                                                                                                                 | Pre-(b) public-ramp readiness — GDPR + a11y + ops hardening                                                    | per-user data + Supabase tier + codebase → JSON export + cascade deletion + failing CI on regressions + structured error capture                                                      |
+| Epic | Path prefix(es)                                                                                                                                                                                                                                                                                                                                                                                                       | Single responsibility                                                                                           | Inputs → Outputs                                                                                                                                                                      |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | `packages/{zod,types,validators,contracts,tsconfig,oxlint-config,ui}/`, `apps/api/src/{bootstrap,platform,database,common}/`, `.github/workflows/`, lefthook                                                                                                                                                                                                                                                          | Workspace primitives + Elysia runtime + Prisma layer + CI/CD + DS migration                                     | brownfield types/schemas → importable `@pekulo/*` + HTTP server + PR check matrix                                                                                                     |
+| 1    | `apps/api/src/modules/{compass,milestones}/`, `apps/web/src/app/(cap)/{dashboard,parametres}/_components/compass-*`, `apps/api/src/common/derive/compass-progress.ts`                                                                                                                                                                                                                                                 | Target-capital + horizon + intermediate steps + status compute                                                  | Prisma `Hypothesis` + `CompassHistory` + `Milestone` → oRPC `/compass`, `/milestones` + Cap view fragments                                                                            |
+| 2    | `apps/api/src/modules/accounts/`, `apps/web/src/app/(cap)/parametres/_components/accounts-*`                                                                                                                                                                                                                                                                                                                          | Account CRUD + balance log + Patrimoine tab                                                                     | Prisma `Account`, `AccountBalanceLog` → oRPC `/accounts/*` + settings/dashboard?tab=patrimoine fragments                                                                              |
+| 3    | `apps/api/src/modules/holdings/` (+ `services/{prices,yahoo,boursorama,twelve-data,frankfurter}-client.ts` + `holdings.cache.ts`), `apps/api/src/common/derive/{portfolio-fx,holding-quantity,holding-pnl}.ts`, `apps/web/src/app/(cap)/portefeuille/_components/`                                                                                                                                                    | Holdings + lots + 4-tier price chain + FX + crypto enum                                                         | Prisma `Holding`, `HoldingLot` + external providers → oRPC `/holdings/*` + portefeuille screen                                                                                        |
+| 4    | `apps/api/src/modules/realestate/`, `apps/api/src/common/derive/{rental-cashflow,property-equity}.ts`, `apps/web/src/app/(cap)/immobilier/_components/`                                                                                                                                                                                                                                                               | Properties + mortgage + rental + valuation history                                                              | Prisma `RealEstate`, `RealEstateMortgage`, `RealEstateRental`, `RealEstateValuation` → oRPC `/realestate/*` + immobilier screen                                                       |
+| 5    | `apps/api/src/modules/{transactions,monthly,bank-aggregator}/` (bank-aggregator/ added 2026-05-25), `apps/api/src/modules/bank-aggregator/services/bridge-client.ts` (BankProvider impl per ADR-0015), `apps/api/src/common/derive/{transfer-rule,monthly-aggregates}.ts`, `apps/web/src/app/(cap)/{transactions,mensuel}/_components/`, `apps/web/src/app/(cap)/parametres/_components/bank-connections-section.tsx` | Transaction CRUD + CSV import + transfer detection + monthly aggregates + sign-off + bank connections (Bridge)  | Prisma `Transaction`, `MonthlyRecord`, `BankConnection` → oRPC `/transactions/*`, `/monthly/*`, `/bankaggregator/*` + transactions + mensuel screens + parametres connections section |
+| 6    | `apps/api/src/modules/llm/` (+ `providers/{ollama,third-party,foundation-models}-client.ts` + `llm-prompt-builder.ts`), `apps/web/src/lib/llm/attest-queue.ts`, `apps/web/src/app/(cap)/{parametres,transactions}/_components/{llm,suggestion}-*`                                                                                                                                                                     | LLM routing + categorisation + per-call audit + opt-in guard + AI transparency                                  | Prisma `LlmCallLog`, `LlmOptIn` + provider endpoints → oRPC `/llm/*` + suggestion UI + activity log + opt-in toggle                                                                   |
+| 7    | `apps/api/src/modules/{dashboard,hypothesis}/` (+ `derive/projection-curve.ts`), `apps/web/src/app/(cap)/dashboard/_components/`                                                                                                                                                                                                                                                                                      | Cross-domain aggregator + total wealth + projection comparison                                                  | compass + accounts + holdings + realestate + hypothesis → oRPC `/dashboard/*`, `/hypothesis/*` + Cap layout + Hypothèse card                                                          |
+| 8    | `apps/web/src/app/(auth)/{login,signup,recover}/`, `apps/api/src/modules/{auth,settings}/`, `apps/web/src/lib/stores/{theme,lang}-store.ts`, `apps/web/src/app/(cap)/parametres/_components/{theme,lang}-*`                                                                                                                                                                                                           | Auth flows + theme/lang preferences                                                                             | Supabase Auth + Prisma `UserPref` → session + persisted preferences                                                                                                                   |
+| 9    | `apps/web/src/app/manifest.ts`, `apps/web/src/sw.ts`, `apps/web/public/icons/`, `apps/web/src/components/install-prompt.tsx`                                                                                                                                                                                                                                                                                          | PWA install affordance + offline read-only cache                                                                | app metadata + last-snapshot per route → install prompt + Lighthouse PWA ≥90 + offline fallback                                                                                       |
+| 10   | `@pekulo/ui/src/components/<comp>/<comp>.snapshot.test.tsx`, `apps/mobile/`, `.maestro/`                                                                                                                                                                                                                                                                                                                              | Visual parity web ↔ mobile (V1.5)                                                                               | `@pekulo/ui` components + oRPC client → snapshot artefacts + V1.5 mobile build                                                                                                        |
+| 11   | `apps/api/src/modules/settings/{exportData,deleteAccount}.ts`, `docs/exports/schema-v1.json`, `docs/security.md`, axe + RLS-audit gates in `.github/workflows/pr.yml`, GlitchTip OTLP                                                                                                                                                                                                                                 | Pre-(b) public-ramp readiness — GDPR + a11y + ops hardening                                                     | per-user data + Supabase tier + codebase → JSON export + cascade deletion + failing CI on regressions + structured error capture                                                      |
+| 12   | `apps/api/src/modules/advisory/`, `apps/api/src/common/derive/advisory-snapshot.ts`, `apps/api/src/platform/security/advisory-access-guard.ts`, `apps/web/src/app/(cap)/dashboard/advisory/`                                                                                                                                                                                                                          | Private internal AI advisory tool (non-product, ADR-0016)                                                       | allowlisted user data → deterministic snapshot + encrypted LLM advisory sessions                                                                                                      |
+| 13   | `apps/api/src/modules/{advisory,bank-aggregator,settings}/`, `apps/api/src/platform/{http,security}/`, `apps/api/src/common/derive/portfolio-fx.ts`, `apps/web/src/app/(cap)/dashboard/portefeuille/`, `apps/mobile/lib/hooks/use-mobile-queries.ts`                                                                                                                                                                  | Pre-sale hardening — advisory crypto/consent, IBAN blind index, hashed logs, CORS/rate-limit, webhook inbox, FX | audit Lot A + ADR-0019 Step 1 + ADR-0022 → compliant, durable, FX-accurate baseline                                                                                                   |
+| 14   | `packages/finance/`, `apps/api/src/modules/{billing,hypothesis,security-events}/`, `apps/api/src/platform/crypto/`, `apps/web/src/app/{page.tsx,calculateur,securite,demo,(legal)}/`, `.github/workflows/pr.yml`                                                                                                                                                                                                      | Web pre-sale, Stripe billing, real-euros projection, acquisition/retention & launch security                    | ADR-0019..0023 + GTM plan → paying web founders, client-side calculator, envelope crypto, 2FA, IDOR CI                                                                                |
+| 15   | `apps/mobile/{app/login.tsx,app/(tabs)/transactions,lib/billing,assets,app.json,eas.json,docs}`, `.github/workflows/release-mobile.yml`                                                                                                                                                                                                                                                                               | Mobile store launch — signup/demo, RevenueCat IAP, crash reporting, EAS/OTA, list perf, ASO                     | ADR-0021 + Lot C → App Store & Google Play release builds ready for review                                                                                                            |
 
 ## Backlog
 
 ### Ramp tiering
 
-| Tier                | Epics                                                                          |
-| ------------------- | ------------------------------------------------------------------------------ |
-| V1                  | epic-0, epic-1, epic-2, epic-3, epic-4, epic-5, epic-6, epic-7, epic-8, epic-9 |
-| V1.5 deferred       | epic-10 (10-1 ships V1, 10-2 deferred per G1)                                  |
-| Public-ramp backlog | epic-11 (11-1/11-2/11-3/11-4/11-6 unblocked in V1 (a); 11-5 readiness)         |
+| Tier                       | Epics                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| V1                         | epic-0, epic-1, epic-2, epic-3, epic-4, epic-5, epic-6, epic-7, epic-8, epic-9 |
+| V1.5 deferred              | epic-10 (10-1 ships V1, 10-2..10-9 V1.5 mobile parity — done)                  |
+| Public-ramp backlog        | epic-11 (done)                                                                 |
+| Internal (non-product)     | epic-12 (done, ADR-0016 — excluded from paid tiers)                            |
+| Pre-sale hardening         | epic-13 (Lot A bugs — immediate next active epic)                              |
+| Web pre-sale & launch      | epic-14 (50 paying web clients, Stripe, `@pekulo/finance`, launch security)    |
+| Mobile store launch (post) | epic-15 (frozen until after 50 paying web clients)                             |
 
 ## Epic 0: Foundations — package layout, tooling, runtime substrate
 
@@ -1614,5 +1622,584 @@ Every FR maps to exactly one owning story (the implementer). Surface stories tha
 - **Given** an allowlisted user, **When** they open `/dashboard/advisory`, **Then** the analysis + recommendations render with the "not regulated advice" notice visible.
 - **Given** a non-allowlisted or banned user, **When** they navigate to `/dashboard/advisory`, **Then** they cannot reach the surface (server-side gate, no advisory data leaks to the client).
 - **Given** the rendered page, **When** a recommendation is shown, **Then** the active provider/route is surfaced for transparency.
+
+**Complexity:** M
+
+## Epic 13: Pre-sale security, GDPR & financial accuracy hardening
+
+**Goal:** Close every confirmed security, GDPR, webhook durability, and multi-currency portfolio accuracy defect surfaced by the 9-agent audit and Architecture Council (C3, C5) before onboarding paying customers.
+
+**Requirement source:** `docs/triage-decision.md` (Lot A A1–A8), `docs/adr/0019-per-user-envelope-encryption-and-crypto-shredding.md` (Step 1), `docs/adr/0022-webhook-inbox-durability-and-api-security-perimeter.md`, NFR-13/14/19/25/33, FR-18/19/49/60/61/63. Existing 65/65 PRD FR ownership stays intact; these stories harden shipped requirements before public monetization.
+
+**Sequencing:** Immediate next active epic (`active_epic: 13`). All 5 stories carry `depends_on: none` and can execute in parallel.
+
+#### Story 13-1-advisory-crypto-and-consent
+
+**Ticket:** [#171](https://github.com/yabafre/pekulo/issues/171)
+**Title:** Fix advisory encryption key, EU provider posture, opt-in consent, and GDPR export decryption
+
+**Depends on:** none
+
+**As a** closed-circle advisory user, **I want** my advisory sessions encrypted with a dedicated key, sent only to verified EU providers after explicit consent, and decrypted cleanly in my GDPR export, **so that** my financial data stays compliant and portable.
+
+**Summary:** Require fail-closed `ADVISORY_ENCRYPTION_KEY` in `env.ts` (removing the hardcoded fallback in `apps/api/src/modules/advisory/advisory.module.ts:51` and `SUPABASE_SERVICE_ROLE_KEY` reuse in `apps/api/src/bootstrap/runtime-dependencies.ts:318`) with a versioned ciphertext prefix `v1:<keyId>:` and legacy dual-read migration; restrict `advisory-posture.ts` to verified EU endpoints (removing `openrouter.ai` and the `hostname.startsWith("eu-")` bypass); enforce explicit user opt-in in `advisory-llm.service.ts` before invoking external LLMs (NFR-13); decrypt `advisory_sessions.encrypted_payload` inside `settings.export.ts` for GDPR Art. 20 portability (FR-49). Reference: ADR-0016, ADR-0019 Step 1.
+
+**Covered FRs:** FR-49 (hardens GDPR export integrity for advisory sessions); gates NFR-13, NFR-14, ADR-0016, ADR-0019 Step 1.
+
+**Acceptance Criteria:**
+
+- **Given** `ADVISORY_ENCRYPTION_KEY` is missing or weak in non-test environments, **When** `apps/api` boots, **Then** boot fails fast with a configuration error and no hardcoded fallback key is ever used.
+- **Given** an advisory provider URL pointing to `openrouter.ai` or `eu-evil.example`, **When** `assertAdvisoryProviderPosture` runs, **Then** it throws `BAD_REQUEST`.
+- **Given** an allowlisted user who has not opted in to third-party LLM processing, **When** they call `advisory.generateAnalysis`, **Then** the request is rejected before any external LLM call is made.
+- **Given** an allowlisted user with persisted advisory sessions, **When** they download `GET /v1/export`, **Then** `advisory_sessions` entries contain decrypted JSON rather than raw ciphertext.
+
+**Complexity:** M
+
+#### Story 13-2-iban-blind-index-and-logs
+
+**Ticket:** [#172](https://github.com/yabafre/pekulo/issues/172)
+**Title:** Hash userId in API request logs and replace plaintext IBAN keys with user-scoped HMAC blind indexes
+
+**Depends on:** none
+
+**As a** Pekulo user who links bank accounts, **I want** my raw user ID absent from stdout logs and my IBAN never stored in plaintext in Postgres, **so that** log leaks or logical database dumps cannot expose my banking identity.
+
+**Summary:** Replace raw `userId` in `apps/api/src/platform/http/request-log.ts:28` and `orpc-mount.ts:74,87` with `hashUserId()` (NFR-25) and scrub raw IBANs from `bank-aggregator.service.ts:220` warnings. Backfill `accounts.providerId` on legacy `pid:...` rows so `logos.service.ts` stays intact, normalize IBANs (`trim().toUpperCase().replace(/\s+/g, "")`), and migrate `accounts.provider_account_key` `iban:*` values to user-scoped HMAC-SHA-256 blind indexes (`iban_hmac:<hex>` via `HMAC-SHA256(IBAN_HMAC_KEY, "${userId}:${normalizedIban}")`), fail-closed at boot in `env.ts`. Reference: ADR-0019 Step 1, NFR-14, NFR-25.
+
+**Covered FRs:** FR-60, FR-61 (hardens Bridge account deduplication); gates NFR-14, NFR-25, ADR-0019 Step 1.
+
+**Acceptance Criteria:**
+
+- **Given** any authenticated oRPC request, **When** `logRpcRequest` emits a stdout JSON line, **Then** `userId` is a deterministic 16-hex SHA-256 hash and never the raw UUID.
+- **Given** a Bridge sync returning an account with an IBAN, **When** `findOrCreateAutoFromProvider` persists the account, **Then** `provider_account_key` stores `iban_hmac:<hex>` scoped to `userId` and reconnecting the same bank deduplicates without creating duplicate accounts.
+- **Given** two different users sharing a joint-account IBAN, **When** both link the account, **Then** their `provider_account_key` HMAC digests differ.
+
+**Complexity:** M
+
+#### Story 13-3-api-cors-and-rate-limiting
+
+**Ticket:** [#173](https://github.com/yabafre/pekulo/issues/173)
+**Title:** Enforce Elysia CORS allowlist and bounded per-user/IP rate limiting across API entry points
+
+**Depends on:** none
+
+**As a** Pekulo operator, **I want** `apps/api` to enforce origin allowlists and per-user/IP request budgets across every endpoint, **so that** browser cross-origin abuse and runaway API traffic cannot degrade service for other users.
+
+**Summary:** Mount `@elysiajs/cors` in `apps/api/src/app.ts` with a strict `apps/web` + dev origin allowlist (`credentials: false`), allowing requests with missing `Origin` (SSR Server Actions, native mobile, webhooks) while preserving `bridge-webhook-router.ts`'s `onParse` raw `Uint8Array` body capture. Enforce a bounded-LRU per-`userId` rate limiter inside `requireUserContext` (covering `orpc-mount.ts`, `settings.export-routes.ts`, and `llm.attest-router.ts`, with tighter budgets on `/v1/export`, `refreshConnection`, and `advisory.*`) plus a bounded-LRU Caddy-pinned client-IP limiter on public routes (`/v1/logos`, future public endpoints). Exempt HMAC-verified webhooks. Reference: ADR-0022, NFR-9, NFR-15.
+
+**Covered FRs:** (hardens platform perimeter across FR-1..FR-65); gates NFR-9, NFR-15, ADR-0022.
+
+**Acceptance Criteria:**
+
+- **Given** a browser request with a disallowed `Origin`, **When** it hits `apps/api`, **Then** no permissive `Access-Control-Allow-Origin` header is returned, while configured web origins and requests without `Origin` (SSR/mobile/webhooks) succeed.
+- **Given** an authenticated user exceeding their per-minute quota on `/rpc/v1/*`, `/v1/export`, or `/internal/llm/attest`, **When** the next request arrives, **Then** `apps/api` returns HTTP 429 without throttling other users sharing the same Vercel egress IP.
+- **Given** a Bridge webhook POST with raw JSON bytes, **When** CORS middleware is active, **Then** `onParse` still captures the exact `Uint8Array` and HMAC verification passes.
+
+**Complexity:** M
+
+#### Story 13-4-durable-webhook-inbox
+
+**Ticket:** [#174](https://github.com/yabafre/pekulo/issues/174)
+**Title:** Persist verified Bridge webhooks in a durable Postgres inbox with replay dedup and ordered draining
+
+**Depends on:** none
+
+**As a** Pekulo user with connected bank accounts, **I want** incoming Bridge sync and SCA notifications to survive server deploys and never be silently dropped or replayed, **so that** my balances and SCA alerts stay reliable.
+
+**Summary:** Add Postgres `webhook_inbox` table (`provider`, `dedup_key`, `event_type`, `resource_key`, `payload_minimal`, `status`, `attempts`, `next_retry_at`, `locked_until`; RLS enabled with 0 policies; registered in `ID_PREFIXES`, `NON_USER_MODELS`, and `rls-migration-audit.ts`). Persist verified Bridge webhooks idempotently strictly **after** the 256 KB cap + HMAC check and **before** returning HTTP `204`, keying `dedup_key` on verified body event identity (closing the unsigned `t=` header replay vector in `webhook-verifier.ts`). Wire a drainer in `apps/api/src/bootstrap/schedulers.ts` using `FOR UPDATE SKIP LOCKED`, `locked_until > SHUTDOWN_TIMEOUT_MS`, 3–5 worker concurrency cap, per-`providerItemId` serialization preserving distinct status transitions (`1010/sca_required`), exponential backoff, dead-letter capture to GlitchTip, and 14–30 day auto-pruning. Reference: ADR-0022, NFR-33.
+
+**Covered FRs:** FR-61, FR-63 (hardens Bridge webhook ingestion); gates NFR-33, ADR-0022.
+
+**Acceptance Criteria:**
+
+- **Given** an invalid HMAC signature on `/internal/bridge/webhook`, **When** received, **Then** `apps/api` returns 401 in < 100 ms with zero rows written to `webhook_inbox`.
+- **Given** a valid Bridge webhook, **When** `apps/api` returns HTTP `204`, **Then** the event is already committed to `webhook_inbox` and a replayed request with a modified `t=` header is deduplicated with no duplicate sync.
+- **Given** a `status_code=1010` (`sca_required`) webhook arriving while a `status_code=0` refresh is in flight for the same item, **When** the inbox drains, **Then** both transitions are processed in order and `sca_required` is never dropped.
+- **Given** a container restart mid-processing, **When** the `locked_until` lease expires, **Then** the drainer reclaims and completes or dead-letters the row with a GlitchTip alert.
+
+**Complexity:** M
+
+#### Story 13-5-fx-accuracy-and-ui-badges
+
+**Ticket:** [#175](https://github.com/yabafre/pekulo/issues/175)
+**Title:** Fix multi-currency FX conversion on web/mobile Portfolio and surface fallback warning badges
+
+**Depends on:** none
+
+**As an** investor holding USD, GBP, or CHF assets, **I want** my portfolio totals converted accurately to EUR on both web and mobile — and a clear warning whenever any currency falls back to 1:1 — **so that** my displayed net worth is never silently distorted.
+
+**Summary:** Update `apps/api/src/common/derive/portfolio-fx.ts` so a missing per-currency rate flips `fxSource` to `"fallback"` and exposes `missingCurrencies: string[]` instead of claiming `"live"`. Replace raw native-currency summation in `apps/web/src/app/(cap)/dashboard/portefeuille/_components/portfolio-section.tsx` (`approxEurValue`) and `apps/mobile/lib/hooks/use-mobile-queries.ts:715` (`useMobilePortfolioData`) with the FX-resolved snapshot. Render an accessible FX-fallback warning banner/badge on web Dashboard, web Portefeuille, and mobile Cap/Portefeuille whenever `fxSource === "fallback"`. Reference: NFR-19, FR-18, FR-19, `docs/architecture.md:92`.
+
+**Covered FRs:** FR-18, FR-19 (fixes FX accuracy & transparency); gates NFR-19.
+
+**Acceptance Criteria:**
+
+- **Given** a portfolio containing a USD holding when `rates.rates.USD` is absent (even if other currencies succeeded), **When** `computeSnapshotFx` runs, **Then** `fxSource` is `"fallback"` and `missingCurrencies` includes `"USD"`.
+- **Given** a user with USD/GBP/CHF holdings and live ECB rates, **When** they open `/dashboard/portefeuille` on web or the Portefeuille tab on mobile, **Then** totals and P&L reflect EUR-converted values matching `/dashboard`.
+- **Given** `fxSource === "fallback"`, **When** the user views Dashboard or Portefeuille on web or mobile, **Then** a visible, accessible warning indicates approximate 1:1 conversion.
+
+**Complexity:** M
+
+## Epic 14: Web pre-sale, Stripe billing, real-euros projection & launch security
+
+**Goal:** Enable prospective French FIRE investors to discover Pekulo, test a real-euros projection calculator and fictional demo mode, subscribe to the Founder €49/yr or Plus plan with full French B2C legal compliance, and rely on production-grade envelope encryption, 2FA, automated IDOR tests, and instant session revocation.
+
+**Requirement source:** `docs/gtm/2026-11-26-plan-50-clients-janvier-2027.md`, `docs/spikes/2026-11-26-securite-chiffrement-rust.md`, `docs/triage-decision.md` (Lot B), ADR-0019 (Step 2), ADR-0021 (Web Stripe), ADR-0022 (JWT revocation), ADR-0023 (`@pekulo/finance`). _(Numbering note: the GTM plan and `docs/triage-decision.md` referred to this pre-sale work as "Epic 13" prior to splitting Lot A hardening out into Epic 13.)_
+
+**Sequencing:** Follows Epic 13 (stories with `depends_on: none` may start in parallel as Epic 13 wraps). Targets 50 paying web clients before unfreezing Epic 15.
+
+#### Story 14-1-shared-finance-real-projection
+
+**Ticket:** [#176](https://github.com/yabafre/pekulo/issues/176)
+**Title:** Extract `@pekulo/finance` real-euros Fisher projection engine with 3 deterministic scenarios
+
+**Depends on:** none
+
+**As a** long-term saver planning a 20–30 year horizon, **I want** my Cap projection adjusted for inflation and fees with pessimistic, realistic, and optimistic trajectories in constant today's euros, **so that** my monthly gap verdict reflects real purchasing power.
+
+**Summary:** Create zero-dependency workspace package `packages/finance` migrating `projection-curve.ts`, `hypothesis-gap.ts`, and `compass-curve.ts`. Implement exact Fisher real-rate (`r_real = (1 + r_net) / (1 + inflationRate) - 1`), `r_net = annualRate - annualFeeDrag`, effective monthly compounding `i_m = (1 + r)^(1/12) - 1` using `Math.expm1(m * Math.log1p(i_m))` with linear fallback for `|i_m| < 1e-12`, negative real-rate bounds (`r > -0.5`), `P < 0` band-inversion guard (`max(0, P)` + uncompounded debt offset), 3 deterministic scenarios (`r_net ± scenarioSpread`), and `displayMode: 'real' | 'nominal'` (default `'real'`) with exact `FV_real === FV_nom / (1 + inf)^k` and real-basis `gapEurPerMonth` parity. Add backward-compatible defaulted columns to `hypotheses` and update `apps/web` dashboard/settings projection UI with a "Comment c'est calculé" explainer and AMF non-advice disclaimer (mobile disclaimer parity lands in Epic 15). Reference: ADR-0023, FR-57..FR-59, DR-3.
+
+**Covered FRs:** FR-57, FR-58, FR-59 (extends projection to real euros + 3 scenarios); gates NFR-1, DR-3, ADR-0023.
+
+**Acceptance Criteria:**
+
+- **Given** `annualRate = 0.03`, `annualFeeDrag = 0.005`, and `inflationRate = 0.03`, **When** `@pekulo/finance` computes the projection, **Then** negative real rates compute cleanly without error and `FV_real(k) === FV_nom(k) / (1 + inflationRate)^k` holds within floating-point tolerance.
+- **Given** `currentWealthEur < 0` (underwater real estate), **When** the 3-scenario curves compute, **Then** `pessimistic[k] <= realistic[k] <= optimistic[k]` holds for every year `k`.
+- **Given** a user toggles between `real` and `nominal` display modes, **When** the verdict renders, **Then** `reachesCap` stays anchored in real purchasing power and displays the AMF non-advice / user-hypotheses disclaimer.
+
+**Complexity:** L
+
+#### Story 14-2-landing-pricing-and-waitlist
+
+**Ticket:** [#177](https://github.com/yabafre/pekulo/issues/177)
+**Title:** Build public landing page, pricing tiers, security/neutrality page, and rate-limited waitlist capture
+
+**Depends on:** 13-3-api-cors-and-rate-limiting
+
+**As a** visitor arriving at `pekulo.app`, **I want** to understand Pekulo's promise, pricing, and security/neutrality commitments — and join the waitlist or start my account — **so that** I can evaluate Pekulo before hitting a login wall.
+
+**Summary:** Replace `apps/web/src/app/page.tsx`'s redirect to `/login` with a public French landing + pricing page (promise, old vs new way, 3 differentiators, verdict preview, Free vs Plus €69/yr / €7.99/mo vs Founder €49/yr 100 spots guaranteed while active, FAQ, founder presentation, waitlist signup) and a dedicated `/securite` page (verified security controls, ACPR Bridge read-only posture, neutrality, 90-day reversibility commitment). Persist waitlist signups in a new Postgres `waitlist_entries` table (`email` unique, `consented_at`, `source`; `ENABLE ROW LEVEL SECURITY` with **0 policies**, registered in `NON_USER_MODELS`, `ID_PREFIXES`, and `rls-migration-audit.ts#NON_USER_TABLES`) via an unauthenticated `POST /v1/waitlist` endpoint guarded by story `13-3`'s Caddy-pinned IP rate-limiter. Harmonize tutoiement across Settings ("Vos données") and exempt exact public routes in `proxy.ts`. Reference: GTM `13-1`, `13-14`, DR-1..DR-3.
+
+**Covered FRs:** (GTM acquisition surface; DR-1..DR-3 compliant copy — no yield promises).
+
+**Acceptance Criteria:**
+
+- **Given** an unauthenticated visitor hitting `/`, **When** the page loads, **Then** the landing + pricing page renders HTTP 200 with zero auth redirect and Lighthouse Performance ≥ 90 (NFR-3).
+- **Given** a visitor opening `/securite`, **When** the page renders, **Then** security controls, read-only Bridge framing, neutrality, and reversibility guarantees match verified codebase posture with zero false E2EE claims.
+- **Given** a visitor submitting a valid email with explicit consent on `/`, **When** `POST /v1/waitlist` runs, **Then** the row persists idempotently in `waitlist_entries` (protected by IP rate limiting and RLS 0-policy deny-all).
+
+**Complexity:** M
+
+#### Story 14-3-legal-cgv-and-funnel-analytics
+
+**Ticket:** [#178](https://github.com/yabafre/pekulo/issues/178)
+**Title:** Add French B2C legal pages (mentions légales, CGV, security.txt) and privacy-first funnel analytics
+
+**Depends on:** 14-2-landing-pricing-and-waitlist
+
+**As a** prospective French customer, **I want** clear legal notices, CGV with withdrawal/mediator rights, and transparent privacy-respecting analytics, **so that** I can subscribe in full confidence and regulatory compliance.
+
+**Summary:** Add public `/mentions-legales` and `/cgv` pages (publisher/SIRET, hosts, _médiateur de la consommation_ Art. L.612-1, 14-day withdrawal right + immediate-access waiver terms, updated sub-processor list including Stripe), publish `/.well-known/security.txt` + vulnerability disclosure guidance + verify HSTS preload headers (CSP is already enforced per story 11-7), and wire EU privacy-first cookieless/consent-gated funnel analytics (landing → signup → cap set → checkout). Reference: GTM `13-4`, `13-5`, `13-12`.
+
+**Covered FRs:** (legal compliance & funnel instrumentation; GDPR / CNIL / Loi consommation).
+
+**Acceptance Criteria:**
+
+- **Given** an unauthenticated visitor or bot hitting `/mentions-legales`, `/cgv`, or `/.well-known/security.txt`, **When** requested, **Then** each returns HTTP 200 with required French B2C disclosures.
+- **Given** funnel analytics enabled on `apps/web`, **When** a visitor navigates landing → signup → cap set, **Then** anonymized conversion events are recorded without tracking cookies or PII (or strictly after consent).
+
+**Complexity:** S
+
+#### Story 14-4-stripe-billing-entitlements
+
+**Ticket:** [#179](https://github.com/yabafre/pekulo/issues/179)
+**Title:** Implement Stripe Checkout, multi-grant entitlements, Founder 100-spot lock, 3-click cancel & FR-50 cleanup
+
+**Depends on:** 13-4-durable-webhook-inbox
+
+**As a** Pekulo user, **I want** to subscribe to Founder (€49/yr) or Plus via Stripe Checkout, manage or cancel my subscription in 3 clicks from Settings, and have my subscription automatically canceled if I delete my account, **so that** billing is effortless and compliant.
+
+**Summary:** Create `apps/api/src/modules/billing/` with Postgres `subscription_grants` (keyed by `(provider, external_subscription_id)`, RLS + `ON DELETE CASCADE`, `EXPORT_NODES`/`DELETION_NODES`), `founder_reservations` (atomic 100-spot cap via `pg_advisory_xact_lock` + TTL sweep), Stripe Checkout session creation (recording 14-day withdrawal waiver + 7–14 day `past_due` grace for 3DS retries), signed idempotent Stripe webhook ingestion via `webhook_inbox` (story 13-4), Stripe Billing Portal + dedicated ≤ 3-click Settings cancellation calling the Stripe API (with cancellation confirmation email sent natively by Stripe Billing customer notifications — zero `apps/api` SMTP port needed here, satisfying Loi 2022-1158), and Step 1 Stripe subscription cancellation inside `settings.deletion.ts` bounded within `settings.deletion-budget.test.ts` (< 60 s NFR-7). Extend the IDOR isolation harness (if `14-11` is already shipped) to cover `/rpc/v1/billing`. Keep Epic 12 advisory strictly excluded. Reference: ADR-0021, ADR-0022.
+
+**Covered FRs:** FR-50 (extends account deletion to cancel Stripe); gates NFR-7, ADR-0021.
+
+**Acceptance Criteria:**
+
+- **Given** concurrent users clicking the 100th Founder spot, **When** Checkout sessions are created, **Then** `founder_reservations` guarantees at most 100 active/reserved spots and releases expired abandoned sessions automatically.
+- **Given** a Stripe webhook (`checkout.session.completed`, `invoice.payment_failed`, `customer.subscription.deleted`), **When** delivered out-of-order or replayed, **Then** `webhook_inbox` deduplicates and updates `subscription_grants` monotonically while honoring the 7–14 day `past_due` grace window.
+- **Given** an active subscriber in Settings, **When** they click "Résilier mon abonnement" and confirm (≤ 3 clicks), **Then** the Stripe subscription cancels at period end and Stripe triggers the customer cancellation confirmation email.
+- **Given** a paying user deleting their account (FR-50), **When** `deleteAccount` runs, **Then** Stripe subscription cancellation executes in Step 1 inside the 60 s NFR-7 budget before local rows are erased.
+
+**Complexity:** L
+
+#### Story 14-5-paywall-and-downgrade-safety
+
+**Ticket:** [#180](https://github.com/yabafre/pekulo/issues/180)
+**Title:** Enforce server-side Free vs Plus entitlements, post-verdict web paywall, and non-destructive downgrade
+
+**Depends on:** 14-4-stripe-billing-entitlements
+
+**As a** free Pekulo user, **I want** to set my Cap, track 2 milestones, and import CSVs freely before seeing an upgrade prompt — and if I cancel Plus later, I want my existing data preserved while automated bank sync pauses cleanly, **so that** I never feel locked out of my own data.
+
+**Summary:** Enforce server-authoritative `hasPlus` entitlement checks in `apps/api` (Free: 1 cap, 2 milestones, manual + CSV; Plus: Bridge sync, unlimited milestones, real estate, monthly sign-off/digest). On downgrade to Free: **pause** automated Bridge cron/webhook sync (`bank-aggregator.service.ts`) without revoking the user's bank consent, and enforce Free limits **only on creation** (existing milestones/properties stay readable, editable, deletable, and exportable). Render web paywall prompts strictly after the user sees their first verdict; keep `apps/mobile` strictly free of pricing/upgrade CTAs (ADR-0021 interim Apple 3.1.3(b) posture). Reference: ADR-0021, GTM `13-9`.
+
+**Covered FRs:** (entitlement gating across existing FRs); gates ADR-0021.
+
+**Acceptance Criteria:**
+
+- **Given** a Free user attempting to create a 3rd milestone, add a real-estate property, or initiate a Bridge bank connection, **When** the oRPC call reaches `apps/api`, **Then** the server rejects with a typed `UPGRADE_REQUIRED` error.
+- **Given** a former Plus user whose subscription expires, **When** the 6 h `refreshAll` cron or Bridge webhook fires, **Then** automated Bridge sync is skipped (paused, not revoked) and all existing milestones/properties remain readable, editable, and exportable.
+- **Given** `apps/mobile` builds during Epic 14, **When** a Free user navigates the mobile app, **Then** zero pricing text or external checkout links appear.
+
+**Complexity:** M
+
+#### Story 14-6-onboarding-and-demo-mode
+
+**Ticket:** [#181](https://github.com/yabafre/pekulo/issues/181)
+**Title:** Guided 3-step onboarding to first verdict and unauthenticated demo mode with fictional wealth
+
+**Depends on:** 14-1-shared-finance-real-projection, 14-2-landing-pricing-and-waitlist
+
+**As a** new visitor or freshly registered user, **I want** to test Pekulo immediately on a realistic fictional portfolio or reach my own Cap verdict in under 3 minutes, **so that** I experience the core value before connecting a bank or paying.
+
+**Summary:** Build a 3-step guided web onboarding flow (Cap target with adjustable 25× annual-expenses helper → 1 milestone → 1 manual account or CSV import → live real-euros verdict, accepting optional URL-prefilled hypothesis assumptions from `/calculateur`) and an unauthenticated `/demo` read/explore mode preloaded with a realistic fictional French FIRE portfolio (zero account creation or bank connection required). Reference: GTM `13-3`, `13-13`.
+
+**Covered FRs:** FR-1, FR-3, FR-41, FR-58 (guided activation flow).
+
+**Acceptance Criteria:**
+
+- **Given** a newly signed-up user with no compass or accounts, **When** they enter `/dashboard`, **Then** the 3-step onboarding guides them to set a Cap, add 1 milestone, add 1 account/CSV, and displays their live verdict in < 3 minutes.
+- **Given** an unauthenticated visitor clicking "Essayer la démo" on `/`, **When** `/demo` loads, **Then** the Cap dashboard, milestones, real-euros projection, and verdict render interactively on fictional data with zero API mutations.
+
+**Complexity:** M
+
+#### Story 14-7-public-cap-calculator
+
+**Ticket:** [#182](https://github.com/yabafre/pekulo/issues/182)
+**Title:** Build unauthenticated client-side public Cap calculator powered by `@pekulo/finance`
+
+**Depends on:** 14-1-shared-finance-real-projection, 14-2-landing-pricing-and-waitlist, 14-6-onboarding-and-demo-mode
+
+**As a** visitor searching for a French FIRE simulator, **I want** to calculate my target capital, real-euro trajectory, and monthly gap directly without creating an account, **so that** I can test my assumptions and carry them into Pekulo if I sign up.
+
+**Summary:** Create public `/calculateur` route in `apps/web` importing `@pekulo/finance` **100 % client-side** (zero API calls, zero VPS CPU load, zero PII stored): interactive sliders for current wealth, monthly savings, target capital/25× helper, horizon, nominal return, fee drag, inflation, and real/nominal toggle; displays 3-scenario band, monthly gap verdict, "Comment c'est calculé" explainer, AMF non-advice disclaimer, and CTA carrying non-sensitive query parameters into `14-6`'s signup/onboarding flow. Reference: ADR-0023, GTM `13-6`.
+
+**Covered FRs:** (public acquisition tool reusing ADR-0023 engine); gates DR-3, NFR-3.
+
+**Acceptance Criteria:**
+
+- **Given** an unauthenticated visitor adjusting sliders on `/calculateur`, **When** inputs change, **Then** the 3-scenario curve and monthly gap update client-side in < 16 ms with zero backend API requests and exact numeric parity with `apps/api`.
+- **Given** a visitor clicking "Suivre mon cap automatiquement", **When** they complete signup and enter onboarding (`14-6`), **Then** their hypothesis parameters prefill Step 1 without storing PII prior to signup.
+
+**Complexity:** M
+
+#### Story 14-8-monthly-cap-digest-email
+
+**Ticket:** [#183](https://github.com/yabafre/pekulo/issues/183)
+**Title:** Automated 1st-of-month Cap digest email and transactional security alerts via custom SMTP
+
+**Depends on:** 14-1-shared-finance-real-projection, 14-5-paywall-and-downgrade-safety
+
+**As a** Plus subscriber, **I want** a monthly email on the 1st summarizing my real-euro Cap verdict and next milestone — plus immediate email alerts on sensitive security events — **so that** I stay engaged and informed without daily logins.
+
+**Summary:** Wire a transactional email port in `apps/api` (Brevo/Resend SMTP/API, verified SPF/DKIM) powering: (1) a scheduled 1st-of-month Cap digest for opted-in Plus users (current verdict, real-euro monthly gap, next milestone delta, one-click unsubscribe, non-advice disclaimer — idempotent per `(userId, YYYY-MM)`), and (2) immediate security notification emails on new bank connection, 90-day Bridge SCA expiry, and password change (triggered via an explicit post-`updateUser` `apps/api` notification call from `apps/web`'s `updatePassword` action since Supabase Auth processes password updates directly). Reference: GTM `13-7`, `13-10` alerts, `docs/security.md` Custom SMTP.
+
+**Covered FRs:** (retention & security notifications; GDPR consent/opt-out compliant).
+
+**Acceptance Criteria:**
+
+- **Given** an opted-in Plus subscriber on the 1st of the month, **When** the monthly digest job runs, **Then** exactly one email is sent per `(userId, YYYY-MM)` with their real-euro verdict and a working one-click unsubscribe link.
+- **Given** a user completes a new Bridge bank connection, updates their password, or hits a `SCA_REQUIRED` webhook, **When** the event commits, **Then** a security alert email is dispatched without leaking account numbers or balances.
+
+**Complexity:** M
+
+#### Story 14-9-discreet-mode-and-share-card
+
+**Ticket:** [#184](https://github.com/yabafre/pekulo/issues/184)
+**Title:** Add discreet privacy mode and amount-free shareable Cap progress card
+
+**Depends on:** none
+
+**As a** Pekulo user, **I want** to hide my euro amounts with one click when browsing in public and generate a shareable progress card without disclosing amounts, **so that** I protect my financial privacy while sharing milestones.
+
+**Summary:** Add a persisted client-side "mode discret" toggle (Zustand store + eye icon in the Cap header) masking displayed monetary amounts (`•••• €`) across Dashboard, Portefeuille, Immobilier, and Transactions while preserving percentages; build a privacy-safe shareable Cap progress card ("Je suis à X % de mon cap YYYY" — strictly zero monetary amounts or account labels). Reference: GTM `13-8` card, `13-11`.
+
+**Covered FRs:** (privacy & shareable progress UX).
+
+**Acceptance Criteria:**
+
+- **Given** a user toggles discreet mode on, **When** they navigate across Dashboard, Portefeuille, Immobilier, and Transactions, **Then** all monetary amounts are masked (`•••• €`) while progress percentages remain visible.
+- **Given** a user generates a shareable Cap card, **When** rendered or exported, **Then** it displays progress percentage and target year with zero euro amounts or account names.
+
+**Complexity:** S
+
+#### Story 14-10-referral-reward-loop
+
+**Ticket:** [#185](https://github.com/yabafre/pekulo/issues/185)
+**Title:** Implement per-user referral codes and 1-month Stripe subscription credit loop
+
+**Depends on:** 14-4-stripe-billing-entitlements
+
+**As a** Pekulo subscriber, **I want** to share a personal referral link that grants me 1 free month when a friend subscribes to Plus, **so that** recommending Pekulo is rewarded automatically.
+
+**Summary:** Add a `referrals` Prisma model (`referrer_user_id`, `referee_user_id`, `code`, `status`, `stripe_credit_applied_at`; RLS + `ON DELETE CASCADE` + `ID_PREFIXES` + `EXPORT_NODES` + `DELETION_NODES`), signup attribution capturing `?ref=<code>`, anti-self-referral guards, and automatic 1-month Stripe invoice credit/coupon application triggered when a referred user completes their first paid Stripe checkout webhook inside `apps/api/src/modules/billing/`. Reference: GTM `13-8` referral.
+
+**Covered FRs:** (growth & referral billing loop; GDPR export/deletion compliant).
+
+**Acceptance Criteria:**
+
+- **Given** user B signs up via user A's referral link and completes a paid Stripe checkout, **When** the billing webhook processes, **Then** user A receives a 1-month Stripe credit exactly once and the referral row marks as rewarded.
+- **Given** user A attempts to redeem their own referral code, **When** attributed, **Then** self-referral is rejected with zero credit applied.
+
+**Complexity:** M
+
+#### Story 14-11-idor-isolation-test-suite
+
+**Ticket:** [#186](https://github.com/yabafre/pekulo/issues/186)
+**Title:** Automated cross-tenant IDOR isolation test suite covering all shipped authenticated API routes
+
+**Depends on:** none
+
+**As a** Pekulo security owner, **I want** CI to verify automatically that user B can never read, modify, or delete any resource belonging to user A across every API route, **so that** ADR-0013's single-layer `where: { userId }` isolation is continuously proven.
+
+**Summary:** Build a comprehensive integration test suite in `apps/api` seeding two distinct users (`userA`, `userB`) across all shipped Epics 1–12 domain modules (compass, milestones, accounts, holdings, lots, realestate, transactions, monthly, dashboard, hypothesis, bank-aggregator, llm, settings, advisory) and asserting that every read/update/delete/export call made by `userB` against `userA`'s IDs fails with 403/404 and zero cross-tenant data leak. Gate merges on this suite in `.github/workflows/pr.yml` and enforce a module-registration meta-test so every future module (`billing`, `referrals`, `security-events`) must join the IDOR harness when added. Reference: ADR-0013, spike `13-16`.
+
+**Covered FRs:** (continuous enforcement of NFR-8 / ADR-0013 across all modules).
+
+**Acceptance Criteria:**
+
+- **Given** seeded resources owned by `userA` across every shipped module, **When** `userB` invokes every oRPC procedure and Elysia authenticated route with `userA`'s resource IDs, **Then** 100 % of cross-tenant attempts return 403/404 with zero leakage of `userA`'s data.
+- **Given** a deliberately broken repository omitting `where: { userId }` or a new oRPC module omitted from the IDOR registry, **When** CI runs, **Then** the build fails naming the violating route or module.
+
+**Complexity:** M
+
+#### Story 14-12-ci-security-pipeline
+
+**Ticket:** [#187](https://github.com/yabafre/pekulo/issues/187)
+**Title:** Add automated dependency CVE scanning, SAST, and dependency update automation in CI
+
+**Depends on:** none
+
+**As a** solo founder operating a financial app, **I want** automated vulnerability scanning and dependency update PRs on every commit, **so that** known CVEs and insecure code patterns are caught before reaching production.
+
+**Summary:** Extend `.github/workflows/pr.yml` (and scheduled weekly run) with dependency CVE scanning (`osv-scanner` / `bun audit`), static security analysis (`CodeQL` or `Semgrep` tailored for TypeScript/Bun/Next.js), and repository-level `Dependabot` or `Renovate` config for security updates. Reference: Spike `13-17`, `docs/rgpd-readiness.md:56`.
+
+**Covered FRs:** (CI security hygiene; GDPR Art. 32).
+
+**Acceptance Criteria:**
+
+- **Given** a PR opened against `main`, **When** CI runs, **Then** dependency vulnerability scanning and SAST execute automatically and fail on high/critical findings.
+- **Given** `.github/dependabot.yml` (or Renovate config) committed, **When** validated, **Then** root, `apps/api`, `apps/web`, `apps/mobile`, `apps/prices`, and GitHub Actions ecosystems are tracked.
+
+**Complexity:** S
+
+#### Story 14-13-totp-mfa-enrollment
+
+**Ticket:** [#188](https://github.com/yabafre/pekulo/issues/188)
+**Title:** Add Supabase TOTP 2FA enrollment, login challenge, and post-bank-link prompt on web
+
+**Depends on:** none
+
+**As a** Pekulo user connecting my bank accounts, **I want** to protect my account with an authenticator-app 2FA code (TOTP), **so that** a leaked password alone cannot expose my financial data.
+
+**Summary:** Implement Supabase Auth TOTP MFA flows (`mfa.enroll`, `mfa.challenge`, `mfa.verify`, `mfa.unenroll`) in `apps/web`: QR code + manual secret setup in Settings → Sécurité, MFA verification step in `/login` when an enrolled factor requires AAL2, and a non-blocking prompt encouraging 2FA right after a user's first Bridge bank connection. Reference: `docs/architecture.md:137`, `docs/rgpd-readiness.md:54`, GTM `13-10`.
+
+**Covered FRs:** FR-46 (extends login security with AAL2); gates NFR-11, GDPR Art. 32.
+
+**Acceptance Criteria:**
+
+- **Given** an authenticated user in Settings → Sécurité, **When** they enroll a TOTP authenticator app and enter a valid 6-digit code, **Then** MFA is active on their Supabase Auth account.
+- **Given** a user with TOTP MFA enabled, **When** they sign in with email + password, **Then** they must pass the TOTP challenge before accessing `/dashboard`.
+- **Given** a user with MFA disabled finishing their first bank link, **When** they return to the dashboard, **Then** a dismissible prompt suggests enabling 2FA.
+
+**Complexity:** M
+
+#### Story 14-14-jwt-revocation-and-401-fix
+
+**Ticket:** [#189](https://github.com/yabafre/pekulo/issues/189)
+**Title:** Fix mobile/web 401 refresh-retry and enforce API JWT revocation (`tokens_revoked_before`)
+
+**Depends on:** 13-3-api-cors-and-rate-limiting
+
+**As a** Pekulo user, **I want** signing out or revoking all sessions to invalidate active API tokens immediately without causing spurious mobile logouts when short-lived tokens refresh, **so that** my sessions are both secure and reliable.
+
+**Summary:** Implement ADR-0022 JWT revocation in safe rollout order: (1) fix `apps/mobile/lib/auth/auth-context.tsx` to proactively refresh access tokens when `exp - now < 60 s` and attempt one silent Supabase refresh + retry on 401 before calling `signOut()`, and verify web Server Action near-expiry refresh, unlocking Supabase Dashboard JWT TTL reduction from 60 min to 10–15 min (documented in `docs/security.md`); (2) extract and require integer `iat` in `jwt-verifier.ts`; (3) add `tokens_revoked_before` (`user_id` PK → `auth.users(id) ON DELETE CASCADE`, `revoked_before_sec BIGINT`, RLS, `DELETION_NODES`, excluded from `EXPORT_NODES`, strict `<` whole-second comparison preventing clock-skew self-lockout, 15–30 s bounded write-through memory cache, **direct-DB bypass** on `/v1/export`, `deleteAccount`, `bankAggregator.*`, `advisory.*`), stamped on `signOut`, password reset, FR-50, and a new "Déconnecter tous les appareils" Settings action. Reference: ADR-0022, FR-47, NFR-9.
+
+**Covered FRs:** FR-47 (closes stateless API revocation gap); gates NFR-9, ADR-0022.
+
+**Acceptance Criteria:**
+
+- **Given** a mobile access token expiring mid-request over 4G, **When** `apps/api` returns 401, **Then** `apps/mobile` performs one silent Supabase refresh and retries the oRPC call before ever signing the user out.
+- **Given** a user clicks "Déconnecter tous les appareils" or signs out, **When** a previously captured access JWT (`iat < revoked_before_sec`) hits `/rpc/v1/*`, `/v1/export`, or `deleteAccount`, **Then** `apps/api` rejects it with 401 in < 100 ms, while a fresh login in the same second is never locked out.
+
+**Complexity:** M
+
+#### Story 14-15-security-events-audit-log
+
+**Ticket:** [#190](https://github.com/yabafre/pekulo/issues/190)
+**Title:** Add append-only `security_events` audit log and Settings → Sécurité history view
+
+**Depends on:** 14-13-totp-mfa-enrollment, 14-14-jwt-revocation-and-401-fix
+
+**As a** Pekulo user, **I want** to inspect an immutable history of sensitive actions on my account (sign-ins, bank connections, exports, MFA/password changes, session revocations), **so that** I can spot suspicious activity immediately.
+
+**Summary:** Add an append-only `security_events` table following ADR-0001 (RLS `INSERT` + `SELECT` only, `ON DELETE CASCADE`, `EXPORT_NODES`, `DELETION_NODES`, `ID_PREFIXES`), emit structured non-PII event records from `apps/api` on bank connect/revoke, GDPR export, global session revocation, and explicit post-action hooks from `apps/web` for sign-in, password update, and TOTP MFA enroll/unenroll, and surface the paginated timeline in Settings → Sécurité. Reference: ADR-0001, spike `13-18`.
+
+**Covered FRs:** (user-facing security audit log; ADR-0001 append-only pattern).
+
+**Acceptance Criteria:**
+
+- **Given** a user connects/revokes a bank, exports data, enrolls/unenrolls 2FA, updates their password, or revokes all sessions, **When** each action completes, **Then** an append-only row is recorded in `security_events` with zero raw secrets or PII.
+- **Given** a user opens Settings → Sécurité, **When** the timeline loads, **Then** recent security events display cleanly in reverse chronological order and RLS rejects `UPDATE`/`DELETE` attempts.
+
+**Complexity:** M
+
+#### Story 14-16-per-user-envelope-crypto
+
+**Ticket:** [#191](https://github.com/yabafre/pekulo/issues/191)
+**Title:** Implement explicit `UserCryptoService` per-user envelope encryption (`KEK → DEK`) and cryptographic erasure
+
+**Depends on:** 13-1-advisory-crypto-and-consent, 13-2-iban-blind-index-and-logs
+
+**As a** Pekulo user trusting the app with my transaction labels and property details, **I want** my sensitive text fields encrypted with a per-user key separate from Postgres, **so that** a database dump is unreadable and deleting my account cryptographically shreds my data.
+
+**Summary:** Implement ADR-0019 Step 2 (all 9 controls; spike `13-15`): create `user_keys` table (`user_id` PK → `auth.users(id) ON DELETE CASCADE`, `wrapped_dek`, `kek_version`, `ENABLE ROW LEVEL SECURITY` with **0 policies**, delete-only in `DELETION_NODES`, excluded from `EXPORT_NODES`, `ID_PREFIXES: null`, guard-test exemptions documented). Build an explicit repository-boundary **`UserCryptoService`** behind `KeyProvider` using native `node:crypto` AES-256-GCM + HKDF-SHA-256 + AAD `table|column|rowId|userId|formatVersion` + boot canary + bounded LRU DEK cache (evicted unconditionally on `deleteAccount`, provisioned outside `$transaction` — **never** blanket Prisma `$extends`). Encrypt sensitive free-text fields (`transactions.label`, `transactions.notes`, `accounts.notes`, `holdings.notes`, `real_estate.label`, `bank_connections.display_name`, `milestones.label`, and `advisory_sessions.encrypted_payload`) with versioned prefix `pk1.<iv>.<tag>.<ct>`, add `label_bidx` / bounded in-memory filtering for `listDistinctProviderLabels` and `llm_call_log.label_hash` (keeping `Account.label` unencrypted so CSV import's `findAccountIdByLabelForUser` continues working), pre-validate DEK before streaming `GET /v1/export`, append hashed `userId` to the external erasure ledger on deletion (replayed on restore), and ship forward backfill + KEK re-wrap (`PEKULO_KEK_V1` → `V2`) scripts plus updated NFR-21 escrowed-KEK restore drill. Reference: ADR-0019 Step 2, NFR-14, NFR-21, FR-49, FR-50.
+
+**Covered FRs:** FR-49, FR-50 (hardens export/deletion with per-user envelope crypto); gates NFR-6, NFR-7, NFR-14, NFR-21, ADR-0019.
+
+**Acceptance Criteria:**
+
+- **Given** a transaction or note written through its repository, **When** inspected directly in Postgres, **Then** the stored column contains `pk1.<iv>.<tag>.<ct>` AES-256-GCM ciphertext authenticated with `table|column|rowId|userId|formatVersion` AAD, while amounts, dates, categories, and `Account.label` remain queryable.
+- **Given** ciphertext copied from user A's row into user B's row or another column, **When** `UserCryptoService` attempts decryption, **Then** GCM authentication fails cleanly.
+- **Given** a user triggers `GET /v1/export` (FR-49) or `deleteAccount` (FR-50), **When** completed, **Then** exports return decrypted plaintext within 60 s (NFR-6), `deleteAccount` records the external erasure ledger entry + erases `user_keys` + evicts the DEK cache within 60 s (NFR-7), and `rls-migration-audit` + export/deletion guard tests stay green.
+- **Given** a KEK rotation from `PEKULO_KEK_V1` to `V2`, **When** the re-wrap script runs, **Then** all `user_keys` rows re-wrap under `V2` without re-encrypting field ciphertexts and boot canary verifies all referenced versions.
+
+**Complexity:** L
+
+## Epic 15: Mobile store launch & native IAP readiness
+
+**Goal:** Prepare `apps/mobile` (iOS & Android) for public App Store and Google Play distribution with native signup/demo onboarding, smooth virtualized transaction scrolling, mobile crash reporting into GlitchTip, compliant RevenueCat IAP synced with `subscription_grants`, automated EAS/OTA releases, and branded ASO store assets.
+
+**Requirement source:** `docs/triage-decision.md` (Lot C C1–C6), ADR-0021 (mobile RevenueCat IAP), ADR-0023 (mobile real-euros disclaimer parity), NFR-16, NFR-27, Apple App Review & Google Play policies. _(Numbering note: `docs/triage-decision.md` referred to this store-launch work as "Epic 14" prior to splitting Lot A hardening out into Epic 13.)_
+
+**Sequencing / Tiering:** Post-50-web-clients store launch (frozen during Epic 13/14 web pre-sale per `docs/gtm/2026-11-26-plan-50-clients-janvier-2027.md`).
+
+#### Story 15-1-mobile-signup-and-demo
+
+**Ticket:** [#192](https://github.com/yabafre/pekulo/issues/192)
+**Title:** Add native account signup, password reset, and interactive demo mode on mobile
+
+**Depends on:** none
+
+**As a** mobile user installing Pekulo from the App Store or Google Play, **I want** to create an account, reset my password, or explore a fictional demo directly inside the app, **so that** I am not blocked by a login-only wall.
+
+**Summary:** Extend `apps/mobile/app/login.tsx` (and add native signup / password-reset screens) with Supabase email+password signup enforcing the 12-char policy (NFR-11, FR-45), password reset (FR-48), and an explicit "Essayer en mode démo" option available even when `requireAuth === true` (replacing the hidden preview-only flag). Include ADR-0023's real-euros projection disclaimer parity on the mobile Cap screen. Reference: FR-45, FR-48, NFR-11, ADR-0023, triage C2.
+
+**Covered FRs:** FR-45, FR-48 (mobile parity); gates NFR-11.
+
+**Acceptance Criteria:**
+
+- **Given** a new mobile user on the Auth screen, **When** they tap "Créer un compte" and enter an email + ≥ 12-char password, **Then** Supabase Auth creates the account and displays confirmation guidance.
+- **Given** a production mobile build (`requireAuth === true`), **When** the user taps "Essayer en mode démo", **Then** they can browse all 5 tabs on realistic fictional data with a clear demo banner and signup CTA.
+
+**Complexity:** M
+
+#### Story 15-2-mobile-transactions-list-perf
+
+**Ticket:** [#193](https://github.com/yabafre/pekulo/issues/193)
+**Title:** Virtualize mobile transactions list for smooth scrolling at high monthly volumes
+
+**Depends on:** none
+
+**As a** mobile user with hundreds of monthly transactions, **I want** smooth 60 fps scrolling and instant search on the Transactions tab without UI stutter, **so that** reviewing my monthly spending stays responsive.
+
+**Summary:** Refactor `apps/mobile/app/(tabs)/transactions/index.tsx` to render transaction rows inside a virtualized `FlatList` / `FlashList` (replacing `.map()` inside `<ScrollView>`), preserving iOS `NativeTabs` automatic insets, pull-to-refresh, month navigation, search, and pending AI suggestions header. Reference: NFR-16, triage C5.
+
+**Covered FRs:** FR-28, FR-64 (mobile list virtualization); gates NFR-16.
+
+**Acceptance Criteria:**
+
+- **Given** a month with 500–1,000 transactions loaded on iOS or Android, **When** the user scrolls and filters by search query, **Then** only visible rows + window buffer mount (virtualized) with pull-to-refresh and iOS Large Title/NativeTabs insets preserved.
+
+**Complexity:** S
+
+#### Story 15-3-mobile-sentry-glitchtip
+
+**Ticket:** [#194](https://github.com/yabafre/pekulo/issues/194)
+**Title:** Wire `@sentry/react-native` mobile crash reporting to GlitchTip with PII scrubbing
+
+**Depends on:** none
+
+**As a** Pekulo operator publishing to iOS and Android stores, **I want** unhandled JS and native mobile crashes captured automatically in GlitchTip with PII scrubbed, **so that** production regressions are diagnosed immediately.
+
+**Summary:** Add `@sentry/react-native` to `apps/mobile` targeting the existing self-hosted GlitchTip DSN, apply the same PII scrubbing rules as `@pekulo/observability` (`beforeSend` stripping emails, IBANs, tokens, hashing `user.id`), configure source-map / dSYM upload for EAS release builds, and guarantee fail-open initialization when DSN is unset. Reference: ADR-0005, NFR-27, triage C3.
+
+**Covered FRs:** (mobile observability parity); gates NFR-27, ADR-0005.
+
+**Acceptance Criteria:**
+
+- **Given** an unhandled JS exception in `apps/mobile` with `EXPO_PUBLIC_GLITCHTIP_DSN` configured, **When** it fires, **Then** one scrubbed event reaches GlitchTip with zero raw emails, IBANs, or JWTs.
+- **Given** GlitchTip is unreachable or DSN is unset, **When** the app launches, **Then** startup succeeds fail-open with zero user-facing errors.
+
+**Complexity:** S
+
+#### Story 15-4-mobile-revenuecat-iap
+
+**Ticket:** [#195](https://github.com/yabafre/pekulo/issues/195)
+**Title:** Integrate RevenueCat mobile-only IAP synced into `subscription_grants` with anti-double-billing
+
+**Depends on:** 14-4-stripe-billing-entitlements, 14-5-paywall-and-downgrade-safety, 15-1-mobile-signup-and-demo
+
+**As an** iOS or Android user, **I want** to subscribe to Pekulo Plus via native Apple/Google in-app purchase without ever being double-billed if I already subscribed on the web, **so that** upgrading on mobile is seamless and safe.
+
+**Summary:** Integrate RevenueCat SDK in `apps/mobile` for Apple/Google IAP only (Web Stripe stays completely outside RevenueCat's MTR meter per ADR-0021); ingest RevenueCat webhooks via `webhook_inbox` into `subscription_grants`; suppress mobile IAP purchase flows when `apps/api` reports an active Stripe grant (directing management to web); add Apple Guideline 5.1.1(v) store-cancellation guidance to `apps/mobile/app/sheets/delete-account.tsx`; update `apps/mobile/app.json` Privacy Manifest (`NSPrivacyCollectedDataTypePurchaseHistory`, keeping `NSPrivacyTracking: false`). Reference: ADR-0021, triage C1.
+
+**Covered FRs:** FR-50 (mobile IAP deletion guidance); gates ADR-0021, Apple 3.1.1 / 5.1.1(v).
+
+**Acceptance Criteria:**
+
+- **Given** a Free mobile user purchasing Plus via Apple/Google IAP, **When** RevenueCat delivers the webhook, **Then** `subscription_grants` activates the `apple`/`google` grant idempotently and Plus features unlock immediately across mobile and web.
+- **Given** an active Web Stripe subscriber opening mobile Settings, **When** they inspect their plan, **Then** Plus shows as active via Web and the native IAP buy button is hidden/blocked to prevent double-billing.
+- **Given** an iOS IAP subscriber initiating in-app account deletion, **When** the confirmation sheet opens, **Then** it explicitly reminds them to cancel their Apple subscription in iOS Settings (Apple 5.1.1(v)).
+
+**Complexity:** L
+
+#### Story 15-5-eas-release-and-ota-pipeline
+
+**Ticket:** [#196](https://github.com/yabafre/pekulo/issues/196)
+**Title:** Configure EAS production build/submit pipeline and `expo-updates` OTA channels
+
+**Depends on:** 15-3-mobile-sentry-glitchtip
+
+**As a** solo developer maintaining iOS and Android store builds, **I want** a repeatable CI pipeline for EAS release builds, store submission, and emergency OTA JS patches, **so that** releases are low-friction and reversible.
+
+**Summary:** Install and configure `expo-updates` (`runtimeVersion: { policy: "appVersion" }`, `preview` and `production` channels) in `apps/mobile/app.json` and `eas.json`, complete `submit.production` metadata, and add a manually-triggered / tag-gated `.github/workflows/release-mobile.yml` running Jest + typecheck + store-compliance tests before invoking `eas build`, `eas submit`, or `eas update`. Reference: Triage C4.
+
+**Covered FRs:** (mobile release engineering); gates NFR-27, store release readiness.
+
+**Acceptance Criteria:**
+
+- **Given** `apps/mobile/app.json` and `eas.json`, **When** validated against Expo/EAS config, **Then** `runtimeVersion` and distinct `preview`/`production` OTA channels are configured with `submit.production` populated.
+- **Given** a tagged mobile release or manual workflow dispatch, **When** `.github/workflows/release-mobile.yml` runs, **Then** it gates EAS build/OTA behind green Jest, typecheck, and `store-compliance.test.ts`.
+
+**Complexity:** M
+
+#### Story 15-6-aso-listing-and-brand-icon
+
+**Ticket:** [#197](https://github.com/yabafre/pekulo/issues/197)
+**Title:** Ship branded Pekulo compass app icon, FR/EN ASO store listings, screenshots, and readiness sign-off
+
+**Depends on:** 15-1-mobile-signup-and-demo, 15-4-mobile-revenuecat-iap
+
+**As a** user browsing the App Store or Google Play, **I want** a recognizable branded Pekulo icon, clear French/English store listings, and accurate screenshots and privacy labels, **so that** I trust the app and understand its value before downloading.
+
+**Summary:** Replace generic black "P" `apps/mobile/assets/{icon,adaptive-icon,splash-icon*}.png` with the branded Pekulo compass icon (1024×1024 RGB no-alpha); author FR & EN ASO store metadata (title, subtitle, keywords, description, release notes) under `apps/mobile/docs/store-listing/`; capture release-build screenshots (iPhone 6.9", iPad 13", Android phone/tablet); reconcile App Store Connect privacy labels, Google Play Data Safety, Apple Small Business Program (15 %), and EU DSA trader status (`2027-02-01` deadline); update `REVIEW-NOTES.md` and flip `.app-review-readiness.json` checks to `pass`. Reference: Triage C6, ADR-0021.
+
+**Covered FRs:** (store launch & compliance readiness); gates Apple/Google store review.
+
+**Acceptance Criteria:**
+
+- **Given** `apps/mobile/assets/icon.png`, **When** `store-compliance.test.ts` and visual inspection run, **Then** the icon is 1024×1024 RGB without alpha channel and displays the branded Pekulo compass mark.
+- **Given** `apps/mobile/.app-review-readiness.json`, **When** pre-submission checks are audited, **Then** `demo_account`, `live_backend`, `review_notes`, `screenshots_match_build`, `account_deletion_device_test`, `privacy_labels_match_runtime`, and `iap_reachable_by_reviewer` are all `pass`.
 
 **Complexity:** M

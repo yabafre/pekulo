@@ -57,6 +57,8 @@
 
 ## 4. Ce qu'il faut corriger ou ajouter dans le produit
 
+> **Complément triage 2026-11-27 (`docs/triage-decision.md`) :** avant l'ouverture de la pré-vente, ajouter en tête de l'Epic 13 le **Lot A (hardening bugs)** — logs `userId` hashé (NFR-25), clé dédiée `ADVISORY_ENCRYPTION_KEY`, contrôle strict endpoint UE advisory + opt-in, CORS + rate-limit global sur `apps/api`, persistance DB du webhook Bridge avant `204`, exactitude FX sur Portefeuille web/mobile + badge `fxSource`, blind index HMAC sur l'IBAN — ainsi que la **projection en euros constants (inflation) + fourchette pessimiste/réaliste/optimiste** (B2).
+
 Classé par impact sur les ventes de janvier. Tailles : S ≈ ½–1 jour, M ≈ 2–3 jours **[H]**.
 
 ### P0 — sans ça, personne ne peut payer (à livrer avant le 14 déc.)
@@ -102,11 +104,11 @@ Un client qui confie l'accès à ses comptes à une app inconnue d'un fondateur 
 
 #### B. Sécurité du compte — le minimum attendu d'une app financière
 
-| Story                                       | Contenu                                                                                                                                                                                                        | Taille | Échéance |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------- |
-| **13-10 Double authentification + alertes** | 2FA par application (TOTP, supporté par Supabase Auth), proposée juste après la première connexion bancaire. Emails d'alerte : nouvelle connexion bancaire, changement de mot de passe, SCA expirée (90 jours) | M      | 21 déc.  |
-| **13-11 Mode discret**                      | Icône œil qui masque les montants (patrimoine total seul, ou tout), mémorisée. Finary l'a déjà ; c'est indispensable pour la carte partageable et les captures d'écran                                         | S      | 21 déc.  |
-| **13-12 Durcissement du périmètre**         | Passer la CSP de Report-Only à appliquée ; publier `/.well-known/security.txt` et une page de signalement de faille                                                                                            | S      | 14 déc.  |
+| Story                                       | Contenu                                                                                                                                                                                                                               | Taille | Échéance |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------- |
+| **13-10 Double authentification + alertes** | 2FA par application (TOTP, supporté par Supabase Auth), proposée juste après la première connexion bancaire. Emails d'alerte : nouvelle connexion bancaire, changement de mot de passe, SCA expirée (90 jours)                        | M      | 21 déc.  |
+| **13-11 Mode discret**                      | Icône œil qui masque les montants (patrimoine total seul, ou tout), mémorisée. Finary l'a déjà ; c'est indispensable pour la carte partageable et les captures d'écran                                                                | S      | 21 déc.  |
+| **13-12 Durcissement du périmètre**         | Publier `/.well-known/security.txt` et une page de signalement de faille ; vérifier HSTS preload _(note 2026-11-27 : la CSP avec nonce est déjà servie en mode **enforced** dans `apps/web/src/lib/security/headers.ts`, story 11-7)_ | S      | 14 déc.  |
 
 Plus tard (après 50 clients) : verrouillage Face ID/PIN sur mobile.
 
